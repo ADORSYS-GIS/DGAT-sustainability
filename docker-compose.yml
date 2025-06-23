@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: dgrv_db
+      POSTGRES_USER: dgrv_user
+      POSTGRES_PASSWORD: dgrv_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/database/seeds:/docker-entrypoint-initdb.d
+
+  # Keycloak Authentication
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    command: start-dev
+
+volumes:
+  postgres_data:
