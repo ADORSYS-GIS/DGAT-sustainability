@@ -2,7 +2,6 @@
 name = "sync-service"
 version = "0.0.1"
 edition = "2021"
-authors = ["DGRV Digital Tools Team <dev@dgrv.io>"]
 license = "MIT"
 
 [dependencies]
