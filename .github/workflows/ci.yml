@@ -1,0 +1,101 @@
+name: CI
+
+on: pull_request
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v4
+      - name: Install Stable Rust Toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt, clippy
+      - name: Cache Rust Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo
+            ./backend/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo
+            ./backend/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cargo Build
+        working-directory: backend
+        run: cargo build --workspace --all-targets --all-features
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo
+            ./backend/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - name: Run Cargo Tests
+        working-directory: backend
+        run: cargo nextest run --workspace --all-targets --all-features --no-fail-fast
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo
+            ./backend/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cargo Format Check
+        working-directory: backend
+        run: cargo fmt --all --check
+      - name: Cargo Clippy Check
+        working-directory: backend
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo
+            ./backend/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cargo Doc
+        working-directory: backend
+        run: cargo doc --workspace --all-features --no-deps

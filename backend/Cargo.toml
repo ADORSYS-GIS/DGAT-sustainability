@@ -1,0 +1,19 @@
+[workspace]
+members = [
+    "common",
+    "sustainability-service",
+    "sync-service",
+]
+
+[workspace.package]
+# Shared metadata for all crates
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+# Common dependencies for all services
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres"] }
+uuid = { version = "0.8", features = ["v4"] }
