@@ -1,73 +1,106 @@
-# Welcome to your Lovable project
+# Minimal React HomePage App
 
-## Project info
+## Project Overview
 
-**URL**: https://lovable.dev/projects/9e6d865e-5ed1-4b01-a649-ae5047564102
+This project is a minimal React application built with Vite, TypeScript, Tailwind CSS, and shadcn-ui. It features a single, modern HomePage with a clean structure, ready for further extension.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- Modern, responsive HomePage UI
+- Built with React, Vite, and TypeScript
+- Styled using Tailwind CSS and shadcn-ui components
+- Minimal dependencies and codebase
+- Ready for rapid customization and extension
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9e6d865e-5ed1-4b01-a649-ae5047564102) and start prompting.
+- [React](https://react.dev/)
+- [Vite](https://vitejs.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn-ui](https://ui.shadcn.com/)
+- [Radix UI](https://www.radix-ui.com/)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js (v18+ recommended)
+- npm (v9+ recommended)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repository
+git clone https://github.com/ADORSYS-GIS/DGAT-sustainability
+cd DGAT-sustainability/frontend
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Development
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at [http://localhost:8080](http://localhost:8080) by default.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build for Production
 
-**Use GitHub Codespaces**
+```sh
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The production-ready files will be in the `dist/` directory.
 
-## What technologies are used for this project?
+### Preview Production Build
 
-This project is built with:
+```sh
+npm run preview
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Linting & Formatting
 
-## How can I deploy this project?
+```sh
+npm run lint        # Lint the codebase
+npm run prettier:check # Check code formatting
+```
 
-Simply open [Lovable](https://lovable.dev/projects/9e6d865e-5ed1-4b01-a649-ae5047564102) and click on Share -> Publish.
+### Type Checking
 
-## Can I connect a custom domain to my Lovable project?
+```sh
+npm run ts:check
+```
 
-Yes, you can!
+### Testing
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```sh
+npm run test:unit
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Project Structure
+
+```
+frontendcopy/
+├── src/
+│   ├── components/         # Shared and UI components
+│   ├── hooks/              # Custom hooks
+│   ├── pages/              # HomePage and LoginPage
+│   ├── services/           # Minimal services for auth
+│   ├── types/              # TypeScript types
+│   ├── utils/              # Utility functions
+│   ├── assets/             # Static assets (images, icons, fonts)
+│   ├── i18n/               # Internationalization (optional)
+│   ├── styles/             # Global styles (if present)
+│   └── App.tsx, main.tsx   # App entry points
+├── public/                 # Static public files
+├── package.json            # Project config
+├── vite.config.ts          # Vite config
+└── README.md               # This file
+```
+
+## License
+
+This project is open source and available under the [MIT License](./LICENSE).

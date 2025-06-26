@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: adorsys-gis/DGAT-sustainability
+  IMAGE_NAME: adorsys-gis/dgat-sustainability
 
 jobs:
   build-and-push-image:
