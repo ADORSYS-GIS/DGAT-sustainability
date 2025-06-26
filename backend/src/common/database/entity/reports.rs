@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 use serde_json::Value;
-use crate::enums::ReportType;
+use crate::common::database::enums::ReportType;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "reports")]

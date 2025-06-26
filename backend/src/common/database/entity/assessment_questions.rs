@@ -1,17 +1,15 @@
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 use serde_json::Value;
-use crate::common::database::enums::SyncStatus;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "sync_queue")]
+#[sea_orm(table_name = "assessment_questions")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub sync_id: Uuid,
-    pub user_id: String,
     pub assessment_id: Uuid,
-    pub data: Value,
-    pub status: SyncStatus,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub question_id: Uuid,
+    pub answer: Value, // Stores answer, e.g., {"value": "response"}
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -22,11 +20,23 @@ pub enum Relation {
         to = "super::assessments::Column::AssessmentId"
     )]
     Assessment,
+    #[sea_orm(
+        belongs_to = "super::questions::Entity",
+        from = "Column::QuestionId",
+        to = "super::questions::Column::QuestionId"
+    )]
+    Question,
 }
 
 impl Related<super::assessments::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Assessment.def()
+    }
+}
+
+impl Related<super::questions::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Question.def()
     }
 }
 
