@@ -1,7 +1,11 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)", enum_name = "role_type")]
+#[sea_orm(
+    rs_type = "String",
+    db_type = "String(StringLen::None)",
+    enum_name = "role_type"
+)]
 pub enum Role {
     #[sea_orm(string_value = "admin")]
     Admin,
@@ -12,7 +16,11 @@ pub enum Role {
 }
 
 #[derive(Clone, Debug, PartialEq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)", enum_name = "assessment_status")]
+#[sea_orm(
+    rs_type = "String",
+    db_type = "String(StringLen::None)",
+    enum_name = "assessment_status"
+)]
 pub enum AssessmentStatus {
     #[sea_orm(string_value = "Draft")]
     Draft,
@@ -23,7 +31,11 @@ pub enum AssessmentStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)", enum_name = "sync_status")]
+#[sea_orm(
+    rs_type = "String",
+    db_type = "String(StringLen::None)",
+    enum_name = "sync_status"
+)]
 pub enum SyncStatus {
     #[sea_orm(string_value = "pending")]
     Pending,
@@ -34,7 +46,11 @@ pub enum SyncStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)", enum_name = "report_type")]
+#[sea_orm(
+    rs_type = "String",
+    db_type = "String(StringLen::None)",
+    enum_name = "report_type"
+)]
 pub enum ReportType {
     #[sea_orm(string_value = "PDF")]
     Pdf,
