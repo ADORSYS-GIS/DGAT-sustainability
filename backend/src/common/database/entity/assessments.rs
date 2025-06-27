@@ -15,8 +15,6 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::assessment_questions::Entity")]
-    AssessmentQuestions,
     #[sea_orm(has_many = "super::sync_queue::Entity")]
     SyncQueue,
     #[sea_orm(has_many = "super::reports::Entity")]
