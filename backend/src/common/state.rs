@@ -5,6 +5,8 @@ use crate::common::database::entity::sync_queue::SyncQueueService;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
+#[derive(Clone)]
+#[allow(dead_code)]
 pub struct AppDatabase {
     conn: Arc<DatabaseConnection>,
     assessments: AssessmentsService,
@@ -13,6 +15,7 @@ pub struct AppDatabase {
     sync_queue: SyncQueueService,
 }
 
+#[allow(dead_code)]
 impl AppDatabase {
     pub async fn new(conn: Arc<DatabaseConnection>) -> Self {
         Self {

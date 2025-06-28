@@ -24,10 +24,13 @@ impl ActiveModelBehavior for ActiveModel {}
 impl_database_entity!(Entity, Column::QuestionId);
 
 // Questions-specific service that extends the generic DatabaseService
+#[allow(dead_code)]
+#[derive(Clone)]
 pub struct QuestionsService {
     db_service: DatabaseService<Entity>,
 }
 
+#[allow(dead_code)]
 impl QuestionsService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {

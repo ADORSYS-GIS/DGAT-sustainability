@@ -38,10 +38,13 @@ impl ActiveModelBehavior for ActiveModel {}
 
 impl_database_entity!(Entity, Column::SyncId);
 
+#[allow(dead_code)]
+#[derive(Clone)]
 pub struct SyncQueueService {
     db_service: DatabaseService<Entity>,
 }
 
+#[allow(dead_code)]
 impl SyncQueueService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {
@@ -148,48 +151,38 @@ mod tests {
         let sync_id = Uuid::new_v4();
         let assessment_id = Uuid::new_v4();
         let user_id = "test_user".to_string();
+        let mock_result = Model {
+            sync_id,
+            user_id: user_id.clone(),
+            assessment_id,
+            data: json!({"key": "updated"}),
+            status: SyncStatus::Completed,
+        };
+        let mock_pending_result = Model {
+            sync_id,
+            user_id: user_id.clone(),
+            assessment_id,
+            data: json!({"key": "updated"}),
+            status: SyncStatus::Pending,
+        };
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([
                 // Result for create_sync_entry
-                vec![Model {
-                    sync_id,
-                    user_id: user_id.clone(),
-                    assessment_id,
-                    data: json!({"key": "value"}),
-                    status: SyncStatus::Pending,
-                }],
+                vec![mock_pending_result.clone()],
+                vec![mock_result.clone()],
                 // Result for get_sync_entry_by_id
-                vec![Model {
-                    sync_id,
-                    user_id: user_id.clone(),
-                    assessment_id,
-                    data: json!({"key": "value"}),
-                    status: SyncStatus::Pending,
-                }],
+                vec![mock_result.clone()],
                 // Result for update_sync_entry
-                vec![Model {
-                    sync_id,
-                    user_id: user_id.clone(),
-                    assessment_id,
-                    data: json!({"key": "updated"}),
-                    status: SyncStatus::Completed,
-                }],
+                vec![mock_result.clone()],
                 // Result for get_sync_entries_by_user
-                vec![Model {
-                    sync_id,
-                    user_id: user_id.clone(),
-                    assessment_id,
-                    data: json!({"key": "updated"}),
-                    status: SyncStatus::Completed,
-                }],
-                vec![Model {
-                    sync_id,
-                    user_id: user_id.clone(),
-                    assessment_id,
-                    data: json!({"key": "updated"}),
-                    status: SyncStatus::Completed,
-                }],
+                vec![mock_result.clone()],
+                vec![
+                    mock_result.clone(),
+                    mock_result.clone(),
+                    mock_result.clone(),
+                ],
+                vec![mock_result],
             ])
             .append_exec_results([
                 MockExecResult {
@@ -241,6 +234,16 @@ mod tests {
         let user_entries = sync_service.get_sync_entries_by_user(&user_id).await?;
         assert_eq!(user_entries.len(), 1);
         assert_eq!(user_entries[0].status, SyncStatus::Completed);
+
+        // Test get all sync entries
+        let all_entries = sync_service.get_all_sync_entries().await?;
+        assert_eq!(all_entries.len(), 3);
+
+        // Get sync entries by assessments
+        let assessment_entries = sync_service
+            .get_sync_entries_by_assessment(assessment_id)
+            .await?;
+        assert_eq!(assessment_entries.len(), 1);
 
         // Test delete
         let delete_result = sync_service.delete_sync_entry(sync_entry.sync_id).await?;

@@ -14,11 +14,11 @@ where
     Self::ActiveModel: ActiveModelTrait<Entity = Self> + Send + Sync,
     <Self as SeaEntityTrait>::Model: Send + Sync,
 {
-    fn _find_by_id<T>(id: T) -> Select<Self>
+    fn _find_by_id<T>(id: T) -> sea_orm::Select<Self>
     where
         T: Into<Value> + Send;
 }
-
+#[derive(Clone)]
 pub struct DatabaseService<E>
 where
     E: DatabaseEntity,
@@ -81,17 +81,7 @@ where
         E::delete_by_id(id).exec(&*self.db).await
     }
 
-    pub async fn find_many(
-        &self,
-        filter: Select<E>,
-    ) -> Result<Vec<<E as SeaEntityTrait>::Model>, DbErr> {
-        filter.all(&*self.db).await
-    }
-
     pub fn get_connection(&self) -> &DatabaseConnection {
         &self.db
     }
 }
-
-// Helper type alias for Select queries
-type Select<E> = sea_orm::Select<E>;

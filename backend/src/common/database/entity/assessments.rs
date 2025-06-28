@@ -37,9 +37,13 @@ impl ActiveModelBehavior for ActiveModel {}
 impl_database_entity!(Entity, Column::AssessmentId);
 
 // AssessmentsService implementation
+#[allow(dead_code)]
+#[derive(Clone)]
 pub struct AssessmentsService {
     db_service: DatabaseService<Entity>,
 }
+
+#[allow(dead_code)]
 impl AssessmentsService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {
@@ -109,7 +113,11 @@ mod tests {
             .append_query_results([
                 // create_assessment result
                 vec![mock_assessment.clone()],
+                // get all assessments result
+                vec![mock_assessment.clone()],
                 // get_assessment_by_id result
+                vec![mock_assessment.clone()],
+                // delete assessments
                 vec![mock_assessment.clone()],
                 // get_assessments_by_user result
                 vec![mock_assessment.clone()],
@@ -130,6 +138,10 @@ mod tests {
 
         assert_eq!(assessment.user_id, "test_user");
 
+        // Test get all assessments
+        let assessments = assessments_service.get_all_assessments().await?;
+        assert!(!assessments.is_empty());
+
         // Test get by id
         let found = assessments_service
             .get_assessment_by_id(assessment.assessment_id)
@@ -137,6 +149,12 @@ mod tests {
         assert!(found.is_some());
         let found = found.unwrap();
         assert_eq!(found.user_id, assessment.user_id);
+
+        // Test delete assessment
+        let delete_result = assessments_service
+            .delete_assessment(assessment.assessment_id)
+            .await?;
+        assert_eq!(delete_result.rows_affected, 1);
 
         // Test get by user
         let user_assessments = assessments_service

@@ -38,10 +38,13 @@ impl ActiveModelBehavior for ActiveModel {}
 impl_database_entity!(Entity, Column::ReportId);
 
 // Reports-specific service that extends the generic DatabaseService
+#[allow(dead_code)]
+#[derive(Clone)]
 pub struct ReportsService {
     db_service: DatabaseService<Entity>,
 }
 
+#[allow(dead_code)]
 impl ReportsService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {
@@ -168,6 +171,12 @@ mod tests {
                     type_: ReportType::Pdf,
                     data: json!({"score": 90}),
                 }],
+                vec![Model {
+                    report_id,
+                    assessment_id,
+                    type_: ReportType::Pdf,
+                    data: json!({"score": 90}),
+                }],
             ])
             .append_exec_results([
                 // First exec result might be used by create/update operations if they perform writings
@@ -211,6 +220,10 @@ mod tests {
             .await?;
         assert_eq!(updated.type_, ReportType::Pdf);
         assert_eq!(updated.data, json!({"score": 90}));
+
+        // Test get all reports
+        let all_reports = reports_service.get_all_reports().await?;
+        assert_eq!(all_reports.len(), 1);
 
         // Test get reports by assessment - verifies filtering by assessment ID
         let assessment_reports = reports_service
