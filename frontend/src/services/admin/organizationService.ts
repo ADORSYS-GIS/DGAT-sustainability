@@ -1,3 +1,5 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export interface Organization {
   organizationId: string;
   name: string;
@@ -20,19 +22,19 @@ export interface User {
 //organization service
 
 export const AllOrganizations = async () => {
-  const response = await fetch("http://localhost:8000/api/organizations");
+  const response = await fetch(`${API_BASE_URL}/organizations`);
   if (!response.ok) throw new Error("Failed to fetch organizations");
   return response.json();
 };
 
 export const getAllUsers = async () => {
-  const response = await fetch("http://localhost:8000/api/users");
+  const response = await fetch(`${API_BASE_URL}/users`);
   if (!response.ok) throw new Error("Failed to fetch users");
   return response.json();
 };
 
 export const getAllAssessments = async () => {
-  const response = await fetch("http://localhost:8000/api/assessments");
+  const response = await fetch(`${API_BASE_URL}/assessments`);
   if (!response.ok) throw new Error("Failed to fetch assessments");
   return response.json();
 };

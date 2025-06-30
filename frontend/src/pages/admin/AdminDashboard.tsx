@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,11 +14,13 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
-import { useOrganizations } from "@/hooks/shared/useOrganizations";
-import { useUsers } from "@/hooks/shared/useUsers";
-import { useAssessments } from "@/hooks/shared/useAssessments";
-import { Organization } from "@/services/admin/organizationService";
-import { User } from "@/services/admin/organizationService";
+import {
+  AllOrganizations,
+  getAllUsers,
+  getAllAssessments,
+  Organization,
+  User,
+} from "@/services/admin/organizationService";
 import { Assessment } from "@/services/user/assessmentService";
 
 interface PendingReview {
@@ -29,28 +32,27 @@ interface PendingReview {
 }
 
 export const AdminDashboard: React.FC = () => {
-  const { data: orgs = [], isLoading: orgsLoading } = useOrganizations();
-  const { data: users = [], isLoading: usersLoading } = useUsers();
-  const { data: assessments = [], isLoading: assessmentsLoading } =
-    useAssessments();
+  const { data: orgs = [], isLoading: orgsLoading } = useQuery({
+    queryKey: ["organizations"],
+    queryFn: AllOrganizations,
+  });
 
-  const [orgCount, setOrgCount] = React.useState(0);
-  const [userCount, setUserCount] = React.useState(0);
-  const [pendingCount, setPendingCount] = React.useState(0);
-  const [completedCount, setCompletedCount] = React.useState(0);
-  const [pendingReviews, setPendingReviews] = React.useState<PendingReview[]>(
-    [],
-  );
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ["users"],
+    queryFn: getAllUsers,
+  });
 
-  React.useEffect(() => {
-    if (orgsLoading || usersLoading || assessmentsLoading) return;
-    // Calculate stats and pending reviews
+  const { data: assessments = [], isLoading: assessmentsLoading } = useQuery({
+    queryKey: ["assessments"],
+    queryFn: getAllAssessments,
+  });
+
+  const pendingReviews = useMemo(() => {
+    if (orgsLoading || usersLoading || assessmentsLoading) return [];
+
     const pendingAssessments = (assessments as Assessment[]).filter(
       (a) => a.status === "submitted" || a.status === "under_review",
     );
-    const completedCount = (assessments as Assessment[]).filter(
-      (a) => a.status === "completed",
-    ).length;
     const orgMap = new Map(
       (orgs as Organization[]).map((o) => [o.organizationId, o.name]),
     );
@@ -60,7 +62,8 @@ export const AdminDashboard: React.FC = () => {
         `${u.firstName ?? ""} ${u.lastName ?? ""}`,
       ]),
     );
-    const reviewsData = pendingAssessments.map((assessment) => ({
+
+    return pendingAssessments.map((assessment) => ({
       id: assessment.assessmentId,
       organization:
         orgMap.get(assessment.organizationId) || "Unknown Organization",
@@ -70,21 +73,19 @@ export const AdminDashboard: React.FC = () => {
         : "Sustainability",
       submittedAt: new Date(assessment.createdAt).toLocaleDateString("en-CA"),
     }));
-    setPendingReviews(reviewsData);
   }, [orgs, users, assessments, orgsLoading, usersLoading, assessmentsLoading]);
 
-  React.useEffect(() => {
-    setOrgCount(orgs.length);
-    setUserCount(users.length);
-    setPendingCount(
-      (assessments as Assessment[]).filter(
+  const stats = useMemo(() => {
+    return {
+      orgCount: orgs.length,
+      userCount: users.length,
+      pendingCount: (assessments as Assessment[]).filter(
         (a) => a.status === "submitted" || a.status === "under_review",
       ).length,
-    );
-    setCompletedCount(
-      (assessments as Assessment[]).filter((a) => a.status === "completed")
-        .length,
-    );
+      completedCount: (assessments as Assessment[]).filter(
+        (a) => a.status === "completed",
+      ).length,
+    };
   }, [orgs, users, assessments]);
 
   const adminActions = [
@@ -136,10 +137,14 @@ export const AdminDashboard: React.FC = () => {
   ];
 
   const systemStats = [
-    { label: "Active Organizations", value: orgCount, color: "blue" },
-    { label: "Total Users", value: userCount, color: "green" },
-    { label: "Pending Reviews", value: pendingCount, color: "yellow" },
-    { label: "Completed Assessments", value: completedCount, color: "blue" },
+    { label: "Active Organizations", value: stats.orgCount, color: "blue" },
+    { label: "Total Users", value: stats.userCount, color: "green" },
+    { label: "Pending Reviews", value: stats.pendingCount, color: "yellow" },
+    {
+      label: "Completed Assessments",
+      value: stats.completedCount,
+      color: "blue",
+    },
   ];
 
   return (
@@ -203,7 +208,7 @@ export const AdminDashboard: React.FC = () => {
                   <span>Pending Reviews</span>
                 </CardTitle>
                 <Badge className="bg-orange-500 text-white">
-                  {pendingReviews.length} pending
+                  {stats.pendingCount} pending
                 </Badge>
               </CardHeader>
               <CardContent>
