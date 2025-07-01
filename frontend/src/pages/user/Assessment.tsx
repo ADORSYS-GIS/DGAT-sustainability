@@ -1,31 +1,30 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/shared/use-toast";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Save,
-  Send,
-  CheckCircle,
-  Paperclip,
-  Info,
-} from "lucide-react";
-import { Category } from "@/services/user/categoryService";
-import { Question } from "@/services/user/questionService";
-import { Assessment as AssessmentType } from "@/services/user/assessmentService";
 import { useCategoriesByTemplate } from "@/hooks/user/useCategoriesByTemplate";
 import { useQuestionsByTemplate } from "@/hooks/user/useQuestionsByTemplate";
 import {
+  Assessment as AssessmentType,
   createAssessment,
   updateAssessment,
 } from "@/services/user/assessmentService";
+import { Category } from "@/services/user/categoryService";
+import { Question } from "@/services/user/questionService";
 import { useMutation } from "@tanstack/react-query";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Paperclip,
+  Save,
+  Send,
+} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 type FileData = { name: string; url: string };
 

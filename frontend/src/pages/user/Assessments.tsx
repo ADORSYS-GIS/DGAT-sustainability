@@ -1,12 +1,14 @@
-import * as React from "react";
 import { Navbar } from "@/components/shared/Navbar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Assessment } from "@/services/user/assessmentService";
+import {
+  Assessment,
+  getAssessmentsByUser,
+} from "@/services/user/assessmentService";
 import { useQuery } from "@tanstack/react-query";
-import { getAssessmentsByUser } from "@/services/user/assessmentService";
-import { FileText, Calendar, Star, Download, Eye } from "lucide-react";
+import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
+import * as React from "react";
 
 export const Assessments: React.FC = () => {
   // No authentication set for the moment, so i use public as userId, will be replace when i implement keyclock
