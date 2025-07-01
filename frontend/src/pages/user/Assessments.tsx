@@ -10,13 +10,12 @@ import { FileText, Calendar, Star, Download, Eye } from "lucide-react";
 
 export const Assessments: React.FC = () => {
   // No authentication set for the moment, so i use public as userId, will be replace when i implement keyclock
-  const {
-    data: assessments = [],
-    isLoading: loading,
-  } = useQuery<Assessment[]>({
-    queryKey: ["assessments", "public"],
-    queryFn: () => getAssessmentsByUser("public"),
-  });
+  const { data: assessments = [], isLoading: loading } = useQuery<Assessment[]>(
+    {
+      queryKey: ["assessments", "public"],
+      queryFn: () => getAssessmentsByUser("public"),
+    },
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -112,14 +111,20 @@ export const Assessments: React.FC = () => {
                           <div className="flex items-center space-x-1">
                             <Calendar className="w-4 h-4" />
                             <span>
-                              Created: {new Date(assessment.createdAt).toLocaleDateString()}
+                              Created:{" "}
+                              {new Date(
+                                assessment.createdAt,
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                           {assessment.submittedAt && (
                             <div className="flex items-center space-x-1">
                               <Calendar className="w-4 h-4" />
                               <span>
-                                Submitted: {new Date(assessment.submittedAt).toLocaleDateString()}
+                                Submitted:{" "}
+                                {new Date(
+                                  assessment.submittedAt,
+                                ).toLocaleDateString()}
                               </span>
                             </div>
                           )}
@@ -147,7 +152,8 @@ export const Assessments: React.FC = () => {
                       <p>Organization: public</p>
                       {assessment.categoryScores && (
                         <p>
-                          Categories completed: {Object.keys(assessment.categoryScores).length}
+                          Categories completed:{" "}
+                          {Object.keys(assessment.categoryScores).length}
                         </p>
                       )}
                     </div>
