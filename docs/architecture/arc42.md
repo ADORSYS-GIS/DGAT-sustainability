@@ -137,10 +137,11 @@ graph TD
 
 #### Database Schema and Data Flow:
 - **ASSESSMENTS**: Stores assessment_id (UUID PK), user_id (VARCHAR, Keycloak sub), data (JSONB for answers).
-- **QUESTIONS**: Stores question_id (UUID PK), text (JSONB for multilingual), category, weight.
-- **SYNC_QUEUE**: Stores sync_id (UUID PK), user_id, assessment_id (FK), data (JSONB), status (ENUM: pending, processing, completed).
-- **REPORTS**: Stores report_id (UUID PK), assessment_id (FK), type (ENUM: PDF, CSV), data (JSONB).
-- **Data Flow**: Users create assessments via frontend, stored in ASSESSMENTS and ASSESSMENT_QUESTIONS. Offline changes queue in SYNC_QUEUE, synced to database. Reports generated from ASSESSMENTS and stored in REPORTS.
+- **ORGANIZATION_CATEGORIES**: Stores category_id (UUID PK), organization_id (UUID), name (VARCHAR), description (VARCHAR, nullable), categories (JSONB, array of strings).
+- **QUESTIONS**: Stores question_id (UUID PK), text (JSONB for multilingual), category_id (UUID FK to ORGANIZATION_CATEGORIES), weight (FLOAT).
+- **SYNC_QUEUE**: Stores sync_id (UUID PK), user_id (VARCHAR), assessment_id (UUID FK), data (JSONB), status (ENUM: pending, processing, completed).
+- **REPORTS**: Stores report_id (UUID PK), assessment_id (UUID FK), type (ENUM: PDF, CSV), data (JSONB).
+- **Data Flow**: Users create assessments via frontend, stored in ASSESSMENTS. Questions are organized by categories per organization. Offline changes queue in SYNC_QUEUE, synced to database. Reports generated from ASSESSMENTS and stored in REPORTS.
 
 #### Keycloak Integration:
 - Manages user identities and roles.
@@ -297,6 +298,8 @@ graph TD
 ```mermaid
 erDiagram
     ORGANIZATIONS ||--o{ ASSESSMENTS : "linked via Keycloak JWT"
+    ORGANIZATIONS ||--o{ ORGANIZATION_CATEGORIES : "has"
+    ORGANIZATION_CATEGORIES ||--o{ QUESTIONS : "contains"
     ASSESSMENTS ||--o{ SYNC_QUEUE : "queued for"
     ASSESSMENTS ||--o| REPORTS : "generates"
 
@@ -313,10 +316,18 @@ erDiagram
         assessment_status status "ENUM(Draft, Submitted, Completed)"
     }
 
+    ORGANIZATION_CATEGORIES {
+        uuid category_id PK
+        uuid organization_id FK
+        varchar name
+        varchar description "nullable"
+        jsonb categories "Array of strings"
+    }
+
     QUESTIONS {
         uuid question_id PK
         jsonb text "Multilingual: {'en': 'Text', 'fr': 'Texte'}"
-        varchar category
+        uuid category_id FK
         float weight
     }
 
