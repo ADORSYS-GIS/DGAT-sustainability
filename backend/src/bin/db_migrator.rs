@@ -1,36 +1,51 @@
 use dotenv::dotenv;
 use sea_orm_migration::prelude::*;
-use sea_orm_migration::sea_orm::{Database, DatabaseConnection, DbErr, Statement};
+use sea_orm_migration::sea_orm::{Database, DatabaseConnection, DbErr};
 use std::env;
 use std::sync::Arc;
+use sustainability_tool::common::migration_tracker::{MigrationStatus, MigrationTracker};
 use sustainability_tool::common::migrations::Migration;
 
-/// Check if migrations have already been applied by checking for the existence of key tables
-async fn check_migrations_exist(conn: &DatabaseConnection) -> Result<bool, DbErr> {
-    // Check if the main tables exist by querying information_schema
-    let sql = "SELECT COUNT(*) as table_count FROM information_schema.tables 
-               WHERE table_schema = 'public' 
-               AND table_name IN ('organization_categories', 'questions', 'assessments', 'sync_queue', 'reports')";
+/// Check if migrations have already been applied using the migration tracker
+async fn check_migrations_completed(
+    tracker: &MigrationTracker,
+    migration_name: &str,
+) -> Result<bool, DbErr> {
+    tracker.is_migration_completed(migration_name).await
+}
 
-    let statement = Statement::from_string(conn.get_database_backend(), sql);
-    let result = conn.query_one(statement).await?;
+/// Perform rollback for a failed migration
+async fn rollback_migration(tracker: &MigrationTracker, migration_name: &str) -> Result<(), DbErr> {
+    println!("🔄 Rolling back migration: {}", migration_name);
 
-    if let Some(row) = result {
-        let count: i64 = row.try_get("", "table_count")?;
-        // If we have all 5 main tables, migrations have been applied
-        Ok(count == 5)
-    } else {
-        Ok(false)
+    // Create schema manager for rollback
+    let schema_manager = SchemaManager::new(tracker.get_connection());
+
+    // Execute the rollback
+    match Migration.down(&schema_manager).await {
+        Ok(_) => {
+            tracker.rollback_migration(migration_name).await?;
+            println!("✅ Migration rollback completed successfully");
+            Ok(())
+        }
+        Err(e) => {
+            let error_msg = format!("Rollback failed: {}", e);
+            tracker.fail_migration(migration_name, &error_msg).await?;
+            println!("❌ Migration rollback failed: {}", e);
+            Err(e)
+        }
     }
 }
 
-/// Initialize the database connection and run migrations
+/// Initialize the database connection and run migrations with proper tracking and rollback support
 ///
 /// This function:
 /// 1. Loads environment variables from .env file
 /// 2. Connects to the database using DATABASE_URL
-/// 3. Runs all migrations
-/// 4. Returns the database connection wrapped in Arc
+/// 3. Initializes migration tracking system
+/// 4. Checks for failed migrations and handles rollbacks
+/// 5. Runs migrations with proper error handling
+/// 6. Returns the database connection wrapped in Arc
 async fn initialize_database() -> Result<Arc<DatabaseConnection>, DbErr> {
     // Load environment variables from .env file
     dotenv().ok();
@@ -40,31 +55,87 @@ async fn initialize_database() -> Result<Arc<DatabaseConnection>, DbErr> {
 
     // Connect to the database
     let conn = Database::connect(database_url).await?;
+    let conn_arc = Arc::new(conn);
 
-    // Check if migrations have already been applied
-    println!("Checking if migrations have already been applied...");
+    // Initialize migration tracker
+    let tracker = MigrationTracker::new(conn_arc.clone());
+    tracker.initialize().await?;
 
-    if check_migrations_exist(&conn).await? {
-        println!("✓ Migrations already exist!");
-        println!("All required database tables are already present.");
-        println!("Database is ready for use.");
-        return Ok(Arc::new(conn));
+    let migration_name = "initial_schema_v1";
+
+    // Check for failed migrations that need rollback
+    println!("🔍 Checking migration status...");
+
+    if tracker.has_failed_migrations().await? {
+        println!("⚠️  Found failed migrations. Attempting rollback...");
+        rollback_migration(&tracker, migration_name).await?;
     }
 
+    // Check if migrations have already been completed
+    if check_migrations_completed(&tracker, migration_name).await? {
+        println!("✅ Migration '{}' already completed!", migration_name);
+        println!("All required database tables are already present.");
+        println!("Database is ready for use.");
+        return Ok(conn_arc);
+    }
+
+    // Check current migration status
+    match tracker.get_migration_status(migration_name).await? {
+        Some(MigrationStatus::Running) => {
+            println!(
+                "⚠️  Migration '{}' was interrupted. Rolling back...",
+                migration_name
+            );
+            rollback_migration(&tracker, migration_name).await?;
+        }
+        Some(MigrationStatus::Failed) => {
+            println!(
+                "⚠️  Migration '{}' previously failed. Rolling back...",
+                migration_name
+            );
+            rollback_migration(&tracker, migration_name).await?;
+        }
+        _ => {}
+    }
+
+    // Start migration with tracking
+    println!("🚀 Starting migration: {}", migration_name);
+    tracker.start_migration(migration_name).await?;
+
     // Create a schema manager
-    let schema_manager = SchemaManager::new(&conn);
+    let schema_manager = SchemaManager::new(tracker.get_connection());
 
-    // Run migrations
-    println!("Running database migrations...");
+    // Run migrations with error handling and rollback support
+    match Migration.up(&schema_manager).await {
+        Ok(_) => {
+            // Mark migration as completed
+            tracker.complete_migration(migration_name).await?;
+            println!("✅ Migration '{}' completed successfully", migration_name);
+        }
+        Err(e) => {
+            // Mark migration as failed and attempt rollback
+            let error_msg = format!("Migration failed: {}", e);
+            tracker.fail_migration(migration_name, &error_msg).await?;
+            println!("❌ Migration '{}' failed: {}", migration_name, e);
 
-    // Run the comprehensive migration (creates enums, tables, and indexes)
-    Migration.up(&schema_manager).await?;
-    println!("Migration completed successfully");
+            // Attempt rollback
+            println!("🔄 Attempting automatic rollback...");
+            if let Err(rollback_err) = rollback_migration(&tracker, migration_name).await {
+                println!("❌ Rollback also failed: {}", rollback_err);
+                return Err(DbErr::Custom(format!(
+                    "Migration failed and rollback failed. Original error: {}. Rollback error: {}",
+                    e, rollback_err
+                )));
+            }
 
-    println!("All migrations completed successfully");
+            return Err(e);
+        }
+    }
+
+    println!("🎉 All migrations completed successfully");
 
     // Return the connection wrapped in Arc for thread safety
-    Ok(Arc::new(conn))
+    Ok(conn_arc)
 }
 
 #[tokio::main]
