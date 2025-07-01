@@ -17,7 +17,6 @@ import {
   getRecommendationsByAssessment,
 } from "@/services/shared/dataService";
 import { Assessment } from "@/services/user/assessmentService";
-import jsPDF from "jspdf";
 import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
 
 export const Dashboard: React.FC = () => {

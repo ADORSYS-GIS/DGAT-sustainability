@@ -6,4 +6,4 @@ export const useCategoriesByTemplate = (templateId: string) =>
     queryKey: ["categories", templateId],
     queryFn: () => getCategoriesByTemplate(templateId),
     enabled: !!templateId,
-  }); 
+  });

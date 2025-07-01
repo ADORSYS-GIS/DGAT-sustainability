@@ -35,7 +35,17 @@ export const Assessment: React.FC = () => {
   const { toast } = useToast();
 
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, { yesNo?: boolean; percentage?: number; text?: string; files?: FileData[] }>>({});
+  const [answers, setAnswers] = useState<
+    Record<
+      string,
+      {
+        yesNo?: boolean;
+        percentage?: number;
+        text?: string;
+        files?: FileData[];
+      }
+    >
+  >({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [assessment, setAssessment] = useState<AssessmentType | null>(null);
   const [showPercentInfo, setShowPercentInfo] = useState(false);
@@ -61,8 +71,8 @@ export const Assessment: React.FC = () => {
       const create = async () => {
         try {
           const newAssessment = await createAssessment({
-            userId: 'public',
-            organizationId: 'public',
+            userId: "public",
+            organizationId: "public",
             templateId,
             answers: {},
             status: "draft",
@@ -84,8 +94,7 @@ export const Assessment: React.FC = () => {
   // Filter and sort categories
   const categories: Category[] = React.useMemo(() => {
     if (!categoriesData) return [];
-    return categoriesData
-      .sort((a, b) => a.order - b.order);
+    return categoriesData.sort((a, b) => a.order - b.order);
   }, [categoriesData]);
 
   // Sort questions
@@ -97,7 +106,7 @@ export const Assessment: React.FC = () => {
   const getCurrentCategoryQuestions = () => {
     if (!categories[currentCategoryIndex]) return [];
     return questions.filter(
-      (q) => q.categoryId === categories[currentCategoryIndex].categoryId
+      (q) => q.categoryId === categories[currentCategoryIndex].categoryId,
     );
   };
 
@@ -121,7 +130,15 @@ export const Assessment: React.FC = () => {
     },
   });
 
-  const handleAnswerChange = (questionId: string, value: { yesNo?: boolean; percentage?: number; text?: string; files?: FileData[] }) => {
+  const handleAnswerChange = (
+    questionId: string,
+    value: {
+      yesNo?: boolean;
+      percentage?: number;
+      text?: string;
+      files?: FileData[];
+    },
+  ) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
@@ -249,11 +266,21 @@ export const Assessment: React.FC = () => {
             </button>
             {showPercentInfo && (
               <div className="absolute left-8 top-6 z-10 bg-white border rounded shadow-md p-3 w-56 text-xs text-gray-700">
-                <div><b>0%:</b> Not started</div>
-                <div><b>25%:</b> Some progress</div>
-                <div><b>50%:</b> Halfway</div>
-                <div><b>75%:</b> Almost done</div>
-                <div><b>100%:</b> Fully achieved</div>
+                <div>
+                  <b>0%:</b> Not started
+                </div>
+                <div>
+                  <b>25%:</b> Some progress
+                </div>
+                <div>
+                  <b>50%:</b> Halfway
+                </div>
+                <div>
+                  <b>75%:</b> Almost done
+                </div>
+                <div>
+                  <b>100%:</b> Fully achieved
+                </div>
               </div>
             )}
           </div>
@@ -306,7 +333,9 @@ export const Assessment: React.FC = () => {
               <input
                 type="file"
                 className="hidden"
-                onChange={(e) => handleFileUpload(question.questionId, e.target.files)}
+                onChange={(e) =>
+                  handleFileUpload(question.questionId, e.target.files)
+                }
               />
             </label>
             {files.length > 0 && (

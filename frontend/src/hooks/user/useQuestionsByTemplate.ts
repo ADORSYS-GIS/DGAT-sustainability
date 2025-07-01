@@ -6,4 +6,4 @@ export const useQuestionsByTemplate = (templateId: string) =>
     queryKey: ["questions", templateId],
     queryFn: () => getQuestionsByTemplate(templateId),
     enabled: !!templateId,
-  }); 
+  });
