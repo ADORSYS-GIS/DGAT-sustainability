@@ -12,12 +12,25 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub question_id: Uuid,
     pub text: Value,
-    pub category: String,
+    pub category_id: Uuid,
     pub weight: f32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::organization_categories::Entity",
+        from = "Column::CategoryId",
+        to = "super::organization_categories::Column::CategoryId"
+    )]
+    Category,
+}
+
+impl Related<super::organization_categories::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Category.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}
 
@@ -42,13 +55,13 @@ impl QuestionsService {
     pub async fn create_question(
         &self,
         text: Value,
-        category: String,
+        category_id: Uuid,
         weight: f32,
     ) -> Result<Model, DbErr> {
         let question = ActiveModel {
             question_id: Set(Uuid::new_v4()),
             text: Set(text),
-            category: Set(category),
+            category_id: Set(category_id),
             weight: Set(weight),
         };
 
@@ -65,12 +78,20 @@ impl QuestionsService {
         self.db_service.find_by_id(id).await
     }
 
+    // Get questions by category ID
+    pub async fn get_questions_by_category(&self, category_id: Uuid) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .filter(Column::CategoryId.eq(category_id))
+            .all(self.db_service.get_connection())
+            .await
+    }
+
     // Update question
     pub async fn update_question(
         &self,
         id: Uuid,
         text: Option<Value>,
-        category: Option<String>,
+        category_id: Option<Uuid>,
         weight: Option<f32>,
     ) -> Result<Model, DbErr> {
         let question = self
@@ -83,8 +104,8 @@ impl QuestionsService {
         if let Some(text) = text {
             question.text = Set(text);
         }
-        if let Some(category) = category {
-            question.category = Set(category);
+        if let Some(category_id) = category_id {
+            question.category_id = Set(category_id);
         }
         if let Some(weight) = weight {
             question.weight = Set(weight);
@@ -108,6 +129,7 @@ mod tests {
     async fn test_questions_service() -> Result<(), Box<dyn std::error::Error>> {
         // Predefine a UUID for consistent testing
         let question_id = Uuid::new_v4();
+        let category_id = Uuid::new_v4();
 
         // Create a mock database
         let db = MockDatabase::new(DatabaseBackend::Postgres)
@@ -116,35 +138,42 @@ mod tests {
                 vec![Model {
                     question_id,
                     text: json!({"en": "Test question?"}),
-                    category: "Test".to_string(),
+                    category_id,
                     weight: 1.0,
                 }],
                 // Result for get_question_by_id (test read)
                 vec![Model {
                     question_id,
                     text: json!({"en": "Test question?"}),
-                    category: "Test".to_string(),
+                    category_id,
                     weight: 1.0,
                 }],
                 // Result for update_question
                 vec![Model {
                     question_id,
                     text: json!({"en": "Test question?"}),
-                    category: "Updated".to_string(),
+                    category_id,
                     weight: 1.0,
                 }],
                 // Result for get_all_questions
                 vec![Model {
                     question_id,
                     text: json!({"en": "Test question?"}),
-                    category: "Updated".to_string(),
+                    category_id,
                     weight: 1.0,
                 }],
                 // Result for get_question_by_id (in delete_question)
                 vec![Model {
                     question_id,
                     text: json!({"en": "Test question?"}),
-                    category: "Updated".to_string(),
+                    category_id,
+                    weight: 1.0,
+                }],
+                // Result for get_questions_by_category
+                vec![Model {
+                    question_id,
+                    text: json!({"en": "Test question?"}),
+                    category_id,
                     weight: 1.0,
                 }],
             ])
@@ -166,11 +195,11 @@ mod tests {
 
         // Test create
         let question = questions_service
-            .create_question(json!({"en": "Test question?"}), "Test".to_string(), 1.0)
+            .create_question(json!({"en": "Test question?"}), category_id, 1.0)
             .await?;
 
         // Verify the question was created with correct data
-        assert_eq!(question.category, "Test");
+        assert_eq!(question.category_id, category_id);
         assert_eq!(question.weight, 1.0);
         assert_eq!(question.text, json!({"en": "Test question?"}));
 
@@ -180,23 +209,25 @@ mod tests {
             .await?;
         assert!(found.is_some());
         let found = found.unwrap();
-        assert_eq!(found.category, "Test");
+        assert_eq!(found.category_id, category_id);
 
         // Test update
         let updated = questions_service
-            .update_question(
-                question.question_id,
-                None,
-                Some("Updated".to_string()),
-                None,
-            )
+            .update_question(question.question_id, None, Some(category_id), None)
             .await?;
-        assert_eq!(updated.category, "Updated");
+        assert_eq!(updated.category_id, category_id);
 
         // Test get all questions
         let all_questions = questions_service.get_all_questions().await?;
         assert_eq!(all_questions.len(), 1);
-        assert_eq!(all_questions[0].category, "Updated");
+        assert_eq!(all_questions[0].category_id, category_id);
+
+        // Test get questions by category
+        let category_questions = questions_service
+            .get_questions_by_category(category_id)
+            .await?;
+        assert_eq!(category_questions.len(), 1);
+        assert_eq!(category_questions[0].question_id, question_id);
 
         // Test delete
         let delete_result = questions_service
@@ -226,7 +257,7 @@ mod tests {
         assert!(result.is_none());
 
         let update_result = questions_service
-            .update_question(non_existent_id, None, Some("Updated".to_string()), None)
+            .update_question(non_existent_id, None, Some(Uuid::new_v4()), None)
             .await;
         assert!(update_result.is_err());
 

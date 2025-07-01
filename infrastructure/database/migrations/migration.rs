@@ -71,12 +71,33 @@ impl MigrationTrait for Migration2 {
         manager
             .create_table(
                 Table::create()
+                    .table("organization_categories")
+                    .if_not_exists()
+                    .col(ColumnDef::new("category_id").uuid().not_null().primary_key())
+                    .col(ColumnDef::new("organization_id").uuid().not_null())
+                    .col(ColumnDef::new("name").string().not_null())
+                    .col(ColumnDef::new("description").string())
+                    .col(ColumnDef::new("categories").json_binary().not_null())
+                    .index(Index::create().name("idx_organization_categories_org_id").table("organization_categories").col("organization_id"))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
                     .table("questions")
                     .if_not_exists()
                     .col(ColumnDef::new("question_id").uuid().not_null().primary_key())
                     .col(ColumnDef::new("text").json_binary().not_null())
-                    .col(ColumnDef::new("category").string().not_null())
+                    .col(ColumnDef::new("category_id").uuid().not_null())
                     .col(ColumnDef::new("weight").float().not_null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_questions_category")
+                            .from("questions", "category_id")
+                            .to("organization_categories", "category_id")
+                    )
                     .to_owned(),
             )
             .await?;
@@ -215,6 +236,7 @@ impl MigrationTrait for Migration2 {
         manager.drop_table(Table::drop().table("sync_queue").to_owned()).await?;
         manager.drop_table(Table::drop().table("assessment_questions").to_owned()).await?;
         manager.drop_table(Table::drop().table("questions").to_owned()).await?;
+        manager.drop_table(Table::drop().table("organization_categories").to_owned()).await?;
         manager.drop_table(Table::drop().table("assessments").to_owned()).await?;
         manager.drop_table(Table::drop().table("organizations").to_owned()).await?;
         Ok(())
