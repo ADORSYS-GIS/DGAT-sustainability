@@ -27,3 +27,23 @@ export const getRecommendationsByAssessment = async (assessmentId) => {
   if (!response.ok) throw new Error("Failed to fetch recommendations");
   return response.json();
 };
+
+export const createAssessment = async (assessment: Omit<Assessment, "assessmentId" | "createdAt" | "updatedAt">): Promise<Assessment> => {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/assessments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(assessment),
+  });
+  if (!response.ok) throw new Error("Failed to create assessment");
+  return response.json();
+};
+
+export const updateAssessment = async (assessment: Assessment): Promise<Assessment> => {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/assessments/${assessment.assessmentId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(assessment),
+  });
+  if (!response.ok) throw new Error("Failed to update assessment");
+  return response.json();
+};
