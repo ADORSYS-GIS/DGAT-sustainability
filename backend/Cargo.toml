@@ -11,11 +11,22 @@ sea-orm = { version = "1.1", features = [
     "runtime-tokio-rustls",
     "macros",
 ] }
+sea-orm-migration = "1.1"
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls", "uuid"] }
+dotenv = "0.15.0"
 
 serde_json = "1.0.140"
 uuid = { version = "1.17.0", features = ["v4"] }
 async-trait = "0.1.88"
 tokio = { version = "1.45.1", features = ["rt", "full"] }
+
+[[bin]]
+name = "sustainability-tool"
+path = "src/main.rs"
+
+[[bin]]
+name = "db-migrator"
+path = "src/bin/db_migrator.rs"
 
 [dev-dependencies]
 sea-orm = { version = "1.1", features = ["mock"] }
