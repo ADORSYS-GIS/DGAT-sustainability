@@ -342,7 +342,6 @@ erDiagram
     REPORTS {
         uuid report_id PK
         uuid assessment_id FK
-        report_type type "ENUM(PDF, CSV)"
         jsonb data "Report content"
     }
 ```
