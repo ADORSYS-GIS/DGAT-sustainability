@@ -1,5 +1,5 @@
 //! Organization Management Handlers
-//! 
+//!
 //! This module provides HTTP handlers for organization management operations.
 //! It implements role-based access control where:
 //! - application_admin can manage all organizations
@@ -14,10 +14,11 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
-use crate::common::models::organization::{OrganizationRequest, OrganizationResponse, UserRequest, UserResponse};
+use crate::common::models::organization::{
+    OrganizationRequest, OrganizationResponse, UserRequest, UserResponse,
+};
 use crate::web::handlers::admin_client::keycloak::{KeycloakAdminClient, KeycloakError};
 
 #[derive(Debug, Serialize)]
@@ -79,7 +80,7 @@ pub async fn list_organizations(
     Query(_pagination): Query<PaginationQuery>,
 ) -> Result<Json<ApiResponse<Vec<OrganizationResponse>>>, StatusCode> {
     let client = keycloak_client.lock().await;
-    
+
     match client.list_organizations().await {
         Ok(mut organizations) => {
             // If user is organization_admin, filter to only their organization
@@ -90,7 +91,7 @@ pub async fn list_organizations(
                     organizations.clear();
                 }
             }
-            
+
             Ok(Json(ApiResponse::success(organizations)))
         }
         Err(e) => {
@@ -239,7 +240,7 @@ pub async fn get_user(
     Path(user_id): Path<String>,
 ) -> Result<Json<ApiResponse<UserResponse>>, StatusCode> {
     let client = keycloak_client.lock().await;
-    
+
     // First get the user to check their organization
     let user = match client.get_user(&user_id).await {
         Ok(user) => user,
@@ -265,7 +266,7 @@ pub async fn delete_user(
     Path(user_id): Path<String>,
 ) -> Result<Json<ApiResponse<()>>, StatusCode> {
     let client = keycloak_client.lock().await;
-    
+
     // First get the user to check their organization
     let user = match client.get_user(&user_id).await {
         Ok(user) => user,

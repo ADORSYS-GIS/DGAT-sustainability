@@ -21,7 +21,6 @@ pub struct ServerConfigs {
     pub port: u16,
 }
 
-
 impl Configs {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         dotenvy::dotenv().ok();

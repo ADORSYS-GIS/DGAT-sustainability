@@ -1,9 +1,10 @@
+use crate::common::models::organization::{
+    OrganizationRequest, OrganizationResponse, UserRequest, UserResponse,
+};
 use reqwest::Client;
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use thiserror::Error;
 use uuid::Uuid;
-use crate::common::models::organization::{OrganizationRequest, OrganizationResponse, UserRequest, UserResponse};
 
 #[derive(Error, Debug)]
 pub enum KeycloakError {
@@ -44,8 +45,10 @@ impl KeycloakAdminClient {
     }
 
     async fn get_admin_token(&self) -> Result<String, KeycloakError> {
-        let token_url = format!("{}/realms/{}/protocol/openid-connect/token",
-                                self.base_url, self.realm);
+        let token_url = format!(
+            "{}/realms/{}/protocol/openid-connect/token",
+            self.base_url, self.realm
+        );
 
         let params = [
             ("grant_type", "client_credentials"),
@@ -53,27 +56,27 @@ impl KeycloakAdminClient {
             ("client_secret", &self.client_secret),
         ];
 
-        let response = self.client
-            .post(&token_url)
-            .form(&params)
-            .send()
-            .await?;
+        let response = self.client.post(&token_url).form(&params).send().await?;
 
         if !response.status().is_success() {
-            return Err(KeycloakError::AuthenticationFailed(
-                format!("Failed to get admin token: {}", response.status())
-            ));
+            return Err(KeycloakError::AuthenticationFailed(format!(
+                "Failed to get admin token: {}",
+                response.status()
+            )));
         }
 
         let token_response: Value = response.json().await?;
-        let access_token = token_response["access_token"]
-            .as_str()
-            .ok_or_else(|| KeycloakError::AuthenticationFailed("No access token in response".to_string()))?;
+        let access_token = token_response["access_token"].as_str().ok_or_else(|| {
+            KeycloakError::AuthenticationFailed("No access token in response".to_string())
+        })?;
 
         Ok(access_token.to_string())
     }
 
-    pub async fn create_organization(&self, org: OrganizationRequest) -> Result<OrganizationResponse, KeycloakError> {
+    pub async fn create_organization(
+        &self,
+        org: OrganizationRequest,
+    ) -> Result<OrganizationResponse, KeycloakError> {
         let admin_token = self.get_admin_token().await?;
         let organization_id = Uuid::new_v4().to_string();
 
@@ -90,7 +93,8 @@ impl KeycloakAdminClient {
             }
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&group_url)
             .bearer_auth(&admin_token)
             .json(&group_data)
@@ -98,9 +102,10 @@ impl KeycloakAdminClient {
             .await?;
 
         if !response.status().is_success() {
-            return Err(KeycloakError::GroupCreationFailed(
-                format!("Failed to create organization group: {}", response.status())
-            ));
+            return Err(KeycloakError::GroupCreationFailed(format!(
+                "Failed to create organization group: {}",
+                response.status()
+            )));
         }
 
         Ok(OrganizationResponse {
@@ -111,7 +116,10 @@ impl KeycloakAdminClient {
         })
     }
 
-    pub async fn create_user_in_organization(&self, user: UserRequest) -> Result<UserResponse, KeycloakError> {
+    pub async fn create_user_in_organization(
+        &self,
+        user: UserRequest,
+    ) -> Result<UserResponse, KeycloakError> {
         let admin_token = self.get_admin_token().await?;
 
         // Create user
@@ -135,7 +143,8 @@ impl KeycloakAdminClient {
             }]
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(&user_url)
             .bearer_auth(&admin_token)
             .json(&user_data)
@@ -143,34 +152,46 @@ impl KeycloakAdminClient {
             .await?;
 
         if !response.status().is_success() {
-            return Err(KeycloakError::UserCreationFailed(
-                format!("Failed to create user: {}", response.status())
-            ));
+            return Err(KeycloakError::UserCreationFailed(format!(
+                "Failed to create user: {}",
+                response.status()
+            )));
         }
 
         // Extract user ID from Location header
-        let location = response.headers().get("Location")
+        let location = response
+            .headers()
+            .get("Location")
             .and_then(|h| h.to_str().ok())
             .ok_or_else(|| KeycloakError::UserCreationFailed("No location header".to_string()))?;
 
-        let user_id = location.split('/').last()
-            .ok_or_else(|| KeycloakError::UserCreationFailed("Invalid location header".to_string()))?;
+        let user_id = location.split('/').last().ok_or_else(|| {
+            KeycloakError::UserCreationFailed("Invalid location header".to_string())
+        })?;
 
         // Find organization group
-        let group_id = self.find_organization_group(&admin_token, &user.organization_id).await?;
+        let group_id = self
+            .find_organization_group(&admin_token, &user.organization_id)
+            .await?;
 
         // Add user to organization group
-        let join_group_url = format!("{}/admin/realms/{}/users/{}/groups/{}",
-                                     self.base_url, self.realm, user_id, group_id);
+        let join_group_url = format!(
+            "{}/admin/realms/{}/users/{}/groups/{}",
+            self.base_url, self.realm, user_id, group_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .put(&join_group_url)
             .bearer_auth(&admin_token)
             .send()
             .await?;
 
         if !response.status().is_success() {
-            tracing::warn!("Failed to add user to organization group: {}", response.status());
+            tracing::warn!(
+                "Failed to add user to organization group: {}",
+                response.status()
+            );
         }
 
         Ok(UserResponse {
@@ -183,10 +204,15 @@ impl KeycloakAdminClient {
         })
     }
 
-    async fn find_organization_group(&self, admin_token: &str, organization_id: &str) -> Result<String, KeycloakError> {
+    async fn find_organization_group(
+        &self,
+        admin_token: &str,
+        organization_id: &str,
+    ) -> Result<String, KeycloakError> {
         let groups_url = format!("{}/admin/realms/{}/groups", self.base_url, self.realm);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&groups_url)
             .bearer_auth(admin_token)
             .query(&[("search", "organizations/")])
@@ -207,36 +233,49 @@ impl KeycloakAdminClient {
             }
         }
 
-        Err(KeycloakError::GroupCreationFailed("Organization group not found".to_string()))
+        Err(KeycloakError::GroupCreationFailed(
+            "Organization group not found".to_string(),
+        ))
     }
 
     /// Assign a role to a user
-    pub async fn assign_role_to_user(&self, user_id: &str, role_name: &str) -> Result<(), KeycloakError> {
+    pub async fn assign_role_to_user(
+        &self,
+        user_id: &str,
+        role_name: &str,
+    ) -> Result<(), KeycloakError> {
         let admin_token = self.get_admin_token().await?;
 
         // Get realm roles
         let roles_url = format!("{}/admin/realms/{}/roles", self.base_url, self.realm);
-        let response = self.client
+        let response = self
+            .client
             .get(&roles_url)
             .bearer_auth(&admin_token)
             .send()
             .await?;
 
         let roles: Vec<Value> = response.json().await?;
-        let role = roles.iter()
+        let role = roles
+            .iter()
             .find(|r| r["name"].as_str() == Some(role_name))
-            .ok_or_else(|| KeycloakError::RoleAssignmentFailed(format!("Role '{}' not found", role_name)))?;
+            .ok_or_else(|| {
+                KeycloakError::RoleAssignmentFailed(format!("Role '{}' not found", role_name))
+            })?;
 
         // Assign role to user
-        let assign_url = format!("{}/admin/realms/{}/users/{}/role-mappings/realm",
-                                self.base_url, self.realm, user_id);
+        let assign_url = format!(
+            "{}/admin/realms/{}/users/{}/role-mappings/realm",
+            self.base_url, self.realm, user_id
+        );
 
         let role_data = json!([{
             "id": role["id"],
             "name": role["name"]
         }]);
 
-        let response = self.client
+        let response = self
+            .client
             .post(&assign_url)
             .bearer_auth(&admin_token)
             .json(&role_data)
@@ -244,20 +283,25 @@ impl KeycloakAdminClient {
             .await?;
 
         if !response.status().is_success() {
-            return Err(KeycloakError::RoleAssignmentFailed(
-                format!("Failed to assign role: {}", response.status())
-            ));
+            return Err(KeycloakError::RoleAssignmentFailed(format!(
+                "Failed to assign role: {}",
+                response.status()
+            )));
         }
 
         Ok(())
     }
 
     /// Create organization admin user
-    pub async fn create_organization_admin(&self, user: UserRequest) -> Result<UserResponse, KeycloakError> {
+    pub async fn create_organization_admin(
+        &self,
+        user: UserRequest,
+    ) -> Result<UserResponse, KeycloakError> {
         let user_response = self.create_user_in_organization(user).await?;
 
         // Assign organization_admin role
-        self.assign_role_to_user(&user_response.id, "organization_admin").await?;
+        self.assign_role_to_user(&user_response.id, "organization_admin")
+            .await?;
 
         Ok(user_response)
     }
@@ -267,7 +311,8 @@ impl KeycloakAdminClient {
         let admin_token = self.get_admin_token().await?;
         let groups_url = format!("{}/admin/realms/{}/groups", self.base_url, self.realm);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&groups_url)
             .bearer_auth(&admin_token)
             .query(&[("search", "organizations/")])
@@ -280,22 +325,26 @@ impl KeycloakAdminClient {
         for group in groups {
             if let Some(attributes) = group["attributes"].as_object() {
                 if let (Some(org_id), Some(org_name)) = (
-                    attributes.get("organization_id")
+                    attributes
+                        .get("organization_id")
                         .and_then(|arr| arr.as_array())
                         .and_then(|arr| arr.first())
                         .and_then(|v| v.as_str()),
-                    attributes.get("organization_name")
+                    attributes
+                        .get("organization_name")
                         .and_then(|arr| arr.as_array())
                         .and_then(|arr| arr.first())
-                        .and_then(|v| v.as_str())
+                        .and_then(|v| v.as_str()),
                 ) {
-                    let description = attributes.get("organization_description")
+                    let description = attributes
+                        .get("organization_description")
                         .and_then(|arr| arr.as_array())
                         .and_then(|arr| arr.first())
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string());
 
-                    let country = attributes.get("organization_country")
+                    let country = attributes
+                        .get("organization_country")
                         .and_then(|arr| arr.as_array())
                         .and_then(|arr| arr.first())
                         .and_then(|v| v.as_str())
@@ -315,19 +364,32 @@ impl KeycloakAdminClient {
     }
 
     /// Get organization by ID
-    pub async fn get_organization(&self, organization_id: &str) -> Result<OrganizationResponse, KeycloakError> {
+    pub async fn get_organization(
+        &self,
+        organization_id: &str,
+    ) -> Result<OrganizationResponse, KeycloakError> {
         let organizations = self.list_organizations().await?;
-        organizations.into_iter()
+        organizations
+            .into_iter()
             .find(|org| org.id == organization_id)
             .ok_or_else(|| KeycloakError::OrganizationNotFound(organization_id.to_string()))
     }
 
     /// Update organization
-    pub async fn update_organization(&self, organization_id: &str, org: OrganizationRequest) -> Result<OrganizationResponse, KeycloakError> {
+    pub async fn update_organization(
+        &self,
+        organization_id: &str,
+        org: OrganizationRequest,
+    ) -> Result<OrganizationResponse, KeycloakError> {
         let admin_token = self.get_admin_token().await?;
-        let group_id = self.find_organization_group(&admin_token, organization_id).await?;
+        let group_id = self
+            .find_organization_group(&admin_token, organization_id)
+            .await?;
 
-        let group_url = format!("{}/admin/realms/{}/groups/{}", self.base_url, self.realm, group_id);
+        let group_url = format!(
+            "{}/admin/realms/{}/groups/{}",
+            self.base_url, self.realm, group_id
+        );
 
         let group_data = json!({
             "name": format!("organizations/{}", org.name.to_lowercase().replace(" ", "-")),
@@ -339,7 +401,8 @@ impl KeycloakAdminClient {
             }
         });
 
-        let response = self.client
+        let response = self
+            .client
             .put(&group_url)
             .bearer_auth(&admin_token)
             .json(&group_data)
@@ -347,9 +410,10 @@ impl KeycloakAdminClient {
             .await?;
 
         if !response.status().is_success() {
-            return Err(KeycloakError::GroupCreationFailed(
-                format!("Failed to update organization: {}", response.status())
-            ));
+            return Err(KeycloakError::GroupCreationFailed(format!(
+                "Failed to update organization: {}",
+                response.status()
+            )));
         }
 
         Ok(OrganizationResponse {
@@ -363,34 +427,49 @@ impl KeycloakAdminClient {
     /// Delete organization
     pub async fn delete_organization(&self, organization_id: &str) -> Result<(), KeycloakError> {
         let admin_token = self.get_admin_token().await?;
-        let group_id = self.find_organization_group(&admin_token, organization_id).await?;
+        let group_id = self
+            .find_organization_group(&admin_token, organization_id)
+            .await?;
 
-        let group_url = format!("{}/admin/realms/{}/groups/{}", self.base_url, self.realm, group_id);
+        let group_url = format!(
+            "{}/admin/realms/{}/groups/{}",
+            self.base_url, self.realm, group_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&group_url)
             .bearer_auth(&admin_token)
             .send()
             .await?;
 
         if !response.status().is_success() {
-            return Err(KeycloakError::GroupCreationFailed(
-                format!("Failed to delete organization: {}", response.status())
-            ));
+            return Err(KeycloakError::GroupCreationFailed(format!(
+                "Failed to delete organization: {}",
+                response.status()
+            )));
         }
 
         Ok(())
     }
 
     /// List users in organization
-    pub async fn list_organization_users(&self, organization_id: &str) -> Result<Vec<UserResponse>, KeycloakError> {
+    pub async fn list_organization_users(
+        &self,
+        organization_id: &str,
+    ) -> Result<Vec<UserResponse>, KeycloakError> {
         let admin_token = self.get_admin_token().await?;
-        let group_id = self.find_organization_group(&admin_token, organization_id).await?;
+        let group_id = self
+            .find_organization_group(&admin_token, organization_id)
+            .await?;
 
-        let members_url = format!("{}/admin/realms/{}/groups/{}/members", 
-                                 self.base_url, self.realm, group_id);
+        let members_url = format!(
+            "{}/admin/realms/{}/groups/{}/members",
+            self.base_url, self.realm, group_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .get(&members_url)
             .bearer_auth(&admin_token)
             .send()
@@ -403,7 +482,7 @@ impl KeycloakAdminClient {
             if let (Some(id), Some(username), Some(email)) = (
                 user["id"].as_str(),
                 user["username"].as_str(),
-                user["email"].as_str()
+                user["email"].as_str(),
             ) {
                 let first_name = user["firstName"].as_str().unwrap_or("").to_string();
                 let last_name = user["lastName"].as_str().unwrap_or("").to_string();
@@ -425,9 +504,13 @@ impl KeycloakAdminClient {
     /// Get user by ID
     pub async fn get_user(&self, user_id: &str) -> Result<UserResponse, KeycloakError> {
         let admin_token = self.get_admin_token().await?;
-        let user_url = format!("{}/admin/realms/{}/users/{}", self.base_url, self.realm, user_id);
+        let user_url = format!(
+            "{}/admin/realms/{}/users/{}",
+            self.base_url, self.realm, user_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .get(&user_url)
             .bearer_auth(&admin_token)
             .send()
@@ -459,18 +542,23 @@ impl KeycloakAdminClient {
     /// Delete user
     pub async fn delete_user(&self, user_id: &str) -> Result<(), KeycloakError> {
         let admin_token = self.get_admin_token().await?;
-        let user_url = format!("{}/admin/realms/{}/users/{}", self.base_url, self.realm, user_id);
+        let user_url = format!(
+            "{}/admin/realms/{}/users/{}",
+            self.base_url, self.realm, user_id
+        );
 
-        let response = self.client
+        let response = self
+            .client
             .delete(&user_url)
             .bearer_auth(&admin_token)
             .send()
             .await?;
 
         if !response.status().is_success() {
-            return Err(KeycloakError::UserCreationFailed(
-                format!("Failed to delete user: {}", response.status())
-            ));
+            return Err(KeycloakError::UserCreationFailed(format!(
+                "Failed to delete user: {}",
+                response.status()
+            )));
         }
 
         Ok(())

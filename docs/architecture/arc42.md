@@ -248,6 +248,7 @@ graph TD
 | Decision | Justification                                                         | Alternatives Considered |
 |----------|-----------------------------------------------------------------------|------------------------|
 | Keycloak Integration | Simplifies authentication, supports multi-tenancy via JWT.            | Custom auth (higher maintenance). |
+| Groups-Based Multi-Tenancy | Efficiently implements organization isolation using Keycloak groups with simpler maintenance and deployment. | Phase Two Organizations extension (richer features but higher complexity). |
 | JSONB in PostgreSQL | Flexible for DGRV's questionnaire and multilingual text.              | Relational tables (less adaptable). |
 | React with Tailwind CSS | Responsive UI, rapid development.                                     | Angular (complexer setup). |
 | Microservices Architecture | Scalability, independent deployment.                                  | Monolith (less flexible). |
