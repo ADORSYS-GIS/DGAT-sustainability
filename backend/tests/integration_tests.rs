@@ -15,7 +15,7 @@
 
 use axum::{
     body::Body,
-    http::{HeaderValue, Request, StatusCode},
+    http::{Request, StatusCode},
     Router,
 };
 use serde_json::{json, Value};
@@ -31,7 +31,6 @@ use sustainability_tool::{
         organization::{OrganizationRequest, UserRequest},
     },
     web::{
-        handlers::{admin_client::keycloak::KeycloakAdminClient, jwt_validator::JwtValidator},
         routes::{create_app, AppState},
     },
 };
@@ -152,11 +151,13 @@ mod test_utils {
 
 /// Mock Keycloak Admin Client for testing
 /// This replaces the real Keycloak client to avoid requiring a live Keycloak instance
+#[allow(dead_code)]
 struct MockKeycloakAdminClient {
     organizations: Arc<Mutex<Vec<(String, OrganizationRequest)>>>,
     users: Arc<Mutex<Vec<(String, UserRequest)>>>,
 }
 
+#[allow(dead_code)]
 impl MockKeycloakAdminClient {
     fn new() -> Self {
         Self {
@@ -516,3 +517,4 @@ mod performance_tests {
         );
     }
 }
+
