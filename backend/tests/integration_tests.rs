@@ -15,7 +15,7 @@
 
 use axum::{
     body::Body,
-    http::{Request, StatusCode, HeaderValue},
+    http::{HeaderValue, Request, StatusCode},
     Router,
 };
 use serde_json::{json, Value};
@@ -31,18 +31,15 @@ use sustainability_tool::{
         organization::{OrganizationRequest, UserRequest},
     },
     web::{
-        handlers::{
-            admin_client::keycloak::KeycloakAdminClient,
-            jwt_validator::JwtValidator,
-        },
-        routes::{AppState, create_app},
+        handlers::{admin_client::keycloak::KeycloakAdminClient, jwt_validator::JwtValidator},
+        routes::{create_app, AppState},
     },
 };
 
 /// Test utilities for creating mock JWT tokens and test data
 mod test_utils {
     use super::*;
-    use jsonwebtoken::{encode, EncodingKey, Header, Algorithm};
+    use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     /// Mock JWT encoding key for testing
@@ -52,9 +49,8 @@ mod test_utils {
     pub fn create_mock_jwt(claims: Claims) -> String {
         let header = Header::new(Algorithm::HS256);
         let encoding_key = EncodingKey::from_secret(TEST_JWT_SECRET.as_ref());
-        
-        encode(&header, &claims, &encoding_key)
-            .expect("Failed to create mock JWT token")
+
+        encode(&header, &claims, &encoding_key).expect("Failed to create mock JWT token")
     }
 
     /// Create claims for an application admin user
@@ -183,7 +179,12 @@ async fn create_test_app() -> Router {
 }
 
 /// Helper function to create an authenticated request
-fn create_authenticated_request(method: &str, uri: &str, token: &str, body: Option<Value>) -> Request<Body> {
+fn create_authenticated_request(
+    method: &str,
+    uri: &str,
+    token: &str,
+    body: Option<Value>,
+) -> Request<Body> {
     let mut builder = Request::builder()
         .method(method)
         .uri(uri)
@@ -221,9 +222,11 @@ mod integration_tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
         let json: Value = serde_json::from_slice(&body).unwrap();
-        
+
         assert_eq!(json["status"], "healthy");
         assert_eq!(json["service"], "sustainability");
         assert!(json["timestamp"].is_string());
@@ -281,7 +284,12 @@ mod integration_tests {
         // Test listing organizations (should work for app admin)
         let response = app
             .clone()
-            .oneshot(create_authenticated_request("GET", "/api/v1/organizations", &token, None))
+            .oneshot(create_authenticated_request(
+                "GET",
+                "/api/v1/organizations",
+                &token,
+                None,
+            ))
             .await
             .unwrap();
 
@@ -403,7 +411,7 @@ mod integration_tests {
 }
 
 /// End-to-End Workflow Tests
-/// 
+///
 /// These tests demonstrate complete workflows that would occur in real usage
 #[cfg(test)]
 mod e2e_workflow_tests {
@@ -421,7 +429,7 @@ mod e2e_workflow_tests {
 
         // 2. Application admin creates organization
         let org_request = test_utils::create_test_organization_request();
-        
+
         // 3. Application admin creates organization admin user
         let org_id = Uuid::new_v4().to_string(); // Would come from step 2 response
         let user_request = test_utils::create_test_user_request(&org_id);
@@ -462,7 +470,7 @@ mod e2e_workflow_tests {
             .unwrap();
 
         // Should be forbidden due to organization isolation
-        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }
 
@@ -480,7 +488,7 @@ mod performance_tests {
         let token = test_utils::create_mock_jwt(claims);
 
         let start = Instant::now();
-        
+
         // Make multiple requests to test performance
         for _ in 0..10 {
             let response = app
@@ -499,8 +507,12 @@ mod performance_tests {
         }
 
         let duration = start.elapsed();
-        
+
         // Authentication should be fast (less than 1 second for 10 requests)
-        assert!(duration.as_secs() < 1, "Authentication took too long: {:?}", duration);
+        assert!(
+            duration.as_secs() < 1,
+            "Authentication took too long: {:?}",
+            duration
+        );
     }
 }

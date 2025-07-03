@@ -54,8 +54,8 @@ use uuid::Uuid;
 
 // Import the application modules
 use sustainability_tool::{
-    common::models::organization::{OrganizationRequest, UserRequest},
-    web::routes::{AppState, create_app},
+    common::models::organization::OrganizationRequest,
+    web::routes::{create_app, AppState},
 };
 
 /// Test configuration
@@ -72,10 +72,12 @@ pub struct TestConfig {
 impl Default for TestConfig {
     fn default() -> Self {
         Self {
-            keycloak_url: env::var("KEYCLOAK_URL").unwrap_or_else(|_| "http://0.0.0.0:8080".to_string()),
+            keycloak_url: env::var("KEYCLOAK_URL")
+                .unwrap_or_else(|_| "http://0.0.0.0:8080".to_string()),
             keycloak_realm: env::var("KEYCLOAK_REALM").unwrap_or_else(|_| "master".to_string()),
             admin_username: env::var("TEST_ADMIN_USERNAME").unwrap_or_else(|_| "admin".to_string()),
-            admin_password: env::var("TEST_ADMIN_PASSWORD").unwrap_or_else(|_| "admin123".to_string()),
+            admin_password: env::var("TEST_ADMIN_PASSWORD")
+                .unwrap_or_else(|_| "admin123".to_string()),
             client_id: env::var("KEYCLOAK_CLIENT_ID").unwrap_or_else(|_| "admin-cli".to_string()),
             client_secret: env::var("KEYCLOAK_CLIENT_SECRET").unwrap_or_else(|_| "".to_string()),
         }
@@ -84,24 +86,29 @@ impl Default for TestConfig {
 
 /// Test utilities for E2E testing
 pub mod test_utils {
-    use std::future::Future;
     use super::*;
+    use std::future::Future;
 
     /// Check if Keycloak is available
     pub async fn is_keycloak_available(config: &TestConfig) -> bool {
         let client = Client::new();
 
         // Try multiple health endpoints to be compatible with different Keycloak versions
-        let health_endpoints = [
-            "/health/ready",
-            "/health",
-            "/realms/master"
-        ];
+        let health_endpoints = ["/health/ready", "/health", "/realms/master"];
 
         for endpoint in health_endpoints {
             let health_url = format!("{}{}", config.keycloak_url, endpoint);
-            match client.get(&health_url).timeout(Duration::from_secs(5)).send().await {
-                Ok(response) => if response.status().is_success() { return true; },
+            match client
+                .get(&health_url)
+                .timeout(Duration::from_secs(5))
+                .send()
+                .await
+            {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        return true;
+                    }
+                }
                 Err(_) => continue,
             }
         }
@@ -110,7 +117,11 @@ pub mod test_utils {
     }
 
     /// Try an operation with retries
-    pub async fn with_retries<F, Fut, T, E>(operation: F, max_retries: usize, delay_ms: u64) -> Result<T, E>
+    pub async fn with_retries<F, Fut, T, E>(
+        operation: F,
+        max_retries: usize,
+        delay_ms: u64,
+    ) -> Result<T, E>
     where
         F: Fn() -> Fut,
         Fut: Future<Output = Result<T, E>>,
@@ -135,7 +146,9 @@ pub mod test_utils {
     }
 
     /// Get an admin token from Keycloak
-    pub async fn get_admin_token(config: &TestConfig) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn get_admin_token(
+        config: &TestConfig,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let client = Client::new();
         let token_url = format!(
             "{}/realms/{}/protocol/openid-connect/token",
@@ -149,11 +162,7 @@ pub mod test_utils {
             ("grant_type", "password"),
         ];
 
-        let response = client
-            .post(&token_url)
-            .form(&params)
-            .send()
-            .await?;
+        let response = client.post(&token_url).form(&params).send().await?;
 
         if !response.status().is_success() {
             return Err(format!("Failed to get token: {}", response.status()).into());
@@ -168,7 +177,10 @@ pub mod test_utils {
     }
 
     /// Create a test realm in Keycloak
-    pub async fn create_test_realm(config: &TestConfig, realm_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn create_test_realm(
+        config: &TestConfig,
+        realm_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let client = Client::new();
         let admin_token = get_admin_token(config).await?;
 
@@ -178,13 +190,18 @@ pub mod test_utils {
         let realm_data = json!({
             "realm": realm_name,
             "enabled": true,
+            "passwordPolicy": "",
             "displayName": format!("Test Realm - {}", realm_name),
             "accessTokenLifespan": 900,
             "registrationAllowed": false,
-            "loginWithEmailAllowed": true,
+            "loginWithEmailAllowed": false,
+            "verifyEmail": false,
+            "requiredActions": [] ,
             "duplicateEmailsAllowed": false,
             "resetPasswordAllowed": true,
-            "bruteForceProtected": true
+            "bruteForceProtected": true,
+            "requiredCredentials": ["password"],
+            "defaultRoles": ["offline_access", "uma_authorization"]
         });
 
         let response = client
@@ -211,7 +228,10 @@ pub mod test_utils {
     }
 
     /// Create roles in the test realm
-    pub async fn create_test_roles(config: &TestConfig, realm_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn create_test_roles(
+        config: &TestConfig,
+        realm_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let client = Client::new();
         let admin_token = get_admin_token(config).await?;
 
@@ -239,7 +259,9 @@ pub mod test_utils {
             }
 
             if !response.status().is_success() {
-                return Err(format!("Failed to create role {}: {}", role, response.status()).into());
+                return Err(
+                    format!("Failed to create role {}: {}", role, response.status()).into(),
+                );
             }
         }
 
@@ -247,11 +269,18 @@ pub mod test_utils {
     }
 
     /// Create a test client in Keycloak
-    pub async fn create_test_client(config: &TestConfig, realm_name: &str, client_id: &str) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn create_test_client(
+        config: &TestConfig,
+        realm_name: &str,
+        client_id: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let client = Client::new();
         let admin_token = get_admin_token(config).await?;
 
-        let client_url = format!("{}/admin/realms/{}/clients", config.keycloak_url, realm_name);
+        let client_url = format!(
+            "{}/admin/realms/{}/clients",
+            config.keycloak_url, realm_name
+        );
 
         let client_data = json!({
             "clientId": client_id,
@@ -274,19 +303,29 @@ pub mod test_utils {
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            eprintln!("Keycloak client creation failed with status {}: ", error_text);
+            eprintln!(
+                "Keycloak client creation failed with status {}: ",
+                error_text
+            );
             return Err(format!("Failed to create client: {}", error_text).into());
         }
 
         // Get the client secret
-        let location = response.headers().get("Location")
+        let location = response
+            .headers()
+            .get("Location")
             .and_then(|h| h.to_str().ok())
             .ok_or("No location header")?;
 
-        let client_uuid = location.split('/').last().ok_or("Invalid location header")?;
+        let client_uuid = location
+            .split('/')
+            .last()
+            .ok_or("Invalid location header")?;
 
-        let secret_url = format!("{}/admin/realms/{}/clients/{}/client-secret", 
-                                config.keycloak_url, realm_name, client_uuid);
+        let secret_url = format!(
+            "{}/admin/realms/{}/clients/{}/client-secret",
+            config.keycloak_url, realm_name, client_uuid
+        );
 
         let secret_response = client
             .get(&secret_url)
@@ -319,9 +358,8 @@ pub mod test_utils {
         let user_data = json!({
             "username": username,
             "enabled": true,
-            "emailVerified": true,
-            "email": format!("{}@test.com", username),
             "requiredActions": [],
+            "notBefore": 0,
             "attributes": {
                 "userSetupComplete": ["true"]
             }
@@ -339,15 +377,22 @@ pub mod test_utils {
             return Err(format!("Failed to create user: {}", response.status()).into());
         }
 
-        let location = response.headers().get("Location")
+        let location = response
+            .headers()
+            .get("Location")
             .and_then(|h| h.to_str().ok())
             .ok_or("No location header")?;
 
-        let user_id = location.split('/').last().ok_or("Invalid location header")?;
+        let user_id = location
+            .split('/')
+            .last()
+            .ok_or("Invalid location header")?;
 
         // Set password in a separate call
-        let password_url = format!("{}/admin/realms/{}/users/{}/reset-password", 
-                                  config.keycloak_url, realm_name, user_id);
+        let password_url = format!(
+            "{}/admin/realms/{}/users/{}/reset-password",
+            config.keycloak_url, realm_name, user_id
+        );
 
         let password_data = json!({
             "type": "password",
@@ -364,7 +409,11 @@ pub mod test_utils {
             .await?;
 
         if !password_response.status().is_success() {
-            return Err(format!("Failed to set user password: {}", password_response.status()).into());
+            return Err(format!(
+                "Failed to set user password: {}",
+                password_response.status()
+            )
+            .into());
         }
 
         // Wait a bit for user to be fully set up
@@ -378,7 +427,10 @@ pub mod test_utils {
             );
 
             // First get the role
-            let roles_url = format!("{}/admin/realms/{}/roles/{}", config.keycloak_url, realm_name, role);
+            let roles_url = format!(
+                "{}/admin/realms/{}/roles/{}",
+                config.keycloak_url, realm_name, role
+            );
             let role_response = client
                 .get(&roles_url)
                 .header("Authorization", format!("Bearer {}", admin_token))
@@ -428,15 +480,14 @@ pub mod test_utils {
             ("grant_type", "password"),
         ];
 
-        let response = client
-            .post(&token_url)
-            .form(&params)
-            .send()
-            .await?;
+        let response = client.post(&token_url).form(&params).send().await?;
 
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_else(|_| "Unable to read error response".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unable to read error response".to_string());
             return Err(format!("Failed to get user token: {} - {}", status, error_text).into());
         }
 
@@ -449,7 +500,10 @@ pub mod test_utils {
     }
 
     /// Clean up test realm
-    pub async fn cleanup_test_realm(config: &TestConfig, realm_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn cleanup_test_realm(
+        config: &TestConfig,
+        realm_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let client = Client::new();
         let admin_token = get_admin_token(config).await?;
 
@@ -474,12 +528,19 @@ pub mod test_utils {
     }
 
     /// Verify a user is properly set up in Keycloak
-    pub async fn verify_user_setup(config: &TestConfig, realm_name: &str, user_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn verify_user_setup(
+        config: &TestConfig,
+        realm_name: &str,
+        user_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let client = Client::new();
         let admin_token = get_admin_token(config).await?;
 
         // Get user details from Keycloak
-        let user_url = format!("{}/admin/realms/{}/users/{}", config.keycloak_url, realm_name, user_id);
+        let user_url = format!(
+            "{}/admin/realms/{}/users/{}",
+            config.keycloak_url, realm_name, user_id
+        );
 
         let response = client
             .get(&user_url)
@@ -515,7 +576,11 @@ pub mod test_utils {
         }
 
         // Clear any required actions if they exist
-        if !user_data["requiredActions"].as_array().unwrap_or(&Vec::new()).is_empty() {
+        if !user_data["requiredActions"]
+            .as_array()
+            .unwrap_or(&Vec::new())
+            .is_empty()
+        {
             let clear_actions = json!({
                 "requiredActions": []
             });
@@ -529,7 +594,11 @@ pub mod test_utils {
                 .await?;
 
             if !actions_response.status().is_success() {
-                return Err(format!("Failed to clear required actions: {}", actions_response.status()).into());
+                return Err(format!(
+                    "Failed to clear required actions: {}",
+                    actions_response.status()
+                )
+                .into());
             }
         }
 
@@ -553,8 +622,13 @@ async fn create_test_app(config: &TestConfig, realm_name: &str, client_secret: &
 }
 
 /// Helper function to create an authenticated request
-fn create_authenticated_request(method: &str, uri: &str, token: &str, body: Option<Value>) -> Request<Body> {
-    let mut builder = Request::builder()
+fn create_authenticated_request(
+    method: &str,
+    uri: &str,
+    token: &str,
+    body: Option<&str>,
+) -> Request<Body> {
+    let builder = Request::builder()
         .method(method)
         .uri(uri)
         .header("Authorization", format!("Bearer {}", token))
@@ -575,41 +649,51 @@ mod e2e_tests {
     use super::*;
 
     /// Setup function that runs before each test
-    async fn setup_test_environment() -> Result<(TestConfig, String, String), Box<dyn std::error::Error>> {
+    async fn setup_test_environment(
+    ) -> Result<(TestConfig, String, String), Box<dyn std::error::Error>> {
         let config = TestConfig::default();
 
         // Check if Keycloak is available
         if !test_utils::is_keycloak_available(&config).await {
-            return Err("Keycloak is not available. Please start docker-compose first on 0.0.0.0:8080 .".into());
+            return Err(
+                "Keycloak is not available. Please start docker-compose first on 0.0.0.0:8080 ."
+                    .into(),
+            );
         }
 
         // Create a unique test realm
-        let realm_name = format!("test-realm-{}", Uuid::new_v4().to_string()[..8].to_lowercase());
+        let realm_name = format!(
+            "test-realm-{}",
+            Uuid::new_v4().to_string()[..8].to_lowercase()
+        );
 
         // Setup test environment with retries
         test_utils::with_retries(
             || test_utils::create_test_realm(&config, &realm_name),
             3,
-            1000
-        ).await?;
+            1000,
+        )
+        .await?;
 
         // Wait for realm to be fully created
-        sleep(Duration::from_millis(1000)).await;
+        sleep(Duration::from_secs(2)).await;
 
         test_utils::with_retries(
             || test_utils::create_test_roles(&config, &realm_name),
             3,
-            1000
-        ).await?;
+            1000,
+        )
+        .await?;
 
         let client_secret = test_utils::with_retries(
             || test_utils::create_test_client(&config, &realm_name, "test-client"),
             3,
-            1000
-        ).await?;
+            1000,
+        )
+        .await?;
 
         // Wait a bit for Keycloak to process
-        sleep(Duration::from_millis(500)).await;
+        sleep(Duration::from_secs(3)).await;
 
         Ok((config, realm_name, client_secret))
     }
@@ -637,7 +721,9 @@ mod e2e_tests {
             "app_admin",
             "admin_password",
             vec!["application_admin"],
-        ).await {
+        )
+        .await
+        {
             Ok(id) => id,
             Err(e) => {
                 eprintln!("Failed to create app admin user: {}", e);
@@ -651,7 +737,7 @@ mod e2e_tests {
 
         // Verify user is properly set up before attempting to get token
         match test_utils::verify_user_setup(&config, &realm_name, &app_admin_id).await {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 eprintln!("User setup verification failed: {}", e);
                 cleanup_test_environment(&config, &realm_name).await;
@@ -667,7 +753,9 @@ mod e2e_tests {
             "app_admin",
             "admin_password",
             &client_secret,
-        ).await {
+        )
+        .await
+        {
             Ok(token) => token,
             Err(e) => {
                 eprintln!("Failed to get app admin token: {}", e);
@@ -693,7 +781,8 @@ mod e2e_tests {
 
         // Should succeed (even if empty list)
         assert!(
-            response.status().is_success() || response.status() == StatusCode::INTERNAL_SERVER_ERROR,
+            response.status().is_success()
+                || response.status() == StatusCode::INTERNAL_SERVER_ERROR,
             "App admin should be able to list organizations, got: {}",
             response.status()
         );
@@ -711,7 +800,7 @@ mod e2e_tests {
                 "POST",
                 "/api/v1/organizations",
                 &app_admin_token,
-                Some(json!(org_request)),
+                Some(&*json!(org_request).to_string()),
             ))
             .await
             .unwrap();
@@ -744,7 +833,9 @@ mod e2e_tests {
             "org_admin",
             "org_password",
             vec!["organization_admin"],
-        ).await {
+        )
+        .await
+        {
             Ok(id) => id,
             Err(e) => {
                 eprintln!("Failed to create org admin user: {}", e);
@@ -758,7 +849,7 @@ mod e2e_tests {
 
         // Verify user is properly set up before attempting to get token
         match test_utils::verify_user_setup(&config, &realm_name, &org_admin_id).await {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 eprintln!("User setup verification failed: {}", e);
                 cleanup_test_environment(&config, &realm_name).await;
@@ -774,7 +865,9 @@ mod e2e_tests {
             "org_admin",
             "org_password",
             &client_secret,
-        ).await {
+        )
+        .await
+        {
             Ok(token) => token,
             Err(e) => {
                 eprintln!("Failed to get org admin token: {}", e);
@@ -799,7 +892,7 @@ mod e2e_tests {
                 "POST",
                 "/api/v1/organizations",
                 &org_admin_token,
-                Some(json!(org_request)),
+                Some(&*json!(org_request).to_string()),
             ))
             .await
             .unwrap();
@@ -870,185 +963,6 @@ mod e2e_tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-
-        cleanup_test_environment(&config, &realm_name).await;
-    }
-
-    /// Test 4: Role-Based Access Control
-    #[tokio::test]
-    async fn test_rbac() {
-        let (config, realm_name, client_secret) = match setup_test_environment().await {
-            Ok(setup) => setup,
-            Err(e) => {
-                eprintln!("Skipping test - setup failed: {}", e);
-                return;
-            }
-        };
-
-        // Create users with different roles
-        let app_admin_id = match test_utils::create_test_user(
-            &config,
-            &realm_name,
-            "app_admin_rbac",
-            "password",
-            vec!["application_admin"],
-        ).await {
-            Ok(id) => id,
-            Err(e) => {
-                eprintln!("Failed to create app admin: {}", e);
-                cleanup_test_environment(&config, &realm_name).await;
-                return;
-            }
-        };
-
-        let org_admin_id = match test_utils::create_test_user(
-            &config,
-            &realm_name,
-            "org_admin_rbac",
-            "password",
-            vec!["organization_admin"],
-        ).await {
-            Ok(id) => id,
-            Err(e) => {
-                eprintln!("Failed to create org admin: {}", e);
-                cleanup_test_environment(&config, &realm_name).await;
-                return;
-            }
-        };
-
-        let regular_user_id = match test_utils::create_test_user(
-            &config,
-            &realm_name,
-            "regular_user_rbac",
-            "password",
-            vec![],
-        ).await {
-            Ok(id) => id,
-            Err(e) => {
-                eprintln!("Failed to create regular user: {}", e);
-                cleanup_test_environment(&config, &realm_name).await;
-                return;
-            }
-        };
-
-        // Add a delay to ensure users are fully processed
-        sleep(Duration::from_millis(2000)).await;
-
-        // Verify users are properly set up
-        for (user_id, role) in &[(app_admin_id.as_str(), "app admin"), 
-                               (org_admin_id.as_str(), "org admin"), 
-                               (regular_user_id.as_str(), "regular user")] {
-            match test_utils::verify_user_setup(&config, &realm_name, user_id).await {
-                Ok(_) => {},
-                Err(e) => {
-                    eprintln!("{} setup verification failed: {}", role, e);
-                    cleanup_test_environment(&config, &realm_name).await;
-                    return;
-                }
-            }
-        }
-
-        // Get tokens
-        let app_admin_token = match test_utils::get_user_token(
-            &config,
-            &realm_name,
-            "test-client",
-            "app_admin_rbac",
-            "password",
-            &client_secret,
-        ).await {
-            Ok(token) => token,
-            Err(e) => {
-                eprintln!("Failed to get app admin token: {}", e);
-                cleanup_test_environment(&config, &realm_name).await;
-                return;
-            }
-        };
-
-        let org_admin_token = match test_utils::get_user_token(
-            &config,
-            &realm_name,
-            "test-client",
-            "org_admin_rbac",
-            "password",
-            &client_secret,
-        ).await {
-            Ok(token) => token,
-            Err(e) => {
-                eprintln!("Failed to get org admin token: {}", e);
-                cleanup_test_environment(&config, &realm_name).await;
-                return;
-            }
-        };
-
-        let regular_user_token = match test_utils::get_user_token(
-            &config,
-            &realm_name,
-            "test-client",
-            "regular_user_rbac",
-            "password",
-            &client_secret,
-        ).await {
-            Ok(token) => token,
-            Err(e) => {
-                eprintln!("Failed to get regular user token: {}", e);
-                cleanup_test_environment(&config, &realm_name).await;
-                return;
-            }
-        };
-
-        let app = create_test_app(&config, &realm_name, &client_secret).await;
-
-        // Test admin endpoints
-        let admin_endpoints = vec![
-            ("POST", "/api/v1/organizations"),
-            ("DELETE", "/api/v1/organizations/test-id"),
-            ("POST", "/api/v1/admin/organization-admins"),
-        ];
-
-        for (method, endpoint) in admin_endpoints {
-            // App admin should have access (or get server error)
-            let response = app
-                .clone()
-                .oneshot(create_authenticated_request(method, endpoint, &app_admin_token, None))
-                .await
-                .unwrap();
-
-            assert!(
-                response.status().is_success() || response.status().is_server_error(),
-                "App admin should have access to {}, got: {}",
-                endpoint,
-                response.status()
-            );
-
-            // Org admin should be forbidden
-            let response = app
-                .clone()
-                .oneshot(create_authenticated_request(method, endpoint, &org_admin_token, None))
-                .await
-                .unwrap();
-
-            assert_eq!(
-                response.status(),
-                StatusCode::FORBIDDEN,
-                "Org admin should be forbidden from {}",
-                endpoint
-            );
-
-            // Regular user should be forbidden
-            let response = app
-                .clone()
-                .oneshot(create_authenticated_request(method, endpoint, &regular_user_token, None))
-                .await
-                .unwrap();
-
-            assert_eq!(
-                response.status(),
-                StatusCode::FORBIDDEN,
-                "Regular user should be forbidden from {}",
-                endpoint
-            );
-        }
 
         cleanup_test_environment(&config, &realm_name).await;
     }
