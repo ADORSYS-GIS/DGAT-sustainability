@@ -165,7 +165,7 @@ impl KeycloakAdminClient {
             .and_then(|h| h.to_str().ok())
             .ok_or_else(|| KeycloakError::UserCreationFailed("No location header".to_string()))?;
 
-        let user_id = location.split('/').last().ok_or_else(|| {
+        let user_id = location.split('/').next_back().ok_or_else(|| {
             KeycloakError::UserCreationFailed("Invalid location header".to_string())
         })?;
 

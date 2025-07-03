@@ -25,7 +25,7 @@ services:
 
   # Keycloak Authentication
   keycloak:
-    image: quay.io/keycloak/keycloak:25.0
+    image: quay.io/keycloak/keycloak:24.0
     container_name: sustainability-keycloak
     environment:
       KEYCLOAK_ADMIN: admin
@@ -34,18 +34,18 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: dgrv_user
       KC_DB_PASSWORD: dgrv_password
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
       KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
-      # Use the new proxy-headers option instead of deprecated proxy
-      KC_PROXY_HEADERS: "xforwarded"
+      KC_PROXY_HEADERS: "forwarded"
+      KC_PROXY_ADDRESS_FORWARDING: "true"
     command:
       - start-dev
       - --http-port=8080
       - --hostname-strict=false
+      - --hostname-strict-https=false
       - --health-enabled=true
     ports:
       - "8080:8080"
@@ -55,15 +55,17 @@ services:
     networks:
       - sustainability-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 60s
 
+# Define the networks section
 networks:
   sustainability-network:
     driver: bridge
 
+# Define the volumes section
 volumes:
   postgres_data:
