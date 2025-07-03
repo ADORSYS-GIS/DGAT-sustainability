@@ -7,10 +7,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Globe, User, LogOut, Home } from "lucide-react";
-
-interface NavbarProps {
-  onLoginClick?: () => void;
-}
+import { useAuth } from "@/hooks/shared/useAuth";
+import { login, logout } from "@/services/shared/authService";
 
 const languages = [
   { code: "en", name: "English", flag: "🇺🇸" },
@@ -21,11 +19,32 @@ const languages = [
   { code: "fr", name: "Français", flag: "🇫🇷" },
 ];
 
-export const Navbar: React.FC<NavbarProps> = ({ onLoginClick }) => {
+export const Navbar = () => {
   const [currentLanguage, setCurrentLanguage] = useState("en");
+  const { isAuthenticated, profile } = useAuth();
 
   const currentLang =
     languages.find((lang) => lang.code === currentLanguage) || languages[0];
+
+  // Helper to get user display name
+  const getUserDisplay = () => {
+    if (!profile) return "Profile";
+    // Try name, fallback to email or sub
+    return (
+      (profile.name as string) ||
+      (profile.email as string) ||
+      (profile.sub as string) ||
+      "Profile"
+    );
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      alert("Logout failed. Please try again.");
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b">
@@ -82,6 +101,50 @@ export const Navbar: React.FC<NavbarProps> = ({ onLoginClick }) => {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            {/* Auth/Profile */}
+            {!isAuthenticated ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={login}
+                className="ml-2"
+              >
+                Login
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center space-x-2 ml-2"
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="hidden sm:inline">{getUserDisplay()}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    disabled
+                    className="flex flex-col items-start"
+                  >
+                    <span className="font-semibold">{getUserDisplay()}</span>
+                    {profile?.email && (
+                      <span className="text-xs text-gray-500">
+                        {profile.email as string}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 text-red-600"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>
