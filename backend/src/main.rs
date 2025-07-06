@@ -15,7 +15,7 @@ async fn main() {
             println!("Application initialized successfully");
         }
         Err(err) => {
-            eprintln!("Failed to initialize database: {}", err);
+            eprintln!("Failed to initialize database: {err}");
             std::process::exit(1);
         }
     }

@@ -1,5 +1,8 @@
 pub mod assessments;
-pub mod organization_categories;
+pub mod assessments_response;
+pub mod assessments_response_file;
+pub mod assessments_submission;
+pub mod file;
 pub mod questions;
-pub mod reports;
-pub mod sync_queue;
+pub mod questions_revisions;
+pub mod submission_reports;
