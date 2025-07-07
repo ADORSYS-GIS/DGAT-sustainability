@@ -13,22 +13,14 @@
 //! admin console or APIs directly.
 
 use axum::{
-    extract::Extension,
-    http::StatusCode,
-    middleware,
-    response::Json,
-    routing::get,
-    Router,
+    extract::Extension, http::StatusCode, middleware, response::Json, routing::get, Router,
 };
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::common::models::claims::Claims;
-use crate::web::handlers::{
-    jwt_validator::JwtValidator,
-    midlw::auth_middleware,
-};
+use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware};
 
 /// Application state containing shared services for JWT validation
 #[derive(Clone)]
@@ -86,8 +78,13 @@ async fn get_user_profile(Extension(claims): Extension<Claims>) -> Json<serde_js
 /// Get user's organization information
 ///
 /// This endpoint shows how to provide organization-specific data based on JWT claims
-async fn get_user_organizations(Extension(claims): Extension<Claims>) -> Result<Json<serde_json::Value>, StatusCode> {
-    if let (Some(org_id), Some(org_name)) = (claims.get_primary_organization_id(), claims.get_organization_name()) {
+async fn get_user_organizations(
+    Extension(claims): Extension<Claims>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let (Some(org_id), Some(org_name)) = (
+        claims.get_primary_organization_id(),
+        claims.get_organization_name(),
+    ) {
         Ok(Json(json!({
             "organization": {
                 "id": org_id,

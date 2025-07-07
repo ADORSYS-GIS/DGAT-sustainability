@@ -27,10 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Initialize application state
-    let app_state = AppState::new(
-        config.keycloak.url,
-        config.keycloak.realm,
-    );
+    let app_state = AppState::new(config.keycloak.url, config.keycloak.realm);
 
     // Create the application with all routes and middleware
     let app = create_app(app_state);

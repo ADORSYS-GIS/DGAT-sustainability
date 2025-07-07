@@ -4,7 +4,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,                       // Keycloak user ID
-    pub organizations: Organizations, // Organizations with roles and metadata
+    pub organizations: Organizations,      // Organizations with roles and metadata
     pub realm_access: Option<RealmAccess>, // Realm roles
     pub preferred_username: String,        // Username
     pub email: Option<String>,             // Email
@@ -20,8 +20,8 @@ pub struct Claims {
 pub struct Organizations {
     #[serde(flatten)]
     pub orgs: HashMap<String, OrganizationInfo>, // Organization UUID -> Organization Info
-    pub name: String,                            // Organization name
-    pub categories: Vec<String>,                 // Organization categories
+    pub name: String,            // Organization name
+    pub categories: Vec<String>, // Organization categories
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,7 +117,8 @@ mod tests {
         });
 
         // Test deserialization
-        let claims: Claims = serde_json::from_value(test_json).expect("Should deserialize successfully");
+        let claims: Claims =
+            serde_json::from_value(test_json).expect("Should deserialize successfully");
 
         // Test helper methods
         assert!(claims.get_primary_organization_id().is_some());
@@ -135,5 +136,4 @@ mod tests {
         assert!(serialized.contains("acme"));
         assert!(serialized.contains("manage-organization"));
     }
-
 }
