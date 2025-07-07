@@ -56,7 +56,7 @@ pub async fn auth_middleware(
     tracing::debug!(
         "User authenticated: {} (org: {:?})",
         claims.preferred_username,
-        claims.organization_id
+        claims.get_primary_organization_id()
     );
 
     // Add claims to request extensions

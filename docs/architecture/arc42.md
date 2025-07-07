@@ -145,7 +145,7 @@ graph TD
 
 #### Keycloak Integration:
 - Manages user identities and roles.
-- Provides JWT with user_id and organization_id.
+- Provides JWT with user_id and organizations structure containing roles and metadata.
 
 *Cross-reference: See Section 6 for runtime scenarios and Section 7 for deployment details.*
 
@@ -153,7 +153,7 @@ graph TD
 
 ### Scenario 1: Keycloak Authentication Flow
 1. User navigates to frontend, redirected to Keycloak login.
-2. Keycloak issues JWT with user_id (VARCHAR) and organization_id (JWT attribute).
+2. Keycloak issues JWT with user_id (VARCHAR) and organizations structure (JWT attribute).
 3. Frontend stores token, uses it for API requests.
 4. Authentication service validates token with Keycloak.
 

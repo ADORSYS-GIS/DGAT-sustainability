@@ -11,8 +11,6 @@ pub struct Configs {
 pub struct KeycloakConfigs {
     pub url: String,
     pub realm: String,
-    pub client_id: String,
-    pub client_secret: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -28,8 +26,6 @@ impl Configs {
         let keycloak = KeycloakConfigs {
             url: env::var("KEYCLOAK_URL")?,
             realm: env::var("KEYCLOAK_REALM")?,
-            client_id: env::var("KEYCLOAK_CLIENT_ID")?,
-            client_secret: env::var("KEYCLOAK_CLIENT_SECRET")?,
         };
 
         let server = ServerConfigs {

@@ -30,8 +30,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_state = AppState::new(
         config.keycloak.url,
         config.keycloak.realm,
-        config.keycloak.client_id,
-        config.keycloak.client_secret,
     );
 
     // Create the application with all routes and middleware
