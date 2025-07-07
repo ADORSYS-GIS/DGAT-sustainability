@@ -105,17 +105,14 @@ graph TD
 graph TD
     A[Frontend App: React] -->|REST| B[Authentication Service]
     A -->|REST| C[Assessment Service]
-    A -->|REST| D[Sync Service]
     A -->|REST| E[Report Service]
     B -->|SQL| F[PostgreSQL]
     C -->|SQL| F
-    D -->|SQL| F
     E -->|SQL| F
     B -->|OAuth2| G[Keycloak]
     subgraph "Backend Services"
         B[Authentication Service]
         C[Assessment Service]
-        D[Sync Service]
         E[Report Service]
     end
 ```
@@ -124,24 +121,27 @@ graph TD
 
 #### Frontend Application Architecture:
 - Built with React, using JSX and Tailwind CSS for styling.
-- Offline storage via IndexedDB for assessments and sync queue.
+- Offline storage via IndexedDB for assessments and.
 - Features: Authentication, assessment creation/editing, synchronization, report viewing.
 - CDN-hosted via AWS S3 and CloudFront.
 
 #### Backend API Design and Microservices Structure:
 - **Authentication Service**: Validates Keycloak JWT tokens.
 - **Assessment Service**: Manages CRUD for assessments and questions.
-- **Sync Service**: Processes offline changes from SYNC_QUEUE.
+- **Sync Service**: Processes offline changes using versioning in ASSESSMENTS_RESPONSE for conflict resolution.
 - **Report Service**: Generates PDF/CSV reports.
 - Built with Rust, exposing RESTful APIs.
 
 #### Database Schema and Data Flow:
-- **ASSESSMENTS**: Stores assessment_id (UUID PK), user_id (VARCHAR, Keycloak sub), data (JSONB for answers).
-- **ORGANIZATION_CATEGORIES**: Stores category_id (UUID PK), organization_id (UUID), name (VARCHAR), description (VARCHAR, nullable), categories (JSONB, array of strings).
-- **QUESTIONS**: Stores question_id (UUID PK), text (JSONB for multilingual), category_id (UUID FK to ORGANIZATION_CATEGORIES), weight (FLOAT).
-- **SYNC_QUEUE**: Stores sync_id (UUID PK), user_id (VARCHAR), assessment_id (UUID FK), data (JSONB), status (ENUM: pending, processing, completed).
-- **REPORTS**: Stores report_id (UUID PK), assessment_id (UUID FK), type (ENUM: PDF, CSV), data (JSONB).
-- **Data Flow**: Users create assessments via frontend, stored in ASSESSMENTS. Questions are organized by categories per organization. Offline changes queue in SYNC_QUEUE, synced to database. Reports generated from ASSESSMENTS and stored in REPORTS.
+- **ASSESSMENTS**: Stores assessment_id (UUID PK), user_id (VARCHAR, Keycloak sub), language (TEXT, resolved from frontend), created_at and updated_at timestamps.
+- **ASSESSMENTS_RESPONSE**: Stores response_id (UUID PK), assessment_id (UUID FK), question_revision_id (UUID FK), response (TEXT, modifiable answer), version (INT, auto-increment for conflict resolution), updated_at (TIMESTAMP, auto-update on change).
+- **ASSESSMENTS_RESPONSE_FILE**: Junction table linking response_id (UUID FK) to file_id (UUID FK) for file attachments.
+- **ASSESSMENTS_SUBMISSION**: Stores assessment_id (UUID PK), user_id (VARCHAR, Keycloak sub), content (JSONB, immutable snapshot of question_revision_id: response pairs), submitted_at (TIMESTAMP).
+- **FILE**: Stores file_id (UUID PK), content (BLOB, binary file data), metadata (JSON, filename, size, type, etc.), created_at (TIMESTAMP).
+- **QUESTIONS**: Stores question_id (UUID PK), category (TEXT, sustainability category), created_at (TIMESTAMP).
+- **QUESTIONS_REVISIONS**: Stores question_revision_id (UUID PK), question_id (UUID FK), text (JSONB, multilingual question text), weight (FLOAT, question weight for scoring), created_at (TIMESTAMP, auto-update on creation).
+- **SUBMISSION_REPORTS**: Stores report_id (UUID PK), assessment_id (UUID FK to ASSESSMENTS_SUBMISSION), data (JSONB, generated report content), report_type (TEXT, PDF, CSV, etc.), generated_at (TIMESTAMP).
+- **Data Flow**: Users create assessments stored in ASSESSMENTS with responses in ASSESSMENTS_RESPONSE. Questions are versioned through QUESTIONS_REVISIONS. Upon completion, assessments are submitted as immutable snapshots in ASSESSMENTS_SUBMISSION. Reports are generated from submissions and stored in SUBMISSION_REPORTS. File attachments are managed through FILE table with junction table ASSESSMENTS_RESPONSE_FILE.
 
 #### Keycloak Integration:
 - Manages user identities and roles.
@@ -160,15 +160,16 @@ graph TD
 ### Scenario 2: Offline/Online Synchronization
 1. User creates/edits assessment offline.
 2. Data stored in IndexedDB.
-3. Sync queue entry added to SYNC_QUEUE with user_id, assessment_id, and data (JSONB).
-4. When online, frontend sends queue to sync service.
-5. Sync service updates ASSESSMENTS and ASSESSMENT_QUESTIONS, resolving conflicts (e.g., last-write-wins).
+3. Response changes tracked with version numbers for conflict resolution.
+4. When online, frontend sends changes to sync service.
+5. Sync service updates ASSESSMENTS_RESPONSE with incremented version numbers, resolving conflicts using version-based conflict resolution.
 
 ### Scenario 3: Report Generation
 1. User submits completed assessment.
-2. Frontend calls report service API.
-3. Service fetches data from ASSESSMENTS and ASSESSMENT_QUESTIONS, generates PDF/CSV, stores in REPORTS.
-4. Frontend provides download link.
+2. Assessment data is stored as immutable snapshot in ASSESSMENTS_SUBMISSION.
+3. Frontend calls report service API.
+4. Service fetches data from ASSESSMENTS_SUBMISSION, generates PDF/CSV, stores in SUBMISSION_REPORTS.
+5. Frontend provides download link.
 
 *Cross-reference: See Section 5 for components and Section 8 for sync details.*
 
@@ -234,8 +235,8 @@ graph TD
 
 ### Offline/Online Synchronization:
 - IndexedDB for local storage.
-- SYNC_QUEUE for queuing changes.
-- Conflict resolution via last-write-wins or user prompts.
+- Version-based conflict resolution in ASSESSMENTS_RESPONSE.
+- Conflict resolution via version comparison and user prompts when needed.
 
 ### Logging/Monitoring:
 - CloudWatch for metrics and logs.
@@ -251,7 +252,7 @@ graph TD
 | JSONB in PostgreSQL | Flexible for DGRV's questionnaire and multilingual text.              | Relational tables (less adaptable). |
 | React with Tailwind CSS | Responsive UI, rapid development.                                     | Angular (complexer setup). |
 | Microservices Architecture | Scalability, independent deployment.                                  | Monolith (less flexible). |
-| Sync Queue | Reliable offline sync with conflict resolution.                       | Real-time sync (requires connectivity). |
+| Version-based Conflict Resolution | Reliable offline sync with version-based conflict resolution in ASSESSMENTS_RESPONSE. | Real-time sync (requires connectivity). |
 | AWS Deployment | Scalable, managed services.                                           | On-premises (higher costs). |
 | Rust Backend | Memory safety, performance, concurrency. and low resource utilisation | Node.js (higher memory usage). |
 
@@ -267,7 +268,7 @@ graph TD
 
 ### Technical Debt
 - **Unused Questions**: Periodic cleanup of QUESTIONS.
-- **Sync Queue Maintenance**: Failed syncs require monitoring.
+- **Version Conflict Resolution**: Version conflicts in ASSESSMENTS_RESPONSE require monitoring and resolution strategies.
 
 *Cross-reference: See Section 7 for mitigation strategies.*
 
@@ -291,57 +292,75 @@ graph TD
 | ESG | Environmental, Social, Governance criteria. |
 | Keycloak | Identity and access management system. |
 | JSONB | PostgreSQL binary JSON format. |
-| Sync Queue | Mechanism for offline data synchronization. |
+| Version-based Conflict Resolution | Mechanism for handling concurrent edits using version numbers in ASSESSMENTS_RESPONSE. |
 
 ## Database ER Diagram
 
 ```mermaid
 erDiagram
-    ORGANIZATIONS ||--o{ ASSESSMENTS : "linked via Keycloak JWT"
-    ORGANIZATIONS ||--o{ ORGANIZATION_CATEGORIES : "has"
-    ORGANIZATION_CATEGORIES ||--o{ QUESTIONS : "contains"
-    ASSESSMENTS ||--o{ SYNC_QUEUE : "queued for"
-    ASSESSMENTS ||--o| REPORTS : "generates"
-
-    ORGANIZATIONS {
-        uuid organization_id PK
-        varchar name
-        varchar country
-    }
+    ASSESSMENTS ||--o{ ASSESSMENTS_RESPONSE : "has"
+    ASSESSMENTS ||--|| ASSESSMENTS_SUBMISSION : "submits to"
+    ASSESSMENTS_SUBMISSION ||--o{ SUBMISSION_REPORTS : "produces"
+    QUESTIONS ||--o{ QUESTIONS_REVISIONS : "versions"
+    ASSESSMENTS_RESPONSE }o--|| QUESTIONS_REVISIONS : "references"
+    ASSESSMENTS_RESPONSE ||--o{ ASSESSMENTS_RESPONSE_FILE : "has files"
+    ASSESSMENTS_RESPONSE_FILE }o--|| FILE : "references"
 
     ASSESSMENTS {
         uuid assessment_id PK
-        varchar user_id "Keycloak sub"
-        jsonb data "Answers: [{question_id, answer}]"
-        assessment_status status "ENUM(Draft, Submitted, Completed)"
+        varchar user_id "Keycloak sub (string UUID)"
+        text language "resolved from frontend"
+        timestamp created_at
+        timestamp updated_at
     }
 
-    ORGANIZATION_CATEGORIES {
-        uuid category_id PK
-        uuid organization_id FK
-        varchar name
-        varchar description "nullable"
-        jsonb categories "Array of strings"
+    ASSESSMENTS_RESPONSE {
+        uuid response_id PK
+        uuid assessment_id FK
+        uuid question_revision_id FK
+        text response "modifiable answer"
+        int version "auto-increment for conflict resolution"
+        timestamp updated_at "auto-update on change"
+    }
+
+    ASSESSMENTS_RESPONSE_FILE {
+        uuid response_id FK
+        uuid file_id FK
+    }
+
+    ASSESSMENTS_SUBMISSION {
+        uuid assessment_id PK "references ASSESSMENTS"
+        varchar user_id "Keycloak sub (string UUID)"
+        jsonb content "immutable snapshot {question_revision_id: response}[]"
+        timestamp submitted_at
+    }
+
+    FILE {
+        uuid file_id PK
+        blob content "binary file data"
+        json metadata "filename, size, type, etc."
+        timestamp created_at
     }
 
     QUESTIONS {
         uuid question_id PK
-        jsonb text "Multilingual: {'en': 'Text', 'fr': 'Texte'}"
-        uuid category_id FK
-        float weight
+        text category "sustainability category"
+        timestamp created_at
     }
 
-    SYNC_QUEUE {
-        uuid sync_id PK
-        varchar user_id "Keycloak sub"
-        uuid assessment_id FK
-        jsonb data "Changed fields"
-        sync_status status "ENUM(pending, processing, completed)"
+    QUESTIONS_REVISIONS {
+        uuid question_revision_id PK
+        uuid question_id FK
+        jsonb text "multilingual question text {i18n}"
+        float weight "question weight for scoring"
+        timestamp created_at "auto-update on creation"
     }
 
-    REPORTS {
+    SUBMISSION_REPORTS {
         uuid report_id PK
-        uuid assessment_id FK
-        jsonb data "Report content"
+        uuid assessment_id FK "references ASSESSMENTS_SUBMISSION"
+        jsonb data "generated report content"
+        text report_type "PDF, CSV, etc."
+        timestamp generated_at
     }
 ```
