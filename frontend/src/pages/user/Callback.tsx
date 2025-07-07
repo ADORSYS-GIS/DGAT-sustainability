@@ -1,49 +1,37 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { handleCallback } from "../../services/shared/authService";
-import { useAuth } from "../../hooks/shared/useAuth";
-import { LoadingSpinner } from "../../components/shared/LoadingSpinner";
-
-/**
- * Handles the callback from Keycloak after login, and updates the user state.
- */
+import { useAuth } from "@/hooks/shared/useAuth";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 export const Callback = () => {
-  const { loadUser } = useAuth();
+  const { isAuthenticated, loading, roles, login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handle = async () => {
-      console.log(
-        "[Callback] Current path:",
-        window.location.pathname +
-          window.location.search +
-          window.location.hash,
-      );
-      try {
-        const user = await handleCallback();
-        console.log("[Callback] handleCallback user:", user);
-        await loadUser();
-        const roles = user?.roles || [];
-        console.log("[Callback] roles:", roles);
-        if (roles.includes("DGRV_Admin")) {
-          navigate("/admin");
-        } else if (
-          roles.includes("Org_User") ||
-          roles.includes("Org_Admin") ||
-          roles.includes("Org_Expert")
-        ) {
-          navigate("/dashboard");
-        } else {
-          navigate("/dashboard");
-        }
-      } catch (err) {
-        console.error("[Callback] Error in handleCallback:", err);
-        navigate("/");
+    if (!loading && isAuthenticated) {
+      if (roles.includes("DGRV_Admin")) {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
       }
-    };
-    handle();
-  }, [loadUser, navigate]);
+    }
+  }, [isAuthenticated, loading, roles, navigate]);
+
+  if (!loading && !isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="mb-4 text-red-600 font-semibold">
+          Authentication failed. Please try logging in again.
+        </div>
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          onClick={login}
+        >
+          Retry Login
+        </button>
+      </div>
+    );
+  }
 
   return <LoadingSpinner />;
 };

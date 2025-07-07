@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Globe, User, LogOut, Home } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { login, logout } from "@/services/shared/authService";
 
 const languages = [
   { code: "en", name: "English", flag: "🇺🇸" },
@@ -21,29 +20,20 @@ const languages = [
 
 export const Navbar = () => {
   const [currentLanguage, setCurrentLanguage] = useState("en");
-  const { isAuthenticated, profile } = useAuth();
+  const { isAuthenticated, user, login, logout } = useAuth();
 
   const currentLang =
     languages.find((lang) => lang.code === currentLanguage) || languages[0];
 
   // Helper to get user display name
   const getUserDisplay = () => {
-    if (!profile) return "Profile";
-    // Try name, fallback to email or sub
+    if (!user) return "Profile";
     return (
-      (profile.name as string) ||
-      (profile.email as string) ||
-      (profile.sub as string) ||
+      user.profile?.name ||
+      user.profile?.email ||
+      user.profile?.sub ||
       "Profile"
     );
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (err) {
-      alert("Logout failed. Please try again.");
-    }
   };
 
   return (
@@ -106,7 +96,11 @@ export const Navbar = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={login}
+                onClick={() => {
+                  console.log("[Navbar] Login button clicked");
+                  console.log("[Navbar] login function:", login);
+                  login();
+                }}
                 className="ml-2"
               >
                 Login
@@ -129,14 +123,14 @@ export const Navbar = () => {
                     className="flex flex-col items-start"
                   >
                     <span className="font-semibold">{getUserDisplay()}</span>
-                    {profile?.email && (
+                    {user?.profile?.email && (
                       <span className="text-xs text-gray-500">
-                        {profile.email as string}
+                        {user.profile.email}
                       </span>
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={handleLogout}
+                    onClick={logout}
                     className="flex items-center space-x-2 text-red-600"
                   >
                     <LogOut className="w-4 h-4" />

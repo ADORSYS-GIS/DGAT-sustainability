@@ -1,29 +1,9 @@
 import React, { useEffect, useState } from "react";
 import AppRouter from "./router/AppRouter";
-import { initKeycloak } from "./services/shared/authService";
-import { useAuth } from "./hooks/shared/useAuth";
 import { LoadingSpinner } from "./components/shared/LoadingSpinner";
 
 const App = () => {
-  const [loading, setLoading] = useState(true);
-  const { loadUser } = useAuth();
-
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        const authenticated = await initKeycloak();
-        if (authenticated) {
-          await loadUser();
-        }
-      } catch (error) {
-        console.error("Failed to initialize Keycloak:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initialize();
-  }, [loadUser]);
+  const [loading, setLoading] = useState(false);
 
   if (loading) {
     return (
