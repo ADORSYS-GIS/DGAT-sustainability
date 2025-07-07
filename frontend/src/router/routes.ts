@@ -6,6 +6,7 @@ import NotFound from "../pages/NotFound";
 import Unauthorized from "../pages/user/Unauthorized";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { Welcome } from "../pages/HomePage";
+import { ROLES } from "@/constants/roles";
 
 // Example route definitions
 const routes = [
@@ -15,14 +16,14 @@ const routes = [
   {
     path: "/dashboard",
     element: React.createElement(ProtectedRoute, {
-      allowedRoles: ["Org_User", "Org_Admin", "Org_Expert"],
+      allowedRoles: [ROLES.ORG_USER, ROLES.ORG_ADMIN, ROLES.ORG_EXPERT],
     }),
     children: [{ path: "", element: React.createElement(Dashboard) }],
   },
   {
     path: "/admin",
     element: React.createElement(ProtectedRoute, {
-      allowedRoles: ["DGRV_Admin"],
+      allowedRoles: [ROLES.ADMIN],
     }),
     children: [{ path: "", element: React.createElement(AdminDashboard) }],
   },

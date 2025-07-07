@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { ROLES } from "@/constants/roles";
 
 export const Callback = () => {
   const { isAuthenticated, loading, roles, login } = useAuth();
@@ -9,8 +10,14 @@ export const Callback = () => {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      if (roles.includes("DGRV_Admin")) {
+      if (roles.includes(ROLES.ADMIN)) {
         navigate("/admin", { replace: true });
+      } else if (
+        [ROLES.ORG_USER, ROLES.ORG_ADMIN, ROLES.ORG_EXPERT].some((r) =>
+          roles.includes(r),
+        )
+      ) {
+        navigate("/dashboard", { replace: true });
       } else {
         navigate("/dashboard", { replace: true });
       }
