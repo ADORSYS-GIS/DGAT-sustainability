@@ -1,40 +1,33 @@
+use envconfig::Envconfig;
 use serde::Deserialize;
-use std::env;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Envconfig)]
 pub struct Configs {
+    #[envconfig(nested = true)]
     pub keycloak: KeycloakConfigs,
+    #[envconfig(nested = true)]
     pub server: ServerConfigs,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Envconfig)]
 pub struct KeycloakConfigs {
+    #[envconfig(from = "KEYCLOAK_URL")]
     pub url: String,
+    #[envconfig(from = "KEYCLOAK_REALM")]
     pub realm: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Envconfig)]
 pub struct ServerConfigs {
+    #[envconfig(from = "SERVER_HOST", default = "0.0.0.0")]
     pub host: String,
+    #[envconfig(from = "SERVER_PORT", default = "3001")]
     pub port: u16,
 }
 
 impl Configs {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         dotenvy::dotenv().ok();
-
-        let keycloak = KeycloakConfigs {
-            url: env::var("KEYCLOAK_URL")?,
-            realm: env::var("KEYCLOAK_REALM")?,
-        };
-
-        let server = ServerConfigs {
-            host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
-            port: env::var("SERVER_PORT")
-                .unwrap_or_else(|_| "3001".to_string())
-                .parse()?,
-        };
-
-        Ok(Configs { keycloak, server })
+        Ok(Configs::init_from_env()?)
     }
 }
