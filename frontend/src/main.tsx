@@ -1,12 +1,10 @@
-import { createRoot } from "react-dom/client";
-import App from "./App";
-import "./index.css";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { oidcEarlyInit } from "oidc-spa/entrypoint";
 
-const queryClient = new QueryClient();
+const { shouldLoadApp } = oidcEarlyInit({
+  freezeFetch: true,
+  freezeXMLHttpRequest: true,
+});
 
-createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <App />
-  </QueryClientProvider>,
-);
+if (shouldLoadApp) {
+  import("./main.lazy");
+}
