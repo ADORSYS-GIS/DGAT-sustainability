@@ -43,8 +43,17 @@ export const AdminDashboard: React.FC = () => {
   const orgsLoading = false;
   const usersLoading = false;
 
-  const { data: assessmentsData, isLoading: assessmentsLoading, isError, error, isSuccess } = useAssessmentsServiceGetAssessments();
-  const assessments: Assessment[] = React.useMemo(() => assessmentsData?.assessments ?? [], [assessmentsData]);
+  const {
+    data: assessmentsData,
+    isLoading: assessmentsLoading,
+    isError,
+    error,
+    isSuccess,
+  } = useAssessmentsServiceGetAssessments();
+  const assessments: Assessment[] = React.useMemo(
+    () => assessmentsData?.assessments ?? [],
+    [assessmentsData],
+  );
 
   React.useEffect(() => {
     if (isError) {
@@ -66,13 +75,10 @@ export const AdminDashboard: React.FC = () => {
     if (orgsLoading || usersLoading || assessmentsLoading) return [];
 
     const pendingAssessments = assessments.filter(
-      (a) => a.status === "submitted"
+      (a) => a.status === "submitted",
     );
     const userMap = new Map(
-      users.map((u) => [
-        u.userId,
-        `${u.firstName ?? ""} ${u.lastName ?? ""}`,
-      ]),
+      users.map((u) => [u.userId, `${u.firstName ?? ""} ${u.lastName ?? ""}`]),
     );
 
     return pendingAssessments.map((assessment) => ({
@@ -88,12 +94,9 @@ export const AdminDashboard: React.FC = () => {
     return {
       orgCount: orgs.length,
       userCount: users.length,
-      pendingCount: assessments.filter(
-        (a) => a.status === "submitted"
-      ).length,
-      completedCount: assessments.filter(
-        (a) => a.status === "completed",
-      ).length,
+      pendingCount: assessments.filter((a) => a.status === "submitted").length,
+      completedCount: assessments.filter((a) => a.status === "completed")
+        .length,
     };
   }, [users, assessments, orgs.length]);
 

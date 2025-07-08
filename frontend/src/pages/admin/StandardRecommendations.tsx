@@ -34,9 +34,13 @@ export const StandardRecommendations: React.FC = () => {
     const load = async () => {
       setIsLoading(true);
       try {
-        const stored = (await get(STANDARD_RECOMMENDATIONS_KEY)) as Recommendation[] | undefined;
+        const stored = (await get(STANDARD_RECOMMENDATIONS_KEY)) as
+          | Recommendation[]
+          | undefined;
         setRecommendations(stored || []);
-        toast.success(`Loaded ${stored?.length ?? 0} recommendations successfully!`);
+        toast.success(
+          `Loaded ${stored?.length ?? 0} recommendations successfully!`,
+        );
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err));
       } finally {
@@ -70,7 +74,7 @@ export const StandardRecommendations: React.FC = () => {
     try {
       if (editingRec) {
         const updated = recommendations.map((r) =>
-          r.id === editingRec.id ? { ...r, text: formData.text } : r
+          r.id === editingRec.id ? { ...r, text: formData.text } : r,
         );
         await saveRecommendations(updated);
         toast.success("Recommendation updated successfully");
@@ -91,16 +95,24 @@ export const StandardRecommendations: React.FC = () => {
     setShowAddDialog(true);
   }, []);
 
-  const handleDelete = useCallback(async (recId: string) => {
-    if (!confirm("Are you sure you want to delete this standard recommendation?")) return;
-    try {
-      const updated = recommendations.filter((r) => r.id !== recId);
-      await saveRecommendations(updated);
-      toast.success("Standard recommendation deleted successfully");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  }, [recommendations, saveRecommendations]);
+  const handleDelete = useCallback(
+    async (recId: string) => {
+      if (
+        !confirm(
+          "Are you sure you want to delete this standard recommendation?",
+        )
+      )
+        return;
+      try {
+        const updated = recommendations.filter((r) => r.id !== recId);
+        await saveRecommendations(updated);
+        toast.success("Standard recommendation deleted successfully");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [recommendations, saveRecommendations],
+  );
 
   if (isLoading) {
     return (
@@ -176,7 +188,9 @@ export const StandardRecommendations: React.FC = () => {
                         onClick={handleSubmit}
                         className="bg-dgrv-green hover:bg-green-700"
                       >
-                        {editingRec ? "Update Recommendation" : "Create Recommendation"}
+                        {editingRec
+                          ? "Update Recommendation"
+                          : "Create Recommendation"}
                       </Button>
                       <Button variant="outline" onClick={resetForm}>
                         Cancel

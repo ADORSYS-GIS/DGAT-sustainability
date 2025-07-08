@@ -20,7 +20,8 @@ import { useNavigate } from "react-router-dom";
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { data, isLoading, isError, error, isSuccess } = useAssessmentsServiceGetAssessments({ limit: 3 });
+  const { data, isLoading, isError, error, isSuccess } =
+    useAssessmentsServiceGetAssessments({ limit: 3 });
   const assessments: Assessment[] = data?.assessments || [];
 
   React.useEffect(() => {
@@ -98,11 +99,7 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleExportAllPDF = async () => {
-    await exportAllAssessmentsPDF(
-      assessments,
-      undefined,
-      formatStatus,
-    );
+    await exportAllAssessmentsPDF(assessments, undefined, formatStatus);
   };
 
   return (
@@ -159,33 +156,35 @@ export const Dashboard: React.FC = () => {
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>Loading assessments...</p>
                     </div>
-                  ) : assessments.map((assessment) => (
-                    <div
-                      key={assessment.assessmentId}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          <Leaf className="w-5 h-5 text-dgrv-green" />
+                  ) : (
+                    assessments.map((assessment) => (
+                      <div
+                        key={assessment.assessmentId}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="p-2 rounded-full bg-gray-100">
+                            <Leaf className="w-5 h-5 text-dgrv-green" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">
+                              Sustainability Assessment
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {new Date(
+                                assessment.createdAt,
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium">
-                            Sustainability Assessment
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {new Date(
-                              assessment.createdAt,
-                            ).toLocaleDateString()}
-                          </p>
+                        <div className="flex items-center space-x-3">
+                          <Badge className={getStatusColor(assessment.status)}>
+                            {formatStatus(assessment.status)}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        <Badge className={getStatusColor(assessment.status)}>
-                          {formatStatus(assessment.status)}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                   {assessments.length === 0 && !isLoading && (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />

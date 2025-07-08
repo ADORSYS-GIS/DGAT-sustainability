@@ -3,7 +3,12 @@ import { Accordion } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Eye, FileText } from "lucide-react";
@@ -11,14 +16,13 @@ import React, { useState, useCallback } from "react";
 import {
   useAssessmentsServiceGetAssessments,
   useReportsServicePostAssessmentsByAssessmentIdReports,
-  useResponsesServiceGetAssessmentsByAssessmentIdResponses
+  useResponsesServiceGetAssessmentsByAssessmentIdResponses,
 } from "../../../api/generated/queries/queries";
 import type {
   Assessment,
   GenerateReportRequest,
-  Response
+  Response,
 } from "../../../api/generated/requests/types.gen";
-
 
 interface Recommendation {
   recommendationId: string;
@@ -36,9 +40,12 @@ type Answer = {
 
 export const ReviewAssessments: React.FC = () => {
   const queryClient = useQueryClient();
-  const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
+  const [selectedAssessment, setSelectedAssessment] =
+    useState<Assessment | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [recommendations, setRecommendations] = useState<Record<string, string>>({});
+  const [recommendations, setRecommendations] = useState<
+    Record<string, string>
+  >({});
 
   // Fetch assessments for review (status: submitted)
   const {
@@ -54,7 +61,10 @@ export const ReviewAssessments: React.FC = () => {
   React.useEffect(() => {
     if (isAssessmentsError) {
       toast.error("Error loading assessments", {
-        description: assessmentsError instanceof Error ? assessmentsError.message : String(assessmentsError),
+        description:
+          assessmentsError instanceof Error
+            ? assessmentsError.message
+            : String(assessmentsError),
       });
     }
   }, [isAssessmentsError, assessmentsError]);
@@ -67,33 +77,39 @@ export const ReviewAssessments: React.FC = () => {
     error: responsesError,
     isSuccess: isResponsesSuccess,
   } = useResponsesServiceGetAssessmentsByAssessmentIdResponses(
-    selectedAssessment ? { assessmentId: selectedAssessment.assessmentId } : { assessmentId: "" },
+    selectedAssessment
+      ? { assessmentId: selectedAssessment.assessmentId }
+      : { assessmentId: "" },
     undefined,
-    { enabled: !!selectedAssessment }
+    { enabled: !!selectedAssessment },
   );
   const responses: Response[] = responsesData?.responses || [];
 
   React.useEffect(() => {
     if (isResponsesError) {
       toast.error("Error loading responses", {
-        description: responsesError instanceof Error ? responsesError.message : String(responsesError),
+        description:
+          responsesError instanceof Error
+            ? responsesError.message
+            : String(responsesError),
       });
     }
   }, [isResponsesError, responsesError]);
 
   // Mutation for generating a report
-  const generateReportMutation = useReportsServicePostAssessmentsByAssessmentIdReports({
-    onSuccess: () => {
-      toast.success("Report submitted successfully.");
-      setRecommendations({});
-      setShowReviewDialog(false);
-      setSelectedAssessment(null);
-    },
-    onError: (error: unknown) =>
-      toast.error("Error submitting report", {
-        description: getErrorMessage(error),
-      }),
-  });
+  const generateReportMutation =
+    useReportsServicePostAssessmentsByAssessmentIdReports({
+      onSuccess: () => {
+        toast.success("Report submitted successfully.");
+        setRecommendations({});
+        setShowReviewDialog(false);
+        setSelectedAssessment(null);
+      },
+      onError: (error: unknown) =>
+        toast.error("Error submitting report", {
+          description: getErrorMessage(error),
+        }),
+    });
 
   // Helper to extract error message
   function getErrorMessage(error: unknown): string {
@@ -118,10 +134,12 @@ export const ReviewAssessments: React.FC = () => {
     const reportPayload: GenerateReportRequest = {
       reportType: "PDF",
       options: {
-        recommendations: Object.entries(recommendations).map(([responseId, text]) => ({
-          responseId,
-          text,
-        })),
+        recommendations: Object.entries(recommendations).map(
+          ([responseId, text]) => ({
+            responseId,
+            text,
+          }),
+        ),
       },
     };
     generateReportMutation.mutate({
@@ -272,12 +290,13 @@ export const ReviewAssessments: React.FC = () => {
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-medium mb-2">Assessment Details</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        Organization: {selectedAssessment.assessmentId}
-                      </div>
+                      <div>Organization: {selectedAssessment.assessmentId}</div>
                       <div>User: {selectedAssessment.userId}</div>
                       <div>
-                        Created: {new Date(selectedAssessment.createdAt).toLocaleDateString()}
+                        Created:{" "}
+                        {new Date(
+                          selectedAssessment.createdAt,
+                        ).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
@@ -285,27 +304,45 @@ export const ReviewAssessments: React.FC = () => {
                   {/* Categories and Questions */}
                   <Accordion type="single" collapsible className="w-full">
                     {responses.map((resp) => {
-                      const questionText = typeof resp === 'object' && resp !== null && 'question' in resp && typeof resp.question === 'string'
-                        ? resp.question
-                        : 'Question text unavailable';
+                      const questionText =
+                        typeof resp === "object" &&
+                        resp !== null &&
+                        "question" in resp &&
+                        typeof resp.question === "string"
+                          ? resp.question
+                          : "Question text unavailable";
                       return (
-                        <div key={resp.responseId} className="border-l-4 border-dgrv-blue pl-4 mb-4">
-                          <h4 className="font-medium text-sm">{questionText}</h4>
+                        <div
+                          key={resp.responseId}
+                          className="border-l-4 border-dgrv-blue pl-4 mb-4"
+                        >
+                          <h4 className="font-medium text-sm">
+                            {questionText}
+                          </h4>
                           <div className="mt-2 text-sm space-y-1">
                             <span className="font-medium">Answer: </span>
-                            <span className="text-dgrv-blue">{resp.response}</span>
+                            <span className="text-dgrv-blue">
+                              {resp.response}
+                            </span>
                           </div>
                           <div className="mt-2">
-                            <label className="block text-xs font-medium mb-1" htmlFor={`rec-${resp.responseId}`}>Recommendation</label>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              htmlFor={`rec-${resp.responseId}`}
+                            >
+                              Recommendation
+                            </label>
                             <textarea
                               id={`rec-${resp.responseId}`}
                               className="w-full border rounded p-2 text-sm"
                               rows={2}
                               value={recommendations[resp.responseId] || ""}
-                              onChange={e => setRecommendations(prev => ({
-                                ...prev,
-                                [resp.responseId]: e.target.value
-                              }))}
+                              onChange={(e) =>
+                                setRecommendations((prev) => ({
+                                  ...prev,
+                                  [resp.responseId]: e.target.value,
+                                }))
+                              }
                               placeholder="Enter recommendation for this question"
                             />
                           </div>
@@ -322,7 +359,9 @@ export const ReviewAssessments: React.FC = () => {
                       className="bg-dgrv-green hover:bg-green-700"
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      {generateReportMutation.isPending ? "Submitting..." : "Submit Report"}
+                      {generateReportMutation.isPending
+                        ? "Submitting..."
+                        : "Submit Report"}
                     </Button>
                     <Button
                       variant="outline"

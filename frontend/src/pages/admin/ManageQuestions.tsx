@@ -66,7 +66,14 @@ const QuestionForm: React.FC<{
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
   editingQuestion: Question | null;
-}> = ({ categories, formData, setFormData, onSubmit, isPending, editingQuestion }) => {
+}> = ({
+  categories,
+  formData,
+  setFormData,
+  onSubmit,
+  isPending,
+  editingQuestion,
+}) => {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
@@ -164,8 +171,8 @@ const QuestionForm: React.FC<{
         {isPending
           ? "Saving..."
           : editingQuestion
-          ? "Update Question"
-          : "Create Question"}
+            ? "Update Question"
+            : "Create Question"}
       </Button>
     </form>
   );
@@ -201,7 +208,10 @@ export const ManageQuestions: React.FC = () => {
     isLoading: questionsLoading,
     refetch: refetchQuestions,
   } = useQuestionsServiceGetQuestions({ category: undefined, limit: 100 });
-  const questions: Question[] = useMemo(() => questionsData?.questions || [], [questionsData]);
+  const questions: Question[] = useMemo(
+    () => questionsData?.questions || [],
+    [questionsData],
+  );
 
   function getErrorMessage(error: unknown): string {
     if (
@@ -282,7 +292,7 @@ export const ManageQuestions: React.FC = () => {
         createMutation.mutate({ requestBody: createBody });
       }
     },
-    [formData, editingQuestion, createMutation, updateMutation]
+    [formData, editingQuestion, createMutation, updateMutation],
   );
 
   const handleEdit = useCallback((question: Question) => {
@@ -297,10 +307,14 @@ export const ManageQuestions: React.FC = () => {
     setIsDialogOpen(true);
   }, []);
 
-  const handleDelete = useCallback((questionId: string) => {
-    if (!window.confirm("Are you sure you want to delete this question?")) return;
-    deleteMutation.mutate({ questionId });
-  }, [deleteMutation]);
+  const handleDelete = useCallback(
+    (questionId: string) => {
+      if (!window.confirm("Are you sure you want to delete this question?"))
+        return;
+      deleteMutation.mutate({ questionId });
+    },
+    [deleteMutation],
+  );
 
   const getQuestionsByCategory = useCallback(
     (categoryId: string) => {
@@ -312,7 +326,7 @@ export const ManageQuestions: React.FC = () => {
           return aOrder - bOrder;
         });
     },
-    [questions]
+    [questions],
   );
 
   if (categoriesLoading || questionsLoading) {
@@ -376,7 +390,9 @@ export const ManageQuestions: React.FC = () => {
                     formData={formData}
                     setFormData={setFormData}
                     onSubmit={handleSubmit}
-                    isPending={createMutation.isPending || updateMutation.isPending}
+                    isPending={
+                      createMutation.isPending || updateMutation.isPending
+                    }
                     editingQuestion={editingQuestion}
                   />
                 </DialogContent>
@@ -421,8 +437,15 @@ export const ManageQuestions: React.FC = () => {
                                     </p>
                                   )}
                                   <div className="flex space-x-4 mt-2 text-sm text-gray-500">
-                                    <span>Weight: {question.latestRevision?.weight}</span>
-                                    <span>Created: {new Date(question.createdAt).toLocaleDateString()}</span>
+                                    <span>
+                                      Weight: {question.latestRevision?.weight}
+                                    </span>
+                                    <span>
+                                      Created:{" "}
+                                      {new Date(
+                                        question.createdAt,
+                                      ).toLocaleDateString()}
+                                    </span>
                                   </div>
                                 </div>
                                 <div className="flex space-x-2 ml-4">
@@ -436,7 +459,9 @@ export const ManageQuestions: React.FC = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleDelete(question.questionId)}
+                                    onClick={() =>
+                                      handleDelete(question.questionId)
+                                    }
                                     className="text-red-600 hover:text-red-700"
                                   >
                                     <Trash2 className="w-4 h-4" />

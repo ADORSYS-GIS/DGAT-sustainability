@@ -45,9 +45,12 @@ export const ManageCategories: React.FC = () => {
       try {
         const stored = (await get(CATEGORIES_KEY)) as Category[] | undefined;
         setCategories(stored || []);
-        toast.success(`Loaded ${stored?.length ?? 0} categories successfully!`, {
-          className: "bg-dgrv-green text-white",
-        });
+        toast.success(
+          `Loaded ${stored?.length ?? 0} categories successfully!`,
+          {
+            className: "bg-dgrv-green text-white",
+          },
+        );
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err));
       } finally {
@@ -76,7 +79,8 @@ export const ManageCategories: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const categoryData: Category = {
-      categoryId: editingCategory?.categoryId || Math.random().toString(36).slice(2),
+      categoryId:
+        editingCategory?.categoryId || Math.random().toString(36).slice(2),
       name: formData.name,
       weight: formData.weight,
       order: formData.order,
@@ -85,7 +89,7 @@ export const ManageCategories: React.FC = () => {
     let updatedCategories: Category[];
     if (editingCategory) {
       updatedCategories = categories.map((cat) =>
-        cat.categoryId === editingCategory.categoryId ? categoryData : cat
+        cat.categoryId === editingCategory.categoryId ? categoryData : cat,
       );
       toast.success("Category updated.");
     } else {
@@ -109,8 +113,11 @@ export const ManageCategories: React.FC = () => {
   };
 
   const handleDelete = async (categoryId: string) => {
-    if (!window.confirm("Are you sure you want to delete this category?")) return;
-    const updatedCategories = categories.filter((cat) => cat.categoryId !== categoryId);
+    if (!window.confirm("Are you sure you want to delete this category?"))
+      return;
+    const updatedCategories = categories.filter(
+      (cat) => cat.categoryId !== categoryId,
+    );
     setCategories(updatedCategories);
     await persistCategories(updatedCategories);
     toast.success("Category deleted.");
