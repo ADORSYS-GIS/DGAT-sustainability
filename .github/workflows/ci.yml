@@ -114,6 +114,11 @@ jobs:
       with:
         path: frontend/node_modules
         key: ${{ github.sha }}
+    - name: Cached node modules
+      uses: actions/cache@v4
+      with:
+        path: frontend/node_modules
+        key: ${{ github.sha }}
 
   frontend_build:
     name: Frontend Build
