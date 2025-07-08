@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,113 +9,98 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  getStandardRecommendations,
-  createStandardRecommendation,
-  updateStandardRecommendation,
-  deleteStandardRecommendation,
-  Recommendation,
-} from "@/services/admin/reviewService";
 import { Star, Plus, Edit, Trash2, MessageSquare } from "lucide-react";
-import { useToast } from "@/hooks/shared/use-toast";
+import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
+import { set, get, del } from "idb-keyval";
+
+const STANDARD_RECOMMENDATIONS_KEY = "standard_recommendations";
+
+interface Recommendation {
+  id: string;
+  text: string;
+}
 
 export const StandardRecommendations: React.FC = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingRec, setEditingRec] = useState<Recommendation | null>(null);
   const [formData, setFormData] = useState({ text: "" });
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const {
-    data: recommendations = [],
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["standardRecommendations"],
-    queryFn: getStandardRecommendations,
-  });
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const stored = (await get(STANDARD_RECOMMENDATIONS_KEY)) as Recommendation[] | undefined;
+        setRecommendations(stored || []);
+        toast.success(`Loaded ${stored?.length ?? 0} recommendations successfully!`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
 
-  const createMutation = useMutation({
-    mutationFn: createStandardRecommendation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["standardRecommendations"] });
-      toast({
-        title: "Success",
-        description: "Standard recommendation created successfully",
-        className: "bg-dgrv-green text-white",
-      });
-      resetForm();
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: updateStandardRecommendation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["standardRecommendations"] });
-      toast({
-        title: "Success",
-        description: "Recommendation updated successfully",
-        className: "bg-dgrv-green text-white",
-      });
-      resetForm();
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteStandardRecommendation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["standardRecommendations"] });
-      toast({
-        title: "Success",
-        description: "Standard recommendation deleted successfully",
-        className: "bg-dgrv-green text-white",
-      });
-    },
-  });
-
-  const handleSubmit = () => {
-    if (!formData.text.trim()) {
-      toast({
-        title: "Error",
-        description: "Recommendation text is required",
-        variant: "destructive",
-      });
-      return;
+  const saveRecommendations = useCallback(async (recs: Recommendation[]) => {
+    try {
+      await set(STANDARD_RECOMMENDATIONS_KEY, recs);
+      setRecommendations(recs);
+      toast.success(`Saved ${recs.length} recommendations successfully!`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     }
+  }, []);
 
-    if (editingRec) {
-      updateMutation.mutate({
-        recommendationId: editingRec.recommendationId,
-        text: { en: formData.text },
-      });
-    } else {
-      createMutation.mutate({ en: formData.text });
-    }
-  };
-
-  const handleEdit = (rec: Recommendation) => {
-    setEditingRec(rec);
-    setFormData({ text: rec.text.en });
-    setShowAddDialog(true);
-  };
-
-  const handleDelete = (recId: string) => {
-    if (
-      !confirm("Are you sure you want to delete this standard recommendation?")
-    )
-      return;
-    deleteMutation.mutate(recId);
-  };
-
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({ text: "" });
     setEditingRec(null);
     setShowAddDialog(false);
-  };
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
+    if (!formData.text.trim()) {
+      toast.error("Recommendation text is required");
+      return;
+    }
+    try {
+      if (editingRec) {
+        const updated = recommendations.map((r) =>
+          r.id === editingRec.id ? { ...r, text: formData.text } : r
+        );
+        await saveRecommendations(updated);
+        toast.success("Recommendation updated successfully");
+      } else {
+        const newRec: Recommendation = { id: uuidv4(), text: formData.text };
+        await saveRecommendations([...recommendations, newRec]);
+        toast.success("Standard recommendation created successfully");
+      }
+      resetForm();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }, [formData, editingRec, recommendations, saveRecommendations, resetForm]);
+
+  const handleEdit = useCallback((rec: Recommendation) => {
+    setEditingRec(rec);
+    setFormData({ text: rec.text });
+    setShowAddDialog(true);
+  }, []);
+
+  const handleDelete = useCallback(async (recId: string) => {
+    if (!confirm("Are you sure you want to delete this standard recommendation?")) return;
+    try {
+      const updated = recommendations.filter((r) => r.id !== recId);
+      await saveRecommendations(updated);
+      toast.success("Standard recommendation deleted successfully");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }, [recommendations, saveRecommendations]);
 
   if (isLoading) {
     return (
@@ -124,19 +108,6 @@ export const StandardRecommendations: React.FC = () => {
         <Navbar />
         <div className="pt-20 pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
-          <p className="text-red-500">
-            Error loading standard recommendations.
-          </p>
         </div>
       </div>
     );
@@ -203,16 +174,9 @@ export const StandardRecommendations: React.FC = () => {
                     <div className="flex space-x-2 pt-4">
                       <Button
                         onClick={handleSubmit}
-                        disabled={
-                          createMutation.isPending || updateMutation.isPending
-                        }
                         className="bg-dgrv-green hover:bg-green-700"
                       >
-                        {createMutation.isPending || updateMutation.isPending
-                          ? "Saving..."
-                          : editingRec
-                            ? "Update Recommendation"
-                            : "Create Recommendation"}
+                        {editingRec ? "Update Recommendation" : "Create Recommendation"}
                       </Button>
                       <Button variant="outline" onClick={resetForm}>
                         Cancel
@@ -228,7 +192,7 @@ export const StandardRecommendations: React.FC = () => {
           <div className="grid gap-4">
             {recommendations.map((rec, index) => (
               <Card
-                key={rec.recommendationId}
+                key={rec.id}
                 className="animate-fade-in hover:shadow-lg transition-shadow"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -242,7 +206,7 @@ export const StandardRecommendations: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <p className="text-gray-700">{rec.text.en}</p>
+                    <p className="text-gray-700">{rec.text}</p>
                     <div className="flex space-x-2 pt-2">
                       <Button
                         size="sm"
@@ -256,15 +220,10 @@ export const StandardRecommendations: React.FC = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDelete(rec.recommendationId)}
-                        disabled={deleteMutation.isPending}
+                        onClick={() => handleDelete(rec.id)}
                         className="text-red-600 hover:bg-red-50"
                       >
-                        {deleteMutation.isPending ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

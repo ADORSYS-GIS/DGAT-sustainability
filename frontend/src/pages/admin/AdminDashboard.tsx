@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import * as React from "react";
+import { useMemo } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,14 +14,13 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
-import {
-  AllOrganizations,
-  getAllUsers,
-  getAllAssessments,
-  Organization,
-  User,
-} from "@/services/admin/organizationService";
-import { Assessment } from "@/services/user/assessmentService";
+import type { Assessment } from "../../../api/generated/requests/types.gen";
+import { useAssessmentsServiceGetAssessments } from "../../../api/generated/queries/queries";
+import { toast } from "sonner";
+
+// TODO: Replace with Keycloak phase 2 plugin. Mocked for now.
+type Organization = { organizationId: string; name: string };
+type User = { userId: string; firstName?: string; lastName?: string };
 
 interface PendingReview {
   id: string;
@@ -32,32 +31,45 @@ interface PendingReview {
 }
 
 export const AdminDashboard: React.FC = () => {
-  const { data: orgs = [], isLoading: orgsLoading } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: AllOrganizations,
-  });
+  // TODO: Replace with Keycloak phase 2 plugin. Mocked for now.
+  const [orgs] = React.useState<Organization[]>([
+    { organizationId: "org1", name: "Mock Cooperative 1" },
+    { organizationId: "org2", name: "Mock Cooperative 2" },
+  ]);
+  const [users] = React.useState<User[]>([
+    { userId: "user1", firstName: "Alice", lastName: "Smith" },
+    { userId: "user2", firstName: "Bob", lastName: "Jones" },
+  ]);
+  const orgsLoading = false;
+  const usersLoading = false;
 
-  const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ["users"],
-    queryFn: getAllUsers,
-  });
+  const { data: assessmentsData, isLoading: assessmentsLoading, isError, error, isSuccess } = useAssessmentsServiceGetAssessments();
+  const assessments: Assessment[] = React.useMemo(() => assessmentsData?.assessments ?? [], [assessmentsData]);
 
-  const { data: assessments = [], isLoading: assessmentsLoading } = useQuery({
-    queryKey: ["assessments"],
-    queryFn: getAllAssessments,
-  });
+  React.useEffect(() => {
+    if (isError) {
+      toast.error("Error loading assessments", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } else if (assessmentsLoading) {
+      toast.info("Loading assessments...", {
+        description: "Fetching latest assessment data.",
+      });
+    } else if (isSuccess) {
+      toast.success(`Loaded ${assessments.length} assessments successfully!`, {
+        className: "bg-dgrv-green text-white",
+      });
+    }
+  }, [isError, error, assessmentsLoading, isSuccess, assessments.length]);
 
   const pendingReviews = useMemo(() => {
     if (orgsLoading || usersLoading || assessmentsLoading) return [];
 
-    const pendingAssessments = (assessments as Assessment[]).filter(
-      (a) => a.status === "submitted" || a.status === "under_review",
-    );
-    const orgMap = new Map(
-      (orgs as Organization[]).map((o) => [o.organizationId, o.name]),
+    const pendingAssessments = assessments.filter(
+      (a) => a.status === "submitted"
     );
     const userMap = new Map(
-      (users as User[]).map((u) => [
+      users.map((u) => [
         u.userId,
         `${u.firstName ?? ""} ${u.lastName ?? ""}`,
       ]),
@@ -65,28 +77,25 @@ export const AdminDashboard: React.FC = () => {
 
     return pendingAssessments.map((assessment) => ({
       id: assessment.assessmentId,
-      organization:
-        orgMap.get(assessment.organizationId) || "Unknown Organization",
+      organization: "Unknown Organization",
       user: userMap.get(assessment.userId) || "Unknown User",
-      type: (assessment.templateId || "").toLowerCase().includes("dgat")
-        ? "DGAT"
-        : "Sustainability",
+      type: "Sustainability",
       submittedAt: new Date(assessment.createdAt).toLocaleDateString("en-CA"),
     }));
-  }, [orgs, users, assessments, orgsLoading, usersLoading, assessmentsLoading]);
+  }, [users, assessments, orgsLoading, usersLoading, assessmentsLoading]);
 
   const stats = useMemo(() => {
     return {
       orgCount: orgs.length,
       userCount: users.length,
-      pendingCount: (assessments as Assessment[]).filter(
-        (a) => a.status === "submitted" || a.status === "under_review",
+      pendingCount: assessments.filter(
+        (a) => a.status === "submitted"
       ).length,
-      completedCount: (assessments as Assessment[]).filter(
+      completedCount: assessments.filter(
         (a) => a.status === "completed",
       ).length,
     };
-  }, [orgs, users, assessments]);
+  }, [users, assessments, orgs.length]);
 
   const adminActions = [
     {

@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,23 +11,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/shared/use-toast";
+import { toast } from "sonner";
 import { Plus, Edit, Trash2, List } from "lucide-react";
-import {
-  Category,
-  getCategoriesByTemplate,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-} from "@/services/admin/categoryService";
+import { get, set } from "idb-keyval";
 
-// Hardcode the default template ID for Sustainability Assessment
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
+const CATEGORIES_KEY = "sustainability_categories";
+
+interface Category {
+  categoryId: string;
+  name: string;
+  weight: number;
+  order: number;
+  templateId: string;
+}
 
 export const ManageCategories: React.FC = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
@@ -36,78 +34,68 @@ export const ManageCategories: React.FC = () => {
     weight: 25,
     order: 1,
   });
+  // Local state for categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["categories", SUSTAINABILITY_TEMPLATE_ID],
-    queryFn: () => getCategoriesByTemplate(SUSTAINABILITY_TEMPLATE_ID),
-    select: (data) => data.sort((a, b) => a.order - b.order),
-  });
+  // Load categories from IndexedDB on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      setLoading(true);
+      try {
+        const stored = (await get(CATEGORIES_KEY)) as Category[] | undefined;
+        setCategories(stored || []);
+        toast.success(`Loaded ${stored?.length ?? 0} categories successfully!`, {
+          className: "bg-dgrv-green text-white",
+        });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCategories();
+  }, []);
 
-  const createMutation = useMutation({
-    mutationFn: createCategory,
-    onSuccess: () => {
-      toast({ title: "Success", description: "Category created." });
-      queryClient.invalidateQueries({
-        queryKey: ["categories", SUSTAINABILITY_TEMPLATE_ID],
+  // Helper to persist categories to IndexedDB
+  const persistCategories = async (cats: Category[]) => {
+    try {
+      await set(CATEGORIES_KEY, cats);
+      setCategories(cats);
+      toast.success(`Saved ${cats.length} categories successfully!`, {
+        className: "bg-dgrv-green text-white",
       });
-      setIsDialogOpen(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error creating category",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  };
 
-  const updateMutation = useMutation({
-    mutationFn: updateCategory,
-    onSuccess: () => {
-      toast({ title: "Success", description: "Category updated." });
-      queryClient.invalidateQueries({
-        queryKey: ["categories", SUSTAINABILITY_TEMPLATE_ID],
-      });
-      setIsDialogOpen(false);
-      setEditingCategory(null);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error updating category",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteCategory,
-    onSuccess: () => {
-      toast({ title: "Success", description: "Category deleted." });
-      queryClient.invalidateQueries({
-        queryKey: ["categories", SUSTAINABILITY_TEMPLATE_ID],
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error deleting category",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // Sort categories by order
+  const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const categoryData = {
-      ...formData,
+    const categoryData: Category = {
+      categoryId: editingCategory?.categoryId || Math.random().toString(36).slice(2),
+      name: formData.name,
+      weight: formData.weight,
+      order: formData.order,
       templateId: SUSTAINABILITY_TEMPLATE_ID,
     };
+    let updatedCategories: Category[];
     if (editingCategory) {
-      updateMutation.mutate({ ...editingCategory, ...categoryData });
+      updatedCategories = categories.map((cat) =>
+        cat.categoryId === editingCategory.categoryId ? categoryData : cat
+      );
+      toast.success("Category updated.");
     } else {
-      createMutation.mutate(categoryData);
+      updatedCategories = [...categories, categoryData];
+      toast.success("Category created.");
     }
+    setCategories(updatedCategories);
+    await persistCategories(updatedCategories);
+    setIsDialogOpen(false);
+    setEditingCategory(null);
   };
 
   const handleEdit = (category: Category) => {
@@ -121,10 +109,23 @@ export const ManageCategories: React.FC = () => {
   };
 
   const handleDelete = async (categoryId: string) => {
-    if (!window.confirm("Are you sure you want to delete this category?"))
-      return;
-    deleteMutation.mutate(categoryId);
+    if (!window.confirm("Are you sure you want to delete this category?")) return;
+    const updatedCategories = categories.filter((cat) => cat.categoryId !== categoryId);
+    setCategories(updatedCategories);
+    await persistCategories(updatedCategories);
+    toast.success("Category deleted.");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="pt-20 pb-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -220,15 +221,8 @@ export const ManageCategories: React.FC = () => {
                     <Button
                       type="submit"
                       className="w-full bg-dgrv-blue hover:bg-blue-700"
-                      disabled={
-                        createMutation.isPending || updateMutation.isPending
-                      }
                     >
-                      {createMutation.isPending || updateMutation.isPending
-                        ? "Saving..."
-                        : editingCategory
-                          ? "Update Category"
-                          : "Create Category"}
+                      {editingCategory ? "Update Category" : "Create Category"}
                     </Button>
                   </form>
                 </DialogContent>
@@ -236,7 +230,7 @@ export const ManageCategories: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {categories.map((category) => (
+                {sortedCategories.map((category) => (
                   <div
                     key={category.categoryId}
                     className="flex items-center justify-between p-4 border rounded-lg"
@@ -266,7 +260,7 @@ export const ManageCategories: React.FC = () => {
                     </div>
                   </div>
                 ))}
-                {categories.length === 0 && (
+                {sortedCategories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <List className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>

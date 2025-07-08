@@ -1,37 +1,32 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/shared/Navbar";
+import { Accordion } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { CheckCircle, Eye, FileText } from "lucide-react";
+import React, { useState, useCallback } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Assessment } from "@/services/user/assessmentService";
-import { Question } from "@/services/admin/questionService";
-import { Category } from "@/services/admin/categoryService";
-import { getRecommendationsByAssessment } from "@/services/user/assessmentService";
-import { getQuestionsByTemplate } from "@/services/admin/questionService";
-import { getCategoriesByTemplate } from "@/services/admin/categoryService";
-import {
-  getAssessmentsForReview,
-  updateAssessmentStatus,
-  addRecommendation,
-  Recommendation,
-} from "@/services/admin/reviewService";
-import { FileText, Eye, MessageSquare, Send, CheckCircle } from "lucide-react";
-import { useToast } from "@/hooks/shared/use-toast";
+  useAssessmentsServiceGetAssessments,
+  useReportsServicePostAssessmentsByAssessmentIdReports,
+  useResponsesServiceGetAssessmentsByAssessmentIdResponses
+} from "../../../api/generated/queries/queries";
+import type {
+  Assessment,
+  GenerateReportRequest,
+  Response
+} from "../../../api/generated/requests/types.gen";
+
+
+interface Recommendation {
+  recommendationId: string;
+  assessmentId: string;
+  categoryId: string;
+  text: { en: string };
+  createdBy: string;
+}
 
 type Answer = {
   yesNo?: boolean;
@@ -40,116 +35,100 @@ type Answer = {
 };
 
 export const ReviewAssessments: React.FC = () => {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const [selectedAssessment, setSelectedAssessment] =
-    useState<Assessment | null>(null);
+  const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [recommendationText, setRecommendationText] = useState<
-    Record<string, string>
-  >({});
+  const [recommendations, setRecommendations] = useState<Record<string, string>>({});
 
+  // Fetch assessments for review (status: submitted)
   const {
-    data: assessments = [],
+    data: assessmentsData,
     isLoading: isLoadingAssessments,
     isError: isAssessmentsError,
-  } = useQuery<Assessment[]>({
-    queryKey: ["assessments", "review"],
-    queryFn: getAssessmentsForReview,
-  });
+    error: assessmentsError,
+    isSuccess: isAssessmentsSuccess,
+    refetch: refetchAssessments,
+  } = useAssessmentsServiceGetAssessments({ status: "submitted", limit: 100 });
+  const assessments: Assessment[] = assessmentsData?.assessments || [];
 
-  const { data: questions = [] } = useQuery<Question[]>({
-    queryKey: ["questions", selectedAssessment?.templateId],
-    queryFn: () => getQuestionsByTemplate(selectedAssessment!.templateId),
-    enabled: !!selectedAssessment,
-  });
+  React.useEffect(() => {
+    if (isAssessmentsError) {
+      toast.error("Error loading assessments", {
+        description: assessmentsError instanceof Error ? assessmentsError.message : String(assessmentsError),
+      });
+    }
+  }, [isAssessmentsError, assessmentsError]);
 
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["categories", selectedAssessment?.templateId],
-    queryFn: () => getCategoriesByTemplate(selectedAssessment!.templateId),
-    enabled: !!selectedAssessment,
-  });
+  // Fetch responses for the selected assessment
+  const {
+    data: responsesData,
+    isLoading: responsesLoading,
+    isError: isResponsesError,
+    error: responsesError,
+    isSuccess: isResponsesSuccess,
+  } = useResponsesServiceGetAssessmentsByAssessmentIdResponses(
+    selectedAssessment ? { assessmentId: selectedAssessment.assessmentId } : { assessmentId: "" },
+    undefined,
+    { enabled: !!selectedAssessment }
+  );
+  const responses: Response[] = responsesData?.responses || [];
 
-  const { data: recommendations = [] } = useQuery<Recommendation[]>({
-    queryKey: ["recommendations", selectedAssessment?.assessmentId],
-    queryFn: () =>
-      getRecommendationsByAssessment(selectedAssessment!.assessmentId),
-    enabled: !!selectedAssessment,
-  });
+  React.useEffect(() => {
+    if (isResponsesError) {
+      toast.error("Error loading responses", {
+        description: responsesError instanceof Error ? responsesError.message : String(responsesError),
+      });
+    }
+  }, [isResponsesError, responsesError]);
 
-  const addRecommendationMutation = useMutation({
-    mutationFn: addRecommendation,
+  // Mutation for generating a report
+  const generateReportMutation = useReportsServicePostAssessmentsByAssessmentIdReports({
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["recommendations", selectedAssessment?.assessmentId],
-      });
-      toast({
-        title: "Success",
-        description: "Recommendation added successfully",
-        className: "bg-dgrv-green text-white",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to add recommendation",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const completeReviewMutation = useMutation({
-    mutationFn: (assessmentId: string) =>
-      updateAssessmentStatus(assessmentId, "completed"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["assessments", "review"] });
+      toast.success("Report submitted successfully.");
+      setRecommendations({});
       setShowReviewDialog(false);
       setSelectedAssessment(null);
-      toast({
-        title: "Success",
-        description: "Assessment review completed successfully",
-        className: "bg-dgrv-green text-white",
-      });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to complete review",
-        variant: "destructive",
-      });
-    },
+    onError: (error: unknown) =>
+      toast.error("Error submitting report", {
+        description: getErrorMessage(error),
+      }),
   });
 
-  const handleOpenReviewDialog = (assessment: Assessment) => {
+  // Helper to extract error message
+  function getErrorMessage(error: unknown): string {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "message" in error &&
+      typeof (error as { message?: unknown }).message === "string"
+    ) {
+      return (error as { message: string }).message;
+    }
+    return "Unknown error";
+  }
+
+  const handleOpenReviewDialog = useCallback((assessment: Assessment) => {
     setSelectedAssessment(assessment);
     setShowReviewDialog(true);
-  };
+  }, []);
 
-  const handleAddRecommendation = (categoryId: string) => {
-    const text = recommendationText[categoryId];
-    if (!text || !text.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a recommendation",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    addRecommendationMutation.mutate({
-      assessmentId: selectedAssessment!.assessmentId,
-      categoryId,
-      text: { en: text },
-      createdBy: "admin", // In real app, use actual admin user ID
-    });
-    setRecommendationText((prev) => ({ ...prev, [categoryId]: "" }));
-  };
-
-  const handleCompleteReview = () => {
+  const handleSubmitReport = useCallback(() => {
     if (!selectedAssessment) return;
-    completeReviewMutation.mutate(selectedAssessment.assessmentId);
-  };
+    const reportPayload: GenerateReportRequest = {
+      reportType: "PDF",
+      options: {
+        recommendations: Object.entries(recommendations).map(([responseId, text]) => ({
+          responseId,
+          text,
+        })),
+      },
+    };
+    generateReportMutation.mutate({
+      assessmentId: selectedAssessment.assessmentId,
+      requestBody: reportPayload,
+    });
+  }, [selectedAssessment, recommendations, generateReportMutation]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -175,16 +154,6 @@ export const ReviewAssessments: React.FC = () => {
       default:
         return "Unknown";
     }
-  };
-
-  const getQuestionsByCategory = (categoryId: string) => {
-    return questions.filter((q) => q.categoryId === categoryId);
-  };
-
-  const getCategoryRecommendations = (categoryId: string) => {
-    return recommendations.filter(
-      (r) => r.categoryId === categoryId && !r.questionId,
-    );
   };
 
   if (isLoadingAssessments) {
@@ -257,13 +226,8 @@ export const ReviewAssessments: React.FC = () => {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="text-sm text-gray-600">
-                      <p>Organization ID: {assessment.organizationId}</p>
+                      <p>Organization ID: {assessment.assessmentId}</p>
                       <p>User ID: {assessment.userId}</p>
-                      {assessment.score && (
-                        <p className="font-medium">
-                          Score: {assessment.score}%
-                        </p>
-                      )}
                     </div>
                     <div className="flex space-x-2 pt-4">
                       <Button
@@ -309,208 +273,43 @@ export const ReviewAssessments: React.FC = () => {
                     <h3 className="font-medium mb-2">Assessment Details</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        Organization: {selectedAssessment.organizationId}
+                        Organization: {selectedAssessment.assessmentId}
                       </div>
                       <div>User: {selectedAssessment.userId}</div>
                       <div>
-                        Created:{" "}
-                        {new Date(
-                          selectedAssessment.createdAt,
-                        ).toLocaleDateString()}
-                      </div>
-                      <div>
-                        Score: {selectedAssessment.score || "Not calculated"}%
+                        Created: {new Date(selectedAssessment.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
 
                   {/* Categories and Questions */}
                   <Accordion type="single" collapsible className="w-full">
-                    {categories.map((category) => {
-                      const categoryQuestions = getQuestionsByCategory(
-                        category.categoryId,
-                      );
-                      const categoryRecs = getCategoryRecommendations(
-                        category.categoryId,
-                      );
-
+                    {responses.map((resp) => {
+                      const questionText = typeof resp === 'object' && resp !== null && 'question' in resp && typeof resp.question === 'string'
+                        ? resp.question
+                        : 'Question text unavailable';
                       return (
-                        <AccordionItem
-                          key={category.categoryId}
-                          value={category.categoryId}
-                        >
-                          <AccordionTrigger className="text-left">
-                            <div className="flex items-center justify-between w-full mr-4">
-                              <span>{category.name}</span>
-                              <div className="flex items-center space-x-2">
-                                {selectedAssessment.categoryScores?.[
-                                  category.categoryId
-                                ] && (
-                                  <Badge variant="outline">
-                                    {
-                                      selectedAssessment.categoryScores[
-                                        category.categoryId
-                                      ]
-                                    }
-                                    %
-                                  </Badge>
-                                )}
-                                {recommendations.filter(
-                                  (r) => r.categoryId === category.categoryId,
-                                ).length > 0 && (
-                                  <Badge className="bg-dgrv-green text-white">
-                                    {
-                                      recommendations.filter(
-                                        (r) =>
-                                          r.categoryId === category.categoryId,
-                                      ).length
-                                    }{" "}
-                                    recommendations
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="space-y-4">
-                              {/* Questions and Answers */}
-                              {categoryQuestions.map((question) => {
-                                const answer = selectedAssessment.answers[
-                                  question.questionId
-                                ] as Answer;
-                                const comments = (
-                                  selectedAssessment.answers as {
-                                    comments?: Record<string, string>;
-                                  }
-                                ).comments?.[question.questionId];
-
-                                return (
-                                  <div
-                                    key={question.questionId}
-                                    className="border-l-4 border-dgrv-blue pl-4"
-                                  >
-                                    <h4 className="font-medium text-sm">
-                                      {question.text.en}
-                                    </h4>
-                                    <div className="mt-2 text-sm space-y-1">
-                                      {answer && typeof answer === "object" ? (
-                                        <div>
-                                          {answer.yesNo !== undefined && (
-                                            <div>
-                                              <span className="font-medium">
-                                                Yes/No:{" "}
-                                              </span>
-                                              <span className="text-dgrv-blue">
-                                                {answer.yesNo ? "Yes" : "No"}
-                                              </span>
-                                            </div>
-                                          )}
-                                          {answer.percentage !== undefined && (
-                                            <div>
-                                              <span className="font-medium">
-                                                Percentage:{" "}
-                                              </span>
-                                              <span className="text-dgrv-blue">
-                                                {answer.percentage}%
-                                              </span>
-                                            </div>
-                                          )}
-                                          {answer.text && (
-                                            <div>
-                                              <span className="font-medium">
-                                                Text:{" "}
-                                              </span>
-                                              <span className="text-dgrv-blue">
-                                                {answer.text}
-                                              </span>
-                                            </div>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <div>
-                                          <span className="font-medium">
-                                            Answer:{" "}
-                                          </span>
-                                          <span className="text-dgrv-blue">
-                                            {typeof answer === "boolean"
-                                              ? answer
-                                                ? "Yes"
-                                                : "No"
-                                              : String(answer)}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    {comments && (
-                                      <div className="mt-1 text-sm">
-                                        <span className="font-medium">
-                                          Comments:{" "}
-                                        </span>
-                                        <span className="text-gray-600">
-                                          {comments}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-
-                              {/* Existing Recommendations */}
-                              {getCategoryRecommendations(category.categoryId)
-                                .length > 0 && (
-                                <div className="mt-4">
-                                  <h4 className="font-medium text-sm mb-2">
-                                    Existing Recommendations:
-                                  </h4>
-                                  {getCategoryRecommendations(
-                                    category.categoryId,
-                                  ).map((rec) => (
-                                    <div
-                                      key={rec.recommendationId}
-                                      className="bg-green-50 p-3 rounded border-l-4 border-dgrv-green"
-                                    >
-                                      <p className="text-sm">{rec.text.en}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Add New Recommendation */}
-                              <div className="mt-4 space-y-2">
-                                <h4 className="font-medium text-sm">
-                                  Add Recommendation:
-                                </h4>
-                                <Textarea
-                                  value={
-                                    recommendationText[category.categoryId] ||
-                                    ""
-                                  }
-                                  onChange={(e) =>
-                                    setRecommendationText((prev) => ({
-                                      ...prev,
-                                      [category.categoryId]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="Enter your recommendation for this category..."
-                                  rows={3}
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    handleAddRecommendation(category.categoryId)
-                                  }
-                                  disabled={addRecommendationMutation.isPending}
-                                  className="bg-dgrv-green hover:bg-green-700"
-                                >
-                                  <MessageSquare className="w-4 h-4 mr-1" />
-                                  {addRecommendationMutation.isPending
-                                    ? "Adding..."
-                                    : "Add Recommendation"}
-                                </Button>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
+                        <div key={resp.responseId} className="border-l-4 border-dgrv-blue pl-4 mb-4">
+                          <h4 className="font-medium text-sm">{questionText}</h4>
+                          <div className="mt-2 text-sm space-y-1">
+                            <span className="font-medium">Answer: </span>
+                            <span className="text-dgrv-blue">{resp.response}</span>
+                          </div>
+                          <div className="mt-2">
+                            <label className="block text-xs font-medium mb-1" htmlFor={`rec-${resp.responseId}`}>Recommendation</label>
+                            <textarea
+                              id={`rec-${resp.responseId}`}
+                              className="w-full border rounded p-2 text-sm"
+                              rows={2}
+                              value={recommendations[resp.responseId] || ""}
+                              onChange={e => setRecommendations(prev => ({
+                                ...prev,
+                                [resp.responseId]: e.target.value
+                              }))}
+                              placeholder="Enter recommendation for this question"
+                            />
+                          </div>
+                        </div>
                       );
                     })}
                   </Accordion>
@@ -518,14 +317,12 @@ export const ReviewAssessments: React.FC = () => {
                   {/* Action Buttons */}
                   <div className="flex space-x-2 pt-4 border-t">
                     <Button
-                      onClick={handleCompleteReview}
-                      disabled={completeReviewMutation.isPending}
+                      onClick={handleSubmitReport}
+                      disabled={generateReportMutation.isPending}
                       className="bg-dgrv-green hover:bg-green-700"
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      {completeReviewMutation.isPending
-                        ? "Completing..."
-                        : "Complete Review"}
+                      {generateReportMutation.isPending ? "Submitting..." : "Submit Report"}
                     </Button>
                     <Button
                       variant="outline"
