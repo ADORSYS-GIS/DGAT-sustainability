@@ -8,7 +8,7 @@ use std::sync::Arc;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "questions_revisions")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = false)]
     pub question_revision_id: Uuid,
     pub question_id: Uuid,
     pub text: Value, // jsonb for i18n support
@@ -69,7 +69,7 @@ impl QuestionsRevisionsService {
             question_id: Set(question_id),
             text: Set(text),
             weight: Set(weight),
-            created_at: Set("2024-01-01T00:00:00Z".to_string()),
+            created_at: Set(chrono::Utc::now().to_rfc3339()),
         };
 
         self.db_service.create(question_revision).await

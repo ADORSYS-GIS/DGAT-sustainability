@@ -5,4 +5,5 @@ pub mod assessments_submission;
 pub mod file;
 pub mod questions;
 pub mod questions_revisions;
+pub mod review;
 pub mod submission_reports;

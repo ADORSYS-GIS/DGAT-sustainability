@@ -5,6 +5,7 @@ use crate::common::database::entity::assessments_submission::AssessmentsSubmissi
 use crate::common::database::entity::file::FileService;
 use crate::common::database::entity::questions::QuestionsService;
 use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
+use crate::common::translation::TranslationService;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -40,12 +41,14 @@ impl AppDatabase {
 #[derive(Clone)]
 pub struct AppState {
     pub database: AppDatabase,
+    pub translation: TranslationService,
 }
 
 impl AppState {
     pub async fn new(conn: Arc<DatabaseConnection>) -> Self {
         Self {
             database: AppDatabase::new(conn).await,
+            translation: TranslationService::new(),
         }
     }
 }

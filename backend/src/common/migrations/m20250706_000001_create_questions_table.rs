@@ -19,6 +19,7 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(Questions::Category).string().not_null())
+                    .col(ColumnDef::new(Questions::CreatedAt).string().not_null())
                     .to_owned(),
             )
             .await?;
@@ -40,4 +41,5 @@ enum Questions {
     Table,
     QuestionId,
     Category,
+    CreatedAt,
 }

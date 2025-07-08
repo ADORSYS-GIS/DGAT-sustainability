@@ -89,6 +89,15 @@ pub struct CreateQuestionRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct CreateQuestionWithTranslationRequest {
+    pub category: String,
+    pub source_text: String, // Text in source language
+    pub source_language: String, // Source language code (e.g., "en", "fr", "es")
+    pub target_languages: Vec<String>, // Target language codes for translation
+    pub weight: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateQuestionRequest {
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
@@ -113,7 +122,6 @@ pub struct QuestionRevisionResponse {
 #[derive(Debug, Serialize)]
 pub struct QuestionListResponse {
     pub questions: Vec<Question>,
-    pub meta: PaginationMeta,
 }
 
 #[derive(Debug, Serialize)]
@@ -123,7 +131,7 @@ pub struct QuestionRevisionListResponse {
 
 // =============== Assessment Models ===============
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {
     pub assessment_id: Uuid,
     pub user_id: String,
@@ -203,11 +211,136 @@ pub struct AssessmentSubmission {
     pub user_id: String,
     pub content: serde_json::Value,
     pub submitted_at: String,
+    pub review_status: String,
+    pub reviewed_at: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct AssessmentSubmissionResponse {
     pub submission: AssessmentSubmission,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SubmissionListResponse {
+    pub submissions: Vec<AssessmentSubmission>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SubmissionDetailResponse {
+    pub submission: AssessmentSubmission,
+}
+
+// =============== Admin Submission Models ===============
+
+#[derive(Debug, Serialize)]
+pub struct AdminSubmissionDetail {
+    pub submission_id: Uuid,
+    pub assessment_id: Uuid,
+    pub user_id: String,
+    pub content: AdminSubmissionContent,
+    pub review_status: String,
+    pub submitted_at: String,
+    pub reviewed_at: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminSubmissionContent {
+    pub assessment: AdminAssessmentInfo,
+    pub responses: Vec<AdminResponseDetail>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminAssessmentInfo {
+    pub assessment_id: Uuid,
+    pub language: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminResponseDetail {
+    pub question_text: String,
+    pub question_category: String,
+    pub response: String,
+    pub files: Vec<FileMetadata>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminSubmissionListResponse {
+    pub submissions: Vec<AdminSubmissionDetail>,
+}
+
+// =============== Review Models ===============
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Review {
+    pub review_id: Uuid,
+    pub submission_id: Uuid,
+    pub reviewer_id: String,
+    pub reviewer_email: Option<String>,
+    pub status: String,
+    pub decision: Option<String>,
+    pub comments: Option<String>,
+    pub created_at: String,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateReviewRequest {
+    pub decision: String,
+    pub comments: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateReviewRequest {
+    pub status: Option<String>,
+    pub decision: Option<String>,
+    pub comments: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ReviewResponse {
+    pub review: Review,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ReviewListResponse {
+    pub reviews: Vec<Review>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ReviewDetailResponse {
+    pub review: Review,
+    pub submission: AssessmentSubmission,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminReview {
+    pub review_id: Uuid,
+    pub submission_id: Uuid,
+    pub user_email: String,
+    pub reviewer_id: String,
+    pub reviewer_email: String,
+    pub status: String,
+    pub decision: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminReviewListResponse {
+    pub reviews: Vec<AdminReview>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AssignReviewerRequest {
+    pub submission_id: Uuid,
+    pub reviewer_id: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ReviewAssignmentResponse {
+    pub review_id: Uuid,
+    pub submission_id: Uuid,
+    pub reviewer_id: String,
+    pub assigned_at: String,
 }
 
 // =============== File Models ===============
