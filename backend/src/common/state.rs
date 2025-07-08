@@ -12,13 +12,13 @@ use std::sync::Arc;
 #[allow(dead_code)]
 pub struct AppDatabase {
     conn: Arc<DatabaseConnection>,
-    assessments: AssessmentsService,
-    assessments_response: AssessmentsResponseService,
-    assessments_submission: AssessmentsSubmissionService,
-    assessments_response_file: AssessmentsResponseFileService,
-    file: FileService,
-    questions: QuestionsService,
-    questions_revisions: QuestionsRevisionsService,
+    pub assessments: AssessmentsService,
+    pub assessments_response: AssessmentsResponseService,
+    pub assessments_submission: AssessmentsSubmissionService,
+    pub assessments_response_file: AssessmentsResponseFileService,
+    pub file: FileService,
+    pub questions: QuestionsService,
+    pub questions_revisions: QuestionsRevisionsService,
 }
 
 #[allow(dead_code)]
@@ -33,6 +33,19 @@ impl AppDatabase {
             questions: QuestionsService::new(conn.clone()),
             questions_revisions: QuestionsRevisionsService::new(conn.clone()),
             conn,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct AppState {
+    pub database: AppDatabase,
+}
+
+impl AppState {
+    pub async fn new(conn: Arc<DatabaseConnection>) -> Self {
+        Self {
+            database: AppDatabase::new(conn).await,
         }
     }
 }

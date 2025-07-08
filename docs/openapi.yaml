@@ -1,0 +1,1560 @@
+openapi: 3.0.3
+info:
+  title: Assessment Management System API
+  description: |
+    A comprehensive API for managing assessments, questions, responses, and reports in a sustainability assessment system.
+
+    ## Features
+    - Version-controlled question management
+    - Assessment lifecycle management
+    - File attachment support
+    - Immutable assessment submissions
+    - Comprehensive reporting
+
+    ## Authentication
+    All endpoints require Keycloak JWT authentication. Include the JWT token in the Authorization header:
+    `Authorization: Bearer <your-jwt-token>`
+
+    ## Versioning
+    The API supports response versioning to track changes and resolve conflicts.
+  version: "1.0.0"
+  contact:
+    name: Assessment System Team
+    email: support@assessment-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.assessment-system.com/api/v1
+    description: Production server
+  - url: https://staging-api.assessment-system.com/api/v1
+    description: Staging server
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Health
+    description: System health and status endpoints
+  - name: Questions
+    description: Question management and versioning
+  - name: Assessments
+    description: Assessment lifecycle management
+  - name: Responses
+    description: Assessment response management
+  - name: Files
+    description: File upload and management
+  - name: Reports
+    description: Report generation and retrieval
+
+paths:
+  # Health Endpoints
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check system health and availability
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # Question Management Endpoints
+  /questions:
+    get:
+      tags:
+        - Questions
+      summary: List questions
+      description: Get paginated list of questions with their latest revisions
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Category'
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Questions
+      summary: Create question
+      description: Create a new question with initial revision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuestionRequest'
+      responses:
+        '201':
+          description: Question created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /questions/{questionId}:
+    get:
+      tags:
+        - Questions
+      summary: Get question
+      description: Get specific question with all revisions
+      parameters:
+        - $ref: '#/components/parameters/QuestionId'
+      responses:
+        '200':
+          description: Question details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionWithRevisionsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Questions
+      summary: Update question
+      description: Create new revision of existing question
+      parameters:
+        - $ref: '#/components/parameters/QuestionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateQuestionRequest'
+      responses:
+        '200':
+          description: Question updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionRevisionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Questions
+      summary: Delete question
+      description: Soft delete question (admin only)
+      parameters:
+        - $ref: '#/components/parameters/QuestionId'
+      responses:
+        '204':
+          description: Question deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /questions/{questionId}/revisions:
+    get:
+      tags:
+        - Questions
+      summary: Get question revisions
+      description: Get all revisions for a specific question
+      parameters:
+        - $ref: '#/components/parameters/QuestionId'
+      responses:
+        '200':
+          description: List of question revisions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionRevisionListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /questions/revisions/{revisionId}:
+    get:
+      tags:
+        - Questions
+      summary: Get question revision
+      description: Get specific question revision
+      parameters:
+        - $ref: '#/components/parameters/RevisionId'
+      responses:
+        '200':
+          description: Question revision details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionRevisionResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Assessment Management Endpoints
+  /assessments:
+    get:
+      tags:
+        - Assessments
+      summary: List assessments
+      description: Get paginated list of user's assessments
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Status'
+      responses:
+        '200':
+          description: List of assessments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Assessments
+      summary: Create assessment
+      description: Create new assessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssessmentRequest'
+      responses:
+        '201':
+          description: Assessment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessmentId}:
+    get:
+      tags:
+        - Assessments
+      summary: Get assessment
+      description: Get specific assessment with responses
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      responses:
+        '200':
+          description: Assessment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentWithResponsesResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Assessments
+      summary: Update assessment
+      description: Update assessment metadata
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssessmentRequest'
+      responses:
+        '200':
+          description: Assessment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Assessments
+      summary: Delete assessment
+      description: Delete draft assessment
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      responses:
+        '204':
+          description: Assessment deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Cannot delete submitted assessment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessmentId}/submit:
+    post:
+      tags:
+        - Assessments
+      summary: Submit assessment
+      description: Submit assessment for grading (creates immutable submission)
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      responses:
+        '201':
+          description: Assessment submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentSubmissionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Assessment already submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Response Management Endpoints
+  /assessments/{assessmentId}/responses:
+    get:
+      tags:
+        - Responses
+      summary: Get assessment responses
+      description: Get all responses for an assessment
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      responses:
+        '200':
+          description: List of assessment responses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Responses
+      summary: Create response
+      description: Create new response for assessment
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateResponseRequest'
+      responses:
+        '201':
+          description: Response created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessmentId}/responses/{responseId}:
+    get:
+      tags:
+        - Responses
+      summary: Get response
+      description: Get specific response
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+        - $ref: '#/components/parameters/ResponseId'
+      responses:
+        '200':
+          description: Response details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Responses
+      summary: Update response
+      description: Update response (creates new version)
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+        - $ref: '#/components/parameters/ResponseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResponseRequest'
+      responses:
+        '200':
+          description: Response updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Version conflict detected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Responses
+      summary: Delete response
+      description: Delete response
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+        - $ref: '#/components/parameters/ResponseId'
+      responses:
+        '204':
+          description: Response deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessmentId}/responses/{responseId}/history:
+    get:
+      tags:
+        - Responses
+      summary: Get response history
+      description: Get response version history
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+        - $ref: '#/components/parameters/ResponseId'
+      responses:
+        '200':
+          description: Response version history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseHistoryResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # File Management Endpoints
+  /files:
+    post:
+      tags:
+        - Files
+      summary: Upload file
+      description: Upload file and return file ID
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+                metadata:
+                  type: object
+                  description: Optional file metadata
+              required:
+                - file
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /files/{fileId}:
+    get:
+      tags:
+        - Files
+      summary: Download file
+      description: Download file content
+      parameters:
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Files
+      summary: Delete file
+      description: Delete file (if not referenced)
+      parameters:
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '204':
+          description: File deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: File is referenced and cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /files/{fileId}/metadata:
+    get:
+      tags:
+        - Files
+      summary: Get file metadata
+      description: Get file metadata
+      parameters:
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '200':
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileMetadataResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessmentId}/responses/{responseId}/files:
+    post:
+      tags:
+        - Files
+      summary: Attach file to response
+      description: Attach existing file to response
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+        - $ref: '#/components/parameters/ResponseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachFileRequest'
+      responses:
+        '201':
+          description: File attached successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessmentId}/responses/{responseId}/files/{fileId}:
+    delete:
+      tags:
+        - Files
+      summary: Remove file from response
+      description: Remove file attachment from response
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+        - $ref: '#/components/parameters/ResponseId'
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '204':
+          description: File removed successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Reporting Endpoints
+  /assessments/{assessmentId}/reports:
+    get:
+      tags:
+        - Reports
+      summary: List reports
+      description: Get available reports for assessment
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      responses:
+        '200':
+          description: List of available reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Reports
+      summary: Generate report
+      description: Generate new report for assessment
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateReportRequest'
+      responses:
+        '201':
+          description: Report generation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportGenerationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /reports/{reportId}:
+    get:
+      tags:
+        - Reports
+      summary: Get report
+      description: Get specific report details
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: Report details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /reports/{reportId}/download:
+    get:
+      tags:
+        - Reports
+      summary: Download report
+      description: Download report file
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: Report file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Keycloak JWT token
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Page number (1-based)
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    Limit:
+      name: limit
+      in: query
+      description: Number of items per page
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    Category:
+      name: category
+      in: query
+      description: Filter by question category
+      required: false
+      schema:
+        type: string
+
+    Language:
+      name: language
+      in: query
+      description: Preferred language for multilingual content
+      required: false
+      schema:
+        type: string
+        example: "en"
+
+    Status:
+      name: status
+      in: query
+      description: Filter by assessment status
+      required: false
+      schema:
+        type: string
+        enum: [draft, submitted, completed]
+
+    QuestionId:
+      name: questionId
+      in: path
+      description: Question ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    RevisionId:
+      name: revisionId
+      in: path
+      description: Question revision ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    AssessmentId:
+      name: assessmentId
+      in: path
+      description: Assessment ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ResponseId:
+      name: responseId
+      in: path
+      description: Response ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    FileId:
+      name: fileId
+      in: path
+      description: File ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ReportId:
+      name: reportId
+      in: path
+      description: Report ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+
+  schemas:
+    # Common Schemas
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+      required:
+        - error
+        - code
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Items per page
+        total:
+          type: integer
+          description: Total number of items
+        totalPages:
+          type: integer
+          description: Total number of pages
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+
+    # Health Schemas
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [up, down]
+            keycloak:
+              type: string
+              enum: [up, down]
+      required:
+        - status
+        - timestamp
+        - version
+
+    MetricsResponse:
+      type: object
+      properties:
+        uptime:
+          type: number
+          description: System uptime in seconds
+        requests:
+          type: object
+          properties:
+            total:
+              type: integer
+            per_second:
+              type: number
+        memory:
+          type: object
+          properties:
+            used:
+              type: integer
+            total:
+              type: integer
+        database:
+          type: object
+          properties:
+            connections:
+              type: integer
+            queries_per_second:
+              type: number
+
+    # Question Schemas
+    MultilingualText:
+      type: object
+      additionalProperties:
+        type: string
+      example:
+        en: "What is your organization's sustainability policy?"
+        fr: "Quelle est la politique de durabilité de votre organisation?"
+
+    Question:
+      type: object
+      properties:
+        questionId:
+          type: string
+          format: uuid
+        category:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        latestRevision:
+          $ref: '#/components/schemas/QuestionRevision'
+      required:
+        - questionId
+        - category
+        - createdAt
+
+    QuestionRevision:
+      type: object
+      properties:
+        questionRevisionId:
+          type: string
+          format: uuid
+        questionId:
+          type: string
+          format: uuid
+        text:
+          $ref: '#/components/schemas/MultilingualText'
+        weight:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - questionRevisionId
+        - questionId
+        - text
+        - weight
+        - createdAt
+
+    CreateQuestionRequest:
+      type: object
+      properties:
+        category:
+          type: string
+          description: Question category
+        text:
+          $ref: '#/components/schemas/MultilingualText'
+        weight:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+      required:
+        - category
+        - text
+        - weight
+
+    UpdateQuestionRequest:
+      type: object
+      properties:
+        text:
+          $ref: '#/components/schemas/MultilingualText'
+        weight:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+      required:
+        - text
+        - weight
+
+    QuestionResponse:
+      type: object
+      properties:
+        question:
+          $ref: '#/components/schemas/Question'
+      required:
+        - question
+
+    QuestionWithRevisionsResponse:
+      type: object
+      properties:
+        question:
+          $ref: '#/components/schemas/Question'
+        revisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionRevision'
+      required:
+        - question
+        - revisions
+
+    QuestionRevisionResponse:
+      type: object
+      properties:
+        revision:
+          $ref: '#/components/schemas/QuestionRevision'
+      required:
+        - revision
+
+    QuestionListResponse:
+      type: object
+      properties:
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      required:
+        - questions
+        - meta
+
+    QuestionRevisionListResponse:
+      type: object
+      properties:
+        revisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionRevision'
+      required:
+        - revisions
+
+    # Assessment Schemas
+    Assessment:
+      type: object
+      properties:
+        assessmentId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          description: Keycloak user ID
+        language:
+          type: string
+        status:
+          type: string
+          enum: [draft, submitted, completed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - assessmentId
+        - userId
+        - language
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateAssessmentRequest:
+      type: object
+      properties:
+        language:
+          type: string
+          description: Assessment language
+      required:
+        - language
+
+    UpdateAssessmentRequest:
+      type: object
+      properties:
+        language:
+          type: string
+          description: Assessment language
+
+    AssessmentResponse:
+      type: object
+      properties:
+        assessment:
+          $ref: '#/components/schemas/Assessment'
+      required:
+        - assessment
+
+    AssessmentWithResponsesResponse:
+      type: object
+      properties:
+        assessment:
+          $ref: '#/components/schemas/Assessment'
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Response'
+      required:
+        - assessment
+        - responses
+
+    AssessmentListResponse:
+      type: object
+      properties:
+        assessments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assessment'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      required:
+        - assessments
+        - meta
+
+    AssessmentSubmission:
+      type: object
+      properties:
+        assessmentId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        content:
+          type: object
+          description: Immutable snapshot of assessment responses
+        submittedAt:
+          type: string
+          format: date-time
+      required:
+        - assessmentId
+        - userId
+        - content
+        - submittedAt
+
+    AssessmentSubmissionResponse:
+      type: object
+      properties:
+        submission:
+          $ref: '#/components/schemas/AssessmentSubmission'
+      required:
+        - submission
+
+    # Response Schemas
+    Response:
+      type: object
+      properties:
+        responseId:
+          type: string
+          format: uuid
+        assessmentId:
+          type: string
+          format: uuid
+        questionRevisionId:
+          type: string
+          format: uuid
+        response:
+          type: string
+          description: User's response text
+        version:
+          type: integer
+          description: Response version for conflict resolution
+        updatedAt:
+          type: string
+          format: date-time
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileMetadata'
+      required:
+        - responseId
+        - assessmentId
+        - questionRevisionId
+        - response
+        - version
+        - updatedAt
+
+    CreateResponseRequest:
+      type: object
+      properties:
+        questionRevisionId:
+          type: string
+          format: uuid
+        response:
+          type: string
+          description: User's response text
+      required:
+        - questionRevisionId
+        - response
+
+    UpdateResponseRequest:
+      type: object
+      properties:
+        response:
+          type: string
+          description: Updated response text
+        version:
+          type: integer
+          description: Current version for conflict detection
+      required:
+        - response
+        - version
+
+    ResponseResponse:
+      type: object
+      properties:
+        response:
+          $ref: '#/components/schemas/Response'
+      required:
+        - response
+
+    ResponseListResponse:
+      type: object
+      properties:
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Response'
+      required:
+        - responses
+
+    ResponseVersion:
+      type: object
+      properties:
+        version:
+          type: integer
+        response:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - version
+        - response
+        - updatedAt
+
+    ResponseHistoryResponse:
+      type: object
+      properties:
+        responseId:
+          type: string
+          format: uuid
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResponseVersion'
+      required:
+        - responseId
+        - history
+
+    ConflictResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Conflict error message
+        code:
+          type: string
+          enum: [VERSION_CONFLICT]
+        currentVersion:
+          type: integer
+          description: Current version in database
+        yourVersion:
+          type: integer
+          description: Version in the request
+        serverResponse:
+          type: string
+          description: Current response text in database
+      required:
+        - error
+        - code
+        - currentVersion
+        - yourVersion
+        - serverResponse
+
+    # File Schemas
+    FileMetadata:
+      type: object
+      properties:
+        fileId:
+          type: string
+          format: uuid
+        filename:
+          type: string
+        size:
+          type: integer
+          description: File size in bytes
+        contentType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          description: Additional file metadata
+      required:
+        - fileId
+        - filename
+        - size
+        - contentType
+        - createdAt
+
+    FileUploadResponse:
+      type: object
+      properties:
+        file:
+          $ref: '#/components/schemas/FileMetadata'
+      required:
+        - file
+
+    FileMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/FileMetadata'
+      required:
+        - metadata
+
+    AttachFileRequest:
+      type: object
+      properties:
+        fileId:
+          type: string
+          format: uuid
+      required:
+        - fileId
+
+    # Report Schemas
+    Report:
+      type: object
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        assessmentId:
+          type: string
+          format: uuid
+        reportType:
+          type: string
+          enum: [PDF, CSV]
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        generatedAt:
+          type: string
+          format: date-time
+        data:
+          type: object
+          description: Report content and metadata
+      required:
+        - reportId
+        - assessmentId
+        - reportType
+        - status
+
+    GenerateReportRequest:
+      type: object
+      properties:
+        reportType:
+          type: string
+          enum: [PDF, CSV]
+        options:
+          type: object
+          description: Report generation options
+      required:
+        - reportType
+
+    ReportGenerationResponse:
+      type: object
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, processing]
+      required:
+        - reportId
+        - status
+
+    ReportResponse:
+      type: object
+      properties:
+        report:
+          $ref: '#/components/schemas/Report'
+      required:
+        - report
+
+    ReportListResponse:
+      type: object
+      properties:
+        reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+      required:
+        - reports
+
+
+  responses:
+    BadRequestError:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFoundError:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
