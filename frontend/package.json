@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "lint:check": "eslint . --max-warnings 0 --ignore-pattern /api/generated/",
+    "lint:check": "eslint . --max-warnings 0 --ignore-pattern '**/api/generated/**'",
     "prettier:check": "prettier --check .",
     "ts:check": "tsc --noEmit",
     "test:unit": "vitest",
