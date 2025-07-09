@@ -22,8 +22,7 @@ pub async fn list_assessments(
     State(app_state): State<AppState>,
     Query(query): Query<AssessmentQuery>,
 ) -> Result<Json<AssessmentListResponse>, ApiError> {
-    // In a real implementation, this would get the user_id from authentication
-    // For now, using a hardcoded user_id
+    // TODO: Replace with actual user authentication
     let user_id = "user123";
 
     let page = query.page.unwrap_or(1);
@@ -38,13 +37,22 @@ pub async fn list_assessments(
     // Convert database models to API models
     let mut assessments = Vec::new();
     for model in assessment_models {
+        // Determine status based on whether assessment has been submitted
+        let has_submission = app_state.database.assessments_submission
+            .get_submission_by_assessment_id(model.assessment_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+            .is_some();
+
+        let status = if has_submission { "submitted".to_string() } else { "draft".to_string() };
+
         assessments.push(Assessment {
             assessment_id: model.assessment_id,
             user_id: model.user_id,
             language: model.language,
-            status: "draft".to_string(), // Default status since it's not in the database model yet
+            status,
             created_at: model.created_at.to_rfc3339(),
-            updated_at: model.created_at.to_rfc3339(), // Use created_at as updated_at for now
+            updated_at: model.created_at.to_rfc3339(),
         });
     }
 
@@ -78,13 +86,17 @@ pub async fn create_assessment(
     State(app_state): State<AppState>,
     Json(request): Json<CreateAssessmentRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // In a real implementation, this would get the user_id from authentication
-    // For now, using a hardcoded user_id
+    // TODO: Replace with actual user authentication
     let user_id = "user123".to_string();
 
     // Validate request
     if request.language.trim().is_empty() {
         return Err(ApiError::BadRequest("Language must not be empty".to_string()));
+    }
+
+    // Validate language code format (basic validation)
+    if request.language.len() < 2 || request.language.len() > 5 {
+        return Err(ApiError::BadRequest("Language code must be between 2 and 5 characters".to_string()));
     }
 
     // Create the assessment in the database
@@ -98,9 +110,9 @@ pub async fn create_assessment(
         assessment_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
-        status: "draft".to_string(), // Default status since it's not in the database model yet
+        status: "draft".to_string(),
         created_at: assessment_model.created_at.to_rfc3339(),
-        updated_at: assessment_model.created_at.to_rfc3339(), // Use created_at as updated_at for now
+        updated_at: assessment_model.created_at.to_rfc3339(),
     };
 
     Ok((StatusCode::CREATED, Json(AssessmentResponse { assessment })))
@@ -110,6 +122,9 @@ pub async fn get_assessment(
     State(app_state): State<AppState>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<AssessmentWithResponsesResponse>, ApiError> {
+    // TODO: Replace with actual user authentication
+    let user_id = "user123";
+
     // Fetch the assessment from the database
     let assessment_model = app_state.database.assessments
         .get_assessment_by_id(assessment_id)
@@ -121,17 +136,28 @@ pub async fn get_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // In a real implementation, you would verify that the current user is the owner
-    // For now, we'll skip this check
+    // Verify that the current user is the owner of the assessment
+    if assessment_model.user_id != user_id {
+        return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
+    }
+
+    // Determine status based on whether assessment has been submitted
+    let has_submission = app_state.database.assessments_submission
+        .get_submission_by_assessment_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+        .is_some();
+
+    let status = if has_submission { "submitted".to_string() } else { "draft".to_string() };
 
     // Convert database model to API model
     let assessment = Assessment {
         assessment_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
-        status: "draft".to_string(), // Default status since it's not in the database model yet
+        status,
         created_at: assessment_model.created_at.to_rfc3339(),
-        updated_at: assessment_model.created_at.to_rfc3339(), // Use created_at as updated_at for now
+        updated_at: assessment_model.created_at.to_rfc3339(),
     };
 
     // Fetch the latest responses for this assessment
@@ -162,13 +188,45 @@ pub async fn update_assessment(
     Path(assessment_id): Path<Uuid>,
     Json(request): Json<UpdateAssessmentRequest>,
 ) -> Result<Json<AssessmentResponse>, ApiError> {
+    // TODO: Replace with actual user authentication
+    let user_id = "user123";
+
     // Validate request
     if request.language.trim().is_empty() {
         return Err(ApiError::BadRequest("Language must not be empty".to_string()));
     }
 
-    // In a real implementation, you would verify that the current user is the owner
-    // and that the assessment is in draft status
+    // Validate language code format (basic validation)
+    if request.language.len() < 2 || request.language.len() > 5 {
+        return Err(ApiError::BadRequest("Language code must be between 2 and 5 characters".to_string()));
+    }
+
+    // First, fetch the assessment to verify ownership and status
+    let existing_assessment = app_state.database.assessments
+        .get_assessment_by_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
+
+    let existing_assessment = match existing_assessment {
+        Some(a) => a,
+        None => return Err(ApiError::NotFound("Assessment not found".to_string())),
+    };
+
+    // Verify that the current user is the owner of the assessment
+    if existing_assessment.user_id != user_id {
+        return Err(ApiError::BadRequest("You don't have permission to update this assessment".to_string()));
+    }
+
+    // Check if assessment has been submitted (cannot update submitted assessments)
+    let has_submission = app_state.database.assessments_submission
+        .get_submission_by_assessment_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+        .is_some();
+
+    if has_submission {
+        return Err(ApiError::BadRequest("Cannot update a submitted assessment".to_string()));
+    }
 
     // Update the assessment in the database
     let assessment_model = app_state.database.assessments
@@ -187,9 +245,9 @@ pub async fn update_assessment(
         assessment_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
-        status: "draft".to_string(), // Default status since it's not in the database model yet
+        status: "draft".to_string(),
         created_at: assessment_model.created_at.to_rfc3339(),
-        updated_at: assessment_model.created_at.to_rfc3339(), // Use created_at as updated_at for now
+        updated_at: assessment_model.created_at.to_rfc3339(),
     };
 
     Ok(Json(AssessmentResponse { assessment }))
@@ -199,18 +257,35 @@ pub async fn delete_assessment(
     State(app_state): State<AppState>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    // Check if the assessment exists
-    let assessment_exists = app_state.database.assessments
+    // TODO: Replace with actual user authentication
+    let user_id = "user123";
+
+    // Check if the assessment exists and get its details
+    let assessment = app_state.database.assessments
         .get_assessment_by_id(assessment_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
 
-    if assessment_exists.is_none() {
-        return Err(ApiError::NotFound("Assessment not found".to_string()));
+    let assessment = match assessment {
+        Some(a) => a,
+        None => return Err(ApiError::NotFound("Assessment not found".to_string())),
+    };
+
+    // Verify that the current user is the owner of the assessment
+    if assessment.user_id != user_id {
+        return Err(ApiError::BadRequest("You don't have permission to delete this assessment".to_string()));
     }
 
-    // In a real implementation, you would verify that the current user is the owner
-    // and that the assessment is in draft status
+    // Check if assessment has been submitted (cannot delete submitted assessments)
+    let has_submission = app_state.database.assessments_submission
+        .get_submission_by_assessment_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+        .is_some();
+
+    if has_submission {
+        return Err(ApiError::BadRequest("Cannot delete a submitted assessment".to_string()));
+    }
 
     // Delete the assessment from the database (this will cascade delete responses due to foreign key)
     app_state.database.assessments
@@ -225,8 +300,7 @@ pub async fn submit_assessment(
     State(app_state): State<AppState>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // In a real implementation, this would get the user_id from authentication
-    // For now, using a hardcoded user_id
+    // TODO: Replace with actual user authentication
     let user_id = "user123".to_string();
 
     // Verify that the assessment exists and belongs to the user
@@ -240,9 +314,19 @@ pub async fn submit_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // In a real implementation, you would verify that the current user is the owner
+    // Verify that the current user is the owner of the assessment
     if assessment_model.user_id != user_id {
         return Err(ApiError::BadRequest("You don't have permission to submit this assessment".to_string()));
+    }
+
+    // Check if assessment has already been submitted
+    let existing_submission = app_state.database.assessments_submission
+        .get_submission_by_assessment_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to check existing submission: {}", e)))?;
+
+    if existing_submission.is_some() {
+        return Err(ApiError::BadRequest("Assessment has already been submitted".to_string()));
     }
 
     // Fetch all responses for this assessment to include in the submission

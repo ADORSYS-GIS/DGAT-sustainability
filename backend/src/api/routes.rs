@@ -1,7 +1,7 @@
 use crate::common::state::AppState;
 use crate::api::handlers::{
     health::{health_check, metrics},
-    questions::{list_questions, create_question, create_question_with_translation, get_question, update_question, delete_question, get_question_revisions, get_question_revision},
+    questions::{list_questions, create_question, get_question, update_question, delete_question},
     assessments::{list_assessments, create_assessment, get_assessment, update_assessment, delete_assessment, submit_assessment},
     responses::{list_responses, create_response, get_response, update_response, delete_response, get_response_history},
     files::{upload_file, download_file, delete_file, get_file_metadata, attach_file, remove_file},
@@ -25,12 +25,9 @@ pub fn create_router(app_state: AppState) -> Router {
         // Question endpoints
         .route("/api/questions", get(list_questions))
         .route("/api/questions", post(create_question))
-        .route("/api/questions/with-translation", post(create_question_with_translation))
         .route("/api/questions/:question_id", get(get_question))
         .route("/api/questions/:question_id", put(update_question))
         .route("/api/questions/:question_id", delete(delete_question))
-        .route("/api/questions/:question_id/revisions", get(get_question_revisions))
-        .route("/api/questions/revisions/:revision_id", get(get_question_revision))
 
         // Assessment endpoints
         .route("/api/assessments", get(list_assessments))

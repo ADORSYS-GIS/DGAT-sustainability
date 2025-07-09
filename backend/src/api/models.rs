@@ -88,14 +88,6 @@ pub struct CreateQuestionRequest {
     pub weight: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CreateQuestionWithTranslationRequest {
-    pub category: String,
-    pub source_text: String, // Text in source language
-    pub source_language: String, // Source language code (e.g., "en", "fr", "es")
-    pub target_languages: Vec<String>, // Target language codes for translation
-    pub weight: f64,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateQuestionRequest {
