@@ -1,11 +1,17 @@
 use sustainability_tool::{
     common::config::Configs,
+    common::database::init::initialize_database,
+    common::state::AppDatabase,
     web::routes::{create_app, AppState},
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    startup().await
+}
+
+async fn startup() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
@@ -25,6 +31,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.server.host,
         config.server.port
     );
+
+    // Initialize application database (if needed)
+    let _app_db = initialize_app().await?;
 
     // Initialize application state
     let app_state = AppState::new(config.keycloak.url, config.keycloak.realm);
@@ -49,6 +58,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn initialize_app() -> Result<AppDatabase, Box<dyn std::error::Error>> {
+    // Initialize database connection
+    let conn = initialize_database().await?;
+    tracing::info!("Database connection established successfully");
+
+    // Initialize the application database state
+    let app_db = AppDatabase::new(conn).await;
+    tracing::info!("Application initialized successfully");
+
+    Ok(app_db)
 }
 
 #[cfg(test)]
