@@ -1,70 +1,63 @@
 import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/shared/use-toast";
-import {
-  useCreateTask,
-  useTasksByUser,
-  useUpdateTask,
-} from "@/hooks/shared/useTasks";
-import {
-  Assessment,
-  getAssessmentsByUser,
-} from "@/services/user/assessmentService";
-import { Task } from "@/services/user/taskService";
 import {
   AlertCircle,
   Calendar,
   CheckCircle,
   Kanban,
   PlayCircle,
+  ThumbsUp,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useParams } from "react-router-dom";
+import { useReportsServiceGetReportsByReportId } from "../../../api/generated/queries/queries";
 
 export const ActionPlan: React.FC = () => {
-  // Use 'public' as fallback userId
-  const { user } = { user: { id: "public" } };
-  const { toast } = useToast();
+  // Get report_id from params or hardcode for now
+  const { reportId } = useParams<{ reportId: string }>();
+  // Fallback reportId for demo/testing
+  const fallbackReportId = "demo-report-id";
+  const { data, isLoading } = useReportsServiceGetReportsByReportId({
+    reportId: reportId || fallbackReportId,
+  });
 
-  // Fetch all assessments for the user (for assessmentId selection)
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
-  useEffect(() => {
-    getAssessmentsByUser(user.id)
-      .then(setAssessments)
-      .catch(() => setAssessments([]));
-  }, [user.id]);
-
-  // Fetch all tasks for the user
-  const { data: tasks = [], isLoading: loading } = useTasksByUser(user.id);
-  const createTaskMutation = useCreateTask();
-  const updateTaskMutation = useUpdateTask();
-
-  const updateTaskStatus = async (
-    taskId: string,
-    newStatus: "todo" | "in_progress" | "done",
-  ) => {
-    const task = tasks.find((t: Task) => t.taskId === taskId);
-    if (!task) return;
-    try {
-      await updateTaskMutation.mutateAsync({ ...task, status: newStatus });
-      toast({
-        title: "Success",
-        description: "Task status updated",
-        className: "bg-dgrv-green text-white",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
-    }
+  // Extract tasks from report.data.tasks (default to empty array)
+  type ReportTask = {
+    id: string;
+    title: string;
+    description?: string;
+    dueDate?: string;
+    status?: string;
   };
+  const tasks: ReportTask[] =
+    (data?.report?.data &&
+    typeof data.report.data === "object" &&
+    Array.isArray((data.report.data as { tasks?: unknown }).tasks)
+      ? (data.report.data as { tasks: ReportTask[] }).tasks
+      : []) || [];
 
-  const getTasksByStatus = (status: string) => {
-    return tasks.filter((task: Task) => task.status === status);
-  };
+  // Columns for Kanban
+  const columns = [
+    { id: "todo", title: "To Do", icon: AlertCircle, color: "text-gray-600" },
+    {
+      id: "in_progress",
+      title: "In Progress",
+      icon: PlayCircle,
+      color: "text-blue-600",
+    },
+    { id: "done", title: "Done", icon: CheckCircle, color: "text-green-600" },
+    {
+      id: "approved",
+      title: "Approved",
+      icon: ThumbsUp,
+      color: "text-emerald-600",
+    },
+  ];
+
+  // Group tasks by status, default to 'todo' if not set
+  const getTasksByStatus = (status: string) =>
+    tasks.filter((task) => (task.status || "todo") === status);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -74,6 +67,8 @@ export const ActionPlan: React.FC = () => {
         return <PlayCircle className="w-4 h-4 text-blue-500" />;
       case "done":
         return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "approved":
+        return <ThumbsUp className="w-4 h-4 text-emerald-500" />;
       default:
         return <AlertCircle className="w-4 h-4 text-gray-500" />;
     }
@@ -87,23 +82,14 @@ export const ActionPlan: React.FC = () => {
         return "bg-blue-50 border-blue-300";
       case "done":
         return "bg-green-50 border-green-300";
+      case "approved":
+        return "bg-emerald-50 border-emerald-300";
       default:
         return "bg-gray-100 border-gray-300";
     }
   };
 
-  const columns = [
-    { id: "todo", title: "To Do", icon: AlertCircle, color: "text-gray-600" },
-    {
-      id: "in_progress",
-      title: "In Progress",
-      icon: PlayCircle,
-      color: "text-blue-600",
-    },
-    { id: "done", title: "Done", icon: CheckCircle, color: "text-green-600" },
-  ];
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -117,7 +103,6 @@ export const ActionPlan: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
@@ -138,11 +123,10 @@ export const ActionPlan: React.FC = () => {
           </div>
 
           {/* Kanban Board */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {columns.map((column) => {
               const columnTasks = getTasksByStatus(column.id);
               const IconComponent = column.icon;
-
               return (
                 <Card key={column.id} className="animate-fade-in">
                   <CardHeader className="pb-3">
@@ -159,15 +143,15 @@ export const ActionPlan: React.FC = () => {
                   <CardContent className="space-y-3">
                     {columnTasks.map((task) => (
                       <Card
-                        key={task.taskId}
-                        className={`${getStatusColor(task.status)} cursor-pointer hover:shadow-md transition-shadow`}
+                        key={task.id}
+                        className={`${getStatusColor(task.status || "todo")}`}
                       >
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-2">
                             <h4 className="font-medium text-sm">
                               {task.title}
                             </h4>
-                            {getStatusIcon(task.status)}
+                            {getStatusIcon(task.status || "todo")}
                           </div>
                           {task.description && (
                             <p className="text-xs text-gray-600 mb-3">
@@ -182,48 +166,9 @@ export const ActionPlan: React.FC = () => {
                               </span>
                             </div>
                           )}
-                          <div className="flex space-x-1">
-                            {task.status !== "todo" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs px-2 py-1 h-6"
-                                onClick={() =>
-                                  updateTaskStatus(task.taskId, "todo")
-                                }
-                              >
-                                To Do
-                              </Button>
-                            )}
-                            {task.status !== "in_progress" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs px-2 py-1 h-6"
-                                onClick={() =>
-                                  updateTaskStatus(task.taskId, "in_progress")
-                                }
-                              >
-                                In Progress
-                              </Button>
-                            )}
-                            {task.status !== "done" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs px-2 py-1 h-6"
-                                onClick={() =>
-                                  updateTaskStatus(task.taskId, "done")
-                                }
-                              >
-                                Done
-                              </Button>
-                            )}
-                          </div>
                         </CardContent>
                       </Card>
                     ))}
-
                     {columnTasks.length === 0 && (
                       <div className="text-center py-8 text-gray-500">
                         <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />

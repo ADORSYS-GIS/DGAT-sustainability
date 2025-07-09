@@ -1,37 +1,43 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/shared/use-toast";
-import { useCategoriesByTemplate } from "@/hooks/user/useCategoriesByTemplate";
-import { useQuestionsByTemplate } from "@/hooks/user/useQuestionsByTemplate";
 import {
-  Assessment as AssessmentType,
-  createAssessment,
-  updateAssessment,
-} from "@/services/user/assessmentService";
-import { Category } from "@/services/user/categoryService";
-import { Question } from "@/services/user/questionService";
-import { useMutation } from "@tanstack/react-query";
+  useAssessmentsServicePostAssessments,
+  useAssessmentsServiceGetAssessmentsByAssessmentId,
+  useResponsesServicePostAssessmentsByAssessmentIdResponses,
+  useResponsesServicePutAssessmentsByAssessmentIdResponsesByResponseId,
+  useFilesServicePostAssessmentsByAssessmentIdResponsesByResponseIdFiles,
+  useAssessmentsServicePostAssessmentsByAssessmentIdSubmit,
+  useQuestionsServiceGetQuestions,
+} from "../../../api/generated/queries/queries";
 import {
-  ChevronLeft,
-  ChevronRight,
+  AssessmentDetailResponse,
+  CreateResponseRequest,
+  UpdateResponseRequest,
+  response_id_files_body,
+  Question,
+  QuestionRevision,
+} from "../../../api/generated/requests/types.gen";
+import { toast } from "sonner";
+import {
   Info,
   Paperclip,
+  ChevronLeft,
+  ChevronRight,
   Save,
   Send,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 
 type FileData = { name: string; url: string };
 
 export const Assessment: React.FC = () => {
-  const { type } = useParams<{ type: string }>();
+  const { assessmentId } = useParams<{ assessmentId: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<
@@ -46,91 +52,80 @@ export const Assessment: React.FC = () => {
     >
   >({});
   const [comments, setComments] = useState<Record<string, string>>({});
-  const [assessment, setAssessment] = useState<AssessmentType | null>(null);
   const [showPercentInfo, setShowPercentInfo] = useState(false);
 
   const templateId = "sustainability_template";
   const toolName = "Sustainability Assessment";
 
-  // Fetch categories and questions
-  const {
-    data: categoriesData,
-    isLoading: categoriesLoading,
-    error: categoriesError,
-  } = useCategoriesByTemplate(templateId);
-  const {
-    data: questionsData,
-    isLoading: questionsLoading,
-    error: questionsError,
-  } = useQuestionsByTemplate(templateId);
+  const createAssessmentMutation = useAssessmentsServicePostAssessments();
+  const submitAssessmentMutation =
+    useAssessmentsServicePostAssessmentsByAssessmentIdSubmit();
 
-  // Create assessment on mount (if user and data loaded)
+  // Add response mutation hooks
+  const createResponseMutation =
+    useResponsesServicePostAssessmentsByAssessmentIdResponses();
+  const updateResponseMutation =
+    useResponsesServicePutAssessmentsByAssessmentIdResponsesByResponseId();
+
+  // Fix assessment creation mutation call
   useEffect(() => {
-    if (categoriesData && questionsData && !assessment) {
-      const create = async () => {
-        try {
-          const newAssessment = await createAssessment({
-            userId: "public",
-            organizationId: "public",
-            templateId,
-            answers: {},
-            status: "draft",
-          });
-          setAssessment(newAssessment);
-        } catch (error) {
-          toast({
-            title: "Error",
-            description: "Failed to create assessment",
-            variant: "destructive",
-          });
-        }
-      };
-      create();
+    if (!assessmentId) {
+      createAssessmentMutation.mutate(undefined, {
+        onSuccess: (data) => {
+          const newId = data.assessment.assessment_id;
+          navigate(`/user/assessment/${newId}`);
+        },
+        onError: () => toast("Failed to create assessment"),
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriesData, questionsData]);
+  }, [assessmentId, createAssessmentMutation, navigate]);
 
-  // Filter and sort categories
-  const categories: Category[] = React.useMemo(() => {
-    if (!categoriesData) return [];
-    return categoriesData.sort((a, b) => a.order - b.order);
-  }, [categoriesData]);
+  // Fetch assessment detail if assessmentId exists
+  const { data: assessmentDetail, isLoading: assessmentLoading } =
+    useAssessmentsServiceGetAssessmentsByAssessmentId(
+      assessmentId ? { assessmentId } : { assessmentId: "" },
+      undefined,
+      { enabled: !!assessmentId },
+    );
 
-  // Sort questions
-  const questions: Question[] = React.useMemo(() => {
-    if (!questionsData) return [];
-    return questionsData.sort((a, b) => a.order - b.order);
+  // Fetch questions with categories and revisions
+  const { data: questionsData, isLoading: questionsLoading } =
+    useQuestionsServiceGetQuestions();
+
+  // Group questions by category
+  const groupedQuestions = React.useMemo(() => {
+    if (!questionsData?.questions) return {};
+    const groups: Record<
+      string,
+      { question: Question; revision: QuestionRevision }[]
+    > = {};
+    questionsData.questions.forEach(
+      (qwr: { question: Question; revisions: QuestionRevision[] }) => {
+        const category = qwr.question.category;
+        const latestRevision = qwr.revisions[qwr.revisions.length - 1];
+        if (!groups[category]) groups[category] = [];
+        groups[category].push({
+          question: qwr.question,
+          revision: latestRevision,
+        });
+      },
+    );
+    return groups;
   }, [questionsData]);
 
-  const getCurrentCategoryQuestions = () => {
-    if (!categories[currentCategoryIndex]) return [];
-    return questions.filter(
-      (q) => q.categoryId === categories[currentCategoryIndex].categoryId,
+  const categories = Object.keys(groupedQuestions);
+  const getCurrentCategoryQuestions = () =>
+    groupedQuestions[categories[currentCategoryIndex]] || [];
+
+  // Helper to find response for a question
+  const findResponseForQuestion = (question_revision_id: string) => {
+    return assessmentDetail?.responses?.find(
+      (r) => r.question_revision_id === question_revision_id,
     );
   };
 
-  // Mutations
-  const updateAssessmentMutation = useMutation({
-    mutationFn: updateAssessment,
-    onSuccess: (data) => {
-      setAssessment(data);
-      toast({
-        title: "Draft Saved",
-        description: "Your progress has been saved",
-        className: "bg-dgrv-green text-white",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to save draft",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleAnswerChange = (
-    questionId: string,
+    question_revision_id: string,
     value: {
       yesNo?: boolean;
       percentage?: number;
@@ -138,7 +133,23 @@ export const Assessment: React.FC = () => {
       files?: FileData[];
     },
   ) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    setAnswers((prev) => ({ ...prev, [question_revision_id]: value }));
+    const existingResponse = findResponseForQuestion(question_revision_id);
+    if (existingResponse) {
+      updateResponseMutation.mutate({
+        assessmentId: assessmentId!,
+        responseId: existingResponse.response_id,
+        requestBody: { response: JSON.stringify(value) },
+      });
+    } else {
+      createResponseMutation.mutate({
+        assessmentId: assessmentId!,
+        requestBody: {
+          question_revision_id,
+          response: JSON.stringify(value),
+        },
+      });
+    }
   };
 
   const handleCommentChange = (questionId: string, comment: string) => {
@@ -169,33 +180,21 @@ export const Assessment: React.FC = () => {
   };
 
   const saveDraft = async () => {
-    if (!assessment) return;
-    updateAssessmentMutation.mutate({
-      ...assessment,
-      answers: { ...answers, comments },
-    });
+    // This function is no longer needed as responses are saved immediately
   };
 
   const submitAssessment = async () => {
-    if (!assessment) return;
-    // For now, just update status to submitted (score logic can be added if backend supports it)
-    updateAssessmentMutation.mutate({
-      ...assessment,
-      answers: { ...answers, comments },
-      status: "submitted",
+    submitAssessmentMutation.mutate({
+      assessmentId: assessmentId!,
     });
-    toast({
-      title: "Assessment Submitted!",
-      description: `Your ${toolName.toLowerCase()} has been submitted successfully`,
-      className: "bg-dgrv-green text-white",
-    });
+    toast(`Your ${toolName.toLowerCase()} has been submitted successfully`);
     setTimeout(() => {
       navigate("/dashboard");
     }, 2000);
   };
 
   const nextCategory = async () => {
-    await saveDraft();
+    // This function is no longer needed as responses are saved immediately
     if (currentCategoryIndex < categories.length - 1) {
       setCategoryIndex(currentCategoryIndex + 1);
     }
@@ -207,12 +206,13 @@ export const Assessment: React.FC = () => {
     }
   };
 
-  const renderQuestionInput = (question: Question) => {
-    const yesNoValue = answers[question.questionId]?.yesNo;
-    const percentageValue = answers[question.questionId]?.percentage;
-    const textValue = answers[question.questionId]?.text || "";
-    const comment = comments[question.questionId] || "";
-    const files = answers[question.questionId]?.files || [];
+  const renderQuestionInput = (question: QuestionRevision) => {
+    const yesNoValue = answers[question.question_revision_id]?.yesNo;
+    const percentageValue = answers[question.question_revision_id]?.percentage;
+    const textValue = answers[question.question_revision_id]?.text || "";
+    const comment = comments[question.question_revision_id] || "";
+    const files: FileData[] =
+      answers[question.question_revision_id]?.files || [];
     return (
       <div className="space-y-4">
         {/* Yes/No */}
@@ -226,8 +226,8 @@ export const Assessment: React.FC = () => {
                 yesNoValue === true ? "bg-dgrv-green hover:bg-green-700" : ""
               }
               onClick={() =>
-                handleAnswerChange(question.questionId, {
-                  ...answers[question.questionId],
+                handleAnswerChange(question.question_revision_id, {
+                  ...answers[question.question_revision_id],
                   yesNo: true,
                 })
               }
@@ -241,8 +241,8 @@ export const Assessment: React.FC = () => {
                 yesNoValue === false ? "bg-red-500 hover:bg-red-600" : ""
               }
               onClick={() =>
-                handleAnswerChange(question.questionId, {
-                  ...answers[question.questionId],
+                handleAnswerChange(question.question_revision_id, {
+                  ...answers[question.question_revision_id],
                   yesNo: false,
                 })
               }
@@ -295,8 +295,8 @@ export const Assessment: React.FC = () => {
                     : "bg-white text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue/10"
                 }
                 onClick={() =>
-                  handleAnswerChange(question.questionId, {
-                    ...answers[question.questionId],
+                  handleAnswerChange(question.question_revision_id, {
+                    ...answers[question.question_revision_id],
                     percentage: val,
                   })
                 }
@@ -308,15 +308,15 @@ export const Assessment: React.FC = () => {
         </div>
         {/* Text Input */}
         <div>
-          <Label htmlFor={`input-text-${question.questionId}`}>
+          <Label htmlFor={`input-text-${question.question_revision_id}`}>
             Your Response
           </Label>
           <Textarea
-            id={`input-text-${question.questionId}`}
+            id={`input-text-${question.question_revision_id}`}
             value={textValue}
             onChange={(e) =>
-              handleAnswerChange(question.questionId, {
-                ...answers[question.questionId],
+              handleAnswerChange(question.question_revision_id, {
+                ...answers[question.question_revision_id],
                 text: e.target.value,
               })
             }
@@ -333,7 +333,10 @@ export const Assessment: React.FC = () => {
                 type="file"
                 className="hidden"
                 onChange={(e) =>
-                  handleFileUpload(question.questionId, e.target.files)
+                  handleFileUpload(
+                    question.question_revision_id,
+                    e.target.files,
+                  )
                 }
               />
             </label>
@@ -359,7 +362,7 @@ export const Assessment: React.FC = () => {
     );
   };
 
-  if (categoriesLoading || questionsLoading || !assessment) {
+  if (assessmentLoading || !assessmentDetail) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -417,7 +420,7 @@ export const Assessment: React.FC = () => {
             </h1>
             <p className="text-lg text-gray-600">
               Category {currentCategoryIndex + 1} of {categories.length}:{" "}
-              {currentCategory?.name}
+              {currentCategory}
             </p>
           </div>
 
@@ -440,26 +443,21 @@ export const Assessment: React.FC = () => {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="text-xl text-dgrv-blue">
-                {currentCategory?.name}
+                {currentCategory}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
               {currentQuestions.map((question, index) => (
                 <div
-                  key={question.questionId}
+                  key={question.revision.question_revision_id}
                   className="border-b pb-6 last:border-b-0"
                 >
                   <div className="mb-4">
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {index + 1}. {question.text.en}
+                      {index + 1}. {question.revision.text}
                     </h3>
-                    {question.text.zu && (
-                      <p className="text-sm text-gray-600 italic">
-                        {question.text.zu}
-                      </p>
-                    )}
                   </div>
-                  {renderQuestionInput(question)}
+                  {renderQuestionInput(question.revision)}
                 </div>
               ))}
             </CardContent>

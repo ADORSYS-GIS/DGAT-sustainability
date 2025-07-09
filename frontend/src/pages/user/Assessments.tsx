@@ -2,33 +2,29 @@ import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Assessment,
-  getAssessmentsByUser,
-} from "@/services/user/assessmentService";
-import { useQuery } from "@tanstack/react-query";
+import { useSubmissionsServiceGetSubmissions } from "../../../api/generated/queries/queries";
+import type { Submission } from "../../../api/generated/requests/types.gen";
 import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 
 export const Assessments: React.FC = () => {
-  // No authentication set for the moment, so i use public as userId, will be replace when i implement keyclock
-  const { data: assessments = [], isLoading: loading } = useQuery<Assessment[]>(
-    {
-      queryKey: ["assessments", "public"],
-      queryFn: () => getAssessmentsByUser("public"),
-    },
-  );
+  const { data, isLoading } = useSubmissionsServiceGetSubmissions();
+  const submissions: Submission[] = data?.submissions || [];
+  const navigate = useNavigate();
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
+      case "approved":
         return "bg-dgrv-green text-white";
-      case "submitted":
+      case "pending_review":
         return "bg-blue-500 text-white";
       case "under_review":
         return "bg-orange-500 text-white";
-      case "draft":
-        return "bg-gray-500 text-white";
+      case "rejected":
+        return "bg-red-500 text-white";
+      case "revision_requested":
+        return "bg-yellow-500 text-white";
       default:
         return "bg-gray-500 text-white";
     }
@@ -36,20 +32,22 @@ export const Assessments: React.FC = () => {
 
   const formatStatus = (status: string) => {
     switch (status) {
-      case "completed":
-        return "Completed";
-      case "submitted":
-        return "Submitted";
+      case "approved":
+        return "Approved";
+      case "pending_review":
+        return "Pending Review";
       case "under_review":
         return "Under Review";
-      case "draft":
-        return "Draft";
+      case "rejected":
+        return "Rejected";
+      case "revision_requested":
+        return "Revision Requested";
       default:
         return "Unknown";
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -66,24 +64,21 @@ export const Assessments: React.FC = () => {
 
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-3 mb-4">
                   <FileText className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    Your Assessments
+                    Your Submissions
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  View and manage all your sustainability assessments
+                  View and manage all your sustainability submissions
                 </p>
               </div>
               <Button
-                onClick={() =>
-                  (window.location.href = "/assessment/sustainability")
-                }
+                onClick={() => navigate("/assessment/sustainability")}
                 className="bg-dgrv-green hover:bg-green-700"
               >
                 Start New Assessment
@@ -91,11 +86,10 @@ export const Assessments: React.FC = () => {
             </div>
           </div>
 
-          {/* Assessments Grid */}
           <div className="grid gap-6">
-            {assessments.map((assessment, index) => (
+            {submissions.map((submission, index) => (
               <Card
-                key={assessment.assessmentId}
+                key={submission.submission_id}
                 className="animate-fade-in"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -113,19 +107,19 @@ export const Assessments: React.FC = () => {
                           <div className="flex items-center space-x-1">
                             <Calendar className="w-4 h-4" />
                             <span>
-                              Created:{" "}
+                              Submitted:{" "}
                               {new Date(
-                                assessment.createdAt,
+                                submission.submitted_at,
                               ).toLocaleDateString()}
                             </span>
                           </div>
-                          {assessment.submittedAt && (
+                          {submission.reviewed_at && (
                             <div className="flex items-center space-x-1">
                               <Calendar className="w-4 h-4" />
                               <span>
-                                Submitted:{" "}
+                                Reviewed:{" "}
                                 {new Date(
-                                  assessment.submittedAt,
+                                  submission.reviewed_at,
                                 ).toLocaleDateString()}
                               </span>
                             </div>
@@ -134,16 +128,10 @@ export const Assessments: React.FC = () => {
                       </div>
                     </CardTitle>
                     <div className="flex items-center space-x-3">
-                      {assessment.score && (
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-500" />
-                          <span className="font-medium">
-                            {assessment.score}%
-                          </span>
-                        </div>
-                      )}
-                      <Badge className={getStatusColor(assessment.status)}>
-                        {formatStatus(assessment.status)}
+                      <Badge
+                        className={getStatusColor(submission.review_status)}
+                      >
+                        {formatStatus(submission.review_status)}
                       </Badge>
                     </div>
                   </div>
@@ -151,70 +139,41 @@ export const Assessments: React.FC = () => {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-600">
-                      <p>Organization: public</p>
-                      {assessment.categoryScores && (
-                        <p>
-                          Categories completed:{" "}
-                          {Object.keys(assessment.categoryScores).length}
-                        </p>
-                      )}
+                      <p>Submission ID: {submission.submission_id}</p>
+                      <p>Assessment ID: {submission.assessment_id}</p>
                     </div>
                     <div className="flex space-x-2">
-                      {assessment.status === "draft" ? (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            (window.location.href =
-                              "/assessment/sustainability")
-                          }
-                          className="bg-dgrv-blue hover:bg-blue-700"
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Continue
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            (window.location.href = `/assessment-view/${assessment.assessmentId}`)
-                          }
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Details
-                        </Button>
-                      )}
-                      {assessment.status === "completed" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-dgrv-green border-dgrv-green hover:bg-green-50"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          Export
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          navigate(
+                            `/submission-view/${submission.submission_id}`,
+                          )
+                        }
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Details
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
 
-            {assessments.length === 0 && (
+            {submissions.length === 0 && (
               <Card className="text-center py-12">
                 <CardContent>
                   <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No assessments yet
+                    No submissions yet
                   </h3>
                   <p className="text-gray-600 mb-6">
                     Start your first sustainability assessment to track your
                     cooperative's progress.
                   </p>
                   <Button
-                    onClick={() =>
-                      (window.location.href = "/assessment/sustainability")
-                    }
+                    onClick={() => navigate("/assessment/sustainability")}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
                     Start Assessment

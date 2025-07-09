@@ -1,41 +1,45 @@
-import React, { useState, useEffect } from "react";
-import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
+import { Navbar } from "@/components/shared/Navbar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
 import {
-  Leaf,
   CheckSquare,
   Download,
-  History,
-  Star,
   FileText,
+  History,
+  Leaf,
+  Star,
 } from "lucide-react";
-import {
-  getAssessmentsByUser,
-  getRecommendationsByAssessment,
-} from "@/services/shared/dataService";
-import { Assessment } from "@/services/user/assessmentService";
-import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
+import React from "react";
+import { useSubmissionsServiceGetSubmissions } from "../../../api/generated/queries/queries";
+import type { Submission } from "../../../api/generated/requests/types.gen";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const Dashboard: React.FC = () => {
-  // No authentication, so no user context
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const navigate = useNavigate();
+  const { data, isLoading, isError, error, isSuccess } =
+    useSubmissionsServiceGetSubmissions();
+  const submissions: Submission[] = data?.submissions?.slice(0, 3) || [];
 
-  useEffect(() => {
-    loadUserAssessments();
-  }, []);
-
-  const loadUserAssessments = async () => {
-    try {
-      // Fetch all assessments (no user filtering)
-      const userAssessments = await getAssessmentsByUser("");
-      setAssessments(userAssessments.slice(0, 3)); // Show only recent 3
-    } catch (error) {
-      console.error("Error loading assessments:", error);
+  React.useEffect(() => {
+    if (isError) {
+      toast.error("Error loading submissions", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } else if (isLoading) {
+      toast.info("Loading submissions...", {
+        description: "Fetching your recent submissions.",
+      });
+    } else if (isSuccess) {
+      toast.success("Submissions loaded", {
+        description: `Loaded ${submissions.length} submissions successfully!`,
+        className: "bg-dgrv-green text-white",
+      });
     }
-  };
+  }, [isError, error, isLoading, isSuccess, submissions.length]);
 
   const dashboardActions = [
     {
@@ -44,7 +48,7 @@ export const Dashboard: React.FC = () => {
         "Assess environmental, social, and governance practices for sustainable growth.",
       icon: Leaf,
       color: "green" as const,
-      onClick: () => (window.location.href = "/assessment/sustainability"),
+      onClick: () => navigate("/assessment/sustainability"),
     },
     {
       title: "View Assessments",
@@ -52,7 +56,7 @@ export const Dashboard: React.FC = () => {
         "View all your assessments, drafts, and completed submissions with recommendations.",
       icon: FileText,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/assessments"),
+      onClick: () => navigate("/assessments"),
     },
     {
       title: "Action Plan",
@@ -60,20 +64,22 @@ export const Dashboard: React.FC = () => {
         "Track your progress with interactive tasks and recommendations using our Kanban board.",
       icon: CheckSquare,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/action-plan"),
+      onClick: () => navigate("/action-plan"),
     },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
+      case "approved":
         return "bg-dgrv-green text-white";
-      case "submitted":
+      case "pending_review":
         return "bg-blue-500 text-white";
       case "under_review":
         return "bg-orange-500 text-white";
-      case "draft":
-        return "bg-gray-500 text-white";
+      case "rejected":
+        return "bg-red-500 text-white";
+      case "revision_requested":
+        return "bg-yellow-500 text-white";
       default:
         return "bg-gray-500 text-white";
     }
@@ -81,25 +87,23 @@ export const Dashboard: React.FC = () => {
 
   const formatStatus = (status: string) => {
     switch (status) {
-      case "completed":
-        return "Completed";
-      case "submitted":
-        return "Submitted";
+      case "approved":
+        return "Approved";
+      case "pending_review":
+        return "Pending Review";
       case "under_review":
         return "Under Review";
-      case "draft":
-        return "Draft";
+      case "rejected":
+        return "Rejected";
+      case "revision_requested":
+        return "Revision Requested";
       default:
         return "Unknown";
     }
   };
 
   const handleExportAllPDF = async () => {
-    await exportAllAssessmentsPDF(
-      assessments,
-      getRecommendationsByAssessment,
-      formatStatus,
-    );
+    await exportAllAssessmentsPDF(submissions, undefined, formatStatus);
   };
 
   return (
@@ -108,7 +112,6 @@ export const Dashboard: React.FC = () => {
 
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Welcome Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center space-x-3 mb-4">
               <Star className="w-8 h-8 text-dgrv-green" />
@@ -119,7 +122,6 @@ export const Dashboard: React.FC = () => {
             </p>
           </div>
 
-          {/* Quick Actions */}
           <div className="grid md:grid-cols-3 gap-6 mb-12">
             {dashboardActions.map((action, index) => (
               <div
@@ -132,62 +134,64 @@ export const Dashboard: React.FC = () => {
             ))}
           </div>
 
-          {/* Dashboard Content */}
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Recent Assessments */}
             <Card className="lg:col-span-2 animate-fade-in">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <History className="w-5 h-5 text-dgrv-blue" />
-                  <span>Recent Assessments</span>
+                  <span>Recent Submissions</span>
                 </CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => (window.location.href = "/assessments")}
+                  onClick={() => navigate("/assessments")}
                 >
                   View All
                 </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {assessments.map((assessment) => (
-                    <div
-                      key={assessment.assessmentId}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          <Leaf className="w-5 h-5 text-dgrv-green" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">
-                            Sustainability Assessment
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {new Date(
-                              assessment.createdAt,
-                            ).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {assessment.score && (
-                          <span className="text-sm font-medium">
-                            Score: {assessment.score}%
-                          </span>
-                        )}
-                        <Badge className={getStatusColor(assessment.status)}>
-                          {formatStatus(assessment.status)}
-                        </Badge>
-                      </div>
+                  {isLoading ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Loading submissions...</p>
                     </div>
-                  ))}
-                  {assessments.length === 0 && (
+                  ) : (
+                    submissions.map((submission) => (
+                      <div
+                        key={submission.submission_id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="p-2 rounded-full bg-gray-100">
+                            <Leaf className="w-5 h-5 text-dgrv-green" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">
+                              Sustainability Assessment
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {new Date(
+                                submission.submitted_at,
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Badge
+                            className={getStatusColor(submission.review_status)}
+                          >
+                            {formatStatus(submission.review_status)}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {submissions.length === 0 && !isLoading && (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>
-                        No assessments yet. Start your first assessment above!
+                        No submissions yet. Start your first assessment above!
                       </p>
                     </div>
                   )}
@@ -195,7 +199,6 @@ export const Dashboard: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Quick Actions Sidebar */}
             <div className="space-y-6">
               <Card
                 className="animate-fade-in"
