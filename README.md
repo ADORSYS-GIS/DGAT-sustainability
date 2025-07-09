@@ -112,12 +112,12 @@ For a detailed breakdown, see the [project structure documentation](link-to-proj
    - Select the `sustainability_realm` realm to verify the configuration
 
 7. **Apply Database Migrations**
-   - Run migrations:
+   - Run migrations using the db-migrator binary:
      ```bash
-     cd infrastructure/database/migrations
-     <migration-tool> up
+     cd backend
+     cargo run --bin db-migrator
      ```
-   - Replace `<migration-tool>` with the tool used (e.g., `sqlx` or `diesel`).
+   - This will connect to the database and apply all migrations if they haven't been applied yet.
 
 For production deployment, refer to the [deployment documentation](link-to-deployment-docs).
 
