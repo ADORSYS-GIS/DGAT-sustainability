@@ -23,12 +23,12 @@ The Sustainability Tool enables cooperative organizations, such as the National 
 
 ### Technical Constraints
 
-- **Identity Management**: Integrate with Keycloak, using user_id (VARCHAR, Keycloak sub) and organization_id in JWT attributes.
+- **Identity Management**: Integrate with Keycloak, using user_id (VARCHAR, Keycloak sub), organization_id, and organization categories in JWT attributes (within the organizations section).
 - **Database**: PostgresSQL with JSONB for flexible storage of answers and multilingual text.
 - **Encryption**: AES-256 for sensitive JSONB data.
 - **Security**: PostgresSQL row-level security for user-specific access.
 - **Performance**: GIN indexes on JSONB fields for query optimization.
-- **Frontend**: React with Tailwind CSS, hosted via CDN.
+- **Frontend**: React with Tailwind CSS, implemented as a Progressive Web Application with assets cached in the device browser.
 - **Backend**: Rust microservices with RESTful APIs.
 
 ### Organizational Constraints
@@ -121,9 +121,9 @@ graph TD
 
 #### Frontend Application Architecture:
 - Built with React, using JSX and Tailwind CSS for styling.
-- Offline storage via IndexedDB for assessments and.
+- Offline storage via IndexedDB for assessments and application assets.
 - Features: Authentication, assessment creation/editing, synchronization, report viewing.
-- CDN-hosted via AWS S3 and CloudFront.
+- Application assets are stored in the device browser for offline functionality.
 
 #### Backend API Design and Microservices Structure:
 - **Authentication Service**: Validates Keycloak JWT tokens.
@@ -134,10 +134,10 @@ graph TD
 
 #### Database Schema and Data Flow:
 - **ASSESSMENTS**: Stores assessment_id (UUID PK), user_id (VARCHAR, Keycloak sub), language (TEXT, resolved from frontend), created_at and updated_at timestamps.
-- **ASSESSMENTS_RESPONSE**: Stores response_id (UUID PK), assessment_id (UUID FK), question_revision_id (UUID FK), response (TEXT, modifiable answer), version (INT, auto-increment for conflict resolution), updated_at (TIMESTAMP, auto-update on change).
+- **ASSESSMENTS_RESPONSE**: Stores response_id (UUID PK), assessment_id (UUID FK), question_revision_id (UUID FK), response (TEXT, modifiable answer), updated_at (TIMESTAMP, auto-update on change and used for conflict resolution).
 - **ASSESSMENTS_RESPONSE_FILE**: Junction table linking response_id (UUID FK) to file_id (UUID FK) for file attachments.
 - **ASSESSMENTS_SUBMISSION**: Stores assessment_id (UUID PK), user_id (VARCHAR, Keycloak sub), content (JSONB, immutable snapshot of question_revision_id: response pairs), submitted_at (TIMESTAMP).
-- **FILE**: Stores file_id (UUID PK), content (BLOB, binary file data), metadata (JSON, filename, size, type, etc.), created_at (TIMESTAMP).
+- **FILE**: Stores file_id (UUID PK), content (BLOB, binary file data stored directly in the database), metadata (JSON, filename, size, type, etc.), created_at (TIMESTAMP).
 - **QUESTIONS**: Stores question_id (UUID PK), category (TEXT, sustainability category), created_at (TIMESTAMP).
 - **QUESTIONS_REVISIONS**: Stores question_revision_id (UUID PK), question_id (UUID FK), text (JSONB, multilingual question text), weight (FLOAT, question weight for scoring), created_at (TIMESTAMP, auto-update on creation).
 - **SUBMISSION_REPORTS**: Stores report_id (UUID PK), assessment_id (UUID FK to ASSESSMENTS_SUBMISSION), data (JSONB, generated report content), report_type (TEXT, PDF, CSV, etc.), generated_at (TIMESTAMP).
@@ -146,6 +146,7 @@ graph TD
 #### Keycloak Integration:
 - Manages user identities and roles.
 - Provides JWT with user_id and organization_id.
+- Organization categories are included in the JWT token within the organizations section, allowing role-based access to specific assessment categories.
 
 *Cross-reference: See Section 6 for runtime scenarios and Section 7 for deployment details.*
 
@@ -153,16 +154,16 @@ graph TD
 
 ### Scenario 1: Keycloak Authentication Flow
 1. User navigates to frontend, redirected to Keycloak login.
-2. Keycloak issues JWT with user_id (VARCHAR) and organization_id (JWT attribute).
+2. Keycloak issues JWT with user_id (VARCHAR), organization_id, and organization categories (JWT attributes in organizations section).
 3. Frontend stores token, uses it for API requests.
 4. Authentication service validates token with Keycloak.
 
 ### Scenario 2: Offline/Online Synchronization
 1. User creates/edits assessment offline.
 2. Data stored in IndexedDB.
-3. Response changes tracked with version numbers for conflict resolution.
+3. Response changes tracked with timestamps for conflict resolution.
 4. When online, frontend sends changes to sync service.
-5. Sync service updates ASSESSMENTS_RESPONSE with incremented version numbers, resolving conflicts using version-based conflict resolution.
+5. Sync service updates ASSESSMENTS_RESPONSE, resolving conflicts by comparing timestamps and keeping the most recent changes.
 
 ### Scenario 3: Report Generation
 1. User submits completed assessment.
@@ -179,9 +180,7 @@ graph TD
 
 ```mermaid
 graph TD
-    A[User] -->|HTTPS| B[CloudFront]
-    B -->|Static Assets| C[S3: Frontend]
-    B -->|REST API| D[ECS: Backend Services]
+    A[User] -->|HTTPS| D[ECS: Backend Services]
     D -->|SQL| E[RDS: PostgreSQL]
     D -->|OAuth2| F[Keycloak]
     D -->|Cache| G[ElastiCache: Redis]
@@ -196,9 +195,9 @@ graph TD
 ### Deployment and DevOps Pipeline
 
 #### Infrastructure:
-- **Frontend**: Hosted on AWS S3 with CloudFront CDN.
+- **Frontend**: Progressive Web Application with assets cached in the device browser.
 - **Backend**: Rust microservices on ECS with auto-scaling.
-- **Database**: RDS PostgreSQL with automated backups and multi-AZ.
+- **Database**: RDS PostgreSQL with automated backups and multi-AZ, storing all application data including files.
 - **Keycloak**: Managed instance for high availability.
 - **Caching**: ElastiCache (Redis) for performance.
 
@@ -207,7 +206,7 @@ graph TD
 - **Build**: GitHub Actions builds Docker images for backend services.
 - **Test**: Automated unit and integration tests.
 - **Deploy**: Images pushed to ECR, deployed to ECS via GitHub Actions.
-- **Monitoring**: CloudWatch for logs and metrics, alerts for failures.
+- **Monitoring**: Centralized logging and metrics system, with alerts for failures.
 
 #### Environments:
 - **Development**: Local Dockerized setup.
@@ -234,12 +233,13 @@ graph TD
 - Frontend language switching.
 
 ### Offline/Online Synchronization:
-- IndexedDB for local storage.
-- Version-based conflict resolution in ASSESSMENTS_RESPONSE.
-- Conflict resolution via version comparison and user prompts when needed.
+- IndexedDB for local storage of data and application assets.
+- Service Workers for caching application assets in the browser.
+- Timestamp-based conflict resolution in ASSESSMENTS_RESPONSE.
+- Conflict resolution via timestamp comparison, with the most recent changes taking precedence.
 
 ### Logging/Monitoring:
-- CloudWatch for metrics and logs.
+- Centralized logging and metrics system.
 - Audit logs for user actions.
 
 *Cross-reference: See Section 9 for justifications.*
@@ -252,7 +252,7 @@ graph TD
 | JSONB in PostgreSQL | Flexible for DGRV's questionnaire and multilingual text.              | Relational tables (less adaptable). |
 | React with Tailwind CSS | Responsive UI, rapid development.                                     | Angular (complexer setup). |
 | Microservices Architecture | Scalability, independent deployment.                                  | Monolith (less flexible). |
-| Version-based Conflict Resolution | Reliable offline sync with version-based conflict resolution in ASSESSMENTS_RESPONSE. | Real-time sync (requires connectivity). |
+| Timestamp-based Conflict Resolution | Reliable offline sync with timestamp-based conflict resolution in ASSESSMENTS_RESPONSE. | Real-time sync (requires connectivity). |
 | AWS Deployment | Scalable, managed services.                                           | On-premises (higher costs). |
 | Rust Backend | Memory safety, performance, concurrency. and low resource utilisation | Node.js (higher memory usage). |
 
@@ -261,14 +261,14 @@ graph TD
 ## 10. Risks and Technical Debt
 
 ### Risks
-- **Sync Conflicts**: Mitigated by last-write-wins or user prompts.
+- **Sync Conflicts**: Mitigated by timestamp-based last-write-wins approach.
 - **JSONB Performance**: Addressed with GIN indexes.
 - **Keycloak Downtime**: Mitigated with redundant instances.
-- **Scalability Limits**: Monitored via CloudWatch.
+- **Scalability Limits**: Monitored via centralized metrics system.
 
 ### Technical Debt
 - **Unused Questions**: Periodic cleanup of QUESTIONS.
-- **Version Conflict Resolution**: Version conflicts in ASSESSMENTS_RESPONSE require monitoring and resolution strategies.
+- **Timestamp Conflict Resolution**: Timestamp conflicts in ASSESSMENTS_RESPONSE may require monitoring and additional resolution strategies for edge cases.
 
 *Cross-reference: See Section 7 for mitigation strategies.*
 
@@ -292,7 +292,7 @@ graph TD
 | ESG | Environmental, Social, Governance criteria. |
 | Keycloak | Identity and access management system. |
 | JSONB | PostgreSQL binary JSON format. |
-| Version-based Conflict Resolution | Mechanism for handling concurrent edits using version numbers in ASSESSMENTS_RESPONSE. |
+| Timestamp-based Conflict Resolution | Mechanism for handling concurrent edits using timestamps in ASSESSMENTS_RESPONSE. |
 
 ## Database ER Diagram
 
