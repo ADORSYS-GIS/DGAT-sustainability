@@ -23,4 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 *.env
-/api/generated
+/src/openapi-rq
