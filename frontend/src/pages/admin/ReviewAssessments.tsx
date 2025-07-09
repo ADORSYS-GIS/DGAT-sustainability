@@ -17,12 +17,12 @@ import {
   useAdminServiceGetAdminSubmissions,
   useReportsServicePostSubmissionsBySubmissionIdReports,
   useResponsesServiceGetAssessmentsByAssessmentIdResponses,
-} from "../../../api/generated/queries/queries";
+} from "../../openapi-rq/queries/queries";
 import type {
   AdminSubmissionDetail,
   GenerateReportRequest,
   Response,
-} from "../../../api/generated/requests/types.gen";
+} from "../../openapi-rq/requests/types.gen";
 
 interface Recommendation {
   recommendationId: string;

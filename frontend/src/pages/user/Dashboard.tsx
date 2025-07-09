@@ -13,8 +13,8 @@ import {
   Star,
 } from "lucide-react";
 import React from "react";
-import { useAssessmentsServiceGetAssessments } from "../../../api/generated/queries/queries";
-import type { Assessment } from "../../../api/generated/requests/types.gen";
+import { useAssessmentsServiceGetAssessments } from "../../openapi-rq/queries/queries";
+import type { Assessment } from "../../openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
