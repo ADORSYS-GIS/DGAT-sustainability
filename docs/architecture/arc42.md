@@ -183,12 +183,10 @@ graph TD
     A[User] -->|HTTPS| D[ECS: Backend Services]
     D -->|SQL| E[RDS: PostgreSQL]
     D -->|OAuth2| F[Keycloak]
-    D -->|Cache| G[ElastiCache: Redis]
     H[GitHub Actions] -->|CI/CD| D
     subgraph "AWS VPC"
         D[ECS: Backend Services]
         E[RDS: PostgreSQL]
-        G[ElastiCache: Redis]
     end
 ```
 
@@ -199,7 +197,6 @@ graph TD
 - **Backend**: Rust microservices on ECS with auto-scaling.
 - **Database**: RDS PostgreSQL with automated backups and multi-AZ, storing all application data including files.
 - **Keycloak**: Managed instance for high availability.
-- **Caching**: ElastiCache (Redis) for performance.
 
 #### CI/CD Pipeline:
 - **Version Control**: GitHub for source code.
@@ -225,7 +222,7 @@ graph TD
 
 ### Performance:
 - GIN indexes on JSONB fields (data, text, answer).
-- Redis caching for frequent queries.
+- Browser-based caching of application data and assets for offline performance.
 - Asynchronous report generation.
 
 ### Internationalization:
@@ -233,8 +230,9 @@ graph TD
 - Frontend language switching.
 
 ### Offline/Online Synchronization:
-- IndexedDB for local storage of data and application assets.
-- Service Workers for caching application assets in the browser.
+- IndexedDB for local storage of all data and application assets.
+- Service Workers for comprehensive caching of application assets and API responses in the browser.
+- Browser-based caching eliminates the need for server-side caching solutions.
 - Timestamp-based conflict resolution in ASSESSMENTS_RESPONSE.
 - Conflict resolution via timestamp comparison, with the most recent changes taking precedence.
 
