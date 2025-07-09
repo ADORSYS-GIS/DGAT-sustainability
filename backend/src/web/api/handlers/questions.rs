@@ -9,15 +9,9 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::common::state::AppState;
-use crate::api::error::ApiError;
-use crate::api::models::*;
+use crate::web::api::error::ApiError;
+use crate::web::api::models::*;
 
-#[derive(Debug, Deserialize)]
-pub struct QuestionQuery {
-    category: Option<String>,
-    language: Option<String>,
-    question_revision_id: Option<Uuid>,
-}
 
 #[derive(Debug, Deserialize)]
 pub struct QuestionRevisionQuery {
@@ -26,40 +20,22 @@ pub struct QuestionRevisionQuery {
 
 pub async fn list_questions(
     State(app_state): State<AppState>,
-    Query(query): Query<QuestionQuery>,
 ) -> Result<Json<QuestionListResponse>, ApiError> {
+    // Fetch all questions from the database
+    let db_questions = app_state.database.questions
+        .get_all_questions()
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch questions: {}", e)))?;
 
-    // Fetch questions from the database
-    let db_questions = if let Some(category) = &query.category {
-        app_state.database.questions.get_questions_by_category(category).await.unwrap_or_else(|_| Vec::new())
-    } else {
-        app_state.database.questions.get_all_questions().await.unwrap_or_else(|_| Vec::new())
-    };
-
-    // Convert database models to API models with the appropriate revisions
+    // Convert database models to API models with their latest revisions
     let mut questions = Vec::new();
     for db_question in db_questions {
-        // Get the revision for this question (specific revision if provided, otherwise latest)
-        let revision_model = if let Some(revision_id) = query.question_revision_id {
-            // Fetch specific revision by ID
-            app_state.database.questions_revisions
-                .get_revision_by_id(revision_id).await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revision: {}", e)))?
-        } else {
-            // Fetch latest revision for this question
-            app_state.database.questions_revisions
-                .get_latest_revision_by_question(db_question.question_id).await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revision: {}", e)))?
-        };
+        // Fetch latest revision for this question
+        let revision_model = app_state.database.questions_revisions
+            .get_latest_revision_by_question(db_question.question_id).await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revision: {}", e)))?;
 
         if let Some(revision_model) = revision_model {
-            // If we're filtering by specific revision ID, only include questions that have that revision
-            if let Some(_revision_id) = query.question_revision_id {
-                if revision_model.question_id != db_question.question_id {
-                    continue; // Skip this question as it doesn't match the revision
-                }
-            }
-
             // Convert the JSON text to HashMap<String, String>
             let text_map = if let Some(text_obj) = revision_model.text.as_object() {
                 text_obj.iter()
@@ -69,30 +45,20 @@ pub async fn list_questions(
                 HashMap::new()
             };
 
-            let mut question = Question {
+            let question = Question {
                 question_id: db_question.question_id,
                 category: db_question.category,
                 created_at: db_question.created_at,
                 latest_revision: QuestionRevision {
                     question_revision_id: revision_model.question_revision_id,
                     question_id: revision_model.question_id,
-                    text: text_map.clone(),
+                    text: text_map,
                     weight: revision_model.weight as f64,
                     created_at: revision_model.created_at,
                 },
             };
 
-            // Filter by language if specified
-            if let Some(language) = &query.language {
-                if text_map.contains_key(language) {
-                    let mut filtered_text = HashMap::new();
-                    filtered_text.insert(language.clone(), text_map.get(language).unwrap_or(&String::new()).clone());
-                    question.latest_revision.text = filtered_text;
-                    questions.push(question);
-                }
-            } else {
-                questions.push(question);
-            }
+            questions.push(question);
         }
     }
 

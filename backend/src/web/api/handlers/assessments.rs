@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -7,26 +7,72 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::common::models::claims::Claims;
 use crate::common::state::AppState;
-use crate::api::error::ApiError;
-use crate::api::models::*;
+use crate::web::api::error::ApiError;
+use crate::web::api::models::*;
+
+// Helper function to convert file::Model to FileMetadata
+async fn convert_file_model_to_metadata(file_model: crate::common::database::entity::file::Model) -> FileMetadata {
+    // Extract metadata fields from the JSON metadata
+    let default_map = serde_json::Map::new();
+    let metadata_obj = file_model.metadata.as_object().unwrap_or(&default_map);
+
+    let filename = metadata_obj.get("filename")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+
+    let size = metadata_obj.get("size")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(file_model.content.len() as i64);
+
+    let content_type = metadata_obj.get("content_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("application/octet-stream")
+        .to_string();
+
+    let created_at = metadata_obj.get("created_at")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&chrono::Utc::now().to_rfc3339())
+        .to_string();
+
+    FileMetadata {
+        file_id: file_model.file_id,
+        filename,
+        size,
+        content_type,
+        created_at,
+        metadata: Some(file_model.metadata),
+    }
+}
+
+// Helper function to fetch files for a response
+async fn fetch_files_for_response(app_state: &AppState, response_id: Uuid) -> Result<Vec<FileMetadata>, ApiError> {
+    let file_models = app_state.database.assessments_response_file
+        .get_files_for_response(response_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch files for response: {}", e)))?;
+
+    let mut files = Vec::new();
+    for file_model in file_models {
+        files.push(convert_file_model_to_metadata(file_model).await);
+    }
+
+    Ok(files)
+}
 
 #[derive(Debug, Deserialize)]
 pub struct AssessmentQuery {
-    page: Option<u32>,
-    limit: Option<u32>,
     status: Option<String>,
 }
 
 pub async fn list_assessments(
     State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Query(query): Query<AssessmentQuery>,
 ) -> Result<Json<AssessmentListResponse>, ApiError> {
-    // TODO: Replace with actual user authentication
-    let user_id = "user123";
-
-    let page = query.page.unwrap_or(1);
-    let limit = query.limit.unwrap_or(20).min(100);
+    let user_id = &claims.sub;
 
     // Fetch assessments from the database for the current user
     let assessment_models = app_state.database.assessments
@@ -63,40 +109,21 @@ pub async fn list_assessments(
         assessments
     };
 
-    let total = filtered_assessments.len() as u32;
-    let total_pages = (total as f64 / limit as f64).ceil() as u32;
-
-    // Apply pagination
-    let start = ((page - 1) * limit) as usize;
-    let end = (start + limit as usize).min(filtered_assessments.len());
-    let paginated_assessments = filtered_assessments[start..end].to_vec();
-
     Ok(Json(AssessmentListResponse {
-        assessments: paginated_assessments,
-        meta: PaginationMeta {
-            page,
-            limit,
-            total,
-            total_pages,
-        },
+        assessments: filtered_assessments,
     }))
 }
 
 pub async fn create_assessment(
     State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Json(request): Json<CreateAssessmentRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // TODO: Replace with actual user authentication
-    let user_id = "user123".to_string();
+    let user_id = claims.sub.clone();
 
     // Validate request
     if request.language.trim().is_empty() {
         return Err(ApiError::BadRequest("Language must not be empty".to_string()));
-    }
-
-    // Validate language code format (basic validation)
-    if request.language.len() < 2 || request.language.len() > 5 {
-        return Err(ApiError::BadRequest("Language code must be between 2 and 5 characters".to_string()));
     }
 
     // Create the assessment in the database
@@ -120,10 +147,10 @@ pub async fn create_assessment(
 
 pub async fn get_assessment(
     State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<AssessmentWithResponsesResponse>, ApiError> {
-    // TODO: Replace with actual user authentication
-    let user_id = "user123";
+    let user_id = &claims.sub;
 
     // Fetch the assessment from the database
     let assessment_model = app_state.database.assessments
@@ -137,7 +164,7 @@ pub async fn get_assessment(
     };
 
     // Verify that the current user is the owner of the assessment
-    if assessment_model.user_id != user_id {
+    if assessment_model.user_id != *user_id {
         return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
     }
 
@@ -169,6 +196,7 @@ pub async fn get_assessment(
     // Convert response models to API models
     let mut responses = Vec::new();
     for response_model in response_models {
+        let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
         responses.push(Response {
             response_id: response_model.response_id,
             assessment_id: response_model.assessment_id,
@@ -176,7 +204,7 @@ pub async fn get_assessment(
             response: response_model.response,
             version: response_model.version,
             updated_at: response_model.updated_at.to_rfc3339(),
-            files: vec![], // Files would be fetched separately if needed
+            files,
         });
     }
 
@@ -185,20 +213,15 @@ pub async fn get_assessment(
 
 pub async fn update_assessment(
     State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
     Json(request): Json<UpdateAssessmentRequest>,
 ) -> Result<Json<AssessmentResponse>, ApiError> {
-    // TODO: Replace with actual user authentication
-    let user_id = "user123";
+    let user_id = &claims.sub;
 
     // Validate request
     if request.language.trim().is_empty() {
         return Err(ApiError::BadRequest("Language must not be empty".to_string()));
-    }
-
-    // Validate language code format (basic validation)
-    if request.language.len() < 2 || request.language.len() > 5 {
-        return Err(ApiError::BadRequest("Language code must be between 2 and 5 characters".to_string()));
     }
 
     // First, fetch the assessment to verify ownership and status
@@ -213,7 +236,7 @@ pub async fn update_assessment(
     };
 
     // Verify that the current user is the owner of the assessment
-    if existing_assessment.user_id != user_id {
+    if existing_assessment.user_id != *user_id {
         return Err(ApiError::BadRequest("You don't have permission to update this assessment".to_string()));
     }
 
@@ -255,10 +278,10 @@ pub async fn update_assessment(
 
 pub async fn delete_assessment(
     State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    // TODO: Replace with actual user authentication
-    let user_id = "user123";
+    let user_id = &claims.sub;
 
     // Check if the assessment exists and get its details
     let assessment = app_state.database.assessments
@@ -272,7 +295,7 @@ pub async fn delete_assessment(
     };
 
     // Verify that the current user is the owner of the assessment
-    if assessment.user_id != user_id {
+    if assessment.user_id != *user_id {
         return Err(ApiError::BadRequest("You don't have permission to delete this assessment".to_string()));
     }
 
@@ -298,10 +321,10 @@ pub async fn delete_assessment(
 
 pub async fn submit_assessment(
     State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // TODO: Replace with actual user authentication
-    let user_id = "user123".to_string();
+    let user_id = claims.sub.clone();
 
     // Verify that the assessment exists and belongs to the user
     let assessment_model = app_state.database.assessments
@@ -353,6 +376,13 @@ pub async fn submit_assessment(
         .create_submission(assessment_id, user_id.clone(), submission_content.clone())
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create submission: {}", e)))?;
+
+    // Delete the assessment after successful submission
+    // This ensures that any remaining assessment responses are always in draft state
+    app_state.database.assessments
+        .delete_assessment(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete assessment after submission: {}", e)))?;
 
     // Build the response
     let now = chrono::Utc::now().to_rfc3339();

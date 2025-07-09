@@ -7,10 +7,11 @@ use sea_orm::{Database, DatabaseConnection};
 use sea_orm_migration::MigratorTrait;
 use serde_json::{json, Value};
 use std::sync::Arc;
-use sustainability_tool::api::routes::create_router;
+
 use sustainability_tool::common::state::AppState;
 use sustainability_tool::common::migrations::Migrator;
 use tower::ServiceExt;
+use sustainability_tool::web::api::routes::create_router;
 
 // Mock AppState for testing
 async fn create_test_app_state() -> AppState {

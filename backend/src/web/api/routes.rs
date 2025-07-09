@@ -1,18 +1,22 @@
 use crate::common::state::AppState;
-use crate::api::handlers::{
+use crate::web::api::handlers::{
     health::{health_check, metrics},
     questions::{list_questions, create_question, get_question, update_question, delete_question},
     assessments::{list_assessments, create_assessment, get_assessment, update_assessment, delete_assessment, submit_assessment},
-    responses::{list_responses, create_response, get_response, update_response, delete_response, get_response_history},
+    responses::{list_responses, create_response, get_response, update_response, delete_response},
     files::{upload_file, download_file, delete_file, get_file_metadata, attach_file, remove_file},
     admin::{list_all_submissions, list_all_reviews, assign_reviewer},
     submissions::{list_user_submissions, get_submission},
     reviews::{get_submission_reviews, create_review, get_review, update_review},
 };
+use crate::web::handlers::midlw::auth_middleware;
 use axum::{
+    middleware,
     routing::{delete, get, post, put},
     Router,
 };
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 
 pub fn create_router(app_state: AppState) -> Router {
@@ -43,7 +47,6 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/assessments/:assessment_id/responses/:response_id", get(get_response))
         .route("/api/assessments/:assessment_id/responses/:response_id", put(update_response))
         .route("/api/assessments/:assessment_id/responses/:response_id", delete(delete_response))
-        .route("/api/assessments/:assessment_id/responses/:response_id/history", get(get_response_history))
 
         // File endpoints
         .route("/api/files", post(upload_file))

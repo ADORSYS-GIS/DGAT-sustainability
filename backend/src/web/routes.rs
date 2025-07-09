@@ -20,19 +20,22 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::common::models::claims::Claims;
+use crate::common::state::{AppDatabase, AppState as CommonAppState};
 use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware};
+use crate::web::api::routes as api_routes;
 
-/// Application state containing shared services for JWT validation
+/// Application state containing shared services for JWT validation and database access
 #[derive(Clone)]
 pub struct AppState {
     pub jwt_validator: Arc<Mutex<JwtValidator>>,
+    pub database: AppDatabase,
 }
 
 impl AppState {
-    pub fn new(keycloak_url: String, realm: String) -> Self {
+    pub async fn new(keycloak_url: String, realm: String, database: AppDatabase) -> Self {
         let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_url, realm)));
 
-        Self { jwt_validator }
+        Self { jwt_validator, database }
     }
 }
 
@@ -132,8 +135,20 @@ pub fn health_routes() -> Router {
 
 /// Create the complete application with all routes
 pub fn create_app(app_state: AppState) -> Router {
+    // Create a CommonAppState for the API routes (they only need database access)
+    let api_app_state = CommonAppState {
+        database: app_state.database.clone(),
+    };
+
     Router::new()
-        .nest("/api/v1", create_router(app_state))
+        .nest("/api/v1", create_router(app_state.clone()))
+        .merge(
+            api_routes::create_router(api_app_state)
+                .layer(middleware::from_fn_with_state(
+                    app_state.jwt_validator.clone(),
+                    auth_middleware,
+                ))
+        )
         .merge(health_routes())
 }
 
@@ -162,10 +177,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_protected_route_without_auth() {
+        // Create a mock database connection for testing
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        let app_database = AppDatabase::new(std::sync::Arc::new(db)).await;
+
         let app_state = AppState::new(
             "http://localhost:8080".to_string(),
             "test-realm".to_string(),
-        );
+            app_database,
+        ).await;
 
         let app = create_router(app_state);
 

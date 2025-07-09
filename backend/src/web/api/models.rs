@@ -12,13 +12,6 @@ pub struct ErrorResponse {
     pub details: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PaginationMeta {
-    pub page: u32,
-    pub limit: u32,
-    pub total: u32,
-    pub total_pages: u32,
-}
 
 // =============== Health Models ===============
 
@@ -151,7 +144,6 @@ pub struct AssessmentResponse {
 #[derive(Debug, Serialize)]
 pub struct AssessmentListResponse {
     pub assessments: Vec<Assessment>,
-    pub meta: PaginationMeta,
 }
 
 #[derive(Debug, Serialize)]

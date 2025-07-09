@@ -1,5 +1,5 @@
 use axum::Json;
-use crate::api::models::{HealthResponse, HealthChecks, MetricsResponse, RequestMetrics, MemoryMetrics, DatabaseMetrics};
+use crate::web::api::models::{HealthResponse, HealthChecks, MetricsResponse, RequestMetrics, MemoryMetrics, DatabaseMetrics};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::SystemTime;
 use once_cell::sync::Lazy;
