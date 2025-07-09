@@ -14,12 +14,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Eye, FileText } from "lucide-react";
 import React, { useState, useCallback } from "react";
 import {
-  useAssessmentsServiceGetAssessments,
-  useReportsServicePostAssessmentsByAssessmentIdReports,
+  useAdminServiceGetAdminSubmissions,
+  useReportsServicePostSubmissionsBySubmissionIdReports,
   useResponsesServiceGetAssessmentsByAssessmentIdResponses,
 } from "../../../api/generated/queries/queries";
 import type {
-  Assessment,
+  AdminSubmissionDetail,
   GenerateReportRequest,
   Response,
 } from "../../../api/generated/requests/types.gen";
@@ -40,34 +40,35 @@ type Answer = {
 
 export const ReviewAssessments: React.FC = () => {
   const queryClient = useQueryClient();
-  const [selectedAssessment, setSelectedAssessment] =
-    useState<Assessment | null>(null);
+  const [selectedSubmission, setSelectedSubmission] =
+    useState<AdminSubmissionDetail | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [recommendations, setRecommendations] = useState<
     Record<string, string>
   >({});
 
-  // Fetch assessments for review (status: submitted)
+  // Fetch submissions for review (status: pending_review)
   const {
-    data: assessmentsData,
-    isLoading: isLoadingAssessments,
-    isError: isAssessmentsError,
-    error: assessmentsError,
-    isSuccess: isAssessmentsSuccess,
-    refetch: refetchAssessments,
-  } = useAssessmentsServiceGetAssessments({ status: "submitted", limit: 100 });
-  const assessments: Assessment[] = assessmentsData?.assessments || [];
+    data: submissionsData,
+    isLoading: isLoadingSubmissions,
+    isError: isSubmissionsError,
+    error: submissionsError,
+    isSuccess: isSubmissionsSuccess,
+    refetch: refetchSubmissions,
+  } = useAdminServiceGetAdminSubmissions({ status: "pending_review" });
+  const submissions: AdminSubmissionDetail[] =
+    submissionsData?.submissions || [];
 
   React.useEffect(() => {
-    if (isAssessmentsError) {
-      toast.error("Error loading assessments", {
+    if (isSubmissionsError) {
+      toast.error("Error loading submissions", {
         description:
-          assessmentsError instanceof Error
-            ? assessmentsError.message
-            : String(assessmentsError),
+          submissionsError instanceof Error
+            ? submissionsError.message
+            : String(submissionsError),
       });
     }
-  }, [isAssessmentsError, assessmentsError]);
+  }, [isSubmissionsError, submissionsError]);
 
   // Fetch responses for the selected assessment
   const {
@@ -77,11 +78,11 @@ export const ReviewAssessments: React.FC = () => {
     error: responsesError,
     isSuccess: isResponsesSuccess,
   } = useResponsesServiceGetAssessmentsByAssessmentIdResponses(
-    selectedAssessment
-      ? { assessmentId: selectedAssessment.assessmentId }
+    selectedSubmission
+      ? { assessmentId: selectedSubmission.assessment_id }
       : { assessmentId: "" },
     undefined,
-    { enabled: !!selectedAssessment },
+    { enabled: !!selectedSubmission },
   );
   const responses: Response[] = responsesData?.responses || [];
 
@@ -98,12 +99,12 @@ export const ReviewAssessments: React.FC = () => {
 
   // Mutation for generating a report
   const generateReportMutation =
-    useReportsServicePostAssessmentsByAssessmentIdReports({
+    useReportsServicePostSubmissionsBySubmissionIdReports({
       onSuccess: () => {
         toast.success("Report submitted successfully.");
         setRecommendations({});
         setShowReviewDialog(false);
-        setSelectedAssessment(null);
+        setSelectedSubmission(null);
       },
       onError: (error: unknown) =>
         toast.error("Error submitting report", {
@@ -124,38 +125,45 @@ export const ReviewAssessments: React.FC = () => {
     return "Unknown error";
   }
 
-  const handleOpenReviewDialog = useCallback((assessment: Assessment) => {
-    setSelectedAssessment(assessment);
-    setShowReviewDialog(true);
-  }, []);
+  const handleOpenReviewDialog = useCallback(
+    (submission: AdminSubmissionDetail) => {
+      setSelectedSubmission(submission);
+      setShowReviewDialog(true);
+    },
+    [],
+  );
 
   const handleSubmitReport = useCallback(() => {
-    if (!selectedAssessment) return;
+    if (!selectedSubmission) return;
     const reportPayload: GenerateReportRequest = {
-      reportType: "PDF",
+      report_type: "sustainability",
       options: {
         recommendations: Object.entries(recommendations).map(
-          ([responseId, text]) => ({
-            responseId,
+          ([response_id, text]) => ({
+            response_id,
             text,
           }),
         ),
       },
     };
     generateReportMutation.mutate({
-      assessmentId: selectedAssessment.assessmentId,
+      submissionId: selectedSubmission.submission_id,
       requestBody: reportPayload,
     });
-  }, [selectedAssessment, recommendations, generateReportMutation]);
+  }, [selectedSubmission, recommendations, generateReportMutation]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "submitted":
+      case "pending_review":
         return "bg-blue-500 text-white";
       case "under_review":
         return "bg-orange-500 text-white";
-      case "completed":
+      case "approved":
         return "bg-dgrv-green text-white";
+      case "rejected":
+        return "bg-red-500 text-white";
+      case "revision_requested":
+        return "bg-yellow-500 text-white";
       default:
         return "bg-gray-500 text-white";
     }
@@ -163,18 +171,22 @@ export const ReviewAssessments: React.FC = () => {
 
   const formatStatus = (status: string) => {
     switch (status) {
-      case "submitted":
-        return "Submitted";
+      case "pending_review":
+        return "Pending Review";
       case "under_review":
         return "Under Review";
-      case "completed":
-        return "Completed";
+      case "approved":
+        return "Approved";
+      case "rejected":
+        return "Rejected";
+      case "revision_requested":
+        return "Revision Requested";
       default:
         return "Unknown";
     }
   };
 
-  if (isLoadingAssessments) {
+  if (isLoadingSubmissions) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -185,12 +197,12 @@ export const ReviewAssessments: React.FC = () => {
     );
   }
 
-  if (isAssessmentsError) {
+  if (isSubmissionsError) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="pt-20 pb-8 flex items-center justify-center">
-          <p className="text-red-500">Error loading assessments.</p>
+          <p className="text-red-500">Error loading submissions.</p>
         </div>
       </div>
     );
@@ -215,11 +227,11 @@ export const ReviewAssessments: React.FC = () => {
             </p>
           </div>
 
-          {/* Assessments Grid */}
+          {/* Submissions Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {assessments.map((assessment, index) => (
+            {submissions.map((submission, index) => (
               <Card
-                key={assessment.assessmentId}
+                key={submission.submission_id}
                 className="animate-fade-in hover:shadow-lg transition-shadow"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -230,27 +242,29 @@ export const ReviewAssessments: React.FC = () => {
                         <FileText className="w-5 h-5 text-dgrv-blue" />
                       </div>
                       <div>
-                        <span className="text-lg">Assessment</span>
+                        <span className="text-lg">Submission</span>
                         <p className="text-sm font-normal text-gray-600">
-                          {new Date(assessment.createdAt).toLocaleDateString()}
+                          {new Date(
+                            submission.submitted_at,
+                          ).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    <Badge className={getStatusColor(assessment.status)}>
-                      {formatStatus(assessment.status)}
+                    <Badge className={getStatusColor(submission.review_status)}>
+                      {formatStatus(submission.review_status)}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="text-sm text-gray-600">
-                      <p>Organization ID: {assessment.assessmentId}</p>
-                      <p>User ID: {assessment.userId}</p>
+                      <p>Submission ID: {submission.submission_id}</p>
+                      <p>User ID: {submission.user_id}</p>
                     </div>
                     <div className="flex space-x-2 pt-4">
                       <Button
                         size="sm"
-                        onClick={() => handleOpenReviewDialog(assessment)}
+                        onClick={() => handleOpenReviewDialog(submission)}
                         className="flex-1 bg-dgrv-blue hover:bg-blue-700"
                       >
                         <Eye className="w-4 h-4 mr-1" />
@@ -262,15 +276,15 @@ export const ReviewAssessments: React.FC = () => {
               </Card>
             ))}
 
-            {assessments.length === 0 && (
+            {submissions.length === 0 && (
               <Card className="md:col-span-2 lg:col-span-3 text-center py-12">
                 <CardContent>
                   <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No assessments to review
+                    No submissions to review
                   </h3>
                   <p className="text-gray-600">
-                    All assessments are up to date!
+                    All submissions are up to date!
                   </p>
                 </CardContent>
               </Card>
@@ -281,21 +295,23 @@ export const ReviewAssessments: React.FC = () => {
           <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Review Assessment</DialogTitle>
+                <DialogTitle>Review Submission</DialogTitle>
               </DialogHeader>
 
-              {selectedAssessment && (
+              {selectedSubmission && (
                 <div className="space-y-6">
-                  {/* Assessment Info */}
+                  {/* Submission Info */}
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2">Assessment Details</h3>
+                    <h3 className="font-medium mb-2">Submission Details</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>Organization: {selectedAssessment.assessmentId}</div>
-                      <div>User: {selectedAssessment.userId}</div>
                       <div>
-                        Created:{" "}
+                        Submission ID: {selectedSubmission.submission_id}
+                      </div>
+                      <div>User: {selectedSubmission.user_id}</div>
+                      <div>
+                        Submitted:{" "}
                         {new Date(
-                          selectedAssessment.createdAt,
+                          selectedSubmission.submitted_at,
                         ).toLocaleDateString()}
                       </div>
                     </div>
@@ -313,7 +329,7 @@ export const ReviewAssessments: React.FC = () => {
                           : "Question text unavailable";
                       return (
                         <div
-                          key={resp.responseId}
+                          key={resp.response_id}
                           className="border-l-4 border-dgrv-blue pl-4 mb-4"
                         >
                           <h4 className="font-medium text-sm">
@@ -328,19 +344,19 @@ export const ReviewAssessments: React.FC = () => {
                           <div className="mt-2">
                             <label
                               className="block text-xs font-medium mb-1"
-                              htmlFor={`rec-${resp.responseId}`}
+                              htmlFor={`rec-${resp.response_id}`}
                             >
                               Recommendation
                             </label>
                             <textarea
-                              id={`rec-${resp.responseId}`}
+                              id={`rec-${resp.response_id}`}
                               className="w-full border rounded p-2 text-sm"
                               rows={2}
-                              value={recommendations[resp.responseId] || ""}
+                              value={recommendations[resp.response_id] || ""}
                               onChange={(e) =>
                                 setRecommendations((prev) => ({
                                   ...prev,
-                                  [resp.responseId]: e.target.value,
+                                  [resp.response_id]: e.target.value,
                                 }))
                               }
                               placeholder="Enter recommendation for this question"

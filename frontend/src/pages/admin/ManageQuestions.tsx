@@ -34,11 +34,14 @@ import {
   useQuestionsServicePostQuestions,
   useQuestionsServicePutQuestionsByQuestionId,
   useQuestionsServiceDeleteQuestionsByQuestionId,
+  useQuestionsServiceGetQuestionsByQuestionId,
 } from "../../../api/generated/queries/queries";
 import type {
   Question,
+  QuestionRevision,
   CreateQuestionRequest,
   UpdateQuestionRequest,
+  QuestionWithRevisionsResponse,
 } from "../../../api/generated/requests/types.gen";
 
 const CATEGORIES_KEY = "sustainability_categories";
@@ -202,12 +205,11 @@ export const ManageQuestions: React.FC = () => {
     loadCategories();
   }, []);
 
-  // Fetch questions using OpenAPI-generated hook
   const {
     data: questionsData,
     isLoading: questionsLoading,
     refetch: refetchQuestions,
-  } = useQuestionsServiceGetQuestions({ category: undefined, limit: 100 });
+  } = useQuestionsServiceGetQuestions({ category: undefined });
   const questions: Question[] = useMemo(
     () => questionsData?.questions || [],
     [questionsData],
@@ -225,7 +227,6 @@ export const ManageQuestions: React.FC = () => {
     return "Unknown error";
   }
 
-  // Create
   const createMutation = useQuestionsServicePostQuestions({
     onSuccess: () => {
       toast.success("Question created.");
@@ -235,7 +236,6 @@ export const ManageQuestions: React.FC = () => {
     onError: (error: unknown) => toast.error(getErrorMessage(error)),
   });
 
-  // Update
   const updateMutation = useQuestionsServicePutQuestionsByQuestionId({
     onSuccess: () => {
       toast.success("Question updated.");
@@ -246,7 +246,6 @@ export const ManageQuestions: React.FC = () => {
     onError: (error: unknown) => toast.error(getErrorMessage(error)),
   });
 
-  // Delete
   const deleteMutation = useQuestionsServiceDeleteQuestionsByQuestionId({
     onSuccess: () => {
       toast.success("Question deleted.");
@@ -270,24 +269,20 @@ export const ManageQuestions: React.FC = () => {
         toast.error("Weight must be between 1 and 10.");
         return;
       }
-      const text = {
-        en: formData.text_en,
-        zu: formData.text_zu || formData.text_en,
-      };
+      const text = { en: formData.text_en };
+      if (formData.text_zu) text["zu"] = formData.text_zu;
       if (editingQuestion) {
         const updateBody: UpdateQuestionRequest = {
-          text,
-          weight: formData.weight,
+          text: formData.text_en,
         };
         updateMutation.mutate({
-          questionId: editingQuestion.questionId,
+          questionId: editingQuestion.question_id,
           requestBody: updateBody,
         });
       } else {
         const createBody: CreateQuestionRequest = {
           category: formData.categoryId,
           text,
-          weight: formData.weight,
         };
         createMutation.mutate({ requestBody: createBody });
       }
@@ -298,9 +293,9 @@ export const ManageQuestions: React.FC = () => {
   const handleEdit = useCallback((question: Question) => {
     setEditingQuestion(question);
     setFormData({
-      text_en: question.latestRevision?.text.en || "",
-      text_zu: question.latestRevision?.text.zu || "",
-      weight: question.latestRevision?.weight || 5,
+      text_en: "",
+      text_zu: "",
+      weight: 5,
       categoryId: question.category,
       order: 1,
     });
@@ -320,11 +315,7 @@ export const ManageQuestions: React.FC = () => {
     (categoryId: string) => {
       return questions
         .filter((q) => q.category === categoryId)
-        .sort((a, b) => {
-          const aOrder = a.latestRevision?.weight || 0;
-          const bOrder = b.latestRevision?.weight || 0;
-          return aOrder - bOrder;
-        });
+        .sort((a, b) => 0);
     },
     [questions],
   );
@@ -423,29 +414,27 @@ export const ManageQuestions: React.FC = () => {
                         <div className="space-y-4 pt-4">
                           {categoryQuestions.map((question) => (
                             <div
-                              key={question.questionId}
+                              key={question.question_id}
                               className="border rounded-lg p-4"
                             >
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <h4 className="font-medium">
-                                    {question.latestRevision?.text.en}
+                                    ID: {question.question_id}
                                   </h4>
-                                  {question.latestRevision?.text.zu && (
-                                    <p className="text-sm text-gray-600 mt-1">
-                                      {question.latestRevision.text.zu}
-                                    </p>
-                                  )}
                                   <div className="flex space-x-4 mt-2 text-sm text-gray-500">
-                                    <span>
-                                      Weight: {question.latestRevision?.weight}
-                                    </span>
                                     <span>
                                       Created:{" "}
                                       {new Date(
-                                        question.createdAt,
+                                        question.created_at,
                                       ).toLocaleDateString()}
                                     </span>
+                                  </div>
+                                  <div className="mt-2 text-gray-800">
+                                    <strong>Text:</strong>{" "}
+                                    <QuestionRevisionText
+                                      questionId={question.question_id}
+                                    />
                                   </div>
                                 </div>
                                 <div className="flex space-x-2 ml-4">
@@ -460,7 +449,7 @@ export const ManageQuestions: React.FC = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() =>
-                                      handleDelete(question.questionId)
+                                      handleDelete(question.question_id)
                                     }
                                     className="text-red-600 hover:text-red-700"
                                   >
@@ -496,4 +485,17 @@ export const ManageQuestions: React.FC = () => {
       </div>
     </div>
   );
+};
+
+const QuestionRevisionText: React.FC<{ questionId: string }> = ({
+  questionId,
+}) => {
+  const { data } = useQuestionsServiceGetQuestionsByQuestionId({ questionId });
+  if (!data || !data.revisions || data.revisions.length === 0)
+    return <em>No text</em>;
+  const latest = data.revisions.reduce((a, b) =>
+    a.version > b.version ? a : b,
+  );
+  if (latest.language === "en") return <>{latest.text}</>;
+  return <>{latest.text}</>;
 };

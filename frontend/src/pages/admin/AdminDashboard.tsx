@@ -14,11 +14,11 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
-import type { Assessment } from "../../../api/generated/requests/types.gen";
-import { useAssessmentsServiceGetAssessments } from "../../../api/generated/queries/queries";
+import type { AdminSubmissionDetail } from "../../../api/generated/requests/types.gen";
+import { useAdminServiceGetAdminSubmissions } from "../../../api/generated/queries/queries";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
-// TODO: Replace with Keycloak phase 2 plugin. Mocked for now.
 type Organization = { organizationId: string; name: string };
 type User = { userId: string; firstName?: string; lastName?: string };
 
@@ -31,7 +31,6 @@ interface PendingReview {
 }
 
 export const AdminDashboard: React.FC = () => {
-  // TODO: Replace with Keycloak phase 2 plugin. Mocked for now.
   const [orgs] = React.useState<Organization[]>([
     { organizationId: "org1", name: "Mock Cooperative 1" },
     { organizationId: "org2", name: "Mock Cooperative 2" },
@@ -44,61 +43,67 @@ export const AdminDashboard: React.FC = () => {
   const usersLoading = false;
 
   const {
-    data: assessmentsData,
-    isLoading: assessmentsLoading,
+    data: submissionsData,
+    isLoading: submissionsLoading,
     isError,
     error,
     isSuccess,
-  } = useAssessmentsServiceGetAssessments();
-  const assessments: Assessment[] = React.useMemo(
-    () => assessmentsData?.assessments ?? [],
-    [assessmentsData],
+  } = useAdminServiceGetAdminSubmissions();
+  const submissions: AdminSubmissionDetail[] = React.useMemo(
+    () => submissionsData?.submissions ?? [],
+    [submissionsData],
   );
 
   React.useEffect(() => {
     if (isError) {
-      toast.error("Error loading assessments", {
+      toast.error("Error loading submissions", {
         description: error instanceof Error ? error.message : String(error),
       });
-    } else if (assessmentsLoading) {
-      toast.info("Loading assessments...", {
-        description: "Fetching latest assessment data.",
+    } else if (submissionsLoading) {
+      toast.info("Loading submissions...", {
+        description: "Fetching latest submission data.",
       });
     } else if (isSuccess) {
-      toast.success(`Loaded ${assessments.length} assessments successfully!`, {
+      toast.success(`Loaded ${submissions.length} submissions successfully!`, {
         className: "bg-dgrv-green text-white",
       });
     }
-  }, [isError, error, assessmentsLoading, isSuccess, assessments.length]);
+  }, [isError, error, submissionsLoading, isSuccess, submissions.length]);
 
   const pendingReviews = useMemo(() => {
-    if (orgsLoading || usersLoading || assessmentsLoading) return [];
+    if (orgsLoading || usersLoading || submissionsLoading) return [];
 
-    const pendingAssessments = assessments.filter(
-      (a) => a.status === "submitted",
+    const pendingSubmissions = submissions.filter(
+      (s) => s.review_status === "pending_review",
     );
     const userMap = new Map(
       users.map((u) => [u.userId, `${u.firstName ?? ""} ${u.lastName ?? ""}`]),
     );
 
-    return pendingAssessments.map((assessment) => ({
-      id: assessment.assessmentId,
+    return pendingSubmissions.map((submission) => ({
+      id: submission.submission_id,
       organization: "Unknown Organization",
-      user: userMap.get(assessment.userId) || "Unknown User",
+      user: userMap.get(submission.user_id) || "Unknown User",
       type: "Sustainability",
-      submittedAt: new Date(assessment.createdAt).toLocaleDateString("en-CA"),
+      submittedAt: new Date(submission.submitted_at).toLocaleDateString(
+        "en-CA",
+      ),
     }));
-  }, [users, assessments, orgsLoading, usersLoading, assessmentsLoading]);
+  }, [users, submissions, orgsLoading, usersLoading, submissionsLoading]);
 
   const stats = useMemo(() => {
     return {
       orgCount: orgs.length,
       userCount: users.length,
-      pendingCount: assessments.filter((a) => a.status === "submitted").length,
-      completedCount: assessments.filter((a) => a.status === "completed")
+      pendingCount: submissions.filter(
+        (s) => s.review_status === "pending_review",
+      ).length,
+      completedCount: submissions.filter((s) => s.review_status === "approved")
         .length,
     };
-  }, [users, assessments, orgs.length]);
+  }, [users, submissions, orgs.length]);
+
+  const navigate = useNavigate();
 
   const adminActions = [
     {
@@ -107,14 +112,14 @@ export const AdminDashboard: React.FC = () => {
         "Add, edit, and manage cooperative organizations in the system.",
       icon: Users,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/admin/organizations"),
+      onClick: () => navigate("/admin/organizations"),
     },
     {
       title: "Manage Users",
       description: "Control user access and roles across all organizations.",
       icon: Users,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/admin/users"),
+      onClick: () => navigate("/admin/users"),
     },
     {
       title: "Manage Categories",
@@ -122,21 +127,21 @@ export const AdminDashboard: React.FC = () => {
         "Configure assessment categories for DGAT and Sustainability tools.",
       icon: List,
       color: "green" as const,
-      onClick: () => (window.location.href = "/admin/categories"),
+      onClick: () => navigate("/admin/categories"),
     },
     {
       title: "Manage Questions",
       description: "Create and edit questions within each assessment category.",
       icon: BookOpen,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/admin/questions"),
+      onClick: () => navigate("/admin/questions"),
     },
     {
       title: "Review Assessments",
       description: "Review submitted assessments and provide recommendations.",
       icon: CheckSquare,
       color: "green" as const,
-      onClick: () => (window.location.href = "/admin/reviews"),
+      onClick: () => navigate("/admin/reviews"),
     },
     {
       title: "Standard Recommendations",
@@ -144,7 +149,7 @@ export const AdminDashboard: React.FC = () => {
         "Manage reusable recommendations for common assessment scenarios.",
       icon: Star,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/admin/recommendations"),
+      onClick: () => navigate("/admin/recommendations"),
     },
   ];
 
@@ -232,15 +237,12 @@ export const AdminDashboard: React.FC = () => {
                     >
                       <div className="flex items-center space-x-4">
                         <div className="p-2 rounded-full bg-gray-100">
-                          {review.type === "DGAT" ? (
-                            <TrendingUp className="w-5 h-5 text-dgrv-blue" />
-                          ) : (
-                            <Star className="w-5 h-5 text-dgrv-green" />
-                          )}
+                          {/* Assuming type is derived from submission or can be inferred */}
+                          <Star className="w-5 h-5 text-dgrv-green" />
                         </div>
                         <div>
                           <h3 className="font-medium">
-                            {review.type} Assessment
+                            Sustainability Assessment
                           </h3>
                           <p className="text-sm text-gray-600">
                             {review.organization}

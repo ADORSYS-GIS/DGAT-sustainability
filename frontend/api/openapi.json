@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Assessment Management System API",
-    "description": "A comprehensive API for managing assessments, questions, responses, and reports in a sustainability assessment system.\n\n## Features\n- Version-controlled question management\n- Assessment lifecycle management\n- File attachment support\n- Immutable assessment submissions\n- Comprehensive reporting\n- Offline synchronization support\n\n## Authentication\nAll endpoints require Keycloak JWT authentication. Include the JWT token in the Authorization header:\n`Authorization: Bearer <your-jwt-token>`\n\n## Versioning\nThe API supports response versioning to track changes and resolve conflicts during offline synchronization.\n",
+    "title": "Assessment System API",
+    "description": "A comprehensive API for managing assessments, submissions, and reviews in a sustainability assessment system.\n\n## Authentication\nAll endpoints require JWT authentication. Include the token in the Authorization header:\n`Authorization: Bearer <your-jwt-token>`\n\n## Versioning\nThe API supports response versioning to track changes and resolve conflicts.\n",
     "contact": {
       "name": "Assessment System Team",
       "email": "support@assessment-system.com"
@@ -36,106 +36,34 @@
       "BearerAuth": []
     }
   ],
-  "tags": [
-    {
-      "name": "Health",
-      "description": "System health and status endpoints"
-    },
-    {
-      "name": "Questions",
-      "description": "Question management and versioning"
-    },
-    {
-      "name": "Assessments",
-      "description": "Assessment lifecycle management"
-    },
-    {
-      "name": "Responses",
-      "description": "Assessment response management"
-    },
-    {
-      "name": "Files",
-      "description": "File upload and management"
-    },
-    {
-      "name": "Reports",
-      "description": "Report generation and retrieval"
-    },
-    {
-      "name": "Sync",
-      "description": "Offline synchronization"
-    }
-  ],
   "paths": {
     "/health": {
       "get": {
         "tags": ["Health"],
         "summary": "Health check",
-        "description": "Check system health and availability",
+        "description": "Basic health check endpoint",
+        "operationId": "health_check",
         "responses": {
           "200": {
-            "description": "System is healthy",
+            "description": "Service is healthy",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
+                  "$ref": "#/components/schemas/inline_response_200"
                 }
               }
             }
           }
-        },
-        "security": []
-      }
-    },
-    "/metrics": {
-      "get": {
-        "tags": ["Health"],
-        "summary": "System metrics",
-        "description": "Get system performance metrics",
-        "responses": {
-          "200": {
-            "description": "System metrics",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MetricsResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": []
+        }
       }
     },
     "/questions": {
       "get": {
         "tags": ["Questions"],
         "summary": "List questions",
-        "description": "Get paginated list of questions with their latest revisions",
+        "description": "Get all questions with optional filtering. When question_revision_id is provided, returns the question containing that specific revision.",
+        "operationId": "list_questions",
         "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Page number (1-based)",
-            "required": false,
-            "schema": {
-              "minimum": 1,
-              "type": "integer",
-              "default": 1
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Number of items per page",
-            "required": false,
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "type": "integer",
-              "default": 20
-            }
-          },
           {
             "name": "category",
             "in": "query",
@@ -148,11 +76,11 @@
           {
             "name": "language",
             "in": "query",
-            "description": "Preferred language for multilingual content",
+            "description": "Language for content",
             "required": false,
             "schema": {
               "type": "string",
-              "example": "en"
+              "default": "en"
             }
           }
         ],
@@ -168,7 +96,7 @@
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -178,7 +106,8 @@
       "post": {
         "tags": ["Questions"],
         "summary": "Create question",
-        "description": "Create a new question with initial revision",
+        "description": "Create a new question (Admin only)",
+        "operationId": "create_question",
         "requestBody": {
           "content": {
             "application/json": {
@@ -201,16 +130,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "$ref": "#/components/responses/ForbiddenError"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
+            "$ref": "#/components/responses/Forbidden"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -218,20 +144,41 @@
         }
       }
     },
-    "/questions/{questionId}": {
+    "/questions/{question_id}": {
       "get": {
         "tags": ["Questions"],
         "summary": "Get question",
-        "description": "Get specific question with all revisions",
+        "description": "Get specific question with all revisions or a specific revision",
+        "operationId": "get_question",
         "parameters": [
           {
-            "name": "questionId",
+            "name": "question_id",
             "in": "path",
             "description": "Question ID",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "revision_id",
+            "in": "query",
+            "description": "Specific revision ID to retrieve (optional)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "description": "Language for content",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "en"
             }
           }
         ],
@@ -247,10 +194,10 @@
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -260,13 +207,24 @@
       "put": {
         "tags": ["Questions"],
         "summary": "Update question",
-        "description": "Create new revision of existing question",
+        "description": "Update a question (Admin only). Include question_revision_id for optimistic locking.",
+        "operationId": "update_question",
         "parameters": [
           {
-            "name": "questionId",
+            "name": "question_id",
             "in": "path",
             "description": "Question ID",
             "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "question_revision_id",
+            "in": "query",
+            "description": "Current revision ID for optimistic locking",
+            "required": false,
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -289,25 +247,32 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QuestionRevisionResponse"
+                  "$ref": "#/components/schemas/QuestionResponse"
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "$ref": "#/components/responses/ForbiddenError"
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
+          "409": {
+            "description": "Conflict - revision mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -317,13 +282,24 @@
       "delete": {
         "tags": ["Questions"],
         "summary": "Delete question",
-        "description": "Soft delete question (admin only)",
+        "description": "Delete a question (Admin only). Include question_revision_id for optimistic locking.",
+        "operationId": "delete_question",
         "parameters": [
           {
-            "name": "questionId",
+            "name": "question_id",
             "in": "path",
             "description": "Question ID",
             "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "question_revision_id",
+            "in": "query",
+            "description": "Current revision ID for optimistic locking",
+            "required": false,
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -335,93 +311,23 @@
             "description": "Question deleted successfully"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "$ref": "#/components/responses/ForbiddenError"
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/questions/{questionId}/revisions": {
-      "get": {
-        "tags": ["Questions"],
-        "summary": "Get question revisions",
-        "description": "Get all revisions for a specific question",
-        "parameters": [
-          {
-            "name": "questionId",
-            "in": "path",
-            "description": "Question ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of question revisions",
+          "409": {
+            "description": "Conflict - revision mismatch",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QuestionRevisionListResponse"
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/questions/revisions/{revisionId}": {
-      "get": {
-        "tags": ["Questions"],
-        "summary": "Get question revision",
-        "description": "Get specific question revision",
-        "parameters": [
-          {
-            "name": "revisionId",
-            "in": "path",
-            "description": "Question revision ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Question revision details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QuestionRevisionResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -433,39 +339,17 @@
       "get": {
         "tags": ["Assessments"],
         "summary": "List assessments",
-        "description": "Get paginated list of user's assessments",
+        "description": "Get user's draft assessments",
+        "operationId": "list_assessments",
         "parameters": [
           {
-            "name": "page",
+            "name": "language",
             "in": "query",
-            "description": "Page number (1-based)",
-            "required": false,
-            "schema": {
-              "minimum": 1,
-              "type": "integer",
-              "default": 1
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Number of items per page",
-            "required": false,
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "type": "integer",
-              "default": 20
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "description": "Filter by assessment status",
+            "description": "Language for content",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["draft", "submitted", "completed"]
+              "default": "en"
             }
           }
         ],
@@ -481,7 +365,7 @@
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -491,7 +375,8 @@
       "post": {
         "tags": ["Assessments"],
         "summary": "Create assessment",
-        "description": "Create new assessment",
+        "description": "Create a new draft assessment",
+        "operationId": "create_assessment",
         "requestBody": {
           "content": {
             "application/json": {
@@ -514,13 +399,10 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -528,14 +410,15 @@
         }
       }
     },
-    "/assessments/{assessmentId}": {
+    "/assessments/{assessment_id}": {
       "get": {
         "tags": ["Assessments"],
         "summary": "Get assessment",
-        "description": "Get specific assessment with responses",
+        "description": "Get a specific draft assessment",
+        "operationId": "get_assessment",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -551,16 +434,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssessmentWithResponsesResponse"
+                  "$ref": "#/components/schemas/AssessmentDetailResponse"
                 }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -570,10 +453,11 @@
       "put": {
         "tags": ["Assessments"],
         "summary": "Update assessment",
-        "description": "Update assessment metadata",
+        "description": "Update a draft assessment",
+        "operationId": "update_assessment",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -605,16 +489,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -624,10 +505,11 @@
       "delete": {
         "tags": ["Assessments"],
         "summary": "Delete assessment",
-        "description": "Delete draft assessment",
+        "description": "Delete a draft assessment",
+        "operationId": "delete_assessment",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -642,20 +524,10 @@
             "description": "Assessment deleted successfully"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "409": {
-            "description": "Cannot delete submitted assessment",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -663,14 +535,15 @@
         }
       }
     },
-    "/assessments/{assessmentId}/submit": {
+    "/assessments/{assessment_id}/submit": {
       "post": {
         "tags": ["Assessments"],
         "summary": "Submit assessment",
-        "description": "Submit assessment for grading (creates immutable submission)",
+        "description": "Submit a draft assessment for review (creates immutable submission)",
+        "operationId": "submit_assessment",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -686,29 +559,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssessmentSubmissionResponse"
+                  "$ref": "#/components/schemas/SubmissionResponse"
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "409": {
-            "description": "Assessment already submitted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -716,14 +579,15 @@
         }
       }
     },
-    "/assessments/{assessmentId}/responses": {
+    "/assessments/{assessment_id}/responses": {
       "get": {
         "tags": ["Responses"],
-        "summary": "Get assessment responses",
-        "description": "Get all responses for an assessment",
+        "summary": "List responses",
+        "description": "Get all responses for a draft assessment",
+        "operationId": "list_responses",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -731,11 +595,21 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "latest_only",
+            "in": "query",
+            "description": "Return only latest version of each response",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of assessment responses",
+            "description": "List of responses",
             "content": {
               "application/json": {
                 "schema": {
@@ -745,10 +619,10 @@
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -758,10 +632,11 @@
       "post": {
         "tags": ["Responses"],
         "summary": "Create response",
-        "description": "Create new response for assessment",
+        "description": "Create or update a response to a question",
+        "operationId": "create_response",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -793,16 +668,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -810,14 +682,15 @@
         }
       }
     },
-    "/assessments/{assessmentId}/responses/{responseId}": {
+    "/assessments/{assessment_id}/responses/{response_id}": {
       "get": {
         "tags": ["Responses"],
         "summary": "Get response",
-        "description": "Get specific response",
+        "description": "Get a specific response",
+        "operationId": "get_response",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -827,7 +700,7 @@
             }
           },
           {
-            "name": "responseId",
+            "name": "response_id",
             "in": "path",
             "description": "Response ID",
             "required": true,
@@ -843,16 +716,16 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseResponse"
+                  "$ref": "#/components/schemas/ResponseDetailResponse"
                 }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -862,10 +735,11 @@
       "put": {
         "tags": ["Responses"],
         "summary": "Update response",
-        "description": "Update response (creates new version)",
+        "description": "Update a response (creates new version)",
+        "operationId": "update_response",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -875,7 +749,7 @@
             }
           },
           {
-            "name": "responseId",
+            "name": "response_id",
             "in": "path",
             "description": "Response ID",
             "required": true,
@@ -907,26 +781,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "409": {
-            "description": "Version conflict detected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConflictResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -936,10 +797,11 @@
       "delete": {
         "tags": ["Responses"],
         "summary": "Delete response",
-        "description": "Delete response",
+        "description": "Delete a response",
+        "operationId": "delete_response",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -949,7 +811,7 @@
             }
           },
           {
-            "name": "responseId",
+            "name": "response_id",
             "in": "path",
             "description": "Response ID",
             "required": true,
@@ -964,10 +826,10 @@
             "description": "Response deleted successfully"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -975,14 +837,15 @@
         }
       }
     },
-    "/assessments/{assessmentId}/responses/{responseId}/history": {
+    "/assessments/{assessment_id}/responses/{response_id}/history": {
       "get": {
         "tags": ["Responses"],
         "summary": "Get response history",
-        "description": "Get response version history",
+        "description": "Get all versions of a response",
+        "operationId": "get_response_history",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "assessment_id",
             "in": "path",
             "description": "Assessment ID",
             "required": true,
@@ -992,7 +855,7 @@
             }
           },
           {
-            "name": "responseId",
+            "name": "response_id",
             "in": "path",
             "description": "Response ID",
             "required": true,
@@ -1004,7 +867,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Response version history",
+            "description": "Response history",
             "content": {
               "application/json": {
                 "schema": {
@@ -1014,10 +877,10 @@
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1025,67 +888,61 @@
         }
       }
     },
-    "/files": {
-      "post": {
-        "tags": ["Files"],
-        "summary": "Upload file",
-        "description": "Upload file and return file ID",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/files_body"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "File uploaded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileUploadResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "413": {
-            "description": "File too large",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/files/{fileId}": {
+    "/submissions": {
       "get": {
-        "tags": ["Files"],
-        "summary": "Download file",
-        "description": "Download file content",
+        "tags": ["Submissions"],
+        "summary": "List user submissions",
+        "description": "Get user's submitted assessments",
+        "operationId": "list_user_submissions",
         "parameters": [
           {
-            "name": "fileId",
+            "name": "status",
+            "in": "query",
+            "description": "Filter by review status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending_review",
+                "under_review",
+                "approved",
+                "rejected",
+                "revision_requested"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user submissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/submissions/{submission_id}": {
+      "get": {
+        "tags": ["Submissions"],
+        "summary": "Get submission",
+        "description": "Get a specific submission",
+        "operationId": "get_submission",
+        "parameters": [
+          {
+            "name": "submission_id",
             "in": "path",
-            "description": "File ID",
+            "description": "Submission ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -1095,62 +952,20 @@
         ],
         "responses": {
           "200": {
-            "description": "File content",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      },
-      "delete": {
-        "tags": ["Files"],
-        "summary": "Delete file",
-        "description": "Delete file (if not referenced)",
-        "parameters": [
-          {
-            "name": "fileId",
-            "in": "path",
-            "description": "File ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "File deleted successfully"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "409": {
-            "description": "File is referenced and cannot be deleted",
+            "description": "Submission details",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/SubmissionDetailResponse"
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1158,95 +973,46 @@
         }
       }
     },
-    "/files/{fileId}/metadata": {
+    "/admin/submissions": {
       "get": {
-        "tags": ["Files"],
-        "summary": "Get file metadata",
-        "description": "Get file metadata",
+        "tags": ["Admin"],
+        "summary": "List all submissions",
+        "description": "Get all submissions for admin review management (Admin only)",
+        "operationId": "list_all_submissions",
         "parameters": [
           {
-            "name": "fileId",
-            "in": "path",
-            "description": "File ID",
-            "required": true,
+            "name": "status",
+            "in": "query",
+            "description": "Filter by review status",
+            "required": false,
             "schema": {
               "type": "string",
-              "format": "uuid"
+              "enum": [
+                "pending_review",
+                "under_review",
+                "approved",
+                "rejected",
+                "revision_requested"
+              ]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "File metadata",
+            "description": "List of all submissions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FileMetadataResponse"
+                  "$ref": "#/components/schemas/AdminSubmissionListResponse"
                 }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/assessments/{assessmentId}/responses/{responseId}/files": {
-      "post": {
-        "tags": ["Files"],
-        "summary": "Attach file to response",
-        "description": "Attach existing file to response",
-        "parameters": [
-          {
-            "name": "assessmentId",
-            "in": "path",
-            "description": "Assessment ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "responseId",
-            "in": "path",
-            "description": "Response ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttachFileRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "File attached successfully"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1254,79 +1020,37 @@
         }
       }
     },
-    "/assessments/{assessmentId}/responses/{responseId}/files/{fileId}": {
-      "delete": {
-        "tags": ["Files"],
-        "summary": "Remove file from response",
-        "description": "Remove file attachment from response",
-        "parameters": [
-          {
-            "name": "assessmentId",
-            "in": "path",
-            "description": "Assessment ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "responseId",
-            "in": "path",
-            "description": "Response ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "fileId",
-            "in": "path",
-            "description": "File ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "File removed successfully"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundError"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/assessments/{assessmentId}/reports": {
+    "/submissions/{submission_id}/reports": {
       "get": {
         "tags": ["Reports"],
         "summary": "List reports",
-        "description": "Get available reports for assessment",
+        "description": "Get all reports for an approved submission",
+        "operationId": "list_reports",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "submission_id",
             "in": "path",
-            "description": "Assessment ID",
+            "description": "Submission ID",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "report_type",
+            "in": "query",
+            "description": "Filter by report type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["sustainability", "compliance", "summary", "detailed"]
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of available reports",
+            "description": "List of reports",
             "content": {
               "application/json": {
                 "schema": {
@@ -1336,10 +1060,13 @@
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1349,12 +1076,13 @@
       "post": {
         "tags": ["Reports"],
         "summary": "Generate report",
-        "description": "Generate new report for assessment",
+        "description": "Generate a new report for an approved submission",
+        "operationId": "generate_report",
         "parameters": [
           {
-            "name": "assessmentId",
+            "name": "submission_id",
             "in": "path",
-            "description": "Assessment ID",
+            "description": "Submission ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -1384,13 +1112,16 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1398,14 +1129,15 @@
         }
       }
     },
-    "/reports/{reportId}": {
+    "/reports/{report_id}": {
       "get": {
         "tags": ["Reports"],
         "summary": "Get report",
-        "description": "Get specific report details",
+        "description": "Get a specific report",
+        "operationId": "get_report",
         "parameters": [
           {
-            "name": "reportId",
+            "name": "report_id",
             "in": "path",
             "description": "Report ID",
             "required": true,
@@ -1427,25 +1159,24 @@
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
         }
-      }
-    },
-    "/reports/{reportId}/download": {
-      "get": {
+      },
+      "delete": {
         "tags": ["Reports"],
-        "summary": "Download report",
-        "description": "Download report file",
+        "summary": "Delete report",
+        "description": "Delete a report",
+        "operationId": "delete_report",
         "parameters": [
           {
-            "name": "reportId",
+            "name": "report_id",
             "in": "path",
             "description": "Report ID",
             "required": true,
@@ -1456,28 +1187,14 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Report file",
-            "content": {
-              "application/pdf": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "text/csv": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
+          "204": {
+            "description": "Report deleted successfully"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1485,47 +1202,38 @@
         }
       }
     },
-    "/sync/assessments": {
+    "/files": {
       "post": {
-        "tags": ["Sync"],
-        "summary": "Sync assessment changes",
-        "description": "Synchronize offline assessment changes",
+        "tags": ["Files"],
+        "summary": "Upload file",
+        "description": "Upload a file",
+        "operationId": "upload_file",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/SyncAssessmentsRequest"
+                "$ref": "#/components/schemas/files_body"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Sync completed successfully",
+          "201": {
+            "description": "File uploaded successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SyncResponse"
+                  "$ref": "#/components/schemas/FileResponse"
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "409": {
-            "description": "Sync conflicts detected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SyncConflictResponse"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unauthorized"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1533,64 +1241,17 @@
         }
       }
     },
-    "/sync/responses": {
-      "post": {
-        "tags": ["Sync"],
-        "summary": "Sync response changes",
-        "description": "Synchronize offline response changes",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SyncResponsesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Sync completed successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SyncResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "409": {
-            "description": "Sync conflicts detected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SyncConflictResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/sync/status/{syncId}": {
+    "/files/{file_id}": {
       "get": {
-        "tags": ["Sync"],
-        "summary": "Get sync status",
-        "description": "Get synchronization status",
+        "tags": ["Files"],
+        "summary": "Download file",
+        "description": "Download a file",
+        "operationId": "download_file",
         "parameters": [
           {
-            "name": "syncId",
+            "name": "file_id",
             "in": "path",
-            "description": "Sync operation ID",
+            "description": "File ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -1600,20 +1261,205 @@
         ],
         "responses": {
           "200": {
-            "description": "Sync status",
+            "description": "File content",
             "content": {
-              "application/json": {
+              "application/octet-stream": {
                 "schema": {
-                  "$ref": "#/components/schemas/SyncStatusResponse"
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Files"],
+        "summary": "Delete file",
+        "description": "Delete a file",
+        "operationId": "delete_file",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "File ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "File deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/files/{file_id}/metadata": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Get file metadata",
+        "description": "Get metadata for a file",
+        "operationId": "get_file_metadata",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "File ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileMetadataResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/assessments/{assessment_id}/responses/{response_id}/files": {
+      "post": {
+        "tags": ["Files"],
+        "summary": "Attach file to response",
+        "description": "Attach a file to a response",
+        "operationId": "attach_file",
+        "parameters": [
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "description": "Assessment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "response_id",
+            "in": "path",
+            "description": "Response ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/response_id_files_body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "File attached successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/assessments/{assessment_id}/responses/{response_id}/files/{file_id}": {
+      "delete": {
+        "tags": ["Files"],
+        "summary": "Remove file from response",
+        "description": "Remove a file from a response",
+        "operationId": "remove_file",
+        "parameters": [
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "description": "Assessment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "response_id",
+            "in": "path",
+            "description": "Response ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "File ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "File removed successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1624,178 +1470,97 @@
   },
   "components": {
     "schemas": {
-      "ErrorResponse": {
-        "required": ["code", "error"],
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string",
-            "description": "Error message"
-          },
-          "code": {
-            "type": "string",
-            "description": "Error code"
-          },
-          "details": {
-            "type": "object",
-            "description": "Additional error details"
-          }
-        }
-      },
-      "PaginationMeta": {
-        "required": ["limit", "page", "total", "totalPages"],
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "integer",
-            "description": "Current page number"
-          },
-          "limit": {
-            "type": "integer",
-            "description": "Items per page"
-          },
-          "total": {
-            "type": "integer",
-            "description": "Total number of items"
-          },
-          "totalPages": {
-            "type": "integer",
-            "description": "Total number of pages"
-          }
-        }
-      },
-      "HealthResponse": {
-        "required": ["status", "timestamp", "version"],
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["healthy", "unhealthy"]
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "version": {
-            "type": "string"
-          },
-          "checks": {
-            "$ref": "#/components/schemas/HealthResponse_checks"
-          }
-        }
-      },
-      "MetricsResponse": {
-        "type": "object",
-        "properties": {
-          "uptime": {
-            "type": "number",
-            "description": "System uptime in seconds"
-          },
-          "requests": {
-            "$ref": "#/components/schemas/MetricsResponse_requests"
-          },
-          "memory": {
-            "$ref": "#/components/schemas/MetricsResponse_memory"
-          },
-          "database": {
-            "$ref": "#/components/schemas/MetricsResponse_database"
-          }
-        }
-      },
-      "MultilingualText": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
-        },
-        "example": {
-          "en": "What is your organization's sustainability policy?",
-          "fr": "Quelle est la politique de durabilité de votre organisation?"
-        }
-      },
       "Question": {
-        "required": ["category", "createdAt", "questionId"],
+        "required": ["category", "created_at", "question_id"],
         "type": "object",
         "properties": {
-          "questionId": {
+          "question_id": {
             "type": "string",
             "format": "uuid"
           },
           "category": {
             "type": "string"
           },
-          "createdAt": {
+          "created_at": {
             "type": "string",
             "format": "date-time"
-          },
-          "latestRevision": {
-            "$ref": "#/components/schemas/QuestionRevision"
           }
         }
       },
       "QuestionRevision": {
         "required": [
-          "createdAt",
-          "questionId",
-          "questionRevisionId",
+          "created_at",
+          "language",
+          "question_id",
+          "question_revision_id",
           "text",
-          "weight"
+          "version"
         ],
         "type": "object",
         "properties": {
-          "questionRevisionId": {
+          "question_revision_id": {
             "type": "string",
             "format": "uuid"
           },
-          "questionId": {
+          "question_id": {
             "type": "string",
             "format": "uuid"
           },
           "text": {
-            "$ref": "#/components/schemas/MultilingualText"
+            "type": "string"
           },
-          "weight": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number",
-            "format": "float"
+          "language": {
+            "type": "string",
+            "default": "en"
           },
-          "createdAt": {
+          "version": {
+            "type": "integer"
+          },
+          "created_at": {
             "type": "string",
             "format": "date-time"
           }
         }
       },
       "CreateQuestionRequest": {
-        "required": ["category", "text", "weight"],
+        "required": ["category", "text"],
         "type": "object",
         "properties": {
           "category": {
-            "type": "string",
-            "description": "Question category"
+            "type": "string"
           },
           "text": {
-            "$ref": "#/components/schemas/MultilingualText"
+            "type": "object",
+            "default": {
+              "en": "explain you ecological policies"
+            }
           },
           "weight": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number",
-            "format": "float"
+            "type": "integer",
+            "default": 1
           }
         }
       },
       "UpdateQuestionRequest": {
-        "required": ["text", "weight"],
         "type": "object",
         "properties": {
-          "text": {
-            "$ref": "#/components/schemas/MultilingualText"
+          "category": {
+            "type": "string"
           },
-          "weight": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number",
-            "format": "float"
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "QuestionListResponse": {
+        "required": ["questions"],
+        "type": "object",
+        "properties": {
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
           }
         }
       },
@@ -1823,30 +1588,6 @@
           }
         }
       },
-      "QuestionRevisionResponse": {
-        "required": ["revision"],
-        "type": "object",
-        "properties": {
-          "revision": {
-            "$ref": "#/components/schemas/QuestionRevision"
-          }
-        }
-      },
-      "QuestionListResponse": {
-        "required": ["meta", "questions"],
-        "type": "object",
-        "properties": {
-          "questions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Question"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/PaginationMeta"
-          }
-        }
-      },
       "QuestionRevisionListResponse": {
         "required": ["revisions"],
         "type": "object",
@@ -1859,37 +1600,31 @@
           }
         }
       },
-      "Assessment": {
-        "required": [
-          "assessmentId",
-          "createdAt",
-          "language",
-          "status",
-          "updatedAt",
-          "userId"
-        ],
+      "QuestionRevisionResponse": {
+        "required": ["revision"],
         "type": "object",
         "properties": {
-          "assessmentId": {
+          "revision": {
+            "$ref": "#/components/schemas/QuestionRevision"
+          }
+        }
+      },
+      "Assessment": {
+        "required": ["assessment_id", "created_at", "language", "user_id"],
+        "type": "object",
+        "properties": {
+          "assessment_id": {
             "type": "string",
             "format": "uuid"
           },
-          "userId": {
-            "type": "string",
-            "description": "Keycloak user ID"
-          },
-          "language": {
+          "user_id": {
             "type": "string"
           },
-          "status": {
+          "language": {
             "type": "string",
-            "enum": ["draft", "submitted", "completed"]
+            "default": "en"
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
+          "created_at": {
             "type": "string",
             "format": "date-time"
           }
@@ -1901,7 +1636,7 @@
         "properties": {
           "language": {
             "type": "string",
-            "description": "Assessment language"
+            "default": "en"
           }
         }
       },
@@ -1909,8 +1644,19 @@
         "type": "object",
         "properties": {
           "language": {
-            "type": "string",
-            "description": "Assessment language"
+            "type": "string"
+          }
+        }
+      },
+      "AssessmentListResponse": {
+        "required": ["assessments"],
+        "type": "object",
+        "properties": {
+          "assessments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Assessment"
+            }
           }
         }
       },
@@ -1923,12 +1669,18 @@
           }
         }
       },
-      "AssessmentWithResponsesResponse": {
-        "required": ["assessment", "responses"],
+      "AssessmentDetailResponse": {
+        "required": ["assessment", "questions", "responses"],
         "type": "object",
         "properties": {
           "assessment": {
             "$ref": "#/components/schemas/Assessment"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionRevision"
+            }
           },
           "responses": {
             "type": "array",
@@ -1938,128 +1690,64 @@
           }
         }
       },
-      "AssessmentListResponse": {
-        "required": ["assessments", "meta"],
-        "type": "object",
-        "properties": {
-          "assessments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Assessment"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/PaginationMeta"
-          }
-        }
-      },
-      "AssessmentSubmission": {
-        "required": ["assessmentId", "content", "submittedAt", "userId"],
-        "type": "object",
-        "properties": {
-          "assessmentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "content": {
-            "type": "object",
-            "description": "Immutable snapshot of assessment responses"
-          },
-          "submittedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "AssessmentSubmissionResponse": {
-        "required": ["submission"],
-        "type": "object",
-        "properties": {
-          "submission": {
-            "$ref": "#/components/schemas/AssessmentSubmission"
-          }
-        }
-      },
       "Response": {
         "required": [
-          "assessmentId",
-          "questionRevisionId",
+          "assessment_id",
+          "question_revision_id",
           "response",
-          "responseId",
-          "updatedAt",
+          "response_id",
+          "updated_at",
           "version"
         ],
         "type": "object",
         "properties": {
-          "responseId": {
+          "response_id": {
             "type": "string",
             "format": "uuid"
           },
-          "assessmentId": {
+          "assessment_id": {
             "type": "string",
             "format": "uuid"
           },
-          "questionRevisionId": {
+          "question_revision_id": {
             "type": "string",
             "format": "uuid"
           },
           "response": {
-            "type": "string",
-            "description": "User's response text"
+            "type": "string"
           },
           "version": {
-            "type": "integer",
-            "description": "Response version for conflict resolution"
+            "type": "integer"
           },
-          "updatedAt": {
+          "updated_at": {
             "type": "string",
             "format": "date-time"
-          },
-          "files": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FileMetadata"
-            }
           }
         }
       },
       "CreateResponseRequest": {
-        "required": ["questionRevisionId", "response"],
+        "required": ["question_revision_id", "response"],
         "type": "object",
         "properties": {
-          "questionRevisionId": {
+          "question_revision_id": {
             "type": "string",
             "format": "uuid"
           },
           "response": {
-            "type": "string",
-            "description": "User's response text"
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "description": "Version for conflict resolution"
           }
         }
       },
       "UpdateResponseRequest": {
-        "required": ["response", "version"],
-        "type": "object",
-        "properties": {
-          "response": {
-            "type": "string",
-            "description": "Updated response text"
-          },
-          "version": {
-            "type": "integer",
-            "description": "Current version for conflict detection"
-          }
-        }
-      },
-      "ResponseResponse": {
         "required": ["response"],
         "type": "object",
         "properties": {
           "response": {
-            "$ref": "#/components/schemas/Response"
+            "type": "string"
           }
         }
       },
@@ -2075,190 +1763,354 @@
           }
         }
       },
-      "ResponseVersion": {
-        "required": ["response", "updatedAt", "version"],
+      "ResponseResponse": {
+        "required": ["response"],
         "type": "object",
         "properties": {
-          "version": {
-            "type": "integer"
-          },
           "response": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/Response"
           }
         }
       },
-      "ResponseHistoryResponse": {
-        "required": ["history", "responseId"],
+      "ResponseDetailResponse": {
+        "required": ["files", "question", "response"],
         "type": "object",
         "properties": {
-          "responseId": {
-            "type": "string",
-            "format": "uuid"
+          "response": {
+            "$ref": "#/components/schemas/Response"
           },
-          "history": {
+          "question": {
+            "$ref": "#/components/schemas/QuestionRevision"
+          },
+          "files": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ResponseVersion"
+              "$ref": "#/components/schemas/FileMetadata"
             }
           }
         }
       },
-      "ConflictResponse": {
+      "ResponseHistoryResponse": {
+        "required": ["history"],
+        "type": "object",
+        "properties": {
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Response"
+            }
+          }
+        }
+      },
+      "Submission": {
         "required": [
-          "code",
-          "currentVersion",
-          "error",
-          "serverResponse",
-          "yourVersion"
+          "assessment_id",
+          "content",
+          "review_status",
+          "submission_id",
+          "submitted_at",
+          "user_id"
         ],
         "type": "object",
         "properties": {
-          "error": {
-            "type": "string",
-            "description": "Conflict error message"
-          },
-          "code": {
-            "type": "string",
-            "enum": ["VERSION_CONFLICT"]
-          },
-          "currentVersion": {
-            "type": "integer",
-            "description": "Current version in database"
-          },
-          "yourVersion": {
-            "type": "integer",
-            "description": "Version in the request"
-          },
-          "serverResponse": {
-            "type": "string",
-            "description": "Current response text in database"
-          }
-        }
-      },
-      "FileMetadata": {
-        "required": ["contentType", "createdAt", "fileId", "filename", "size"],
-        "type": "object",
-        "properties": {
-          "fileId": {
+          "submission_id": {
             "type": "string",
             "format": "uuid"
           },
-          "filename": {
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
             "type": "string"
           },
-          "size": {
-            "type": "integer",
-            "description": "File size in bytes"
+          "content": {
+            "$ref": "#/components/schemas/Submission_content"
           },
-          "contentType": {
-            "type": "string"
+          "review_status": {
+            "type": "string",
+            "enum": [
+              "pending_review",
+              "under_review",
+              "approved",
+              "rejected",
+              "revision_requested"
+            ]
           },
-          "createdAt": {
+          "submitted_at": {
             "type": "string",
             "format": "date-time"
           },
-          "metadata": {
-            "type": "object",
-            "description": "Additional file metadata"
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },
-      "FileUploadResponse": {
-        "required": ["file"],
+      "SubmissionListResponse": {
+        "required": ["submissions"],
         "type": "object",
         "properties": {
-          "file": {
-            "$ref": "#/components/schemas/FileMetadata"
+          "submissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Submission"
+            }
           }
         }
       },
-      "FileMetadataResponse": {
-        "required": ["metadata"],
+      "SubmissionResponse": {
+        "required": ["submission"],
         "type": "object",
         "properties": {
-          "metadata": {
-            "$ref": "#/components/schemas/FileMetadata"
+          "submission": {
+            "$ref": "#/components/schemas/Submission"
           }
         }
       },
-      "AttachFileRequest": {
-        "required": ["fileId"],
+      "SubmissionDetailResponse": {
+        "required": ["current_review", "submission"],
         "type": "object",
         "properties": {
-          "fileId": {
+          "submission": {
+            "$ref": "#/components/schemas/Submission"
+          },
+          "current_review": {
+            "$ref": "#/components/schemas/Review"
+          }
+        }
+      },
+      "AdminSubmissionListResponse": {
+        "required": ["submissions"],
+        "type": "object",
+        "properties": {
+          "submissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSubmissionDetail"
+            }
+          }
+        }
+      },
+      "AdminSubmissionDetail": {
+        "required": [
+          "assessment_id",
+          "content",
+          "review_status",
+          "submission_id",
+          "submitted_at",
+          "user_id"
+        ],
+        "type": "object",
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "description": "Unique submission identifier",
+            "format": "uuid"
+          },
+          "assessment_id": {
+            "type": "string",
+            "description": "Original assessment that was submitted",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string",
+            "description": "User who submitted the assessment"
+          },
+          "content": {
+            "$ref": "#/components/schemas/AdminSubmissionDetail_content"
+          },
+          "review_status": {
+            "type": "string",
+            "description": "Current review status",
+            "enum": [
+              "pending_review",
+              "under_review",
+              "approved",
+              "rejected",
+              "revision_requested"
+            ]
+          },
+          "submitted_at": {
+            "type": "string",
+            "description": "Submission timestamp",
+            "format": "date-time"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "description": "Review completion timestamp",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "Review": {
+        "required": [
+          "created_at",
+          "review_id",
+          "reviewer_id",
+          "status",
+          "submission_id"
+        ],
+        "type": "object",
+        "properties": {
+          "review_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reviewer_id": {
+            "type": "string"
+          },
+          "reviewer_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed"]
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["approved", "rejected", "revision_requested"]
+          },
+          "comments": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AdminReview": {
+        "required": [
+          "created_at",
+          "review_id",
+          "reviewer_email",
+          "reviewer_id",
+          "status",
+          "submission_id",
+          "user_email"
+        ],
+        "type": "object",
+        "properties": {
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_email": {
+            "type": "string"
+          },
+          "reviewer_id": {
+            "type": "string"
+          },
+          "reviewer_email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed"]
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["approved", "rejected", "revision_requested"]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminReviewListResponse": {
+        "required": ["reviews"],
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminReview"
+            }
           }
         }
       },
       "Report": {
-        "required": ["assessmentId", "reportId", "reportType", "status"],
+        "required": [
+          "generated_at",
+          "report_id",
+          "report_type",
+          "status",
+          "submission_id"
+        ],
         "type": "object",
         "properties": {
-          "reportId": {
+          "report_id": {
             "type": "string",
             "format": "uuid"
           },
-          "assessmentId": {
+          "submission_id": {
             "type": "string",
             "format": "uuid"
           },
-          "reportType": {
+          "report_type": {
             "type": "string",
-            "enum": ["PDF", "CSV"]
+            "enum": ["sustainability", "compliance", "summary", "detailed"]
           },
           "status": {
             "type": "string",
-            "enum": ["pending", "processing", "completed", "failed"]
+            "enum": ["generating", "completed", "failed"]
           },
-          "generatedAt": {
+          "generated_at": {
             "type": "string",
             "format": "date-time"
           },
           "data": {
             "type": "object",
-            "description": "Report content and metadata"
+            "nullable": true
           }
         }
       },
       "GenerateReportRequest": {
-        "required": ["reportType"],
+        "required": ["report_type"],
         "type": "object",
         "properties": {
-          "reportType": {
+          "report_type": {
             "type": "string",
-            "enum": ["PDF", "CSV"]
+            "enum": ["sustainability", "compliance", "summary", "detailed"]
           },
           "options": {
             "type": "object",
-            "description": "Report generation options"
+            "nullable": true
           }
         }
       },
       "ReportGenerationResponse": {
-        "required": ["reportId", "status"],
+        "required": ["report_id", "status"],
         "type": "object",
         "properties": {
-          "reportId": {
+          "report_id": {
             "type": "string",
             "format": "uuid"
           },
           "status": {
             "type": "string",
-            "enum": ["pending", "processing"]
-          }
-        }
-      },
-      "ReportResponse": {
-        "required": ["report"],
-        "type": "object",
-        "properties": {
-          "report": {
-            "$ref": "#/components/schemas/Report"
+            "enum": ["generating", "completed", "failed"]
           }
         }
       },
@@ -2274,315 +2126,289 @@
           }
         }
       },
-      "SyncChange": {
-        "required": ["data", "id", "timestamp", "type"],
+      "ReportResponse": {
+        "required": ["report"],
         "type": "object",
         "properties": {
-          "id": {
+          "report": {
+            "$ref": "#/components/schemas/Report"
+          }
+        }
+      },
+      "FileMetadata": {
+        "required": ["file_id", "metadata"],
+        "type": "object",
+        "properties": {
+          "file_id": {
             "type": "string",
             "format": "uuid"
           },
-          "type": {
-            "type": "string",
-            "enum": ["create", "update", "delete"]
-          },
-          "data": {
+          "metadata": {
             "type": "object",
-            "description": "Change data"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "version": {
-            "type": "integer",
-            "description": "Version for conflict resolution"
+            "description": "File metadata including filename, size, content type, etc."
           }
         }
       },
-      "SyncAssessmentsRequest": {
-        "required": ["changes"],
-        "type": "object",
-        "properties": {
-          "changes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SyncChange"
-            }
-          }
-        }
-      },
-      "SyncResponsesRequest": {
-        "required": ["changes"],
-        "type": "object",
-        "properties": {
-          "changes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SyncChange"
-            }
-          }
-        }
-      },
-      "SyncResult": {
-        "required": ["id", "status"],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["success", "conflict", "error"]
-          },
-          "message": {
-            "type": "string",
-            "description": "Result message"
-          }
-        }
-      },
-      "SyncResponse": {
-        "required": ["results", "syncId"],
-        "type": "object",
-        "properties": {
-          "syncId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "results": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SyncResult"
-            }
-          },
-          "conflicts": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ConflictResponse"
-            }
-          }
-        }
-      },
-      "SyncConflictResponse": {
-        "required": ["conflicts", "syncId"],
-        "type": "object",
-        "properties": {
-          "syncId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "conflicts": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ConflictResponse"
-            }
-          }
-        }
-      },
-      "SyncStatusResponse": {
-        "required": ["progress", "status", "syncId"],
-        "type": "object",
-        "properties": {
-          "syncId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["pending", "processing", "completed", "failed"]
-          },
-          "progress": {
-            "maximum": 100,
-            "minimum": 0,
-            "type": "number",
-            "description": "Sync progress percentage"
-          },
-          "message": {
-            "type": "string",
-            "description": "Status message"
-          }
-        }
-      },
-      "files_body": {
+      "FileResponse": {
         "required": ["file"],
         "type": "object",
         "properties": {
           "file": {
+            "$ref": "#/components/schemas/FileMetadata"
+          }
+        }
+      },
+      "FileMetadataResponse": {
+        "required": ["file_id", "metadata"],
+        "type": "object",
+        "properties": {
+          "file_id": {
             "type": "string",
-            "description": "File to upload",
+            "format": "uuid"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      },
+      "Error": {
+        "required": ["error", "message"],
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "ValidationError": {
+        "required": ["error", "message", "validation_errors"],
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "validation_failed"
+          },
+          "message": {
+            "type": "string",
+            "example": "Request validation failed"
+          },
+          "validation_errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError_validation_errors"
+            }
+          }
+        }
+      },
+      "inline_response_200": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "healthy"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "files_body": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
             "format": "binary"
           },
           "metadata": {
-            "type": "object",
-            "description": "Optional file metadata"
-          }
-        }
-      },
-      "HealthResponse_checks": {
-        "type": "object",
-        "properties": {
-          "database": {
             "type": "string",
-            "enum": ["up", "down"]
-          },
-          "keycloak": {
+            "description": "JSON metadata for the file"
+          }
+        }
+      },
+      "response_id_files_body": {
+        "type": "object",
+        "properties": {
+          "file_id": {
             "type": "string",
-            "enum": ["up", "down"]
+            "format": "uuid"
           }
         }
       },
-      "MetricsResponse_requests": {
+      "Submission_content_assessment": {
         "type": "object",
         "properties": {
-          "total": {
-            "type": "integer"
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
-          "per_second": {
-            "type": "number"
+          "language": {
+            "type": "string",
+            "example": "en"
           }
         }
       },
-      "MetricsResponse_memory": {
+      "Submission_content_responses": {
         "type": "object",
         "properties": {
-          "used": {
-            "type": "integer"
+          "question": {
+            "type": "string",
+            "format": "uuid"
           },
-          "total": {
-            "type": "integer"
+          "response": {
+            "type": "string",
+            "example": "Our organization has a comprehensive sustainability policy"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileMetadata"
+            }
           }
         }
       },
-      "MetricsResponse_database": {
+      "Submission_content": {
         "type": "object",
         "properties": {
-          "connections": {
-            "type": "integer"
+          "assessment": {
+            "$ref": "#/components/schemas/Submission_content_assessment"
           },
-          "queries_per_second": {
-            "type": "number"
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Submission_content_responses"
+            }
+          }
+        },
+        "description": "Immutable snapshot of assessment and all responses"
+      },
+      "AdminSubmissionDetail_content_responses": {
+        "type": "object",
+        "properties": {
+          "question_text": {
+            "type": "string",
+            "description": "The actual question text (mapped from question_revision_id)",
+            "example": "What is your organization's sustainability policy?"
+          },
+          "question_category": {
+            "type": "string",
+            "description": "Question category",
+            "example": "Environmental"
+          },
+          "response": {
+            "type": "string",
+            "description": "User's response to the question",
+            "example": "Our organization has a comprehensive sustainability policy"
+          },
+          "files": {
+            "type": "array",
+            "description": "Attached files with complete metadata",
+            "items": {
+              "$ref": "#/components/schemas/FileMetadata"
+            }
+          }
+        }
+      },
+      "AdminSubmissionDetail_content": {
+        "type": "object",
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/Submission_content_assessment"
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSubmissionDetail_content_responses"
+            }
+          }
+        },
+        "description": "Immutable snapshot of assessment and all responses with question text"
+      },
+      "ValidationError_validation_errors": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
           }
         }
       }
     },
     "responses": {
-      "BadRequestError": {
-        "description": "Bad request",
+      "BadRequest": {
+        "description": "Bad Request",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/ValidationError"
             }
           }
         }
       },
-      "UnauthorizedError": {
+      "Unauthorized": {
         "description": "Unauthorized",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/Error"
             }
           }
         }
       },
-      "ForbiddenError": {
+      "Forbidden": {
         "description": "Forbidden",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/Error"
             }
           }
         }
       },
-      "NotFoundError": {
-        "description": "Not found",
+      "NotFound": {
+        "description": "Not Found",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/Error"
             }
           }
         }
       },
-      "ValidationError": {
-        "description": "Validation error",
+      "Conflict": {
+        "description": "Conflict",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/Error"
             }
           }
         }
       },
       "InternalServerError": {
-        "description": "Internal server error",
+        "description": "Internal Server Error",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/Error"
             }
           }
         }
       }
     },
     "parameters": {
-      "Page": {
-        "name": "page",
-        "in": "query",
-        "description": "Page number (1-based)",
-        "required": false,
-        "schema": {
-          "minimum": 1,
-          "type": "integer",
-          "default": 1
-        }
-      },
-      "Limit": {
-        "name": "limit",
-        "in": "query",
-        "description": "Number of items per page",
-        "required": false,
-        "schema": {
-          "maximum": 100,
-          "minimum": 1,
-          "type": "integer",
-          "default": 20
-        }
-      },
-      "Category": {
-        "name": "category",
-        "in": "query",
-        "description": "Filter by question category",
-        "required": false,
-        "schema": {
-          "type": "string"
-        }
-      },
-      "Language": {
-        "name": "language",
-        "in": "query",
-        "description": "Preferred language for multilingual content",
-        "required": false,
-        "schema": {
-          "type": "string",
-          "example": "en"
-        }
-      },
-      "Status": {
-        "name": "status",
-        "in": "query",
-        "description": "Filter by assessment status",
-        "required": false,
-        "schema": {
-          "type": "string",
-          "enum": ["draft", "submitted", "completed"]
-        }
-      },
       "QuestionId": {
-        "name": "questionId",
+        "name": "question_id",
         "in": "path",
         "description": "Question ID",
         "required": true,
@@ -2591,18 +2417,8 @@
           "format": "uuid"
         }
       },
-      "RevisionId": {
-        "name": "revisionId",
-        "in": "path",
-        "description": "Question revision ID",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        }
-      },
       "AssessmentId": {
-        "name": "assessmentId",
+        "name": "assessment_id",
         "in": "path",
         "description": "Assessment ID",
         "required": true,
@@ -2612,7 +2428,7 @@
         }
       },
       "ResponseId": {
-        "name": "responseId",
+        "name": "response_id",
         "in": "path",
         "description": "Response ID",
         "required": true,
@@ -2621,10 +2437,10 @@
           "format": "uuid"
         }
       },
-      "FileId": {
-        "name": "fileId",
+      "SubmissionId": {
+        "name": "submission_id",
         "in": "path",
-        "description": "File ID",
+        "description": "Submission ID",
         "required": true,
         "schema": {
           "type": "string",
@@ -2632,7 +2448,7 @@
         }
       },
       "ReportId": {
-        "name": "reportId",
+        "name": "report_id",
         "in": "path",
         "description": "Report ID",
         "required": true,
@@ -2641,21 +2457,30 @@
           "format": "uuid"
         }
       },
-      "SyncId": {
-        "name": "syncId",
+      "FileId": {
+        "name": "file_id",
         "in": "path",
-        "description": "Sync operation ID",
+        "description": "File ID",
         "required": true,
         "schema": {
           "type": "string",
           "format": "uuid"
+        }
+      },
+      "Language": {
+        "name": "language",
+        "in": "query",
+        "description": "Language for content",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "default": "en"
         }
       }
     },
     "securitySchemes": {
       "BearerAuth": {
         "type": "http",
-        "description": "Keycloak JWT token",
         "scheme": "bearer",
         "bearerFormat": "JWT"
       }
