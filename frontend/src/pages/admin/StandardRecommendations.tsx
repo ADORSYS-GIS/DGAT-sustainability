@@ -15,6 +15,7 @@ import { Star, Plus, Edit, Trash2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { set, get, del } from "idb-keyval";
+import { useTranslation } from "react-i18next";
 
 const STANDARD_RECOMMENDATIONS_KEY = "standard_recommendations";
 
@@ -24,6 +25,7 @@ interface Recommendation {
 }
 
 export const StandardRecommendations: React.FC = () => {
+  const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingRec, setEditingRec] = useState<Recommendation | null>(null);
   const [formData, setFormData] = useState({ text: "" });
@@ -138,11 +140,11 @@ export const StandardRecommendations: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <Star className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    Standard Recommendations
+                    {t("admin.recommendations.title")}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  Manage reusable recommendations for assessment reviews
+                  {t("admin.recommendations.description")}
                 </p>
               </div>
 
@@ -156,20 +158,22 @@ export const StandardRecommendations: React.FC = () => {
                 <DialogTrigger asChild>
                   <Button className="bg-dgrv-green hover:bg-green-700">
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Recommendation
+                    {t("admin.recommendations.add_button")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
                       {editingRec
-                        ? "Edit Standard Recommendation"
-                        : "Add Standard Recommendation"}
+                        ? t("admin.recommendations.edit_title")
+                        : t("admin.recommendations.add_title")}
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="text">Recommendation Text</Label>
+                      <Label htmlFor="text">
+                        {t("admin.recommendations.text_label")}
+                      </Label>
                       <Textarea
                         id="text"
                         value={formData.text}
@@ -179,7 +183,9 @@ export const StandardRecommendations: React.FC = () => {
                             text: e.target.value,
                           }))
                         }
-                        placeholder="Enter the recommendation text..."
+                        placeholder={t(
+                          "admin.recommendations.text_placeholder",
+                        )}
                         rows={4}
                       />
                     </div>
@@ -189,10 +195,11 @@ export const StandardRecommendations: React.FC = () => {
                         className="bg-dgrv-green hover:bg-green-700"
                       >
                         {editingRec
-                          ? "Update Recommendation"
-                          : "Create Recommendation"}
+                          ? t("admin.recommendations.update_button")
+                          : t("admin.recommendations.create_button")}
                       </Button>
                       <Button variant="outline" onClick={resetForm}>
+                        {t("admin.recommendations.cancel_button")}
                         Cancel
                       </Button>
                     </div>

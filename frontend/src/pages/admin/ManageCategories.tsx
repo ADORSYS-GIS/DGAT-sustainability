@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, List } from "lucide-react";
 import { get, set } from "idb-keyval";
+import { useTranslation } from "react-i18next";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
 const CATEGORIES_KEY = "sustainability_categories";
@@ -27,6 +28,7 @@ interface Category {
 }
 
 export const ManageCategories: React.FC = () => {
+  const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
@@ -143,16 +145,16 @@ export const ManageCategories: React.FC = () => {
             <div className="flex items-center space-x-3 mb-4">
               <List className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                Manage Categories
+                {t("admin.categories.title")}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Configure categories for the Sustainability Assessment
+              {t("admin.categories.description")}
             </p>
           </div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Sustainability Assessment Categories</CardTitle>
+              <CardTitle>{t("admin.categories.cardTitle")}</CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -167,18 +169,22 @@ export const ManageCategories: React.FC = () => {
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Category
+                    {t("admin.categories.addCategoryButton")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
-                      {editingCategory ? "Edit Category" : "Add New Category"}
+                      {editingCategory
+                        ? t("admin.categories.editCategoryTitle")
+                        : t("admin.categories.addNewCategoryTitle")}
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="name">Category Name</Label>
+                      <Label htmlFor="name">
+                        {t("admin.categories.categoryNameLabel")}
+                      </Label>
                       <Input
                         id="name"
                         value={formData.name}
@@ -188,12 +194,16 @@ export const ManageCategories: React.FC = () => {
                             name: e.target.value,
                           }))
                         }
-                        placeholder="e.g., Environmental Impact"
+                        placeholder={t(
+                          "admin.categories.categoryNamePlaceholder",
+                        )}
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="weight">Weight (%)</Label>
+                      <Label htmlFor="weight">
+                        {t("admin.categories.weightLabel")}
+                      </Label>
                       <Input
                         id="weight"
                         type="number"
@@ -210,7 +220,9 @@ export const ManageCategories: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="order">Display Order</Label>
+                      <Label htmlFor="order">
+                        {t("admin.categories.displayOrderLabel")}
+                      </Label>
                       <Input
                         id="order"
                         type="number"
@@ -229,7 +241,9 @@ export const ManageCategories: React.FC = () => {
                       type="submit"
                       className="w-full bg-dgrv-blue hover:bg-blue-700"
                     >
-                      {editingCategory ? "Update Category" : "Create Category"}
+                      {editingCategory
+                        ? t("admin.categories.updateCategoryButton")
+                        : t("admin.categories.createCategoryButton")}
                     </Button>
                   </form>
                 </DialogContent>
@@ -245,7 +259,10 @@ export const ManageCategories: React.FC = () => {
                     <div>
                       <h3 className="font-medium text-lg">{category.name}</h3>
                       <p className="text-sm text-gray-600">
-                        Weight: {category.weight}% | Order: {category.order}
+                        {t("admin.categories.weightOrder", {
+                          weight: category.weight,
+                          order: category.order,
+                        })}
                       </p>
                     </div>
                     <div className="flex space-x-2">
@@ -270,9 +287,7 @@ export const ManageCategories: React.FC = () => {
                 {sortedCategories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <List className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>
-                      No categories yet. Add your first category to get started!
-                    </p>
+                    <p>{t("admin.categories.noCategoriesMessage")}</p>
                   </div>
                 )}
               </div>

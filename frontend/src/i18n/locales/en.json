@@ -1,4 +1,328 @@
 {
-  "greeting": "Hello",
-  "farewell": "Goodbye"
+  "navbar": {
+    "brand": "DGRV",
+    "subtitle": "Digital Gap & Sustainability",
+    "home": "Home",
+    "languages": {
+      "en": "English",
+      "ss": "siSwati",
+      "pt": "Português",
+      "zu": "isiZulu",
+      "de": "Deutsch",
+      "fr": "Français"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome!",
+    "ready": "Ready to continue your cooperative's sustainability journey?",
+    "actions": {
+      "start": "Start Sustainability Assessment",
+      "start_desc": "Assess environmental, social, and governance practices for sustainable growth.",
+      "view": "View Assessments",
+      "view_desc": "View all your assessments, drafts, and completed submissions with recommendations.",
+      "plan": "Action Plan",
+      "plan_desc": "Track your progress with interactive tasks and recommendations using our Kanban board."
+    },
+    "recent": "Recent Submissions",
+    "view_all": "View All",
+    "loading": "Loading submissions...",
+    "assessment": "Sustainability Assessment",
+    "no_submissions": "No submissions yet. Start your first assessment above!",
+    "export_reports": "Export Reports",
+    "export_desc": "Download your assessment reports in various formats.",
+    "export_pdf": "Export as PDF",
+    "export_word": "Export as Word",
+    "export_csv": "Export as CSV",
+    "need_help": "Need Help?",
+    "help_desc": "Get support and training materials to make the most of your assessments.",
+    "user_guide": "View User Guide",
+    "statuses": {
+      "approved": "Approved",
+      "pending_review": "Pending Review",
+      "under_review": "Under Review",
+      "rejected": "Rejected",
+      "revision_requested": "Revision Requested",
+      "unknown": "Unknown"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "welcome": {
+        "title": "Welcome, Admin! Drive Cooperative Impact!",
+        "description": "Manage the DGRV assessment platform and support cooperatives across Southern Africa."
+      },
+      "pendingReviews": {
+        "title": "Pending Reviews",
+        "badge": "pending",
+        "assessmentType": "Sustainability Assessment",
+        "submittedBy": "by",
+        "reviewRequired": "Review Required",
+        "upToDate": "All assessments are up to date!"
+      },
+      "systemHealth": {
+        "title": "System Health",
+        "database": "Database",
+        "healthy": "Healthy",
+        "apiResponse": "API Response",
+        "fast": "Fast",
+        "syncQueue": "Sync Queue",
+        "clear": "Clear"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "exportReport": "Export System Report",
+        "backupDatabase": "Backup Database",
+        "viewAuditLogs": "View Audit Logs",
+        "systemSettings": "System Settings"
+      }
+    },
+    "questions": {
+      "title": "Manage Questions",
+      "description": "Manage questions for the Sustainability Assessment",
+      "sustainability_assessment_questions": "Sustainability Assessment Questions",
+      "add_question": "Add Question",
+      "edit_question": "Edit Question",
+      "add_new_question": "Add New Question",
+      "form": {
+        "text_en": {
+          "label": "Question Text (English)",
+          "placeholder": "e.g., Does your cooperative have a recycling program?",
+          "required": "Question text (English) is required."
+        },
+        "text_zu": {
+          "label": "Question Text (Zulu - Optional)",
+          "placeholder": "e.g., Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
+        },
+        "category": {
+          "label": "Category",
+          "placeholder": "Select a category",
+          "required": "Category is required."
+        },
+        "weight": {
+          "label": "Weight (1-10)",
+          "range": "Weight must be between 1 and 10."
+        },
+        "order": {
+          "label": "Display Order"
+        },
+        "saving": "Saving...",
+        "update": "Update Question",
+        "create": "Create Question"
+      },
+      "create": {
+        "success": "Question created."
+      },
+      "update": {
+        "success": "Question updated."
+      },
+      "delete": {
+        "success": "Question deleted.",
+        "confirm": "Are you sure you want to delete this question?"
+      },
+      "id": "ID",
+      "created_at": "Created",
+      "text": "Text",
+      "questions_count": "questions",
+      "no_questions_in_category": "No questions in this category yet.",
+      "no_categories_available": "No categories available. Please create categories first!",
+      "no_text": "No text"
+    },
+    "categories": {
+      "title": "Manage Categories",
+      "description": "Configure categories for the Sustainability Assessment",
+      "cardTitle": "Sustainability Assessment Categories",
+      "addCategoryButton": "Add Category",
+      "editCategoryTitle": "Edit Category",
+      "addNewCategoryTitle": "Add New Category",
+      "categoryNameLabel": "Category Name",
+      "categoryNamePlaceholder": "e.g., Environmental Impact",
+      "weightLabel": "Weight (%)",
+      "displayOrderLabel": "Display Order",
+      "updateCategoryButton": "Update Category",
+      "createCategoryButton": "Create Category",
+      "weightOrder": "Weight: {{weight}}% | Order: {{order}}",
+      "noCategoriesMessage": "No categories yet. Add your first category to get started!"
+    },
+    "review": {
+      "title": "Review Assessments",
+      "description": "Review submitted assessments and provide recommendations",
+      "submission": {
+        "title": "Submission",
+        "id": "Submission ID",
+        "user": "User"
+      },
+      "review": {
+        "button": "Review"
+      },
+      "no_submissions": "No submissions to review",
+      "up_to_date": "All submissions are up to date!",
+      "dialog": {
+        "title": "Review Submission",
+        "submission_details": {
+          "title": "Submission Details",
+          "id": "Submission ID",
+          "user": "User",
+          "submitted": "Submitted"
+        },
+        "answer": "Answer",
+        "recommendation": "Recommendation",
+        "recommendation_placeholder": "Enter recommendation for this question"
+      }
+    },
+    "recommendations": {
+      "title": "Standard Recommendations",
+      "description": "Manage reusable recommendations for assessment reviews",
+      "add_button": "Add Recommendation",
+      "edit_title": "Edit Standard Recommendation",
+      "add_title": "Add Standard Recommendation",
+      "text_label": "Recommendation Text",
+      "text_placeholder": "Enter the recommendation text...",
+      "update_button": "Update Recommendation",
+      "create_button": "Create Recommendation",
+      "cancel_button": "Cancel"
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "Empower Your Cooperative",
+      "subtitle": "Assess Digital & Sustainability Goals",
+      "description": "Simple, secure, and impactful—help your cooperative thrive in the digital age while building sustainable practices for the future.",
+      "cta": "Start Assessment"
+    },
+    "features": {
+      "digital_gap": {
+        "title": "Digital Gap Analysis",
+        "description": "Assess your cooperative's digital maturity with comprehensive questionnaires covering technology infrastructure, digital literacy, and online presence."
+      },
+      "sustainability": {
+        "title": "Sustainability Assessment",
+        "description": "Evaluate environmental, social, and governance practices to build a more sustainable and responsible cooperative."
+      },
+      "action_plans": {
+        "title": "Action Plans",
+        "description": "Track your progress with interactive Kanban boards, turning assessment insights into actionable tasks and measurable improvements."
+      }
+    },
+    "benefits": {
+      "title": "Why Choose DGRV Assessment Tools?",
+      "built_for_coops": {
+        "title": "Built for Cooperatives",
+        "description": "Designed specifically for cooperative organizations in Southern Africa"
+      },
+      "multilingual": {
+        "title": "Multilingual Support",
+        "description": "Available in English, siSwati, Portuguese, Zulu, German, and French"
+      },
+      "offline": {
+        "title": "Offline Capable",
+        "description": "Works reliably even with limited internet connectivity"
+      }
+    },
+    "cta": {
+      "title": "Ready to Transform Your Cooperative?",
+      "description": "Join cooperatives across Southern Africa in building a more digital and sustainable future.",
+      "button": "Get Started Today"
+    }
+  },
+  "assessment": {
+    "tool_name": "Sustainability Assessment",
+    "error": {
+      "create": "Failed to create assessment"
+    },
+    "success": {
+      "submit": "Your {{tool}} has been submitted successfully"
+    },
+    "loading": "Loading assessment...",
+    "not_available": {
+      "title": "Assessment Not Available",
+      "description": "The {{tool}} is not yet configured. Please contact your administrator.",
+      "back": "Return to Dashboard"
+    },
+    "category": "Category {{current}} of {{total}}: {{name}}",
+    "progress": "Progress",
+    "yes_no": {
+      "label": "Yes/No",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "percentage": {
+      "label": "Percentage",
+      "explanation_label": "Show percentage explanation",
+      "zero": "0%",
+      "zero_description": "Not started",
+      "twenty_five": "25%",
+      "twenty_five_description": "Some progress",
+      "fifty": "50%",
+      "fifty_description": "Halfway",
+      "seventy_five": "75%",
+      "seventy_five_description": "Almost done",
+      "hundred": "100%",
+      "hundred_description": "Fully achieved"
+    },
+    "response": {
+      "label": "Your Response",
+      "placeholder": "Enter your response..."
+    },
+    "file": {
+      "add_file": "Add file"
+    },
+    "nav": {
+      "previous": "Previous",
+      "next": "Next",
+      "save_draft": "Save Draft",
+      "submit": "Submit Assessment"
+    }
+  },
+  "assessments": {
+    "title": "Your Submissions",
+    "subtitle": "View and manage all your sustainability submissions",
+    "start_new": "Start New Assessment",
+    "assessment_title": "Sustainability Assessment",
+    "submitted": "Submitted",
+    "reviewed": "Reviewed",
+    "submission_id": "Submission ID",
+    "assessment_id": "Assessment ID",
+    "view_details": "View Details",
+    "no_submissions": "No submissions yet",
+    "no_submissions_desc": "Start your first sustainability assessment to track your cooperative's progress.",
+    "start_assessment": "Start Assessment",
+    "status": {
+      "approved": "Approved",
+      "pending_review": "Pending Review",
+      "under_review": "Under Review",
+      "rejected": "Rejected",
+      "revision_requested": "Revision Requested",
+      "unknown": "Unknown"
+    }
+  },
+  "submissionView": {
+    "error": "Error loading submission details.",
+    "details": {
+      "title": "Submission Details",
+      "submission_id": "Submission ID",
+      "assessment_id": "Assessment ID",
+      "user_id": "User ID",
+      "status": "Status",
+      "submitted_at": "Submitted At",
+      "reviewed_at": "Reviewed At"
+    },
+    "answers": {
+      "yes_no": "Yes/No:",
+      "yes": "Yes",
+      "no": "No",
+      "percentage": "Percentage:",
+      "text": "Text:"
+    }
+  },
+  "actionPlan": {
+    "title": "Action Plan",
+    "subtitle": "Track your sustainability improvement tasks",
+    "columns": {
+      "todo": "To Do",
+      "in_progress": "In Progress",
+      "done": "Done",
+      "approved": "Approved"
+    },
+    "no_tasks": "No tasks in {{column}}"
+  }
 }

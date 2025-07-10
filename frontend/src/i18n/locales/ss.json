@@ -1,0 +1,328 @@
+{
+  "navbar": {
+    "brand": "DGRV",
+    "subtitle": "Digital Gap & Sustainability",
+    "home": "Ikhaya",
+    "languages": {
+      "en": "English",
+      "ss": "siSwati",
+      "pt": "Português",
+      "zu": "isiZulu",
+      "de": "Deutsch",
+      "fr": "Français"
+    }
+  },
+  "dashboard": {
+    "welcome": "Wemukelekile!",
+    "ready": "Usukulungele ukuqhubeka nohambo lwekusebenta kahle kwekuphila kwelilunga lakho?",
+    "actions": {
+      "start": "Qala Kuhlolwa Kwekusebenta Kahle",
+      "start_desc": "Hlola imikhuba yemvelo, yezenhlalakahle, neyekuphatha kahle kwenhlangano ukuze kukhule kahle.",
+      "view": "Buka Kuhlolwa",
+      "view_desc": "Buka onke kuhlolwa kwakho, emadraftini, nemibiko eqediwe enencomo.",
+      "plan": "Luhlelo Lwasebenta",
+      "plan_desc": "Landzela intfutfuko yakho ngetimfuno letisebentako netincomo usebentisa iKanban yetfu."
+    },
+    "recent": "Kufakwe Kwakamuva",
+    "view_all": "Buka Konkhe",
+    "loading": "Kulayishwa kufakwe...",
+    "assessment": "Kuhlolwa Kwekusebenta Kahle",
+    "no_submissions": "Akukafakwa lutfo. Qala kuhlolwa kwakho kokuqala lapha ngetulu!",
+    "export_reports": "Khipha Imibiko",
+    "export_desc": "Landa imibiko yakho yekuhlolwa ngetindlela letehlukene.",
+    "export_pdf": "Khipha njenge-PDF",
+    "export_word": "Khipha njenge-Word",
+    "export_csv": "Khipha njenge-CSV",
+    "need_help": "Udinga Lusito?",
+    "help_desc": "Thola lusito netincwadzi tekufundza kutsi usebentise kahle kuhlolwa kwakho.",
+    "user_guide": "Buka Incwadzi Yemsebenzisi",
+    "statuses": {
+      "approved": "Kuvunyelwe",
+      "pending_review": "Kulindzele Kubuyekezwa",
+      "under_review": "Kuyabuyekezwa",
+      "rejected": "Kwenqatshiwe",
+      "revision_requested": "Kucelwa Kubuyekezwa",
+      "unknown": "Akwatiwa"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "welcome": {
+        "title": "Wemukelekile, Lomphatsi! Phakamisa Umphumela Wemphatselomphakathi!",
+        "description": "Phatsa ipulatifomu ye-DGRV yokuhlola bese usita ema-cooperative eNingizimu Afrika yonkhe."
+      },
+      "pendingReviews": {
+        "title": "Kubuyekezwa Lokulindzele",
+        "badge": "kulindzele",
+        "assessmentType": "Kuhlolwa Kwekusebenta Kahle",
+        "submittedBy": "ngu",
+        "reviewRequired": "Kudzingeka Kubuyekezwe",
+        "upToDate": "Onkhe kuhlolwa sekuphelele!"
+      },
+      "systemHealth": {
+        "title": "Simo Sesistimu",
+        "database": "Idathabhesi",
+        "healthy": "Kusebenta Kahle",
+        "apiResponse": "Imphendvulo ye-API",
+        "fast": "Iyashesha",
+        "syncQueue": "Kulindzele Ukuvumelanisa",
+        "clear": "Kuhlobile"
+      },
+      "quickActions": {
+        "title": "Tento Lesheshako",
+        "exportReport": "Khipha Umbiko Wesistimu",
+        "backupDatabase": "Yenza Ikhophi Yedathabhesi",
+        "viewAuditLogs": "Buka Ema-Log Wokuhlola",
+        "systemSettings": "Emiseto Esistimu"
+      }
+    },
+    "questions": {
+      "title": "Phatsa Imibuto",
+      "description": "Phatsa imibuto yekuhlolwa kwekusebenta kahle",
+      "sustainability_assessment_questions": "Imibuto Yekuhlolwa Kwekusebenta Kahle",
+      "add_question": "Engeza Umbuto",
+      "edit_question": "Hlela Umbuto",
+      "add_new_question": "Engeza Umbuto Lomusha",
+      "form": {
+        "text_en": {
+          "label": "Umbuto (English)",
+          "placeholder": "e.g., Ingabe umfelandawonye wakho unalo yini uhlelo lokugayisa kabusha?",
+          "required": "Umbuto (English) uyadzingeka."
+        },
+        "text_zu": {
+          "label": "Umbuto (Zulu - Kwekutikhetsela)",
+          "placeholder": "e.g., Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
+        },
+        "category": {
+          "label": "Sihloko",
+          "placeholder": "Khetsa isihloko",
+          "required": "Sihloko siyadzingeka."
+        },
+        "weight": {
+          "label": "Simo (1-10)",
+          "range": "Simo kumele sibe phakathi kwa-1 na-10."
+        },
+        "order": {
+          "label": "Kuboniswa Kwe-oda"
+        },
+        "saving": "Kuyalondvolotwa...",
+        "update": "Buyeketa Umbuto",
+        "create": "Yakha Umbuto"
+      },
+      "create": {
+        "success": "Umbuto udaliwe."
+      },
+      "update": {
+        "success": "Umbuto ubuyeketiwe."
+      },
+      "delete": {
+        "success": "Umbuto ususiwe.",
+        "confirm": "Uqinisekile kutsi ufuna kususa lombuto?"
+      },
+      "id": "ID",
+      "created_at": "Kudalwe",
+      "text": "Umbuto",
+      "questions_count": "imibuto",
+      "no_questions_in_category": "Asikabi nemibuto kulesihloko. Engeza umbuto!",
+      "no_categories_available": "Asikabi nasihloko. Sicela engeza isihloko kuqala!",
+      "no_text": "Akunamphendvulo"
+    },
+    "categories": {
+      "title": "Phatsa Tihloko",
+      "description": "Hlela tihloko tekuhlolwa kwekusebenta kahle",
+      "cardTitle": "Tihloko Tekuhlolwa Kwekusebenta Kahle",
+      "addCategoryButton": "Engeza Sihloko",
+      "editCategoryTitle": "Hlela Sihloko",
+      "addNewCategoryTitle": "Engeza Sihloko Lesisha",
+      "categoryNameLabel": "Libito Lesihloko",
+      "categoryNamePlaceholder": "e.g., Umphumela Wemvelo",
+      "weightLabel": "Simo (%)",
+      "displayOrderLabel": "Kuboniswa Kwe-oda",
+      "updateCategoryButton": "Buyeketa Sihloko",
+      "createCategoryButton": "Yakha Sihloko",
+      "weightOrder": "Simo: {{weight}}% | Oda: {{order}}",
+      "noCategoriesMessage": "Asikabi nasihloko. Engeza lesokuqala!"
+    },
+    "review": {
+      "title": "Buyeketa Kuhlolwa",
+      "description": "Buyeketa kuhlolwa lokufakiwe bese unika tincomo",
+      "submission": {
+        "title": "Kufakwa",
+        "id": "ID Yokufaka",
+        "user": "Umsebenzisi"
+      },
+      "review": {
+        "button": "Buyeketa"
+      },
+      "no_submissions": "Asikabi nakufakwa lokudzingeka kubuyekezwa",
+      "up_to_date": "Konkhe kufakwe sekubuyeketiwe!",
+      "dialog": {
+        "title": "Buyeketa Kufakwa",
+        "submission_details": {
+          "title": "Imininingwane Yokufaka",
+          "id": "ID Yokufaka",
+          "user": "Umsebenzisi",
+          "submitted": "Kufakiwe"
+        },
+        "answer": "Imphendvulo",
+        "recommendation": "Sincomo",
+        "recommendation_placeholder": "Faka sincomo salombuto"
+      }
+    },
+    "recommendations": {
+      "title": "Tincomo Temphilo",
+      "description": "Phatsa tincomo letisetjentiswa kaningi ekuhlolweni",
+      "add_button": "Engeza Sincomo",
+      "edit_title": "Hlela Sincomo Semphilo",
+      "add_title": "Engeza Sincomo Semphilo",
+      "text_label": "Umbhalo Wesincomo",
+      "text_placeholder": "Faka umbhalo wesincomo...",
+      "update_button": "Buyeketa Sincomo",
+      "create_button": "Yakha Sincomo",
+      "cancel_button": "Khansela"
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "Khulisa Umfelandawonye Wakho",
+      "subtitle": "Hlola Emigomo Ledijithali & Kusebenta Kahle",
+      "description": "Kulula, kuphephile, kuyasebenta—sita umfelandawonye wakho uchume esikhathini sedijithali bese wakha imikhuba lesimeme yekusasa.",
+      "cta": "Qala Kuhlolwa"
+    },
+    "features": {
+      "digital_gap": {
+        "title": "Kuhlolwa Kwegebe Ledijithali",
+        "description": "Hlola kufaneleka kwedijithali kwemfelandawonye wakho ngemibuto lebanzi ngekusetjentiswa kwetekholoji, lwati lwedijithali, nekubakhona ku-inthanethi."
+      },
+      "sustainability": {
+        "title": "Kuhlolwa Kwekusebenta Kahle",
+        "description": "Hlola imikhuba yemvelo, yezenhlalakahle, neyekuphatha kahle kwenhlangano ukuze kube nemphumelelo lesimeme."
+      },
+      "action_plans": {
+        "title": "Tihlelo Tekusebenta",
+        "description": "Landzela intfutfuko yakho ngetibhodi te-Kanban, uphendvule imiphumela yekuhlolwa kube timo letisebentako netintfo letingalinganiswa."
+      }
+    },
+    "benefits": {
+      "title": "Kungani Khetha Lamathuluzi e-DGRV?",
+      "built_for_coops": {
+        "title": "Akhiwe Ema-Cooperative",
+        "description": "Akhiwe ngco ema-cooperative aseNingizimu Afrika"
+      },
+      "multilingual": {
+        "title": "Kwesekelwa Tilwimi Letinyenti",
+        "description": "Kuyatholakala ngesiNgisi, siSwati, Portuguese, Zulu, German, neFrench"
+      },
+      "offline": {
+        "title": "Kuyasebenta Ngaphandle kwe-Inthanethi",
+        "description": "Kuyasebenta kahle noma inethiwekhi ingekho"
+      }
+    },
+    "cta": {
+      "title": "Usukulungele Kushintsha Umfelandawonye Wakho?",
+      "description": "Joyina ema-cooperative aseNingizimu Afrika ekwakheni likusasa ledijithali nelesimeme.",
+      "button": "Qala Namuhla"
+    }
+  },
+  "assessment": {
+    "tool_name": "Kuhlolwa Kwekusebenta Kahle",
+    "error": {
+      "create": "Kwehlulekile kwakha kuhlolwa"
+    },
+    "success": {
+      "submit": "Kuhlolwa kwakho kwe-{{tool}} kufakwe ngempumelelo"
+    },
+    "loading": "Kulayishwa kuhlolwa...",
+    "not_available": {
+      "title": "Kuhlolwa Akutholakali",
+      "description": "{{tool}} akukalungiselelwa. Sicela utsintse umphatsi wakho.",
+      "back": "Buyela kuDashboard"
+    },
+    "category": "Sihloko {{current}} ku-{{total}}: {{name}}",
+    "progress": "Intfutfuko",
+    "yes_no": {
+      "label": "Yebo/Cha",
+      "yes": "Yebo",
+      "no": "Cha"
+    },
+    "percentage": {
+      "label": "Iphesenti",
+      "explanation_label": "Bonisa incazelo yepesenti",
+      "zero": "0%",
+      "zero_description": "Akukakaqali",
+      "twenty_five": "25%",
+      "twenty_five_description": "Kukhona intfutfuko",
+      "fifty": "50%",
+      "fifty_description": "Sewuphakathi nendawo",
+      "seventy_five": "75%",
+      "seventy_five_description": "Kusedvute kucala",
+      "hundred": "100%",
+      "hundred_description": "Kuphelelwe"
+    },
+    "response": {
+      "label": "Imphendvulo Yakho",
+      "placeholder": "Faka imphendvulo yakho..."
+    },
+    "file": {
+      "add_file": "Engeza lifayela"
+    },
+    "nav": {
+      "previous": "Emuva",
+      "next": "Landelayo",
+      "save_draft": "Londvolota Draft",
+      "submit": "Faka Kuhlolwa"
+    }
+  },
+  "assessments": {
+    "title": "Kufakwe Kwakho",
+    "subtitle": "Buka uphatse konkhe kufakwe kwakho kwekusebenta kahle",
+    "start_new": "Qala Kuhlolwa Lokusha",
+    "assessment_title": "Kuhlolwa Kwekusebenta Kahle",
+    "submitted": "Kufakiwe",
+    "reviewed": "Kubuyeketiwe",
+    "submission_id": "ID Yokufaka",
+    "assessment_id": "ID Yekuhlolwa",
+    "view_details": "Buka Imininingwane",
+    "no_submissions": "Akukafakwa lutfo",
+    "no_submissions_desc": "Qala kuhlolwa kwakho kokuqala kwekusebenta kahle kutsi ulandzele intfutfuko yemfelandawonye wakho.",
+    "start_assessment": "Qala Kuhlolwa",
+    "status": {
+      "approved": "Kuvunyelwe",
+      "pending_review": "Kulindzele Kubuyekezwa",
+      "under_review": "Kuyabuyekezwa",
+      "rejected": "Kwenqatshiwe",
+      "revision_requested": "Kucelwa Kubuyekezwa",
+      "unknown": "Akwatiwa"
+    }
+  },
+  "submissionView": {
+    "error": "Kwehlulekile kulayisha imininingwane yekufakwa.",
+    "details": {
+      "title": "Imininingwane Yekufakwa",
+      "submission_id": "ID Yokufaka",
+      "assessment_id": "ID Yekuhlolwa",
+      "user_id": "ID Yomsebenzisi",
+      "status": "Simo",
+      "submitted_at": "Kufakiwe Ngaliphi",
+      "reviewed_at": "Kubuyeketiwe Ngaliphi"
+    },
+    "answers": {
+      "yes_no": "Yebo/Cha:",
+      "yes": "Yebo",
+      "no": "Cha",
+      "percentage": "Iphesenti:",
+      "text": "Umbhalo:"
+    }
+  },
+  "actionPlan": {
+    "title": "Luhlelo Lwasebenta",
+    "subtitle": "Landzela imisebenti yakho yekusebenta kahle",
+    "columns": {
+      "todo": "Kusebenta",
+      "in_progress": "Kuyasebenta",
+      "done": "Kuphelile",
+      "approved": "Kuvunyelwe"
+    },
+    "no_tasks": "Akunamisebenti ku-{{column}}"
+  }
+}

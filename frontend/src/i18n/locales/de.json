@@ -1,0 +1,328 @@
+{
+  "navbar": {
+    "brand": "DGRV",
+    "subtitle": "Digitale Lücke & Nachhaltigkeit",
+    "home": "Startseite",
+    "languages": {
+      "en": "Englisch",
+      "ss": "siSwati",
+      "pt": "Portugiesisch",
+      "zu": "isiZulu",
+      "de": "Deutsch",
+      "fr": "Französisch"
+    }
+  },
+  "dashboard": {
+    "welcome": "Willkommen!",
+    "ready": "Bereit, die Nachhaltigkeitsreise Ihrer Genossenschaft fortzusetzen?",
+    "actions": {
+      "start": "Nachhaltigkeitsbewertung starten",
+      "start_desc": "Bewerten Sie Umwelt-, Sozial- und Governance-Praktiken für nachhaltiges Wachstum.",
+      "view": "Bewertungen anzeigen",
+      "view_desc": "Sehen Sie alle Ihre Bewertungen, Entwürfe und abgeschlossenen Einreichungen mit Empfehlungen.",
+      "plan": "Aktionsplan",
+      "plan_desc": "Verfolgen Sie Ihren Fortschritt mit interaktiven Aufgaben und Empfehlungen über unser Kanban-Board."
+    },
+    "recent": "Letzte Einreichungen",
+    "view_all": "Alle anzeigen",
+    "loading": "Einreichungen werden geladen...",
+    "assessment": "Nachhaltigkeitsbewertung",
+    "no_submissions": "Noch keine Einreichungen. Starten Sie Ihre erste Bewertung oben!",
+    "export_reports": "Berichte exportieren",
+    "export_desc": "Laden Sie Ihre Bewertungsberichte in verschiedenen Formaten herunter.",
+    "export_pdf": "Als PDF exportieren",
+    "export_word": "Als Word exportieren",
+    "export_csv": "Als CSV exportieren",
+    "need_help": "Brauchen Sie Hilfe?",
+    "help_desc": "Erhalten Sie Unterstützung und Schulungsmaterialien, um das Beste aus Ihren Bewertungen herauszuholen.",
+    "user_guide": "Benutzerhandbuch anzeigen",
+    "statuses": {
+      "approved": "Genehmigt",
+      "pending_review": "Zur Überprüfung ausstehend",
+      "under_review": "In Überprüfung",
+      "rejected": "Abgelehnt",
+      "revision_requested": "Überarbeitung angefordert",
+      "unknown": "Unbekannt"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "welcome": {
+        "title": "Willkommen, Admin! Fördern Sie die Wirkung der Genossenschaft!",
+        "description": "Verwalten Sie die DGRV-Bewertungsplattform und unterstützen Sie Genossenschaften in ganz Südafrika."
+      },
+      "pendingReviews": {
+        "title": "Ausstehende Überprüfungen",
+        "badge": "ausstehend",
+        "assessmentType": "Nachhaltigkeitsbewertung",
+        "submittedBy": "von",
+        "reviewRequired": "Überprüfung erforderlich",
+        "upToDate": "Alle Bewertungen sind aktuell!"
+      },
+      "systemHealth": {
+        "title": "Systemzustand",
+        "database": "Datenbank",
+        "healthy": "Gesund",
+        "apiResponse": "API-Antwort",
+        "fast": "Schnell",
+        "syncQueue": "Synchronisationswarteschlange",
+        "clear": "Leer"
+      },
+      "quickActions": {
+        "title": "Schnellaktionen",
+        "exportReport": "Systembericht exportieren",
+        "backupDatabase": "Datenbank sichern",
+        "viewAuditLogs": "Audit-Logs anzeigen",
+        "systemSettings": "Systemeinstellungen"
+      }
+    },
+    "questions": {
+      "title": "Fragen verwalten",
+      "description": "Verwalten Sie Fragen für die Nachhaltigkeitsbewertung",
+      "sustainability_assessment_questions": "Fragen zur Nachhaltigkeitsbewertung",
+      "add_question": "Frage hinzufügen",
+      "edit_question": "Frage bearbeiten",
+      "add_new_question": "Neue Frage hinzufügen",
+      "form": {
+        "text_en": {
+          "label": "Fragentext (Englisch)",
+          "placeholder": "z.B. Hat Ihre Genossenschaft ein Recyclingprogramm?",
+          "required": "Fragentext (Englisch) ist erforderlich."
+        },
+        "text_zu": {
+          "label": "Fragentext (Zulu - Optional)",
+          "placeholder": "z.B. Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
+        },
+        "category": {
+          "label": "Kategorie",
+          "placeholder": "Kategorie auswählen",
+          "required": "Kategorie ist erforderlich."
+        },
+        "weight": {
+          "label": "Gewichtung (1-10)",
+          "range": "Gewichtung muss zwischen 1 und 10 liegen."
+        },
+        "order": {
+          "label": "Anzeigereihenfolge"
+        },
+        "saving": "Speichern...",
+        "update": "Frage aktualisieren",
+        "create": "Frage erstellen"
+      },
+      "create": {
+        "success": "Frage erstellt."
+      },
+      "update": {
+        "success": "Frage aktualisiert."
+      },
+      "delete": {
+        "success": "Frage gelöscht.",
+        "confirm": "Sind Sie sicher, dass Sie diese Frage löschen möchten?"
+      },
+      "id": "ID",
+      "created_at": "Erstellt am",
+      "text": "Text",
+      "questions_count": "Fragen",
+      "no_questions_in_category": "Noch keine Fragen in dieser Kategorie.",
+      "no_categories_available": "Keine Kategorien verfügbar. Bitte erstellen Sie zuerst eine Kategorie!",
+      "no_text": "Kein Text"
+    },
+    "categories": {
+      "title": "Kategorien verwalten",
+      "description": "Konfigurieren Sie Kategorien für die Nachhaltigkeitsbewertung",
+      "cardTitle": "Kategorien der Nachhaltigkeitsbewertung",
+      "addCategoryButton": "Kategorie hinzufügen",
+      "editCategoryTitle": "Kategorie bearbeiten",
+      "addNewCategoryTitle": "Neue Kategorie hinzufügen",
+      "categoryNameLabel": "Kategoriename",
+      "categoryNamePlaceholder": "z.B. Umweltauswirkung",
+      "weightLabel": "Gewichtung (%)",
+      "displayOrderLabel": "Anzeigereihenfolge",
+      "updateCategoryButton": "Kategorie aktualisieren",
+      "createCategoryButton": "Kategorie erstellen",
+      "weightOrder": "Gewichtung: {{weight}}% | Reihenfolge: {{order}}",
+      "noCategoriesMessage": "Noch keine Kategorien. Fügen Sie die erste Kategorie hinzu, um zu beginnen!"
+    },
+    "review": {
+      "title": "Bewertungen überprüfen",
+      "description": "Überprüfen Sie eingereichte Bewertungen und geben Sie Empfehlungen ab",
+      "submission": {
+        "title": "Einreichung",
+        "id": "Einreichungs-ID",
+        "user": "Benutzer"
+      },
+      "review": {
+        "button": "Überprüfen"
+      },
+      "no_submissions": "Keine Einreichungen zu überprüfen",
+      "up_to_date": "Alle Einreichungen sind aktuell!",
+      "dialog": {
+        "title": "Einreichung überprüfen",
+        "submission_details": {
+          "title": "Einreichungsdetails",
+          "id": "Einreichungs-ID",
+          "user": "Benutzer",
+          "submitted": "Eingereicht"
+        },
+        "answer": "Antwort",
+        "recommendation": "Empfehlung",
+        "recommendation_placeholder": "Empfehlung für diese Frage eingeben"
+      }
+    },
+    "recommendations": {
+      "title": "Standardempfehlungen",
+      "description": "Verwalten Sie wiederverwendbare Empfehlungen für Bewertungen",
+      "add_button": "Empfehlung hinzufügen",
+      "edit_title": "Standardempfehlung bearbeiten",
+      "add_title": "Standardempfehlung hinzufügen",
+      "text_label": "Empfehlungstext",
+      "text_placeholder": "Empfehlungstext eingeben...",
+      "update_button": "Empfehlung aktualisieren",
+      "create_button": "Empfehlung erstellen",
+      "cancel_button": "Abbrechen"
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "Stärken Sie Ihre Genossenschaft",
+      "subtitle": "Bewerten Sie digitale & nachhaltige Ziele",
+      "description": "Einfach, sicher und wirkungsvoll – helfen Sie Ihrer Genossenschaft, im digitalen Zeitalter zu gedeihen und nachhaltige Praktiken für die Zukunft aufzubauen.",
+      "cta": "Bewertung starten"
+    },
+    "features": {
+      "digital_gap": {
+        "title": "Digitale Lückenanalyse",
+        "description": "Bewerten Sie die digitale Reife Ihrer Genossenschaft mit umfassenden Fragebögen zu Technologie, digitaler Kompetenz und Online-Präsenz."
+      },
+      "sustainability": {
+        "title": "Nachhaltigkeitsbewertung",
+        "description": "Bewerten Sie Umwelt-, Sozial- und Governance-Praktiken für eine nachhaltigere und verantwortungsvollere Genossenschaft."
+      },
+      "action_plans": {
+        "title": "Aktionspläne",
+        "description": "Verfolgen Sie Ihren Fortschritt mit interaktiven Kanban-Boards und setzen Sie Erkenntnisse in konkrete Aufgaben und Verbesserungen um."
+      }
+    },
+    "benefits": {
+      "title": "Warum DGRV-Bewertungstools wählen?",
+      "built_for_coops": {
+        "title": "Für Genossenschaften entwickelt",
+        "description": "Speziell für Genossenschaften im südlichen Afrika entwickelt"
+      },
+      "multilingual": {
+        "title": "Mehrsprachige Unterstützung",
+        "description": "Verfügbar in Englisch, siSwati, Portugiesisch, Zulu, Deutsch und Französisch"
+      },
+      "offline": {
+        "title": "Offline-fähig",
+        "description": "Funktioniert zuverlässig auch bei eingeschränkter Internetverbindung"
+      }
+    },
+    "cta": {
+      "title": "Bereit, Ihre Genossenschaft zu transformieren?",
+      "description": "Schließen Sie sich Genossenschaften im südlichen Afrika an und gestalten Sie eine digitalere und nachhaltigere Zukunft.",
+      "button": "Jetzt starten"
+    }
+  },
+  "assessment": {
+    "tool_name": "Nachhaltigkeitsbewertung",
+    "error": {
+      "create": "Bewertung konnte nicht erstellt werden"
+    },
+    "success": {
+      "submit": "Ihre {{tool}} wurde erfolgreich eingereicht"
+    },
+    "loading": "Bewertung wird geladen...",
+    "not_available": {
+      "title": "Bewertung nicht verfügbar",
+      "description": "Die {{tool}} ist noch nicht konfiguriert. Bitte wenden Sie sich an Ihren Administrator.",
+      "back": "Zurück zum Dashboard"
+    },
+    "category": "Kategorie {{current}} von {{total}}: {{name}}",
+    "progress": "Fortschritt",
+    "yes_no": {
+      "label": "Ja/Nein",
+      "yes": "Ja",
+      "no": "Nein"
+    },
+    "percentage": {
+      "label": "Prozentsatz",
+      "explanation_label": "Prozenterklärung anzeigen",
+      "zero": "0%",
+      "zero_description": "Nicht begonnen",
+      "twenty_five": "25%",
+      "twenty_five_description": "Etwas Fortschritt",
+      "fifty": "50%",
+      "fifty_description": "Halbzeit",
+      "seventy_five": "75%",
+      "seventy_five_description": "Fast fertig",
+      "hundred": "100%",
+      "hundred_description": "Vollständig erreicht"
+    },
+    "response": {
+      "label": "Ihre Antwort",
+      "placeholder": "Geben Sie Ihre Antwort ein..."
+    },
+    "file": {
+      "add_file": "Datei hinzufügen"
+    },
+    "nav": {
+      "previous": "Zurück",
+      "next": "Weiter",
+      "save_draft": "Entwurf speichern",
+      "submit": "Bewertung einreichen"
+    }
+  },
+  "assessments": {
+    "title": "Ihre Einreichungen",
+    "subtitle": "Sehen und verwalten Sie alle Ihre Nachhaltigkeitseinreichungen",
+    "start_new": "Neue Bewertung starten",
+    "assessment_title": "Nachhaltigkeitsbewertung",
+    "submitted": "Eingereicht",
+    "reviewed": "Überprüft",
+    "submission_id": "Einreichungs-ID",
+    "assessment_id": "Bewertungs-ID",
+    "view_details": "Details anzeigen",
+    "no_submissions": "Noch keine Einreichungen",
+    "no_submissions_desc": "Starten Sie Ihre erste Nachhaltigkeitsbewertung, um den Fortschritt Ihrer Genossenschaft zu verfolgen.",
+    "start_assessment": "Bewertung starten",
+    "status": {
+      "approved": "Genehmigt",
+      "pending_review": "Zur Überprüfung ausstehend",
+      "under_review": "In Überprüfung",
+      "rejected": "Abgelehnt",
+      "revision_requested": "Überarbeitung angefordert",
+      "unknown": "Unbekannt"
+    }
+  },
+  "submissionView": {
+    "error": "Fehler beim Laden der Einreichungsdetails.",
+    "details": {
+      "title": "Einreichungsdetails",
+      "submission_id": "Einreichungs-ID",
+      "assessment_id": "Bewertungs-ID",
+      "user_id": "Benutzer-ID",
+      "status": "Status",
+      "submitted_at": "Eingereicht am",
+      "reviewed_at": "Überprüft am"
+    },
+    "answers": {
+      "yes_no": "Ja/Nein:",
+      "yes": "Ja",
+      "no": "Nein",
+      "percentage": "Prozentsatz:",
+      "text": "Text:"
+    }
+  },
+  "actionPlan": {
+    "title": "Aktionsplan",
+    "subtitle": "Verfolgen Sie Ihre Aufgaben zur Verbesserung der Nachhaltigkeit",
+    "columns": {
+      "todo": "Zu erledigen",
+      "in_progress": "In Bearbeitung",
+      "done": "Erledigt",
+      "approved": "Genehmigt"
+    },
+    "no_tasks": "Keine Aufgaben in {{column}}"
+  }
+}

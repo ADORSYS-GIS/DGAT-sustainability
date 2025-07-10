@@ -1,5 +1,6 @@
 import React from "react";
 import { LucideIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface FeatureCardProps {
   title: string;
@@ -16,6 +17,7 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
   color = "blue",
   onClick,
 }) => {
+  const { t } = useTranslation();
   const colorClasses = {
     blue: "border-blue-200 hover:border-dgrv-blue bg-blue-50/50",
     green: "border-green-200 hover:border-dgrv-green bg-green-50/50",
