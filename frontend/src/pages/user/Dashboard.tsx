@@ -1,42 +1,45 @@
-import React, { useState, useEffect } from "react";
-import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
+import { Navbar } from "@/components/shared/Navbar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
 import {
-  Leaf,
   CheckSquare,
   Download,
-  History,
-  Star,
   FileText,
+  History,
+  Leaf,
+  Star,
 } from "lucide-react";
-import {
-  getAssessmentsByUser,
-  getRecommendationsByAssessment,
-} from "@/services/shared/dataService";
-import { Assessment } from "@/services/user/assessmentService";
-import jsPDF from "jspdf";
-import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
+import React from "react";
+import { useAssessmentsServiceGetAssessments } from "../../openapi-rq/queries/queries";
+import type { Assessment } from "../../openapi-rq/requests/types.gen";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const Dashboard: React.FC = () => {
-  // No authentication, so no user context
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const navigate = useNavigate();
+  const { data, isLoading, isError, error, isSuccess } =
+    useAssessmentsServiceGetAssessments({ limit: 3 });
+  const assessments: Assessment[] = data?.assessments || [];
 
-  useEffect(() => {
-    loadUserAssessments();
-  }, []);
-
-  const loadUserAssessments = async () => {
-    try {
-      // Fetch all assessments (no user filtering)
-      const userAssessments = await getAssessmentsByUser("");
-      setAssessments(userAssessments.slice(0, 3)); // Show only recent 3
-    } catch (error) {
-      console.error("Error loading assessments:", error);
+  React.useEffect(() => {
+    if (isError) {
+      toast.error("Error loading assessments", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } else if (isLoading) {
+      toast.info("Loading assessments...", {
+        description: "Fetching your recent assessments.",
+      });
+    } else if (isSuccess) {
+      toast.success("Assessments loaded", {
+        description: `Loaded ${assessments.length} assessments successfully!`,
+        className: "bg-dgrv-green text-white",
+      });
     }
-  };
+  }, [isError, error, isLoading, isSuccess, assessments.length]);
 
   const dashboardActions = [
     {
@@ -45,7 +48,7 @@ export const Dashboard: React.FC = () => {
         "Assess environmental, social, and governance practices for sustainable growth.",
       icon: Leaf,
       color: "green" as const,
-      onClick: () => (window.location.href = "/assessment/sustainability"),
+      onClick: () => navigate("/assessment/sustainability"),
     },
     {
       title: "View Assessments",
@@ -53,7 +56,7 @@ export const Dashboard: React.FC = () => {
         "View all your assessments, drafts, and completed submissions with recommendations.",
       icon: FileText,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/assessments"),
+      onClick: () => navigate("/assessments"),
     },
     {
       title: "Action Plan",
@@ -61,7 +64,7 @@ export const Dashboard: React.FC = () => {
         "Track your progress with interactive tasks and recommendations using our Kanban board.",
       icon: CheckSquare,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/action-plan"),
+      onClick: () => navigate("/action-plan"),
     },
   ];
 
@@ -96,11 +99,7 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleExportAllPDF = async () => {
-    await exportAllAssessmentsPDF(
-      assessments,
-      getRecommendationsByAssessment,
-      formatStatus,
-    );
+    await exportAllAssessmentsPDF(assessments, undefined, formatStatus);
   };
 
   return (
@@ -145,46 +144,48 @@ export const Dashboard: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => (window.location.href = "/assessments")}
+                  onClick={() => navigate("/assessments")}
                 >
                   View All
                 </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {assessments.map((assessment) => (
-                    <div
-                      key={assessment.assessmentId}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          <Leaf className="w-5 h-5 text-dgrv-green" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">
-                            Sustainability Assessment
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {new Date(
-                              assessment.createdAt,
-                            ).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {assessment.score && (
-                          <span className="text-sm font-medium">
-                            Score: {assessment.score}%
-                          </span>
-                        )}
-                        <Badge className={getStatusColor(assessment.status)}>
-                          {formatStatus(assessment.status)}
-                        </Badge>
-                      </div>
+                  {isLoading ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Loading assessments...</p>
                     </div>
-                  ))}
-                  {assessments.length === 0 && (
+                  ) : (
+                    assessments.map((assessment) => (
+                      <div
+                        key={assessment.assessmentId}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="p-2 rounded-full bg-gray-100">
+                            <Leaf className="w-5 h-5 text-dgrv-green" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">
+                              Sustainability Assessment
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {new Date(
+                                assessment.createdAt,
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Badge className={getStatusColor(assessment.status)}>
+                            {formatStatus(assessment.status)}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {assessments.length === 0 && !isLoading && (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>
