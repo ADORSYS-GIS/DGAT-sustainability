@@ -1,4 +1,5 @@
-import React from "react";
+import * as React from "react";
+import { useMemo } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +14,13 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
-import { useOrganizations } from "@/hooks/shared/useOrganizations";
-import { useUsers } from "@/hooks/shared/useUsers";
-import { useAssessments } from "@/hooks/shared/useAssessments";
-import { Organization } from "@/services/admin/organizationService";
-import { User } from "@/services/admin/organizationService";
-import { Assessment } from "@/services/user/assessmentService";
+import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen";
+import { useAdminServiceGetAdminSubmissions } from "../../openapi-rq/queries/queries";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+type Organization = { organizationId: string; name: string };
+type User = { userId: string; firstName?: string; lastName?: string };
 
 interface PendingReview {
   id: string;
@@ -29,63 +31,79 @@ interface PendingReview {
 }
 
 export const AdminDashboard: React.FC = () => {
-  const { data: orgs = [], isLoading: orgsLoading } = useOrganizations();
-  const { data: users = [], isLoading: usersLoading } = useUsers();
-  const { data: assessments = [], isLoading: assessmentsLoading } =
-    useAssessments();
+  const [orgs] = React.useState<Organization[]>([
+    { organizationId: "org1", name: "Mock Cooperative 1" },
+    { organizationId: "org2", name: "Mock Cooperative 2" },
+  ]);
+  const [users] = React.useState<User[]>([
+    { userId: "user1", firstName: "Alice", lastName: "Smith" },
+    { userId: "user2", firstName: "Bob", lastName: "Jones" },
+  ]);
+  const orgsLoading = false;
+  const usersLoading = false;
 
-  const [orgCount, setOrgCount] = React.useState(0);
-  const [userCount, setUserCount] = React.useState(0);
-  const [pendingCount, setPendingCount] = React.useState(0);
-  const [completedCount, setCompletedCount] = React.useState(0);
-  const [pendingReviews, setPendingReviews] = React.useState<PendingReview[]>(
-    [],
+  const {
+    data: submissionsData,
+    isLoading: submissionsLoading,
+    isError,
+    error,
+    isSuccess,
+  } = useAdminServiceGetAdminSubmissions();
+  const submissions: AdminSubmissionDetail[] = React.useMemo(
+    () => submissionsData?.submissions ?? [],
+    [submissionsData],
   );
 
   React.useEffect(() => {
-    if (orgsLoading || usersLoading || assessmentsLoading) return;
-    // Calculate stats and pending reviews
-    const pendingAssessments = (assessments as Assessment[]).filter(
-      (a) => a.status === "submitted" || a.status === "under_review",
-    );
-    const completedCount = (assessments as Assessment[]).filter(
-      (a) => a.status === "completed",
-    ).length;
-    const orgMap = new Map(
-      (orgs as Organization[]).map((o) => [o.organizationId, o.name]),
+    if (isError) {
+      toast.error("Error loading submissions", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } else if (submissionsLoading) {
+      toast.info("Loading submissions...", {
+        description: "Fetching latest submission data.",
+      });
+    } else if (isSuccess) {
+      toast.success(`Loaded ${submissions.length} submissions successfully!`, {
+        className: "bg-dgrv-green text-white",
+      });
+    }
+  }, [isError, error, submissionsLoading, isSuccess, submissions.length]);
+
+  const pendingReviews = useMemo(() => {
+    if (orgsLoading || usersLoading || submissionsLoading) return [];
+
+    const pendingSubmissions = submissions.filter(
+      (s) => s.review_status === "pending_review",
     );
     const userMap = new Map(
-      (users as User[]).map((u) => [
-        u.userId,
-        `${u.firstName ?? ""} ${u.lastName ?? ""}`,
-      ]),
+      users.map((u) => [u.userId, `${u.firstName ?? ""} ${u.lastName ?? ""}`]),
     );
-    const reviewsData = pendingAssessments.map((assessment) => ({
-      id: assessment.assessmentId,
-      organization:
-        orgMap.get(assessment.organizationId) || "Unknown Organization",
-      user: userMap.get(assessment.userId) || "Unknown User",
-      type: (assessment.templateId || "").toLowerCase().includes("dgat")
-        ? "DGAT"
-        : "Sustainability",
-      submittedAt: new Date(assessment.createdAt).toLocaleDateString("en-CA"),
-    }));
-    setPendingReviews(reviewsData);
-  }, [orgs, users, assessments, orgsLoading, usersLoading, assessmentsLoading]);
 
-  React.useEffect(() => {
-    setOrgCount(orgs.length);
-    setUserCount(users.length);
-    setPendingCount(
-      (assessments as Assessment[]).filter(
-        (a) => a.status === "submitted" || a.status === "under_review",
+    return pendingSubmissions.map((submission) => ({
+      id: submission.submission_id,
+      organization: "Unknown Organization",
+      user: userMap.get(submission.user_id) || "Unknown User",
+      type: "Sustainability",
+      submittedAt: new Date(submission.submitted_at).toLocaleDateString(
+        "en-CA",
+      ),
+    }));
+  }, [users, submissions, orgsLoading, usersLoading, submissionsLoading]);
+
+  const stats = useMemo(() => {
+    return {
+      orgCount: orgs.length,
+      userCount: users.length,
+      pendingCount: submissions.filter(
+        (s) => s.review_status === "pending_review",
       ).length,
-    );
-    setCompletedCount(
-      (assessments as Assessment[]).filter((a) => a.status === "completed")
+      completedCount: submissions.filter((s) => s.review_status === "approved")
         .length,
-    );
-  }, [orgs, users, assessments]);
+    };
+  }, [users, submissions, orgs.length]);
+
+  const navigate = useNavigate();
 
   const adminActions = [
     {
@@ -94,14 +112,14 @@ export const AdminDashboard: React.FC = () => {
         "Add, edit, and manage cooperative organizations in the system.",
       icon: Users,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/admin/organizations"),
+      onClick: () => navigate("/admin/organizations"),
     },
     {
       title: "Manage Users",
       description: "Control user access and roles across all organizations.",
       icon: Users,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/admin/users"),
+      onClick: () => navigate("/admin/users"),
     },
     {
       title: "Manage Categories",
@@ -109,21 +127,21 @@ export const AdminDashboard: React.FC = () => {
         "Configure assessment categories for DGAT and Sustainability tools.",
       icon: List,
       color: "green" as const,
-      onClick: () => (window.location.href = "/admin/categories"),
+      onClick: () => navigate("/admin/categories"),
     },
     {
       title: "Manage Questions",
       description: "Create and edit questions within each assessment category.",
       icon: BookOpen,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/admin/questions"),
+      onClick: () => navigate("/admin/questions"),
     },
     {
       title: "Review Assessments",
       description: "Review submitted assessments and provide recommendations.",
       icon: CheckSquare,
       color: "green" as const,
-      onClick: () => (window.location.href = "/admin/reviews"),
+      onClick: () => navigate("/admin/reviews"),
     },
     {
       title: "Standard Recommendations",
@@ -131,15 +149,19 @@ export const AdminDashboard: React.FC = () => {
         "Manage reusable recommendations for common assessment scenarios.",
       icon: Star,
       color: "blue" as const,
-      onClick: () => (window.location.href = "/admin/recommendations"),
+      onClick: () => navigate("/admin/recommendations"),
     },
   ];
 
   const systemStats = [
-    { label: "Active Organizations", value: orgCount, color: "blue" },
-    { label: "Total Users", value: userCount, color: "green" },
-    { label: "Pending Reviews", value: pendingCount, color: "yellow" },
-    { label: "Completed Assessments", value: completedCount, color: "blue" },
+    { label: "Active Organizations", value: stats.orgCount, color: "blue" },
+    { label: "Total Users", value: stats.userCount, color: "green" },
+    { label: "Pending Reviews", value: stats.pendingCount, color: "yellow" },
+    {
+      label: "Completed Assessments",
+      value: stats.completedCount,
+      color: "blue",
+    },
   ];
 
   return (
@@ -203,7 +225,7 @@ export const AdminDashboard: React.FC = () => {
                   <span>Pending Reviews</span>
                 </CardTitle>
                 <Badge className="bg-orange-500 text-white">
-                  {pendingReviews.length} pending
+                  {stats.pendingCount} pending
                 </Badge>
               </CardHeader>
               <CardContent>
@@ -215,15 +237,12 @@ export const AdminDashboard: React.FC = () => {
                     >
                       <div className="flex items-center space-x-4">
                         <div className="p-2 rounded-full bg-gray-100">
-                          {review.type === "DGAT" ? (
-                            <TrendingUp className="w-5 h-5 text-dgrv-blue" />
-                          ) : (
-                            <Star className="w-5 h-5 text-dgrv-green" />
-                          )}
+                          {/* Assuming type is derived from submission or can be inferred */}
+                          <Star className="w-5 h-5 text-dgrv-green" />
                         </div>
                         <div>
                           <h3 className="font-medium">
-                            {review.type} Assessment
+                            Sustainability Assessment
                           </h3>
                           <p className="text-sm text-gray-600">
                             {review.organization}
