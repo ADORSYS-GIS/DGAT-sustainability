@@ -1,13 +1,15 @@
+use crate::web::api::models::{
+    DatabaseMetrics, HealthChecks, HealthResponse, MemoryMetrics, MetricsResponse, RequestMetrics,
+};
 use axum::Json;
-use crate::web::api::models::{HealthResponse, HealthChecks, MetricsResponse, RequestMetrics, MemoryMetrics, DatabaseMetrics};
+use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::SystemTime;
-use once_cell::sync::Lazy;
 use sysinfo::System;
 
 // Global metrics tracking
 static REQUEST_COUNT: AtomicU64 = AtomicU64::new(0);
-static START_TIME: Lazy<SystemTime> = Lazy::new(|| SystemTime::now());
+static START_TIME: Lazy<SystemTime> = Lazy::new(SystemTime::now);
 
 fn increment_request_count() {
     REQUEST_COUNT.fetch_add(1, Ordering::Relaxed);

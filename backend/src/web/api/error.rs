@@ -21,7 +21,10 @@ impl IntoResponse for ApiError {
             ApiError::NotFound(message) => (StatusCode::NOT_FOUND, message),
             ApiError::Conflict(message) => (StatusCode::CONFLICT, message),
             ApiError::InternalServerError(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
-            ApiError::DatabaseError(message) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Database error: {}", message)),
+            ApiError::DatabaseError(message) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Database error: {message}"),
+            ),
         };
 
         let body = Json(json!({

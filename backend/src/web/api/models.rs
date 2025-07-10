@@ -12,7 +12,6 @@ pub struct ErrorResponse {
     pub details: Option<serde_json::Value>,
 }
 
-
 // =============== Health Models ===============
 
 #[derive(Debug, Serialize)]
@@ -80,7 +79,6 @@ pub struct CreateQuestionRequest {
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateQuestionRequest {

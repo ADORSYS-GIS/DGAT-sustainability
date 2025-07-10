@@ -1,19 +1,19 @@
+use crate::common::state::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::{
-    AdminSubmissionListResponse, AdminSubmissionDetail, AdminSubmissionContent, 
-    AdminAssessmentInfo, AdminResponseDetail, AdminReviewListResponse, AdminReview, 
-    AssignReviewerRequest, ReviewAssignmentResponse
+    AdminAssessmentInfo, AdminResponseDetail, AdminSubmissionContent, AdminSubmissionDetail,
+    AdminSubmissionListResponse,
 };
-use crate::common::state::AppState;
-use axum::{extract::{Query, State}, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use serde::Deserialize;
 use uuid::Uuid;
-use chrono::Utc;
 
 #[derive(Deserialize)]
 pub struct ListSubmissionsQuery {
     status: Option<String>,
-
 }
 
 pub async fn list_all_submissions(
@@ -21,10 +21,12 @@ pub async fn list_all_submissions(
     Query(params): Query<ListSubmissionsQuery>,
 ) -> Result<Json<AdminSubmissionListResponse>, ApiError> {
     // Fetch all submissions from the database
-    let submission_models = app_state.database.assessments_submission
+    let submission_models = app_state
+        .database
+        .assessments_submission
         .get_all_submissions()
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions: {e}")))?;
 
     // Convert database models to API models
     let mut submissions = Vec::new();
@@ -34,14 +36,17 @@ pub async fn list_all_submissions(
         let content_obj = model.content.as_object().unwrap_or(&default_map);
 
         // Extract assessment info
-        let assessment_info = content_obj.get("assessment")
+        let assessment_info = content_obj
+            .get("assessment")
             .and_then(|a| a.as_object())
             .map(|a| AdminAssessmentInfo {
-                assessment_id: a.get("assessment_id")
+                assessment_id: a
+                    .get("assessment_id")
                     .and_then(|id| id.as_str())
                     .and_then(|s| Uuid::parse_str(s).ok())
                     .unwrap_or(model.assessment_id),
-                language: a.get("language")
+                language: a
+                    .get("language")
                     .and_then(|l| l.as_str())
                     .unwrap_or("en")
                     .to_string(),
@@ -52,29 +57,98 @@ pub async fn list_all_submissions(
             });
 
         // Extract responses info
-        let responses = content_obj.get("responses")
+        let responses = content_obj
+            .get("responses")
             .and_then(|r| r.as_array())
             .map(|responses_array| {
-                responses_array.iter()
+                responses_array
+                    .iter()
                     .filter_map(|r| r.as_object())
-                    .map(|response_obj| AdminResponseDetail {
-                        question_text: response_obj.get("question_text")
-                            .and_then(|q| q.as_str())
-                            .unwrap_or("Question text not available")
-                            .to_string(),
-                        question_category: response_obj.get("question_category")
-                            .and_then(|c| c.as_str())
-                            .unwrap_or("General")
-                            .to_string(),
-                        response: response_obj.get("response")
-                            .and_then(|r| r.as_str())
-                            .unwrap_or("")
-                            .to_string(),
-                        files: vec![], // Files would be populated from database if needed
+                    .map(|response_obj| {
+                        // Extract file metadata from the response
+                        let files = response_obj
+                            .get("files")
+                            .and_then(|f| f.as_array())
+                            .map(|files_array| {
+                                files_array
+                                    .iter()
+                                    .filter_map(|f| f.as_object())
+                                    .filter_map(|file_obj| {
+                                        // Convert JSON file metadata to FileMetadata struct
+                                        let file_id = file_obj
+                                            .get("file_id")
+                                            .and_then(|id| id.as_str())
+                                            .and_then(|s| Uuid::parse_str(s).ok())?;
+
+                                        Some(crate::web::api::models::FileMetadata {
+                                            file_id,
+                                            filename: file_obj
+                                                .get("filename")
+                                                .and_then(|f| f.as_str())
+                                                .unwrap_or("unknown")
+                                                .to_string(),
+                                            size: file_obj
+                                                .get("size")
+                                                .and_then(|s| s.as_i64())
+                                                .unwrap_or(0),
+                                            content_type: file_obj
+                                                .get("content_type")
+                                                .and_then(|ct| ct.as_str())
+                                                .unwrap_or("application/octet-stream")
+                                                .to_string(),
+                                            created_at: file_obj
+                                                .get("created_at")
+                                                .and_then(|ca| ca.as_str())
+                                                .unwrap_or(&chrono::Utc::now().to_rfc3339())
+                                                .to_string(),
+                                            metadata: file_obj.get("metadata").cloned(),
+                                        })
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+
+                        AdminResponseDetail {
+                            question_text: response_obj
+                                .get("question_text")
+                                .and_then(|q| q.as_str())
+                                .unwrap_or("Question text not available")
+                                .to_string(),
+                            question_category: response_obj
+                                .get("question_category")
+                                .and_then(|c| c.as_str())
+                                .unwrap_or("General")
+                                .to_string(),
+                            response: response_obj
+                                .get("response")
+                                .and_then(|r| r.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                            files,
+                        }
                     })
                     .collect()
             })
             .unwrap_or_else(Vec::new);
+
+        // Check if there's a report for this submission
+        let report = app_state
+            .database
+            .submission_reports
+            .get_report_by_assessment(model.assessment_id)
+            .await
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to check for reports: {e}"))
+            })?;
+
+        // Determine review status based on report existence
+        let (review_status, reviewed_at) = if let Some(_report) = report {
+            // If a report exists, the submission is under review
+            ("under_review".to_string(), None)
+        } else {
+            // If no report exists, the submission is pending review
+            ("pending".to_string(), None)
+        };
 
         let submission = AdminSubmissionDetail {
             submission_id: model.assessment_id, // Using assessment_id as submission_id
@@ -84,9 +158,9 @@ pub async fn list_all_submissions(
                 assessment: assessment_info,
                 responses,
             },
-            review_status: "pending_review".to_string(), // In real implementation, this would come from a status field
-            submitted_at: chrono::Utc::now().to_rfc3339(), // In real implementation, this would come from a timestamp field
-            reviewed_at: None, // In real implementation, this would come from a timestamp field
+            review_status,
+            submitted_at: model.submitted_at.to_rfc3339(),
+            reviewed_at,
         };
 
         // Apply status filter if provided
@@ -100,59 +174,4 @@ pub async fn list_all_submissions(
     }
 
     Ok(Json(AdminSubmissionListResponse { submissions }))
-}
-
-#[derive(Deserialize)]
-pub struct ListReviewsQuery {
-    status: Option<String>,
-}
-
-pub async fn list_all_reviews(
-    State(_app_state): State<AppState>,
-    Query(_params): Query<ListReviewsQuery>,
-) -> Result<Json<AdminReviewListResponse>, ApiError> {
-    // In a real implementation, we would retrieve all reviews with filtering
-    let now = Utc::now().to_rfc3339();
-
-    let reviews = vec![
-        AdminReview {
-            review_id: Uuid::new_v4(),
-            submission_id: Uuid::new_v4(),
-            user_email: "user@example.com".to_string(),
-            reviewer_id: "reviewer123".to_string(),
-            reviewer_email: "reviewer@example.com".to_string(),
-            status: "in_progress".to_string(),
-            decision: None,
-            created_at: now.clone(),
-        },
-        AdminReview {
-            review_id: Uuid::new_v4(),
-            submission_id: Uuid::new_v4(),
-            user_email: "anotheruser@example.com".to_string(),
-            reviewer_id: "reviewer456".to_string(),
-            reviewer_email: "anotherreviewer@example.com".to_string(),
-            status: "completed".to_string(),
-            decision: Some("approved".to_string()),
-            created_at: now.clone(),
-        }
-    ];
-
-    Ok(Json(AdminReviewListResponse { reviews }))
-}
-
-pub async fn assign_reviewer(
-    State(_app_state): State<AppState>,
-    Json(request): Json<AssignReviewerRequest>,
-) -> Result<Json<ReviewAssignmentResponse>, ApiError> {
-    // In a real implementation, we would assign a reviewer to a submission
-    let now = Utc::now().to_rfc3339();
-
-    let review_assignment = ReviewAssignmentResponse {
-        review_id: Uuid::new_v4(),
-        submission_id: request.submission_id,
-        reviewer_id: request.reviewer_id,
-        assigned_at: now,
-    };
-
-    Ok(Json(review_assignment))
 }

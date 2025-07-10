@@ -5,6 +5,7 @@ use crate::common::database::entity::assessments_submission::AssessmentsSubmissi
 use crate::common::database::entity::file::FileService;
 use crate::common::database::entity::questions::QuestionsService;
 use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
+use crate::common::database::entity::submission_reports::SubmissionReportsService;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -19,6 +20,7 @@ pub struct AppDatabase {
     pub file: FileService,
     pub questions: QuestionsService,
     pub questions_revisions: QuestionsRevisionsService,
+    pub submission_reports: SubmissionReportsService,
 }
 
 #[allow(dead_code)]
@@ -32,6 +34,7 @@ impl AppDatabase {
             file: FileService::new(conn.clone()),
             questions: QuestionsService::new(conn.clone()),
             questions_revisions: QuestionsRevisionsService::new(conn.clone()),
+            submission_reports: SubmissionReportsService::new(conn.clone()),
             conn,
         }
     }

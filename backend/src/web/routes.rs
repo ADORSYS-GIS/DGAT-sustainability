@@ -21,8 +21,8 @@ use tokio::sync::Mutex;
 
 use crate::common::models::claims::Claims;
 use crate::common::state::{AppDatabase, AppState as CommonAppState};
-use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware};
 use crate::web::api::routes as api_routes;
+use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware};
 
 /// Application state containing shared services for JWT validation and database access
 #[derive(Clone)]
@@ -35,7 +35,10 @@ impl AppState {
     pub async fn new(keycloak_url: String, realm: String, database: AppDatabase) -> Self {
         let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_url, realm)));
 
-        Self { jwt_validator, database }
+        Self {
+            jwt_validator,
+            database,
+        }
     }
 }
 
@@ -143,11 +146,10 @@ pub fn create_app(app_state: AppState) -> Router {
     Router::new()
         .nest("/api/v1", create_router(app_state.clone()))
         .merge(
-            api_routes::create_router(api_app_state)
-                .layer(middleware::from_fn_with_state(
-                    app_state.jwt_validator.clone(),
-                    auth_middleware,
-                ))
+            api_routes::create_router(api_app_state).layer(middleware::from_fn_with_state(
+                app_state.jwt_validator.clone(),
+                auth_middleware,
+            )),
         )
         .merge(health_routes())
 }
@@ -185,7 +187,8 @@ mod tests {
             "http://localhost:8080".to_string(),
             "test-realm".to_string(),
             app_database,
-        ).await;
+        )
+        .await;
 
         let app = create_router(app_state);
 

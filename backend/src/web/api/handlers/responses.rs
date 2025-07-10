@@ -26,26 +26,32 @@ pub struct ResponseVersion {
 }
 
 // Helper function to convert file::Model to FileMetadata
-async fn convert_file_model_to_metadata(file_model: crate::common::database::entity::file::Model) -> FileMetadata {
+async fn convert_file_model_to_metadata(
+    file_model: crate::common::database::entity::file::Model,
+) -> FileMetadata {
     // Extract metadata fields from the JSON metadata
     let default_map = serde_json::Map::new();
     let metadata_obj = file_model.metadata.as_object().unwrap_or(&default_map);
 
-    let filename = metadata_obj.get("filename")
+    let filename = metadata_obj
+        .get("filename")
         .and_then(|v| v.as_str())
         .unwrap_or("unknown")
         .to_string();
 
-    let size = metadata_obj.get("size")
+    let size = metadata_obj
+        .get("size")
         .and_then(|v| v.as_i64())
         .unwrap_or(file_model.content.len() as i64);
 
-    let content_type = metadata_obj.get("content_type")
+    let content_type = metadata_obj
+        .get("content_type")
         .and_then(|v| v.as_str())
         .unwrap_or("application/octet-stream")
         .to_string();
 
-    let created_at = metadata_obj.get("created_at")
+    let created_at = metadata_obj
+        .get("created_at")
         .and_then(|v| v.as_str())
         .unwrap_or(&chrono::Utc::now().to_rfc3339())
         .to_string();
@@ -61,11 +67,18 @@ async fn convert_file_model_to_metadata(file_model: crate::common::database::ent
 }
 
 // Helper function to fetch files for a response
-async fn fetch_files_for_response(app_state: &AppState, response_id: Uuid) -> Result<Vec<FileMetadata>, ApiError> {
-    let file_models = app_state.database.assessments_response_file
+async fn fetch_files_for_response(
+    app_state: &AppState,
+    response_id: Uuid,
+) -> Result<Vec<FileMetadata>, ApiError> {
+    let file_models = app_state
+        .database
+        .assessments_response_file
         .get_files_for_response(response_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch files for response: {}", e)))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to fetch files for response: {e}"))
+        })?;
 
     let mut files = Vec::new();
     for file_model in file_models {
@@ -83,10 +96,12 @@ pub async fn list_responses(
     let user_id = &claims.sub;
 
     // Verify that the current user is the owner of the assessment
-    let assessment_model = app_state.database.assessments
+    let assessment_model = app_state
+        .database
+        .assessments
         .get_assessment_by_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
 
     let assessment_model = match assessment_model {
         Some(a) => a,
@@ -94,14 +109,18 @@ pub async fn list_responses(
     };
 
     if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "You don't have permission to access this assessment".to_string(),
+        ));
     }
 
     // Fetch the latest responses for the specified assessment from the database
-    let response_models = app_state.database.assessments_response
+    let response_models = app_state
+        .database
+        .assessments_response
         .get_latest_responses_by_assessment(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch responses: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch responses: {e}")))?;
 
     // Convert database models to API models
     let mut responses = Vec::new();
@@ -131,14 +150,18 @@ pub async fn create_response(
 
     // Validate request
     if request.response.trim().is_empty() {
-        return Err(ApiError::BadRequest("Response must not be empty".to_string()));
+        return Err(ApiError::BadRequest(
+            "Response must not be empty".to_string(),
+        ));
     }
 
     // Verify that the current user is the owner of the assessment
-    let assessment_model = app_state.database.assessments
+    let assessment_model = app_state
+        .database
+        .assessments
         .get_assessment_by_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
 
     let assessment_model = match assessment_model {
         Some(a) => a,
@@ -146,25 +169,40 @@ pub async fn create_response(
     };
 
     if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "You don't have permission to access this assessment".to_string(),
+        ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
-    let has_submission = app_state.database.assessments_submission
+    let has_submission = app_state
+        .database
+        .assessments_submission
         .get_submission_by_assessment_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
+        })?
         .is_some();
 
     if has_submission {
-        return Err(ApiError::BadRequest("Cannot create response for a submitted assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Cannot create response for a submitted assessment".to_string(),
+        ));
     }
 
     // Create the response in the database
-    let response_model = app_state.database.assessments_response
-        .create_response(assessment_id, request.question_revision_id, request.response, 1)
+    let response_model = app_state
+        .database
+        .assessments_response
+        .create_response(
+            assessment_id,
+            request.question_revision_id,
+            request.response,
+            1,
+        )
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
 
     // Convert database model to API model
     let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
@@ -189,10 +227,12 @@ pub async fn get_response(
     let user_id = &claims.sub;
 
     // Verify that the current user is the owner of the assessment
-    let assessment_model = app_state.database.assessments
+    let assessment_model = app_state
+        .database
+        .assessments
         .get_assessment_by_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
 
     let assessment_model = match assessment_model {
         Some(a) => a,
@@ -200,14 +240,18 @@ pub async fn get_response(
     };
 
     if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "You don't have permission to access this assessment".to_string(),
+        ));
     }
 
     // Fetch the response from the database
-    let response_model = app_state.database.assessments_response
+    let response_model = app_state
+        .database
+        .assessments_response
         .get_response_by_id(response_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {e}")))?;
 
     let response_model = match response_model {
         Some(r) => r,
@@ -216,7 +260,9 @@ pub async fn get_response(
 
     // Verify that the response belongs to the specified assessment
     if response_model.assessment_id != assessment_id {
-        return Err(ApiError::BadRequest("Response does not belong to the specified assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Response does not belong to the specified assessment".to_string(),
+        ));
     }
 
     // Convert database model to API model
@@ -244,14 +290,18 @@ pub async fn update_response(
 
     // Validate request
     if request.response.trim().is_empty() {
-        return Err(ApiError::BadRequest("Response must not be empty".to_string()));
+        return Err(ApiError::BadRequest(
+            "Response must not be empty".to_string(),
+        ));
     }
 
     // Verify that the current user is the owner of the assessment
-    let assessment_model = app_state.database.assessments
+    let assessment_model = app_state
+        .database
+        .assessments
         .get_assessment_by_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
 
     let assessment_model = match assessment_model {
         Some(a) => a,
@@ -259,25 +309,35 @@ pub async fn update_response(
     };
 
     if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "You don't have permission to access this assessment".to_string(),
+        ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
-    let has_submission = app_state.database.assessments_submission
+    let has_submission = app_state
+        .database
+        .assessments_submission
         .get_submission_by_assessment_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
+        })?
         .is_some();
 
     if has_submission {
-        return Err(ApiError::BadRequest("Cannot update response for a submitted assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Cannot update response for a submitted assessment".to_string(),
+        ));
     }
 
     // Fetch the existing response to get the question_revision_id
-    let existing_response = app_state.database.assessments_response
+    let existing_response = app_state
+        .database
+        .assessments_response
         .get_response_by_id(response_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {e}")))?;
 
     let existing_response = match existing_response {
         Some(r) => r,
@@ -286,19 +346,29 @@ pub async fn update_response(
 
     // Verify that the response belongs to the specified assessment
     if existing_response.assessment_id != assessment_id {
-        return Err(ApiError::BadRequest("Response does not belong to the specified assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Response does not belong to the specified assessment".to_string(),
+        ));
     }
 
     // Check for version conflicts
     if existing_response.version != request.version {
-        return Err(ApiError::Conflict("Version conflict: response has been modified by another user".to_string()));
+        return Err(ApiError::Conflict(
+            "Version conflict: response has been modified by another user".to_string(),
+        ));
     }
 
     // Update the response in the database
-    let updated_response = app_state.database.assessments_response
-        .update_response(assessment_id, existing_response.question_revision_id, request.response)
+    let updated_response = app_state
+        .database
+        .assessments_response
+        .update_response(
+            assessment_id,
+            existing_response.question_revision_id,
+            request.response,
+        )
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
 
     // Convert database model to API model
     let files = fetch_files_for_response(&app_state, updated_response.response_id).await?;
@@ -323,10 +393,12 @@ pub async fn delete_response(
     let user_id = &claims.sub;
 
     // Verify that the current user is the owner of the assessment
-    let assessment_model = app_state.database.assessments
+    let assessment_model = app_state
+        .database
+        .assessments
         .get_assessment_by_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
 
     let assessment_model = match assessment_model {
         Some(a) => a,
@@ -334,25 +406,35 @@ pub async fn delete_response(
     };
 
     if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "You don't have permission to access this assessment".to_string(),
+        ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
-    let has_submission = app_state.database.assessments_submission
+    let has_submission = app_state
+        .database
+        .assessments_submission
         .get_submission_by_assessment_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
+        })?
         .is_some();
 
     if has_submission {
-        return Err(ApiError::BadRequest("Cannot delete response for a submitted assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Cannot delete response for a submitted assessment".to_string(),
+        ));
     }
 
     // Check if the response exists and belongs to the specified assessment
-    let existing_response = app_state.database.assessments_response
+    let existing_response = app_state
+        .database
+        .assessments_response
         .get_response_by_id(response_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {e}")))?;
 
     let existing_response = match existing_response {
         Some(r) => r,
@@ -361,14 +443,18 @@ pub async fn delete_response(
 
     // Verify that the response belongs to the specified assessment
     if existing_response.assessment_id != assessment_id {
-        return Err(ApiError::BadRequest("Response does not belong to the specified assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Response does not belong to the specified assessment".to_string(),
+        ));
     }
 
     // Delete the response from the database
-    app_state.database.assessments_response
+    app_state
+        .database
+        .assessments_response
         .delete_response(response_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete response: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete response: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
 }

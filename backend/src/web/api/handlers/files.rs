@@ -17,44 +17,54 @@ pub async fn upload_file(
     Extension(claims): Extension<Claims>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, ApiError> {
-    
     // Extract file data from multipart form
     let mut file_data: Option<Bytes> = None;
     let mut filename: Option<String> = None;
     let mut content_type: Option<String> = None;
     let mut additional_metadata: Option<serde_json::Value> = None;
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
-        ApiError::BadRequest(format!("Failed to process multipart form: {}", e))
-    })? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| ApiError::BadRequest(format!("Failed to process multipart form: {e}")))?
+    {
         let name = field.name().unwrap_or("").to_string();
 
         if name == "file" {
             filename = field.file_name().map(|s| s.to_string());
             content_type = field.content_type().map(|s| s.to_string());
-            file_data = Some(field.bytes().await.map_err(|e| {
-                ApiError::BadRequest(format!("Failed to read file data: {}", e))
-            })?);
+            file_data = Some(
+                field
+                    .bytes()
+                    .await
+                    .map_err(|e| ApiError::BadRequest(format!("Failed to read file data: {e}")))?,
+            );
         } else if name == "metadata" {
-            let data = field.bytes().await.map_err(|e| {
-                ApiError::BadRequest(format!("Failed to read metadata: {}", e))
-            })?;
+            let data = field
+                .bytes()
+                .await
+                .map_err(|e| ApiError::BadRequest(format!("Failed to read metadata: {e}")))?;
             let text = String::from_utf8_lossy(&data);
-            additional_metadata = Some(serde_json::from_str(&text).map_err(|e| {
-                ApiError::BadRequest(format!("Invalid metadata JSON: {}", e))
-            })?);
+            additional_metadata = Some(
+                serde_json::from_str(&text)
+                    .map_err(|e| ApiError::BadRequest(format!("Invalid metadata JSON: {e}")))?,
+            );
         }
     }
 
     // Validate that we received a file
-    let file_data = file_data.ok_or_else(|| ApiError::BadRequest("No file provided".to_string()))?;
-    let filename = filename.ok_or_else(|| ApiError::BadRequest("No filename provided".to_string()))?;
+    let file_data =
+        file_data.ok_or_else(|| ApiError::BadRequest("No file provided".to_string()))?;
+    let filename =
+        filename.ok_or_else(|| ApiError::BadRequest("No filename provided".to_string()))?;
     let content_type = content_type.unwrap_or_else(|| "application/octet-stream".to_string());
 
     // Validate file size (e.g., max 1MB)
-    const MAX_FILE_SIZE: usize = 1 * 1024 * 1024; // 1MB
+    const MAX_FILE_SIZE: usize = 1024 * 1024; // 1MB
     if file_data.len() > MAX_FILE_SIZE {
-        return Err(ApiError::BadRequest("File size exceeds maximum allowed size (1MB)".to_string()));
+        return Err(ApiError::BadRequest(
+            "File size exceeds maximum allowed size (1MB)".to_string(),
+        ));
     }
 
     // Create metadata JSON with file information
@@ -71,7 +81,9 @@ pub async fn upload_file(
 
     // Merge additional metadata if provided
     if let Some(additional) = additional_metadata {
-        if let (Some(metadata_obj), Some(additional_obj)) = (metadata.as_object_mut(), additional.as_object()) {
+        if let (Some(metadata_obj), Some(additional_obj)) =
+            (metadata.as_object_mut(), additional.as_object())
+        {
             for (key, value) in additional_obj {
                 metadata_obj.insert(key.clone(), value.clone());
             }
@@ -79,11 +91,12 @@ pub async fn upload_file(
     }
 
     // Store the file in the database
-    app_state.database.file
+    app_state
+        .database
+        .file
         .create_file(file_data.to_vec(), metadata.clone())
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to store file: {}", e)))?;
-
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to store file: {e}")))?;
 
     Ok(StatusCode::CREATED)
 }
@@ -96,10 +109,12 @@ pub async fn download_file(
     let _user_id = &claims.sub; // For future use in access control
 
     // Fetch the file from the database
-    let file_model = app_state.database.file
+    let file_model = app_state
+        .database
+        .file
         .get_file_by_id(file_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch file: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch file: {e}")))?;
 
     let file_model = match file_model {
         Some(f) => f,
@@ -110,20 +125,23 @@ pub async fn download_file(
     let default_map = serde_json::Map::new();
     let metadata_obj = file_model.metadata.as_object().unwrap_or(&default_map);
 
-    let filename = metadata_obj.get("filename")
+    let filename = metadata_obj
+        .get("filename")
         .and_then(|v| v.as_str())
         .unwrap_or("unknown")
         .to_string();
 
-    let content_type = metadata_obj.get("content_type")
+    let content_type = metadata_obj
+        .get("content_type")
         .and_then(|v| v.as_str())
         .unwrap_or("application/octet-stream");
 
     // Create a response with the file content and appropriate headers
-    let content_disposition = HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
-        .map_err(|e| ApiError::InternalServerError(format!("Invalid header value: {}", e)))?;
+    let content_disposition =
+        HeaderValue::from_str(&format!("attachment; filename=\"{filename}\""))
+            .map_err(|e| ApiError::InternalServerError(format!("Invalid header value: {e}")))?;
     let content_type_header = HeaderValue::from_str(content_type)
-        .map_err(|e| ApiError::InternalServerError(format!("Invalid content type: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Invalid content type: {e}")))?;
 
     let headers = [
         (header::CONTENT_TYPE, content_type_header),
@@ -141,10 +159,12 @@ pub async fn delete_file(
     let user_id = &claims.sub;
 
     // Fetch the file to verify ownership
-    let file_model = app_state.database.file
+    let file_model = app_state
+        .database
+        .file
         .get_file_by_id(file_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch file: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch file: {e}")))?;
 
     let file_model = match file_model {
         Some(f) => f,
@@ -155,29 +175,40 @@ pub async fn delete_file(
     let default_map = serde_json::Map::new();
     let metadata_obj = file_model.metadata.as_object().unwrap_or(&default_map);
 
-    let uploaded_by = metadata_obj.get("uploaded_by")
+    let uploaded_by = metadata_obj
+        .get("uploaded_by")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
     if uploaded_by != *user_id {
-        return Err(ApiError::BadRequest("You don't have permission to delete this file".to_string()));
+        return Err(ApiError::BadRequest(
+            "You don't have permission to delete this file".to_string(),
+        ));
     }
 
     // Check if the file is still referenced by any responses
-    let responses = app_state.database.assessments_response_file
+    let responses = app_state
+        .database
+        .assessments_response_file
         .get_responses_for_file(file_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to check file references: {}", e)))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to check file references: {e}"))
+        })?;
 
     if !responses.is_empty() {
-        return Err(ApiError::BadRequest("Cannot delete file that is still attached to responses".to_string()));
+        return Err(ApiError::BadRequest(
+            "Cannot delete file that is still attached to responses".to_string(),
+        ));
     }
 
     // Delete the file from the database
-    app_state.database.file
+    app_state
+        .database
+        .file
         .delete_file(file_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete file: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete file: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -190,10 +221,12 @@ pub async fn get_file_metadata(
     let _user_id = &claims.sub; // For future use in access control
 
     // Fetch the file from the database
-    let file_model = app_state.database.file
+    let file_model = app_state
+        .database
+        .file
         .get_file_by_id(file_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch file: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch file: {e}")))?;
 
     let file_model = match file_model {
         Some(f) => f,
@@ -204,21 +237,25 @@ pub async fn get_file_metadata(
     let default_map = serde_json::Map::new();
     let metadata_obj = file_model.metadata.as_object().unwrap_or(&default_map);
 
-    let filename = metadata_obj.get("filename")
+    let filename = metadata_obj
+        .get("filename")
         .and_then(|v| v.as_str())
         .unwrap_or("unknown")
         .to_string();
 
-    let size = metadata_obj.get("size")
+    let size = metadata_obj
+        .get("size")
         .and_then(|v| v.as_i64())
         .unwrap_or(file_model.content.len() as i64);
 
-    let content_type = metadata_obj.get("content_type")
+    let content_type = metadata_obj
+        .get("content_type")
         .and_then(|v| v.as_str())
         .unwrap_or("application/octet-stream")
         .to_string();
 
-    let created_at = metadata_obj.get("created_at")
+    let created_at = metadata_obj
+        .get("created_at")
         .and_then(|v| v.as_str())
         .unwrap_or(&chrono::Utc::now().to_rfc3339())
         .to_string();
@@ -244,10 +281,12 @@ pub async fn attach_file(
     let user_id = &claims.sub;
 
     // Verify that the current user is the owner of the assessment
-    let assessment_model = app_state.database.assessments
+    let assessment_model = app_state
+        .database
+        .assessments
         .get_assessment_by_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
 
     let assessment_model = match assessment_model {
         Some(a) => a,
@@ -255,25 +294,35 @@ pub async fn attach_file(
     };
 
     if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "You don't have permission to access this assessment".to_string(),
+        ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
-    let has_submission = app_state.database.assessments_submission
+    let has_submission = app_state
+        .database
+        .assessments_submission
         .get_submission_by_assessment_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
+        })?
         .is_some();
 
     if has_submission {
-        return Err(ApiError::BadRequest("Cannot attach files to a submitted assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Cannot attach files to a submitted assessment".to_string(),
+        ));
     }
 
     // Verify that the response exists and belongs to the assessment
-    let response_model = app_state.database.assessments_response
+    let response_model = app_state
+        .database
+        .assessments_response
         .get_response_by_id(response_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {e}")))?;
 
     let response_model = match response_model {
         Some(r) => r,
@@ -281,28 +330,34 @@ pub async fn attach_file(
     };
 
     if response_model.assessment_id != assessment_id {
-        return Err(ApiError::BadRequest("Response does not belong to the specified assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Response does not belong to the specified assessment".to_string(),
+        ));
     }
 
     // Verify that the file exists
-    let file_model = app_state.database.file
+    let file_model = app_state
+        .database
+        .file
         .get_file_by_id(request.file_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch file: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch file: {e}")))?;
 
     if file_model.is_none() {
         return Err(ApiError::NotFound("File not found".to_string()));
     }
 
     // Create the association between the response and the file
-    app_state.database.assessments_response_file
+    app_state
+        .database
+        .assessments_response_file
         .link_file_to_response(response_id, request.file_id)
         .await
         .map_err(|e| {
             if e.to_string().contains("duplicate") || e.to_string().contains("unique") {
                 ApiError::BadRequest("File is already attached to this response".to_string())
             } else {
-                ApiError::InternalServerError(format!("Failed to attach file to response: {}", e))
+                ApiError::InternalServerError(format!("Failed to attach file to response: {e}"))
             }
         })?;
 
@@ -317,10 +372,12 @@ pub async fn remove_file(
     let user_id = &claims.sub;
 
     // Verify that the current user is the owner of the assessment
-    let assessment_model = app_state.database.assessments
+    let assessment_model = app_state
+        .database
+        .assessments
         .get_assessment_by_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
 
     let assessment_model = match assessment_model {
         Some(a) => a,
@@ -328,25 +385,35 @@ pub async fn remove_file(
     };
 
     if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest("You don't have permission to access this assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "You don't have permission to access this assessment".to_string(),
+        ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
-    let has_submission = app_state.database.assessments_submission
+    let has_submission = app_state
+        .database
+        .assessments_submission
         .get_submission_by_assessment_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {}", e)))?
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
+        })?
         .is_some();
 
     if has_submission {
-        return Err(ApiError::BadRequest("Cannot remove files from a submitted assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Cannot remove files from a submitted assessment".to_string(),
+        ));
     }
 
     // Verify that the response exists and belongs to the assessment
-    let response_model = app_state.database.assessments_response
+    let response_model = app_state
+        .database
+        .assessments_response
         .get_response_by_id(response_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {}", e)))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch response: {e}")))?;
 
     let response_model = match response_model {
         Some(r) => r,
@@ -354,17 +421,25 @@ pub async fn remove_file(
     };
 
     if response_model.assessment_id != assessment_id {
-        return Err(ApiError::BadRequest("Response does not belong to the specified assessment".to_string()));
+        return Err(ApiError::BadRequest(
+            "Response does not belong to the specified assessment".to_string(),
+        ));
     }
 
     // Remove the association between the response and the file
-    let result = app_state.database.assessments_response_file
+    let result = app_state
+        .database
+        .assessments_response_file
         .unlink_file_from_response(response_id, file_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to remove file from response: {}", e)))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to remove file from response: {e}"))
+        })?;
 
     if result.rows_affected == 0 {
-        return Err(ApiError::NotFound("File is not attached to this response".to_string()));
+        return Err(ApiError::NotFound(
+            "File is not attached to this response".to_string(),
+        ));
     }
 
     Ok(StatusCode::NO_CONTENT)
