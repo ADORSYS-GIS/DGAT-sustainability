@@ -19,7 +19,7 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(Questions::Category).string().not_null())
-                    .col(ColumnDef::new(Questions::CreatedAt).string().not_null())
+                    .col(ColumnDef::new(Questions::CreatedAt).timestamp_with_time_zone().not_null())
                     .to_owned(),
             )
             .await?;
