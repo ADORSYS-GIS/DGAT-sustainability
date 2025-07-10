@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 import {
   BarChart3,
@@ -13,27 +14,25 @@ import {
 } from "lucide-react";
 
 export const Welcome: React.FC = () => {
+  const { t } = useTranslation("home");
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const features = [
     {
-      title: "Digital Gap Analysis",
-      description:
-        "Assess your cooperative's digital maturity with comprehensive questionnaires covering technology infrastructure, digital literacy, and online presence.",
+      title: t("features.digital_gap.title"),
+      description: t("features.digital_gap.description"),
       icon: BarChart3,
       color: "blue" as const,
     },
     {
-      title: "Sustainability Assessment",
-      description:
-        "Evaluate environmental, social, and governance practices to build a more sustainable and responsible cooperative.",
+      title: t("features.sustainability.title"),
+      description: t("features.sustainability.description"),
       icon: Leaf,
       color: "green" as const,
     },
     {
-      title: "Action Plans",
-      description:
-        "Track your progress with interactive Kanban boards, turning assessment insights into actionable tasks and measurable improvements.",
+      title: t("features.action_plans.title"),
+      description: t("features.action_plans.description"),
       icon: CheckSquare,
       color: "blue" as const,
     },
@@ -41,20 +40,18 @@ export const Welcome: React.FC = () => {
 
   const benefits = [
     {
-      title: "Built for Cooperatives",
-      description:
-        "Designed specifically for cooperative organizations in Southern Africa",
+      title: t("benefits.built_for_coops.title"),
+      description: t("benefits.built_for_coops.description"),
       icon: Users,
     },
     {
-      title: "Multilingual Support",
-      description:
-        "Available in English, siSwati, Portuguese, Zulu, German, and French",
+      title: t("benefits.multilingual.title"),
+      description: t("benefits.multilingual.description"),
       icon: Globe,
     },
     {
-      title: "Offline Capable",
-      description: "Works reliably even with limited internet connectivity",
+      title: t("benefits.offline.title"),
+      description: t("benefits.offline.description"),
       icon: Shield,
     },
   ];
@@ -73,15 +70,13 @@ export const Welcome: React.FC = () => {
                 <span className="text-white font-bold text-3xl">D</span>
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-dgrv-blue mb-4 animate-scale-in">
-                Empower Your Cooperative
+                {t("hero.title")}
               </h1>
               <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
-                Assess Digital & Sustainability Goals
+                {t("hero.subtitle")}
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Simple, secure, and impactful—help your cooperative thrive in
-                the digital age while building sustainable practices for the
-                future.
+                {t("hero.description")}
               </p>
             </div>
 
@@ -90,7 +85,7 @@ export const Welcome: React.FC = () => {
               size="lg"
               className="bg-dgrv-blue hover:bg-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-lg "
             >
-              Start Assessment
+              {t("hero.cta")}
             </Button>
           </div>
 
@@ -113,7 +108,7 @@ export const Welcome: React.FC = () => {
           {/* Benefits Section */}
           <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12 animate-fade-in">
             <h3 className="text-3xl font-bold text-center text-dgrv-blue mb-8">
-              Why Choose DGRV Assessment Tools?
+              {t("benefits.title")}
             </h3>
             <div className="grid md:grid-cols-3 gap-8">
               {benefits.map((benefit, index) => (
@@ -133,11 +128,10 @@ export const Welcome: React.FC = () => {
           {/* Call to Action */}
           <div className="text-center mt-16">
             <h3 className="text-2xl font-bold text-dgrv-blue mb-4">
-              Ready to Transform Your Cooperative?
+              {t("cta.title")}
             </h3>
             <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Join cooperatives across Southern Africa in building a more
-              digital and sustainable future.
+              {t("cta.description")}
             </p>
             <Button
               onClick={() => setShowLoginModal(true)}
@@ -145,7 +139,7 @@ export const Welcome: React.FC = () => {
               variant="outline"
               className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue hover:text-white px-8 py-4 text-lg font-semibold rounded-lg"
             >
-              Get Started Today
+              {t("cta.button")}
             </Button>
           </div>
         </div>

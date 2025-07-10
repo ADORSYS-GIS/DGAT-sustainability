@@ -181,5 +181,148 @@
       "create_button": "Criar Recomendação",
       "cancel_button": "Cancelar"
     }
+  },
+  "home": {
+    "hero": {
+      "title": "Fortaleça sua Cooperativa",
+      "subtitle": "Avalie Metas Digitais e de Sustentabilidade",
+      "description": "Simples, seguro e impactante—ajude sua cooperativa a prosperar na era digital enquanto constrói práticas sustentáveis para o futuro.",
+      "cta": "Iniciar Avaliação"
+    },
+    "features": {
+      "digital_gap": {
+        "title": "Análise de Lacuna Digital",
+        "description": "Avalie a maturidade digital da sua cooperativa com questionários abrangentes sobre infraestrutura tecnológica, alfabetização digital e presença online."
+      },
+      "sustainability": {
+        "title": "Avaliação de Sustentabilidade",
+        "description": "Avalie práticas ambientais, sociais e de governança para construir uma cooperativa mais sustentável e responsável."
+      },
+      "action_plans": {
+        "title": "Planos de Ação",
+        "description": "Acompanhe seu progresso com quadros Kanban interativos, transformando insights de avaliação em tarefas acionáveis e melhorias mensuráveis."
+      }
+    },
+    "benefits": {
+      "title": "Por que escolher as ferramentas DGRV?",
+      "built_for_coops": {
+        "title": "Feito para Cooperativas",
+        "description": "Projetado especificamente para cooperativas no sul da África"
+      },
+      "multilingual": {
+        "title": "Suporte Multilíngue",
+        "description": "Disponível em Inglês, siSwati, Português, Zulu, Alemão e Francês"
+      },
+      "offline": {
+        "title": "Funciona Offline",
+        "description": "Funciona de forma confiável mesmo com conectividade limitada"
+      }
+    },
+    "cta": {
+      "title": "Pronto para Transformar sua Cooperativa?",
+      "description": "Junte-se a cooperativas em toda a África Austral para construir um futuro mais digital e sustentável.",
+      "button": "Comece Agora"
+    }
+  },
+  "assessment": {
+    "tool_name": "Avaliação de Sustentabilidade",
+    "error": {
+      "create": "Falha ao criar avaliação"
+    },
+    "success": {
+      "submit": "Sua {{tool}} foi enviada com sucesso"
+    },
+    "loading": "Carregando avaliação...",
+    "not_available": {
+      "title": "Avaliação Não Disponível",
+      "description": "A {{tool}} ainda não está configurada. Por favor, contate o administrador.",
+      "back": "Voltar ao Painel"
+    },
+    "category": "Categoria {{current}} de {{total}}: {{name}}",
+    "progress": "Progresso",
+    "yes_no": {
+      "label": "Sim/Não",
+      "yes": "Sim",
+      "no": "Não"
+    },
+    "percentage": {
+      "label": "Percentual",
+      "explanation_label": "Mostrar explicação do percentual",
+      "zero": "0%",
+      "zero_description": "Não iniciado",
+      "twenty_five": "25%",
+      "twenty_five_description": "Algum progresso",
+      "fifty": "50%",
+      "fifty_description": "Metade",
+      "seventy_five": "75%",
+      "seventy_five_description": "Quase pronto",
+      "hundred": "100%",
+      "hundred_description": "Totalmente alcançado"
+    },
+    "response": {
+      "label": "Sua Resposta",
+      "placeholder": "Digite sua resposta..."
+    },
+    "file": {
+      "add_file": "Adicionar arquivo"
+    },
+    "nav": {
+      "previous": "Anterior",
+      "next": "Próximo",
+      "save_draft": "Salvar Rascunho",
+      "submit": "Enviar Avaliação"
+    }
+  },
+  "assessments": {
+    "title": "Suas Submissões",
+    "subtitle": "Veja e gerencie todas as suas submissões de sustentabilidade",
+    "start_new": "Iniciar Nova Avaliação",
+    "assessment_title": "Avaliação de Sustentabilidade",
+    "submitted": "Enviado",
+    "reviewed": "Revisado",
+    "submission_id": "ID da Submissão",
+    "assessment_id": "ID da Avaliação",
+    "view_details": "Ver Detalhes",
+    "no_submissions": "Nenhuma submissão ainda",
+    "no_submissions_desc": "Inicie sua primeira avaliação de sustentabilidade para acompanhar o progresso da sua cooperativa.",
+    "start_assessment": "Iniciar Avaliação",
+    "status": {
+      "approved": "Aprovado",
+      "pending_review": "Aguardando Revisão",
+      "under_review": "Em Revisão",
+      "rejected": "Rejeitado",
+      "revision_requested": "Revisão Solicitada",
+      "unknown": "Desconhecido"
+    }
+  },
+  "submissionView": {
+    "error": "Erro ao carregar detalhes da submissão.",
+    "details": {
+      "title": "Detalhes da Submissão",
+      "submission_id": "ID da Submissão",
+      "assessment_id": "ID da Avaliação",
+      "user_id": "ID do Usuário",
+      "status": "Status",
+      "submitted_at": "Enviado em",
+      "reviewed_at": "Revisado em"
+    },
+    "answers": {
+      "yes_no": "Sim/Não:",
+      "yes": "Sim",
+      "no": "Não",
+      "percentage": "Percentual:",
+      "text": "Texto:"
+    }
+  },
+  "actionPlan": {
+    "title": "Plano de Ação",
+    "subtitle": "Acompanhe suas tarefas de melhoria de sustentabilidade",
+    "columns": {
+      "todo": "A Fazer",
+      "in_progress": "Em Progresso",
+      "done": "Concluído",
+      "approved": "Aprovado"
+    },
+    "no_tasks": "Nenhuma tarefa em {{column}}"
   }
 }

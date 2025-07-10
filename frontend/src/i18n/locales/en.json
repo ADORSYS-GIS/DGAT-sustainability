@@ -181,5 +181,148 @@
       "create_button": "Create Recommendation",
       "cancel_button": "Cancel"
     }
+  },
+  "home": {
+    "hero": {
+      "title": "Empower Your Cooperative",
+      "subtitle": "Assess Digital & Sustainability Goals",
+      "description": "Simple, secure, and impactful—help your cooperative thrive in the digital age while building sustainable practices for the future.",
+      "cta": "Start Assessment"
+    },
+    "features": {
+      "digital_gap": {
+        "title": "Digital Gap Analysis",
+        "description": "Assess your cooperative's digital maturity with comprehensive questionnaires covering technology infrastructure, digital literacy, and online presence."
+      },
+      "sustainability": {
+        "title": "Sustainability Assessment",
+        "description": "Evaluate environmental, social, and governance practices to build a more sustainable and responsible cooperative."
+      },
+      "action_plans": {
+        "title": "Action Plans",
+        "description": "Track your progress with interactive Kanban boards, turning assessment insights into actionable tasks and measurable improvements."
+      }
+    },
+    "benefits": {
+      "title": "Why Choose DGRV Assessment Tools?",
+      "built_for_coops": {
+        "title": "Built for Cooperatives",
+        "description": "Designed specifically for cooperative organizations in Southern Africa"
+      },
+      "multilingual": {
+        "title": "Multilingual Support",
+        "description": "Available in English, siSwati, Portuguese, Zulu, German, and French"
+      },
+      "offline": {
+        "title": "Offline Capable",
+        "description": "Works reliably even with limited internet connectivity"
+      }
+    },
+    "cta": {
+      "title": "Ready to Transform Your Cooperative?",
+      "description": "Join cooperatives across Southern Africa in building a more digital and sustainable future.",
+      "button": "Get Started Today"
+    }
+  },
+  "assessment": {
+    "tool_name": "Sustainability Assessment",
+    "error": {
+      "create": "Failed to create assessment"
+    },
+    "success": {
+      "submit": "Your {{tool}} has been submitted successfully"
+    },
+    "loading": "Loading assessment...",
+    "not_available": {
+      "title": "Assessment Not Available",
+      "description": "The {{tool}} is not yet configured. Please contact your administrator.",
+      "back": "Return to Dashboard"
+    },
+    "category": "Category {{current}} of {{total}}: {{name}}",
+    "progress": "Progress",
+    "yes_no": {
+      "label": "Yes/No",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "percentage": {
+      "label": "Percentage",
+      "explanation_label": "Show percentage explanation",
+      "zero": "0%",
+      "zero_description": "Not started",
+      "twenty_five": "25%",
+      "twenty_five_description": "Some progress",
+      "fifty": "50%",
+      "fifty_description": "Halfway",
+      "seventy_five": "75%",
+      "seventy_five_description": "Almost done",
+      "hundred": "100%",
+      "hundred_description": "Fully achieved"
+    },
+    "response": {
+      "label": "Your Response",
+      "placeholder": "Enter your response..."
+    },
+    "file": {
+      "add_file": "Add file"
+    },
+    "nav": {
+      "previous": "Previous",
+      "next": "Next",
+      "save_draft": "Save Draft",
+      "submit": "Submit Assessment"
+    }
+  },
+  "assessments": {
+    "title": "Your Submissions",
+    "subtitle": "View and manage all your sustainability submissions",
+    "start_new": "Start New Assessment",
+    "assessment_title": "Sustainability Assessment",
+    "submitted": "Submitted",
+    "reviewed": "Reviewed",
+    "submission_id": "Submission ID",
+    "assessment_id": "Assessment ID",
+    "view_details": "View Details",
+    "no_submissions": "No submissions yet",
+    "no_submissions_desc": "Start your first sustainability assessment to track your cooperative's progress.",
+    "start_assessment": "Start Assessment",
+    "status": {
+      "approved": "Approved",
+      "pending_review": "Pending Review",
+      "under_review": "Under Review",
+      "rejected": "Rejected",
+      "revision_requested": "Revision Requested",
+      "unknown": "Unknown"
+    }
+  },
+  "submissionView": {
+    "error": "Error loading submission details.",
+    "details": {
+      "title": "Submission Details",
+      "submission_id": "Submission ID",
+      "assessment_id": "Assessment ID",
+      "user_id": "User ID",
+      "status": "Status",
+      "submitted_at": "Submitted At",
+      "reviewed_at": "Reviewed At"
+    },
+    "answers": {
+      "yes_no": "Yes/No:",
+      "yes": "Yes",
+      "no": "No",
+      "percentage": "Percentage:",
+      "text": "Text:"
+    }
+  },
+  "actionPlan": {
+    "title": "Action Plan",
+    "subtitle": "Track your sustainability improvement tasks",
+    "columns": {
+      "todo": "To Do",
+      "in_progress": "In Progress",
+      "done": "Done",
+      "approved": "Approved"
+    },
+    "no_tasks": "No tasks in {{column}}"
   }
 }

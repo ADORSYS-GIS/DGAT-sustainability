@@ -32,10 +32,12 @@ import {
   Save,
   Send,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type FileData = { name: string; url: string };
 
 export const Assessment: React.FC = () => {
+  const { t } = useTranslation("assessment");
   const { assessmentId } = useParams<{ assessmentId: string }>();
   const navigate = useNavigate();
 
@@ -55,7 +57,7 @@ export const Assessment: React.FC = () => {
   const [showPercentInfo, setShowPercentInfo] = useState(false);
 
   const templateId = "sustainability_template";
-  const toolName = "Sustainability Assessment";
+  const toolName = t("tool_name");
 
   const createAssessmentMutation = useAssessmentsServicePostAssessments();
   const submitAssessmentMutation =
@@ -75,10 +77,10 @@ export const Assessment: React.FC = () => {
           const newId = data.assessment.assessment_id;
           navigate(`/user/assessment/${newId}`);
         },
-        onError: () => toast("Failed to create assessment"),
+        onError: () => toast(t("error.create")),
       });
     }
-  }, [assessmentId, createAssessmentMutation, navigate]);
+  }, [assessmentId, createAssessmentMutation, navigate, t]);
 
   // Fetch assessment detail if assessmentId exists
   const { data: assessmentDetail, isLoading: assessmentLoading } =
@@ -187,7 +189,7 @@ export const Assessment: React.FC = () => {
     submitAssessmentMutation.mutate({
       assessmentId: assessmentId!,
     });
-    toast(`Your ${toolName.toLowerCase()} has been submitted successfully`);
+    toast(t("success.submit", { tool: toolName.toLowerCase() }));
     setTimeout(() => {
       navigate("/dashboard");
     }, 2000);
@@ -217,7 +219,7 @@ export const Assessment: React.FC = () => {
       <div className="space-y-4">
         {/* Yes/No */}
         <div>
-          <Label>Yes/No</Label>
+          <Label>{t("yes_no.label")}</Label>
           <div className="flex space-x-4 mt-1">
             <Button
               type="button"
@@ -232,7 +234,7 @@ export const Assessment: React.FC = () => {
                 })
               }
             >
-              Yes
+              {t("yes_no.yes")}
             </Button>
             <Button
               type="button"
@@ -247,38 +249,43 @@ export const Assessment: React.FC = () => {
                 })
               }
             >
-              No
+              {t("yes_no.no")}
             </Button>
           </div>
         </div>
         {/* Percentage */}
         <div>
           <div className="flex items-center space-x-2 relative">
-            <Label>Percentage</Label>
+            <Label>{t("percentage.label")}</Label>
             <button
               type="button"
               className="cursor-pointer text-dgrv-blue focus:outline-none"
               onClick={() => setShowPercentInfo((prev) => !prev)}
-              aria-label="Show percentage explanation"
+              aria-label={t("percentage.explanation_label")}
             >
               <Info className="w-4 h-4" />
             </button>
             {showPercentInfo && (
               <div className="absolute left-8 top-6 z-10 bg-white border rounded shadow-md p-3 w-56 text-xs text-gray-700">
                 <div>
-                  <b>0%:</b> Not started
+                  <b>{t("percentage.zero")}:</b>{" "}
+                  {t("percentage.zero_description")}
                 </div>
                 <div>
-                  <b>25%:</b> Some progress
+                  <b>{t("percentage.twenty_five")}:</b>{" "}
+                  {t("percentage.twenty_five_description")}
                 </div>
                 <div>
-                  <b>50%:</b> Halfway
+                  <b>{t("percentage.fifty")}:</b>{" "}
+                  {t("percentage.fifty_description")}
                 </div>
                 <div>
-                  <b>75%:</b> Almost done
+                  <b>{t("percentage.seventy_five")}:</b>{" "}
+                  {t("percentage.seventy_five_description")}
                 </div>
                 <div>
-                  <b>100%:</b> Fully achieved
+                  <b>{t("percentage.hundred")}:</b>{" "}
+                  {t("percentage.hundred_description")}
                 </div>
               </div>
             )}
@@ -309,7 +316,7 @@ export const Assessment: React.FC = () => {
         {/* Text Input */}
         <div>
           <Label htmlFor={`input-text-${question.question_revision_id}`}>
-            Your Response
+            {t("response.label")}
           </Label>
           <Textarea
             id={`input-text-${question.question_revision_id}`}
@@ -320,7 +327,7 @@ export const Assessment: React.FC = () => {
                 text: e.target.value,
               })
             }
-            placeholder="Enter your response..."
+            placeholder={t("response.placeholder")}
             className="mt-1"
             rows={4}
           />
@@ -328,7 +335,7 @@ export const Assessment: React.FC = () => {
           <div className="mt-2 flex items-center space-x-2">
             <label className="flex items-center cursor-pointer text-dgrv-blue hover:underline">
               <Paperclip className="w-4 h-4 mr-1" />
-              <span>Add file</span>
+              <span>{t("file.add_file")}</span>
               <input
                 type="file"
                 className="hidden"
@@ -367,7 +374,7 @@ export const Assessment: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading assessment...</p>
+          <p className="text-gray-600">{t("loading")}</p>
         </div>
       </div>
     );
@@ -382,17 +389,18 @@ export const Assessment: React.FC = () => {
             <Card>
               <CardContent className="p-8 text-center">
                 <h2 className="text-2xl font-bold text-dgrv-blue mb-4">
-                  Assessment Not Available
+                  {t("not_available.title")}
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  The {toolName.toLowerCase()} is not yet configured. Please
-                  contact your administrator.
+                  {t("not_available.description", {
+                    tool: toolName.toLowerCase(),
+                  })}
                 </p>
                 <Button
                   onClick={() => navigate("/dashboard")}
                   className="bg-dgrv-blue hover:bg-blue-700"
                 >
-                  Return to Dashboard
+                  {t("not_available.back")}
                 </Button>
               </CardContent>
             </Card>
@@ -419,8 +427,11 @@ export const Assessment: React.FC = () => {
               {toolName}
             </h1>
             <p className="text-lg text-gray-600">
-              Category {currentCategoryIndex + 1} of {categories.length}:{" "}
-              {currentCategory}
+              {t("category", {
+                current: currentCategoryIndex + 1,
+                total: categories.length,
+                name: currentCategory,
+              })}
             </p>
           </div>
 
@@ -429,7 +440,7 @@ export const Assessment: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">
-                  Progress
+                  {t("progress")}
                 </span>
                 <span className="text-sm font-medium text-dgrv-blue">
                   {Math.round(progress)}%
@@ -472,7 +483,7 @@ export const Assessment: React.FC = () => {
               className="flex items-center space-x-2"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
+              <span>{t("nav.previous")}</span>
             </Button>
 
             <div className="flex space-x-4">
@@ -482,7 +493,7 @@ export const Assessment: React.FC = () => {
                 className="flex items-center space-x-2"
               >
                 <Save className="w-4 h-4" />
-                <span>Save Draft</span>
+                <span>{t("nav.save_draft")}</span>
               </Button>
 
               {isLastCategory ? (
@@ -491,14 +502,14 @@ export const Assessment: React.FC = () => {
                   className="bg-dgrv-green hover:bg-green-700 flex items-center space-x-2"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Submit Assessment</span>
+                  <span>{t("nav.submit")}</span>
                 </Button>
               ) : (
                 <Button
                   onClick={nextCategory}
                   className="bg-dgrv-blue hover:bg-blue-700 flex items-center space-x-2"
                 >
-                  <span>Next</span>
+                  <span>{t("nav.next")}</span>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               )}

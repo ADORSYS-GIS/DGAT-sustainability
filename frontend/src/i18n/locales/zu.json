@@ -181,5 +181,148 @@
       "create_button": "Dala Isincomo",
       "cancel_button": "Khansela"
     }
+  },
+  "home": {
+    "hero": {
+      "title": "Qinisa Umfelandawonye Wakho",
+      "subtitle": "Hlola Izinhloso Zedijithali & Zokusimama",
+      "description": "Kulula, kuphephile, kuyasebenza—siza umfelandawonye wakho uchume esikhathini sedijithali futhi wakhe imikhuba esimeme yekusasa.",
+      "cta": "Qala Ukuhlolwa"
+    },
+    "features": {
+      "digital_gap": {
+        "title": "Ukuhlaziywa Kwegebe Ledijithali",
+        "description": "Hlola ukuvuthwa kwedijithali komfelandawonye wakho ngemibuzo ebanzi ehlanganisa ingqalasizinda yetheknoloji, ulwazi lwedijithali, nobukhona ku-inthanethi."
+      },
+      "sustainability": {
+        "title": "Ukuhlolwa Kokuzimela",
+        "description": "Hlola imikhuba yemvelo, yezomphakathi, neyokuphatha ukuze wakhe umfelandawonye ozinze kakhudlwana futhi onomthwalo wemfanelo."
+      },
+      "action_plans": {
+        "title": "Izinhlelo Zesenzo",
+        "description": "Landela inqubekela phambili yakho ngamabhodi e-Kanban asebenzisanayo, uguqule ukuqonda kokuhlolwa kube yizenzo ezithathwayo nezithuthukiswayo ezilinganekayo."
+      }
+    },
+    "benefits": {
+      "title": "Kungani Ukhethe Amathuluzi e-DGRV?",
+      "built_for_coops": {
+        "title": "Akhelwe Ama-Cooperative",
+        "description": "Akhelwe ngokukhethekile ama-cooperative aseNingizimu Afrika"
+      },
+      "multilingual": {
+        "title": "Ukusekelwa Kwezilimi Eziningi",
+        "description": "Kutholakala ngesiNgisi, isiSwati, isiPutukezi, isiZulu, isiJalimane, nesiFulentshi"
+      },
+      "offline": {
+        "title": "Iyasebenza Ngaphandle Kwenethiwekhi",
+        "description": "Iyasebenza kahle noma uxhumano luncane"
+      }
+    },
+    "cta": {
+      "title": "Usukulungele Ukuguqula Umfelandawonye Wakho?",
+      "description": "Joyina ama-cooperative aseNingizimu Afrika ekwakheni ikusasa elidijithali nelisimeme.",
+      "button": "Qala Namuhla"
+    }
+  },
+  "assessment": {
+    "tool_name": "Ukuhlolwa Kokuzimela",
+    "error": {
+      "create": "Yehlulekile ukudala ukuhlolwa"
+    },
+    "success": {
+      "submit": "Ukuhlolwa kwakho kwe-{{tool}} kuthunyelwe ngempumelelo"
+    },
+    "loading": "Kulayishwa ukuhlolwa...",
+    "not_available": {
+      "title": "Ukuhlolwa Akutholakali",
+      "description": "{{tool}} akukalungiselelwa okwamanje. Sicela uthinte umphathi wakho.",
+      "back": "Buyela kuDashboard"
+    },
+    "category": "Isigaba {{current}} ku-{{total}}: {{name}}",
+    "progress": "Inqubekela phambili",
+    "yes_no": {
+      "label": "Yebo/Cha",
+      "yes": "Yebo",
+      "no": "Cha"
+    },
+    "percentage": {
+      "label": "Iphesenti",
+      "explanation_label": "Bonisa incazelo yepesenti",
+      "zero": "0%",
+      "zero_description": "Akukakaqali",
+      "twenty_five": "25%",
+      "twenty_five_description": "Kunenqubekela phambili",
+      "fifty": "50%",
+      "fifty_description": "Phakathi nendawo",
+      "seventy_five": "75%",
+      "seventy_five_description": "Cishe sekuqediwe",
+      "hundred": "100%",
+      "hundred_description": "Kufezwe ngokuphelele"
+    },
+    "response": {
+      "label": "Impendulo Yakho",
+      "placeholder": "Faka impendulo yakho..."
+    },
+    "file": {
+      "add_file": "Engeza ifayela"
+    },
+    "nav": {
+      "previous": "Emuva",
+      "next": "Olandelayo",
+      "save_draft": "Londoloza Okusalungiswa",
+      "submit": "Thumela Ukuhlolwa"
+    }
+  },
+  "assessments": {
+    "title": "Izithunyelwe Zakho",
+    "subtitle": "Buka futhi uphathe zonke izithunyelwe zakho zokusimama",
+    "start_new": "Qala Ukuhlolwa Okusha",
+    "assessment_title": "Ukuhlolwa Kokuzimela",
+    "submitted": "Kuthunyelwe",
+    "reviewed": "Kubuyekeziwe",
+    "submission_id": "ID Yokuthunyelwa",
+    "assessment_id": "ID Yokuhlolwa",
+    "view_details": "Buka Imininingwane",
+    "no_submissions": "Azikho izithunyelwe okwamanje",
+    "no_submissions_desc": "Qala ukuhlolwa kwakho kokuqala kokuzimela ukuze ulandelele inqubekela phambili yomfelandawonye wakho.",
+    "start_assessment": "Qala Ukuhlolwa",
+    "status": {
+      "approved": "Kuvunyiwe",
+      "pending_review": "Kulindelwe Ukuhlolwa",
+      "under_review": "Kuyahlolwa",
+      "rejected": "Kwenqatshiwe",
+      "revision_requested": "Kucelwe Ukuhlolwa Kabusha",
+      "unknown": "Akwaziwa"
+    }
+  },
+  "submissionView": {
+    "error": "Iphutha ekulayisheni imininingwane yokuthunyelwa.",
+    "details": {
+      "title": "Imininingwane Yokuthunyelwa",
+      "submission_id": "ID Yokuthunyelwa",
+      "assessment_id": "ID Yokuhlolwa",
+      "user_id": "ID Yomsebenzisi",
+      "status": "Isimo",
+      "submitted_at": "Kuthunyelwe Ngaliphi",
+      "reviewed_at": "Kubuyekeziwe Ngaliphi"
+    },
+    "answers": {
+      "yes_no": "Yebo/Cha:",
+      "yes": "Yebo",
+      "no": "Cha",
+      "percentage": "Iphesenti:",
+      "text": "Umbhalo:"
+    }
+  },
+  "actionPlan": {
+    "title": "Uhlelo LweseNzo",
+    "subtitle": "Landela imisebenzi yakho yokuthuthukisa ukusimama",
+    "columns": {
+      "todo": "Okuzokwenziwa",
+      "in_progress": "Kuyenziwa",
+      "done": "Kuqediwe",
+      "approved": "Kuvunyiwe"
+    },
+    "no_tasks": "Azikho izisebenzi ku-{{column}}"
   }
 }

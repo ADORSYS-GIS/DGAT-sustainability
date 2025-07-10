@@ -12,8 +12,10 @@ import type {
   QuestionRevision,
   Response,
 } from "../../openapi-rq/requests/types.gen";
+import { useTranslation } from "react-i18next";
 
 export const SubmissionView: React.FC = () => {
+  const { t } = useTranslation("submissionView");
   const { submissionId } = useParams<{ submissionId: string }>();
   // Fetch submission to get assessment_id
   const {
@@ -94,7 +96,7 @@ export const SubmissionView: React.FC = () => {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="pt-20 pb-8 flex items-center justify-center">
-          <div className="text-red-600">Error loading submission details.</div>
+          <div className="text-red-600">{t("error")}</div>
         </div>
       </div>
     );
@@ -107,28 +109,31 @@ export const SubmissionView: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Submission Details</CardTitle>
+              <CardTitle>{t("details.title")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="mb-4">
-                <strong>Submission ID:</strong> {submission.submission_id}
+                <strong>{t("details.submission_id")}:</strong>{" "}
+                {submission.submission_id}
               </div>
               <div className="mb-4">
-                <strong>Assessment ID:</strong> {submission.assessment_id}
+                <strong>{t("details.assessment_id")}:</strong>{" "}
+                {submission.assessment_id}
               </div>
               <div className="mb-4">
-                <strong>User ID:</strong> {submission.user_id}
+                <strong>{t("details.user_id")}:</strong> {submission.user_id}
               </div>
               <div className="mb-4">
-                <strong>Status:</strong> {submission.review_status}
+                <strong>{t("details.status")}:</strong>{" "}
+                {submission.review_status}
               </div>
               <div className="mb-4">
-                <strong>Submitted At:</strong>{" "}
+                <strong>{t("details.submitted_at")}:</strong>{" "}
                 {new Date(submission.submitted_at).toLocaleString()}
               </div>
               {submission.reviewed_at && (
                 <div className="mb-4">
-                  <strong>Reviewed At:</strong>{" "}
+                  <strong>{t("details.reviewed_at")}:</strong>{" "}
                   {new Date(submission.reviewed_at).toLocaleString()}
                 </div>
               )}
@@ -172,19 +177,19 @@ export const SubmissionView: React.FC = () => {
                             <>
                               {"yesNo" in answer && (
                                 <div>
-                                  <strong>Yes/No:</strong>{" "}
+                                  <strong>{t("answers.yes_no")}</strong>{" "}
                                   {(answer as Record<string, unknown>).yesNo ===
                                   true
-                                    ? "Yes"
+                                    ? t("answers.yes")
                                     : (answer as Record<string, unknown>)
                                           .yesNo === false
-                                      ? "No"
+                                      ? t("answers.no")
                                       : ""}
                                 </div>
                               )}
                               {"percentage" in answer && (
                                 <div>
-                                  <strong>Percentage:</strong>{" "}
+                                  <strong>{t("answers.percentage")}</strong>{" "}
                                   {
                                     (answer as Record<string, unknown>)
                                       .percentage as number
@@ -195,7 +200,7 @@ export const SubmissionView: React.FC = () => {
                               {"text" in answer &&
                                 (answer as Record<string, unknown>).text && (
                                   <div>
-                                    <strong>Text:</strong>{" "}
+                                    <strong>{t("answers.text")}</strong>{" "}
                                     {
                                       (answer as Record<string, unknown>)
                                         .text as string

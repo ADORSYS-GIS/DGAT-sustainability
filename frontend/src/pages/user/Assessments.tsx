@@ -7,8 +7,10 @@ import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export const Assessments: React.FC = () => {
+  const { t } = useTranslation("assessments");
   const { data, isLoading } = useSubmissionsServiceGetSubmissions();
   const submissions: Submission[] = data?.submissions || [];
   const navigate = useNavigate();
@@ -33,17 +35,17 @@ export const Assessments: React.FC = () => {
   const formatStatus = (status: string) => {
     switch (status) {
       case "approved":
-        return "Approved";
+        return t("status.approved");
       case "pending_review":
-        return "Pending Review";
+        return t("status.pending_review");
       case "under_review":
-        return "Under Review";
+        return t("status.under_review");
       case "rejected":
-        return "Rejected";
+        return t("status.rejected");
       case "revision_requested":
-        return "Revision Requested";
+        return t("status.revision_requested");
       default:
-        return "Unknown";
+        return t("status.unknown");
     }
   };
 
@@ -70,18 +72,16 @@ export const Assessments: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <FileText className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    Your Submissions
+                    {t("title")}
                   </h1>
                 </div>
-                <p className="text-lg text-gray-600">
-                  View and manage all your sustainability submissions
-                </p>
+                <p className="text-lg text-gray-600">{t("subtitle")}</p>
               </div>
               <Button
                 onClick={() => navigate("/assessment/sustainability")}
                 className="bg-dgrv-green hover:bg-green-700"
               >
-                Start New Assessment
+                {t("start_new")}
               </Button>
             </div>
           </div>
@@ -101,13 +101,13 @@ export const Assessments: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold">
-                          Sustainability Assessment
+                          {t("assessment_title")}
                         </h3>
                         <div className="flex items-center space-x-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-1">
                             <Calendar className="w-4 h-4" />
                             <span>
-                              Submitted:{" "}
+                              {t("submitted")}:{" "}
                               {new Date(
                                 submission.submitted_at,
                               ).toLocaleDateString()}
@@ -117,7 +117,7 @@ export const Assessments: React.FC = () => {
                             <div className="flex items-center space-x-1">
                               <Calendar className="w-4 h-4" />
                               <span>
-                                Reviewed:{" "}
+                                {t("reviewed")}:{" "}
                                 {new Date(
                                   submission.reviewed_at,
                                 ).toLocaleDateString()}
@@ -139,8 +139,12 @@ export const Assessments: React.FC = () => {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-600">
-                      <p>Submission ID: {submission.submission_id}</p>
-                      <p>Assessment ID: {submission.assessment_id}</p>
+                      <p>
+                        {t("submission_id")}: {submission.submission_id}
+                      </p>
+                      <p>
+                        {t("assessment_id")}: {submission.assessment_id}
+                      </p>
                     </div>
                     <div className="flex space-x-2">
                       <Button
@@ -153,7 +157,7 @@ export const Assessments: React.FC = () => {
                         }
                       >
                         <Eye className="w-4 h-4 mr-1" />
-                        View Details
+                        {t("view_details")}
                       </Button>
                     </div>
                   </div>
@@ -166,17 +170,16 @@ export const Assessments: React.FC = () => {
                 <CardContent>
                   <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No submissions yet
+                    {t("no_submissions")}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Start your first sustainability assessment to track your
-                    cooperative's progress.
+                    {t("no_submissions_desc")}
                   </p>
                   <Button
                     onClick={() => navigate("/assessment/sustainability")}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    Start Assessment
+                    {t("start_assessment")}
                   </Button>
                 </CardContent>
               </Card>

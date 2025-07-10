@@ -181,5 +181,148 @@
       "create_button": "Créer la recommandation",
       "cancel_button": "Annuler"
     }
+  },
+  "home": {
+    "hero": {
+      "title": "Renforcez votre coopérative",
+      "subtitle": "Évaluez les objectifs numériques et de durabilité",
+      "description": "Simple, sécurisé et impactant—accompagnez votre coopérative vers la réussite à l’ère numérique tout en développant des pratiques durables pour l’avenir.",
+      "cta": "Commencer l'évaluation"
+    },
+    "features": {
+      "digital_gap": {
+        "title": "Analyse de l'écart numérique",
+        "description": "Évaluez la maturité numérique de votre coopérative grâce à des questionnaires complets sur l’infrastructure technologique, la littératie numérique et la présence en ligne."
+      },
+      "sustainability": {
+        "title": "Évaluation de durabilité",
+        "description": "Évaluez les pratiques environnementales, sociales et de gouvernance pour bâtir une coopérative plus durable et responsable."
+      },
+      "action_plans": {
+        "title": "Plans d'action",
+        "description": "Suivez vos progrès avec des tableaux Kanban interactifs, transformant les résultats d’évaluation en tâches concrètes et en améliorations mesurables."
+      }
+    },
+    "benefits": {
+      "title": "Pourquoi choisir les outils d'évaluation DGRV ?",
+      "built_for_coops": {
+        "title": "Conçu pour les coopératives",
+        "description": "Conçu spécifiquement pour les coopératives d’Afrique australe"
+      },
+      "multilingual": {
+        "title": "Support multilingue",
+        "description": "Disponible en anglais, siSwati, portugais, zoulou, allemand et français"
+      },
+      "offline": {
+        "title": "Fonctionne hors ligne",
+        "description": "Fonctionne de manière fiable même avec une connectivité limitée"
+      }
+    },
+    "cta": {
+      "title": "Prêt à transformer votre coopérative ?",
+      "description": "Rejoignez les coopératives d’Afrique australe pour bâtir un avenir plus numérique et durable.",
+      "button": "Commencer aujourd'hui"
+    }
+  },
+  "assessment": {
+    "tool_name": "Évaluation de durabilité",
+    "error": {
+      "create": "Échec de la création de l'évaluation"
+    },
+    "success": {
+      "submit": "Votre {{tool}} a été soumise avec succès"
+    },
+    "loading": "Chargement de l'évaluation...",
+    "not_available": {
+      "title": "Évaluation non disponible",
+      "description": "La {{tool}} n'est pas encore configurée. Veuillez contacter votre administrateur.",
+      "back": "Retour au tableau de bord"
+    },
+    "category": "Catégorie {{current}} sur {{total}} : {{name}}",
+    "progress": "Progression",
+    "yes_no": {
+      "label": "Oui/Non",
+      "yes": "Oui",
+      "no": "Non"
+    },
+    "percentage": {
+      "label": "Pourcentage",
+      "explanation_label": "Afficher l'explication du pourcentage",
+      "zero": "0%",
+      "zero_description": "Non commencé",
+      "twenty_five": "25%",
+      "twenty_five_description": "Un certain progrès",
+      "fifty": "50%",
+      "fifty_description": "À mi-chemin",
+      "seventy_five": "75%",
+      "seventy_five_description": "Presque terminé",
+      "hundred": "100%",
+      "hundred_description": "Entièrement atteint"
+    },
+    "response": {
+      "label": "Votre réponse",
+      "placeholder": "Entrez votre réponse..."
+    },
+    "file": {
+      "add_file": "Ajouter un fichier"
+    },
+    "nav": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "save_draft": "Enregistrer le brouillon",
+      "submit": "Soumettre l'évaluation"
+    }
+  },
+  "assessments": {
+    "title": "Vos Soumissions",
+    "subtitle": "Consultez et gérez toutes vos soumissions de durabilité",
+    "start_new": "Commencer une nouvelle évaluation",
+    "assessment_title": "Évaluation de durabilité",
+    "submitted": "Soumis",
+    "reviewed": "Révisé",
+    "submission_id": "ID de la soumission",
+    "assessment_id": "ID de l'évaluation",
+    "view_details": "Voir les détails",
+    "no_submissions": "Aucune soumission pour l'instant",
+    "no_submissions_desc": "Commencez votre première évaluation de durabilité pour suivre les progrès de votre coopérative.",
+    "start_assessment": "Commencer l'évaluation",
+    "status": {
+      "approved": "Approuvé",
+      "pending_review": "En attente de révision",
+      "under_review": "En cours de révision",
+      "rejected": "Rejeté",
+      "revision_requested": "Révision demandée",
+      "unknown": "Inconnu"
+    }
+  },
+  "submissionView": {
+    "error": "Erreur lors du chargement des détails de la soumission.",
+    "details": {
+      "title": "Détails de la soumission",
+      "submission_id": "ID de la soumission",
+      "assessment_id": "ID de l'évaluation",
+      "user_id": "ID de l'utilisateur",
+      "status": "Statut",
+      "submitted_at": "Soumis le",
+      "reviewed_at": "Révisé le"
+    },
+    "answers": {
+      "yes_no": "Oui/Non:",
+      "yes": "Oui",
+      "no": "Non",
+      "percentage": "Pourcentage:",
+      "text": "Texte:"
+    }
+  },
+  "actionPlan": {
+    "title": "Plan d'action",
+    "subtitle": "Suivez vos tâches d'amélioration de la durabilité",
+    "columns": {
+      "todo": "À faire",
+      "in_progress": "En cours",
+      "done": "Terminé",
+      "approved": "Approuvé"
+    },
+    "no_tasks": "Aucune tâche dans {{column}}"
   }
 }
