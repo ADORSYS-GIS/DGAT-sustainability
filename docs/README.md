@@ -3,7 +3,7 @@
 ## Architecture
 - [System Architecture](architecture/system-overview.md)
 - [Database Schema](architecture/database-schema.md)
-
+- [Arc42 document](architecture/arc42.md)
 ## API Documentation
 - [DGAT Service API](api/dgat-service.md)
 - [Sustainability Service API](api/sustainability-service.md)
