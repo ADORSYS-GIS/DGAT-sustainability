@@ -1,6 +1,6 @@
-use std::net::ToSocketAddrs;
 use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, QueryOrder, Set};
 use serde_json::Value;
@@ -14,7 +14,7 @@ pub struct Model {
     pub question_id: Uuid,
     pub text: Value, // jsonb for i18n support
     pub weight: f32,
-    pub created_at: String, // Simplified for now
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -70,7 +70,7 @@ impl QuestionsRevisionsService {
             question_id: Set(question_id),
             text: Set(text),
             weight: Set(weight),
-            created_at: Set(chrono::Utc::now().to_rfc3339()),
+            created_at: Set(Utc::now()),
         };
 
         self.db_service.create(question_revision).await
@@ -120,7 +120,7 @@ mod tests {
             question_id: Uuid::new_v4(),
             text: json!({"en": "Question text"}),
             weight: 1.5,
-            created_at: "2024-01-01T00:00:00Z".to_string(),
+            created_at: Utc::now(),
         };
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)
