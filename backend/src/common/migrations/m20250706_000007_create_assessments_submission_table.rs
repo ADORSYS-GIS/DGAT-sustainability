@@ -28,6 +28,11 @@ impl MigrationTrait for Migration {
                             .json_binary()
                             .not_null(),
                     )
+                    .col(
+                        ColumnDef::new(AssessmentsSubmission::SubmittedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_assessment_submission_assessment")
@@ -60,6 +65,7 @@ enum AssessmentsSubmission {
     AssessmentId,
     UserId,
     Content,
+    SubmittedAt,
 }
 
 #[derive(Iden)]
