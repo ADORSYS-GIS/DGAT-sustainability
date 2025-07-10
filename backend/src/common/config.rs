@@ -29,7 +29,7 @@ pub struct ServerConfigs {
 
 #[derive(Debug, Clone, Deserialize, Envconfig)]
 pub struct CorsConfigs {
-    #[envconfig(from = "CORS_ORIGIN", default = "http://localhost:3000")]
+    #[envconfig(from = "CORS_ORIGIN", default = "http://localhost:8080/")]
     pub origin: String,
 }
 
