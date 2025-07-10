@@ -17,6 +17,7 @@ use axum::{
 };
 use serde_json::json;
 use std::sync::Arc;
+use axum::http::HeaderValue;
 use tokio::sync::Mutex;
 use tower_http::cors::{CorsLayer, Any};
 
@@ -24,7 +25,7 @@ use crate::common::config::Configs;
 use crate::common::models::claims::Claims;
 use crate::common::state::{AppDatabase, AppState as CommonAppState};
 use crate::web::api::routes as api_routes;
-use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware};
+use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware, request_logging::request_logging_middleware};
 
 /// Application state containing shared services for JWT validation and database access
 #[derive(Clone)]
@@ -146,11 +147,9 @@ pub fn create_app(app_state: AppState, config: Configs) -> Router {
     };
 
     // Configure CORS
+    let origin = HeaderValue::from_str(&config.cors.origin).unwrap();
     let cors = CorsLayer::new()
-        .allow_origin(config.cors.origin.parse::<axum::http::HeaderValue>().unwrap_or_else(|_| {
-            tracing::warn!("Invalid CORS origin '{}', falling back to any origin", config.cors.origin);
-            axum::http::HeaderValue::from_static("*")
-        }))
+        .allow_origin(origin)
         .allow_methods(Any)
         .allow_headers(Any);
 
@@ -164,6 +163,7 @@ pub fn create_app(app_state: AppState, config: Configs) -> Router {
         )
         .merge(health_routes())
         .layer(cors)
+        .layer(middleware::from_fn(request_logging_middleware))
 }
 
 #[cfg(test)]
