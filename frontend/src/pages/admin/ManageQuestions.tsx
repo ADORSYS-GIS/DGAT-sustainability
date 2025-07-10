@@ -269,11 +269,12 @@ export const ManageQuestions: React.FC = () => {
         toast.error("Weight must be between 1 and 10.");
         return;
       }
-      const text = { en: formData.text_en };
+      const text: Record<string, string> = { en: formData.text_en };
       if (formData.text_zu) text["zu"] = formData.text_zu;
       if (editingQuestion) {
         const updateBody: UpdateQuestionRequest = {
-          text: formData.text_en,
+          text,
+          weight: formData.weight,
         };
         updateMutation.mutate({
           questionId: editingQuestion.question_id,
@@ -283,6 +284,7 @@ export const ManageQuestions: React.FC = () => {
         const createBody: CreateQuestionRequest = {
           category: formData.categoryId,
           text,
+          weight: formData.weight,
         };
         createMutation.mutate({ requestBody: createBody });
       }
