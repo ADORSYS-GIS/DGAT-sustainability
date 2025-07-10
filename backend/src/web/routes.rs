@@ -18,7 +18,9 @@ use axum::{
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tower_http::cors::{CorsLayer, Any};
 
+use crate::common::config::Configs;
 use crate::common::models::claims::Claims;
 use crate::common::state::{AppDatabase, AppState as CommonAppState};
 use crate::web::api::routes as api_routes;
@@ -137,21 +139,31 @@ pub fn health_routes() -> Router {
 }
 
 /// Create the complete application with all routes
-pub fn create_app(app_state: AppState) -> Router {
+pub fn create_app(app_state: AppState, config: Configs) -> Router {
     // Create a CommonAppState for the API routes (they only need database access)
     let api_app_state = CommonAppState {
         database: app_state.database.clone(),
     };
 
+    // Configure CORS
+    let cors = CorsLayer::new()
+        .allow_origin(config.cors.origin.parse::<axum::http::HeaderValue>().unwrap_or_else(|_| {
+            tracing::warn!("Invalid CORS origin '{}', falling back to any origin", config.cors.origin);
+            axum::http::HeaderValue::from_static("*")
+        }))
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     Router::new()
         .nest("/api/v1", create_router(app_state.clone()))
         .merge(
-            api_routes::create_router(api_app_state).layer(middleware::from_fn_with_state(
-                app_state.jwt_validator.clone(),
-                auth_middleware,
-            )),
+            api_routes::create_router(api_app_state)//.layer(middleware::from_fn_with_state(
+            //     app_state.jwt_validator.clone(),
+            //     auth_middleware,
+            // )),
         )
         .merge(health_routes())
+        .layer(cors)
 }
 
 #[cfg(test)]

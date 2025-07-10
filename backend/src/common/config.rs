@@ -7,6 +7,8 @@ pub struct Configs {
     pub keycloak: KeycloakConfigs,
     #[envconfig(nested = true)]
     pub server: ServerConfigs,
+    #[envconfig(nested = true)]
+    pub cors: CorsConfigs,
 }
 
 #[derive(Debug, Clone, Deserialize, Envconfig)]
@@ -23,6 +25,12 @@ pub struct ServerConfigs {
     pub host: String,
     #[envconfig(from = "SERVER_PORT", default = "3001")]
     pub port: u16,
+}
+
+#[derive(Debug, Clone, Deserialize, Envconfig)]
+pub struct CorsConfigs {
+    #[envconfig(from = "CORS_ORIGIN", default = "http://localhost:3000")]
+    pub origin: String,
 }
 
 impl Configs {
