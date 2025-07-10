@@ -23,6 +23,7 @@ import type {
   GenerateReportRequest,
   Response,
 } from "../../openapi-rq/requests/types.gen";
+import { useTranslation } from "react-i18next";
 
 interface Recommendation {
   recommendationId: string;
@@ -39,6 +40,7 @@ type Answer = {
 };
 
 export const ReviewAssessments: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedSubmission, setSelectedSubmission] =
     useState<AdminSubmissionDetail | null>(null);
@@ -219,11 +221,11 @@ export const ReviewAssessments: React.FC = () => {
             <div className="flex items-center space-x-3 mb-4">
               <FileText className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                Review Assessments
+                {t("admin.review.title")}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Review submitted assessments and provide recommendations
+              {t("admin.review.description")}
             </p>
           </div>
 
@@ -242,7 +244,9 @@ export const ReviewAssessments: React.FC = () => {
                         <FileText className="w-5 h-5 text-dgrv-blue" />
                       </div>
                       <div>
-                        <span className="text-lg">Submission</span>
+                        <span className="text-lg">
+                          {t("admin.review.submission.title")}
+                        </span>
                         <p className="text-sm font-normal text-gray-600">
                           {new Date(
                             submission.submitted_at,
@@ -258,8 +262,14 @@ export const ReviewAssessments: React.FC = () => {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="text-sm text-gray-600">
-                      <p>Submission ID: {submission.submission_id}</p>
-                      <p>User ID: {submission.user_id}</p>
+                      <p>
+                        {t("admin.review.submission.id")}:{" "}
+                        {submission.submission_id}
+                      </p>
+                      <p>
+                        {t("admin.review.submission.user")}:{" "}
+                        {submission.user_id}
+                      </p>
                     </div>
                     <div className="flex space-x-2 pt-4">
                       <Button
@@ -268,7 +278,7 @@ export const ReviewAssessments: React.FC = () => {
                         className="flex-1 bg-dgrv-blue hover:bg-blue-700"
                       >
                         <Eye className="w-4 h-4 mr-1" />
-                        Review
+                        {t("admin.review.review.button")}
                       </Button>
                     </div>
                   </div>
@@ -281,10 +291,10 @@ export const ReviewAssessments: React.FC = () => {
                 <CardContent>
                   <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No submissions to review
+                    {t("admin.review.no_submissions")}
                   </h3>
                   <p className="text-gray-600">
-                    All submissions are up to date!
+                    {t("admin.review.up_to_date")}
                   </p>
                 </CardContent>
               </Card>
@@ -295,21 +305,27 @@ export const ReviewAssessments: React.FC = () => {
           <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Review Submission</DialogTitle>
+                <DialogTitle>{t("admin.review.dialog.title")}</DialogTitle>
               </DialogHeader>
 
               {selectedSubmission && (
                 <div className="space-y-6">
                   {/* Submission Info */}
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2">Submission Details</h3>
+                    <h3 className="font-medium mb-2">
+                      {t("admin.review.dialog.submission_details.title")}
+                    </h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        Submission ID: {selectedSubmission.submission_id}
+                        {t("admin.review.dialog.submission_details.id")}:{" "}
+                        {selectedSubmission.submission_id}
                       </div>
-                      <div>User: {selectedSubmission.user_id}</div>
                       <div>
-                        Submitted:{" "}
+                        {t("admin.review.dialog.submission_details.user")}:{" "}
+                        {selectedSubmission.user_id}
+                      </div>
+                      <div>
+                        {t("admin.review.dialog.submission_details.submitted")}:{" "}
                         {new Date(
                           selectedSubmission.submitted_at,
                         ).toLocaleDateString()}
@@ -336,7 +352,9 @@ export const ReviewAssessments: React.FC = () => {
                             {questionText}
                           </h4>
                           <div className="mt-2 text-sm space-y-1">
-                            <span className="font-medium">Answer: </span>
+                            <span className="font-medium">
+                              {t("admin.review.dialog.answer")}:{" "}
+                            </span>
                             <span className="text-dgrv-blue">
                               {resp.response}
                             </span>
@@ -346,7 +364,7 @@ export const ReviewAssessments: React.FC = () => {
                               className="block text-xs font-medium mb-1"
                               htmlFor={`rec-${resp.response_id}`}
                             >
-                              Recommendation
+                              {t("admin.review.dialog.recommendation")}
                             </label>
                             <textarea
                               id={`rec-${resp.response_id}`}
@@ -359,7 +377,9 @@ export const ReviewAssessments: React.FC = () => {
                                   [resp.response_id]: e.target.value,
                                 }))
                               }
-                              placeholder="Enter recommendation for this question"
+                              placeholder={t(
+                                "admin.review.dialog.recommendation_placeholder",
+                              )}
                             />
                           </div>
                         </div>

@@ -17,8 +17,10 @@ import { useSubmissionsServiceGetSubmissions } from "../..//openapi-rq//queries/
 import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading, isError, error, isSuccess } =
     useSubmissionsServiceGetSubmissions();
@@ -26,42 +28,39 @@ export const Dashboard: React.FC = () => {
 
   React.useEffect(() => {
     if (isError) {
-      toast.error("Error loading submissions", {
+      toast.error(t("dashboard.error_loading"), {
         description: error instanceof Error ? error.message : String(error),
       });
     } else if (isLoading) {
-      toast.info("Loading submissions...", {
-        description: "Fetching your recent submissions.",
+      toast.info(t("dashboard.loading"), {
+        description: t("dashboard.loading_desc"),
       });
     } else if (isSuccess) {
-      toast.success("Submissions loaded", {
-        description: `Loaded ${submissions.length} submissions successfully!`,
+      toast.success(t("dashboard.success"), {
+        description: t("dashboard.success_desc", { count: submissions.length }),
         className: "bg-dgrv-green text-white",
       });
     }
-  }, [isError, error, isLoading, isSuccess, submissions.length]);
+  }, [isError, error, isLoading, isSuccess, submissions.length, t]);
 
   const dashboardActions = [
     {
-      title: "Start Sustainability Assessment",
-      description:
-        "Assess environmental, social, and governance practices for sustainable growth.",
+      title: t("dashboard.actions.start"),
+      description: t("dashboard.actions.start_desc"),
       icon: Leaf,
       color: "green" as const,
       onClick: () => navigate("/assessment/sustainability"),
     },
     {
-      title: "View Assessments",
-      description:
-        "View all your assessments, drafts, and completed submissions with recommendations.",
+      title: t("dashboard.actions.view"),
+      description: t("dashboard.actions.view_desc"),
       icon: FileText,
       color: "blue" as const,
       onClick: () => navigate("/assessments"),
     },
     {
-      title: "Action Plan",
-      description:
-        "Track your progress with interactive tasks and recommendations using our Kanban board.",
+      title: t("dashboard.actions.plan"),
+      description: t("dashboard.actions.plan_desc"),
       icon: CheckSquare,
       color: "blue" as const,
       onClick: () => navigate("/action-plan"),
@@ -88,17 +87,17 @@ export const Dashboard: React.FC = () => {
   const formatStatus = (status: string) => {
     switch (status) {
       case "approved":
-        return "Approved";
+        return t("dashboard.statuses.approved");
       case "pending_review":
-        return "Pending Review";
+        return t("dashboard.statuses.pending_review");
       case "under_review":
-        return "Under Review";
+        return t("dashboard.statuses.under_review");
       case "rejected":
-        return "Rejected";
+        return t("dashboard.statuses.rejected");
       case "revision_requested":
-        return "Revision Requested";
+        return t("dashboard.statuses.revision_requested");
       default:
-        return "Unknown";
+        return t("dashboard.statuses.unknown");
     }
   };
 
@@ -115,11 +114,11 @@ export const Dashboard: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center space-x-3 mb-4">
               <Star className="w-8 h-8 text-dgrv-green" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">Welcome!</h1>
+              <h1 className="text-3xl font-bold text-dgrv-blue">
+                {t("dashboard.welcome")}
+              </h1>
             </div>
-            <p className="text-lg text-gray-600">
-              Ready to continue your cooperative's sustainability journey?
-            </p>
+            <p className="text-lg text-gray-600">{t("dashboard.ready")}</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-12">
@@ -139,14 +138,14 @@ export const Dashboard: React.FC = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <History className="w-5 h-5 text-dgrv-blue" />
-                  <span>Recent Submissions</span>
+                  <span>{t("dashboard.recent")}</span>
                 </CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/assessments")}
                 >
-                  View All
+                  {t("dashboard.view_all")}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -154,7 +153,7 @@ export const Dashboard: React.FC = () => {
                   {isLoading ? (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Loading submissions...</p>
+                      <p>{t("dashboard.loading")}</p>
                     </div>
                   ) : (
                     submissions.map((submission) => (
@@ -168,7 +167,7 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <h3 className="font-medium">
-                              Sustainability Assessment
+                              {t("dashboard.assessment")}
                             </h3>
                             <p className="text-sm text-gray-600">
                               {new Date(
@@ -190,9 +189,7 @@ export const Dashboard: React.FC = () => {
                   {submissions.length === 0 && !isLoading && (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>
-                        No submissions yet. Start your first assessment above!
-                      </p>
+                      <p>{t("dashboard.no_submissions")}</p>
                     </div>
                   )}
                 </div>
@@ -207,12 +204,12 @@ export const Dashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Download className="w-5 h-5 text-dgrv-blue" />
-                    <span>Export Reports</span>
+                    <span>{t("dashboard.export_reports")}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600 mb-4">
-                    Download your assessment reports in various formats.
+                    {t("dashboard.export_desc")}
                   </p>
                   <div className="space-y-2">
                     <Button
@@ -221,21 +218,21 @@ export const Dashboard: React.FC = () => {
                       className="w-full justify-start"
                       onClick={handleExportAllPDF}
                     >
-                      Export as PDF
+                      {t("dashboard.export_pdf")}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
                     >
-                      Export as Word
+                      {t("dashboard.export_word")}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
                     >
-                      Export as CSV
+                      {t("dashboard.export_csv")}
                     </Button>
                   </div>
                 </CardContent>
@@ -246,15 +243,16 @@ export const Dashboard: React.FC = () => {
                 style={{ animationDelay: "300ms" }}
               >
                 <CardHeader>
-                  <CardTitle className="text-dgrv-green">Need Help?</CardTitle>
+                  <CardTitle className="text-dgrv-green">
+                    {t("dashboard.need_help")}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600 mb-4">
-                    Get support and training materials to make the most of your
-                    assessments.
+                    {t("dashboard.help_desc")}
                   </p>
                   <Button variant="outline" size="sm" className="w-full">
-                    View User Guide
+                    {t("dashboard.user_guide")}
                   </Button>
                 </CardContent>
               </Card>

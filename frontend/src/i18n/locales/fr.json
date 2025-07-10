@@ -1,4 +1,185 @@
 {
-  "greeting": "Bonjour",
-  "farewell": "Au revoir"
+  "navbar": {
+    "brand": "DGRV",
+    "subtitle": "Écart numérique et durabilité",
+    "home": "Accueil",
+    "languages": {
+      "en": "Anglais",
+      "ss": "siSwati",
+      "pt": "Portugais",
+      "zu": "isiZulu",
+      "de": "Allemand",
+      "fr": "Français"
+    }
+  },
+  "dashboard": {
+    "welcome": "Bienvenue!",
+    "ready": "Prêt à poursuivre le parcours de durabilité de votre coopérative ?",
+    "actions": {
+      "start": "Commencer l'évaluation de durabilité",
+      "start_desc": "Évaluez les pratiques environnementales, sociales et de gouvernance pour une croissance durable.",
+      "view": "Voir les évaluations",
+      "view_desc": "Consultez toutes vos évaluations, brouillons et soumissions complétées avec recommandations.",
+      "plan": "Plan d'action",
+      "plan_desc": "Suivez vos progrès avec des tâches interactives et des recommandations via notre Kanban."
+    },
+    "recent": "Soumissions récentes",
+    "view_all": "Voir tout",
+    "loading": "Chargement des soumissions...",
+    "assessment": "Évaluation de durabilité",
+    "no_submissions": "Aucune soumission pour l'instant. Commencez votre première évaluation ci-dessus!",
+    "export_reports": "Exporter les rapports",
+    "export_desc": "Téléchargez vos rapports d'évaluation dans divers formats.",
+    "export_pdf": "Exporter en PDF",
+    "export_word": "Exporter en Word",
+    "export_csv": "Exporter en CSV",
+    "need_help": "Besoin d'aide?",
+    "help_desc": "Obtenez du support et des ressources pour tirer le meilleur parti de vos évaluations.",
+    "user_guide": "Voir le guide utilisateur",
+    "statuses": {
+      "approved": "Approuvé",
+      "pending_review": "En attente de révision",
+      "under_review": "En cours de révision",
+      "rejected": "Rejeté",
+      "revision_requested": "Révision demandée",
+      "unknown": "Inconnu"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "welcome": {
+        "title": "Bienvenue, Admin ! Favorisez l'impact coopératif !",
+        "description": "Gérez la plateforme d'évaluation DGRV et soutenez les coopératives à travers toute l'Afrique australe."
+      },
+      "pendingReviews": {
+        "title": "Révisions en attente",
+        "badge": "en attente",
+        "assessmentType": "Évaluation de durabilité",
+        "submittedBy": "par",
+        "reviewRequired": "Révision requise",
+        "upToDate": "Toutes les évaluations sont à jour !"
+      },
+      "systemHealth": {
+        "title": "Santé du système",
+        "database": "Base de données",
+        "healthy": "Sain",
+        "apiResponse": "Réponse de l'API",
+        "fast": "Rapide",
+        "syncQueue": "File d'attente de synchronisation",
+        "clear": "Effacé"
+      },
+      "quickActions": {
+        "title": "Actions rapides",
+        "exportReport": "Exporter le rapport système",
+        "backupDatabase": "Sauvegarder la base de données",
+        "viewAuditLogs": "Voir les journaux d'audit",
+        "systemSettings": "Paramètres du système"
+      }
+    },
+    "questions": {
+      "title": "Gérer les questions",
+      "description": "Gérez les questions pour l'évaluation de durabilité",
+      "sustainability_assessment_questions": "Questions de l'évaluation de durabilité",
+      "add_question": "Ajouter une question",
+      "edit_question": "Modifier la question",
+      "add_new_question": "Ajouter une nouvelle question",
+      "form": {
+        "text_en": {
+          "label": "Texte de la question (Anglais)",
+          "placeholder": "ex : Votre coopérative a-t-elle un programme de recyclage ?",
+          "required": "Le texte de la question (Anglais) est requis."
+        },
+        "text_zu": {
+          "label": "Texte de la question (Zulu - Optionnel)",
+          "placeholder": "ex : Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
+        },
+        "category": {
+          "label": "Catégorie",
+          "placeholder": "Sélectionnez une catégorie",
+          "required": "La catégorie est requise."
+        },
+        "weight": {
+          "label": "Poids (1-10)",
+          "range": "Le poids doit être compris entre 1 et 10."
+        },
+        "order": {
+          "label": "Ordre d'affichage"
+        },
+        "saving": "Enregistrement...",
+        "update": "Mettre à jour la question",
+        "create": "Créer la question"
+      },
+      "create": {
+        "success": "Question créée."
+      },
+      "update": {
+        "success": "Question mise à jour."
+      },
+      "delete": {
+        "success": "Question supprimée.",
+        "confirm": "Êtes-vous sûr de vouloir supprimer cette question ?"
+      },
+      "id": "ID",
+      "created_at": "Créé le",
+      "text": "Texte",
+      "questions_count": "questions",
+      "no_questions_in_category": "Aucune question dans cette catégorie pour le moment.",
+      "no_categories_available": "Aucune catégorie disponible. Veuillez d'abord créer une catégorie !",
+      "no_text": "Aucun texte"
+    },
+    "categories": {
+      "title": "Gérer les catégories",
+      "description": "Configurez les catégories pour l'évaluation de durabilité",
+      "cardTitle": "Catégories de l'évaluation de durabilité",
+      "addCategoryButton": "Ajouter une catégorie",
+      "editCategoryTitle": "Modifier la catégorie",
+      "addNewCategoryTitle": "Ajouter une nouvelle catégorie",
+      "categoryNameLabel": "Nom de la catégorie",
+      "categoryNamePlaceholder": "ex : Impact environnemental",
+      "weightLabel": "Poids (%)",
+      "displayOrderLabel": "Ordre d'affichage",
+      "updateCategoryButton": "Mettre à jour la catégorie",
+      "createCategoryButton": "Créer la catégorie",
+      "weightOrder": "Poids : {{weight}}% | Ordre : {{order}}",
+      "noCategoriesMessage": "Aucune catégorie pour l'instant. Ajoutez la première catégorie pour commencer !"
+    },
+    "review": {
+      "title": "Réviser les évaluations",
+      "description": "Révisez les évaluations soumises et fournissez des recommandations",
+      "submission": {
+        "title": "Soumission",
+        "id": "ID de la soumission",
+        "user": "Utilisateur"
+      },
+      "review": {
+        "button": "Réviser"
+      },
+      "no_submissions": "Aucune soumission à réviser",
+      "up_to_date": "Toutes les soumissions sont à jour !",
+      "dialog": {
+        "title": "Réviser la soumission",
+        "submission_details": {
+          "title": "Détails de la soumission",
+          "id": "ID de la soumission",
+          "user": "Utilisateur",
+          "submitted": "Soumis"
+        },
+        "answer": "Réponse",
+        "recommendation": "Recommandation",
+        "recommendation_placeholder": "Entrez la recommandation pour cette question"
+      }
+    },
+    "recommendations": {
+      "title": "Recommandations standards",
+      "description": "Gérez les recommandations réutilisables pour les évaluations",
+      "add_button": "Ajouter une recommandation",
+      "edit_title": "Modifier la recommandation standard",
+      "add_title": "Ajouter une recommandation standard",
+      "text_label": "Texte de la recommandation",
+      "text_placeholder": "Entrez le texte de la recommandation...",
+      "update_button": "Mettre à jour la recommandation",
+      "create_button": "Créer la recommandation",
+      "cancel_button": "Annuler"
+    }
+  }
 }

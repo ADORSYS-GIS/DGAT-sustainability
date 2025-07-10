@@ -1,0 +1,185 @@
+{
+  "navbar": {
+    "brand": "DGRV",
+    "subtitle": "Igebe Ledijithali & Ukusimama",
+    "home": "Ikhaya",
+    "languages": {
+      "en": "IsiNgisi",
+      "ss": "isiSwati",
+      "pt": "IsiPutukezi",
+      "zu": "isiZulu",
+      "de": "IsiJalimane",
+      "fr": "IsiFulentshi"
+    }
+  },
+  "dashboard": {
+    "welcome": "Siyakwamukela!",
+    "ready": "Usukulungele ukuqhubeka nohambo lokusimama kwe-cooperative yakho?",
+    "actions": {
+      "start": "Qala Ukuhlolwa Kokuzimela",
+      "start_desc": "Hlola imikhuba yemvelo, yezomphakathi, neyokuphatha ukuze uthole ukukhula okusimeme.",
+      "view": "Buka Ukuhlolwa",
+      "view_desc": "Buka wonke ukuhlolwa kwakho, okusemibhalweni, nokuthunyelwe okuqediwe okunconyiwe.",
+      "plan": "Uhlelo Lwesenzo",
+      "plan_desc": "Landela inqubekela phambili yakho ngemisebenzi esebenzisanayo nezincomo usebenzisa iKanban yethu."
+    },
+    "recent": "Okuthunyelwe Kwakamuva",
+    "view_all": "Buka Konke",
+    "loading": "Kulayishwa okuthunyelwe...",
+    "assessment": "Ukuhlolwa Kokuzimela",
+    "no_submissions": "Akukathunyelwa lutho okwamanje. Qala ukuhlolwa kwakho kokuqala ngenhla!",
+    "export_reports": "Thumela Izibalo",
+    "export_desc": "Landa izibalo zakho zokuhlolwa ngezindlela ezahlukene.",
+    "export_pdf": "Thumela njenge-PDF",
+    "export_word": "Thumela njenge-Word",
+    "export_csv": "Thumela njenge-CSV",
+    "need_help": "Udinga Usizo?",
+    "help_desc": "Thola usizo nezincwadi zokuqeqesha ukuze usebenzise kahle ukuhlolwa kwakho.",
+    "user_guide": "Buka Umhlahlandlela Womsebenzisi",
+    "statuses": {
+      "approved": "Kuvunyiwe",
+      "pending_review": "Kulindelwe Ukuhlolwa",
+      "under_review": "Kuyahlolwa",
+      "rejected": "Kwenqatshiwe",
+      "revision_requested": "Kucelwe Ukuhlolwa Kabusha",
+      "unknown": "Akwaziwa"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "welcome": {
+        "title": "Siyakwamukela, Admin! Qhuba Umthelela Wokubambisana!",
+        "description": "Phatha ipulatifomu yokuhlola ye-DGRV futhi usekele ama-cooperative eNingizimu Afrika yonke."
+      },
+      "pendingReviews": {
+        "title": "Ukuhlolwa Okulindile",
+        "badge": "kulindile",
+        "assessmentType": "Ukuhlolwa Kokuzimela",
+        "submittedBy": "ngu",
+        "reviewRequired": "Kudingeka Ukuhlolwa",
+        "upToDate": "Zonke izivivinyo sezisesikhathini!"
+      },
+      "systemHealth": {
+        "title": "Impilo Yesistimu",
+        "database": "I-Database",
+        "healthy": "Kuyasebenza",
+        "apiResponse": "Impendulo ye-API",
+        "fast": "Iyashesha",
+        "syncQueue": "Uluhlu Lokuvumelanisa",
+        "clear": "Kuhlanzekile"
+      },
+      "quickActions": {
+        "title": "Izenzo Ezisheshayo",
+        "exportReport": "Thumela Umbiko Wesistimu",
+        "backupDatabase": "Gcina I-Database",
+        "viewAuditLogs": "Buka Ama-Log Wokuhlola",
+        "systemSettings": "Izilungiselelo Zesistimu"
+      }
+    },
+    "questions": {
+      "title": "Phatha Imibuzo",
+      "description": "Phatha imibuzo yokuhlolwa kokuzimela",
+      "sustainability_assessment_questions": "Imibuzo Yokuhlolwa Kokuzimela",
+      "add_question": "Engeza Umbuzo",
+      "edit_question": "Hlela Umbuzo",
+      "add_new_question": "Engeza Umbuzo Omusha",
+      "form": {
+        "text_en": {
+          "label": "Umbuzo (English)",
+          "placeholder": "isb., Ingabe i-cooperative yakho inohlelo lokugayisa kabusha?",
+          "required": "Umbuzo (English) uyadingeka."
+        },
+        "text_zu": {
+          "label": "Umbuzo (Zulu - Ongakukhetha)",
+          "placeholder": "isb., Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
+        },
+        "category": {
+          "label": "Isigaba",
+          "placeholder": "Khetha isigaba",
+          "required": "Isigaba siyadingeka."
+        },
+        "weight": {
+          "label": "Isisindo (1-10)",
+          "range": "Isisindo kumele sibe phakathi kuka-1 no-10."
+        },
+        "order": {
+          "label": "I-oda Lokubonisa"
+        },
+        "saving": "Kuyalondolozwa...",
+        "update": "Buyekeza Umbuzo",
+        "create": "Dala Umbuzo"
+      },
+      "create": {
+        "success": "Umbuzo udaliwe."
+      },
+      "update": {
+        "success": "Umbuzo ubuyekeziwe."
+      },
+      "delete": {
+        "success": "Umbuzo ususiwe.",
+        "confirm": "Uqinisekile ukuthi ufuna ukususa lo mbuzo?"
+      },
+      "id": "ID",
+      "created_at": "Kudaliwe",
+      "text": "Umbuzo",
+      "questions_count": "imibuzo",
+      "no_questions_in_category": "Azikho izimpendulo kulesi sigaba okwamanje.",
+      "no_categories_available": "Azikho izigaba. Sicela udale isigaba kuqala!",
+      "no_text": "Akunamphendvulo"
+    },
+    "categories": {
+      "title": "Phatha Izigaba",
+      "description": "Hlela izigaba zokuhlolwa kokuzimela",
+      "cardTitle": "Izigaba Zokuhlolwa Kokuzimela",
+      "addCategoryButton": "Engeza Isigaba",
+      "editCategoryTitle": "Hlela Isigaba",
+      "addNewCategoryTitle": "Engeza Isigaba Esisha",
+      "categoryNameLabel": "Igama Lesigaba",
+      "categoryNamePlaceholder": "isb., Umthelela Wemvelo",
+      "weightLabel": "Isisindo (%)",
+      "displayOrderLabel": "I-oda Lokubonisa",
+      "updateCategoryButton": "Buyekeza Isigaba",
+      "createCategoryButton": "Dala Isigaba",
+      "weightOrder": "Isisindo: {{weight}}% | I-oda: {{order}}",
+      "noCategoriesMessage": "Azikho izigaba okwamanje. Engeza esokuqala ukuze uqale!"
+    },
+    "review": {
+      "title": "Buyekeza Ukuhlolwa",
+      "description": "Buyekeza ukuhlolwa okuthunyelwe futhi unikeze izincomo",
+      "submission": {
+        "title": "Ukuthunyelwa",
+        "id": "ID Yokuthunyelwa",
+        "user": "Umsebenzisi"
+      },
+      "review": {
+        "button": "Buyekeza"
+      },
+      "no_submissions": "Azikho izithunyelwe ezidinga ukubuyekezwa",
+      "up_to_date": "Zonke izithunyelwe sezisesikhathini!",
+      "dialog": {
+        "title": "Buyekeza Ukuthunyelwa",
+        "submission_details": {
+          "title": "Imininingwane Yokuthunyelwa",
+          "id": "ID Yokuthunyelwa",
+          "user": "Umsebenzisi",
+          "submitted": "Kuthunyelwe"
+        },
+        "answer": "Impendulo",
+        "recommendation": "Isincomo",
+        "recommendation_placeholder": "Faka isincomo salo mbuzo"
+      }
+    },
+    "recommendations": {
+      "title": "Izincomo Ezivamile",
+      "description": "Phatha izincomo eziphindaphindwayo zokuhlolwa",
+      "add_button": "Engeza Isincomo",
+      "edit_title": "Hlela Isincomo Esivamile",
+      "add_title": "Engeza Isincomo Esivamile",
+      "text_label": "Umbhalo Wesincomo",
+      "text_placeholder": "Faka umbhalo wesincomo...",
+      "update_button": "Buyekeza Isincomo",
+      "create_button": "Dala Isincomo",
+      "cancel_button": "Khansela"
+    }
+  }
+}

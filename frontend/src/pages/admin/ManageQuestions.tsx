@@ -43,6 +43,7 @@ import type {
   UpdateQuestionRequest,
   QuestionWithRevisionsResponse,
 } from "../../openapi-rq/requests/types.gen";
+import { useTranslation } from "react-i18next";
 
 const CATEGORIES_KEY = "sustainability_categories";
 
@@ -69,6 +70,7 @@ const QuestionForm: React.FC<{
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
   editingQuestion: Question | null;
+  t: (key: string) => string;
 }> = ({
   categories,
   formData,
@@ -76,11 +78,14 @@ const QuestionForm: React.FC<{
   onSubmit,
   isPending,
   editingQuestion,
+  t,
 }) => {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="text_en">Question Text (English)</Label>
+        <Label htmlFor="text_en">
+          {t("admin.questions.form.text_en.label")}
+        </Label>
         <Textarea
           id="text_en"
           value={formData.text_en}
@@ -90,12 +95,14 @@ const QuestionForm: React.FC<{
               text_en: e.target.value,
             }))
           }
-          placeholder="e.g., Does your cooperative have a recycling program?"
+          placeholder={t("admin.questions.form.text_en.placeholder")}
           required
         />
       </div>
       <div>
-        <Label htmlFor="text_zu">Question Text (Zulu - Optional)</Label>
+        <Label htmlFor="text_zu">
+          {t("admin.questions.form.text_zu.label")}
+        </Label>
         <Textarea
           id="text_zu"
           value={formData.text_zu}
@@ -105,11 +112,13 @@ const QuestionForm: React.FC<{
               text_zu: e.target.value,
             }))
           }
-          placeholder="e.g., Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
+          placeholder={t("admin.questions.form.text_zu.placeholder")}
         />
       </div>
       <div>
-        <Label htmlFor="categoryId">Category</Label>
+        <Label htmlFor="categoryId">
+          {t("admin.questions.form.category.label")}
+        </Label>
         <Select
           value={formData.categoryId}
           onValueChange={(value) =>
@@ -120,7 +129,9 @@ const QuestionForm: React.FC<{
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select a category" />
+            <SelectValue
+              placeholder={t("admin.questions.form.category.placeholder")}
+            />
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
@@ -133,7 +144,9 @@ const QuestionForm: React.FC<{
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="weight">Weight (1-10)</Label>
+          <Label htmlFor="weight">
+            {t("admin.questions.form.weight.label")}
+          </Label>
           <Input
             id="weight"
             type="number"
@@ -150,7 +163,7 @@ const QuestionForm: React.FC<{
           />
         </div>
         <div>
-          <Label htmlFor="order">Display Order</Label>
+          <Label htmlFor="order">{t("admin.questions.form.order.label")}</Label>
           <Input
             id="order"
             type="number"
@@ -172,10 +185,10 @@ const QuestionForm: React.FC<{
         disabled={isPending}
       >
         {isPending
-          ? "Saving..."
+          ? t("admin.questions.form.saving")
           : editingQuestion
-            ? "Update Question"
-            : "Create Question"}
+            ? t("admin.questions.form.update")
+            : t("admin.questions.form.create")}
       </Button>
     </form>
   );
@@ -194,6 +207,7 @@ export const ManageQuestions: React.FC = () => {
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -229,7 +243,7 @@ export const ManageQuestions: React.FC = () => {
 
   const createMutation = useQuestionsServicePostQuestions({
     onSuccess: () => {
-      toast.success("Question created.");
+      toast.success(t("admin.questions.create.success"));
       refetchQuestions();
       setIsDialogOpen(false);
     },
@@ -238,7 +252,7 @@ export const ManageQuestions: React.FC = () => {
 
   const updateMutation = useQuestionsServicePutQuestionsByQuestionId({
     onSuccess: () => {
-      toast.success("Question updated.");
+      toast.success(t("admin.questions.update.success"));
       refetchQuestions();
       setIsDialogOpen(false);
       setEditingQuestion(null);
@@ -248,7 +262,7 @@ export const ManageQuestions: React.FC = () => {
 
   const deleteMutation = useQuestionsServiceDeleteQuestionsByQuestionId({
     onSuccess: () => {
-      toast.success("Question deleted.");
+      toast.success(t("admin.questions.delete.success"));
       refetchQuestions();
     },
     onError: (error: unknown) => toast.error(getErrorMessage(error)),
@@ -258,15 +272,15 @@ export const ManageQuestions: React.FC = () => {
     (e: React.FormEvent) => {
       e.preventDefault();
       if (!formData.text_en.trim()) {
-        toast.error("Question text (English) is required.");
+        toast.error(t("admin.questions.form.text_en.required"));
         return;
       }
       if (!formData.categoryId) {
-        toast.error("Category is required.");
+        toast.error(t("admin.questions.form.category.required"));
         return;
       }
       if (formData.weight < 1 || formData.weight > 10) {
-        toast.error("Weight must be between 1 and 10.");
+        toast.error(t("admin.questions.form.weight.range"));
         return;
       }
       const text = { en: formData.text_en };
@@ -287,7 +301,7 @@ export const ManageQuestions: React.FC = () => {
         createMutation.mutate({ requestBody: createBody });
       }
     },
-    [formData, editingQuestion, createMutation, updateMutation],
+    [formData, editingQuestion, createMutation, updateMutation, t],
   );
 
   const handleEdit = useCallback((question: Question) => {
@@ -304,11 +318,10 @@ export const ManageQuestions: React.FC = () => {
 
   const handleDelete = useCallback(
     (questionId: string) => {
-      if (!window.confirm("Are you sure you want to delete this question?"))
-        return;
+      if (!window.confirm(t("admin.questions.delete.confirm"))) return;
       deleteMutation.mutate({ questionId });
     },
-    [deleteMutation],
+    [deleteMutation, t],
   );
 
   const getQuestionsByCategory = useCallback(
@@ -341,16 +354,18 @@ export const ManageQuestions: React.FC = () => {
             <div className="flex items-center space-x-3 mb-4">
               <BookOpen className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                Manage Questions
+                {t("admin.questions.title")}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Manage questions for the Sustainability Assessment
+              {t("admin.questions.description")}
             </p>
           </div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Sustainability Assessment Questions</CardTitle>
+              <CardTitle>
+                {t("admin.questions.sustainability_assessment_questions")}
+              </CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -367,13 +382,15 @@ export const ManageQuestions: React.FC = () => {
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Question
+                    {t("admin.questions.add_question")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>
-                      {editingQuestion ? "Edit Question" : "Add New Question"}
+                      {editingQuestion
+                        ? t("admin.questions.edit_question")
+                        : t("admin.questions.add_new_question")}
                     </DialogTitle>
                   </DialogHeader>
                   <QuestionForm
@@ -385,6 +402,7 @@ export const ManageQuestions: React.FC = () => {
                       createMutation.isPending || updateMutation.isPending
                     }
                     editingQuestion={editingQuestion}
+                    t={t}
                   />
                 </DialogContent>
               </Dialog>
@@ -406,7 +424,8 @@ export const ManageQuestions: React.FC = () => {
                             {category.name}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            {categoryQuestions.length} questions
+                            {categoryQuestions.length}{" "}
+                            {t("admin.questions.questions_count")}
                           </p>
                         </div>
                       </AccordionTrigger>
@@ -420,18 +439,21 @@ export const ManageQuestions: React.FC = () => {
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <h4 className="font-medium">
-                                    ID: {question.question_id}
+                                    {t("admin.questions.id")}:{" "}
+                                    {question.question_id}
                                   </h4>
                                   <div className="flex space-x-4 mt-2 text-sm text-gray-500">
                                     <span>
-                                      Created:{" "}
+                                      {t("admin.questions.created_at")}:{" "}
                                       {new Date(
                                         question.created_at,
                                       ).toLocaleDateString()}
                                     </span>
                                   </div>
                                   <div className="mt-2 text-gray-800">
-                                    <strong>Text:</strong>{" "}
+                                    <strong>
+                                      {t("admin.questions.text")}:
+                                    </strong>{" "}
                                     <QuestionRevisionText
                                       questionId={question.question_id}
                                     />
@@ -462,7 +484,9 @@ export const ManageQuestions: React.FC = () => {
                           {categoryQuestions.length === 0 && (
                             <div className="text-center py-8 text-gray-500">
                               <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                              <p>No questions in this category yet.</p>
+                              <p>
+                                {t("admin.questions.no_questions_in_category")}
+                              </p>
                             </div>
                           )}
                         </div>
@@ -473,9 +497,7 @@ export const ManageQuestions: React.FC = () => {
                 {categories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>
-                      No categories available. Please create categories first!
-                    </p>
+                    <p>{t("admin.questions.no_categories_available")}</p>
                   </div>
                 )}
               </Accordion>
@@ -492,7 +514,7 @@ const QuestionRevisionText: React.FC<{ questionId: string }> = ({
 }) => {
   const { data } = useQuestionsServiceGetQuestionsByQuestionId({ questionId });
   if (!data || !data.revisions || data.revisions.length === 0)
-    return <em>No text</em>;
+    return <em>{t("admin.questions.no_text")}</em>;
   const latest = data.revisions.reduce((a, b) =>
     a.version > b.version ? a : b,
   );

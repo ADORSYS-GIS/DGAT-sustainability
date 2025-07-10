@@ -1,0 +1,185 @@
+{
+  "navbar": {
+    "brand": "DGRV",
+    "subtitle": "Lacuna Digital e Sustentabilidade",
+    "home": "Início",
+    "languages": {
+      "en": "Inglês",
+      "ss": "siSwati",
+      "pt": "Português",
+      "zu": "isiZulu",
+      "de": "Alemão",
+      "fr": "Francês"
+    }
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo!",
+    "ready": "Pronto para continuar a jornada de sustentabilidade da sua cooperativa?",
+    "actions": {
+      "start": "Iniciar Avaliação de Sustentabilidade",
+      "start_desc": "Avalie práticas ambientais, sociais e de governança para crescimento sustentável.",
+      "view": "Ver Avaliações",
+      "view_desc": "Veja todas as suas avaliações, rascunhos e submissões concluídas com recomendações.",
+      "plan": "Plano de Ação",
+      "plan_desc": "Acompanhe seu progresso com tarefas interativas e recomendações usando nosso Kanban."
+    },
+    "recent": "Submissões Recentes",
+    "view_all": "Ver Tudo",
+    "loading": "Carregando submissões...",
+    "assessment": "Avaliação de Sustentabilidade",
+    "no_submissions": "Ainda não há submissões. Inicie sua primeira avaliação acima!",
+    "export_reports": "Exportar Relatórios",
+    "export_desc": "Baixe seus relatórios de avaliação em vários formatos.",
+    "export_pdf": "Exportar como PDF",
+    "export_word": "Exportar como Word",
+    "export_csv": "Exportar como CSV",
+    "need_help": "Precisa de Ajuda?",
+    "help_desc": "Obtenha suporte e materiais de treinamento para aproveitar ao máximo suas avaliações.",
+    "user_guide": "Ver Guia do Usuário",
+    "statuses": {
+      "approved": "Aprovado",
+      "pending_review": "Aguardando Revisão",
+      "under_review": "Em Revisão",
+      "rejected": "Rejeitado",
+      "revision_requested": "Revisão Solicitada",
+      "unknown": "Desconhecido"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "welcome": {
+        "title": "Bem-vindo, Administrador! Impulsione o Impacto Cooperativo!",
+        "description": "Gerencie a plataforma de avaliação DGRV e apoie cooperativas em toda a África Austral."
+      },
+      "pendingReviews": {
+        "title": "Revisões Pendentes",
+        "badge": "pendente",
+        "assessmentType": "Avaliação de Sustentabilidade",
+        "submittedBy": "por",
+        "reviewRequired": "Revisão Necessária",
+        "upToDate": "Todas as avaliações estão atualizadas!"
+      },
+      "systemHealth": {
+        "title": "Saúde do Sistema",
+        "database": "Banco de Dados",
+        "healthy": "Saudável",
+        "apiResponse": "Resposta da API",
+        "fast": "Rápido",
+        "syncQueue": "Fila de Sincronização",
+        "clear": "Limpo"
+      },
+      "quickActions": {
+        "title": "Ações Rápidas",
+        "exportReport": "Exportar Relatório do Sistema",
+        "backupDatabase": "Backup do Banco de Dados",
+        "viewAuditLogs": "Ver Logs de Auditoria",
+        "systemSettings": "Configurações do Sistema"
+      }
+    },
+    "questions": {
+      "title": "Gerenciar Perguntas",
+      "description": "Gerencie perguntas para a Avaliação de Sustentabilidade",
+      "sustainability_assessment_questions": "Perguntas da Avaliação de Sustentabilidade",
+      "add_question": "Adicionar Pergunta",
+      "edit_question": "Editar Pergunta",
+      "add_new_question": "Adicionar Nova Pergunta",
+      "form": {
+        "text_en": {
+          "label": "Texto da Pergunta (Inglês)",
+          "placeholder": "ex: Sua cooperativa possui um programa de reciclagem?",
+          "required": "O texto da pergunta (Inglês) é obrigatório."
+        },
+        "text_zu": {
+          "label": "Texto da Pergunta (Zulu - Opcional)",
+          "placeholder": "ex: Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
+        },
+        "category": {
+          "label": "Categoria",
+          "placeholder": "Selecione uma categoria",
+          "required": "Categoria é obrigatória."
+        },
+        "weight": {
+          "label": "Peso (1-10)",
+          "range": "O peso deve estar entre 1 e 10."
+        },
+        "order": {
+          "label": "Ordem de Exibição"
+        },
+        "saving": "Salvando...",
+        "update": "Atualizar Pergunta",
+        "create": "Criar Pergunta"
+      },
+      "create": {
+        "success": "Pergunta criada."
+      },
+      "update": {
+        "success": "Pergunta atualizada."
+      },
+      "delete": {
+        "success": "Pergunta excluída.",
+        "confirm": "Tem certeza de que deseja excluir esta pergunta?"
+      },
+      "id": "ID",
+      "created_at": "Criado em",
+      "text": "Texto",
+      "questions_count": "perguntas",
+      "no_questions_in_category": "Ainda não há perguntas nesta categoria.",
+      "no_categories_available": "Nenhuma categoria disponível. Por favor, crie uma categoria primeiro!",
+      "no_text": "Sem texto"
+    },
+    "categories": {
+      "title": "Gerenciar Categorias",
+      "description": "Configure categorias para a Avaliação de Sustentabilidade",
+      "cardTitle": "Categorias da Avaliação de Sustentabilidade",
+      "addCategoryButton": "Adicionar Categoria",
+      "editCategoryTitle": "Editar Categoria",
+      "addNewCategoryTitle": "Adicionar Nova Categoria",
+      "categoryNameLabel": "Nome da Categoria",
+      "categoryNamePlaceholder": "ex: Impacto Ambiental",
+      "weightLabel": "Peso (%)",
+      "displayOrderLabel": "Ordem de Exibição",
+      "updateCategoryButton": "Atualizar Categoria",
+      "createCategoryButton": "Criar Categoria",
+      "weightOrder": "Peso: {{weight}}% | Ordem: {{order}}",
+      "noCategoriesMessage": "Nenhuma categoria ainda. Adicione a primeira categoria para começar!"
+    },
+    "review": {
+      "title": "Revisar Avaliações",
+      "description": "Revise avaliações enviadas e forneça recomendações",
+      "submission": {
+        "title": "Submissão",
+        "id": "ID da Submissão",
+        "user": "Usuário"
+      },
+      "review": {
+        "button": "Revisar"
+      },
+      "no_submissions": "Nenhuma submissão para revisar",
+      "up_to_date": "Todas as submissões estão atualizadas!",
+      "dialog": {
+        "title": "Revisar Submissão",
+        "submission_details": {
+          "title": "Detalhes da Submissão",
+          "id": "ID da Submissão",
+          "user": "Usuário",
+          "submitted": "Enviado"
+        },
+        "answer": "Resposta",
+        "recommendation": "Recomendação",
+        "recommendation_placeholder": "Insira a recomendação para esta pergunta"
+      }
+    },
+    "recommendations": {
+      "title": "Recomendações Padrão",
+      "description": "Gerencie recomendações reutilizáveis para avaliações",
+      "add_button": "Adicionar Recomendação",
+      "edit_title": "Editar Recomendação Padrão",
+      "add_title": "Adicionar Recomendação Padrão",
+      "text_label": "Texto da Recomendação",
+      "text_placeholder": "Insira o texto da recomendação...",
+      "update_button": "Atualizar Recomendação",
+      "create_button": "Criar Recomendação",
+      "cancel_button": "Cancelar"
+    }
+  }
+}

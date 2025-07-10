@@ -1,0 +1,185 @@
+{
+  "navbar": {
+    "brand": "DGRV",
+    "subtitle": "Digitale Lücke & Nachhaltigkeit",
+    "home": "Startseite",
+    "languages": {
+      "en": "Englisch",
+      "ss": "siSwati",
+      "pt": "Portugiesisch",
+      "zu": "isiZulu",
+      "de": "Deutsch",
+      "fr": "Französisch"
+    }
+  },
+  "dashboard": {
+    "welcome": "Willkommen!",
+    "ready": "Bereit, die Nachhaltigkeitsreise Ihrer Genossenschaft fortzusetzen?",
+    "actions": {
+      "start": "Nachhaltigkeitsbewertung starten",
+      "start_desc": "Bewerten Sie Umwelt-, Sozial- und Governance-Praktiken für nachhaltiges Wachstum.",
+      "view": "Bewertungen anzeigen",
+      "view_desc": "Sehen Sie alle Ihre Bewertungen, Entwürfe und abgeschlossenen Einreichungen mit Empfehlungen.",
+      "plan": "Aktionsplan",
+      "plan_desc": "Verfolgen Sie Ihren Fortschritt mit interaktiven Aufgaben und Empfehlungen über unser Kanban-Board."
+    },
+    "recent": "Letzte Einreichungen",
+    "view_all": "Alle anzeigen",
+    "loading": "Einreichungen werden geladen...",
+    "assessment": "Nachhaltigkeitsbewertung",
+    "no_submissions": "Noch keine Einreichungen. Starten Sie Ihre erste Bewertung oben!",
+    "export_reports": "Berichte exportieren",
+    "export_desc": "Laden Sie Ihre Bewertungsberichte in verschiedenen Formaten herunter.",
+    "export_pdf": "Als PDF exportieren",
+    "export_word": "Als Word exportieren",
+    "export_csv": "Als CSV exportieren",
+    "need_help": "Brauchen Sie Hilfe?",
+    "help_desc": "Erhalten Sie Unterstützung und Schulungsmaterialien, um das Beste aus Ihren Bewertungen herauszuholen.",
+    "user_guide": "Benutzerhandbuch anzeigen",
+    "statuses": {
+      "approved": "Genehmigt",
+      "pending_review": "Zur Überprüfung ausstehend",
+      "under_review": "In Überprüfung",
+      "rejected": "Abgelehnt",
+      "revision_requested": "Überarbeitung angefordert",
+      "unknown": "Unbekannt"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "welcome": {
+        "title": "Willkommen, Admin! Fördern Sie die Wirkung der Genossenschaft!",
+        "description": "Verwalten Sie die DGRV-Bewertungsplattform und unterstützen Sie Genossenschaften in ganz Südafrika."
+      },
+      "pendingReviews": {
+        "title": "Ausstehende Überprüfungen",
+        "badge": "ausstehend",
+        "assessmentType": "Nachhaltigkeitsbewertung",
+        "submittedBy": "von",
+        "reviewRequired": "Überprüfung erforderlich",
+        "upToDate": "Alle Bewertungen sind aktuell!"
+      },
+      "systemHealth": {
+        "title": "Systemzustand",
+        "database": "Datenbank",
+        "healthy": "Gesund",
+        "apiResponse": "API-Antwort",
+        "fast": "Schnell",
+        "syncQueue": "Synchronisationswarteschlange",
+        "clear": "Leer"
+      },
+      "quickActions": {
+        "title": "Schnellaktionen",
+        "exportReport": "Systembericht exportieren",
+        "backupDatabase": "Datenbank sichern",
+        "viewAuditLogs": "Audit-Logs anzeigen",
+        "systemSettings": "Systemeinstellungen"
+      }
+    },
+    "questions": {
+      "title": "Fragen verwalten",
+      "description": "Verwalten Sie Fragen für die Nachhaltigkeitsbewertung",
+      "sustainability_assessment_questions": "Fragen zur Nachhaltigkeitsbewertung",
+      "add_question": "Frage hinzufügen",
+      "edit_question": "Frage bearbeiten",
+      "add_new_question": "Neue Frage hinzufügen",
+      "form": {
+        "text_en": {
+          "label": "Fragentext (Englisch)",
+          "placeholder": "z.B. Hat Ihre Genossenschaft ein Recyclingprogramm?",
+          "required": "Fragentext (Englisch) ist erforderlich."
+        },
+        "text_zu": {
+          "label": "Fragentext (Zulu - Optional)",
+          "placeholder": "z.B. Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
+        },
+        "category": {
+          "label": "Kategorie",
+          "placeholder": "Kategorie auswählen",
+          "required": "Kategorie ist erforderlich."
+        },
+        "weight": {
+          "label": "Gewichtung (1-10)",
+          "range": "Gewichtung muss zwischen 1 und 10 liegen."
+        },
+        "order": {
+          "label": "Anzeigereihenfolge"
+        },
+        "saving": "Speichern...",
+        "update": "Frage aktualisieren",
+        "create": "Frage erstellen"
+      },
+      "create": {
+        "success": "Frage erstellt."
+      },
+      "update": {
+        "success": "Frage aktualisiert."
+      },
+      "delete": {
+        "success": "Frage gelöscht.",
+        "confirm": "Sind Sie sicher, dass Sie diese Frage löschen möchten?"
+      },
+      "id": "ID",
+      "created_at": "Erstellt am",
+      "text": "Text",
+      "questions_count": "Fragen",
+      "no_questions_in_category": "Noch keine Fragen in dieser Kategorie.",
+      "no_categories_available": "Keine Kategorien verfügbar. Bitte erstellen Sie zuerst eine Kategorie!",
+      "no_text": "Kein Text"
+    },
+    "categories": {
+      "title": "Kategorien verwalten",
+      "description": "Konfigurieren Sie Kategorien für die Nachhaltigkeitsbewertung",
+      "cardTitle": "Kategorien der Nachhaltigkeitsbewertung",
+      "addCategoryButton": "Kategorie hinzufügen",
+      "editCategoryTitle": "Kategorie bearbeiten",
+      "addNewCategoryTitle": "Neue Kategorie hinzufügen",
+      "categoryNameLabel": "Kategoriename",
+      "categoryNamePlaceholder": "z.B. Umweltauswirkung",
+      "weightLabel": "Gewichtung (%)",
+      "displayOrderLabel": "Anzeigereihenfolge",
+      "updateCategoryButton": "Kategorie aktualisieren",
+      "createCategoryButton": "Kategorie erstellen",
+      "weightOrder": "Gewichtung: {{weight}}% | Reihenfolge: {{order}}",
+      "noCategoriesMessage": "Noch keine Kategorien. Fügen Sie die erste Kategorie hinzu, um zu beginnen!"
+    },
+    "review": {
+      "title": "Bewertungen überprüfen",
+      "description": "Überprüfen Sie eingereichte Bewertungen und geben Sie Empfehlungen ab",
+      "submission": {
+        "title": "Einreichung",
+        "id": "Einreichungs-ID",
+        "user": "Benutzer"
+      },
+      "review": {
+        "button": "Überprüfen"
+      },
+      "no_submissions": "Keine Einreichungen zu überprüfen",
+      "up_to_date": "Alle Einreichungen sind aktuell!",
+      "dialog": {
+        "title": "Einreichung überprüfen",
+        "submission_details": {
+          "title": "Einreichungsdetails",
+          "id": "Einreichungs-ID",
+          "user": "Benutzer",
+          "submitted": "Eingereicht"
+        },
+        "answer": "Antwort",
+        "recommendation": "Empfehlung",
+        "recommendation_placeholder": "Empfehlung für diese Frage eingeben"
+      }
+    },
+    "recommendations": {
+      "title": "Standardempfehlungen",
+      "description": "Verwalten Sie wiederverwendbare Empfehlungen für Bewertungen",
+      "add_button": "Empfehlung hinzufügen",
+      "edit_title": "Standardempfehlung bearbeiten",
+      "add_title": "Standardempfehlung hinzufügen",
+      "text_label": "Empfehlungstext",
+      "text_placeholder": "Empfehlungstext eingeben...",
+      "update_button": "Empfehlung aktualisieren",
+      "create_button": "Empfehlung erstellen",
+      "cancel_button": "Abbrechen"
+    }
+  }
+}

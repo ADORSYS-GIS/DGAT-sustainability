@@ -18,6 +18,7 @@ import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen"
 import { useAdminServiceGetAdminSubmissions } from "../../openapi-rq/queries/queries";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 type Organization = { organizationId: string; name: string };
 type User = { userId: string; firstName?: string; lastName?: string };
@@ -31,6 +32,7 @@ interface PendingReview {
 }
 
 export const AdminDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [orgs] = React.useState<Organization[]>([
     { organizationId: "org1", name: "Mock Cooperative 1" },
     { organizationId: "org2", name: "Mock Cooperative 2" },
@@ -175,12 +177,11 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center space-x-3 mb-4">
               <Settings className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                Welcome, Admin! Drive Cooperative Impact!
+                {t("admin.dashboard.welcome.title")}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Manage the DGRV assessment platform and support cooperatives
-              across Southern Africa.
+              {t("admin.dashboard.welcome.description")}
             </p>
           </div>
 
@@ -222,10 +223,11 @@ export const AdminDashboard: React.FC = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <span>Pending Reviews</span>
+                  <span>{t("admin.dashboard.pendingReviews.title")}</span>
                 </CardTitle>
                 <Badge className="bg-orange-500 text-white">
-                  {stats.pendingCount} pending
+                  {stats.pendingCount}{" "}
+                  {t("admin.dashboard.pendingReviews.badge")}
                 </Badge>
               </CardHeader>
               <CardContent>
@@ -242,13 +244,14 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="font-medium">
-                            Sustainability Assessment
+                            {t("admin.dashboard.pendingReviews.assessmentType")}
                           </h3>
                           <p className="text-sm text-gray-600">
                             {review.organization}
                           </p>
                           <p className="text-xs text-gray-500">
-                            by {review.user}
+                            {t("admin.dashboard.pendingReviews.submittedBy")}{" "}
+                            {review.user}
                           </p>
                         </div>
                       </div>
@@ -257,7 +260,7 @@ export const AdminDashboard: React.FC = () => {
                           {review.submittedAt}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          Review Required
+                          {t("admin.dashboard.pendingReviews.reviewRequired")}
                         </Badge>
                       </div>
                     </div>
@@ -265,7 +268,7 @@ export const AdminDashboard: React.FC = () => {
                   {pendingReviews.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>All assessments are up to date!</p>
+                      <p>{t("admin.dashboard.pendingReviews.upToDate")}</p>
                     </div>
                   )}
                 </div>
@@ -281,24 +284,34 @@ export const AdminDashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <TrendingUp className="w-5 h-5 text-dgrv-green" />
-                    <span>System Health</span>
+                    <span>{t("admin.dashboard.systemHealth.title")}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm">Database</span>
+                      <span className="text-sm">
+                        {t("admin.dashboard.systemHealth.database")}
+                      </span>
                       <Badge className="bg-dgrv-green text-white">
-                        Healthy
+                        {t("admin.dashboard.systemHealth.healthy")}
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm">API Response</span>
-                      <Badge className="bg-dgrv-green text-white">Fast</Badge>
+                      <span className="text-sm">
+                        {t("admin.dashboard.systemHealth.apiResponse")}
+                      </span>
+                      <Badge className="bg-dgrv-green text-white">
+                        {t("admin.dashboard.systemHealth.fast")}
+                      </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm">Sync Queue</span>
-                      <Badge className="bg-dgrv-green text-white">Clear</Badge>
+                      <span className="text-sm">
+                        {t("admin.dashboard.systemHealth.syncQueue")}
+                      </span>
+                      <Badge className="bg-dgrv-green text-white">
+                        {t("admin.dashboard.systemHealth.clear")}
+                      </Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -310,22 +323,22 @@ export const AdminDashboard: React.FC = () => {
               >
                 <CardHeader>
                   <CardTitle className="text-dgrv-blue">
-                    Quick Actions
+                    {t("admin.dashboard.quickActions.title")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <button className="w-full text-left p-2 rounded hover:bg-gray-100 text-sm">
-                      Export System Report
+                      {t("admin.dashboard.quickActions.exportReport")}
                     </button>
                     <button className="w-full text-left p-2 rounded hover:bg-gray-100 text-sm">
-                      Backup Database
+                      {t("admin.dashboard.quickActions.backupDatabase")}
                     </button>
                     <button className="w-full text-left p-2 rounded hover:bg-gray-100 text-sm">
-                      View Audit Logs
+                      {t("admin.dashboard.quickActions.viewAuditLogs")}
                     </button>
                     <button className="w-full text-left p-2 rounded hover:bg-gray-100 text-sm">
-                      System Settings
+                      {t("admin.dashboard.quickActions.systemSettings")}
                     </button>
                   </div>
                 </CardContent>
