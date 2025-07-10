@@ -1,5 +1,6 @@
 use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
 use serde_json::Value;
@@ -10,8 +11,9 @@ use std::sync::Arc;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub assessment_id: Uuid, // Also FK to assessments
-    pub user_id: String, // Keycloak sub
-    pub content: Value,  // JSON blob with all answers
+    pub user_id: String,             // Keycloak sub
+    pub content: Value,              // JSON blob with all answers
+    pub submitted_at: DateTime<Utc>, // When the submission was created
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -66,6 +68,7 @@ impl AssessmentsSubmissionService {
             assessment_id: Set(assessment_id),
             user_id: Set(user_id),
             content: Set(content),
+            submitted_at: Set(Utc::now()),
         };
 
         self.db_service.create(submission).await
@@ -106,6 +109,7 @@ mod tests {
             assessment_id: Uuid::new_v4(),
             user_id: "test_user".to_string(),
             content: json!({"question1": "answer1", "question2": "answer2"}),
+            submitted_at: Utc::now(),
         };
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)

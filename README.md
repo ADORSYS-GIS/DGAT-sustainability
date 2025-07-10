@@ -75,15 +75,24 @@ For a detailed breakdown, see the [project structure documentation](link-to-proj
      docker-compose up -d
      ```
    - This starts PostgreSQL, Keycloak, and other dependencies.
+   - Wait for the services to be fully up (check with `docker-compose ps`)
 
-4. **Build and Run Backend Services**
+4. **Automated Keycloak Setup**
+   - Run the automated setup script to configure Keycloak:
+     ```bash
+     cd backend
+     cargo run
+     ```
+   - This will automatically create the realm, client, roles, and test user
+
+5. **Build and Run Backend Services**
    - Navigate to a backend service directory (e.g., `/backend/sustainability-service`) and run:
      ```bash
      cargo build
      cargo run
      ```
 
-5. **Build and Run Frontend Applications**
+6. **Build and Run Frontend Applications**
    - For the user PWA:
      ```bash
      cd frontend/user-pwa
@@ -97,9 +106,10 @@ For a detailed breakdown, see the [project structure documentation](link-to-proj
      npm start
      ```
 
-6. **Configure Keycloak**
-   - Access the Keycloak admin console at `http://localhost:8080`.
-   - Import realm settings from `/infrastructure/keycloak/realms`.
+7. **Verify Keycloak Configuration**
+   - Access the Keycloak admin console at `http://localhost:8080/admin/`
+   - Login with username `admin` and password `admin123`
+   - Select the `sustainability_realm` realm to verify the configuration
 
 7. **Apply Database Migrations**
    - Run migrations using the db-migrator binary:

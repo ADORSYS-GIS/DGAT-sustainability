@@ -10,6 +10,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub question_id: Uuid,
     pub category: String,
+    pub created_at: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -46,6 +47,7 @@ impl QuestionsService {
         let question = ActiveModel {
             question_id: Set(Uuid::new_v4()),
             category: Set(category),
+            created_at: Set(chrono::Utc::now().to_rfc3339()),
         };
 
         self.db_service.create(question).await
@@ -100,6 +102,7 @@ mod tests {
         let mock_question = Model {
             question_id: Uuid::new_v4(),
             category: "test_category".to_string(),
+            created_at: chrono::Utc::now().to_rfc3339(),
         };
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)
