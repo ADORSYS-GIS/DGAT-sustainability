@@ -6,4 +6,27 @@ license = "MIT"
 
 
 [dependencies]
+sea-orm = { version = "1.1", features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+    "macros",
+] }
+sea-orm-migration = "1.1"
+dotenv = "0.15.0"
 
+serde_json = "1.0.140"
+async-trait = "0.1.88"
+tokio = { version = "1.45.1", features = ["rt", "full"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.17.0", features = ["v4"] }
+
+[[bin]]
+name = "sustainability-tool"
+path = "src/main.rs"
+
+[[bin]]
+name = "db-migrator"
+path = "src/bin/db_migrator.rs"
+
+[dev-dependencies]
+sea-orm = { version = "1.1", features = ["mock"] }

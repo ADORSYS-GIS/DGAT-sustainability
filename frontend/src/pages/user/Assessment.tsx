@@ -14,7 +14,7 @@ import {
   useFilesServicePostAssessmentsByAssessmentIdResponsesByResponseIdFiles,
   useAssessmentsServicePostAssessmentsByAssessmentIdSubmit,
   useQuestionsServiceGetQuestions,
-} from "../../../api/generated/queries/queries";
+} from "../../openapi-rq/queries/queries";
 import {
   AssessmentDetailResponse,
   CreateResponseRequest,
@@ -22,7 +22,7 @@ import {
   response_id_files_body,
   Question,
   QuestionRevision,
-} from "../../../api/generated/requests/types.gen";
+} from "../../openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import {
   Info,

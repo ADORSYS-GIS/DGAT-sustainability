@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import { useParams } from "react-router-dom";
-import { useReportsServiceGetReportsByReportId } from "../../../api/generated/queries/queries";
+import { useReportsServiceGetReportsByReportId } from "../../openapi-rq/queries/queries";
 
 export const ActionPlan: React.FC = () => {
   // Get report_id from params or hardcode for now

@@ -35,14 +35,14 @@ import {
   useQuestionsServicePutQuestionsByQuestionId,
   useQuestionsServiceDeleteQuestionsByQuestionId,
   useQuestionsServiceGetQuestionsByQuestionId,
-} from "../../../api/generated/queries/queries";
+} from "../../openapi-rq/queries/queries";
 import type {
   Question,
   QuestionRevision,
   CreateQuestionRequest,
   UpdateQuestionRequest,
   QuestionWithRevisionsResponse,
-} from "../../../api/generated/requests/types.gen";
+} from "../../openapi-rq/requests/types.gen";
 
 const CATEGORIES_KEY = "sustainability_categories";
 
@@ -211,7 +211,7 @@ export const ManageQuestions: React.FC = () => {
     refetch: refetchQuestions,
   } = useQuestionsServiceGetQuestions({ category: undefined });
   const questions: Question[] = useMemo(
-    () => questionsData?.questions || [],
+    () => questionsData?.questions?.map((qwr) => qwr.question) || [],
     [questionsData],
   );
 

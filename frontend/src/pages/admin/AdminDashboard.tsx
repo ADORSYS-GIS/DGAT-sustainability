@@ -14,10 +14,10 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
-import type { AdminSubmissionDetail } from "../../../api/generated/requests/types.gen";
-import { useAdminServiceGetAdminSubmissions } from "../../../api/generated/queries/queries";
-import { toast } from "sonner";
+import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen";
+import { useAdminServiceGetAdminSubmissions } from "../../openapi-rq/queries/queries";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 type Organization = { organizationId: string; name: string };
 type User = { userId: string; firstName?: string; lastName?: string };

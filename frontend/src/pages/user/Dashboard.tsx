@@ -13,8 +13,8 @@ import {
   Star,
 } from "lucide-react";
 import React from "react";
-import { useSubmissionsServiceGetSubmissions } from "../../../api/generated/queries/queries";
-import type { Submission } from "../../../api/generated/requests/types.gen";
+import { useSubmissionsServiceGetSubmissions } from "../..//openapi-rq//queries/queries";
+import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
