@@ -17,7 +17,7 @@ use tower::ServiceExt;
 // Mock authentication middleware for testing
 async fn mock_auth_middleware(
     mut request: axum::extract::Request,
-    next: axum::middleware::Next,
+    next: middleware::Next,
 ) -> axum::response::Response {
     // Create mock claims for testing
     let mock_claims = Claims {
@@ -194,8 +194,8 @@ async fn test_create_question() {
     if status != StatusCode::CREATED {
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let error_response = String::from_utf8(body.to_vec()).unwrap();
-        println!("Error response: {}", error_response);
-        panic!("Expected 201 CREATED, got {}", status);
+        println!("Error response: {error_response}");
+        panic!("Expected 201 CREATED, got {status}");
     }
 
     assert_eq!(status, StatusCode::CREATED);
@@ -355,8 +355,8 @@ async fn test_list_user_submissions() {
     if status != StatusCode::OK {
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let error_text = String::from_utf8_lossy(&body);
-        println!("Error response: {}", error_text);
-        panic!("Expected 200 OK, got {}", status);
+        println!("Error response: {error_text}");
+        panic!("Expected 200 OK, got {status}");
     }
 
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
@@ -373,7 +373,7 @@ async fn test_get_submission() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(&format!("/api/submissions/{}", submission_id))
+                .uri(&format!("/api/submissions/{submission_id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -418,7 +418,7 @@ async fn test_get_question_success() {
 
     assert_eq!(create_response.status(), StatusCode::CREATED);
 
-    // Extract the question ID from the create response
+    // Extract the question ID from the creation response
     let create_body = to_bytes(create_response.into_body(), usize::MAX)
         .await
         .unwrap();
@@ -431,7 +431,7 @@ async fn test_get_question_success() {
     let get_response = app
         .oneshot(
             Request::builder()
-                .uri(&format!("/api/questions/{}", question_id))
+                .uri(&format!("/api/questions/{question_id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -479,7 +479,7 @@ async fn test_get_question_not_found() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(&format!("/api/questions/{}", non_existent_id))
+                .uri(&format!("/api/questions/{non_existent_id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
