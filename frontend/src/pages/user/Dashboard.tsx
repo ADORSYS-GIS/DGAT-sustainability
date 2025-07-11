@@ -22,7 +22,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { data, isLoading, isError, error, isSuccess } =
     useSubmissionsServiceGetSubmissions();
-  const submissions: Submission[] = data?.submissions?.slice(0, 3) || [];
+  const submissions: Submission[] = data?.submissions?.slice(0, 3) ?? [];
 
   React.useEffect(() => {
     if (isError) {

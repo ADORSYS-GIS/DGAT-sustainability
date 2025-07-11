@@ -14,17 +14,10 @@ import {
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, List } from "lucide-react";
 import { get, set } from "idb-keyval";
+import type { Category } from "@/types/category";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
 const CATEGORIES_KEY = "sustainability_categories";
-
-interface Category {
-  categoryId: string;
-  name: string;
-  weight: number;
-  order: number;
-  templateId: string;
-}
 
 export const ManageCategories: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -34,17 +27,15 @@ export const ManageCategories: React.FC = () => {
     weight: 25,
     order: 1,
   });
-  // Local state for categories
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load categories from IndexedDB on mount
   useEffect(() => {
     const loadCategories = async () => {
       setLoading(true);
       try {
         const stored = (await get(CATEGORIES_KEY)) as Category[] | undefined;
-        setCategories(stored || []);
+        setCategories(stored ?? []);
         toast.success(
           `Loaded ${stored?.length ?? 0} categories successfully!`,
           {
@@ -60,7 +51,6 @@ export const ManageCategories: React.FC = () => {
     loadCategories();
   }, []);
 
-  // Helper to persist categories to IndexedDB
   const persistCategories = async (cats: Category[]) => {
     try {
       await set(CATEGORIES_KEY, cats);
@@ -73,7 +63,6 @@ export const ManageCategories: React.FC = () => {
     }
   };
 
-  // Sort categories by order
   const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
 
   const handleSubmit = async (e: React.FormEvent) => {

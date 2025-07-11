@@ -12,10 +12,10 @@ import type {
   QuestionRevision,
   Response,
 } from "../../openapi-rq/requests/types.gen";
+import { renderAnswer } from "@/utils/renderAnswer";
 
 export const SubmissionView: React.FC = () => {
   const { submissionId } = useParams<{ submissionId: string }>();
-  // Fetch submission to get assessment_id
   const {
     data: submissionData,
     isLoading: submissionLoading,
@@ -26,7 +26,6 @@ export const SubmissionView: React.FC = () => {
   const submission = submissionData?.submission;
   const assessmentId = submission?.assessment_id;
 
-  // Fetch assessment detail (questions + responses)
   const {
     data: assessmentDetail,
     isLoading: assessmentLoading,
@@ -37,24 +36,20 @@ export const SubmissionView: React.FC = () => {
     { enabled: !!assessmentId },
   );
 
-  //  Fetch all questions (to get categories)
   const {
     data: questionsData,
     isLoading: questionsLoading,
     isError: questionsError,
   } = useQuestionsServiceGetQuestions();
 
-  // Group questions by category (using base question)
   const groupedQuestions = useMemo(() => {
     if (!assessmentDetail?.questions || !questionsData?.questions) return {};
-    // Build a map of question_id -> category
     const questionIdToCategory: Record<string, string> = {};
     questionsData.questions.forEach(
       (qwr: { question: Question; revisions: QuestionRevision[] }) => {
         questionIdToCategory[qwr.question.question_id] = qwr.question.category;
       },
     );
-    // Group by category
     const groups: Record<
       string,
       { revision: QuestionRevision; response?: Response }[]
@@ -110,32 +105,27 @@ export const SubmissionView: React.FC = () => {
               <CardTitle>Submission Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
-                <strong>Submission ID:</strong> {submission.submission_id}
+              <div className="mb-4 flex justify-between">
+                <span className="font-semibold">Status:</span>
+                <span>{submission.review_status}</span>
               </div>
-              <div className="mb-4">
-                <strong>Assessment ID:</strong> {submission.assessment_id}
-              </div>
-              <div className="mb-4">
-                <strong>User ID:</strong> {submission.user_id}
-              </div>
-              <div className="mb-4">
-                <strong>Status:</strong> {submission.review_status}
-              </div>
-              <div className="mb-4">
-                <strong>Submitted At:</strong>{" "}
-                {new Date(submission.submitted_at).toLocaleString()}
+              <div className="mb-4 flex justify-between">
+                <span className="font-semibold">Submitted At:</span>
+                <span>
+                  {new Date(submission.submitted_at).toLocaleString()}
+                </span>
               </div>
               {submission.reviewed_at && (
-                <div className="mb-4">
-                  <strong>Reviewed At:</strong>{" "}
-                  {new Date(submission.reviewed_at).toLocaleString()}
+                <div className="mb-4 flex justify-between">
+                  <span className="font-semibold">Reviewed At:</span>
+                  <span>
+                    {new Date(submission.reviewed_at).toLocaleString()}
+                  </span>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Render grouped questions and answers */}
           {categories.map((category) => (
             <Card key={category} className="mb-8">
               <CardHeader>
@@ -165,94 +155,7 @@ export const SubmissionView: React.FC = () => {
                             {idx + 1}. {revision.text}
                           </h3>
                         </div>
-                        <div className="space-y-2">
-                          {answer &&
-                          typeof answer === "object" &&
-                          !Array.isArray(answer) ? (
-                            <>
-                              {"yesNo" in answer && (
-                                <div>
-                                  <strong>Yes/No:</strong>{" "}
-                                  {(answer as Record<string, unknown>).yesNo ===
-                                  true
-                                    ? "Yes"
-                                    : (answer as Record<string, unknown>)
-                                          .yesNo === false
-                                      ? "No"
-                                      : ""}
-                                </div>
-                              )}
-                              {"percentage" in answer && (
-                                <div>
-                                  <strong>Percentage:</strong>{" "}
-                                  {
-                                    (answer as Record<string, unknown>)
-                                      .percentage as number
-                                  }
-                                  %
-                                </div>
-                              )}
-                              {"text" in answer &&
-                                (answer as Record<string, unknown>).text && (
-                                  <div>
-                                    <strong>Text:</strong>{" "}
-                                    {
-                                      (answer as Record<string, unknown>)
-                                        .text as string
-                                    }
-                                  </div>
-                                )}
-                              {"files" in answer &&
-                                Array.isArray(
-                                  (answer as Record<string, unknown>).files,
-                                ) &&
-                                (
-                                  (answer as Record<string, unknown>)
-                                    .files as Array<{
-                                    name?: string;
-                                    url?: string;
-                                  }>
-                                ).length > 0 && (
-                                  <div>
-                                    <strong>Files:</strong>
-                                    <ul className="list-disc ml-6">
-                                      {(
-                                        (answer as Record<string, unknown>)
-                                          .files as Array<{
-                                          name?: string;
-                                          url?: string;
-                                        }>
-                                      ).map((file, i) => (
-                                        <li key={i}>
-                                          {file.url ? (
-                                            <a
-                                              href={file.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-blue-600 underline"
-                                            >
-                                              {file.name || `File ${i + 1}`}
-                                            </a>
-                                          ) : (
-                                            file.name || `File ${i + 1}`
-                                          )}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                            </>
-                          ) : (
-                            <div>
-                              <strong>Answer:</strong>{" "}
-                              {answer !== undefined ? (
-                                String(answer)
-                              ) : (
-                                <span className="text-gray-400">No answer</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        <div className="space-y-2">{renderAnswer(answer)}</div>
                       </div>
                     );
                   },
