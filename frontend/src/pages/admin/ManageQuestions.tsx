@@ -209,11 +209,70 @@ export const ManageQuestions: React.FC = () => {
     data: questionsData,
     isLoading: questionsLoading,
     refetch: refetchQuestions,
-  } = useQuestionsServiceGetQuestions({ category: undefined });
-  const questions: Question[] = useMemo(
-    () => questionsData?.questions?.map((qwr) => qwr.question) || [],
+  } = useQuestionsServiceGetQuestions();
+
+  // Helper to extract latest revision for a question
+  function getLatestRevision(qwr: QuestionWithRevisionsResponse) {
+    if (!qwr.revisions || qwr.revisions.length === 0) return null;
+    return qwr.revisions.reduce((a, b) => (a.version > b.version ? a : b));
+  }
+
+  // Type guards for API response formats
+  function isLatestRevisionQuestion(q: unknown): q is { question_id: string; category: string; created_at: string; latest_revision: { text: Record<string, string>; weight: number; order?: number } } {
+    return (
+      typeof q === 'object' && q !== null &&
+      'latest_revision' in q &&
+      typeof (q as { latest_revision?: unknown }).latest_revision === 'object' &&
+      (q as { latest_revision?: unknown }).latest_revision !== null
+    );
+  }
+  function isRevisionsQuestion(q: unknown): q is { question: Question; revisions: Array<{ text: string; weight: number; version: number; order?: number }> } {
+    return (
+      typeof q === 'object' && q !== null &&
+      'question' in q && 'revisions' in q &&
+      Array.isArray((q as { revisions?: unknown }).revisions)
+    );
+  }
+
+  // Build questions array with latest revision info for display/edit
+  const questions: (Question & { latestText?: Record<string, string>; latestWeight?: number; order?: number })[] = useMemo(
+    () =>
+      questionsData?.questions?.map((q: unknown) => {
+        if (isLatestRevisionQuestion(q)) {
+          return {
+            question_id: q.question_id,
+            category: q.category,
+            created_at: q.created_at,
+            latestText: q.latest_revision.text,
+            latestWeight: q.latest_revision.weight,
+            order: q.latest_revision.order,
+          };
+        }
+        if (isRevisionsQuestion(q)) {
+          const latest = q.revisions.reduce((a, b) => (a.version > b.version ? a : b), q.revisions[0]);
+          return {
+            ...q.question,
+            latestText: { en: latest.text },
+            latestWeight: latest.weight,
+            order: latest.order,
+          };
+        }
+        return q as Question;
+      }) || [],
     [questionsData],
   );
+
+  // Group questions by categoryId for display
+  const questionsByCategory = useMemo(() => {
+    const map: Record<string, (Question & { latestText?: Record<string, string>; latestWeight?: number; order?: number })[]> = {};
+    questions.forEach((q) => {
+      if (!map[q.category]) map[q.category] = [];
+      map[q.category].push(q);
+    });
+    // Sort questions in each category by order if available
+    Object.values(map).forEach((arr) => arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+    return map;
+  }, [questions]);
 
   function getErrorMessage(error: unknown): string {
     if (
@@ -272,19 +331,20 @@ export const ManageQuestions: React.FC = () => {
       const text: Record<string, string> = { en: formData.text_en };
       if (formData.text_zu) text["zu"] = formData.text_zu;
       if (editingQuestion) {
+        // Update expects a string for text (English only)
         const updateBody: UpdateQuestionRequest = {
-          text,
-          weight: formData.weight,
+          text: formData.text_en,
         };
         updateMutation.mutate({
           questionId: editingQuestion.question_id,
           requestBody: updateBody,
         });
       } else {
+        // Create expects an object for text and a number for weight
         const createBody: CreateQuestionRequest = {
-          category: formData.categoryId,
+          category: formData.categoryId, // send exact categoryId from form
           text,
-          weight: formData.weight,
+          weight: Number(formData.weight),
         };
         createMutation.mutate({ requestBody: createBody });
       }
@@ -292,12 +352,12 @@ export const ManageQuestions: React.FC = () => {
     [formData, editingQuestion, createMutation, updateMutation],
   );
 
-  const handleEdit = useCallback((question: Question) => {
+  const handleEdit = useCallback((question: Question & { latestText?: Record<string, string>; latestWeight?: number }) => {
     setEditingQuestion(question);
     setFormData({
-      text_en: "",
-      text_zu: "",
-      weight: 5,
+      text_en: question.latestText?.en || "",
+      text_zu: question.latestText?.zu || "",
+      weight: question.latestWeight || 5,
       categoryId: question.category,
       order: 1,
     });
@@ -315,9 +375,7 @@ export const ManageQuestions: React.FC = () => {
 
   const getQuestionsByCategory = useCallback(
     (categoryId: string) => {
-      return questions
-        .filter((q) => q.category === categoryId)
-        .sort((a, b) => 0);
+      return questions.filter((q) => q && q.category === categoryId);
     },
     [questions],
   );
@@ -347,7 +405,7 @@ export const ManageQuestions: React.FC = () => {
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Manage questions for the Sustainability Assessment
+              Create and edit questions within each assessment category
             </p>
           </div>
           <Card>
@@ -392,94 +450,72 @@ export const ManageQuestions: React.FC = () => {
               </Dialog>
             </CardHeader>
             <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                {categories.map((category) => {
-                  const categoryQuestions = getQuestionsByCategory(
-                    category.categoryId,
-                  );
+              {/* Accordion for collapsible categories, first expanded by default */}
+              <Accordion type="multiple" defaultValue={[categories[0]?.categoryId]} className="w-full">
+                {categories.map((cat) => {
+                  const catQuestions = questionsByCategory[cat.categoryId] || [];
                   return (
-                    <AccordionItem
-                      key={category.categoryId}
-                      value={category.categoryId}
-                    >
-                      <AccordionTrigger className="text-left">
-                        <div>
-                          <h3 className="font-medium text-lg">
-                            {category.name}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {categoryQuestions.length} questions
-                          </p>
-                        </div>
+                    <AccordionItem key={cat.categoryId} value={cat.categoryId}>
+                      <AccordionTrigger className="text-left font-semibold text-lg mt-6">
+                        {cat.name}
                       </AccordionTrigger>
+                      {/* Number of questions under the category name */}
+                      <div className="text-sm text-gray-600 mb-2 ml-4">
+                        {catQuestions.length} question{catQuestions.length !== 1 ? 's' : ''}
+                      </div>
                       <AccordionContent>
-                        <div className="space-y-4 pt-4">
-                          {categoryQuestions.map((question) => (
-                            <div
-                              key={question.question_id}
-                              className="border rounded-lg p-4"
-                            >
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <h4 className="font-medium">
-                                    ID: {question.question_id}
-                                  </h4>
-                                  <div className="flex space-x-4 mt-2 text-sm text-gray-500">
-                                    <span>
-                                      Created:{" "}
-                                      {new Date(
-                                        question.created_at,
-                                      ).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                  <div className="mt-2 text-gray-800">
-                                    <strong>Text:</strong>{" "}
-                                    <QuestionRevisionText
-                                      questionId={question.question_id}
-                                    />
-                                  </div>
+                        {catQuestions.length === 0 && (
+                          <div className="text-gray-400 italic mb-4">No questions</div>
+                        )}
+                        {catQuestions.map((question) => (
+                          <div
+                            key={question.question_id}
+                            className="border rounded-lg p-4 mb-4 flex justify-between items-start bg-white"
+                          >
+                            <div className="flex-1">
+                              {/* English text in bold */}
+                              {question.latestText?.en && (
+                                <div className="font-semibold text-base mb-1">
+                                  {question.latestText.en}
                                 </div>
-                                <div className="flex space-x-2 ml-4">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEdit(question)}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleDelete(question.question_id)
-                                    }
-                                    className="text-red-600 hover:text-red-700"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                              )}
+                              {/* Zulu or other language text in smaller, lighter font */}
+                              {question.latestText?.zu && (
+                                <div className="text-sm text-gray-600 mb-1">
+                                  {question.latestText.zu}
                                 </div>
+                              )}
+                              {/* Weight and Order */}
+                              <div className="text-xs text-gray-500">
+                                Weight: {question.latestWeight ?? '-'}
+                                {typeof question.order === 'number' && (
+                                  <span className="ml-4">Order: {question.order}</span>
+                                )}
                               </div>
                             </div>
-                          ))}
-                          {categoryQuestions.length === 0 && (
-                            <div className="text-center py-8 text-gray-500">
-                              <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                              <p>No questions in this category yet.</p>
+                            <div className="flex space-x-2 ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(question)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(question.question_id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        ))}
                       </AccordionContent>
                     </AccordionItem>
                   );
                 })}
-                {categories.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>
-                      No categories available. Please create categories first!
-                    </p>
-                  </div>
-                )}
               </Accordion>
             </CardContent>
           </Card>

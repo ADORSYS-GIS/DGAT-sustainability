@@ -19,6 +19,7 @@ import { SubmissionView } from "../pages/user/SubmissionView";
 const routes = [
   { path: "/", element: Welcome },
   { path: "/admin/dashboard", element: AdminDashboard },
+  { path: "/dashboard", element: Dashboard },
   { path: "/admin/categories", element: ManageCategories },
   { path: "/admin/questions", element: ManageQuestions },
   { path: "/admin/reviews", element: ReviewAssessments },
@@ -33,13 +34,13 @@ const routes = [
   { path: "/callback", element: React.createElement(Callback) },
   { path: "/unauthorized", element: React.createElement(Unauthorized) },
   { path: "/", element: React.createElement(Welcome) },
-  {
-    path: "/dashboard",
-    element: React.createElement(ProtectedRoute, {
-      allowedRoles: [ROLES.ORG_USER, ROLES.ORG_ADMIN, ROLES.ORG_EXPERT],
-    }),
-    children: [{ path: "", element: React.createElement(Dashboard) }],
-  },
+  // {
+  //   path: "/dashboard",
+  //   element: React.createElement(ProtectedRoute, {
+  //     allowedRoles: [ROLES.ORG_USER, ROLES.ORG_ADMIN, ROLES.ORG_EXPERT],
+  //   }),
+  //   children: [{ path: "", element: React.createElement(Dashboard) }],
+  // },
   {
     path: "/admin",
     element: React.createElement(ProtectedRoute, {
