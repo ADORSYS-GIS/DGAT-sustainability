@@ -55,13 +55,13 @@ pub async fn list_questions(
             let question = Question {
                 question_id: db_question.question_id,
                 category: db_question.category,
-                created_at: db_question.created_at,
+                created_at: db_question.created_at.to_rfc3339(),
                 latest_revision: QuestionRevision {
                     question_revision_id: revision_model.question_revision_id,
                     question_id: revision_model.question_id,
                     text: text_map,
                     weight: revision_model.weight as f64,
-                    created_at: revision_model.created_at,
+                    created_at: revision_model.created_at.to_rfc3339(),
                 },
             };
 
@@ -111,13 +111,13 @@ pub async fn create_question(
     let question = Question {
         question_id: question_model.question_id,
         category: question_model.category,
-        created_at: question_model.created_at,
+        created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
             question_id: revision_model.question_id,
             text: request.text,
             weight: revision_model.weight as f64,
-            created_at: revision_model.created_at,
+            created_at: revision_model.created_at.to_rfc3339(),
         },
     };
 
@@ -198,13 +198,13 @@ pub async fn get_question(
     let question = Question {
         question_id: question_model.question_id,
         category: question_model.category,
-        created_at: question_model.created_at,
+        created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision.question_revision_id,
             question_id: revision.question_id,
             text: text_map,
             weight: revision.weight as f64,
-            created_at: revision.created_at,
+            created_at: revision.created_at.to_rfc3339(),
         },
     };
 
@@ -256,13 +256,13 @@ pub async fn update_question(
     let question = Question {
         question_id: question_model.question_id,
         category: question_model.category,
-        created_at: question_model.created_at,
+        created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
             question_id: revision_model.question_id,
             text: request.text,
             weight: revision_model.weight as f64,
-            created_at: revision_model.created_at,
+            created_at: revision_model.created_at.to_rfc3339(),
         },
     };
 
