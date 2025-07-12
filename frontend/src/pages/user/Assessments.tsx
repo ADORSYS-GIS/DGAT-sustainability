@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 export const Assessments: React.FC = () => {
   const { data, isLoading } = useSubmissionsServiceGetSubmissions();
-  const submissions: Submission[] = data?.submissions || [];
+  const submissions: Submission[] = data?.submissions ?? [];
   const navigate = useNavigate();
 
   const getStatusColor = (status: string) => {

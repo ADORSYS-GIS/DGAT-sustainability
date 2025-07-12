@@ -23,20 +23,7 @@ import type {
   GenerateReportRequest,
   Response,
 } from "../../openapi-rq/requests/types.gen";
-
-interface Recommendation {
-  recommendationId: string;
-  assessmentId: string;
-  categoryId: string;
-  text: { en: string };
-  createdBy: string;
-}
-
-type Answer = {
-  yesNo?: boolean;
-  percentage?: number;
-  text?: string;
-};
+import type { Recommendation } from "@/types/recommendation";
 
 export const ReviewAssessments: React.FC = () => {
   const queryClient = useQueryClient();
@@ -57,7 +44,7 @@ export const ReviewAssessments: React.FC = () => {
     refetch: refetchSubmissions,
   } = useAdminServiceGetAdminSubmissions({ status: "pending_review" });
   const submissions: AdminSubmissionDetail[] =
-    submissionsData?.submissions || [];
+    submissionsData?.submissions ?? [];
 
   React.useEffect(() => {
     if (isSubmissionsError) {
@@ -84,7 +71,7 @@ export const ReviewAssessments: React.FC = () => {
     undefined,
     { enabled: !!selectedSubmission },
   );
-  const responses: Response[] = responsesData?.responses || [];
+  const responses: Response[] = responsesData?.responses ?? [];
 
   React.useEffect(() => {
     if (isResponsesError) {

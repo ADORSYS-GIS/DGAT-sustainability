@@ -18,17 +18,9 @@ import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen"
 import { useAdminServiceGetAdminSubmissions } from "../../openapi-rq/queries/queries";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-type Organization = { organizationId: string; name: string };
-type User = { userId: string; firstName?: string; lastName?: string };
-
-interface PendingReview {
-  id: string;
-  organization: string;
-  user: string;
-  type: string;
-  submittedAt: string;
-}
+import type { Organization } from "@/types/organization";
+import type { User } from "@/types/user";
+import type { PendingReview } from "@/types/review";
 
 export const AdminDashboard: React.FC = () => {
   const [orgs] = React.useState<Organization[]>([

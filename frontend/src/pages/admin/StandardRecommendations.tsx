@@ -15,19 +15,19 @@ import { Star, Plus, Edit, Trash2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { set, get, del } from "idb-keyval";
+import type { StandardRecommendation } from "@/types/recommendation";
 
 const STANDARD_RECOMMENDATIONS_KEY = "standard_recommendations";
 
-interface Recommendation {
-  id: string;
-  text: string;
-}
-
 export const StandardRecommendations: React.FC = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingRec, setEditingRec] = useState<Recommendation | null>(null);
+  const [editingRec, setEditingRec] = useState<StandardRecommendation | null>(
+    null,
+  );
   const [formData, setFormData] = useState({ text: "" });
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [recommendations, setRecommendations] = useState<
+    StandardRecommendation[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -35,9 +35,9 @@ export const StandardRecommendations: React.FC = () => {
       setIsLoading(true);
       try {
         const stored = (await get(STANDARD_RECOMMENDATIONS_KEY)) as
-          | Recommendation[]
+          | StandardRecommendation[]
           | undefined;
-        setRecommendations(stored || []);
+        setRecommendations(stored ?? []);
         toast.success(
           `Loaded ${stored?.length ?? 0} recommendations successfully!`,
         );
@@ -50,15 +50,18 @@ export const StandardRecommendations: React.FC = () => {
     load();
   }, []);
 
-  const saveRecommendations = useCallback(async (recs: Recommendation[]) => {
-    try {
-      await set(STANDARD_RECOMMENDATIONS_KEY, recs);
-      setRecommendations(recs);
-      toast.success(`Saved ${recs.length} recommendations successfully!`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
+  const saveRecommendations = useCallback(
+    async (recs: StandardRecommendation[]) => {
+      try {
+        await set(STANDARD_RECOMMENDATIONS_KEY, recs);
+        setRecommendations(recs);
+        toast.success(`Saved ${recs.length} recommendations successfully!`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [],
+  );
 
   const resetForm = useCallback(() => {
     setFormData({ text: "" });
@@ -79,7 +82,10 @@ export const StandardRecommendations: React.FC = () => {
         await saveRecommendations(updated);
         toast.success("Recommendation updated successfully");
       } else {
-        const newRec: Recommendation = { id: uuidv4(), text: formData.text };
+        const newRec: StandardRecommendation = {
+          id: uuidv4(),
+          text: formData.text,
+        };
         await saveRecommendations([...recommendations, newRec]);
         toast.success("Standard recommendation created successfully");
       }
@@ -89,7 +95,7 @@ export const StandardRecommendations: React.FC = () => {
     }
   }, [formData, editingRec, recommendations, saveRecommendations, resetForm]);
 
-  const handleEdit = useCallback((rec: Recommendation) => {
+  const handleEdit = useCallback((rec: StandardRecommendation) => {
     setEditingRec(rec);
     setFormData({ text: rec.text });
     setShowAddDialog(true);
