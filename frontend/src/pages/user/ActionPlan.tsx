@@ -12,32 +12,22 @@ import {
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useReportsServiceGetReportsByReportId } from "../../openapi-rq/queries/queries";
+import type { ReportTask } from "@/types/actionPlan";
 
 export const ActionPlan: React.FC = () => {
-  // Get report_id from params or hardcode for now
   const { reportId } = useParams<{ reportId: string }>();
-  // Fallback reportId for demo/testing
   const fallbackReportId = "demo-report-id";
   const { data, isLoading } = useReportsServiceGetReportsByReportId({
     reportId: reportId || fallbackReportId,
   });
 
-  // Extract tasks from report.data.tasks (default to empty array)
-  type ReportTask = {
-    id: string;
-    title: string;
-    description?: string;
-    dueDate?: string;
-    status?: string;
-  };
   const tasks: ReportTask[] =
     (data?.report?.data &&
     typeof data.report.data === "object" &&
     Array.isArray((data.report.data as { tasks?: unknown }).tasks)
       ? (data.report.data as { tasks: ReportTask[] }).tasks
-      : []) || [];
+      : []) ?? [];
 
-  // Columns for Kanban
   const columns = [
     { id: "todo", title: "To Do", icon: AlertCircle, color: "text-gray-600" },
     {
@@ -55,7 +45,6 @@ export const ActionPlan: React.FC = () => {
     },
   ];
 
-  // Group tasks by status, default to 'todo' if not set
   const getTasksByStatus = (status: string) =>
     tasks.filter((task) => (task.status || "todo") === status);
 
@@ -105,7 +94,6 @@ export const ActionPlan: React.FC = () => {
       <Navbar />
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
@@ -122,7 +110,6 @@ export const ActionPlan: React.FC = () => {
             </div>
           </div>
 
-          {/* Kanban Board */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {columns.map((column) => {
               const columnTasks = getTasksByStatus(column.id);
@@ -187,3 +174,4 @@ export const ActionPlan: React.FC = () => {
     </div>
   );
 };
+

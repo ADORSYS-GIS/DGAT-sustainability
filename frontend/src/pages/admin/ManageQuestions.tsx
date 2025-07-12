@@ -43,24 +43,10 @@ import type {
   UpdateQuestionRequest,
   QuestionWithRevisionsResponse,
 } from "../../openapi-rq/requests/types.gen";
+import type { Category } from "@/types/category";
+import type { QuestionFormData } from "@/types/questionForm";
 
 const CATEGORIES_KEY = "sustainability_categories";
-
-interface Category {
-  categoryId: string;
-  name: string;
-  weight: number;
-  order: number;
-  templateId: string;
-}
-
-interface QuestionFormData {
-  text_en: string;
-  text_zu: string;
-  weight: number;
-  categoryId: string;
-  order: number;
-}
 
 const QuestionForm: React.FC<{
   categories: Category[];
@@ -199,7 +185,7 @@ export const ManageQuestions: React.FC = () => {
     const loadCategories = async () => {
       setCategoriesLoading(true);
       const stored = (await get(CATEGORIES_KEY)) as Category[] | undefined;
-      setCategories(stored || []);
+      setCategories(stored ?? []);
       setCategoriesLoading(false);
     };
     loadCategories();
@@ -211,7 +197,7 @@ export const ManageQuestions: React.FC = () => {
     refetch: refetchQuestions,
   } = useQuestionsServiceGetQuestions({ category: undefined });
   const questions: Question[] = useMemo(
-    () => questionsData?.questions || [],
+    () => (questionsData?.questions ?? []).map((qwr) => qwr.question),
     [questionsData],
   );
 

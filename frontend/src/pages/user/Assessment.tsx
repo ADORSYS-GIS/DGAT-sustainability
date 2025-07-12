@@ -32,8 +32,7 @@ import {
   Save,
   Send,
 } from "lucide-react";
-
-type FileData = { name: string; url: string };
+import type { FileData } from "@/types/file";
 
 export const Assessment: React.FC = () => {
   const { assessmentId } = useParams<{ assessmentId: string }>();
@@ -115,7 +114,7 @@ export const Assessment: React.FC = () => {
 
   const categories = Object.keys(groupedQuestions);
   const getCurrentCategoryQuestions = () =>
-    groupedQuestions[categories[currentCategoryIndex]] || [];
+    groupedQuestions[categories[currentCategoryIndex]] ?? [];
 
   // Helper to find response for a question
   const findResponseForQuestion = (question_revision_id: string) => {
@@ -166,7 +165,7 @@ export const Assessment: React.FC = () => {
         url: e.target?.result as string,
       };
       setAnswers((prev) => {
-        const prevFiles = prev[questionId]?.files || [];
+        const prevFiles = prev[questionId]?.files ?? [];
         return {
           ...prev,
           [questionId]: {
@@ -212,7 +211,7 @@ export const Assessment: React.FC = () => {
     const textValue = answers[question.question_revision_id]?.text || "";
     const comment = comments[question.question_revision_id] || "";
     const files: FileData[] =
-      answers[question.question_revision_id]?.files || [];
+      answers[question.question_revision_id]?.files ?? [];
     return (
       <div className="space-y-4">
         {/* Yes/No */}
