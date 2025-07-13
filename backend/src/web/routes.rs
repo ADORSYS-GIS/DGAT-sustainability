@@ -156,10 +156,10 @@ pub fn create_app(app_state: AppState, config: Configs) -> Router {
     Router::new()
         .nest("/api/v1", create_router(app_state.clone()))
         .merge(
-            api_routes::create_router(api_app_state)//.layer(middleware::from_fn_with_state(
-            //     app_state.jwt_validator.clone(),
-            //     auth_middleware,
-            // )),
+            api_routes::create_router(api_app_state).layer(middleware::from_fn_with_state(
+                app_state.jwt_validator.clone(),
+                auth_middleware,
+            )),
         )
         .merge(health_routes())
         .layer(cors)

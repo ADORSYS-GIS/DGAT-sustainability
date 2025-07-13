@@ -29,25 +29,25 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Result<Response, StatusCode> {
     // Extract Authorization header
-    let auth_header = headers.get("Authorization").ok_or_else(|| {
-        tracing::warn!("Missing Authorization header");
-        StatusCode::UNAUTHORIZED
-    })?;
+    // let auth_header = headers.get("Authorization").ok_or_else(|| {
+    //     tracing::warn!("Missing Authorization header");
+    //     StatusCode::UNAUTHORIZED
+    // })?;
 
-    let token = auth_header
-        .to_str()
-        .map_err(|e| {
-            tracing::warn!("Invalid Authorization header format: {}", e);
-            StatusCode::UNAUTHORIZED
-        })?
-        .strip_prefix("Bearer ")
-        .ok_or_else(|| {
-            tracing::warn!("Authorization header missing Bearer prefix");
-            StatusCode::UNAUTHORIZED
-        })?;
+    // let token = auth_header
+    //     .to_str()
+    //     .map_err(|e| {
+    //         tracing::warn!("Invalid Authorization header format: {}", e);
+    //         StatusCode::UNAUTHORIZED
+    //     })?
+    //     .strip_prefix("Bearer ")
+    //     .ok_or_else(|| {
+    //         tracing::warn!("Authorization header missing Bearer prefix");
+    //         StatusCode::UNAUTHORIZED
+    //     })?;
 
     // Validate token
-    let mut validator = jwt_validator.lock().await;
+    let validator = jwt_validator.lock().await;
     // let claims = validator.validate_token(token).await.map_err(|e| {
     //     tracing::error!("Token validation failed: {}", e);
     //     StatusCode::UNAUTHORIZED
