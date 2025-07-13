@@ -54,6 +54,7 @@ export const Assessment: React.FC = () => {
   const [comments, setComments] = useState<Record<string, string>>({});
   const [showPercentInfo, setShowPercentInfo] = useState(false);
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
+  const [language] = useState('en');
 
   const toolName = "Sustainability Assessment";
 
@@ -68,7 +69,7 @@ export const Assessment: React.FC = () => {
   useEffect(() => {
     if (!assessmentId && !hasCreatedAssessment) {
       setHasCreatedAssessment(true);
-      createAssessmentMutation.mutate(undefined, {
+      createAssessmentMutation.mutate({ requestBody: { language } }, {
         onSuccess: (data) => {
           const newId = data.assessment.assessment_id;
           navigate(`/user/assessment/${newId}`);
@@ -76,7 +77,7 @@ export const Assessment: React.FC = () => {
         onError: () => toast("Failed to create assessment"),
       });
     }
-  }, [assessmentId, createAssessmentMutation, navigate, hasCreatedAssessment]);
+  }, [assessmentId, createAssessmentMutation, navigate, hasCreatedAssessment, language]);
 
   const { data: assessmentDetail, isLoading: assessmentLoading } =
     useAssessmentsServiceGetAssessmentsByAssessmentId(
@@ -86,7 +87,7 @@ export const Assessment: React.FC = () => {
     );
 
   const { data: questionsData, isLoading: questionsLoading } =
-    useQuestionsServiceGetQuestions();
+    useQuestionsServiceGetQuestions([language]);
 
   const groupedQuestions = React.useMemo(() => {
     if (assessmentDetail?.questions) {
@@ -204,6 +205,7 @@ export const Assessment: React.FC = () => {
   const submitAssessment = async () => {
     submitAssessmentMutation.mutate({
       assessmentId: assessmentId!,
+      requestBody: { language },
     });
     toast(`Your ${toolName.toLowerCase()} has been submitted successfully`);
     setTimeout(() => {
