@@ -44,6 +44,17 @@ import type {
   QuestionWithRevisionsResponse,
 } from "../../openapi-rq/requests/types.gen";
 
+// Extended Question type to include latest_revision
+interface QuestionWithLatestRevision extends Question {
+  latest_revision?: {
+    question_revision_id: string;
+    question_id: string;
+    text: string | { [key: string]: string };
+    weight: number;
+    created_at: string;
+  };
+}
+
 const CATEGORIES_KEY = "sustainability_categories";
 
 interface Category {
@@ -68,7 +79,7 @@ const QuestionForm: React.FC<{
   setFormData: React.Dispatch<React.SetStateAction<QuestionFormData>>;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
-  editingQuestion: Question | null;
+  editingQuestion: QuestionWithLatestRevision | null;
 }> = ({
   categories,
   formData,
@@ -184,7 +195,7 @@ const QuestionForm: React.FC<{
 export const ManageQuestions: React.FC = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<QuestionWithLatestRevision | null>(null);
   const [formData, setFormData] = useState<QuestionFormData>({
     text_en: "",
     text_zu: "",
@@ -210,8 +221,8 @@ export const ManageQuestions: React.FC = () => {
     isLoading: questionsLoading,
     refetch: refetchQuestions,
   } = useQuestionsServiceGetQuestions({ category: undefined });
-  const questions: Question[] = useMemo(
-    () => questionsData?.questions?.map((qwr) => qwr.question) || [],
+  const questions: QuestionWithLatestRevision[] = useMemo(
+    () => questionsData?.questions || [],
     [questionsData],
   );
 
@@ -292,12 +303,31 @@ export const ManageQuestions: React.FC = () => {
     [formData, editingQuestion, createMutation, updateMutation],
   );
 
-  const handleEdit = useCallback((question: Question) => {
+  const handleEdit = useCallback((question: QuestionWithLatestRevision) => {
     setEditingQuestion(question);
+
+    let text_en = "";
+    let text_zu = "";
+    let weight = 5;
+
+    // Extract data from latest_revision if available
+    if (question.latest_revision) {
+      const latest = question.latest_revision;
+      weight = latest.weight || 5;
+
+      // Extract text from the text object
+      if (typeof latest.text === 'object' && latest.text !== null) {
+        text_en = latest.text.en || "";
+        text_zu = latest.text.zu || "";
+      } else if (typeof latest.text === 'string') {
+        text_en = latest.text;
+      }
+    }
+
     setFormData({
-      text_en: "",
-      text_zu: "",
-      weight: 5,
+      text_en,
+      text_zu,
+      weight,
       categoryId: question.category,
       order: 1,
     });
@@ -493,11 +523,18 @@ const QuestionRevisionText: React.FC<{ questionId: string }> = ({
   questionId,
 }) => {
   const { data } = useQuestionsServiceGetQuestionsByQuestionId({ questionId });
-  if (!data || !data.revisions || data.revisions.length === 0)
+  if (!data || !data.latest_revision)
     return <em>No text</em>;
-  const latest = data.revisions.reduce((a, b) =>
-    a.version > b.version ? a : b,
-  );
-  if (latest.language === "en") return <>{latest.text}</>;
+
+  const latest = data.latest_revision;
+
+  // Handle text as an object with language keys
+  if (typeof latest.text === 'object' && latest.text !== null) {
+    // Prefer English, fallback to any available language
+    const text = latest.text.en || latest.text.zu || Object.values(latest.text)[0];
+    return <>{text}</>;
+  }
+
+  // Handle text as a string (fallback)
   return <>{latest.text}</>;
 };
