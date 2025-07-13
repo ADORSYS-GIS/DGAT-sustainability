@@ -39,7 +39,9 @@
   "paths": {
     "/health": {
       "get": {
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "summary": "Health check",
         "description": "Basic health check endpoint",
         "operationId": "health_check",
@@ -59,41 +61,11 @@
     },
     "/questions": {
       "get": {
-        "tags": ["Questions"],
-        "summary": "List questions",
-        "description": "Get all questions with optional filtering. When question_revision_id is provided, returns the question containing that specific revision. Returns an array of questions with their revisions.",
-        "operationId": "list_questions",
-        "parameters": [
-          {
-            "name": "category",
-            "in": "query",
-            "description": "Filter by question category",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "description": "Language for content",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "en"
-            }
-          },
-          {
-            "name": "question_revision_id",
-            "in": "query",
-            "description": "Filter by a specific question revision ID",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
+        "tags": [
+          "Questions"
         ],
+        "summary": "List questions",
+        "description": "Get all questions",
         "responses": {
           "200": {
             "description": "List of questions with their revisions",
@@ -114,7 +86,9 @@
         }
       },
       "post": {
-        "tags": ["Questions"],
+        "tags": [
+          "Questions"
+        ],
         "summary": "Create question",
         "description": "Create a new question (Admin only)",
         "operationId": "create_question",
@@ -156,7 +130,9 @@
     },
     "/questions/{question_id}": {
       "get": {
-        "tags": ["Questions"],
+        "tags": [
+          "Questions"
+        ],
         "summary": "Get question",
         "description": "Get specific question with all revisions or a specific revision",
         "operationId": "get_question",
@@ -215,7 +191,9 @@
         }
       },
       "put": {
-        "tags": ["Questions"],
+        "tags": [
+          "Questions"
+        ],
         "summary": "Update question",
         "description": "Update a question (Admin only). Include question_revision_id for optimistic locking.",
         "operationId": "update_question",
@@ -290,7 +268,9 @@
         }
       },
       "delete": {
-        "tags": ["Questions"],
+        "tags": [
+          "Questions"
+        ],
         "summary": "Delete question",
         "description": "Delete a question (Admin only). Include question_revision_id for optimistic locking.",
         "operationId": "delete_question",
@@ -347,7 +327,9 @@
     },
     "/assessments": {
       "get": {
-        "tags": ["Assessments"],
+        "tags": [
+          "Assessments"
+        ],
         "summary": "List assessments",
         "description": "Get user's draft assessments",
         "operationId": "list_assessments",
@@ -383,7 +365,9 @@
         }
       },
       "post": {
-        "tags": ["Assessments"],
+        "tags": [
+          "Assessments"
+        ],
         "summary": "Create assessment",
         "description": "Create a new draft assessment",
         "operationId": "create_assessment",
@@ -412,7 +396,9 @@
     },
     "/assessments/{assessment_id}": {
       "get": {
-        "tags": ["Assessments"],
+        "tags": [
+          "Assessments"
+        ],
         "summary": "Get assessment",
         "description": "Get a specific draft assessment",
         "operationId": "get_assessment",
@@ -451,7 +437,9 @@
         }
       },
       "put": {
-        "tags": ["Assessments"],
+        "tags": [
+          "Assessments"
+        ],
         "summary": "Update assessment",
         "description": "Update a draft assessment",
         "operationId": "update_assessment",
@@ -503,7 +491,9 @@
         }
       },
       "delete": {
-        "tags": ["Assessments"],
+        "tags": [
+          "Assessments"
+        ],
         "summary": "Delete assessment",
         "description": "Delete a draft assessment",
         "operationId": "delete_assessment",
@@ -537,7 +527,9 @@
     },
     "/assessments/{assessment_id}/submit": {
       "post": {
-        "tags": ["Assessments"],
+        "tags": [
+          "Assessments"
+        ],
         "summary": "Submit assessment",
         "description": "Submit a draft assessment for review (creates immutable submission)",
         "operationId": "submit_assessment",
@@ -581,7 +573,9 @@
     },
     "/assessments/{assessment_id}/responses": {
       "get": {
-        "tags": ["Responses"],
+        "tags": [
+          "Responses"
+        ],
         "summary": "List responses",
         "description": "Get all responses for a draft assessment",
         "operationId": "list_responses",
@@ -630,7 +624,9 @@
         }
       },
       "post": {
-        "tags": ["Responses"],
+        "tags": [
+          "Responses"
+        ],
         "summary": "Create response",
         "description": "Create or update a response to a question",
         "operationId": "create_response",
@@ -684,7 +680,9 @@
     },
     "/assessments/{assessment_id}/responses/{response_id}": {
       "get": {
-        "tags": ["Responses"],
+        "tags": [
+          "Responses"
+        ],
         "summary": "Get response",
         "description": "Get a specific response",
         "operationId": "get_response",
@@ -733,7 +731,9 @@
         }
       },
       "put": {
-        "tags": ["Responses"],
+        "tags": [
+          "Responses"
+        ],
         "summary": "Update response",
         "description": "Update a response (creates new version)",
         "operationId": "update_response",
@@ -795,7 +795,9 @@
         }
       },
       "delete": {
-        "tags": ["Responses"],
+        "tags": [
+          "Responses"
+        ],
         "summary": "Delete response",
         "description": "Delete a response",
         "operationId": "delete_response",
@@ -839,7 +841,9 @@
     },
     "/assessments/{assessment_id}/responses/{response_id}/history": {
       "get": {
-        "tags": ["Responses"],
+        "tags": [
+          "Responses"
+        ],
         "summary": "Get response history",
         "description": "Get all versions of a response",
         "operationId": "get_response_history",
@@ -890,7 +894,9 @@
     },
     "/submissions": {
       "get": {
-        "tags": ["Submissions"],
+        "tags": [
+          "Submissions"
+        ],
         "summary": "List user submissions",
         "description": "Get user's submitted assessments",
         "operationId": "list_user_submissions",
@@ -934,7 +940,9 @@
     },
     "/submissions/{submission_id}": {
       "get": {
-        "tags": ["Submissions"],
+        "tags": [
+          "Submissions"
+        ],
         "summary": "Get submission",
         "description": "Get a specific submission",
         "operationId": "get_submission",
@@ -975,7 +983,9 @@
     },
     "/admin/submissions": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "summary": "List all submissions",
         "description": "Get all submissions for admin review management (Admin only)",
         "operationId": "list_all_submissions",
@@ -1022,7 +1032,9 @@
     },
     "/submissions/{submission_id}/reports": {
       "get": {
-        "tags": ["Reports"],
+        "tags": [
+          "Reports"
+        ],
         "summary": "List reports",
         "description": "Get all reports for an approved submission",
         "operationId": "list_reports",
@@ -1044,7 +1056,12 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["sustainability", "compliance", "summary", "detailed"]
+              "enum": [
+                "sustainability",
+                "compliance",
+                "summary",
+                "detailed"
+              ]
             }
           }
         ],
@@ -1074,7 +1091,9 @@
         }
       },
       "post": {
-        "tags": ["Reports"],
+        "tags": [
+          "Reports"
+        ],
         "summary": "Generate report",
         "description": "Generate a new report for an approved submission",
         "operationId": "generate_report",
@@ -1131,7 +1150,9 @@
     },
     "/reports/{report_id}": {
       "get": {
-        "tags": ["Reports"],
+        "tags": [
+          "Reports"
+        ],
         "summary": "Get report",
         "description": "Get a specific report",
         "operationId": "get_report",
@@ -1170,7 +1191,9 @@
         }
       },
       "delete": {
-        "tags": ["Reports"],
+        "tags": [
+          "Reports"
+        ],
         "summary": "Delete report",
         "description": "Delete a report",
         "operationId": "delete_report",
@@ -1204,7 +1227,9 @@
     },
     "/files": {
       "post": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "summary": "Upload file",
         "description": "Upload a file",
         "operationId": "upload_file",
@@ -1243,7 +1268,9 @@
     },
     "/files/{file_id}": {
       "get": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "summary": "Download file",
         "description": "Download a file",
         "operationId": "download_file",
@@ -1283,7 +1310,9 @@
         }
       },
       "delete": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "summary": "Delete file",
         "description": "Delete a file",
         "operationId": "delete_file",
@@ -1317,7 +1346,9 @@
     },
     "/files/{file_id}/metadata": {
       "get": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "summary": "Get file metadata",
         "description": "Get metadata for a file",
         "operationId": "get_file_metadata",
@@ -1358,7 +1389,9 @@
     },
     "/assessments/{assessment_id}/responses/{response_id}/files": {
       "post": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "summary": "Attach file to response",
         "description": "Attach a file to a response",
         "operationId": "attach_file",
@@ -1415,7 +1448,9 @@
     },
     "/assessments/{assessment_id}/responses/{response_id}/files/{file_id}": {
       "delete": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "summary": "Remove file from response",
         "description": "Remove a file from a response",
         "operationId": "remove_file",
@@ -1471,7 +1506,11 @@
   "components": {
     "schemas": {
       "Question": {
-        "required": ["category", "created_at", "question_id"],
+        "required": [
+          "category",
+          "created_at",
+          "question_id"
+        ],
         "type": "object",
         "properties": {
           "question_id": {
@@ -1523,7 +1562,10 @@
         }
       },
       "CreateQuestionRequest": {
-        "required": ["category", "text"],
+        "required": [
+          "category",
+          "text"
+        ],
         "type": "object",
         "properties": {
           "category": {
@@ -1553,7 +1595,9 @@
         }
       },
       "QuestionListResponse": {
-        "required": ["questions"],
+        "required": [
+          "questions"
+        ],
         "type": "object",
         "properties": {
           "questions": {
@@ -1565,7 +1609,9 @@
         }
       },
       "QuestionListWithRevisionsResponse": {
-        "required": ["questions"],
+        "required": [
+          "questions"
+        ],
         "type": "object",
         "properties": {
           "questions": {
@@ -1577,7 +1623,9 @@
         }
       },
       "QuestionResponse": {
-        "required": ["question"],
+        "required": [
+          "question"
+        ],
         "type": "object",
         "properties": {
           "question": {
@@ -1586,7 +1634,10 @@
         }
       },
       "QuestionWithRevisionsResponse": {
-        "required": ["question", "revisions"],
+        "required": [
+          "question",
+          "revisions"
+        ],
         "type": "object",
         "properties": {
           "question": {
@@ -1601,7 +1652,9 @@
         }
       },
       "QuestionRevisionListResponse": {
-        "required": ["revisions"],
+        "required": [
+          "revisions"
+        ],
         "type": "object",
         "properties": {
           "revisions": {
@@ -1613,7 +1666,9 @@
         }
       },
       "QuestionRevisionResponse": {
-        "required": ["revision"],
+        "required": [
+          "revision"
+        ],
         "type": "object",
         "properties": {
           "revision": {
@@ -1622,7 +1677,12 @@
         }
       },
       "Assessment": {
-        "required": ["assessment_id", "created_at", "language", "user_id"],
+        "required": [
+          "assessment_id",
+          "created_at",
+          "language",
+          "user_id"
+        ],
         "type": "object",
         "properties": {
           "assessment_id": {
@@ -1651,7 +1711,9 @@
         }
       },
       "AssessmentListResponse": {
-        "required": ["assessments"],
+        "required": [
+          "assessments"
+        ],
         "type": "object",
         "properties": {
           "assessments": {
@@ -1663,7 +1725,9 @@
         }
       },
       "AssessmentResponse": {
-        "required": ["assessment"],
+        "required": [
+          "assessment"
+        ],
         "type": "object",
         "properties": {
           "assessment": {
@@ -1672,7 +1736,11 @@
         }
       },
       "AssessmentDetailResponse": {
-        "required": ["assessment", "questions", "responses"],
+        "required": [
+          "assessment",
+          "questions",
+          "responses"
+        ],
         "type": "object",
         "properties": {
           "assessment": {
@@ -1728,7 +1796,10 @@
         }
       },
       "CreateResponseRequest": {
-        "required": ["question_revision_id", "response"],
+        "required": [
+          "question_revision_id",
+          "response"
+        ],
         "type": "object",
         "properties": {
           "question_revision_id": {
@@ -1745,7 +1816,9 @@
         }
       },
       "UpdateResponseRequest": {
-        "required": ["response"],
+        "required": [
+          "response"
+        ],
         "type": "object",
         "properties": {
           "response": {
@@ -1754,7 +1827,9 @@
         }
       },
       "ResponseListResponse": {
-        "required": ["responses"],
+        "required": [
+          "responses"
+        ],
         "type": "object",
         "properties": {
           "responses": {
@@ -1766,7 +1841,9 @@
         }
       },
       "ResponseResponse": {
-        "required": ["response"],
+        "required": [
+          "response"
+        ],
         "type": "object",
         "properties": {
           "response": {
@@ -1775,7 +1852,11 @@
         }
       },
       "ResponseDetailResponse": {
-        "required": ["files", "question", "response"],
+        "required": [
+          "files",
+          "question",
+          "response"
+        ],
         "type": "object",
         "properties": {
           "response": {
@@ -1793,7 +1874,9 @@
         }
       },
       "ResponseHistoryResponse": {
-        "required": ["history"],
+        "required": [
+          "history"
+        ],
         "type": "object",
         "properties": {
           "history": {
@@ -1851,7 +1934,9 @@
         }
       },
       "SubmissionListResponse": {
-        "required": ["submissions"],
+        "required": [
+          "submissions"
+        ],
         "type": "object",
         "properties": {
           "submissions": {
@@ -1863,7 +1948,9 @@
         }
       },
       "SubmissionResponse": {
-        "required": ["submission"],
+        "required": [
+          "submission"
+        ],
         "type": "object",
         "properties": {
           "submission": {
@@ -1872,7 +1959,10 @@
         }
       },
       "SubmissionDetailResponse": {
-        "required": ["current_review", "submission"],
+        "required": [
+          "current_review",
+          "submission"
+        ],
         "type": "object",
         "properties": {
           "submission": {
@@ -1884,7 +1974,9 @@
         }
       },
       "AdminSubmissionListResponse": {
-        "required": ["submissions"],
+        "required": [
+          "submissions"
+        ],
         "type": "object",
         "properties": {
           "submissions": {
@@ -1974,12 +2066,20 @@
           },
           "status": {
             "type": "string",
-            "enum": ["pending", "in_progress", "completed"]
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed"
+            ]
           },
           "decision": {
             "type": "string",
             "nullable": true,
-            "enum": ["approved", "rejected", "revision_requested"]
+            "enum": [
+              "approved",
+              "rejected",
+              "revision_requested"
+            ]
           },
           "comments": {
             "type": "string",
@@ -2027,12 +2127,20 @@
           },
           "status": {
             "type": "string",
-            "enum": ["pending", "in_progress", "completed"]
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed"
+            ]
           },
           "decision": {
             "type": "string",
             "nullable": true,
-            "enum": ["approved", "rejected", "revision_requested"]
+            "enum": [
+              "approved",
+              "rejected",
+              "revision_requested"
+            ]
           },
           "created_at": {
             "type": "string",
@@ -2041,7 +2149,9 @@
         }
       },
       "AdminReviewListResponse": {
-        "required": ["reviews"],
+        "required": [
+          "reviews"
+        ],
         "type": "object",
         "properties": {
           "reviews": {
@@ -2072,11 +2182,20 @@
           },
           "report_type": {
             "type": "string",
-            "enum": ["sustainability", "compliance", "summary", "detailed"]
+            "enum": [
+              "sustainability",
+              "compliance",
+              "summary",
+              "detailed"
+            ]
           },
           "status": {
             "type": "string",
-            "enum": ["generating", "completed", "failed"]
+            "enum": [
+              "generating",
+              "completed",
+              "failed"
+            ]
           },
           "generated_at": {
             "type": "string",
@@ -2089,12 +2208,19 @@
         }
       },
       "GenerateReportRequest": {
-        "required": ["report_type"],
+        "required": [
+          "report_type"
+        ],
         "type": "object",
         "properties": {
           "report_type": {
             "type": "string",
-            "enum": ["sustainability", "compliance", "summary", "detailed"]
+            "enum": [
+              "sustainability",
+              "compliance",
+              "summary",
+              "detailed"
+            ]
           },
           "options": {
             "type": "object",
@@ -2103,7 +2229,10 @@
         }
       },
       "ReportGenerationResponse": {
-        "required": ["report_id", "status"],
+        "required": [
+          "report_id",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "report_id": {
@@ -2112,12 +2241,18 @@
           },
           "status": {
             "type": "string",
-            "enum": ["generating", "completed", "failed"]
+            "enum": [
+              "generating",
+              "completed",
+              "failed"
+            ]
           }
         }
       },
       "ReportListResponse": {
-        "required": ["reports"],
+        "required": [
+          "reports"
+        ],
         "type": "object",
         "properties": {
           "reports": {
@@ -2129,7 +2264,9 @@
         }
       },
       "ReportResponse": {
-        "required": ["report"],
+        "required": [
+          "report"
+        ],
         "type": "object",
         "properties": {
           "report": {
@@ -2138,7 +2275,10 @@
         }
       },
       "FileMetadata": {
-        "required": ["file_id", "metadata"],
+        "required": [
+          "file_id",
+          "metadata"
+        ],
         "type": "object",
         "properties": {
           "file_id": {
@@ -2152,7 +2292,9 @@
         }
       },
       "FileResponse": {
-        "required": ["file"],
+        "required": [
+          "file"
+        ],
         "type": "object",
         "properties": {
           "file": {
@@ -2161,7 +2303,10 @@
         }
       },
       "FileMetadataResponse": {
-        "required": ["file_id", "metadata"],
+        "required": [
+          "file_id",
+          "metadata"
+        ],
         "type": "object",
         "properties": {
           "file_id": {
@@ -2174,7 +2319,10 @@
         }
       },
       "Error": {
-        "required": ["error", "message"],
+        "required": [
+          "error",
+          "message"
+        ],
         "type": "object",
         "properties": {
           "error": {
@@ -2190,7 +2338,11 @@
         }
       },
       "ValidationError": {
-        "required": ["error", "message", "validation_errors"],
+        "required": [
+          "error",
+          "message",
+          "validation_errors"
+        ],
         "type": "object",
         "properties": {
           "error": {

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
-
 import {
   BarChart3,
   Leaf,
@@ -13,8 +12,6 @@ import {
 } from "lucide-react";
 
 export const Welcome: React.FC = () => {
-  const [showLoginModal, setShowLoginModal] = useState(false);
-
   const features = [
     {
       title: "Digital Gap Analysis",
@@ -61,7 +58,7 @@ export const Welcome: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-dgrv-light-blue">
-      <Navbar onLoginClick={() => setShowLoginModal(true)} />
+      <Navbar />
 
       {/* Hero Section */}
       <div className="pt-24 pb-16">
@@ -84,14 +81,6 @@ export const Welcome: React.FC = () => {
                 future.
               </p>
             </div>
-
-            <Button
-              onClick={() => setShowLoginModal(true)}
-              size="lg"
-              className="bg-dgrv-blue hover:bg-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-lg "
-            >
-              Start Assessment
-            </Button>
           </div>
 
           {/* Features Grid */}
@@ -102,10 +91,7 @@ export const Welcome: React.FC = () => {
                 className="animate-fade-in"
                 style={{ animationDelay: `${index * 200}ms` }}
               >
-                <FeatureCard
-                  {...feature}
-                  onClick={() => setShowLoginModal(true)}
-                />
+                <FeatureCard {...feature} />
               </div>
             ))}
           </div>
@@ -139,14 +125,6 @@ export const Welcome: React.FC = () => {
               Join cooperatives across Southern Africa in building a more
               digital and sustainable future.
             </p>
-            <Button
-              onClick={() => setShowLoginModal(true)}
-              size="lg"
-              variant="outline"
-              className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue hover:text-white px-8 py-4 text-lg font-semibold rounded-lg"
-            >
-              Get Started Today
-            </Button>
           </div>
         </div>
       </div>
