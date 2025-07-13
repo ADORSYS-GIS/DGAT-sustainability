@@ -122,12 +122,15 @@ export const Navbar = () => {
                     disabled
                     className="flex flex-col items-start"
                   >
-                    <span className="font-semibold">{getUserDisplay()}</span>
-                    {user?.profile?.email && (
-                      <span className="text-xs text-gray-500">
-                        {user.profile.email}
-                      </span>
-                    )}
+                    <span className="font-semibold">
+                      {user?.name ||
+                        user?.preferred_username ||
+                        user?.sub ||
+                        "Profile"}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {user?.email || "No email"}
+                    </span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={logout}
