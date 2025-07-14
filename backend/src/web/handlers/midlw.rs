@@ -34,6 +34,7 @@ pub async fn auth_middleware(
         StatusCode::UNAUTHORIZED
     })?;
 
+
     let token = auth_header
         .to_str()
         .map_err(|e| {
@@ -52,8 +53,6 @@ pub async fn auth_middleware(
         tracing::error!("Token validation failed: {}", e);
         StatusCode::UNAUTHORIZED
     })?;
-    let org = Organizations{orgs: HashMap::new(), name: "adorsys".to_string(), categories: vec!["social".to_string(), "environment".to_string()]};
-    let claims = Claims{sub: "8c6dcb8f-42a4-4022-b144-b41cc82ec64c".to_string(), organizations: org, realm_access: None, preferred_username: "".to_string(), email: None, given_name: None, family_name: None, exp: 0, iat: 0, aud: Default::default(), iss: "".to_string() };
 
     // Log successful authentication
     tracing::debug!(

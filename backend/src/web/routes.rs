@@ -49,6 +49,7 @@ impl AppState {
 pub fn routers(app_state: AppState) -> Router {
     Router::new()
         .merge(protected_routes())
+        .merge(create_router(app_state.clone()))
         // Apply authentication middleware to all protected routes
         .layer(middleware::from_fn_with_state(
             app_state.jwt_validator.clone(),
@@ -149,13 +150,7 @@ pub fn create_app(app_state: AppState, config: Configs) -> Router {
         .allow_headers(Any);
 
     Router::new()
-        .nest("/api/v1", routers(app_state.clone()))
-        .merge(
-            create_router(app_state.clone()).layer(middleware::from_fn_with_state(
-                app_state.jwt_validator.clone(),
-                auth_middleware,
-            )),
-        )
+        .merge(routers(app_state.clone()))
         .merge(health_routes())
         .layer(cors)
         .layer(middleware::from_fn(request_logging_middleware))
