@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,28 @@ import {
   Globe,
   Shield,
 } from "lucide-react";
+import { useAuth } from "@/hooks/shared/useAuth";
+import { useNavigate } from "react-router-dom";
 
 export const Welcome: React.FC = () => {
+  const { isAuthenticated, loading, user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isAuthenticated) return;
+    if (user?.email === "tchikayaline@gmail.com" && window.location.pathname !== "/admin/") {
+      console.log("[Welcome] Admin detected, redirecting to /admin/");
+      navigate("/admin/dashboard", { replace: true });
+    } else if (user?.organisation && window.location.pathname !== "/dashboard") {
+      console.log("[Welcome] User has organisation, redirecting to /dashboard");
+      navigate("/dashboard", { replace: true });
+    } else if (!user?.organisation && window.location.pathname !== "/no-organisation") {
+      console.log("[Welcome] User missing organisation, redirecting to /no-organisation");
+      navigate("/no-organisation", { replace: true });
+    }
+  }, [isAuthenticated, loading, user, navigate]);
+
   const features = [
     {
       title: "Digital Gap Analysis",
@@ -97,34 +117,16 @@ export const Welcome: React.FC = () => {
           </div>
 
           {/* Benefits Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12 animate-fade-in">
-            <h3 className="text-3xl font-bold text-center text-dgrv-blue mb-8">
-              Why Choose DGRV Assessment Tools?
-            </h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              {benefits.map((benefit, index) => (
-                <div key={benefit.title} className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-dgrv-blue to-dgrv-green rounded-full flex items-center justify-center mx-auto mb-4">
-                    <benefit.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                    {benefit.title}
-                  </h4>
-                  <p className="text-gray-600">{benefit.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Call to Action */}
-          <div className="text-center mt-16">
-            <h3 className="text-2xl font-bold text-dgrv-blue mb-4">
-              Ready to Transform Your Cooperative?
-            </h3>
-            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Join cooperatives across Southern Africa in building a more
-              digital and sustainable future.
-            </p>
+          <div className="grid md:grid-cols-3 gap-8">
+            {benefits.map((benefit, index) => (
+              <div
+                key={benefit.title}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 200}ms` }}
+              >
+                <FeatureCard {...benefit} />
+              </div>
+            ))}
           </div>
         </div>
       </div>

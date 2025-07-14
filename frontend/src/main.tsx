@@ -3,6 +3,26 @@ import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { syncService } from "./services/syncService";
+import { OpenAPI } from "@/openapi-rq/requests";
+import { oidcPromise } from "@/services/shared/oidc";
+
+// Register OpenAPI request middleware to add Bearer token
+OpenAPI.interceptors.request.use(async (request) => {
+  const oidc = await oidcPromise;
+  if (oidc && oidc.isUserLoggedIn) {
+    const tokens = oidc.getTokens();
+    if (tokens?.accessToken) {
+      if (!request.headers) request.headers = {};
+      // If headers is a Headers object, convert to plain object
+      if (typeof Headers !== 'undefined' && request.headers instanceof Headers) {
+        request.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
+      } else {
+        request.headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+      }
+    }
+  }
+  return request;
+});
 
 // Configure QueryClient for offline-first behavior
 const queryClient = new QueryClient({

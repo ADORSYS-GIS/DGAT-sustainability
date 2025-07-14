@@ -29,9 +29,9 @@ export const Navbar = () => {
   const getUserDisplay = () => {
     if (!user) return "Profile";
     return (
-      user.name ||
-      user.email ||
-      user.sub ||
+      user.profile?.name ||
+      user.profile?.email ||
+      user.profile?.sub ||
       "Profile"
     );
   };
@@ -122,12 +122,15 @@ export const Navbar = () => {
                     disabled
                     className="flex flex-col items-start"
                   >
-                    <span className="font-semibold">{getUserDisplay()}</span>
-                    {user?.email && (
-                      <span className="text-xs text-gray-500">
-                        {user.email}
-                      </span>
-                    )}
+                    <span className="font-semibold">
+                      {user?.name ||
+                        user?.preferred_username ||
+                        user?.sub ||
+                        "Profile"}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {user?.email || "No email"}
+                    </span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={logout}
