@@ -1,5 +1,5 @@
 use crate::common::models::claims::Claims;
-use crate::common::state::AppState;
+use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::{
     AssessmentSubmission, SubmissionDetailResponse, SubmissionListResponse,

@@ -23,8 +23,8 @@ use tower_http::cors::{CorsLayer, Any};
 
 use crate::common::config::Configs;
 use crate::common::models::claims::Claims;
-use crate::common::state::{AppDatabase, AppState as CommonAppState};
-use crate::web::api::routes as api_routes;
+use crate::common::state::AppDatabase;
+use crate::web::api::routes::create_router;
 use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware, request_logging::request_logging_middleware};
 
 /// Application state containing shared services for JWT validation and database access
@@ -46,7 +46,7 @@ impl AppState {
 }
 
 /// Create the main application router with protected routes
-pub fn create_router(app_state: AppState) -> Router {
+pub fn routers(app_state: AppState) -> Router {
     Router::new()
         .merge(protected_routes())
         // Apply authentication middleware to all protected routes
@@ -141,11 +141,6 @@ pub fn health_routes() -> Router {
 
 /// Create the complete application with all routes
 pub fn create_app(app_state: AppState, config: Configs) -> Router {
-    // Create a CommonAppState for the API routes (they only need database access)
-    let api_app_state = CommonAppState {
-        database: app_state.database.clone(),
-    };
-
     // Configure CORS
     let origin = HeaderValue::from_str(&config.cors.origin).unwrap();
     let cors = CorsLayer::new()
@@ -154,9 +149,9 @@ pub fn create_app(app_state: AppState, config: Configs) -> Router {
         .allow_headers(Any);
 
     Router::new()
-        .nest("/api/v1", create_router(app_state.clone()))
+        .nest("/api/v1", routers(app_state.clone()))
         .merge(
-            api_routes::create_router(api_app_state).layer(middleware::from_fn_with_state(
+            create_router(app_state.clone()).layer(middleware::from_fn_with_state(
                 app_state.jwt_validator.clone(),
                 auth_middleware,
             )),
@@ -202,7 +197,7 @@ mod tests {
         )
         .await;
 
-        let app = create_router(app_state);
+        let app = routers(app_state);
 
         let response = app
             .oneshot(
@@ -214,6 +209,49 @@ mod tests {
             .await
             .unwrap();
 
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_api_route_without_auth() {
+        // Create a mock database connection for testing
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        let app_database = AppDatabase::new(std::sync::Arc::new(db)).await;
+
+        let app_state = AppState::new(
+            "http://localhost:8080".to_string(),
+            "test-realm".to_string(),
+            app_database,
+        )
+        .await;
+
+        let config = crate::common::config::Configs {
+            keycloak: crate::common::config::KeycloakConfigs {
+                url: "http://localhost:8080".to_string(),
+                realm: "test-realm".to_string(),
+            },
+            server: crate::common::config::ServerConfigs {
+                host: "0.0.0.0".to_string(),
+                port: 3001,
+            },
+            cors: crate::common::config::CorsConfigs {
+                origin: "http://localhost:3000".to_string(),
+            },
+        };
+
+        let app = create_app(app_state, config);
+
+        let response = app
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/api/assessments")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // This should return UNAUTHORIZED if auth middleware is working
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

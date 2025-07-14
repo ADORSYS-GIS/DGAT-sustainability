@@ -1,4 +1,4 @@
-use crate::common::state::AppState;
+use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::{
     AdminAssessmentInfo, AdminResponseDetail, AdminSubmissionContent, AdminSubmissionDetail,

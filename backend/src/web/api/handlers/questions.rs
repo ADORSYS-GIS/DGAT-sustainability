@@ -8,7 +8,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::common::state::AppState;
+use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
 

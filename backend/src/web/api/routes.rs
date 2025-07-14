@@ -1,4 +1,4 @@
-use crate::common::state::AppState;
+
 use crate::web::api::handlers::{
     admin::list_all_submissions,
     assessments::{
@@ -16,6 +16,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+use crate::web::routes::AppState;
 
 pub fn create_router(app_state: AppState) -> Router {
     Router::new()
