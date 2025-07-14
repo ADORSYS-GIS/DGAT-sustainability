@@ -15,11 +15,11 @@
     },
     "servers": [
         {
-            "url": "http://localhost:3001/api",
+            "url": "https://virtserver.swaggerhub.com/adorsys-cc2/DGAT-Sustainaibility/1.0.0",
             "description": "SwaggerHub API Auto Mocking"
         },
         {
-            "url": "http://localhost:3001/api",
+            "url": "https://api.assessment-system.com/api/v1",
             "description": "Production server"
         },
         {
@@ -562,16 +562,6 @@
                         }
                     }
                 ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/SubmitAssessmentRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
                 "responses": {
                     "201": {
                         "description": "Assessment submitted successfully",
@@ -1727,37 +1717,11 @@
                     }
                 }
             },
-            "CreateAssessmentRequest": {
-                "required": [
-                    "language"
-                ],
-                "type": "object",
-                "properties": {
-                    "language": {
-                        "type": "string",
-                        "default": "en",
-                        "example": "fr"
-                    }
-                }
-            },
             "UpdateAssessmentRequest": {
                 "type": "object",
                 "properties": {
                     "language": {
                         "type": "string"
-                    }
-                }
-            },
-            "SubmitAssessmentRequest": {
-                "required": [
-                    "language"
-                ],
-                "type": "object",
-                "properties": {
-                    "language": {
-                        "type": "string",
-                        "default": "en",
-                        "example": "fr"
                     }
                 }
             },

@@ -17,8 +17,10 @@ import { useSubmissionsServiceGetSubmissions } from "../..//openapi-rq//queries/
 import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/shared/useAuth";
 
 export const Dashboard: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { data, isLoading, isError, error, isSuccess } =
     useSubmissionsServiceGetSubmissions();
@@ -106,6 +108,10 @@ export const Dashboard: React.FC = () => {
     await exportAllAssessmentsPDF(submissions, undefined, formatStatus);
   };
 
+  // Get user name and organization name from user object (ID token)
+  const userName = user?.name || user?.preferred_username || user?.email || "User";
+  const orgName = user?.organisation_name || user?.organisation || "your organisation";
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -115,7 +121,9 @@ export const Dashboard: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center space-x-3 mb-4">
               <Star className="w-8 h-8 text-dgrv-green" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">Welcome!</h1>
+              <h1 className="text-3xl font-bold text-dgrv-blue">
+                Welcome, {userName} from {orgName}!
+              </h1>
             </div>
             <p className="text-lg text-gray-600">
               Ready to continue your cooperative's sustainability journey?

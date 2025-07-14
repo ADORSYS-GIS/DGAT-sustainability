@@ -27,7 +27,7 @@ export const useAuth = () => {
       setSnapshot(getSnapshot(resolvedOidc));
       interval = setInterval(() => {
         setSnapshot(getSnapshot(resolvedOidc));
-      }, 500);
+      }, 30000); // Increased polling interval to 5 seconds
     });
     return () => {
       cancelled = true;
@@ -50,11 +50,8 @@ export const useAuth = () => {
     if (oidcInstance.isUserLoggedIn) {
       const tokens = oidcInstance.getTokens();
       const user = tokens.decodedIdToken;
-      // Debug: log the full decodedIdToken and raw roles claims
-      // console.log("[useAuth] decodedIdToken:", user);
-      // console.log("[useAuth] user.roles:", user?.roles);
-      // console.log("[useAuth] user.realm_access.roles:", user?.realm_access?.roles);
-
+      // Removed noisy debug log
+      console.log("[useAuth] decodedIdToken:", user);
       const roles = user?.roles || user?.realm_access?.roles || [];
       return {
         isAuthenticated: true,

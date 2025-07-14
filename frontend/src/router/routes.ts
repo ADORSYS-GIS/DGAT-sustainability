@@ -1,5 +1,4 @@
 import React from "react";
-import { Callback } from "../pages/user/Callback";
 import { Dashboard } from "../pages/user/Dashboard";
 import { AdminDashboard } from "../pages/admin/AdminDashboard";
 import NotFound from "../pages/NotFound";
@@ -11,7 +10,7 @@ import { ManageCategories } from "../pages/admin/ManageCategories";
 import { ManageQuestions } from "../pages/admin/ManageQuestions";
 import { ReviewAssessments } from "../pages/admin/ReviewAssessments";
 import { StandardRecommendations } from "../pages/admin/StandardRecommendations";
-import { Assessment } from "../pages/user/Assessment";
+import { Assessment } from "../pages/user/Assesment";
 import { Assessments } from "../pages/user/Assessments";
 import { ActionPlan } from "../pages/user/ActionPlan";
 import { SubmissionView } from "../pages/user/SubmissionView";
@@ -31,20 +30,17 @@ const routes = [
   { path: "/action-plan/:reportId", element: ActionPlan },
   { path: "/submission-view/:submissionId", element: SubmissionView },
   { path: "*", element: NotFound },
-  { path: "/callback", element: React.createElement(Callback) },
   { path: "/unauthorized", element: React.createElement(Unauthorized) },
   { path: "/", element: React.createElement(Welcome) },
-  // {
-  //   path: "/dashboard",
-  //   element: React.createElement(ProtectedRoute, {
-  //     allowedRoles: [ROLES.ORG_USER, ROLES.ORG_ADMIN, ROLES.ORG_EXPERT],
-  //   }),
-  //   children: [{ path: "", element: React.createElement(Dashboard) }],
-  // },
+  {
+    path: "/dashboard",
+    element: React.createElement(ProtectedRoute, {
+    }),
+    children: [{ path: "", element: React.createElement(Dashboard) }],
+  },
   {
     path: "/admin",
     element: React.createElement(ProtectedRoute, {
-      allowedRoles: [ROLES.ADMIN],
     }),
     children: [{ path: "", element: React.createElement(AdminDashboard) }],
   },

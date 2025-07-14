@@ -54,31 +54,41 @@ export const Assessment: React.FC = () => {
   const [comments, setComments] = useState<Record<string, string>>({});
   const [showPercentInfo, setShowPercentInfo] = useState(false);
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
-  const [language] = useState('en');
 
+  const templateId = "sustainability_template";
   const toolName = "Sustainability Assessment";
 
   const createAssessmentMutation = useAssessmentsServicePostAssessments();
   const submitAssessmentMutation =
     useAssessmentsServicePostAssessmentsByAssessmentIdSubmit();
+
+  // Add response mutation hooks
   const createResponseMutation =
     useResponsesServicePostAssessmentsByAssessmentIdResponses();
   const updateResponseMutation =
     useResponsesServicePutAssessmentsByAssessmentIdResponsesByResponseId();
 
+  // Only call create assessment once if no assessmentId
   useEffect(() => {
-    if (!assessmentId && !hasCreatedAssessment) {
+    if (!assessmentId && !hasCreatedAssessment && !createAssessmentMutation.isPending) {
       setHasCreatedAssessment(true);
-      createAssessmentMutation.mutate({ requestBody: { language } }, {
-        onSuccess: (data) => {
-          const newId = data.assessment.assessment_id;
-          navigate(`/user/assessment/${newId}`);
-        },
-        onError: () => toast("Failed to create assessment"),
-      });
+      createAssessmentMutation.mutate(
+        { requestBody: { language: "en" } },
+        {
+          onSuccess: (data) => {
+            const newId = data.assessment.assessment_id;
+            navigate(`/user/assessment/${newId}`);
+          },
+          onError: () => {
+            toast("Failed to create assessment");
+            setHasCreatedAssessment(false);
+          },
+        }
+      );
     }
-  }, [assessmentId, createAssessmentMutation, navigate, hasCreatedAssessment, language]);
+  }, [assessmentId, hasCreatedAssessment, createAssessmentMutation, navigate]);
 
+  // Fetch assessment detail if assessmentId exists
   const { data: assessmentDetail, isLoading: assessmentLoading } =
     useAssessmentsServiceGetAssessmentsByAssessmentId(
       assessmentId ? { assessmentId } : { assessmentId: "" },
@@ -86,36 +96,21 @@ export const Assessment: React.FC = () => {
       { enabled: !!assessmentId },
     );
 
+  // Fetch questions with categories and revisions
   const { data: questionsData, isLoading: questionsLoading } =
-    useQuestionsServiceGetQuestions([language]);
+    useQuestionsServiceGetQuestions();
 
+  // Group questions by category
   const groupedQuestions = React.useMemo(() => {
-    if (assessmentDetail?.questions) {
-      const groups: Record<string, QuestionRevision[]> = {};
-      assessmentDetail.questions.forEach((questionRevision) => {
-        const category = questionRevision.question_id;
-        if (!groups[category]) groups[category] = [];
-        groups[category].push(questionRevision);
-      });
-      return groups;
-    }
-    
     if (!questionsData?.questions) return {};
-    
     const groups: Record<
       string,
       { question: Question; revision: QuestionRevision }[]
     > = {};
     questionsData.questions.forEach(
       (qwr: { question: Question; revisions: QuestionRevision[] }) => {
-        if (!qwr.question || !qwr.revisions || qwr.revisions.length === 0) {
-          console.warn('Invalid question data:', qwr);
-          return;
-        }
-        
         const category = qwr.question.category;
         const latestRevision = qwr.revisions[qwr.revisions.length - 1];
-        
         if (!groups[category]) groups[category] = [];
         groups[category].push({
           question: qwr.question,
@@ -124,23 +119,13 @@ export const Assessment: React.FC = () => {
       },
     );
     return groups;
-  }, [questionsData, assessmentDetail]);
+  }, [questionsData]);
 
   const categories = Object.keys(groupedQuestions);
-  
-  const getCurrentCategoryQuestions = () => {
-    const categoryQuestions = groupedQuestions[categories[currentCategoryIndex]] || [];
-    
-    if (assessmentDetail?.questions && categoryQuestions.length > 0 && 'question_id' in categoryQuestions[0]) {
-      return (categoryQuestions as QuestionRevision[]).map((questionRevision: QuestionRevision) => ({
-        question: { question_id: questionRevision.question_id, category: questionRevision.question_id, created_at: questionRevision.created_at },
-        revision: questionRevision
-      }));
-    }
-    
-    return categoryQuestions as { question: Question; revision: QuestionRevision }[];
-  };
+  const getCurrentCategoryQuestions = () =>
+    groupedQuestions[categories[currentCategoryIndex]] || [];
 
+  // Helper to find response for a question
   const findResponseForQuestion = (question_revision_id: string) => {
     return assessmentDetail?.responses?.find(
       (r) => r.question_revision_id === question_revision_id,
@@ -202,10 +187,13 @@ export const Assessment: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  const saveDraft = async () => {
+    // This function is no longer needed as responses are saved immediately
+  };
+
   const submitAssessment = async () => {
     submitAssessmentMutation.mutate({
       assessmentId: assessmentId!,
-      requestBody: { language },
     });
     toast(`Your ${toolName.toLowerCase()} has been submitted successfully`);
     setTimeout(() => {
@@ -214,6 +202,7 @@ export const Assessment: React.FC = () => {
   };
 
   const nextCategory = async () => {
+    // This function is no longer needed as responses are saved immediately
     if (currentCategoryIndex < categories.length - 1) {
       setCategoryIndex(currentCategoryIndex + 1);
     }
@@ -226,15 +215,15 @@ export const Assessment: React.FC = () => {
   };
 
   const renderQuestionInput = (question: QuestionRevision) => {
-    const questionRevisionId = question.latest_revision;
-    const yesNoValue = answers[questionRevisionId]?.yesNo;
-    const percentageValue = answers[questionRevisionId]?.percentage;
-    const textValue = answers[questionRevisionId]?.text || "";
-    const comment = comments[questionRevisionId] || "";
-    const files: FileData[] = answers[questionRevisionId]?.files || [];
-    
+    const key = question.latest_revision;
+    const yesNoValue = answers[key]?.yesNo;
+    const percentageValue = answers[key]?.percentage;
+    const textValue = answers[key]?.text || "";
+    const comment = comments[key] || "";
+    const files: FileData[] = answers[key]?.files || [];
     return (
       <div className="space-y-4">
+        {/* Yes/No */}
         <div>
           <Label>Yes/No</Label>
           <div className="flex space-x-4 mt-1">
@@ -245,8 +234,8 @@ export const Assessment: React.FC = () => {
                 yesNoValue === true ? "bg-dgrv-green hover:bg-green-700" : ""
               }
               onClick={() =>
-                handleAnswerChange(questionRevisionId, {
-                  ...answers[questionRevisionId],
+                handleAnswerChange(key, {
+                  ...answers[key],
                   yesNo: true,
                 })
               }
@@ -260,8 +249,8 @@ export const Assessment: React.FC = () => {
                 yesNoValue === false ? "bg-red-500 hover:bg-red-600" : ""
               }
               onClick={() =>
-                handleAnswerChange(questionRevisionId, {
-                  ...answers[questionRevisionId],
+                handleAnswerChange(key, {
+                  ...answers[key],
                   yesNo: false,
                 })
               }
@@ -270,7 +259,7 @@ export const Assessment: React.FC = () => {
             </Button>
           </div>
         </div>
-        
+        {/* Percentage */}
         <div>
           <div className="flex items-center space-x-2 relative">
             <Label>Percentage</Label>
@@ -284,11 +273,21 @@ export const Assessment: React.FC = () => {
             </button>
             {showPercentInfo && (
               <div className="absolute left-8 top-6 z-10 bg-white border rounded shadow-md p-3 w-56 text-xs text-gray-700">
-                <div><b>0%:</b> Not started</div>
-                <div><b>25%:</b> Some progress</div>
-                <div><b>50%:</b> Halfway</div>
-                <div><b>75%:</b> Almost done</div>
-                <div><b>100%:</b> Fully achieved</div>
+                <div>
+                  <b>0%:</b> Not started
+                </div>
+                <div>
+                  <b>25%:</b> Some progress
+                </div>
+                <div>
+                  <b>50%:</b> Halfway
+                </div>
+                <div>
+                  <b>75%:</b> Almost done
+                </div>
+                <div>
+                  <b>100%:</b> Fully achieved
+                </div>
               </div>
             )}
           </div>
@@ -304,8 +303,8 @@ export const Assessment: React.FC = () => {
                     : "bg-white text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue/10"
                 }
                 onClick={() =>
-                  handleAnswerChange(questionRevisionId, {
-                    ...answers[questionRevisionId],
+                  handleAnswerChange(key, {
+                    ...answers[key],
                     percentage: val,
                   })
                 }
@@ -315,17 +314,17 @@ export const Assessment: React.FC = () => {
             ))}
           </div>
         </div>
-        
+        {/* Text Input */}
         <div>
-          <Label htmlFor={`input-text-${questionRevisionId}`}>
+          <Label htmlFor={`input-text-${key}`}>
             Your Response
           </Label>
           <Textarea
-            id={`input-text-${questionRevisionId}`}
+            id={`input-text-${key}`}
             value={textValue}
             onChange={(e) =>
-              handleAnswerChange(questionRevisionId, {
-                ...answers[questionRevisionId],
+              handleAnswerChange(key, {
+                ...answers[key],
                 text: e.target.value,
               })
             }
@@ -333,6 +332,7 @@ export const Assessment: React.FC = () => {
             className="mt-1"
             rows={4}
           />
+          {/* File Upload */}
           <div className="mt-2 flex items-center space-x-2">
             <label className="flex items-center cursor-pointer text-dgrv-blue hover:underline">
               <Paperclip className="w-4 h-4 mr-1" />
@@ -342,7 +342,7 @@ export const Assessment: React.FC = () => {
                 className="hidden"
                 onChange={(e) =>
                   handleFileUpload(
-                    questionRevisionId,
+                    key,
                     e.target.files,
                   )
                 }
@@ -421,6 +421,7 @@ export const Assessment: React.FC = () => {
 
       <div className="pt-20 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
           <div className="mb-8 animate-fade-in">
             <h1 className="text-3xl font-bold text-dgrv-blue mb-2">
               {toolName}
@@ -431,6 +432,7 @@ export const Assessment: React.FC = () => {
             </p>
           </div>
 
+          {/* Progress Bar */}
           <Card className="mb-8">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
@@ -445,6 +447,7 @@ export const Assessment: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* Questions */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="text-xl text-dgrv-blue">
@@ -454,14 +457,12 @@ export const Assessment: React.FC = () => {
             <CardContent className="space-y-8">
               {currentQuestions.map((question, index) => (
                 <div
-                  key={question.revision.latest_revision}
+                  key={question.revision.question_revision_id}
                   className="border-b pb-6 last:border-b-0"
                 >
                   <div className="mb-4">
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {index + 1}. {typeof question.revision.text === 'string' 
-                        ? question.revision.text 
-                        : JSON.stringify(question.revision.text)}
+                      {index + 1}. {question.revision.text}
                     </h3>
                   </div>
                   {renderQuestionInput(question.revision)}
@@ -470,6 +471,7 @@ export const Assessment: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* Navigation */}
           <div className="flex justify-between items-center">
             <Button
               variant="outline"
@@ -484,7 +486,7 @@ export const Assessment: React.FC = () => {
             <div className="flex space-x-4">
               <Button
                 variant="outline"
-                onClick={() => {}}
+                onClick={saveDraft}
                 className="flex items-center space-x-2"
               >
                 <Save className="w-4 h-4" />
