@@ -8,10 +8,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy manifests
-COPY ../backend/Cargo.toml ../backend/Cargo.lock ./
+COPY backend/Cargo.toml backend/Cargo.lock ./
 
 # Copy source code
-COPY ../backend/src/ ./src/
+COPY backend/src/ ./src/
 
 # Build the application
 RUN cargo build --release
