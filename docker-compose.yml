@@ -1,28 +1,133 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # PostgresSQL Database
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
+    container_name: sustainability_postgres
     environment:
-      POSTGRES_DB: dgrv_db
-      POSTGRES_USER: dgrv_user
-      POSTGRES_PASSWORD: dgrv_password
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: sustainability
+      POSTGRES_USER: sustainability_user
+      POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/database/seeds:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sustainability_user -d sustainability"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sustainability_network
 
-  # Keycloak Authentication
+  # Keycloak with HTTP
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:22.0.1
+    container_name: sustainability_keycloak
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: sustainability_user
+      KC_DB_PASSWORD: postgres
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HOSTNAME_STRICT: "false"
+      KC_PROXY: edge
+      # Email configuration - conditionally set in dev/prod
+      KC_SPI_EMAIL_SENDER_FROM: ${MAIL_FROM:-noreply@dgrv.de}
+      KC_SPI_EMAIL_SENDER_HOST: ${MAIL_HOST:-mailhog}
+      KC_SPI_EMAIL_SENDER_PORT: ${MAIL_PORT:-1025}
+      KC_SPI_EMAIL_SENDER_STARTTLS: ${MAIL_STARTTLS:-false}
+      KC_SPI_EMAIL_SENDER_AUTH: ${MAIL_AUTH:-false}
+      KC_SPI_EMAIL_SENDER_USER: ${MAIL_USER:-}
+      KC_SPI_EMAIL_SENDER_PASSWORD: ${MAIL_PASSWORD:-}
+    volumes:
+      - ./infrastructure/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
       - "8080:8080"
-    command: start-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: [
+      "start",
+      "--hostname=localhost",
+      "--http-enabled=true",
+      "--import-realm"
+    ]
+    networks:
+      - sustainability_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/auth/"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # Mail server - conditionally deployed based on ENVIRONMENT
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: sustainability_mailhog
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    networks:
+      - sustainability_network
+    profiles:
+      - dev
+
+  # Backend API Server
+  backend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.backend
+    container_name: sustainability_backend
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: dgrv
+      KEYCLOAK_CLIENT_ID: sustainability-backend
+      KEYCLOAK_CLIENT_SECRET: sustainability-backend-secret
+      SERVER_PORT: 3001
+      SERVER_HOST: 0.0.0.0
+      DATABASE_URL: postgresql://sustainability_user:postgres@postgres:5432/sustainability
+      RUST_LOG: info
+      CORS_ORIGIN: http://localhost:3000
+      # Production mode flag
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+    ports:
+      - "3001:3001"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - sustainability_network
+
+  # Frontend Application
+  frontend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.frontend
+    container_name: sustainability_frontend
+    environment:
+      VITE_API_URL: http://localhost:3001
+      VITE_KEYCLOAK_URL: http://localhost:8080
+      VITE_KEYCLOAK_REALM: dgrv
+      VITE_KEYCLOAK_CLIENT_ID: sustainability-frontend
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+      - keycloak
+    networks:
+      - sustainability_network
+
+networks:
+  sustainability_network:
+    driver: bridge
 
 volumes:
   postgres_data:
