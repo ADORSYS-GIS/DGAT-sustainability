@@ -38,6 +38,10 @@ impl AppDatabase {
             conn,
         }
     }
+
+    pub fn get_connection(&self) -> &DatabaseConnection {
+        &self.conn
+    }
 }
 
 #[derive(Clone)]
