@@ -8,6 +8,7 @@ use axum::{
     extract::{Extension, Path, State},
     Json,
 };
+use tracing::log::warn;
 use uuid::Uuid;
 
 pub async fn list_user_submissions(
@@ -15,6 +16,7 @@ pub async fn list_user_submissions(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<SubmissionListResponse>, ApiError> {
     let user_id = &claims.sub;
+    warn!("user_id: {}", user_id);
 
     // Fetch user submissions from the database
     let submission_models = app_state
