@@ -116,7 +116,7 @@ pub struct QuestionRevisionListResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {
-    pub submission_id: Uuid,
+    pub assessment_id: Uuid,
     pub user_id: String,
     pub language: String,
     pub status: String,
