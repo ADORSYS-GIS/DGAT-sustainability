@@ -366,7 +366,7 @@ pub struct AttachFileRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Report {
     pub report_id: Uuid,
-    pub assessment_id: Uuid,
+    pub submission_id: Uuid,
     pub report_type: String,
     pub status: String,
     pub generated_at: String,

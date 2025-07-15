@@ -8,6 +8,7 @@ use crate::web::api::handlers::{
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
     questions::{create_question, delete_question, get_question, list_questions, update_question},
+    reports::{delete_report, generate_report, get_report, list_reports},
     responses::{create_response, delete_response, get_response, list_responses, update_response},
     submissions::{get_submission, list_user_submissions},
 };
@@ -78,5 +79,16 @@ pub fn create_router(app_state: AppState) -> Router {
         // User submission endpoints
         .route("/api/submissions", get(list_user_submissions))
         .route("/api/submissions/:submission_id", get(get_submission))
+        // Report endpoints
+        .route(
+            "/api/submissions/:submission_id/reports",
+            get(list_reports),
+        )
+        .route(
+            "/api/submissions/:submission_id/reports",
+            post(generate_report),
+        )
+        .route("/api/reports/:report_id", get(get_report))
+        .route("/api/reports/:report_id", delete(delete_report))
         .with_state(app_state)
 }
