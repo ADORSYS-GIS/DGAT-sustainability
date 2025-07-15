@@ -13,7 +13,7 @@ impl MigrationTrait for Migration {
                     .table(AssessmentsSubmission::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(AssessmentsSubmission::AssessmentId)
+                        ColumnDef::new(AssessmentsSubmission::SubmissionId)
                             .uuid()
                             .not_null()
                             .primary_key(),
@@ -38,7 +38,7 @@ impl MigrationTrait for Migration {
                             .name("fk_assessment_submission_assessment")
                             .from(
                                 AssessmentsSubmission::Table,
-                                AssessmentsSubmission::AssessmentId,
+                                AssessmentsSubmission::SubmissionId,
                             )
                             .to(Assessments::Table, Assessments::AssessmentId)
                             .on_delete(ForeignKeyAction::Cascade),
@@ -62,7 +62,7 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 enum AssessmentsSubmission {
     Table,
-    AssessmentId,
+    SubmissionId,
     UserId,
     Content,
     SubmittedAt,
