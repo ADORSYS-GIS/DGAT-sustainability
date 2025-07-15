@@ -1,9 +1,7 @@
 use crate::common::models::claims::Claims;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
-use crate::web::api::models::{
-    AssessmentSubmission, SubmissionDetailResponse, SubmissionListResponse,
-};
+use crate::web::api::models::{AssessmentSubmission, Submission, SubmissionDetailResponse, SubmissionListResponse};
 use axum::{
     extract::{Extension, Path, State},
     Json,
@@ -16,7 +14,6 @@ pub async fn list_user_submissions(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<SubmissionListResponse>, ApiError> {
     let user_id = &claims.sub;
-    warn!("user_id: {}", user_id);
 
     // Fetch user submissions from the database
     let submission_models = app_state
@@ -35,7 +32,7 @@ pub async fn list_user_submissions(
         let report = app_state
             .database
             .submission_reports
-            .get_report_by_assessment(model.assessment_id)
+            .get_report_by_assessment(model.submission_id)
             .await
             .map_err(|e| {
                 ApiError::InternalServerError(format!("Failed to check for reports: {e}"))
@@ -50,8 +47,8 @@ pub async fn list_user_submissions(
             ("pending".to_string(), None)
         };
 
-        submissions.push(AssessmentSubmission {
-            assessment_id: model.assessment_id,
+        submissions.push(Submission {
+            submission_id: model.submission_id,
             user_id: model.user_id,
             content: model.content,
             submitted_at: model.submitted_at.to_rfc3339(),
@@ -95,7 +92,7 @@ pub async fn get_submission(
     let report = app_state
         .database
         .submission_reports
-        .get_report_by_assessment(submission_model.assessment_id)
+        .get_report_by_assessment(submission_model.submission_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to check for reports: {e}")))?;
 
@@ -109,7 +106,7 @@ pub async fn get_submission(
     };
     // Convert database model to API model
     let submission = AssessmentSubmission {
-        assessment_id: submission_model.assessment_id,
+        assessment_id: submission_model.submission_id,
         user_id: submission_model.user_id,
         content: submission_model.content,
         submitted_at: submission_model.submitted_at.to_rfc3339(),
