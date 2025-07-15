@@ -95,9 +95,11 @@ impl JwtValidator {
             "{}/realms/{}/protocol/openid-connect/certs",
             self.keycloak_url, self.realm
         );
+        println!("certs_url: {}", certs_url);
 
         let response = self.client.get(&certs_url).send().await?;
         let jwks: Value = response.json().await?;
+        println!("jwks: {:?}", jwks);
 
         let keys = jwks["keys"]
             .as_array()
