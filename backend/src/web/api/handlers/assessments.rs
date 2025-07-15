@@ -118,7 +118,7 @@ pub async fn list_assessments(
         };
 
         assessments.push(Assessment {
-            submission_id: model.assessment_id,
+            assessment_id: model.assessment_id,
             user_id: model.user_id,
             language: model.language,
             status,
@@ -164,9 +164,9 @@ pub async fn create_assessment(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create assessment: {e}")))?;
 
-    // Convert database model to API model
+    // Convert a database model to an API model
     let assessment = Assessment {
-        submission_id: assessment_model.assessment_id,
+        assessment_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
         status: "draft".to_string(),
@@ -223,7 +223,7 @@ pub async fn get_assessment(
 
     // Convert database model to API model
     let assessment = Assessment {
-        submission_id: assessment_model.assessment_id,
+        assessment_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
         status,
@@ -335,7 +335,7 @@ pub async fn update_assessment(
 
     // Convert database model to API model
     let assessment = Assessment {
-        submission_id: assessment_model.assessment_id,
+        assessment_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
         status: "draft".to_string(),
