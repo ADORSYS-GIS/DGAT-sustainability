@@ -147,25 +147,6 @@ pub async fn list_all_submissions(
             })
             .unwrap_or_else(Vec::new);
 
-        // Check if there's a report for this submission
-        let report = app_state
-            .database
-            .submission_reports
-            .get_report_by_assessment(model.submission_id)
-            .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to check for reports: {e}"))
-            })?;
-
-        // Determine review status based on report existence
-        let (review_status, reviewed_at) = if let Some(_report) = report {
-            // If a report exists, the submission is under review
-            ("under_review".to_string(), None)
-        } else {
-            // If no report exists, the submission is pending review
-            ("pending".to_string(), None)
-        };
-
         let submission = AdminSubmissionDetail {
             submission_id: model.submission_id,
             assessment_id: model.submission_id,
@@ -174,9 +155,9 @@ pub async fn list_all_submissions(
                 assessment: assessment_info,
                 responses,
             },
-            review_status,
+            review_status: model.status.to_string(),
             submitted_at: model.submitted_at.to_rfc3339(),
-            reviewed_at,
+            reviewed_at: model.reviewed_at.map(|dt| dt.to_rfc3339()),
         };
 
         // Apply status filter if provided

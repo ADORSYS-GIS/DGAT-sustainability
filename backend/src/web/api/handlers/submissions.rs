@@ -6,8 +6,76 @@ use axum::{
     extract::{Extension, Path, State},
     Json,
 };
-use tracing::log::warn;
 use uuid::Uuid;
+
+/// Enhance submission content by fetching question data for each question_revision_id
+async fn enhance_submission_content_with_questions(
+    app_state: &AppState,
+    content: serde_json::Value,
+) -> Result<serde_json::Value, ApiError> {
+    let mut enhanced_content = content.clone();
+
+    // Parse the content to extract responses
+    if let Some(content_obj) = enhanced_content.as_object_mut() {
+        if let Some(responses) = content_obj.get_mut("responses") {
+            if let Some(responses_array) = responses.as_array_mut() {
+                // Process each response to add question data
+                for response in responses_array.iter_mut() {
+                    if let Some(response_obj) = response.as_object_mut() {
+                        // Extract question_revision_id
+                        if let Some(question_revision_id_value) = response_obj.get("question_revision_id") {
+                            if let Some(question_revision_id_str) = question_revision_id_value.as_str() {
+                                if let Ok(question_revision_id) = Uuid::parse_str(question_revision_id_str) {
+                                    // Fetch question data from database
+                                    match app_state
+                                        .database
+                                        .questions_revisions
+                                        .get_revision_by_id(question_revision_id)
+                                        .await
+                                    {
+                                        Ok(Some(question_revision)) => {
+                                            // Add question data to the response
+                                            response_obj.insert(
+                                                "question".to_string(),
+                                                serde_json::json!({
+                                                    "question_id": question_revision.question_id,
+                                                    "question_revision_id": question_revision.question_revision_id,
+                                                    "text": question_revision.text,
+                                                    "weight": question_revision.weight,
+                                                    "created_at": question_revision.created_at.to_rfc3339()
+                                                })
+                                            );
+                                        }
+                                        Ok(None) => {
+                                            // Question revision not found, add placeholder
+                                            response_obj.insert(
+                                                "question".to_string(),
+                                                serde_json::json!({
+                                                    "question_id": null,
+                                                    "question_revision_id": question_revision_id,
+                                                    "text": {"en": "Question not found"},
+                                                    "weight": 0.0,
+                                                    "created_at": null
+                                                })
+                                            );
+                                        }
+                                        Err(e) => {
+                                            return Err(ApiError::InternalServerError(
+                                                format!("Failed to fetch question data: {e}")
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(enhanced_content)
+}
 
 pub async fn list_user_submissions(
     State(app_state): State<AppState>,
@@ -28,32 +96,19 @@ pub async fn list_user_submissions(
     // Convert database models to API models
     let mut submissions = Vec::new();
     for model in submission_models {
-        // Check if there's a report for this submission
-        let report = app_state
-            .database
-            .submission_reports
-            .get_report_by_assessment(model.submission_id)
-            .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to check for reports: {e}"))
-            })?;
-
-        // Determine review status based on report existence
-        let (review_status, reviewed_at) = if let Some(_report) = report {
-            // If a report exists, the submission is under review
-            ("under_review".to_string(), None)
-        } else {
-            // If no report exists, the submission is pending review
-            ("pending".to_string(), None)
-        };
+        // Enhance the content with question data
+        let enhanced_content = enhance_submission_content_with_questions(
+            &app_state,
+            model.content.clone(),
+        ).await?;
 
         submissions.push(Submission {
             submission_id: model.submission_id,
             user_id: model.user_id,
-            content: model.content,
+            content: enhanced_content,
             submitted_at: model.submitted_at.to_rfc3339(),
-            review_status,
-            reviewed_at,
+            review_status: model.status.to_string(),
+            reviewed_at: model.reviewed_at.map(|dt| dt.to_rfc3339()),
         });
     }
 
@@ -88,30 +143,20 @@ pub async fn get_submission(
         ));
     }
 
-    // Check if there's a report for this submission
-    let report = app_state
-        .database
-        .submission_reports
-        .get_report_by_assessment(submission_model.submission_id)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to check for reports: {e}")))?;
+    // Enhance the content with question data
+    let enhanced_content = enhance_submission_content_with_questions(
+        &app_state,
+        submission_model.content.clone(),
+    ).await?;
 
-    // Determine review status based on report existence
-    let (review_status, reviewed_at) = if let Some(_report) = report {
-        // If a report exists, the submission is under review
-        ("under_review".to_string(), None)
-    } else {
-        // If no report exists, the submission is pending review
-        ("pending".to_string(), None)
-    };
     // Convert database model to API model
     let submission = AssessmentSubmission {
         assessment_id: submission_model.submission_id,
         user_id: submission_model.user_id,
-        content: submission_model.content,
+        content: enhanced_content,
         submitted_at: submission_model.submitted_at.to_rfc3339(),
-        review_status,
-        reviewed_at,
+        review_status: submission_model.status.to_string(),
+        reviewed_at: submission_model.reviewed_at.map(|dt| dt.to_rfc3339()),
     };
 
     Ok(Json(SubmissionDetailResponse { submission }))

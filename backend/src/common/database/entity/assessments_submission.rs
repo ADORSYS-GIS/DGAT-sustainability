@@ -3,8 +3,54 @@ use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
+use sea_orm::prelude::StringLen;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+pub enum SubmissionStatus {
+    #[sea_orm(string_value = "pending_review")]
+    #[serde(rename = "pending_review")]
+    PendingReview,
+    #[sea_orm(string_value = "under_review")]
+    #[serde(rename = "under_review")]
+    UnderReview,
+    #[sea_orm(string_value = "approved")]
+    #[serde(rename = "approved")]
+    Approved,
+    #[sea_orm(string_value = "rejected")]
+    #[serde(rename = "rejected")]
+    Rejected,
+    #[sea_orm(string_value = "revision_requested")]
+    #[serde(rename = "revision_requested")]
+    RevisionRequested,
+}
+
+impl Default for SubmissionStatus {
+    fn default() -> Self {
+        Self::UnderReview
+    }
+}
+
+impl SubmissionStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::PendingReview => "pending_review",
+            Self::UnderReview => "under_review",
+            Self::Approved => "approved",
+            Self::Rejected => "rejected",
+            Self::RevisionRequested => "revision_requested",
+        }
+    }
+}
+
+impl std::fmt::Display for SubmissionStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
 
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -15,6 +61,8 @@ pub struct Model {
     pub user_id: String,             // Keycloak sub
     pub content: Value,              // JSON blob with all answers
     pub submitted_at: DateTime<Utc>, // When the submission was created
+    pub status: SubmissionStatus,    // Review status (under_review, reviewed, etc.)
+    pub reviewed_at: Option<DateTime<Utc>>, // When the submission was reviewed
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -70,6 +118,8 @@ impl AssessmentsSubmissionService {
             user_id: Set(user_id),
             content: Set(content),
             submitted_at: Set(Utc::now()),
+            status: Set(SubmissionStatus::UnderReview),
+            reviewed_at: Set(None),
         };
 
         self.db_service.create(submission).await
@@ -96,6 +146,49 @@ impl AssessmentsSubmissionService {
     pub async fn delete_submission(&self, assessment_id: Uuid) -> Result<DeleteResult, DbErr> {
         self.db_service.delete(assessment_id).await
     }
+
+    pub async fn update_submission_status(
+        &self,
+        assessment_id: Uuid,
+        status: SubmissionStatus,
+    ) -> Result<Model, DbErr> {
+        let submission = self
+            .get_submission_by_assessment_id(assessment_id)
+            .await?
+            .ok_or(DbErr::Custom("Submission not found".to_string()))?;
+
+        let mut submission: ActiveModel = submission.into();
+
+        // Set reviewed_at timestamp when status changes to a reviewed state
+        let should_set_reviewed_at = matches!(status, 
+            SubmissionStatus::Approved | SubmissionStatus::Rejected | SubmissionStatus::RevisionRequested
+        );
+
+        submission.status = Set(status);
+
+        if should_set_reviewed_at {
+            submission.reviewed_at = Set(Some(Utc::now()));
+        }
+
+        self.db_service.update(submission).await
+    }
+
+    pub async fn mark_submission_reviewed(
+        &self,
+        assessment_id: Uuid,
+        status: SubmissionStatus,
+    ) -> Result<Model, DbErr> {
+        let submission = self
+            .get_submission_by_assessment_id(assessment_id)
+            .await?
+            .ok_or(DbErr::Custom("Submission not found".to_string()))?;
+
+        let mut submission: ActiveModel = submission.into();
+        submission.status = Set(status);
+        submission.reviewed_at = Set(Some(Utc::now()));
+
+        self.db_service.update(submission).await
+    }
 }
 
 #[cfg(test)]
@@ -111,6 +204,8 @@ mod tests {
             user_id: "test_user".to_string(),
             content: json!({"question1": "answer1", "question2": "answer2"}),
             submitted_at: Utc::now(),
+            status: SubmissionStatus::UnderReview,
+            reviewed_at: None,
         };
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)

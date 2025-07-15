@@ -510,7 +510,7 @@ pub async fn submit_assessment(
         user_id,
         content: submission_content,
         submitted_at: now,
-        review_status: "pending_review".to_string(),
+        review_status: _submission_model.status.to_string(),
         reviewed_at: None,
     };
 
