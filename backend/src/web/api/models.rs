@@ -157,7 +157,7 @@ pub struct Response {
     pub response_id: Uuid,
     pub assessment_id: Uuid,
     pub question_revision_id: Uuid,
-    pub response: String,
+    pub response: Vec<String>,
     pub version: i32,
     pub updated_at: String,
     pub files: Vec<FileMetadata>,
@@ -171,7 +171,7 @@ pub struct CreateResponseRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateResponseRequest {
-    pub response: String,
+    pub response: Vec<String>,
     pub version: i32,
 }
 
@@ -241,7 +241,7 @@ pub struct AdminAssessmentInfo {
 pub struct AdminResponseDetail {
     pub question_text: String,
     pub question_category: String,
-    pub response: String,
+    pub response: Vec<String>,
     pub files: Vec<FileMetadata>,
 }
 

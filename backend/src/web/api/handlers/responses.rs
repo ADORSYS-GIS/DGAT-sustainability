@@ -126,11 +126,15 @@ pub async fn list_responses(
     let mut responses = Vec::new();
     for response_model in response_models {
         let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
+        // Parse response from JSON string to Vec<String>
+        let response_array: Vec<String> = serde_json::from_str(&response_model.response)
+            .unwrap_or_else(|_| vec![response_model.response.clone()]);
+
         responses.push(Response {
             response_id: response_model.response_id,
             assessment_id: response_model.assessment_id,
             question_revision_id: response_model.question_revision_id,
-            response: response_model.response,
+            response: response_array,
             version: response_model.version,
             updated_at: response_model.updated_at.to_rfc3339(),
             files,
@@ -144,15 +148,23 @@ pub async fn create_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
-    Json(request): Json<CreateResponseRequest>,
+    Json(requests): Json<Vec<CreateResponseRequest>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let user_id = &claims.sub;
 
-    // Validate request
-    if request.response.trim().is_empty() {
+    // Validate requests
+    if requests.is_empty() {
         return Err(ApiError::BadRequest(
-            "Response must not be empty".to_string(),
+            "At least one response is required".to_string(),
         ));
+    }
+
+    for request in &requests {
+        if request.response.trim().is_empty() {
+            return Err(ApiError::BadRequest(
+                "Response must not be empty".to_string(),
+            ));
+        }
     }
 
     // Verify that the current user is the owner of the assessment
@@ -191,32 +203,85 @@ pub async fn create_response(
         ));
     }
 
-    // Create the response in the database
-    let response_model = app_state
+    // Get existing responses for this assessment
+    let existing_responses = app_state
         .database
         .assessments_response
-        .create_response(
-            assessment_id,
-            request.question_revision_id,
-            request.response,
-            1,
-        )
+        .get_latest_responses_by_assessment(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
 
-    // Convert database model to API model
-    let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
-    let response = Response {
-        response_id: response_model.response_id,
-        assessment_id: response_model.assessment_id,
-        question_revision_id: response_model.question_revision_id,
-        response: response_model.response,
-        version: response_model.version,
-        updated_at: response_model.updated_at.to_rfc3339(),
-        files,
-    };
+    let mut updated_responses = Vec::new();
 
-    Ok((StatusCode::CREATED, Json(ResponseResponse { response })))
+    // Process each request
+    for request in requests {
+        // Check if a response already exists for this question_revision_id
+        if let Some(existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
+            // Parse existing response as JSON array or create new array
+            let mut response_array: Vec<String> = match serde_json::from_str(&existing.response) {
+                Ok(arr) => arr,
+                Err(_) => vec![existing.response.clone()], // If not JSON array, treat as single string
+            };
+
+            // Append new response if it doesn't already exist
+            if !response_array.contains(&request.response) {
+                response_array.push(request.response);
+            }
+
+            // Update the response with the new array
+            let updated_response = app_state
+                .database
+                .assessments_response
+                .update_response(
+                    assessment_id,
+                    request.question_revision_id,
+                    serde_json::to_string(&response_array).unwrap(),
+                )
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
+
+            updated_responses.push(updated_response);
+        } else {
+            // Create new response with array containing single item
+            let response_array = vec![request.response];
+            let new_response = app_state
+                .database
+                .assessments_response
+                .create_response(
+                    assessment_id,
+                    request.question_revision_id,
+                    serde_json::to_string(&response_array).unwrap(),
+                    1,
+                )
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
+
+            updated_responses.push(new_response);
+        }
+    }
+
+    // Convert database models to API models
+    let mut responses = Vec::new();
+    for response_model in updated_responses {
+        let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
+
+        // Parse response from JSON string to Vec<String>
+        let response_array: Vec<String> = serde_json::from_str(&response_model.response)
+            .unwrap_or_else(|_| vec![response_model.response.clone()]);
+
+        let response = Response {
+            response_id: response_model.response_id,
+            assessment_id: response_model.assessment_id,
+            question_revision_id: response_model.question_revision_id,
+            response: response_array,
+            version: response_model.version,
+            updated_at: response_model.updated_at.to_rfc3339(),
+            files,
+        };
+        responses.push(response);
+    }
+
+    Ok((StatusCode::CREATED, Json(ResponseListResponse { responses })))
 }
 
 pub async fn get_response(
@@ -267,11 +332,16 @@ pub async fn get_response(
 
     // Convert database model to API model
     let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
+
+    // Parse response from JSON string to Vec<String>
+    let response_array: Vec<String> = serde_json::from_str(&response_model.response)
+        .unwrap_or_else(|_| vec![response_model.response.clone()]);
+
     let response = Response {
         response_id: response_model.response_id,
         assessment_id: response_model.assessment_id,
         question_revision_id: response_model.question_revision_id,
-        response: response_model.response,
+        response: response_array,
         version: response_model.version,
         updated_at: response_model.updated_at.to_rfc3339(),
         files,
@@ -289,7 +359,7 @@ pub async fn update_response(
     let user_id = &claims.sub;
 
     // Validate request
-    if request.response.trim().is_empty() {
+    if request.response.is_empty() || request.response.iter().all(|s| s.trim().is_empty()) {
         return Err(ApiError::BadRequest(
             "Response must not be empty".to_string(),
         ));
@@ -358,6 +428,9 @@ pub async fn update_response(
         ));
     }
 
+    // Convert Vec<String> to JSON string for database storage
+    let response_json = serde_json::to_string(&request.response).unwrap();
+
     // Update the response in the database
     let updated_response = app_state
         .database
@@ -365,18 +438,23 @@ pub async fn update_response(
         .update_response(
             assessment_id,
             existing_response.question_revision_id,
-            request.response,
+            response_json,
         )
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
 
     // Convert database model to API model
     let files = fetch_files_for_response(&app_state, updated_response.response_id).await?;
+
+    // Parse response from JSON string to Vec<String>
+    let response_array: Vec<String> = serde_json::from_str(&updated_response.response)
+        .unwrap_or_else(|_| vec![updated_response.response.clone()]);
+
     let response = Response {
         response_id: updated_response.response_id,
         assessment_id: updated_response.assessment_id,
         question_revision_id: updated_response.question_revision_id,
-        response: updated_response.response,
+        response: response_array,
         version: updated_response.version,
         updated_at: updated_response.updated_at.to_rfc3339(),
         files,

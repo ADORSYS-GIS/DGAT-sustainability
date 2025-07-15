@@ -243,11 +243,16 @@ pub async fn get_assessment(
     let mut responses = Vec::new();
     for response_model in response_models {
         let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
+
+        // Parse response from JSON string to Vec<String>
+        let response_array: Vec<String> = serde_json::from_str(&response_model.response)
+            .unwrap_or_else(|_| vec![response_model.response.clone()]);
+
         responses.push(Response {
             response_id: response_model.response_id,
             assessment_id: response_model.assessment_id,
             question_revision_id: response_model.question_revision_id,
-            response: response_model.response,
+            response: response_array,
             version: response_model.version,
             updated_at: response_model.updated_at.to_rfc3339(),
             files,

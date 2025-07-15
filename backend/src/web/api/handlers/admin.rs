@@ -108,6 +108,26 @@ pub async fn list_all_submissions(
                             })
                             .unwrap_or_default();
 
+                        // Parse response - it could be a string or an array
+                        let response = response_obj
+                            .get("response")
+                            .map(|r| {
+                                if let Some(arr) = r.as_array() {
+                                    // If it's already an array, convert to Vec<String>
+                                    arr.iter()
+                                        .filter_map(|v| v.as_str())
+                                        .map(|s| s.to_string())
+                                        .collect()
+                                } else if let Some(s) = r.as_str() {
+                                    // If it's a string, try to parse as JSON array first
+                                    serde_json::from_str::<Vec<String>>(s)
+                                        .unwrap_or_else(|_| vec![s.to_string()])
+                                } else {
+                                    vec!["".to_string()]
+                                }
+                            })
+                            .unwrap_or_else(|| vec!["".to_string()]);
+
                         AdminResponseDetail {
                             question_text: response_obj
                                 .get("question_text")
@@ -119,11 +139,7 @@ pub async fn list_all_submissions(
                                 .and_then(|c| c.as_str())
                                 .unwrap_or("General")
                                 .to_string(),
-                            response: response_obj
-                                .get("response")
-                                .and_then(|r| r.as_str())
-                                .unwrap_or("")
-                                .to_string(),
+                            response,
                             files,
                         }
                     })
