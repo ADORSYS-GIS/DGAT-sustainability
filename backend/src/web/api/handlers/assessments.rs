@@ -5,9 +5,7 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use tracing::warn;
 use uuid::Uuid;
-use sea_orm::{TransactionTrait, EntityTrait};
 
 use crate::common::models::claims::Claims;
 use crate::web::routes::AppState;
@@ -497,67 +495,13 @@ pub async fn submit_assessment(
         "responses": responses_with_files
     });
 
-    // Start a database transaction to ensure atomicity
-    let txn = app_state
+    // Create the submission record in the database
+    let _submission_model = app_state
         .database
-        .get_connection()
-        .begin()
+        .assessments_submission
+        .create_submission(assessment_id, user_id.clone(), submission_content.clone())
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to start transaction: {e}")))?;
-
-    // Create the submission record in the database within the transaction
-    let submission_result = {
-        use sea_orm::{ActiveModelTrait, Set};
-        use crate::common::database::entity::assessments_submission::ActiveModel;
-
-        let submission = ActiveModel {
-            submission_id: Set(assessment_id),
-            user_id: Set(user_id.clone()),
-            content: Set(submission_content.clone()),
-            submitted_at: Set(chrono::Utc::now()),
-        };
-
-        submission.insert(&txn).await
-    };
-
-    let _submission_model = match submission_result {
-        Ok(model) => model,
-        Err(e) => {
-            // Rollback transaction on submission creation failure
-            if let Err(rollback_err) = txn.rollback().await {
-                warn!("Failed to rollback transaction: {}", rollback_err);
-            }
-            return Err(ApiError::InternalServerError(format!("Failed to create submission: {e}")));
-        }
-    };
-
-    // Delete the assessment after successful submission within the same transaction
-    // This ensures that any remaining assessment responses are always in draft state
-    let delete_result = {
-        use crate::common::database::entity::assessments::{Entity as AssessmentEntity};
-
-        AssessmentEntity::delete_by_id(assessment_id)
-            .exec(&txn)
-            .await
-    };
-
-    match delete_result {
-        Ok(_) => {
-            // Commit the transaction if both operations succeeded
-            if let Err(e) = txn.commit().await {
-                return Err(ApiError::InternalServerError(format!("Failed to commit transaction: {e}")));
-            }
-        }
-        Err(e) => {
-            // Rollback transaction on assessment deletion failure
-            if let Err(rollback_err) = txn.rollback().await {
-                warn!("Failed to rollback transaction: {}", rollback_err);
-            }
-            return Err(ApiError::InternalServerError(format!(
-                "Failed to delete assessment after submission: {e}"
-            )));
-        }
-    }
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to create submission: {e}")))?;
 
     // Build the response
     let now = chrono::Utc::now().to_rfc3339();

@@ -8,6 +8,7 @@ mod m20250706_000005_create_file_table;
 mod m20250706_000006_create_assessments_response_file_table;
 mod m20250706_000007_create_assessments_submission_table;
 mod m20250706_000008_create_submission_reports_table;
+mod m20250706_000010_remove_assessment_submission_fk;
 
 pub struct Migrator;
 
@@ -23,6 +24,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250706_000006_create_assessments_response_file_table::Migration),
             Box::new(m20250706_000007_create_assessments_submission_table::Migration),
             Box::new(m20250706_000008_create_submission_reports_table::Migration),
+            Box::new(m20250706_000010_remove_assessment_submission_fk::Migration),
         ]
     }
 }
