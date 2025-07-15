@@ -10,7 +10,8 @@ use std::sync::Arc;
 
 use sustainability_tool::common::migrations::Migrator;
 use sustainability_tool::common::models::claims::Claims;
-use sustainability_tool::common::state::AppState;
+use sustainability_tool::web::routes::AppState;
+use sustainability_tool::common::state::AppDatabase;
 use sustainability_tool::web::api::routes::create_router;
 use tower::ServiceExt;
 
@@ -24,13 +25,11 @@ async fn mock_auth_middleware(
         sub: "test-user-123".to_string(),
         organizations: sustainability_tool::common::models::claims::Organizations {
             orgs: std::collections::HashMap::from([(
-                "test-org-123".to_string(),
+                "test-organization".to_string(),
                 sustainability_tool::common::models::claims::OrganizationInfo {
-                    roles: vec!["manage-organization".to_string()],
+                    categories: vec!["environment".to_string(), "social".to_string()],
                 },
             )]),
-            name: "Test Organization".to_string(),
-            categories: vec!["test".to_string()],
         },
         realm_access: Some(sustainability_tool::common::models::claims::RealmAccess {
             roles: vec!["user".to_string()],
@@ -59,7 +58,15 @@ async fn create_test_app_state() -> AppState {
     // Run migrations on the test database
     Migrator::up(&db, None).await.unwrap();
 
-    AppState::new(Arc::new(db)).await
+    // Create AppDatabase
+    let app_database = AppDatabase::new(Arc::new(db)).await;
+
+    AppState::new(
+        "http://localhost:8080".to_string(),
+        "test-realm".to_string(),
+        app_database,
+    )
+    .await
 }
 
 async fn create_test_app() -> Router {

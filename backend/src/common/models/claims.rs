@@ -19,14 +19,12 @@ pub struct Claims {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Organizations {
     #[serde(flatten)]
-    pub orgs: HashMap<String, OrganizationInfo>, // Organization UUID -> Organization Info
-    pub name: String,            // Organization name
-    pub categories: Vec<String>, // Organization categories
+    pub orgs: HashMap<String, OrganizationInfo>, // Organization name -> Organization Info
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrganizationInfo {
-    pub roles: Vec<String>, // Organization-specific roles
+    pub categories: Vec<String>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,7 +61,7 @@ impl Claims {
 
     /// Get the organization name (for backward compatibility)
     pub fn get_organization_name(&self) -> Option<String> {
-        Some(self.organizations.name.clone())
+        self.organizations.orgs.keys().next().cloned()
     }
 
     /// Get all organization IDs
@@ -72,12 +70,9 @@ impl Claims {
     }
 
     /// Check if user has a specific role in a specific organization
-    pub fn has_organization_role(&self, organization_id: &str, role: &str) -> bool {
-        self.organizations
-            .orgs
-            .get(organization_id)
-            .map(|org_info| org_info.roles.contains(&role.to_string()))
-            .unwrap_or(false)
+    /// Note: Organization roles are no longer supported in the current JWT format
+    pub fn has_organization_role(&self, _organization_id: &str, _role: &str) -> bool {
+        false
     }
 }
 
@@ -92,22 +87,12 @@ mod tests {
         let test_json = json!({
             "sub": "user-123",
             "organizations": {
-                "65c3d2dd-1624-49f1-a41f-692282481826": {
-                    "roles": [
-                        "manage-invitations",
-                        "view-members",
-                        "manage-members",
-                        "view-identity-providers",
-                        "manage-organization",
-                        "view-invitations",
-                        "manage-roles",
-                        "manage-identity-providers",
-                        "view-roles",
-                        "view-organization"
+                "adorsys": {
+                    "categories": [
+                        "environment",
+                        "social"
                     ]
-                },
-                "name": "acme",
-                "categories": ["social", "environment"]
+                }
             },
             "preferred_username": "testuser",
             "exp": 1234567890_u64,
@@ -122,18 +107,18 @@ mod tests {
 
         // Test helper methods
         assert!(claims.get_primary_organization_id().is_some());
-        assert_eq!(claims.get_organization_name(), Some("acme".to_string()));
+        assert_eq!(claims.get_organization_name(), Some("adorsys".to_string()));
         assert_eq!(claims.get_organization_ids().len(), 1);
 
-        // Test organization role checking
-        let org_id = claims.get_primary_organization_id().unwrap();
-        assert!(claims.has_organization_role(&org_id, "manage-organization"));
-        assert!(!claims.has_organization_role(&org_id, "invalid-role"));
+        // Test organization role checking (should always return false in new format)
+        let org_name = claims.get_primary_organization_id().unwrap();
+        assert!(!claims.has_organization_role(&org_name, "any-role"));
 
         // Test serialization
         let serialized = serde_json::to_string(&claims).expect("Should serialize successfully");
         assert!(serialized.contains("organizations"));
-        assert!(serialized.contains("acme"));
-        assert!(serialized.contains("manage-organization"));
+        assert!(serialized.contains("adorsys"));
+        assert!(serialized.contains("environment"));
+        assert!(serialized.contains("social"));
     }
 }

@@ -4,8 +4,7 @@
 //! It integrates with Keycloak for token validation and provides utilities for
 //! enforcing role-based permissions.
 
-use std::collections::HashMap;
-use crate::common::models::claims::{Claims, Organizations};
+use crate::common::models::claims::Claims;
 use crate::web::handlers::jwt_validator::JwtValidator;
 use axum::{
     extract::{Request, State},
