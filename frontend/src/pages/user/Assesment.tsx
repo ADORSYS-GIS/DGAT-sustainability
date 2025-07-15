@@ -100,24 +100,37 @@ export const Assessment: React.FC = () => {
   const { data: questionsData, isLoading: questionsLoading } =
     useQuestionsServiceGetQuestions();
 
-  // Group questions by category
+  // Group questions by category (support both old and new formats)
   const groupedQuestions = React.useMemo(() => {
     if (!questionsData?.questions) return {};
-    const groups: Record<
-      string,
-      { question: Question; revision: QuestionRevision }[]
-    > = {};
-    questionsData.questions.forEach(
-      (qwr: { question: Question; revisions: QuestionRevision[] }) => {
-        const category = qwr.question.category;
-        const latestRevision = qwr.revisions[qwr.revisions.length - 1];
+    const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
+    type QuestionNewFormat = { question_id: string; category: string; created_at: string; latest_revision: QuestionRevision };
+    type QuestionOldFormat = { question: Question; revisions: QuestionRevision[] };
+    type QuestionUnion = QuestionNewFormat | QuestionOldFormat;
+    (questionsData.questions as QuestionUnion[]).forEach((q) => {
+      let category: string | undefined;
+      let question: Question | undefined;
+      let revision: QuestionRevision | undefined;
+      if ('category' in q && 'latest_revision' in q) {
+        // New format
+        category = q.category;
+        question = {
+          question_id: q.question_id,
+          category: q.category,
+          created_at: q.created_at,
+        };
+        revision = q.latest_revision;
+      } else if ('question' in q && 'revisions' in q) {
+        // Old format
+        category = q.question.category;
+        question = q.question;
+        revision = q.revisions[q.revisions.length - 1];
+      }
+      if (category && question && revision) {
         if (!groups[category]) groups[category] = [];
-        groups[category].push({
-          question: qwr.question,
-          revision: latestRevision,
-        });
-      },
-    );
+        groups[category].push({ question, revision });
+      }
+    });
     return groups;
   }, [questionsData]);
 
@@ -132,6 +145,21 @@ export const Assessment: React.FC = () => {
     );
   };
 
+  // Type guard for QuestionRevision
+  function hasQuestionRevisionId(obj: QuestionRevision): obj is QuestionRevision & { question_revision_id: string } {
+    return 'question_revision_id' in obj && typeof (obj as { question_revision_id?: unknown }).question_revision_id === 'string';
+  }
+
+  // Helper to get the question revision id key
+  const getRevisionKey = (revision: QuestionRevision): string => {
+    if (hasQuestionRevisionId(revision)) {
+      return revision.question_revision_id;
+    } else if ('latest_revision' in revision && typeof (revision as { latest_revision?: unknown }).latest_revision === 'string') {
+      return (revision as { latest_revision: string }).latest_revision;
+    }
+    return '';
+  };
+
   const handleAnswerChange = (
     question_revision_id: string,
     value: {
@@ -142,22 +170,7 @@ export const Assessment: React.FC = () => {
     },
   ) => {
     setAnswers((prev) => ({ ...prev, [question_revision_id]: value }));
-    const existingResponse = findResponseForQuestion(question_revision_id);
-    if (existingResponse) {
-      updateResponseMutation.mutate({
-        assessmentId: assessmentId!,
-        responseId: existingResponse.response_id,
-        requestBody: { response: JSON.stringify(value) },
-      });
-    } else {
-      createResponseMutation.mutate({
-        assessmentId: assessmentId!,
-        requestBody: {
-          question_revision_id,
-          response: JSON.stringify(value),
-        },
-      });
-    }
+    // No backend call here!
   };
 
   const handleCommentChange = (questionId: string, comment: string) => {
@@ -187,11 +200,59 @@ export const Assessment: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const saveDraft = async () => {
-    // This function is no longer needed as responses are saved immediately
+  // --- Navigation handler: on Next, send all answers for current category to backend ---
+  const nextCategory = async () => {
+    const currentQuestions = getCurrentCategoryQuestions();
+    const responsesToSend = currentQuestions.map((question) => {
+      const key = getRevisionKey(question.revision);
+      const answer = answers[key];
+      return answer
+        ? {
+            question_revision_id: key,
+            response: JSON.stringify(answer),
+          }
+        : null;
+    }).filter(Boolean);
+
+    if (responsesToSend.length > 0) {
+      createResponseMutation.mutate({
+        assessmentId: assessmentId!,
+        requestBody: responsesToSend,
+      });
+    }
+    if (currentCategoryIndex < categories.length - 1) {
+      setCategoryIndex(currentCategoryIndex + 1);
+    }
   };
 
+  // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
+    const currentQuestions = getCurrentCategoryQuestions();
+    const responsesToSend = currentQuestions.map((question) => {
+      const key = getRevisionKey(question.revision);
+      const answer = answers[key];
+      return answer
+        ? {
+            question_revision_id: key,
+            response: JSON.stringify(answer),
+          }
+        : null;
+    }).filter(Boolean);
+
+    if (responsesToSend.length > 0) {
+      await new Promise((resolve) => {
+        createResponseMutation.mutate(
+          {
+            assessmentId: assessmentId!,
+            requestBody: responsesToSend,
+          },
+          {
+            onSuccess: resolve,
+            onError: resolve,
+          }
+        );
+      });
+    }
     submitAssessmentMutation.mutate({
       assessmentId: assessmentId!,
     });
@@ -201,12 +262,8 @@ export const Assessment: React.FC = () => {
     }, 2000);
   };
 
-  const nextCategory = async () => {
-    // This function is no longer needed as responses are saved immediately
-    if (currentCategoryIndex < categories.length - 1) {
-      setCategoryIndex(currentCategoryIndex + 1);
-    }
-  };
+  // Remove or disable saveDraft
+  const saveDraft = async () => {};
 
   const previousCategory = () => {
     if (currentCategoryIndex > 0) {
@@ -215,7 +272,7 @@ export const Assessment: React.FC = () => {
   };
 
   const renderQuestionInput = (question: QuestionRevision) => {
-    const key = question.latest_revision;
+    const key = getRevisionKey(question);
     const yesNoValue = answers[key]?.yesNo;
     const percentageValue = answers[key]?.percentage;
     const textValue = answers[key]?.text || "";
@@ -455,19 +512,30 @@ export const Assessment: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
-              {currentQuestions.map((question, index) => (
-                <div
-                  key={question.revision.question_revision_id}
-                  className="border-b pb-6 last:border-b-0"
-                >
-                  <div className="mb-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {index + 1}. {question.revision.text}
-                    </h3>
+              {currentQuestions.map((question, index) => {
+                let questionText = '';
+                if (typeof question.revision.text === 'object' && question.revision.text !== null) {
+                  const textObj = question.revision.text as Record<string, unknown>;
+                  questionText = typeof textObj['en'] === 'string'
+                    ? textObj['en'] as string
+                    : Object.values(textObj).find((v) => typeof v === 'string') as string || '';
+                } else if (typeof question.revision.text === 'string') {
+                  questionText = question.revision.text;
+                }
+                return (
+                  <div
+                    key={getRevisionKey(question.revision)}
+                    className="border-b pb-6 last:border-b-0"
+                  >
+                    <div className="mb-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {index + 1}. {questionText}
+                      </h3>
+                    </div>
+                    {renderQuestionInput(question.revision)}
                   </div>
-                  {renderQuestionInput(question.revision)}
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 

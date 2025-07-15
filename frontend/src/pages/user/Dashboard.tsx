@@ -166,33 +166,33 @@ export const Dashboard: React.FC = () => {
                     </div>
                   ) : (
                     submissions.map((submission) => (
-                      <div
+                    <div
                         key={submission.submission_id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="p-2 rounded-full bg-gray-100">
-                            <Leaf className="w-5 h-5 text-dgrv-green" />
-                          </div>
-                          <div>
-                            <h3 className="font-medium">
-                              Sustainability Assessment
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                              {new Date(
-                                submission.submitted_at,
-                              ).toLocaleDateString()}
-                            </p>
-                          </div>
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          <Leaf className="w-5 h-5 text-dgrv-green" />
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div>
+                          <h3 className="font-medium">
+                            Sustainability Assessment
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {new Date(
+                                submission.submitted_at,
+                            ).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
                           <Badge
                             className={getStatusColor(submission.review_status)}
                           >
                             {formatStatus(submission.review_status)}
-                          </Badge>
-                        </div>
+                        </Badge>
                       </div>
+                    </div>
                     ))
                   )}
                   {submissions.length === 0 && !isLoading && (

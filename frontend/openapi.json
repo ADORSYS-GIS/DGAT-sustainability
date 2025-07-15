@@ -382,8 +382,8 @@
                                         "type": "string",
                                         "default": "en",
                                         "description": "Language for the assessment"
-                                    }
-                                }
+                            }
+                        }
                             }
                         }
                     }

@@ -238,7 +238,7 @@ export const AdminDashboard: React.FC = () => {
                       <div className="flex items-center space-x-4">
                         <div className="p-2 rounded-full bg-gray-100">
                           {/* Assuming type is derived from submission or can be inferred */}
-                          <Star className="w-5 h-5 text-dgrv-green" />
+                            <Star className="w-5 h-5 text-dgrv-green" />
                         </div>
                         <div>
                           <h3 className="font-medium">
