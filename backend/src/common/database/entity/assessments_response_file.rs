@@ -71,11 +71,17 @@ impl AssessmentsResponseFileService {
         response_id: Uuid,
     ) -> Result<Vec<super::file::Model>, DbErr> {
         // Find all files linked to a response
-        super::file::Entity::find()
-            .join(JoinType::InnerJoin, Relation::File.def().rev())
+        Entity::find()
             .filter(Column::ResponseId.eq(response_id))
+            .find_also_related(super::file::Entity)
             .all(self.db.as_ref())
             .await
+            .map(|results| {
+                results
+                    .into_iter()
+                    .filter_map(|(_, file)| file)
+                    .collect()
+            })
     }
 
     pub async fn get_responses_for_file(
