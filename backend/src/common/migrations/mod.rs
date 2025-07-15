@@ -9,6 +9,7 @@ mod m20250706_000006_create_assessments_response_file_table;
 mod m20250706_000007_create_assessments_submission_table;
 mod m20250706_000008_create_submission_reports_table;
 mod m20250706_000009_add_unique_version_constraint;
+mod m20250706_000010_fix_assessments_submission_fk;
 
 pub struct Migrator;
 
@@ -25,6 +26,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250706_000007_create_assessments_submission_table::Migration),
             Box::new(m20250706_000008_create_submission_reports_table::Migration),
             Box::new(m20250706_000009_add_unique_version_constraint::Migration),
+            Box::new(m20250706_000010_fix_assessments_submission_fk::Migration),
         ]
     }
 }

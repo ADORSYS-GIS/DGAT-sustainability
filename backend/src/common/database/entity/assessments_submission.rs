@@ -6,11 +6,12 @@ use sea_orm::{DeleteResult, Set};
 use serde_json::Value;
 use std::sync::Arc;
 
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "assessments_submission")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub assessment_id: Uuid, // Also FK to assessments
+    pub submission_id: Uuid, // Also FK to assessments
     pub user_id: String,             // Keycloak sub
     pub content: Value,              // JSON blob with all answers
     pub submitted_at: DateTime<Utc>, // When the submission was created
@@ -20,7 +21,7 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::assessments::Entity",
-        from = "Column::AssessmentId",
+        from = "Column::SubmissionId",
         to = "super::assessments::Column::AssessmentId"
     )]
     Assessment,
@@ -42,7 +43,7 @@ impl Related<super::submission_reports::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl_database_entity!(Entity, Column::AssessmentId);
+impl_database_entity!(Entity, Column::SubmissionId);
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -65,7 +66,7 @@ impl AssessmentsSubmissionService {
         content: Value,
     ) -> Result<Model, DbErr> {
         let submission = ActiveModel {
-            assessment_id: Set(assessment_id),
+            submission_id: Set(assessment_id),
             user_id: Set(user_id),
             content: Set(content),
             submitted_at: Set(Utc::now()),
@@ -106,7 +107,7 @@ mod tests {
     #[tokio::test]
     async fn test_assessments_submission_service() -> Result<(), Box<dyn std::error::Error>> {
         let mock_submission = Model {
-            assessment_id: Uuid::new_v4(),
+            submission_id: Uuid::new_v4(),
             user_id: "test_user".to_string(),
             content: json!({"question1": "answer1", "question2": "answer2"}),
             submitted_at: Utc::now(),
@@ -130,18 +131,18 @@ mod tests {
         // Test create
         let submission = service
             .create_submission(
-                mock_submission.assessment_id,
+                mock_submission.submission_id,
                 "test_user".to_string(),
                 json!({"question1": "answer1", "question2": "answer2"}),
             )
             .await?;
 
-        assert_eq!(submission.assessment_id, mock_submission.assessment_id);
+        assert_eq!(submission.submission_id, mock_submission.submission_id);
         assert_eq!(submission.user_id, "test_user");
 
         // Test get by assessment id
         let found = service
-            .get_submission_by_assessment_id(submission.assessment_id)
+            .get_submission_by_assessment_id(submission.submission_id)
             .await?;
         assert!(found.is_some());
 
@@ -155,7 +156,7 @@ mod tests {
         assert!(!all_submissions.is_empty());
 
         // Test delete
-        let delete_result = service.delete_submission(submission.assessment_id).await?;
+        let delete_result = service.delete_submission(submission.submission_id).await?;
         assert_eq!(delete_result.rows_affected, 1);
 
         Ok(())

@@ -98,7 +98,7 @@ pub async fn list_assessments(
     // Convert database models to API models
     let mut assessments = Vec::new();
     for model in assessment_models {
-        // Determine status based on whether assessment has been submitted
+        // Determine status based on whether an assessment has been submitted
         let has_submission = app_state
             .database
             .assessments_submission
@@ -116,7 +116,7 @@ pub async fn list_assessments(
         };
 
         assessments.push(Assessment {
-            assessment_id: model.assessment_id,
+            submission_id: model.assessment_id,
             user_id: model.user_id,
             language: model.language,
             status,
@@ -164,7 +164,7 @@ pub async fn create_assessment(
 
     // Convert database model to API model
     let assessment = Assessment {
-        assessment_id: assessment_model.assessment_id,
+        submission_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
         status: "draft".to_string(),
@@ -221,7 +221,7 @@ pub async fn get_assessment(
 
     // Convert database model to API model
     let assessment = Assessment {
-        assessment_id: assessment_model.assessment_id,
+        submission_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
         status,
@@ -333,7 +333,7 @@ pub async fn update_assessment(
 
     // Convert database model to API model
     let assessment = Assessment {
-        assessment_id: assessment_model.assessment_id,
+        submission_id: assessment_model.assessment_id,
         user_id: assessment_model.user_id,
         language: assessment_model.language,
         status: "draft".to_string(),
@@ -509,7 +509,7 @@ pub async fn submit_assessment(
         use crate::common::database::entity::assessments_submission::ActiveModel;
 
         let submission = ActiveModel {
-            assessment_id: Set(assessment_id),
+            submission_id: Set(assessment_id),
             user_id: Set(user_id.clone()),
             content: Set(submission_content.clone()),
             submitted_at: Set(chrono::Utc::now()),

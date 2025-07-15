@@ -44,7 +44,7 @@ pub async fn list_all_submissions(
                     .get("assessment_id")
                     .and_then(|id| id.as_str())
                     .and_then(|s| Uuid::parse_str(s).ok())
-                    .unwrap_or(model.assessment_id),
+                    .unwrap_or(model.submission_id),
                 language: a
                     .get("language")
                     .and_then(|l| l.as_str())
@@ -52,7 +52,7 @@ pub async fn list_all_submissions(
                     .to_string(),
             })
             .unwrap_or(AdminAssessmentInfo {
-                assessment_id: model.assessment_id,
+                assessment_id: model.submission_id,
                 language: "en".to_string(),
             });
 
@@ -151,7 +151,7 @@ pub async fn list_all_submissions(
         let report = app_state
             .database
             .submission_reports
-            .get_report_by_assessment(model.assessment_id)
+            .get_report_by_assessment(model.submission_id)
             .await
             .map_err(|e| {
                 ApiError::InternalServerError(format!("Failed to check for reports: {e}"))
@@ -167,8 +167,8 @@ pub async fn list_all_submissions(
         };
 
         let submission = AdminSubmissionDetail {
-            submission_id: model.assessment_id, // Using assessment_id as submission_id
-            assessment_id: model.assessment_id,
+            submission_id: model.submission_id,
+            assessment_id: model.submission_id,
             user_id: model.user_id,
             content: AdminSubmissionContent {
                 assessment: assessment_info,
