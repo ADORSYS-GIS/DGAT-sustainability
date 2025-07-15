@@ -57,7 +57,7 @@ async fn convert_file_model_to_metadata(
         .to_string();
 
     FileMetadata {
-        file_id: file_model.file_id,
+        file_id: file_model.id,
         filename,
         size,
         content_type,

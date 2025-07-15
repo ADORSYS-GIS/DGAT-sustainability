@@ -9,7 +9,7 @@ use std::sync::Arc;
 #[sea_orm(table_name = "file")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub file_id: Uuid,
+    pub id: Uuid,
     pub content: Vec<u8>, // Binary content
     pub metadata: Value,  // JSON metadata
 }
@@ -28,7 +28,7 @@ impl Related<super::assessments_response_file::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl_database_entity!(Entity, Column::FileId);
+impl_database_entity!(Entity, Column::Id);
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -46,7 +46,7 @@ impl FileService {
 
     pub async fn create_file(&self, content: Vec<u8>, metadata: Value) -> Result<Model, DbErr> {
         let file = ActiveModel {
-            file_id: Set(Uuid::new_v4()),
+            id: Set(Uuid::new_v4()),
             content: Set(content),
             metadata: Set(metadata),
         };
@@ -84,7 +84,7 @@ mod tests {
     #[tokio::test]
     async fn test_file_service() -> Result<(), Box<dyn std::error::Error>> {
         let mock_file = Model {
-            file_id: Uuid::new_v4(),
+            id: Uuid::new_v4(),
             content: vec![1, 2, 3, 4], // Sample binary data
             metadata: json!({"filename": "test.pdf", "size": 1024}),
         };
@@ -115,22 +115,22 @@ mod tests {
         assert_eq!(file.content, vec![1, 2, 3, 4]);
 
         // Test get by id
-        let found = service.get_file_by_id(file.file_id).await?;
+        let found = service.get_file_by_id(file.id).await?;
         assert!(found.is_some());
         let found = found.unwrap();
-        assert_eq!(found.file_id, file.file_id);
+        assert_eq!(found.id, file.id);
 
         // Test update metadata
         let updated = service
             .update_file_metadata(
-                file.file_id,
+                file.id,
                 json!({"filename": "updated.pdf", "size": 2048}),
             )
             .await?;
-        assert_eq!(updated.file_id, file.file_id);
+        assert_eq!(updated.id, file.id);
 
         // Test delete
-        let delete_result = service.delete_file(file.file_id).await?;
+        let delete_result = service.delete_file(file.id).await?;
         assert_eq!(delete_result.rows_affected, 1);
 
         Ok(())

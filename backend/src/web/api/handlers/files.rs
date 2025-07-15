@@ -261,7 +261,7 @@ pub async fn get_file_metadata(
         .to_string();
 
     let metadata = FileMetadata {
-        file_id: file_model.file_id,
+        file_id: file_model.id,
         filename,
         size,
         content_type,

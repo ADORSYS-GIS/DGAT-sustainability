@@ -44,7 +44,7 @@ async fn convert_file_model_to_metadata(
         .to_string();
 
     FileMetadata {
-        file_id: file_model.file_id,
+        file_id: file_model.id,
         filename,
         size,
         content_type,
@@ -470,7 +470,7 @@ pub async fn submit_assessment(
             let empty_map = serde_json::Map::new();
             let metadata = file.metadata.as_object().unwrap_or(&empty_map);
             serde_json::json!({
-                "file_id": file.file_id,
+                "file_id": file.id,
                 "filename": metadata.get("filename").and_then(|v| v.as_str()).unwrap_or("unknown"),
                 "size": metadata.get("size").and_then(|v| v.as_i64()).unwrap_or(file.content.len() as i64),
                 "content_type": metadata.get("content_type").and_then(|v| v.as_str()).unwrap_or("application/octet-stream"),
