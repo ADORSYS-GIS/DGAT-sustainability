@@ -8,6 +8,66 @@ use axum::{
 };
 use uuid::Uuid;
 
+/// Helper function to extract question revision ID from a response object
+fn extract_question_revision_id(response_obj: &serde_json::Map<String, serde_json::Value>) -> Option<Uuid> {
+    response_obj
+        .get("question_revision_id")?
+        .as_str()?
+        .parse()
+        .ok()
+}
+
+/// Helper function to create question data JSON
+fn create_question_json(question_revision: &crate::common::database::entity::questions_revisions::Model) -> serde_json::Value {
+    serde_json::json!({
+        "question_id": question_revision.question_id,
+        "question_revision_id": question_revision.question_revision_id,
+        "text": question_revision.text,
+        "weight": question_revision.weight,
+        "created_at": question_revision.created_at.to_rfc3339()
+    })
+}
+
+/// Helper function to create placeholder question JSON when question is not found
+fn create_placeholder_question_json(question_revision_id: Uuid) -> serde_json::Value {
+    serde_json::json!({
+        "question_id": null,
+        "question_revision_id": question_revision_id,
+        "text": {"en": "Question not found"},
+        "weight": 0.0,
+        "created_at": null
+    })
+}
+
+/// Process a single response to add question data
+async fn process_response(
+    app_state: &AppState,
+    response_obj: &mut serde_json::Map<String, serde_json::Value>,
+) -> Result<(), ApiError> {
+    let question_revision_id = match extract_question_revision_id(response_obj) {
+        Some(id) => id,
+        None => return Ok(()), // Skip if no valid question_revision_id
+    };
+
+    let question_data = match app_state
+        .database
+        .questions_revisions
+        .get_revision_by_id(question_revision_id)
+        .await
+    {
+        Ok(Some(question_revision)) => create_question_json(&question_revision),
+        Ok(None) => create_placeholder_question_json(question_revision_id),
+        Err(e) => {
+            return Err(ApiError::InternalServerError(
+                format!("Failed to fetch question data: {e}")
+            ));
+        }
+    };
+
+    response_obj.insert("question".to_string(), question_data);
+    Ok(())
+}
+
 /// Enhance submission content by fetching question data for each question_revision_id
 async fn enhance_submission_content_with_questions(
     app_state: &AppState,
@@ -15,62 +75,21 @@ async fn enhance_submission_content_with_questions(
 ) -> Result<serde_json::Value, ApiError> {
     let mut enhanced_content = content.clone();
 
-    // Parse the content to extract responses
-    if let Some(content_obj) = enhanced_content.as_object_mut() {
-        if let Some(responses) = content_obj.get_mut("responses") {
-            if let Some(responses_array) = responses.as_array_mut() {
-                // Process each response to add question data
-                for response in responses_array.iter_mut() {
-                    if let Some(response_obj) = response.as_object_mut() {
-                        // Extract question_revision_id
-                        if let Some(question_revision_id_value) = response_obj.get("question_revision_id") {
-                            if let Some(question_revision_id_str) = question_revision_id_value.as_str() {
-                                if let Ok(question_revision_id) = Uuid::parse_str(question_revision_id_str) {
-                                    // Fetch question data from database
-                                    match app_state
-                                        .database
-                                        .questions_revisions
-                                        .get_revision_by_id(question_revision_id)
-                                        .await
-                                    {
-                                        Ok(Some(question_revision)) => {
-                                            // Add question data to the response
-                                            response_obj.insert(
-                                                "question".to_string(),
-                                                serde_json::json!({
-                                                    "question_id": question_revision.question_id,
-                                                    "question_revision_id": question_revision.question_revision_id,
-                                                    "text": question_revision.text,
-                                                    "weight": question_revision.weight,
-                                                    "created_at": question_revision.created_at.to_rfc3339()
-                                                })
-                                            );
-                                        }
-                                        Ok(None) => {
-                                            // Question revision not found, add placeholder
-                                            response_obj.insert(
-                                                "question".to_string(),
-                                                serde_json::json!({
-                                                    "question_id": null,
-                                                    "question_revision_id": question_revision_id,
-                                                    "text": {"en": "Question not found"},
-                                                    "weight": 0.0,
-                                                    "created_at": null
-                                                })
-                                            );
-                                        }
-                                        Err(e) => {
-                                            return Err(ApiError::InternalServerError(
-                                                format!("Failed to fetch question data: {e}")
-                                            ));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+    // Get responses array from content, return early if not found
+    let responses_array = enhanced_content
+        .as_object_mut()
+        .and_then(|obj| obj.get_mut("responses"))
+        .and_then(|responses| responses.as_array_mut());
+
+    let responses_array = match responses_array {
+        Some(array) => array,
+        None => return Ok(enhanced_content), // No responses to process
+    };
+
+    // Process each response to add question data
+    for response in responses_array.iter_mut() {
+        if let Some(response_obj) = response.as_object_mut() {
+            process_response(app_state, response_obj).await?;
         }
     }
 
