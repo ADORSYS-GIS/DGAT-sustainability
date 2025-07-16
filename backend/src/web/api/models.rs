@@ -368,7 +368,6 @@ pub struct AttachFileRequest {
 pub struct Report {
     pub report_id: Uuid,
     pub submission_id: Uuid,
-    pub report_type: String,
     pub status: String,
     pub generated_at: String,
     pub data: Option<serde_json::Value>,
@@ -376,8 +375,6 @@ pub struct Report {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateReportRequest {
-    pub report_type: String,
-    pub options: Option<serde_json::Value>,
     pub data: serde_json::Value,
 }
 

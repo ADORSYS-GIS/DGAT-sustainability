@@ -55,13 +55,12 @@ impl SubmissionReportsService {
     pub async fn create_report(
         &self,
         submission_id: Uuid,
-        report_type: String,
         data: Option<Value>,
     ) -> Result<Model, DbErr> {
         let report = ActiveModel {
             report_id: Set(Uuid::new_v4()),
             submission_id: Set(submission_id),
-            report_type: Set(report_type),
+            report_type: Set("default".to_string()), // Default value since report_type is not needed
             status: Set("generating".to_string()),
             generated_at: Set(Utc::now()),
             data: Set(data),
@@ -163,7 +162,6 @@ mod tests {
         let report = service
             .create_report(
                 mock_report.submission_id,
-                "sustainability".to_string(),
                 Some(json!({"score": 85, "feedback": "Good work"})),
             )
             .await?;
