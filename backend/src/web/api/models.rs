@@ -248,9 +248,9 @@ pub struct AdminAssessmentInfo {
 
 #[derive(Debug, Serialize)]
 pub struct AdminResponseDetail {
-    pub question_text: String,
-    pub question_category: String,
-    pub response: Vec<String>,
+    pub question_revision_id: Uuid,
+    pub response: String,
+    pub version: i32,
     pub files: Vec<FileMetadata>,
 }
 

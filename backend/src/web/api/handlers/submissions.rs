@@ -39,7 +39,7 @@ fn create_placeholder_question_json(question_revision_id: Uuid) -> serde_json::V
     })
 }
 
-/// Process a single response to add question data
+/// Process a single response to replace question_revision_id with question text
 async fn process_response(
     app_state: &AppState,
     response_obj: &mut serde_json::Map<String, serde_json::Value>,
@@ -49,14 +49,14 @@ async fn process_response(
         None => return Ok(()), // Skip if no valid question_revision_id
     };
 
-    let question_data = match app_state
+    let question_text = match app_state
         .database
         .questions_revisions
         .get_revision_by_id(question_revision_id)
         .await
     {
-        Ok(Some(question_revision)) => create_question_json(&question_revision),
-        Ok(None) => create_placeholder_question_json(question_revision_id),
+        Ok(Some(question_revision)) => question_revision.text,
+        Ok(None) => serde_json::json!({"en": "Question not found"}),
         Err(e) => {
             return Err(ApiError::InternalServerError(
                 format!("Failed to fetch question data: {e}")
@@ -64,7 +64,9 @@ async fn process_response(
         }
     };
 
-    response_obj.insert("question".to_string(), question_data);
+    // Remove question_revision_id and replace with question text
+    response_obj.remove("question_revision_id");
+    response_obj.insert("question".to_string(), question_text);
     Ok(())
 }
 

@@ -109,38 +109,36 @@ pub async fn list_all_submissions(
                             })
                             .unwrap_or_default();
 
-                        // Parse response - it could be a string or an array
+                        // Extract question_revision_id
+                        let question_revision_id = response_obj
+                            .get("question_revision_id")
+                            .and_then(|id| id.as_str())
+                            .and_then(|s| Uuid::parse_str(s).ok())
+                            .unwrap_or_else(|| Uuid::new_v4()); // fallback to new UUID if parsing fails
+
+                        // Extract response as string
                         let response = response_obj
                             .get("response")
                             .map(|r| {
-                                if let Some(arr) = r.as_array() {
-                                    // If it's already an array, convert to Vec<String>
-                                    arr.iter()
-                                        .filter_map(|v| v.as_str())
-                                        .map(|s| s.to_string())
-                                        .collect()
-                                } else if let Some(s) = r.as_str() {
-                                    // If it's a string, try to parse as JSON array first
-                                    serde_json::from_str::<Vec<String>>(s)
-                                        .unwrap_or_else(|_| vec![s.to_string()])
+                                if let Some(s) = r.as_str() {
+                                    s.to_string()
                                 } else {
-                                    vec!["".to_string()]
+                                    // If it's not a string, serialize it as JSON
+                                    serde_json::to_string(r).unwrap_or_else(|_| "".to_string())
                                 }
                             })
-                            .unwrap_or_else(|| vec!["".to_string()]);
+                            .unwrap_or_else(|| "".to_string());
+
+                        // Extract version
+                        let version = response_obj
+                            .get("version")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(1) as i32;
 
                         AdminResponseDetail {
-                            question_text: response_obj
-                                .get("question_text")
-                                .and_then(|q| q.as_str())
-                                .unwrap_or("Question text not available")
-                                .to_string(),
-                            question_category: response_obj
-                                .get("question_category")
-                                .and_then(|c| c.as_str())
-                                .unwrap_or("General")
-                                .to_string(),
+                            question_revision_id,
                             response,
+                            version,
                             files,
                         }
                     })
