@@ -15,7 +15,7 @@ use crate::web::api::models::*;
 
 /// Helper function to process report data and generate report content
 async fn generate_report_content(
-    request: &GenerateReportRequest,
+    requests: &Vec<GenerateReportRequest>,
     submission_id: Uuid,
     app_state: &AppState
 ) -> Result<Value, ApiError> {
@@ -35,7 +35,21 @@ async fn generate_report_content(
         .and_then(|r| r.as_array())
         .unwrap_or(&empty_responses);
 
-    // Group responses by category, filtering by the requested category if specified
+    // Collect all requested categories and recommendations
+    let mut requested_categories: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut recommendations: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+
+    for request in requests {
+        if !request.category.is_empty() {
+            requested_categories.insert(request.category.clone());
+            recommendations.insert(request.category.clone(), request.recommendation.clone());
+        }
+    }
+
+    // If no specific categories are requested, include all categories
+    let include_all_categories = requested_categories.is_empty();
+
+    // Group responses by category, filtering by the requested categories if specified
     let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
 
     for response in responses {
@@ -44,9 +58,8 @@ async fn generate_report_content(
             response.get("question_category").and_then(|c| c.as_str()),
             response.get("response").and_then(|r| r.as_str())
         ) {
-            // If a specific category is requested, only include responses from that category
-            // If category is empty, include all categories
-            if request.category.is_empty() || category == request.category {
+            // Include responses if all categories are requested or if this category is specifically requested
+            if include_all_categories || requested_categories.contains(category) {
                 let question_answer = serde_json::json!({
                     question_text: answer
                 });
@@ -58,10 +71,16 @@ async fn generate_report_content(
         }
     }
 
-    // Add the provided recommendation to each category
-    for (_, category_data) in categories.iter_mut() {
+    // Add recommendations to each category
+    for (category, category_data) in categories.iter_mut() {
+        // Use specific recommendation for the category if available, otherwise use the first general recommendation
+        let recommendation = recommendations.get(category)
+            .or_else(|| requests.first().map(|r| &r.recommendation))
+            .map(|r| r.as_str())
+            .unwrap_or("No recommendation provided");
+
         category_data.push(serde_json::json!({
-            "recommendation": request.recommendation
+            "recommendation": recommendation
         }));
     }
 
@@ -165,7 +184,7 @@ pub async fn list_reports(
 pub async fn generate_report(
     State(app_state): State<AppState>,
     Path(submission_id): Path<Uuid>,
-    Json(request): Json<GenerateReportRequest>,
+    Json(request): Json<Vec<GenerateReportRequest>>,
 ) -> Result<impl IntoResponse, ApiError> {
     // Check if submission exists
     let _submission = app_state
