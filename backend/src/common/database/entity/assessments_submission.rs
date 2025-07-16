@@ -17,6 +17,9 @@ pub enum SubmissionStatus {
     #[sea_orm(string_value = "under_review")]
     #[serde(rename = "under_review")]
     UnderReview,
+    #[sea_orm(string_value = "reviewed")]
+    #[serde(rename = "reviewed")]
+    Reviewed,
     #[sea_orm(string_value = "approved")]
     #[serde(rename = "approved")]
     Approved,
@@ -39,6 +42,7 @@ impl SubmissionStatus {
         match self {
             Self::PendingReview => "pending_review",
             Self::UnderReview => "under_review",
+            Self::Reviewed => "reviewed",
             Self::Approved => "approved",
             Self::Rejected => "rejected",
             Self::RevisionRequested => "revision_requested",

@@ -271,6 +271,14 @@ pub async fn generate_report(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to update report with content: {e}")))?;
 
+    // Update the assessment submission status to "reviewed" after successful report generation
+    app_state
+        .database
+        .assessments_submission
+        .update_submission_status(submission_id, crate::common::database::entity::assessments_submission::SubmissionStatus::Reviewed)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to update submission status: {e}")))?;
+
     let response = ReportGenerationResponse {
         report_id: report_model.report_id,
         status: report_model.status,
