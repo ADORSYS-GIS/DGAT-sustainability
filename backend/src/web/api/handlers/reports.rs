@@ -50,7 +50,7 @@ async fn generate_report_content(
     let include_all_categories = requested_categories.is_empty();
 
     // Group responses by category, filtering by the requested categories if specified
-    let mut categories: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
+    let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
 
     for response in responses {
         // Handle the new structure where response contains question_revision_id and escaped JSON response
@@ -119,34 +119,25 @@ async fn generate_report_content(
                     .cloned()
                     .unwrap_or_else(|| "No recommendation provided".to_string());
 
-                // For multiple questions per category, we'll take the first one or aggregate them
-                // If category doesn't exist yet, create the entry with this question/answer
-                if !categories.contains_key(category) {
-                    let category_data = serde_json::json!({
-                        "question": question_text,
-                        "answer": answer,
-                        "recommendation": recommendation
-                    });
-                    categories.insert(category.to_string(), category_data);
-                } else {
-                    // If category already exists, we could aggregate or update
-                    // For now, we'll keep the first question but could modify this logic
-                    // to combine multiple questions/answers if needed
-                    if let Some(existing_data) = categories.get_mut(category) {
-                        // Update recommendation in case it wasn't set before
-                        if let Some(obj) = existing_data.as_object_mut() {
-                            obj.insert("recommendation".to_string(), serde_json::Value::String(recommendation));
-                        }
-                    }
-                }
+                // Create question/answer object with recommendation
+                let question_data = serde_json::json!({
+                    "question": question_text,
+                    "answer": answer,
+                    "recommendation": recommendation
+                });
+
+                // Add this question/answer to the category (supporting multiple questions per category)
+                categories.entry(category.to_string())
+                    .or_insert_with(Vec::new)
+                    .push(question_data);
             }
         }
     }
 
-    // Convert to the required format: [{"category1": {"question": "question_text", "answer": "answer_content", "recommendation": "recommendation_text"}, "category2": {...}}]
+    // Convert to the required format: [{"category1": [{"question": "question_text", "answer": "answer_content", "recommendation": "recommendation_text"}, ...], "category2": [...]}]
     let result = vec![serde_json::Value::Object(
         categories.into_iter()
-            .map(|(category, data)| (category, data))
+            .map(|(category, data)| (category, serde_json::Value::Array(data)))
             .collect()
     )];
 
