@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use serde_json::error::Category;
 use uuid::Uuid;
 
 // =============== Common Models ===============
@@ -375,7 +376,8 @@ pub struct Report {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateReportRequest {
-    pub data: serde_json::Value,
+    pub category: String,
+    pub recommendation: String
 }
 
 #[derive(Debug, Serialize)]

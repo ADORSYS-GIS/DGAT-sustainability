@@ -15,8 +15,7 @@ use crate::web::api::models::*;
 
 /// Helper function to process report data and generate report content
 async fn generate_report_content(
-    _data: &Value, 
-    _report_type: &str, 
+    request: &GenerateReportRequest,
     submission_id: Uuid,
     app_state: &AppState
 ) -> Result<Value, ApiError> {
@@ -36,7 +35,7 @@ async fn generate_report_content(
         .and_then(|r| r.as_array())
         .unwrap_or(&empty_responses);
 
-    // Group responses by category
+    // Group responses by category, filtering by the requested category if specified
     let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
 
     for response in responses {
@@ -45,20 +44,24 @@ async fn generate_report_content(
             response.get("question_category").and_then(|c| c.as_str()),
             response.get("response").and_then(|r| r.as_str())
         ) {
-            let question_answer = serde_json::json!({
-                question_text: answer
-            });
+            // If a specific category is requested, only include responses from that category
+            // If category is empty, include all categories
+            if request.category.is_empty() || category == request.category {
+                let question_answer = serde_json::json!({
+                    question_text: answer
+                });
 
-            categories.entry(category.to_string())
-                .or_insert_with(Vec::new)
-                .push(question_answer);
+                categories.entry(category.to_string())
+                    .or_insert_with(Vec::new)
+                    .push(question_answer);
+            }
         }
     }
 
-    // Add recommendations to each category (placeholder for now)
+    // Add the provided recommendation to each category
     for (_, category_data) in categories.iter_mut() {
         category_data.push(serde_json::json!({
-            "recommendation": "Generated recommendation based on responses"
+            "recommendation": request.recommendation
         }));
     }
 
@@ -174,7 +177,7 @@ pub async fn generate_report(
         .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
 
     // Generate the actual report content using the provided data
-    let report_content = generate_report_content(&request.data, "", submission_id, &app_state).await?;
+    let report_content = generate_report_content(&request, submission_id, &app_state).await?;
 
     // Create the report with initial "generating" status
     let mut report_model = app_state
