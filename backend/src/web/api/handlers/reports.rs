@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -7,6 +7,7 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::common::models::claims::Claims;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
@@ -14,6 +15,61 @@ use crate::web::api::models::*;
 #[derive(Deserialize)]
 pub struct ListReportsQuery {
     report_type: Option<String>,
+}
+
+/// List all reports for the authenticated user
+/// GET /user/reports
+pub async fn list_user_reports(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Query(params): Query<ListReportsQuery>,
+) -> Result<impl IntoResponse, ApiError> {
+    let user_id = &claims.sub;
+
+    // Get all submissions for the user
+    let user_submissions = app_state
+        .database
+        .assessments_submission
+        .get_submissions_by_user(user_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch user submissions: {e}")))?;
+
+    // Collect all reports for user's submissions
+    let mut all_reports = Vec::new();
+
+    for submission in user_submissions {
+        let submission_id = submission.submission_id;
+
+        // Get reports for this submission
+        let report_models = if let Some(ref report_type) = params.report_type {
+            app_state
+                .database
+                .submission_reports
+                .get_reports_by_submission_and_type(submission_id, report_type.clone())
+                .await
+        } else {
+            app_state
+                .database
+                .submission_reports
+                .get_reports_by_submission(submission_id)
+                .await
+        }
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch reports for submission {}: {e}", submission_id)))?;
+
+        // Convert database models to API models and add to collection
+        for model in report_models {
+            all_reports.push(Report {
+                report_id: model.report_id,
+                submission_id: model.submission_id,
+                report_type: model.report_type,
+                status: model.status,
+                generated_at: model.generated_at.to_rfc3339(),
+                data: model.data,
+            });
+        }
+    }
+
+    Ok(Json(ReportListResponse { reports: all_reports }))
 }
 
 /// List reports for a submission
