@@ -50,7 +50,7 @@ async fn generate_report_content(
     let include_all_categories = requested_categories.is_empty();
 
     // Group responses by category, filtering by the requested categories if specified
-    let mut categories: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
+    let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
 
     for response in responses {
         // Handle the new structure where response contains question_revision_id and escaped JSON response
@@ -119,18 +119,19 @@ async fn generate_report_content(
                     "answer": answer
                 });
 
-                // Store the first question-answer pair for each category
-                // If there are multiple questions per category, this will keep the first one
+                // Store all question-answer pairs for each category
+                // Multiple questions per category will all be included
                 categories.entry(category.to_string())
-                    .or_insert(question_answer);
+                    .or_insert_with(Vec::new)
+                    .push(question_answer);
             }
         }
     }
 
-    // Convert to the required format: [{"category1": {"question": "question_text", "answer": "answer_content"}, "category2": {...}}]
+    // Convert to the required format: [{"category1": [{"question": "question_text", "answer": "answer_content"}, ...], "category2": [...]}]
     let result = vec![serde_json::Value::Object(
         categories.into_iter()
-            .map(|(category, data)| (category, data))
+            .map(|(category, data)| (category, serde_json::Value::Array(data)))
             .collect()
     )];
 
