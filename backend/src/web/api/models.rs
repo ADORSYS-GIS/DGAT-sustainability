@@ -378,6 +378,7 @@ pub struct Report {
 pub struct GenerateReportRequest {
     pub report_type: String,
     pub options: Option<serde_json::Value>,
+    pub data: serde_json::Value,
 }
 
 #[derive(Debug, Serialize)]
