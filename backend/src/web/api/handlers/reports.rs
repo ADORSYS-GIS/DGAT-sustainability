@@ -53,11 +53,68 @@ async fn generate_report_content(
     let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
 
     for response in responses {
-        if let (Some(question_text), Some(category), Some(answer)) = (
-            response.get("question_text").and_then(|q| q.as_str()),
-            response.get("question_category").and_then(|c| c.as_str()),
+        // Handle the new structure where response contains question_revision_id and escaped JSON response
+        if let (Some(question_revision_id_str), Some(response_str)) = (
+            response.get("question_revision_id").and_then(|q| q.as_str()),
             response.get("response").and_then(|r| r.as_str())
         ) {
+            // Parse the question_revision_id
+            let question_revision_id = match Uuid::parse_str(question_revision_id_str) {
+                Ok(id) => id,
+                Err(_) => continue, // Skip invalid UUIDs
+            };
+
+            // Get question revision to get question text and question_id
+            let question_revision = match app_state
+                .database
+                .questions_revisions
+                .get_revision_by_id(question_revision_id)
+                .await
+            {
+                Ok(Some(revision)) => revision,
+                _ => continue, // Skip if revision not found
+            };
+
+            // Get question to get category
+            let question = match app_state
+                .database
+                .questions
+                .get_question_by_id(question_revision.question_id)
+                .await
+            {
+                Ok(Some(q)) => q,
+                _ => continue, // Skip if question not found
+            };
+
+            // Extract question text from the jsonb field (assuming English for now)
+            let question_text = question_revision.text
+                .get("en")
+                .and_then(|t| t.as_str())
+                .unwrap_or("Unknown question");
+
+            let category = &question.category;
+
+            // Parse the escaped JSON response string
+            let parsed_response: Vec<serde_json::Value> = match serde_json::from_str(response_str) {
+                Ok(parsed) => parsed,
+                Err(_) => continue, // Skip invalid JSON
+            };
+
+            // Extract the actual answer from the parsed response
+            let answer = if let Some(first_response) = parsed_response.first() {
+                if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(first_response.as_str().unwrap_or("{}")) {
+                    // Try to extract text field, or use the whole object as string
+                    response_obj.get("text")
+                        .and_then(|t| t.as_str())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| serde_json::to_string(&response_obj).unwrap_or_default())
+                } else {
+                    first_response.as_str().unwrap_or("No response").to_string()
+                }
+            } else {
+                "No response".to_string()
+            };
+
             // Include responses if all categories are requested or if this category is specifically requested
             if include_all_categories || requested_categories.contains(category) {
                 let question_answer = serde_json::json!({
