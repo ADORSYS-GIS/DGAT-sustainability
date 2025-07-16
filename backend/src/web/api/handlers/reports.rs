@@ -114,16 +114,10 @@ async fn generate_report_content(
 
             // Include responses if all categories are requested or if this category is specifically requested
             if include_all_categories || requested_categories.contains(category) {
-                // Get the recommendation for this category
-                let recommendation = recommendations.get(category)
-                    .cloned()
-                    .unwrap_or_else(|| "No recommendation provided".to_string());
-
-                // Create question/answer object with recommendation
+                // Create question/answer object WITHOUT recommendation (recommendation will be added at category level)
                 let question_data = serde_json::json!({
                     "question": question_text,
-                    "answer": answer,
-                    "recommendation": recommendation
+                    "answer": answer
                 });
 
                 // Add this question/answer to the category (supporting multiple questions per category)
@@ -134,12 +128,26 @@ async fn generate_report_content(
         }
     }
 
-    // Convert to the required format: [{"category1": [{"question": "question_text", "answer": "answer_content", "recommendation": "recommendation_text"}, ...], "category2": [...]}]
-    let result = vec![serde_json::Value::Object(
-        categories.into_iter()
-            .map(|(category, data)| (category, serde_json::Value::Array(data)))
-            .collect()
-    )];
+    // Convert to the required format with one recommendation per category
+    // [{"category1": [{"question": "question_text", "answer": "answer_content"}, ...], "recommendation": "recommendation_text", "category2": [...]}]
+    let mut result_object = serde_json::Map::new();
+
+    for (category, questions) in categories {
+        // Get the recommendation for this category
+        let recommendation = recommendations.get(&category)
+            .cloned()
+            .unwrap_or_else(|| "No recommendation provided".to_string());
+
+        // Create category object with questions and single recommendation
+        let category_data = serde_json::json!({
+            "questions": questions,
+            "recommendation": recommendation
+        });
+
+        result_object.insert(category, category_data);
+    }
+
+    let result = vec![serde_json::Value::Object(result_object)];
 
     Ok(serde_json::Value::Array(result))
 }
@@ -338,7 +346,7 @@ mod tests {
 
     #[test]
     fn test_report_content_format() {
-        // Sample submission content from the issue description
+        // Test the new format with single recommendation per category
         let sample_submission_content = json!({
             "assessment": {
                 "assessment_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -346,30 +354,33 @@ mod tests {
             },
             "responses": [
                 {
-                    "question_text": "What is your organization's sustainability policy?",
-                    "question_category": "Environmental",
-                    "response": "Our organization has a comprehensive sustainability policy",
-                    "files": [
-                        {
-                            "file_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                            "metadata": {}
-                        }
-                    ]
+                    "files": [],
+                    "question_revision_id": "85f4eb49-b1dc-4623-9b72-35fd68b52a75",
+                    "response": "[\"{\\\"yesNo\\\":true,\\\"percentage\\\":80,\\\"text\\\":\\\"Our organization has a comprehensive sustainability policy\\\"}\"]",
+                    "version": 1,
                 },
                 {
-                    "question_text": "How do you measure carbon footprint?",
-                    "question_category": "Environmental",
-                    "response": "We use third-party tools to measure our carbon footprint annually",
-                    "files": []
+                    "files": [],
+                    "question_revision_id": "066e599a-3a0f-48de-ad03-e23e8ecfea23",
+                    "response": "[\"{\\\"yesNo\\\":true,\\\"percentage\\\":75,\\\"text\\\":\\\"We use third-party tools to measure our carbon footprint annually\\\"}\"]",
+                    "version": 1,
                 },
                 {
-                    "question_text": "What is your employee training program?",
-                    "question_category": "Social",
-                    "response": "We have comprehensive training programs for all employees",
-                    "files": []
+                    "files": [],
+                    "question_revision_id": "987fcdeb-51a2-43d1-b789-123456789abc",
+                    "response": "[\"{\\\"yesNo\\\":true,\\\"percentage\\\":90,\\\"text\\\":\\\"We have comprehensive training programs for all employees\\\"}\"]",
+                    "version": 1,
                 }
             ]
         });
+
+        // Simulate categories and recommendations
+        let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
+        let mut recommendations: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+
+        // Add sample recommendations
+        recommendations.insert("Environmental".to_string(), "Improve environmental policies and increase renewable energy usage".to_string());
+        recommendations.insert("Social".to_string(), "Expand employee training and diversity programs".to_string());
 
         // Extract responses from submission content
         let empty_responses = vec![];
@@ -378,42 +389,69 @@ mod tests {
             .and_then(|r| r.as_array())
             .unwrap_or(&empty_responses);
 
-        // Group responses by category
-        let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
-
-        for response in responses {
-            if let (Some(question_text), Some(category), Some(answer)) = (
-                response.get("question_text").and_then(|q| q.as_str()),
-                response.get("question_category").and_then(|c| c.as_str()),
+        // Process responses (simulating the new structure)
+        for (i, response) in responses.iter().enumerate() {
+            if let (Some(_question_revision_id_str), Some(response_str)) = (
+                response.get("question_revision_id").and_then(|q| q.as_str()),
                 response.get("response").and_then(|r| r.as_str())
             ) {
-                let question_answer = json!({
-                    question_text: answer
+                // Parse the escaped JSON response string
+                let parsed_response: Vec<serde_json::Value> = serde_json::from_str(response_str).unwrap();
+
+                // Extract the complete answer data set from the parsed response
+                let answer = if let Some(first_response) = parsed_response.first() {
+                    if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(first_response.as_str().unwrap_or("{}")) {
+                        response_obj
+                    } else {
+                        json!({"text": first_response.as_str().unwrap_or("No response")})
+                    }
+                } else {
+                    json!({"text": "No response"})
+                };
+
+                // Simulate category assignment
+                let (category, question_text) = match i {
+                    0 => ("Environmental", "What is your organization's sustainability policy?"),
+                    1 => ("Environmental", "How do you measure carbon footprint?"),
+                    2 => ("Social", "What is your employee training program?"),
+                    _ => ("Unknown", "Unknown question")
+                };
+
+                // Create question/answer object WITHOUT recommendation (recommendation will be added at category level)
+                let question_data = json!({
+                    "question": question_text,
+                    "answer": answer
                 });
 
+                // Add this question/answer to the category
                 categories.entry(category.to_string())
                     .or_insert_with(Vec::new)
-                    .push(question_answer);
+                    .push(question_data);
             }
         }
 
-        // Add recommendations to each category
-        for (_, category_data) in categories.iter_mut() {
-            category_data.push(json!({
-                "recommendation": "Generated recommendation based on responses"
-            }));
+        // Convert to the NEW format with one recommendation per category
+        let mut result_object = serde_json::Map::new();
+
+        for (category, questions) in categories {
+            // Get the recommendation for this category
+            let recommendation = recommendations.get(&category)
+                .cloned()
+                .unwrap_or_else(|| "No recommendation provided".to_string());
+
+            // Create category object with questions and single recommendation
+            let category_data = json!({
+                "questions": questions,
+                "recommendation": recommendation
+            });
+
+            result_object.insert(category, category_data);
         }
 
-        // Convert to the required format: [{"category": [...], "category2": [...]}]
-        let result = vec![serde_json::Value::Object(
-            categories.into_iter()
-                .map(|(category, data)| (category, serde_json::Value::Array(data)))
-                .collect()
-        )];
-
+        let result = vec![serde_json::Value::Object(result_object)];
         let final_result = serde_json::Value::Array(result);
 
-        // Verify the structure
+        // Verify the NEW structure
         assert!(final_result.is_array());
         let array = final_result.as_array().unwrap();
         assert_eq!(array.len(), 1);
@@ -425,15 +463,29 @@ mod tests {
         assert!(obj.contains_key("Environmental"));
         assert!(obj.contains_key("Social"));
 
-        // Check Environmental category
-        let env_category = obj.get("Environmental").unwrap().as_array().unwrap();
-        assert_eq!(env_category.len(), 3); // 2 questions + 1 recommendation
+        // Check Environmental category - NEW structure
+        let env_category = obj.get("Environmental").unwrap();
+        assert!(env_category.get("questions").is_some());
+        assert!(env_category.get("recommendation").is_some());
 
-        // Check Social category
-        let social_category = obj.get("Social").unwrap().as_array().unwrap();
-        assert_eq!(social_category.len(), 2); // 1 question + 1 recommendation
+        let env_questions = env_category.get("questions").unwrap().as_array().unwrap();
+        assert_eq!(env_questions.len(), 2); // 2 questions
 
-        println!("Test passed! Generated report content:");
+        let env_recommendation = env_category.get("recommendation").unwrap().as_str().unwrap();
+        assert_eq!(env_recommendation, "Improve environmental policies and increase renewable energy usage");
+
+        // Check Social category - NEW structure
+        let social_category = obj.get("Social").unwrap();
+        assert!(social_category.get("questions").is_some());
+        assert!(social_category.get("recommendation").is_some());
+
+        let social_questions = social_category.get("questions").unwrap().as_array().unwrap();
+        assert_eq!(social_questions.len(), 1); // 1 question
+
+        let social_recommendation = social_category.get("recommendation").unwrap().as_str().unwrap();
+        assert_eq!(social_recommendation, "Expand employee training and diversity programs");
+
+        println!("Test passed! Generated report content with NEW format (single recommendation per category):");
         println!("{}", serde_json::to_string_pretty(&final_result).unwrap());
     }
 }
