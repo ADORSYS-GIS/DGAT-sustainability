@@ -50,7 +50,7 @@ async fn generate_report_content(
     let include_all_categories = requested_categories.is_empty();
 
     // Group responses by category, filtering by the requested categories if specified
-    let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
+    let mut categories: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
 
     for response in responses {
         // Handle the new structure where response contains question_revision_id and escaped JSON response
@@ -100,51 +100,37 @@ async fn generate_report_content(
                 Err(_) => continue, // Skip invalid JSON
             };
 
-            // Extract the actual answer from the parsed response
+            // Extract the complete answer data set from the parsed response
             let answer = if let Some(first_response) = parsed_response.first() {
                 if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(first_response.as_str().unwrap_or("{}")) {
-                    // Try to extract text field, or use the whole object as string
-                    response_obj.get("text")
-                        .and_then(|t| t.as_str())
-                        .map(|s| s.to_string())
-                        .unwrap_or_else(|| serde_json::to_string(&response_obj).unwrap_or_default())
+                    // Return the complete response object as the answer
+                    response_obj
                 } else {
-                    first_response.as_str().unwrap_or("No response").to_string()
+                    serde_json::json!({"text": first_response.as_str().unwrap_or("No response")})
                 }
             } else {
-                "No response".to_string()
+                serde_json::json!({"text": "No response"})
             };
 
             // Include responses if all categories are requested or if this category is specifically requested
             if include_all_categories || requested_categories.contains(category) {
                 let question_answer = serde_json::json!({
-                    question_text: answer
+                    "question": question_text,
+                    "answer": answer
                 });
 
+                // Store the first question-answer pair for each category
+                // If there are multiple questions per category, this will keep the first one
                 categories.entry(category.to_string())
-                    .or_insert_with(Vec::new)
-                    .push(question_answer);
+                    .or_insert(question_answer);
             }
         }
     }
 
-    // Add recommendations to each category
-    for (category, category_data) in categories.iter_mut() {
-        // Use specific recommendation for the category if available, otherwise use the first general recommendation
-        let recommendation = recommendations.get(category)
-            .or_else(|| requests.first().map(|r| &r.recommendation))
-            .map(|r| r.as_str())
-            .unwrap_or("No recommendation provided");
-
-        category_data.push(serde_json::json!({
-            "recommendation": recommendation
-        }));
-    }
-
-    // Convert to the required format: [{"category": [...], "category2": [...]}]
+    // Convert to the required format: [{"category1": {"question": "question_text", "answer": "answer_content"}, "category2": {...}}]
     let result = vec![serde_json::Value::Object(
         categories.into_iter()
-            .map(|(category, data)| (category, serde_json::Value::Array(data)))
+            .map(|(category, data)| (category, data))
             .collect()
     )];
 
