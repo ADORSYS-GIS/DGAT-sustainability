@@ -48,7 +48,7 @@ export const Navbar = () => {
             <div>
               <h1 className="text-xl font-bold text-dgrv-blue">DGRV</h1>
               <p className="text-xs text-gray-600">
-                Digital Gap & Sustainability
+                Sustainability
               </p>
             </div>
             <Button

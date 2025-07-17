@@ -39,7 +39,7 @@ const routes = [
     children: [{ path: "", element: React.createElement(Dashboard) }],
   },
   {
-    path: "/admin",
+    path: "/admin/dashboard",
     element: React.createElement(ProtectedRoute, {
     }),
     children: [{ path: "", element: React.createElement(AdminDashboard) }],

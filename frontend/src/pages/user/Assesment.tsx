@@ -177,9 +177,29 @@ export const Assessment: React.FC = () => {
     setComments((prev) => ({ ...prev, [questionId]: comment }));
   };
 
+  // --- Validation helpers ---
+  const isAnswerComplete = (answer: { yesNo?: boolean; percentage?: number; text?: string; files?: FileData[] }) => {
+    return (
+      typeof answer?.yesNo === 'boolean' &&
+      typeof answer?.percentage === 'number' &&
+      typeof answer?.text === 'string' && answer.text.trim() !== ''
+    );
+  };
+  const isCurrentCategoryComplete = () => {
+    const currentQuestions = getCurrentCategoryQuestions();
+    return currentQuestions.every((q) => {
+      const key = getRevisionKey(q.revision);
+      return isAnswerComplete(answers[key]);
+    });
+  };
+
   const handleFileUpload = (questionId: string, files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
+    if (file.size > 1024 * 1024) {
+      toast.error('File size must be less than 1MB');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       const fileData = {
@@ -202,6 +222,10 @@ export const Assessment: React.FC = () => {
 
   // --- Navigation handler: on Next, send all answers for current category to backend ---
   const nextCategory = async () => {
+    if (!isCurrentCategoryComplete()) {
+      toast.error('Please answer all questions in this category before proceeding.');
+      return;
+    }
     const currentQuestions = getCurrentCategoryQuestions();
     const responsesToSend = currentQuestions.map((question) => {
       const key = getRevisionKey(question.revision);
@@ -227,6 +251,10 @@ export const Assessment: React.FC = () => {
 
   // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
+    if (!isCurrentCategoryComplete()) {
+      toast.error('Please answer all questions in this category before submitting.');
+      return;
+    }
     const currentQuestions = getCurrentCategoryQuestions();
     const responsesToSend = currentQuestions.map((question) => {
       const key = getRevisionKey(question.revision);
@@ -282,7 +310,7 @@ export const Assessment: React.FC = () => {
       <div className="space-y-4">
         {/* Yes/No */}
         <div>
-          <Label>Yes/No</Label>
+          <Label>Yes/No <span className="text-red-500">*</span></Label>
           <div className="flex space-x-4 mt-1">
             <Button
               type="button"
@@ -319,7 +347,7 @@ export const Assessment: React.FC = () => {
         {/* Percentage */}
         <div>
           <div className="flex items-center space-x-2 relative">
-            <Label>Percentage</Label>
+            <Label>Percentage <span className="text-red-500">*</span></Label>
             <button
               type="button"
               className="cursor-pointer text-dgrv-blue focus:outline-none"
@@ -374,7 +402,7 @@ export const Assessment: React.FC = () => {
         {/* Text Input */}
         <div>
           <Label htmlFor={`input-text-${key}`}>
-            Your Response
+            Your Response <span className="text-red-500">*</span>
           </Label>
           <Textarea
             id={`input-text-${key}`}
@@ -565,6 +593,7 @@ export const Assessment: React.FC = () => {
                 <Button
                   onClick={submitAssessment}
                   className="bg-dgrv-green hover:bg-green-700 flex items-center space-x-2"
+                  disabled={!isCurrentCategoryComplete()}
                 >
                   <Send className="w-4 h-4" />
                   <span>Submit Assessment</span>
@@ -573,6 +602,7 @@ export const Assessment: React.FC = () => {
                 <Button
                   onClick={nextCategory}
                   className="bg-dgrv-blue hover:bg-blue-700 flex items-center space-x-2"
+                  disabled={!isCurrentCategoryComplete()}
                 >
                   <span>Next</span>
                   <ChevronRight className="w-4 h-4" />

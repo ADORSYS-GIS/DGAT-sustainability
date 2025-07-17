@@ -13,11 +13,20 @@ export const Assessments: React.FC = () => {
   const submissions: Submission[] = data?.submissions || [];
   const navigate = useNavigate();
 
+  // Helper to count unique responses (as a proxy for categories completed)
+  const getCategoriesCompleted = (submission: Submission) => {
+    const responses = submission.content?.responses || [];
+    // If category info is not present, just count the number of responses
+    // If in the future, question_category is present, use a Set to count unique categories
+    return responses.length;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "approved":
         return "bg-dgrv-green text-white";
       case "pending_review":
+      case "pending":
         return "bg-blue-500 text-white";
       case "under_review":
         return "bg-orange-500 text-white";
@@ -29,12 +38,12 @@ export const Assessments: React.FC = () => {
         return "bg-gray-500 text-white";
     }
   };
-
   const formatStatus = (status: string) => {
     switch (status) {
       case "approved":
         return "Approved";
       case "pending_review":
+      case "pending":
         return "Pending Review";
       case "under_review":
         return "Under Review";
@@ -43,7 +52,7 @@ export const Assessments: React.FC = () => {
       case "revision_requested":
         return "Revision Requested";
       default:
-        return "Unknown";
+        return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
     }
   };
 
@@ -107,20 +116,14 @@ export const Assessments: React.FC = () => {
                           <div className="flex items-center space-x-1">
                             <Calendar className="w-4 h-4" />
                             <span>
-                              Submitted:{" "}
-                              {new Date(
-                                submission.submitted_at,
-                              ).toLocaleDateString()}
+                              Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
                             </span>
                           </div>
                           {submission.reviewed_at && (
                             <div className="flex items-center space-x-1">
                               <Calendar className="w-4 h-4" />
                               <span>
-                                Reviewed:{" "}
-                                {new Date(
-                                  submission.reviewed_at,
-                                ).toLocaleDateString()}
+                                Reviewed: {new Date(submission.reviewed_at).toLocaleDateString()}
                               </span>
                             </div>
                           )}
@@ -128,9 +131,7 @@ export const Assessments: React.FC = () => {
                       </div>
                     </CardTitle>
                     <div className="flex items-center space-x-3">
-                      <Badge
-                        className={getStatusColor(submission.review_status)}
-                      >
+                      <Badge className={getStatusColor(submission.review_status)}>
                         {formatStatus(submission.review_status)}
                       </Badge>
                     </div>
@@ -139,17 +140,16 @@ export const Assessments: React.FC = () => {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-600">
-                      <p>Submission ID: {submission.submission_id}</p>
-                      <p>Assessment ID: {submission.assessment_id}</p>
+                      <p>
+                        Categories Completed: {getCategoriesCompleted(submission)}
+                      </p>
                     </div>
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() =>
-                          navigate(
-                            `/submission-view/${submission.submission_id}`,
-                          )
+                          navigate(`/submission-view/${submission.submission_id}`)
                         }
                       >
                         <Eye className="w-4 h-4 mr-1" />
