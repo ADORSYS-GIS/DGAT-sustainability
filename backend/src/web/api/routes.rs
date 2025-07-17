@@ -7,7 +7,7 @@ use crate::web::api::handlers::{
     },
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
-    questions::{create_question, delete_question, get_question, list_questions, update_question},
+    questions::{create_question, delete_question_revision_by_id, get_question, list_questions, update_question},
     reports::{delete_report, generate_report, get_report, list_reports, list_user_reports},
     responses::{create_response, delete_response, get_response, list_responses, update_response},
     submissions::{get_submission, list_user_submissions},
@@ -29,7 +29,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/questions", post(create_question))
         .route("/api/questions/:question_id", get(get_question))
         .route("/api/questions/:question_id", put(update_question))
-        .route("/api/questions/:question_id", delete(delete_question))
+        .route("/api/questions/revisions/:revision_id", delete(delete_question_revision_by_id))
         // Assessment endpoints
         .route("/api/assessments", get(list_assessments))
         .route("/api/assessments", post(create_assessment))

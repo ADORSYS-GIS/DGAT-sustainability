@@ -269,29 +269,43 @@ pub async fn update_question(
     Ok(Json(QuestionResponse { question }))
 }
 
-pub async fn delete_question(
+pub async fn delete_question_revision_by_id(
     State(app_state): State<AppState>,
-    Path(question_id): Path<Uuid>,
+    Path(revision_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    // Check if the question exists
-    let question_exists = app_state
+    // Check if the question revision exists
+    let revision_exists = app_state
         .database
-        .questions
-        .get_question_by_id(question_id)
+        .questions_revisions
+        .get_revision_by_id(revision_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question: {e}")))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revision: {e}")))?;
 
-    if question_exists.is_none() {
-        return Err(ApiError::NotFound("Question not found".to_string()));
+    if revision_exists.is_none() {
+        return Err(ApiError::NotFound("Question revision not found".to_string()));
     }
 
-    // Delete the question from the database (this will cascade delete revisions due to foreign key)
+    // Check if any assessment responses reference this question revision
+    let has_responses = app_state
+        .database
+        .assessments_response
+        .has_responses_for_question_revision(revision_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to check assessment responses: {e}")))?;
+
+    if has_responses {
+        return Err(ApiError::BadRequest(
+            "Cannot delete question revision: It is currently being used in assessment responses. Please ensure no active assessments reference this revision before deletion.".to_string()
+        ));
+    }
+
+    // Delete the question revision from the database
     app_state
         .database
-        .questions
-        .delete_question(question_id)
+        .questions_revisions
+        .delete_revision(revision_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question: {e}")))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question revision: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
 }
