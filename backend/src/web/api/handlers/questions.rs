@@ -31,7 +31,7 @@ pub async fn list_questions(
     // Convert database models to API models with their latest revisions
     let mut questions = Vec::new();
     for db_question in db_questions {
-        // Fetch latest revision for this question
+        // Fetch the latest revision for this question
         let revision_model = app_state
             .database
             .questions_revisions
@@ -308,4 +308,5 @@ pub async fn delete_question_revision_by_id(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question revision: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
+
 }
