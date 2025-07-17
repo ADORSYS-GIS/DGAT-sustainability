@@ -37,6 +37,8 @@ export const ManageCategories: React.FC = () => {
   // Local state for categories
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  // State for add/edit dialog weight error
+  const [showDialogWeightError, setShowDialogWeightError] = useState(false);
 
   // Load categories from IndexedDB on mount
   useEffect(() => {
@@ -76,8 +78,61 @@ export const ManageCategories: React.FC = () => {
   // Sort categories by order
   const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
 
+  // Calculate total weight
+  const totalWeight = sortedCategories.reduce((sum, cat) => sum + cat.weight, 0);
+  const weightExceeds = totalWeight > 100;
+  const weightNot100 = totalWeight !== 100;
+
+  // Evenly redistribute weights, optionally including a new category
+  const redistributeWeights = (includeNewCategory = false) => {
+    let cats = sortedCategories;
+    let newCat: Category | null = null;
+    if (includeNewCategory && !editingCategory) {
+      // Prepare a temp new category using formData
+      newCat = {
+        categoryId: "temp-redistribute-id",
+        name: formData.name || "New Category",
+        weight: 0, // will be set below
+        order: formData.order || cats.length + 1,
+        templateId: SUSTAINABILITY_TEMPLATE_ID,
+      };
+      cats = [...cats, newCat];
+    }
+    const n = cats.length;
+    if (n === 0) return;
+    const base = Math.floor(100 / n);
+    let remainder = 100 - base * n;
+    const newCats = cats.map((cat, i) => ({
+      ...cat,
+      weight: base + (i < remainder ? 1 : 0),
+    }));
+    setCategories(newCats.filter((cat) => cat.categoryId !== "temp-redistribute-id"));
+    persistCategories(newCats.filter((cat) => cat.categoryId !== "temp-redistribute-id"));
+    // If we just redistributed including a new category, update the form weight
+    if (includeNewCategory && newCat) {
+      const idx = cats.findIndex((cat) => cat.categoryId === "temp-redistribute-id");
+      const newWeight = base + (idx < remainder ? 1 : 0);
+      setFormData((prev) => ({ ...prev, weight: newWeight }));
+    }
+    toast.success("Weights redistributed evenly.", {
+      className: "bg-dgrv-green text-white",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // If editing, subtract old weight, else just add new
+    let newTotal = formData.weight;
+    if (editingCategory) {
+      newTotal = totalWeight - editingCategory.weight + formData.weight;
+    } else {
+      newTotal = totalWeight + formData.weight;
+    }
+    if (newTotal > 100) {
+      setShowDialogWeightError(true);
+      return;
+    }
+    setShowDialogWeightError(false);
     const categoryData: Category = {
       categoryId:
         editingCategory?.categoryId || Math.random().toString(36).slice(2),
@@ -225,9 +280,26 @@ export const ManageCategories: React.FC = () => {
                         required
                       />
                     </div>
+                    {showDialogWeightError && (
+                      <div className="text-red-600 text-center space-y-2">
+                        <p>Total weight would exceed 100%. Please adjust or redistribute.</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-dgrv-blue text-white hover:bg-blue-700"
+                          onClick={() => {
+                            redistributeWeights(true); // include new category
+                            setShowDialogWeightError(false);
+                          }}
+                        >
+                          Redistribute Weights Evenly
+                        </Button>
+                      </div>
+                    )}
                     <Button
                       type="submit"
                       className="w-full bg-dgrv-blue hover:bg-blue-700"
+                      disabled={showDialogWeightError}
                     >
                       {editingCategory ? "Update Category" : "Create Category"}
                     </Button>
@@ -267,6 +339,20 @@ export const ManageCategories: React.FC = () => {
                     </div>
                   </div>
                 ))}
+                {/* Show error and redistribute button if needed */}
+                {weightExceeds && (
+                  <div className="text-center py-4 text-red-600">
+                    <p className="mb-2">Total weight exceeds 100%. Please adjust or redistribute.</p>
+                    <Button variant="outline" onClick={redistributeWeights} className="bg-dgrv-blue text-white hover:bg-blue-700">
+                      Redistribute Weights Evenly
+                    </Button>
+                  </div>
+                )}
+                {!weightExceeds && weightNot100 && sortedCategories.length > 0 && (
+                  <div className="text-center py-4 text-yellow-600">
+                    <p>Total weight is {totalWeight}%. It should be exactly 100% for a valid assessment.</p>
+                  </div>
+                )}
                 {sortedCategories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <List className="w-12 h-12 mx-auto mb-4 opacity-50" />

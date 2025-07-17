@@ -13,7 +13,7 @@ const Unauthorized = () => {
       <p className="mb-6 text-gray-700">
         You do not have permission to view this page.
       </p>
-      <Button onClick={() => navigate("/dashboard")}>Go to Dashboard</Button>
+      <Button onClick={() => navigate("/")}>Go to home</Button>
     </div>
   );
 };

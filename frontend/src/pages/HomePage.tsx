@@ -3,7 +3,6 @@ import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
 import {
-  BarChart3,
   Leaf,
   CheckSquare,
   Users,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export const Welcome: React.FC = () => {
   const { isAuthenticated, loading, user } = useAuth();
@@ -26,20 +26,10 @@ export const Welcome: React.FC = () => {
     } else if (user?.organisation && window.location.pathname !== "/dashboard") {
       console.log("[Welcome] User has organisation, redirecting to /dashboard");
       navigate("/dashboard", { replace: true });
-    } else if (!user?.organisation && window.location.pathname !== "/no-organisation") {
-      console.log("[Welcome] User missing organisation, redirecting to /no-organisation");
-      navigate("/no-organisation", { replace: true });
     }
   }, [isAuthenticated, loading, user, navigate]);
 
   const features = [
-    {
-      title: "Digital Gap Analysis",
-      description:
-        "Assess your cooperative's digital maturity with comprehensive questionnaires covering technology infrastructure, digital literacy, and online presence.",
-      icon: BarChart3,
-      color: "blue" as const,
-    },
     {
       title: "Sustainability Assessment",
       description:
@@ -76,6 +66,14 @@ export const Welcome: React.FC = () => {
     },
   ];
 
+  const handleStartAssessment = () => {
+    if (!user?.organizations || Object.keys(user.organizations).length === 0) {
+      toast.error("You need to be part of an organisation to start an assessment.");
+      return;
+    }
+    navigate("/dashboard");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-dgrv-light-blue">
       <Navbar />
@@ -93,18 +91,24 @@ export const Welcome: React.FC = () => {
                 Empower Your Cooperative
               </h1>
               <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
-                Assess Digital & Sustainability Goals
+                Assess Sustainability Goals
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
                 Simple, secure, and impactful—help your cooperative thrive in
                 the digital age while building sustainable practices for the
                 future.
               </p>
+              <Button
+                className="mt-4 px-8 py-3 text-lg font-semibold bg-dgrv-green text-white rounded shadow hover:bg-dgrv-blue transition"
+                onClick={handleStartAssessment}
+              >
+                Start Assessment
+              </Button>
             </div>
           </div>
 
           {/* Features Grid */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
             {features.map((feature, index) => (
               <div
                 key={feature.title}

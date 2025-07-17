@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/shared/Navbar";
-import { Accordion } from "@/components/ui/accordion";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +47,37 @@ export const ReviewAssessments: React.FC = () => {
     Record<string, string>
   >({});
 
-  // Fetch submissions for review (status: pending_review)
+  // Helper to parse the response JSON and extract fields
+  const parseAnswer = (response: string | undefined): { yesNo?: boolean; percentage?: number; text?: string; files?: { name?: string; url?: string }[] } => {
+    if (!response) return {};
+    try {
+      // Try to parse as array of stringified JSON
+      const arr = JSON.parse(response);
+      if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'string') {
+        const obj = JSON.parse(arr[0]);
+        return {
+          yesNo: typeof obj.yesNo === 'boolean' ? obj.yesNo : undefined,
+          percentage: typeof obj.percentage === 'number' ? obj.percentage : undefined,
+          text: typeof obj.text === 'string' ? obj.text : undefined,
+          files: Array.isArray(obj.files) && obj.files.every(f => typeof f === 'object' && f !== null && 'url' in f) ? obj.files as { name?: string; url?: string }[] : [],
+        };
+      } else if (typeof arr === 'object' && arr !== null) {
+        const filesRaw = (arr as { files?: unknown }).files;
+        const files: { name?: string; url?: string }[] = Array.isArray(filesRaw) && filesRaw.every(f => typeof f === 'object' && f !== null && 'url' in f)
+          ? filesRaw as { name?: string; url?: string }[]
+          : [];
+        return {
+          yesNo: typeof arr.yesNo === 'boolean' ? arr.yesNo : undefined,
+          percentage: typeof arr.percentage === 'number' ? arr.percentage : undefined,
+          text: typeof arr.text === 'string' ? arr.text : undefined,
+          files,
+        };
+      }
+    } catch { /* ignore parse errors */ }
+    return { text: response };
+  };
+
+  // Fetch submissions for review (status: under_review)
   const {
     data: submissionsData,
     isLoading: isLoadingSubmissions,
@@ -55,7 +85,7 @@ export const ReviewAssessments: React.FC = () => {
     error: submissionsError,
     isSuccess: isSubmissionsSuccess,
     refetch: refetchSubmissions,
-  } = useAdminServiceGetAdminSubmissions({ status: "pending_review" });
+  } = useAdminServiceGetAdminSubmissions({ status: "under_review" });
   const submissions: AdminSubmissionDetail[] =
     submissionsData?.submissions || [];
 
@@ -135,20 +165,19 @@ export const ReviewAssessments: React.FC = () => {
 
   const handleSubmitReport = useCallback(() => {
     if (!selectedSubmission) return;
-    const reportPayload: GenerateReportRequest = {
-      report_type: "sustainability",
-      options: {
-        recommendations: Object.entries(recommendations).map(
-          ([response_id, text]) => ({
-            response_id,
-            text,
-          }),
-        ),
-      },
-    };
+    // recommendations keys are in the format `${category}-${idx}`
+    const recommendationsArray = Object.entries(recommendations).map(([key, value]) => {
+      // Extract category from key
+      const [category] = key.split('-');
+      return {
+        category,
+        recommendation: value,
+      };
+    });
     generateReportMutation.mutate({
       submissionId: selectedSubmission.submission_id,
-      requestBody: reportPayload,
+      // Remove type assertion so payload is sent as plain array
+      requestBody: recommendationsArray,
     });
   }, [selectedSubmission, recommendations, generateReportMutation]);
 
@@ -302,69 +331,110 @@ export const ReviewAssessments: React.FC = () => {
                 <div className="space-y-6">
                   {/* Submission Info */}
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2">Submission Details</h3>
+                    <h3 className="font-medium mb-2">Assessment Details</h3>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        Submission ID: {selectedSubmission.submission_id}
+                        Organization: unknown
                       </div>
                       <div>User: {selectedSubmission.user_id}</div>
                       <div>
-                        Submitted:{" "}
-                        {new Date(
-                          selectedSubmission.submitted_at,
-                        ).toLocaleDateString()}
+                        Created: {new Date(selectedSubmission.submitted_at).toLocaleDateString()}
                       </div>
+                      <div>Score: Not calculated%</div>
                     </div>
                   </div>
 
                   {/* Categories and Questions */}
                   <Accordion type="single" collapsible className="w-full">
-                    {responses.map((resp) => {
-                      const questionText =
-                        typeof resp === "object" &&
-                        resp !== null &&
-                        "question" in resp &&
-                        typeof resp.question === "string"
-                          ? resp.question
-                          : "Question text unavailable";
-                      return (
-                        <div
-                          key={resp.response_id}
-                          className="border-l-4 border-dgrv-blue pl-4 mb-4"
-                        >
-                          <h4 className="font-medium text-sm">
-                            {questionText}
-                          </h4>
-                          <div className="mt-2 text-sm space-y-1">
-                            <span className="font-medium">Answer: </span>
-                            <span className="text-dgrv-blue">
-                              {resp.response}
-                            </span>
-                          </div>
-                          <div className="mt-2">
-                            <label
-                              className="block text-xs font-medium mb-1"
-                              htmlFor={`rec-${resp.response_id}`}
-                            >
-                              Recommendation
-                            </label>
-                            <textarea
-                              id={`rec-${resp.response_id}`}
-                              className="w-full border rounded p-2 text-sm"
-                              rows={2}
-                              value={recommendations[resp.response_id] || ""}
-                              onChange={(e) =>
-                                setRecommendations((prev) => ({
-                                  ...prev,
-                                  [resp.response_id]: e.target.value,
-                                }))
-                              }
-                              placeholder="Enter recommendation for this question"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {(() => {
+                      type AdminResponse = {
+                        question_text?: string;
+                        question_category?: string;
+                        response?: string[] | string;
+                        files?: unknown[];
+                      };
+                      const grouped: Record<string, AdminResponse[]> = {};
+                      (selectedSubmission.content.responses || []).forEach((resp) => {
+                        const r = resp as AdminResponse;
+                        const cat = r.question_category || 'General';
+                        if (!grouped[cat]) grouped[cat] = [];
+                        grouped[cat].push(r);
+                      });
+                      return Object.entries(grouped).map(([category, resps]) => (
+                        <AccordionItem key={category} value={category}>
+                          <AccordionTrigger className="font-semibold text-lg">{category}</AccordionTrigger>
+                          <AccordionContent>
+                            {resps.map((resp, idx) => {
+                              const answer = Array.isArray(resp.response) ? resp.response[0] : resp.response;
+                              const parsed = parseAnswer(answer);
+                              return (
+                                <div key={idx} className="border-l-4 border-dgrv-blue pl-4 mb-8 py-4 bg-white/80 rounded-md">
+                                   {/* Question Header */}
+                                   <div className="mb-3">
+                                     <span className="block text-lg font-bold text-dgrv-blue tracking-tight">Question:</span>
+                                     <span className="block text-base font-semibold text-gray-900 mt-1">{resp.question_text}</span>
+                                   </div>
+                                   {/* User Response Section - each field on its own line */}
+                                   <div className="flex flex-col gap-2 mb-2">
+                                     <span className="font-semibold text-gray-700 mb-1">User Response</span>
+                                     <div className="flex flex-col gap-2 mt-1">
+                                       {typeof parsed.yesNo === 'boolean' && (
+                                         <div className="flex items-center gap-2">
+                                           <span className="font-medium">Yes/No:</span>
+                                           <span className={parsed.yesNo ? 'text-dgrv-green font-bold' : 'text-red-500 font-bold'}>{parsed.yesNo ? 'Yes' : 'No'}</span>
+                                         </div>
+                                       )}
+                                       {typeof parsed.percentage === 'number' && (
+                                         <div className="flex items-center gap-2">
+                                           <span className="font-medium">Percentage:</span>
+                                           <span className="text-dgrv-blue font-bold">{parsed.percentage}%</span>
+                                         </div>
+                                       )}
+                                       {parsed.text && (
+                                         <div className="flex items-center gap-2">
+                                           <span className="font-medium">Text:</span>
+                                           <span className="font-bold" style={{ color: '#1e3a8a' }}>{parsed.text}</span>
+                                         </div>
+                                       )}
+                                       {parsed.files && parsed.files.length > 0 && (
+                                         <div className="flex items-center gap-2">
+                                           <span className="font-medium">Files:</span>
+                                           <div className="flex flex-wrap gap-2 mt-1">
+                                             {parsed.files.map((file, fidx) => (
+                                               <a
+                                                 key={fidx}
+                                                 href={file.url}
+                                                 target="_blank"
+                                                 rel="noopener noreferrer"
+                                                 className="text-xs text-blue-600 underline"
+                                                 download={file.name}
+                                               >
+                                                 {file.name || `File ${fidx + 1}`}
+                                               </a>
+                                             ))}
+                                           </div>
+                                         </div>
+                                       )}
+                                     </div>
+                                   </div>
+                                  <div className="mt-2 pt-2 border-t border-gray-200">
+                                    <label className="block text-xs font-medium mb-1" htmlFor={`rec-${category}-${idx}`}>Add Recommendation:</label>
+                                    <textarea
+                                      id={`rec-${category}-${idx}`}
+                                      className="w-full border rounded p-2 text-sm"
+                                      rows={2}
+                                      value={recommendations[`${category}-${idx}`] || ""}
+                                      onChange={e => setRecommendations(prev => ({ ...prev, [`${category}-${idx}`]: e.target.value }))}
+                                      placeholder="Enter your recommendation for this question..."
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </AccordionContent>
+                        </AccordionItem>
+                      ));
+                    })()}
                   </Accordion>
 
                   {/* Action Buttons */}
@@ -375,14 +445,9 @@ export const ReviewAssessments: React.FC = () => {
                       className="bg-dgrv-green hover:bg-green-700"
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      {generateReportMutation.isPending
-                        ? "Submitting..."
-                        : "Submit Report"}
+                      {generateReportMutation.isPending ? "Submitting..." : "Submit Report"}
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowReviewDialog(false)}
-                    >
+                    <Button variant="outline" onClick={() => setShowReviewDialog(false)}>
                       Close
                     </Button>
                   </div>

@@ -15,19 +15,15 @@
     },
     "servers": [
         {
-            "url": "https://virtserver.swaggerhub.com/adorsys-cc2/DGAT-Sustainaibility/1.0.0",
-            "description": "SwaggerHub API Auto Mocking"
-        },
-        {
-            "url": "https://api.assessment-system.com/api/v1",
+            "url": "http://localhost:3001/api",
             "description": "Production server"
         },
         {
-            "url": "https://staging-api.assessment-system.com/api/v1",
+            "url": "http://localhost:3001/api",
             "description": "Staging server"
         },
         {
-            "url": "http://localhost:8080/api/v1",
+            "url": "http://localhost:3001/api",
             "description": "Development server"
         }
     ],
@@ -266,30 +262,22 @@
                         "$ref": "#/components/responses/InternalServerError"
                     }
                 }
-            },
+            }
+        },
+        "/questions/revisions/{question_revision_id}": {
             "delete": {
                 "tags": [
                     "Questions"
                 ],
-                "summary": "Delete question",
-                "description": "Delete a question (Admin only). Include question_revision_id for optimistic locking.",
-                "operationId": "delete_question",
+                "summary": "Delete question revision",
+                "description": "Delete a question revision (Admin only). Requires question_revision_id as path parameter.",
+                "operationId": "delete_question_revision",
                 "parameters": [
                     {
-                        "name": "question_id",
-                        "in": "path",
-                        "description": "Question ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    },
-                    {
                         "name": "question_revision_id",
-                        "in": "query",
-                        "description": "Current revision ID for optimistic locking",
-                        "required": false,
+                        "in": "path",
+                        "description": "Question Revision ID",
+                        "required": true,
                         "schema": {
                             "type": "string",
                             "format": "uuid"
@@ -298,7 +286,7 @@
                 ],
                 "responses": {
                     "204": {
-                        "description": "Question deleted successfully"
+                        "description": "Question revision deleted successfully"
                     },
                     "401": {
                         "$ref": "#/components/responses/Unauthorized"
@@ -1130,7 +1118,15 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/GenerateReportRequest"
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "category": { "type": "string" },
+                                        "recommendation": { "type": "string" }
+                                    },
+                                    "required": ["category", "recommendation"]
+                                }
                             }
                         }
                     },
@@ -1165,42 +1161,27 @@
                 }
             }
         },
-        "/reports/{report_id}": {
+        "/user/reports": {
             "get": {
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Get report",
-                "description": "Get a specific report",
-                "operationId": "get_report",
-                "parameters": [
-                    {
-                        "name": "report_id",
-                        "in": "path",
-                        "description": "Report ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
+                "summary": "Get user reports",
+                "description": "Get all reports for the authenticated user",
+                "operationId": "get_user_reports",
                 "responses": {
                     "200": {
-                        "description": "Report details",
+                        "description": "List of user reports",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ReportResponse"
+                                    "$ref": "#/components/schemas/ReportListResponse"
                                 }
                             }
                         }
                     },
                     "401": {
                         "$ref": "#/components/responses/Unauthorized"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
                     },
                     "500": {
                         "$ref": "#/components/responses/InternalServerError"
@@ -1211,30 +1192,15 @@
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Delete report",
-                "description": "Delete a report",
-                "operationId": "delete_report",
-                "parameters": [
-                    {
-                        "name": "report_id",
-                        "in": "path",
-                        "description": "Report ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
+                "summary": "Delete all user reports",
+                "description": "Delete all reports for the authenticated user",
+                "operationId": "delete_user_reports",
                 "responses": {
                     "204": {
-                        "description": "Report deleted successfully"
+                        "description": "All reports deleted successfully"
                     },
                     "401": {
                         "$ref": "#/components/responses/Unauthorized"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
                     },
                     "500": {
                         "$ref": "#/components/responses/InternalServerError"
@@ -2223,20 +2189,8 @@
                 }
             },
             "GenerateReportRequest": {
-                "required": [
-                    "report_type"
-                ],
                 "type": "object",
                 "properties": {
-                    "report_type": {
-                        "type": "string",
-                        "enum": [
-                            "sustainability",
-                            "compliance",
-                            "summary",
-                            "detailed"
-                        ]
-                    },
                     "options": {
                         "type": "object",
                         "nullable": true

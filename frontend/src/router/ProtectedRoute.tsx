@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/shared/useAuth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { toast } from "sonner";
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
@@ -24,19 +25,30 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/" replace />;
   }
 
-  // Only block non-admins from /admin, but let the admin through
+  // Block tchikayaline@gmail.com from /dashboard
+  if (
+    window.location.pathname.startsWith("/dashboard") &&
+    user?.email === "tchikayaline@gmail.com"
+  ) {
+    console.log("[ProtectedRoute] Admin user should not access /dashboard, redirecting to /unauthorized");
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Block non-admins from /admin
   if (
     window.location.pathname.startsWith("/admin") &&
     user?.email !== "tchikayaline@gmail.com"
   ) {
-    console.log("[ProtectedRoute] Non-admin trying to access /admin, redirecting to /");
-    return <Navigate to="/" replace />;
+    console.log("[ProtectedRoute] Non-admin trying to access /admin, redirecting to /unauthorized");
+    return <Navigate to="/unauthorized" replace />;
   }
 
-  // Normal user: must have organisation field
-  if (user?.email !== "tchikayaline@gmail.com" && !user?.organisation) {
-    console.log("[ProtectedRoute] User missing organisation, redirecting to /no-organisation");
-    return <Navigate to="/no-organisation" replace />;
+  // Remove redirect to /no-organisation, just show toast if no organisation
+  if (
+    user?.email !== "tchikayaline@gmail.com" &&
+    (!user?.organizations || Object.keys(user.organizations).length === 0)
+  ) {
+    toast.error("You need to be part of an organisation to start an assessment.");
   }
 
   // If allowedRoles is provided, check roles (legacy support)

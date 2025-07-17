@@ -12,12 +12,13 @@ import {
   Leaf,
   Star,
 } from "lucide-react";
-import React from "react";
+import * as React from "react";
 import { useSubmissionsServiceGetSubmissions } from "../..//openapi-rq//queries/queries";
 import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
+import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -25,6 +26,8 @@ export const Dashboard: React.FC = () => {
   const { data, isLoading, isError, error, isSuccess } =
     useSubmissionsServiceGetSubmissions();
   const submissions: Submission[] = data?.submissions?.slice(0, 3) || [];
+  const { data: reportsData, isLoading: reportsLoading } = useReportsServiceGetUserReports();
+  const reports = reportsData?.reports || [];
 
   React.useEffect(() => {
     if (isError) {
@@ -105,12 +108,22 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleExportAllPDF = async () => {
-    await exportAllAssessmentsPDF(submissions, undefined, formatStatus);
+    await exportAllAssessmentsPDF(reports);
   };
 
   // Get user name and organization name from user object (ID token)
   const userName = user?.name || user?.preferred_username || user?.email || "User";
-  const orgName = user?.organisation_name || user?.organisation || "your organisation";
+  let orgName = "your organisation";
+  if (user?.organizations && typeof user.organizations === 'object') {
+    const orgKeys = Object.keys(user.organizations);
+    if (orgKeys.length > 0) {
+      orgName = orgKeys[0];
+    }
+  } else if (user?.organisation_name) {
+    orgName = user.organisation_name;
+  } else if (user?.organisation) {
+    orgName = user.organisation;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -228,6 +241,7 @@ export const Dashboard: React.FC = () => {
                       size="sm"
                       className="w-full justify-start"
                       onClick={handleExportAllPDF}
+                      disabled={reportsLoading || reports.length === 0}
                     >
                       Export as PDF
                     </Button>
@@ -270,6 +284,8 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Hidden canvas for PDF radar chart export */}
+      <canvas id="radar-canvas" width={500} height={400} style={{ display: 'none' }} />
     </div>
   );
 };

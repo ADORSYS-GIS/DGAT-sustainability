@@ -9,33 +9,60 @@ import {
   PlayCircle,
   ThumbsUp,
 } from "lucide-react";
-import React from "react";
-import { useParams } from "react-router-dom";
-import { useReportsServiceGetReportsByReportId } from "../../openapi-rq/queries/queries";
+import * as React from "react";
+import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
 
 export const ActionPlan: React.FC = () => {
-  // Get report_id from params or hardcode for now
-  const { reportId } = useParams<{ reportId: string }>();
-  // Fallback reportId for demo/testing
-  const fallbackReportId = "demo-report-id";
-  const { data, isLoading } = useReportsServiceGetReportsByReportId({
-    reportId: reportId || fallbackReportId,
-  });
+  // Fetch all user reports
+  const { data, isLoading } = useReportsServiceGetUserReports();
 
-  // Extract tasks from report.data.tasks (default to empty array)
-  type ReportTask = {
-    id: string;
-    title: string;
-    description?: string;
-    dueDate?: string;
-    status?: string;
+  // Flat recommendation type for Kanban with status
+  type KanbanRecommendation = {
+    id: string; // unique id for React key
+    category: string;
+    recommendation: string;
+    status: string; // 'todo', 'in_progress', 'done', 'approved'
   };
-  const tasks: ReportTask[] =
-    (data?.report?.data &&
-    typeof data.report.data === "object" &&
-    Array.isArray((data.report.data as { tasks?: unknown }).tasks)
-      ? (data.report.data as { tasks: ReportTask[] }).tasks
-      : []) || [];
+  // Extract and flatten recommendations from all reports (fixed for actual data structure)
+  const extractRecommendations = (): KanbanRecommendation[] => {
+    if (!data?.reports) return [];
+    let idx = 0;
+    return data.reports.flatMap((report) => {
+      if (Array.isArray(report.data)) {
+        return report.data.flatMap((catObj) => {
+          if (catObj && typeof catObj === 'object') {
+            return Object.entries(catObj).map(([category, value]) => {
+              if (
+                value &&
+                typeof value === 'object' &&
+                'recommendation' in value &&
+                typeof value.recommendation === 'string'
+              ) {
+                return {
+                  id: `${report.report_id}-${category}-${idx++}`,
+                  category,
+                  recommendation: value.recommendation,
+                  status: 'todo',
+                };
+              }
+              return null;
+            }).filter(Boolean) as KanbanRecommendation[];
+          }
+          return [];
+        });
+      }
+      return [];
+    });
+  };
+  // State for Kanban recommendations
+  const [kanbanRecs, setKanbanRecs] = React.useState<KanbanRecommendation[]>([]);
+  // On data load, initialize state (only once)
+  React.useEffect(() => {
+    if (kanbanRecs.length === 0 && data?.reports) {
+      setKanbanRecs(extractRecommendations());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   // Columns for Kanban
   const columns = [
@@ -55,9 +82,13 @@ export const ActionPlan: React.FC = () => {
     },
   ];
 
-  // Group tasks by status, default to 'todo' if not set
-  const getTasksByStatus = (status: string) =>
-    tasks.filter((task) => (task.status || "todo") === status);
+  // Filter recommendations by status
+  const getTasksByStatus = (status: string) => kanbanRecs.filter((rec) => rec.status === status);
+
+  // Move a recommendation to a new status
+  const moveRecommendation = (id: string, newStatus: string) => {
+    setKanbanRecs((prev) => prev.map((rec) => rec.id === id ? { ...rec, status: newStatus } : rec));
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -141,41 +172,72 @@ export const ActionPlan: React.FC = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {columnTasks.map((task) => (
-                      <Card
-                        key={task.id}
-                        className={`${getStatusColor(task.status || "todo")}`}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-sm">
-                              {task.title}
-                            </h4>
-                            {getStatusIcon(task.status || "todo")}
-                          </div>
-                          {task.description && (
-                            <p className="text-xs text-gray-600 mb-3">
-                              {task.description}
-                            </p>
-                          )}
-                          {task.dueDate && (
-                            <div className="flex items-center space-x-1 text-xs text-gray-500 mb-3">
-                              <Calendar className="w-3 h-3" />
-                              <span>
-                                {new Date(task.dueDate).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {columnTasks.length === 0 && (
+                    {columnTasks.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
-                        <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">
-                          No tasks in {column.title.toLowerCase()}
-                        </p>
+                        <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No tasks in {column.title.toLowerCase()}</p>
                       </div>
+                    ) : (
+                      columnTasks.map((task) => (
+                        <Card key={task.id} className={getStatusColor(task.status)}>
+                          <CardContent className="p-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="font-bold text-dgrv-blue mb-1">{task.category}</div>
+                              <div className="text-sm text-gray-900 mb-2">{task.recommendation}</div>
+                              <div className="flex gap-2 mt-2">
+                                {task.status === 'todo' && (
+                                  <button
+                                    className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                    onClick={() => moveRecommendation(task.id, 'in_progress')}
+                                  >
+                                    Move to In Progress
+                                  </button>
+                                )}
+                                {task.status === 'in_progress' && (
+                                  <>
+                                    <button
+                                      className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                                      onClick={() => moveRecommendation(task.id, 'todo')}
+                                    >
+                                      Back to To Do
+                                    </button>
+                                    <button
+                                      className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                                      onClick={() => moveRecommendation(task.id, 'done')}
+                                    >
+                                      Move to Done
+                                    </button>
+                                  </>
+                                )}
+                                {task.status === 'done' && (
+                                  <>
+                                    <button
+                                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                      onClick={() => moveRecommendation(task.id, 'in_progress')}
+                                    >
+                                      Back to In Progress
+                                    </button>
+                                    <button
+                                      className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"
+                                      onClick={() => moveRecommendation(task.id, 'approved')}
+                                    >
+                                      Approve
+                                    </button>
+                                  </>
+                                )}
+                                {task.status === 'approved' && (
+                                  <button
+                                    className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                                    onClick={() => moveRecommendation(task.id, 'done')}
+                                  >
+                                    Back to Done
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
                     )}
                   </CardContent>
                 </Card>
