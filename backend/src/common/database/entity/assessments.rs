@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
 use std::sync::Arc;
+use super::assessments_submission::AssessmentsSubmissionService;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "assessments")]
@@ -43,14 +44,27 @@ impl_database_entity!(Entity, Column::AssessmentId);
 #[derive(Clone)]
 pub struct AssessmentsService {
     db_service: DatabaseService<Entity>,
+    submission_service: AssessmentsSubmissionService,
 }
 
 #[allow(dead_code)]
 impl AssessmentsService {
-    pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self {
-            db_service: DatabaseService::new(db),
-        }
+    pub fn new(db: Arc<DatabaseConnection>) -> Arc<Self> {
+        let assessments_service = Arc::new(Self {
+            db_service: DatabaseService::new(db.clone()),
+            submission_service: AssessmentsSubmissionService::new(db),
+        });
+
+        // Set up the circular dependency by updating the submission service
+        let updated_submission_service = assessments_service.submission_service
+            .clone()
+            .with_assessments_service(assessments_service.clone());
+
+        // Create a new instance with the updated submission service
+        Arc::new(Self {
+            db_service: assessments_service.db_service.clone(),
+            submission_service: updated_submission_service,
+        })
     }
 
     pub async fn create_assessment(
@@ -102,6 +116,16 @@ impl AssessmentsService {
     }
 
     pub async fn delete_assessment(&self, id: Uuid) -> Result<DeleteResult, DbErr> {
+        // Check if a submission exists for this assessment
+        let submission = self.submission_service.get_submission_by_assessment_id(id).await?;
+
+        if submission.is_none() {
+            return Err(DbErr::Custom(
+                "Cannot delete assessment: No submission found. Assessment can only be deleted after submission has been created.".to_string()
+            ));
+        }
+
+        // If submission exists, proceed with deletion (cascade will handle assessment_response deletion)
         self.db_service.delete(id).await
     }
 }
@@ -113,6 +137,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_assessments_service() -> Result<(), Box<dyn std::error::Error>> {
+        use crate::common::database::entity::assessments_submission::{Model as SubmissionModel, SubmissionStatus};
+        use serde_json::json;
+
         let mock_assessment = Model {
             assessment_id: Uuid::new_v4(),
             user_id: "test_user".to_string(),
@@ -120,15 +147,23 @@ mod tests {
             created_at: Utc::now(),
         };
 
-        let db = MockDatabase::new(DatabaseBackend::Postgres)
+        let mock_submission = SubmissionModel {
+            submission_id: mock_assessment.assessment_id,
+            user_id: "test_user".to_string(),
+            content: json!({}),
+            submitted_at: Utc::now(),
+            status: SubmissionStatus::UnderReview,
+            reviewed_at: None,
+        };
+
+        // Create separate mock databases for assessments and submissions
+        let assessments_db = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([
                 // create_assessment result
                 vec![mock_assessment.clone()],
                 // get all assessments result
                 vec![mock_assessment.clone()],
                 // get_assessment_by_id result
-                vec![mock_assessment.clone()],
-                // delete assessments
                 vec![mock_assessment.clone()],
                 // get_assessments_by_user result
                 vec![mock_assessment.clone()],
@@ -140,7 +175,18 @@ mod tests {
             }])
             .into_connection();
 
-        let assessments_service = AssessmentsService::new(Arc::new(db));
+        let submissions_db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([
+                // get_submission_by_assessment_id result (for delete check)
+                vec![mock_submission.clone()],
+            ])
+            .into_connection();
+
+        // Create services with separate databases
+        let assessments_service = AssessmentsService {
+            db_service: DatabaseService::new(Arc::new(assessments_db)),
+            submission_service: AssessmentsSubmissionService::new(Arc::new(submissions_db)),
+        };
 
         // Test create
         let assessment = assessments_service
@@ -205,6 +251,8 @@ mod tests {
         use crate::common::database::entity::assessments_response::{
             AssessmentsResponseService, Model as ResponseModel,
         };
+        use crate::common::database::entity::assessments_submission::{Model as SubmissionModel, SubmissionStatus};
+        use serde_json::json;
 
         let assessment_id = Uuid::new_v4();
         let question_revision_id = Uuid::new_v4();
@@ -214,6 +262,15 @@ mod tests {
             user_id: "test_user".to_string(),
             language: "en".to_string(),
             created_at: Utc::now(),
+        };
+
+        let mock_submission = SubmissionModel {
+            submission_id: assessment_id,
+            user_id: "test_user".to_string(),
+            content: json!({}),
+            submitted_at: Utc::now(),
+            status: SubmissionStatus::UnderReview,
+            reviewed_at: None,
         };
 
         let mock_response_1 = ResponseModel {
@@ -245,6 +302,12 @@ mod tests {
             }])
             .into_connection();
 
+        let submissions_db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([
+                vec![mock_submission.clone()], // get_submission_by_assessment_id result (for delete check)
+            ])
+            .into_connection();
+
         let responses_db = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([
                 vec![mock_response_1.clone()], // create_response result 1
@@ -264,7 +327,10 @@ mod tests {
             ])
             .into_connection();
 
-        let assessments_service = AssessmentsService::new(Arc::new(assessments_db));
+        let assessments_service = AssessmentsService {
+            db_service: DatabaseService::new(Arc::new(assessments_db)),
+            submission_service: AssessmentsSubmissionService::new(Arc::new(submissions_db)),
+        };
         let responses_service = AssessmentsResponseService::new(Arc::new(responses_db));
 
         // Create an assessment
@@ -309,6 +375,58 @@ mod tests {
             .get_responses_by_assessment(assessment.assessment_id)
             .await?;
         assert_eq!(responses_after.len(), 0, "All assessment responses should be deleted when assessment is deleted due to CASCADE constraint");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_delete_assessment_without_submission_fails() -> Result<(), Box<dyn std::error::Error>> {
+        use crate::common::database::entity::assessments_submission::Model as SubmissionModel;
+
+        let assessment_id = Uuid::new_v4();
+
+        let mock_assessment = Model {
+            assessment_id,
+            user_id: "test_user".to_string(),
+            language: "en".to_string(),
+            created_at: Utc::now(),
+        };
+
+        // Create separate mock databases
+        let assessments_db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([
+                vec![mock_assessment.clone()], // create_assessment result
+            ])
+            .into_connection();
+
+        let submissions_db = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([
+                vec![] as Vec<SubmissionModel>, // get_submission_by_assessment_id result (empty - no submission)
+            ])
+            .into_connection();
+
+        let assessments_service = AssessmentsService {
+            db_service: DatabaseService::new(Arc::new(assessments_db)),
+            submission_service: AssessmentsSubmissionService::new(Arc::new(submissions_db)),
+        };
+
+        // Create an assessment
+        let assessment = assessments_service
+            .create_assessment("test_user".to_string(), "en".to_string())
+            .await?;
+
+        // Try to delete the assessment without creating a submission - this should fail
+        let delete_result = assessments_service
+            .delete_assessment(assessment.assessment_id)
+            .await;
+
+        assert!(delete_result.is_err());
+
+        if let Err(DbErr::Custom(msg)) = delete_result {
+            assert!(msg.contains("Cannot delete assessment: No submission found"));
+        } else {
+            panic!("Expected custom error about missing submission");
+        }
 
         Ok(())
     }

@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[allow(dead_code)]
 pub struct AppDatabase {
     conn: Arc<DatabaseConnection>,
-    pub assessments: AssessmentsService,
+    pub assessments: Arc<AssessmentsService>,
     pub assessments_response: AssessmentsResponseService,
     pub assessments_submission: AssessmentsSubmissionService,
     pub assessments_response_file: AssessmentsResponseFileService,
