@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde_json::error::Category;
 use uuid::Uuid;
 
 // =============== Common Models ===============
@@ -394,4 +393,26 @@ pub struct ReportResponse {
 #[derive(Debug, Serialize)]
 pub struct ReportListResponse {
     pub reports: Vec<Report>,
+}
+
+// =============== Organization Models ===============
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OrganizationCreateRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub country: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MemberRequest {
+    pub user_id: String,
+    pub roles: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InvitationRequest {
+    pub email: String,
+    pub roles: Vec<String>,
+    pub expiration: Option<String>,
 }

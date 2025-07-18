@@ -503,29 +503,6 @@ pub async fn submit_assessment(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create submission: {e}")))?;
 
-    // Clean up assessment responses after successful submission
-    // Fetch all responses for this assessment (including all versions)
-    let all_responses = app_state
-        .database
-        .assessments_response
-        .get_responses_by_assessment(assessment_id)
-        .await
-        .map_err(|e| {
-            ApiError::InternalServerError(format!("Failed to fetch responses for cleanup: {e}"))
-        })?;
-
-    // Delete each response individually
-    for response in all_responses {
-        app_state
-            .database
-            .assessments_response
-            .delete_response(response.response_id)
-            .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to delete response during cleanup: {e}"))
-            })?;
-    }
-
     // Build the response
     let now = chrono::Utc::now().to_rfc3339();
     let submission = AssessmentSubmission {

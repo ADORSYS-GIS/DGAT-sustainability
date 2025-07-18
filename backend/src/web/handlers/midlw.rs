@@ -60,8 +60,9 @@ pub async fn auth_middleware(
         claims.get_primary_organization_id()
     );
 
-    // Add claims to request extensions
+    // Add claims and raw token to request extensions
     request.extensions_mut().insert(claims);
+    request.extensions_mut().insert(token.to_string());
 
     Ok(next.run(request).await)
 }

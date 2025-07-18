@@ -7,6 +7,11 @@ use crate::web::api::handlers::{
     },
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
+    organizations::{
+        add_member, create_invitation, create_organization, delete_invitation, delete_organization,
+        get_invitations, get_members, get_organization, get_organizations, remove_member,
+        update_member_roles, update_organization,
+    },
     questions::{create_question, delete_question_revision_by_id, get_question, list_questions, update_question},
     reports::{delete_report, generate_report, get_report, list_reports, list_user_reports},
     responses::{create_response, delete_response, get_response, list_responses, update_response},
@@ -24,6 +29,19 @@ pub fn create_router(app_state: AppState) -> Router {
         // Health endpoints
         .route("/api/health", get(health_check))
         .route("/api/metrics", get(metrics))
+        // Organization endpoints
+        .route("/api/organizations", get(get_organizations))
+        .route("/api/organizations", post(create_organization))
+        .route("/api/organizations/:id", get(get_organization))
+        .route("/api/organizations/:id", put(update_organization))
+        .route("/api/organizations/:id", delete(delete_organization))
+        .route("/api/organizations/:id/members", get(get_members))
+        .route("/api/organizations/:id/members", post(add_member))
+        .route("/api/organizations/:id/members/:membership_id", delete(remove_member))
+        .route("/api/organizations/:id/members/:membership_id/roles", put(update_member_roles))
+        .route("/api/organizations/:id/invitations", get(get_invitations))
+        .route("/api/organizations/:id/invitations", post(create_invitation))
+        .route("/api/organizations/:id/invitations/:invitation_id", delete(delete_invitation))
         // Question endpoints
         .route("/api/questions", get(list_questions))
         .route("/api/questions", post(create_question))

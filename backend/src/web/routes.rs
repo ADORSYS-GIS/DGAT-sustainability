@@ -21,8 +21,9 @@ use axum::http::HeaderValue;
 use tokio::sync::Mutex;
 use tower_http::cors::{CorsLayer, Any};
 
-use crate::common::config::Configs;
+use crate::common::config::{Configs, KeycloakConfigs};
 use crate::common::models::claims::Claims;
+use crate::common::services::keycloak_service::KeycloakService;
 use crate::common::state::AppDatabase;
 use crate::web::api::routes::create_router;
 use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware, request_logging::request_logging_middleware};
@@ -32,15 +33,22 @@ use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware, 
 pub struct AppState {
     pub jwt_validator: Arc<Mutex<JwtValidator>>,
     pub database: AppDatabase,
+    pub keycloak_service: Arc<KeycloakService>,
 }
 
 impl AppState {
     pub async fn new(keycloak_url: String, realm: String, database: AppDatabase) -> Self {
-        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_url, realm)));
+        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_url.clone(), realm.clone())));
+        let keycloak_config = KeycloakConfigs {
+            url: keycloak_url,
+            realm,
+        };
+        let keycloak_service = Arc::new(KeycloakService::new(keycloak_config));
 
         Self {
             jwt_validator,
             database,
+            keycloak_service,
         }
     }
 }
