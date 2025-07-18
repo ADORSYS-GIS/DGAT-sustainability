@@ -400,8 +400,9 @@ pub struct ReportListResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrganizationCreateRequest {
     pub name: String,
+    pub domain: String,
+    pub redirect_url: String,
     pub description: Option<String>,
-    pub country: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
