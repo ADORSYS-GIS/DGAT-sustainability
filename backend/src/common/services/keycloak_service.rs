@@ -18,7 +18,7 @@ impl KeycloakService {
         Self { client, config }
     }
 
-    /// Get admin token for interacting with Keycloak admin APIs
+    /// Get an admin token for interacting with Keycloak admin APIs
     async fn get_admin_token(&self, username: &str, password: &str) -> Result<KeycloakToken> {
         let token_url = format!("{}/realms/master/protocol/openid-connect/token", self.config.url);
 
@@ -76,7 +76,7 @@ impl KeycloakService {
 
     /// Get all organizations
     pub async fn get_organizations(&self, token: &str) -> Result<Vec<KeycloakOrganization>> {
-        let url = format!("{}/admin/realms/{}/orgs", self.config.url, self.config.realm);
+        let url = format!("{}/admin/realms/{}/organizations", self.config.url, self.config.realm);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
