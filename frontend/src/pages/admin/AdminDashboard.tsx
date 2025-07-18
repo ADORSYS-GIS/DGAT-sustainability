@@ -116,7 +116,7 @@ export const AdminDashboard: React.FC = () => {
         "Add, edit, and manage cooperative organizations in the system.",
       icon: Users,
       color: "blue" as const,
-      onClick: () => window.location.href = keycloakAdminUrl,
+      onClick: () => navigate("/admin/organizations"),
     },
     {
       title: "Manage Users",

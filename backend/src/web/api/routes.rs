@@ -38,8 +38,9 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/admin/realms/:realm/organizations/count", get(get_organizations_count))
         .route("/admin/realms/:member_id/organizations", get(get_member_organizations))
         .route("/admin/realms/:realm/organizations/:org_id", get(get_organization))
-        .route("/admin/realms/:realm/organizations/:org_id", put(update_organization))
-        .route("/admin/realms/:realm/organizations/:org_id", delete(delete_organization))
+        // The following endpoints expect only org_id as a path parameter
+        .route("/api/admin/organizations/:org_id", put(update_organization))
+        .route("/api/admin/organizations/:org_id", delete(delete_organization))
         .route("/admin/realms/:realm/organizations/:org_id/identity-providers", get(get_identity_providers))
         .route("/admin/realms/:realm/organizations/:org_id/identity-providers", post(add_identity_provider))
         .route("/admin/realms/:realm/organizations/:org_id/identity-providers/:alias", get(get_identity_provider))

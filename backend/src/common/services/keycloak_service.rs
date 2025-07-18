@@ -18,7 +18,7 @@ impl KeycloakService {
         Self { client, config }
     }
 
-    /// Get an admin token for interacting with Keycloak admin APIs
+    /// Get admin token for interacting with Keycloak admin APIs
     async fn get_admin_token(&self, username: &str, password: &str) -> Result<KeycloakToken> {
         let token_url = format!("{}/realms/master/protocol/openid-connect/token", self.config.url);
 
@@ -43,17 +43,23 @@ impl KeycloakService {
     pub async fn create_organization(&self, 
                                     admin_token: &str, 
                                     name: &str, 
+                                    domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
+                                    redirect_url: String,
+                                    enabled: String,
                                     attributes: Option<std::collections::HashMap<String, Vec<String>>>
                                     ) -> Result<KeycloakOrganization> {
         let url = format!("{}/admin/realms/{}/organizations", self.config.url, self.config.realm);
 
         let mut payload = json!({
             "name": name,
+            "domains": domains,
+            "redirectUrl": redirect_url,
+            "enabled": enabled == "true",
         });
-
         if let Some(attrs) = attributes {
             payload["attributes"] = json!(attrs);
         }
+        tracing::info!(payload = %payload, "Sending organization create payload to Keycloak");
 
         let response = self.client.post(&url)
             .bearer_auth(admin_token)
@@ -62,9 +68,16 @@ impl KeycloakService {
             .await?;
 
         match response.status() {
-            StatusCode::CREATED => {
-                let org: KeycloakOrganization = response.json().await?;
-                Ok(org)
+            StatusCode::CREATED | StatusCode::NO_CONTENT => {
+                let text = response.text().await?;
+                if !text.trim().is_empty() {
+                    let org: KeycloakOrganization = serde_json::from_str(&text)?;
+                    Ok(org)
+                } else {
+                    // If no body, return an error or a minimal KeycloakOrganization
+                    // Here, we return an error to be explicit, but you can adjust as needed
+                    Err(anyhow!("Keycloak returned empty body on create (organization was likely created successfully)"))
+                }
             },
             _ => {
                 let error_text = response.text().await?;
@@ -90,7 +103,7 @@ impl KeycloakService {
 
     /// Get a specific organization by ID
     pub async fn get_organization(&self, token: &str, org_id: &str) -> Result<KeycloakOrganization> {
-        let url = format!("{}/admin/realms/{}/orgs/{}", self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}", self.config.url, self.config.realm, org_id);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
@@ -107,12 +120,14 @@ impl KeycloakService {
                                     token: &str, 
                                     org_id: &str, 
                                     name: &str,
+                                    domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
                                     attributes: Option<std::collections::HashMap<String, Vec<String>>>
                                     ) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/orgs/{}", self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}", self.config.url, self.config.realm, org_id);
 
         let mut payload = json!({
             "name": name,
+            "domains": domains,
         });
 
         if let Some(attrs) = attributes {
@@ -137,7 +152,7 @@ impl KeycloakService {
 
     /// Delete an organization
     pub async fn delete_organization(&self, token: &str, org_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/orgs/{}", self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}", self.config.url, self.config.realm, org_id);
 
         let response = self.client.delete(&url)
             .bearer_auth(token)
@@ -156,7 +171,7 @@ impl KeycloakService {
 
     /// Get organization members
     pub async fn get_organization_members(&self, token: &str, org_id: &str) -> Result<Vec<KeycloakOrganizationMembership>> {
-        let url = format!("{}/admin/realms/{}/orgs/{}/memberships", self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/memberships", self.config.url, self.config.realm, org_id);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
@@ -170,7 +185,7 @@ impl KeycloakService {
 
     /// Add user to organization
     pub async fn add_user_to_organization(&self, token: &str, org_id: &str, user_id: &str, roles: Vec<String>) -> Result<KeycloakOrganizationMembership> {
-        let url = format!("{}/admin/realms/{}/orgs/{}/memberships", self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/memberships", self.config.url, self.config.realm, org_id);
 
         let payload = json!({
             "userId": user_id,
@@ -198,7 +213,7 @@ impl KeycloakService {
 
     /// Remove user from organization
     pub async fn remove_user_from_organization(&self, token: &str, org_id: &str, membership_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/orgs/{}/memberships/{}", 
+        let url = format!("{}/admin/realms/{}/organizations/{}/memberships/{}", 
             self.config.url, self.config.realm, org_id, membership_id);
 
         let response = self.client.delete(&url)
@@ -218,7 +233,7 @@ impl KeycloakService {
 
     /// Update user roles in organization
     pub async fn update_user_roles(&self, token: &str, org_id: &str, membership_id: &str, roles: Vec<String>) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/orgs/{}/memberships/{}", 
+        let url = format!("{}/admin/realms/{}/organizations/{}/memberships/{}", 
             self.config.url, self.config.realm, org_id, membership_id);
 
         let payload = json!({
@@ -243,7 +258,7 @@ impl KeycloakService {
 
     /// Create an invitation to an organization
     pub async fn create_invitation(&self, token: &str, org_id: &str, email: &str, roles: Vec<String>, expiration: Option<String>) -> Result<KeycloakInvitation> {
-        let url = format!("{}/admin/realms/{}/orgs/{}/invitations", 
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations", 
             self.config.url, self.config.realm, org_id);
 
         let mut payload = json!({
@@ -276,7 +291,7 @@ impl KeycloakService {
 
     /// Get all invitations for an organization
     pub async fn get_invitations(&self, token: &str, org_id: &str) -> Result<Vec<KeycloakInvitation>> {
-        let url = format!("{}/admin/realms/{}/orgs/{}/invitations", 
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations", 
             self.config.url, self.config.realm, org_id);
 
         let response = self.client.get(&url)
@@ -291,7 +306,7 @@ impl KeycloakService {
 
     /// Delete an invitation
     pub async fn delete_invitation(&self, token: &str, org_id: &str, invitation_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/orgs/{}/invitations/{}", 
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations/{}", 
             self.config.url, self.config.realm, org_id, invitation_id);
 
         let response = self.client.delete(&url)

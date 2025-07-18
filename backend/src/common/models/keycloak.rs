@@ -14,12 +14,22 @@ pub struct KeycloakToken {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrganizationDomain {
+    pub name: String,
+    pub verified: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeycloakOrganization {
     pub id: String,
     pub name: String,
-    pub domains: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
+    pub alias: Option<String>,
+    pub enabled: bool,
+    pub description: Option<String>,
+    #[serde(rename = "redirectUrl")]
+    pub redirect_url: Option<String>,
+    pub domains: Option<Vec<OrganizationDomain>>,
+    // You can add attributes or other fields as needed
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

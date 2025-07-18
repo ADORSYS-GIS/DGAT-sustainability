@@ -68,12 +68,52 @@ pub async fn get_organizations(
     Extension(_claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
+    Query(params): Query<OrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
     // Get all organizations first
     match app_state.keycloak_service.get_organizations(&token).await {
-        Ok(organizations) => {
+        Ok(mut organizations) => {
+            // Apply search filtering if provided
+            if let Some(search_term) = &params.search {
+                organizations.retain(|org| {
+                    let name_matches = org.name.to_lowercase().contains(&search_term.to_lowercase());
+                    let domain_matches = org.domains.as_ref()
+                        .map(|domains| domains.iter().any(|domain| 
+                            domain.name.to_lowercase().contains(&search_term.to_lowercase())))
+                        .unwrap_or(false);
+
+                    if params.exact.unwrap_or(false) {
+                        org.name.eq_ignore_ascii_case(search_term) || 
+                        org.domains.as_ref()
+                            .map(|domains| domains.iter().any(|domain| domain.name.eq_ignore_ascii_case(search_term)))
+                            .unwrap_or(false)
+                    } else {
+                        name_matches || domain_matches
+                    }
+                });
+            }
+
+            // Apply pagination
+            let first = params.first.unwrap_or(0) as usize;
+            let max = params.max.unwrap_or(10) as usize;
+
+            let total_count = organizations.len();
+            let end = std::cmp::min(first + max, total_count);
+
+            if first < total_count {
+                organizations = organizations.into_iter().skip(first).take(max).collect();
+            } else {
+                organizations.clear();
+            }
+
+            // Apply brief representation if requested
+            if params.brief_representation.unwrap_or(true) {
+                // For brief representation, we could filter out some fields
+                // but since we're returning the full KeycloakOrganization struct,
+                // we'll leave this as is for now
+            }
 
             Ok((StatusCode::OK, Json(organizations)))
         },
@@ -91,6 +131,7 @@ pub async fn create_organization(
     State(app_state): State<AppState>,
     Json(request): Json<OrganizationCreateRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
+    tracing::info!(?request, "Received organization create request");
     let token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
@@ -98,30 +139,16 @@ pub async fn create_organization(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    // Prepare attributes from request
-    let mut attributes = HashMap::new();
-
-    // Handle domains array - extract domain names
-    let domain_names: Vec<String> = request.domains.iter().map(|d| d.name.clone()).collect();
-    if !domain_names.is_empty() {
-        attributes.insert("domains".to_string(), domain_names);
-    }
-
-    // Add redirect URL
-    attributes.insert("redirect_url".to_string(), vec![request.redirect_url]);
-
-    // Add enabled status
-    attributes.insert("enabled".to_string(), vec![request.enabled]);
-
-    // Add custom attributes if provided
-    if let Some(custom_attributes) = request.attributes {
-        for (key, values) in custom_attributes {
-            attributes.insert(key, values);
-        }
-    }
-
+    // Call Keycloak service with all required arguments
     match app_state.keycloak_service
-        .create_organization(&token, &request.name, Some(attributes))
+        .create_organization(
+            &token,
+            &request.name,
+            request.domains.clone(),
+            request.redirect_url.clone(),
+            request.enabled.clone(),
+            request.attributes.clone(),
+        )
         .await
     {
         Ok(organization) => Ok((StatusCode::CREATED, Json(organization))),
@@ -160,7 +187,7 @@ pub async fn update_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path(org_id): Path<String>,
     Json(request): Json<OrganizationCreateRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -173,27 +200,21 @@ pub async fn update_organization(
     // Prepare attributes from request
     let mut attributes = HashMap::new();
 
-    // Handle domains array - extract domain names
-    let domain_names: Vec<String> = request.domains.iter().map(|d| d.name.clone()).collect();
-    if !domain_names.is_empty() {
-        attributes.insert("domains".to_string(), domain_names);
-    }
-
     // Add redirect URL
-    attributes.insert("redirect_url".to_string(), vec![request.redirect_url]);
+    attributes.insert("redirect_url".to_string(), vec![request.redirect_url.clone()]);
 
     // Add enabled status
-    attributes.insert("enabled".to_string(), vec![request.enabled]);
+    attributes.insert("enabled".to_string(), vec![request.enabled.clone()]);
 
     // Add custom attributes if provided
-    if let Some(custom_attributes) = request.attributes {
+    if let Some(custom_attributes) = request.attributes.clone() {
         for (key, values) in custom_attributes {
             attributes.insert(key, values);
         }
     }
 
     match app_state.keycloak_service
-        .update_organization(&token, &org_id, &request.name, Some(attributes))
+        .update_organization(&token, &org_id, &request.name, request.domains.clone(), Some(attributes))
         .await
     {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
@@ -209,7 +230,7 @@ pub async fn delete_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path(org_id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -481,45 +502,19 @@ pub async fn get_organizations_count(
             if let Some(search_term) = &params.search {
                 organizations.retain(|org| {
                     let name_matches = org.name.to_lowercase().contains(&search_term.to_lowercase());
-                    let domain_matches = org.attributes.as_ref()
-                        .and_then(|attrs| attrs.get("domains"))
+                    let domain_matches = org.domains.as_ref()
                         .map(|domains| domains.iter().any(|domain| 
-                            domain.to_lowercase().contains(&search_term.to_lowercase())))
+                            domain.name.to_lowercase().contains(&search_term.to_lowercase())))
                         .unwrap_or(false);
 
                     if params.exact.unwrap_or(false) {
                         org.name.eq_ignore_ascii_case(search_term) || 
-                        org.attributes.as_ref()
-                            .and_then(|attrs| attrs.get("domains"))
-                            .map(|domains| domains.iter().any(|domain| domain.eq_ignore_ascii_case(search_term)))
+                        org.domains.as_ref()
+                            .map(|domains| domains.iter().any(|domain| domain.name.eq_ignore_ascii_case(search_term)))
                             .unwrap_or(false)
                     } else {
                         name_matches || domain_matches
                     }
-                });
-            }
-
-            // Apply custom attribute query filtering if provided
-            if let Some(q) = &params.q {
-                // Parse query format: "key1:value1 key2:value2"
-                let query_pairs: Vec<(&str, &str)> = q.split_whitespace()
-                    .filter_map(|pair| {
-                        let parts: Vec<&str> = pair.split(':').collect();
-                        if parts.len() == 2 {
-                            Some((parts[0], parts[1]))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-
-                organizations.retain(|org| {
-                    query_pairs.iter().all(|(key, value)| {
-                        org.attributes.as_ref()
-                            .and_then(|attrs| attrs.get(*key))
-                            .map(|values| values.iter().any(|v| v.contains(value)))
-                            .unwrap_or(false)
-                    })
                 });
             }
 
@@ -538,10 +533,15 @@ pub async fn get_member_organizations(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path(member_id): Path<(String)>,
+    Path((realm, member_id)): Path<(String, String)>,
     Query(params): Query<MemberOrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
+
+    // Check if user has appropriate permissions (can only query own organizations unless admin)
+    if !claims.is_application_admin() && claims.sub != member_id {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
 
     // Get all organizations and filter for ones where the user is a member
     match app_state.keycloak_service.get_organizations(&token).await {

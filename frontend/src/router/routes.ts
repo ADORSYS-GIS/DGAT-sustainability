@@ -14,12 +14,16 @@ import { Assessment } from "../pages/user/Assesment";
 import { Assessments } from "../pages/user/Assessments";
 import { ActionPlan } from "../pages/user/ActionPlan";
 import { SubmissionView } from "../pages/user/SubmissionView";
+import { ManageOrganizations } from "../pages/admin/ManageOrganizations";
+import { ManageUsers } from "../pages/admin/ManageUsers";
 
 const routes = [
   { path: "/", element: Welcome },
   { path: "/admin/dashboard", element: AdminDashboard },
   { path: "/dashboard", element: Dashboard },
   { path: "/admin/categories", element: ManageCategories },
+  { path: "/admin/organizations", element: ManageOrganizations },
+  { path: "/admin/users", element: ManageUsers },
   { path: "/admin/questions", element: ManageQuestions },
   { path: "/admin/reviews", element: ReviewAssessments },
   { path: "/admin/recommendations", element: StandardRecommendations },

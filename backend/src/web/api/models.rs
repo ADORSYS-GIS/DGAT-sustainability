@@ -397,7 +397,7 @@ pub struct ReportListResponse {
 
 // =============== Organization Models ===============
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OrganizationDomainRequest {
     pub name: String,
 }
