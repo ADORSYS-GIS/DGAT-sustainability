@@ -45,7 +45,7 @@ impl KeycloakService {
                                     name: &str, 
                                     attributes: Option<std::collections::HashMap<String, Vec<String>>>
                                     ) -> Result<KeycloakOrganization> {
-        let url = format!("{}/admin/realms/{}/orgs", self.config.url, self.config.realm);
+        let url = format!("{}/admin/realms/{}/organizations", self.config.url, self.config.realm);
 
         let mut payload = json!({
             "name": name,

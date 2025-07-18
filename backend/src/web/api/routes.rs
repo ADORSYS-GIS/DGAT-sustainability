@@ -34,7 +34,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/metrics", get(metrics))
         // Organization endpoints matching OpenAPI specification
         .route("/admin/realms/:realm/organizations", get(get_organizations))
-        .route("/admin/realms/:realm/organizations", post(create_organization))
+        .route("/admin/organizations", post(create_organization))
         .route("/admin/realms/:realm/organizations/count", get(get_organizations_count))
         .route("/admin/realms/:realm/organizations/members/:member_id/organizations", get(get_member_organizations))
         .route("/admin/realms/:realm/organizations/:org_id", get(get_organization))
