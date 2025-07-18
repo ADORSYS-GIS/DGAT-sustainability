@@ -34,7 +34,6 @@ pub async fn list_all_submissions(
         // Parse the content to extract assessment and responses information
         let default_map = serde_json::Map::new();
         let content_obj = model.content.as_object().unwrap_or(&default_map);
-        println!("{:#?}", content_obj);
 
         // Extract assessment info
         let assessment_info = content_obj

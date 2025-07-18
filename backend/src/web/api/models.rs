@@ -398,11 +398,18 @@ pub struct ReportListResponse {
 // =============== Organization Models ===============
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct OrganizationDomainRequest {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OrganizationCreateRequest {
     pub name: String,
-    pub domain: String,
+    pub domains: Vec<OrganizationDomainRequest>,
+    #[serde(rename = "redirectUrl")]
     pub redirect_url: String,
-    pub description: Option<String>,
+    pub enabled: String, // Note: This comes as string in the payload sample
+    pub attributes: Option<HashMap<String, Vec<String>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

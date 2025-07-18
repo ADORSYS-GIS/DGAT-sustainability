@@ -8,8 +8,11 @@ use crate::web::api::handlers::{
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
     organizations::{
-        add_member, create_invitation, create_organization, delete_invitation, delete_organization,
-        get_invitations, get_members, get_organization, get_organizations, remove_member,
+        add_identity_provider, add_member, create_invitation, create_organization, delete_invitation, 
+        delete_organization, get_identity_provider, get_identity_providers, get_invitations, 
+        get_member, get_member_organizations, get_member_organizations_in_org, get_members, 
+        get_members_count, get_organization, get_organizations, get_organizations_count, 
+        invite_existing_user, invite_user, remove_identity_provider, remove_member, 
         update_member_roles, update_organization,
     },
     questions::{create_question, delete_question_revision_by_id, get_question, list_questions, update_question},
@@ -29,19 +32,26 @@ pub fn create_router(app_state: AppState) -> Router {
         // Health endpoints
         .route("/api/health", get(health_check))
         .route("/api/metrics", get(metrics))
-        // Organization endpoints
-        .route("/api/organizations", get(get_organizations))
-        .route("/api/organizations", post(create_organization))
-        .route("/api/organizations/:id", get(get_organization))
-        .route("/api/organizations/:id", put(update_organization))
-        .route("/api/organizations/:id", delete(delete_organization))
-        .route("/api/organizations/:id/members", get(get_members))
-        .route("/api/organizations/:id/members", post(add_member))
-        .route("/api/organizations/:id/members/:membership_id", delete(remove_member))
-        .route("/api/organizations/:id/members/:membership_id/roles", put(update_member_roles))
-        .route("/api/organizations/:id/invitations", get(get_invitations))
-        .route("/api/organizations/:id/invitations", post(create_invitation))
-        .route("/api/organizations/:id/invitations/:invitation_id", delete(delete_invitation))
+        // Organization endpoints matching OpenAPI specification
+        .route("/admin/realms/:realm/organizations", get(get_organizations))
+        .route("/admin/realms/:realm/organizations", post(create_organization))
+        .route("/admin/realms/:realm/organizations/count", get(get_organizations_count))
+        .route("/admin/realms/:realm/organizations/members/:member_id/organizations", get(get_member_organizations))
+        .route("/admin/realms/:realm/organizations/:org_id", get(get_organization))
+        .route("/admin/realms/:realm/organizations/:org_id", put(update_organization))
+        .route("/admin/realms/:realm/organizations/:org_id", delete(delete_organization))
+        .route("/admin/realms/:realm/organizations/:org_id/identity-providers", get(get_identity_providers))
+        .route("/admin/realms/:realm/organizations/:org_id/identity-providers", post(add_identity_provider))
+        .route("/admin/realms/:realm/organizations/:org_id/identity-providers/:alias", get(get_identity_provider))
+        .route("/admin/realms/:realm/organizations/:org_id/identity-providers/:alias", delete(remove_identity_provider))
+        .route("/admin/realms/:realm/organizations/:org_id/members", get(get_members))
+        .route("/admin/realms/:realm/organizations/:org_id/members", post(add_member))
+        .route("/admin/realms/:realm/organizations/:org_id/members/count", get(get_members_count))
+        .route("/admin/realms/:realm/organizations/:org_id/members/invite-existing-user", post(invite_existing_user))
+        .route("/admin/realms/:realm/organizations/:org_id/members/invite-user", post(invite_user))
+        .route("/admin/realms/:realm/organizations/:org_id/members/:member_id", get(get_member))
+        .route("/admin/realms/:realm/organizations/:org_id/members/:member_id", delete(remove_member))
+        .route("/admin/realms/:realm/organizations/:org_id/members/:member_id/organizations", get(get_member_organizations_in_org))
         // Question endpoints
         .route("/api/questions", get(list_questions))
         .route("/api/questions", post(create_question))
