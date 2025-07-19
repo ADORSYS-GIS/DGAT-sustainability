@@ -5,6 +5,7 @@ use reqwest::{Client, StatusCode};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::{debug, error, info};
+use serde::Deserialize;
 
 #[derive(Debug, Clone)]
 pub struct KeycloakService {
@@ -74,9 +75,16 @@ impl KeycloakService {
                     let org: KeycloakOrganization = serde_json::from_str(&text)?;
                     Ok(org)
                 } else {
-                    // If no body, return an error or a minimal KeycloakOrganization
-                    // Here, we return an error to be explicit, but you can adjust as needed
-                    Err(anyhow!("Keycloak returned empty body on create (organization was likely created successfully)"))
+                    // If no body, return a minimal KeycloakOrganization with only the name and domains
+                    Ok(KeycloakOrganization {
+                        id: String::new(),
+                        name: name.to_string(),
+                        alias: None,
+                        enabled: enabled == "true",
+                        description: None,
+                        redirect_url: Some(redirect_url),
+                        domains: Some(domains.into_iter().map(|d| OrganizationDomain { name: d.name, verified: None }).collect()),
+                    })
                 }
             },
             _ => {
@@ -170,8 +178,8 @@ impl KeycloakService {
     }
 
     /// Get organization members
-    pub async fn get_organization_members(&self, token: &str, org_id: &str) -> Result<Vec<KeycloakOrganizationMembership>> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/memberships", self.config.url, self.config.realm, org_id);
+    pub async fn get_organization_members(&self, token: &str, org_id: &str) -> Result<Vec<KeycloakOrganizationMember>> {
+        let url = format!("{}/admin/realms/{}/organizations/{}/members", self.config.url, self.config.realm, org_id);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
@@ -179,30 +187,75 @@ impl KeycloakService {
             .await?
             .error_for_status()?;
 
-        let members: Vec<KeycloakOrganizationMembership> = response.json().await?;
+        let members: Vec<KeycloakOrganizationMember> = response.json().await?;
         Ok(members)
     }
 
+    /// Find a user by username or email
+    pub async fn find_user_by_username_or_email(&self, token: &str, query: &str) -> Result<Option<KeycloakUser>> {
+        let url = format!("{}/admin/realms/{}/users?search={}", self.config.url, self.config.realm, query);
+        let response = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
+        let users: Vec<KeycloakUser> = response.json().await?;
+        // Try to find an exact match by username or email
+        let user = users.into_iter().find(|u| u.username == query || u.email.as_deref() == Some(query));
+        Ok(user)
+    }
+
+    /// Assign a realm role to a user by role name
+    pub async fn assign_realm_role_to_user(&self, token: &str, user_id: &str, role_name: &str) -> Result<()> {
+        // Get the role object by name
+        let url = format!("{}/admin/realms/{}/roles/{}", self.config.url, self.config.realm, role_name);
+        let role: serde_json::Value = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        // Assign the role to the user
+        let assign_url = format!("{}/admin/realms/{}/users/{}/role-mappings/realm", self.config.url, self.config.realm, user_id);
+        let roles_payload = serde_json::json!([role]);
+        let response = self.client.post(&assign_url)
+            .bearer_auth(token)
+            .json(&roles_payload)
+            .send()
+            .await?;
+        match response.status() {
+            StatusCode::NO_CONTENT | StatusCode::OK | StatusCode::CREATED => Ok(()),
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to assign realm role to user: {}", error_text);
+                Err(anyhow!("Failed to assign realm role to user: {}", error_text))
+            }
+        }
+    }
+
     /// Add user to organization
-    pub async fn add_user_to_organization(&self, token: &str, org_id: &str, user_id: &str, roles: Vec<String>) -> Result<KeycloakOrganizationMembership> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/memberships", self.config.url, self.config.realm, org_id);
-
-        let payload = json!({
-            "userId": user_id,
-            "roles": roles
-        });
-
+    pub async fn add_user_to_organization(&self, token: &str, org_id: &str, email: &str, roles: Vec<String>) -> Result<()> {
+        // Always look up the user by email
+        let user = match self.find_user_by_username_or_email(token, email).await? {
+            Some(user) => user,
+            None => return Err(anyhow!("User not found in Keycloak by email: {}", email)),
+        };
+        let user_uuid = user.id;
+        // Assign the first role in the roles array (default: org_admin)
+        if let Some(role_name) = roles.get(0) {
+            self.assign_realm_role_to_user(token, &user_uuid, role_name).await?;
+        }
+        let url = format!("{}/admin/realms/{}/organizations/{}/members", self.config.url, self.config.realm, org_id);
+        let payload = user_uuid;
+        info!(url = %url, payload = %payload, "Sending add user to organization request to Keycloak");
         let response = self.client.post(&url)
             .bearer_auth(token)
             .json(&payload)
             .send()
             .await?;
-
         match response.status() {
-            StatusCode::CREATED => {
-                let membership: KeycloakOrganizationMembership = response.json().await?;
-                Ok(membership)
-            },
+            StatusCode::CREATED | StatusCode::NO_CONTENT => Ok(()),
             _ => {
                 let error_text = response.text().await?;
                 error!("Failed to add user to organization: {}", error_text);
@@ -213,7 +266,7 @@ impl KeycloakService {
 
     /// Remove user from organization
     pub async fn remove_user_from_organization(&self, token: &str, org_id: &str, membership_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/memberships/{}", 
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}", 
             self.config.url, self.config.realm, org_id, membership_id);
 
         let response = self.client.delete(&url)
@@ -233,7 +286,7 @@ impl KeycloakService {
 
     /// Update user roles in organization
     pub async fn update_user_roles(&self, token: &str, org_id: &str, membership_id: &str, roles: Vec<String>) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/memberships/{}", 
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}", 
             self.config.url, self.config.realm, org_id, membership_id);
 
         let payload = json!({
@@ -323,4 +376,11 @@ impl KeycloakService {
             }
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct KeycloakUser {
+    pub id: String,
+    pub username: String,
+    pub email: Option<String>,
 }

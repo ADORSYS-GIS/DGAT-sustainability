@@ -1653,7 +1653,7 @@
                 }
             }
         },
-        "/api/organizations/{id}/members": {
+        "/organizations/{id}/members": {
             "get": {
                 "summary": "Get organization members",
                 "description": "Retrieve all members of an organization",
@@ -1712,7 +1712,7 @@
                 }
             }
         },
-        "/api/organizations/{id}/members/{membership_id}": {
+        "/admin/organizations/{id}/members/{membership_id}": {
             "delete": {
                 "summary": "Remove member from organization",
                 "description": "Remove a member from an organization (requires organization management permissions)",
@@ -2947,15 +2947,16 @@
             "OrganizationMember": {
                 "type": "object",
                 "properties": {
-                    "user_id": { "type": "string", "description": "User identifier" },
+                    "id": { "type": "string", "description": "User identifier" },
                     "username": { "type": "string", "description": "Username" },
                     "email": { "type": "string", "format": "email", "description": "User email" },
-                    "first_name": { "type": "string", "nullable": true, "description": "User first name" },
-                    "last_name": { "type": "string", "nullable": true, "description": "User last name" },
+                    "emailVerified": { "type": "boolean", "description": "Whether the user's email is verified" },
+                    "firstName": { "type": "string", "nullable": true, "description": "User first name" },
+                    "lastName": { "type": "string", "nullable": true, "description": "User last name" },
                     "roles": { "type": "array", "items": { "type": "string" }, "description": "User roles in the organization" },
-                    "joined_at": { "type": "string", "format": "date-time", "description": "When the user joined the organization" }
+                    "joinedAt": { "type": "string", "format": "date-time", "description": "When the user joined the organization" }
                 },
-                "required": ["user_id", "username", "email", "roles"]
+                "required": ["id", "username", "email", "roles"]
             },
             "OrganizationMembership": {
                 "type": "object",
@@ -2971,10 +2972,10 @@
             "MemberRequest": {
                 "type": "object",
                 "properties": {
-                    "user_id": { "type": "string", "description": "User identifier to add to the organization" },
+                    "email": { "type": "string", "format": "email", "description": "User email to add to the organization" },
                     "roles": { "type": "array", "items": { "type": "string" }, "description": "Roles to assign to the user" }
                 },
-                "required": ["user_id", "roles"]
+                "required": ["email", "roles"]
             },
             "RoleAssignment": {
                 "type": "object",

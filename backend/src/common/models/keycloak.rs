@@ -32,21 +32,17 @@ pub struct KeycloakOrganization {
     // You can add attributes or other fields as needed
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KeycloakOrganizationMembership {
-    pub id: String,
-    pub member: KeycloakOrganizationMember,
-    pub roles: Vec<String>,
-    pub joined_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct KeycloakOrganizationMember {
     pub id: String,
     pub username: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub email: Option<String>,
+    #[serde(rename = "firstName")]
+    pub first_name: String,
+    #[serde(rename = "lastName")]
+    pub last_name: String,
+    pub email: String,
+    #[serde(rename = "emailVerified")]
+    pub email_verified: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

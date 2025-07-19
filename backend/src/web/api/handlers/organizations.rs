@@ -63,6 +63,13 @@ fn can_access_organization(claims: &Claims, organization_id: &str) -> bool {
         || claims.organizations.orgs.contains_key(organization_id)
 }
 
+// Add this struct at the top of the file (if not already present):
+#[derive(serde::Deserialize)]
+pub struct MemberRequest {
+    pub email: String,
+    pub roles: Vec<String>,
+}
+
 // Get all organizations filtered according to the specified parameters
 pub async fn get_organizations(
     Extension(_claims): Extension<Claims>,
@@ -253,7 +260,7 @@ pub async fn get_members(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path(org_id): Path<String>,
     Query(params): Query<MembersQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -268,37 +275,15 @@ pub async fn get_members(
             // Apply search filtering if provided
             if let Some(search_term) = &params.search {
                 members.retain(|member| {
-                    let username_matches = member.member.username.to_lowercase().contains(&search_term.to_lowercase());
-                    let email_matches = member.member.email.as_ref()
-                        .map(|email| email.to_lowercase().contains(&search_term.to_lowercase()))
-                        .unwrap_or(false);
-                    let first_name_matches = member.member.first_name.as_ref()
-                        .map(|name| name.to_lowercase().contains(&search_term.to_lowercase()))
-                        .unwrap_or(false);
-                    let last_name_matches = member.member.last_name.as_ref()
-                        .map(|name| name.to_lowercase().contains(&search_term.to_lowercase()))
-                        .unwrap_or(false);
+                    let username_matches = member.username.to_lowercase().contains(&search_term.to_lowercase());
+                    let email_matches = member.email.to_lowercase().contains(&search_term.to_lowercase());
+                    let first_name_matches = member.first_name.to_lowercase().contains(&search_term.to_lowercase());
+                    let last_name_matches = member.last_name.to_lowercase().contains(&search_term.to_lowercase());
 
                     if params.exact.unwrap_or(false) {
-                        member.member.username.eq_ignore_ascii_case(search_term) ||
-                        member.member.email.as_ref().map(|email| email.eq_ignore_ascii_case(search_term)).unwrap_or(false) ||
-                        member.member.first_name.as_ref().map(|name| name.eq_ignore_ascii_case(search_term)).unwrap_or(false) ||
-                        member.member.last_name.as_ref().map(|name| name.eq_ignore_ascii_case(search_term)).unwrap_or(false)
+                        username_matches || email_matches || first_name_matches || last_name_matches
                     } else {
                         username_matches || email_matches || first_name_matches || last_name_matches
-                    }
-                });
-            }
-
-            // Apply membership type filtering if provided
-            if let Some(membership_type) = &params.membership_type {
-                members.retain(|member| {
-                    // Assuming membership type is stored in roles or we have a way to determine it
-                    // For now, we'll check if the member has specific roles that indicate membership type
-                    match membership_type.to_lowercase().as_str() {
-                        "managed" => member.roles.iter().any(|role| role.contains("managed")),
-                        "unmanaged" => !member.roles.iter().any(|role| role.contains("managed")),
-                        _ => true, // If unknown type, include all
                     }
                 });
             }
@@ -329,8 +314,8 @@ pub async fn add_member(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
-    Json(request): Json<String>,
+    Path(org_id): Path<String>,
+    Json(request): Json<MemberRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -339,11 +324,8 @@ pub async fn add_member(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    // Parse user ID from JSON string (trim whitespace and quotes)
-    let user_id = request.trim().trim_matches('"');
-
     match app_state.keycloak_service
-        .add_user_to_organization(&token, &org_id, user_id, vec![])
+        .add_user_to_organization(&token, &org_id, &request.email, request.roles.clone())
         .await
     {
         Ok(_) => Ok(StatusCode::CREATED),
@@ -354,38 +336,12 @@ pub async fn add_member(
     }
 }
 
-// Remove a member from an organization
-pub async fn remove_member(
-    Extension(claims): Extension<Claims>,
-    Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
-    Path((realm, org_id, member_id)): Path<(String, String, String)>,
-) -> Result<StatusCode, ApiError> {
-    let token = get_token_from_extensions(&token)?;
-
-    // Check if user has appropriate permissions
-    if !claims.can_manage_organization(&org_id) {
-        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
-    }
-
-    match app_state.keycloak_service
-        .remove_user_from_organization(&token, &org_id, &member_id)
-        .await
-    {
-        Ok(()) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => {
-            tracing::error!("Failed to remove member from organization: {}", e);
-            Err(ApiError::InternalServerError("Failed to remove member from organization".to_string()))
-        }
-    }
-}
-
 // Update a member's roles in an organization (deprecated - not in OpenAPI spec)
 pub async fn update_member_roles(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, member_id)): Path<(String, String, String)>,
+    Path((_, org_id, member_id)): Path<(String, String, String)>,
     Json(request): Json<KeycloakRoleAssignment>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -462,7 +418,7 @@ pub async fn delete_invitation(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, invitation_id)): Path<(String, String, String)>,
+    Path((_, org_id, invitation_id)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -533,7 +489,7 @@ pub async fn get_member_organizations(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, member_id)): Path<(String, String)>,
+    Path((_, member_id)): Path<(String, String)>,
     Query(params): Query<MemberOrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -552,7 +508,7 @@ pub async fn get_member_organizations(
             for org in organizations {
                 match app_state.keycloak_service.get_organization_members(&token, &org.id).await {
                     Ok(members) => {
-                        if members.iter().any(|member| member.member.id == member_id) {
+                        if members.iter().any(|member| member.id == member_id) {
                             member_organizations.push(org);
                         }
                     },
@@ -584,7 +540,7 @@ pub async fn get_identity_providers(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -603,7 +559,7 @@ pub async fn add_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_, org_id)): Path<(String, String)>,
     Json(request): Json<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -625,7 +581,7 @@ pub async fn get_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, alias)): Path<(String, String, String)>,
+    Path((_, org_id, alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -644,7 +600,7 @@ pub async fn remove_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, alias)): Path<(String, String, String)>,
+    Path((_, org_id, alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -662,7 +618,7 @@ pub async fn get_members_count(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -688,7 +644,7 @@ pub async fn invite_existing_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -709,7 +665,7 @@ pub async fn invite_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -732,7 +688,7 @@ pub async fn get_member(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, member_id)): Path<(String, String, String)>,
+    Path((_, org_id, member_id)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -744,7 +700,7 @@ pub async fn get_member(
     match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
         Ok(members) => {
             // Find the specific member by ID
-            if let Some(member) = members.iter().find(|m| m.member.id == member_id) {
+            if let Some(member) = members.iter().find(|m| m.id == member_id) {
                 Ok((StatusCode::OK, Json(member.clone())))
             } else {
                 Err(ApiError::BadRequest("Member not found in organization".to_string()))
@@ -762,7 +718,7 @@ pub async fn get_member_organizations_in_org(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, member_id)): Path<(String, String, String)>,
+    Path((_, org_id, member_id)): Path<(String, String, String)>,
     Query(params): Query<MemberOrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -775,7 +731,7 @@ pub async fn get_member_organizations_in_org(
     // First verify that the member exists in the specified organization
     match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
         Ok(members) => {
-            if !members.iter().any(|m| m.member.id == member_id) {
+            if !members.iter().any(|m| m.id == member_id) {
                 return Err(ApiError::BadRequest("Member not found in organization".to_string()));
             }
         },
@@ -794,7 +750,7 @@ pub async fn get_member_organizations_in_org(
             for org in organizations {
                 match app_state.keycloak_service.get_organization_members(&token, &org.id).await {
                     Ok(members) => {
-                        if members.iter().any(|member| member.member.id == member_id) {
+                        if members.iter().any(|member| member.id == member_id) {
                             member_organizations.push(org);
                         }
                     },
@@ -817,6 +773,32 @@ pub async fn get_member_organizations_in_org(
         Err(e) => {
             tracing::error!("Failed to get member organizations: {}", e);
             Err(ApiError::InternalServerError("Failed to get member organizations".to_string()))
+        }
+    }
+}
+
+// Update the remove_member handler to expect only org_id and membership_id
+pub async fn remove_member(
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    State(app_state): State<AppState>,
+    Path((org_id, membership_id)): Path<(String, String)>,
+) -> Result<StatusCode, ApiError> {
+    let token = get_token_from_extensions(&token)?;
+
+    // Check if user has appropriate permissions
+    if !claims.can_manage_organization(&org_id) {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    match app_state.keycloak_service
+        .remove_user_from_organization(&token, &org_id, &membership_id)
+        .await
+    {
+        Ok(()) => Ok(StatusCode::NO_CONTENT),
+        Err(e) => {
+            tracing::error!("Failed to remove member from organization: {}", e);
+            Err(ApiError::InternalServerError("Failed to remove member from organization".to_string()))
         }
     }
 }
