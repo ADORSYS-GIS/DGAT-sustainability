@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { Dashboard } from "../pages/user/Dashboard";
 import { AdminDashboard } from "../pages/admin/AdminDashboard";
 import NotFound from "../pages/NotFound";
@@ -16,6 +16,7 @@ import { ActionPlan } from "../pages/user/ActionPlan";
 import { SubmissionView } from "../pages/user/SubmissionView";
 import { ManageOrganizations } from "../pages/admin/ManageOrganizations";
 import { ManageUsers } from "../pages/admin/ManageUsers";
+import { OrgUserManageUsers } from "../pages/user/OrgUserManageUsers";
 
 const routes = [
   { path: "/", element: Welcome },
@@ -33,6 +34,7 @@ const routes = [
   { path: "/action-plan", element: ActionPlan },
   { path: "/action-plan/:reportId", element: ActionPlan },
   { path: "/submission-view/:submissionId", element: SubmissionView },
+  { path: "/user/manage-users", element: OrgUserManageUsers },
   { path: "*", element: NotFound },
   { path: "/unauthorized", element: React.createElement(Unauthorized) },
   { path: "/", element: React.createElement(Welcome) },

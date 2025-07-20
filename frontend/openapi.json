@@ -1835,6 +1835,109 @@
                     "500": { "$ref": "#/components/responses/InternalServerError" }
                 }
             }
+        },
+        "/organizations/{id}/org-admin/members": {
+          "post": {
+            "summary": "Add org user with categories (org admin only)",
+            "description": "Add a user to the organization and assign categories (org admin only)",
+            "tags": ["Organization Members"],
+            "parameters": [
+              { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Organization ID" }
+            ],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/OrgAdminMemberRequest" }
+                }
+              }
+            },
+            "responses": {
+              "201": { "description": "User added successfully" },
+              "400": { "$ref": "#/components/responses/BadRequest" },
+              "401": { "$ref": "#/components/responses/Unauthorized" },
+              "403": { "$ref": "#/components/responses/Forbidden" },
+              "404": { "$ref": "#/components/responses/NotFound" },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          },
+          "get": {
+            "summary": "List org users with categories (org admin only)",
+            "description": "List users in the organization, including their categories (org admin only)",
+            "tags": ["Organization Members"],
+            "parameters": [
+              { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Organization ID" }
+            ],
+            "responses": {
+              "200": {
+                "description": "List of organization members with categories",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          { "$ref": "#/components/schemas/OrganizationMember" },
+                          { "type": "object", "properties": { "categories": { "type": "array", "items": { "type": "string" } } } }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "400": { "$ref": "#/components/responses/BadRequest" },
+              "401": { "$ref": "#/components/responses/Unauthorized" },
+              "403": { "$ref": "#/components/responses/Forbidden" },
+              "404": { "$ref": "#/components/responses/NotFound" },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/organizations/{id}/org-admin/members/{member_id}": {
+          "delete": {
+            "summary": "Remove org user (org admin only)",
+            "description": "Remove a user from the organization (org admin only)",
+            "tags": ["Organization Members"],
+            "parameters": [
+              { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Organization ID" },
+              { "name": "member_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "User ID" }
+            ],
+            "responses": {
+              "204": { "description": "User removed successfully" },
+              "400": { "$ref": "#/components/responses/BadRequest" },
+              "401": { "$ref": "#/components/responses/Unauthorized" },
+              "403": { "$ref": "#/components/responses/Forbidden" },
+              "404": { "$ref": "#/components/responses/NotFound" },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/organizations/{id}/org-admin/members/{member_id}/categories": {
+          "put": {
+            "summary": "Update org user categories (org admin only)",
+            "description": "Update the categories assigned to a user in the organization (org admin only)",
+            "tags": ["Organization Members"],
+            "parameters": [
+              { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Organization ID" },
+              { "name": "member_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "User ID" }
+            ],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/OrgAdminMemberCategoryUpdateRequest" }
+                }
+              }
+            },
+            "responses": {
+              "204": { "description": "Categories updated successfully" },
+              "400": { "$ref": "#/components/responses/BadRequest" },
+              "401": { "$ref": "#/components/responses/Unauthorized" },
+              "403": { "$ref": "#/components/responses/Forbidden" },
+              "404": { "$ref": "#/components/responses/NotFound" },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
         }
     },
     "components": {
@@ -3010,6 +3113,22 @@
                     "expiration": { "type": "string", "format": "date-time", "nullable": true, "description": "Optional invitation expiration timestamp" }
                 },
                 "required": ["email", "roles"]
+            },
+            "OrgAdminMemberRequest": {
+              "type": "object",
+              "properties": {
+                "email": { "type": "string", "format": "email", "description": "User email to add to the organization" },
+                "roles": { "type": "array", "items": { "type": "string" }, "description": "Roles to assign to the user" },
+                "categories": { "type": "array", "items": { "type": "string" }, "description": "Categories to assign to the user" }
+              },
+              "required": ["email", "roles", "categories"]
+            },
+            "OrgAdminMemberCategoryUpdateRequest": {
+              "type": "object",
+              "properties": {
+                "categories": { "type": "array", "items": { "type": "string" }, "description": "Categories to assign to the user" }
+              },
+              "required": ["categories"]
             }
         },
         "responses": {

@@ -24,7 +24,8 @@ pub struct Organizations {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrganizationInfo {
-    pub categories: Vec<String>
+    pub id: Option<String>,
+    pub categories: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,7 +46,7 @@ impl Claims {
     }
 
     pub fn is_organization_admin(&self) -> bool {
-        self.has_role("organization_admin")
+        self.has_role("organization_admin") || self.has_role("org_admin")
     }
 
     pub fn can_manage_organization(&self, organization_id: &str) -> bool {

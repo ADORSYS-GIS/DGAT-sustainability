@@ -11,6 +11,7 @@ import {
   History,
   Leaf,
   Star,
+  Users,
 } from "lucide-react";
 import * as React from "react";
 import { useSubmissionsServiceGetSubmissions } from "../..//openapi-rq//queries/queries";
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
+import { OrgUserManageUsers } from "./OrgUserManageUsers";
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -28,6 +30,7 @@ export const Dashboard: React.FC = () => {
   const submissions: Submission[] = data?.submissions?.slice(0, 3) || [];
   const { data: reportsData, isLoading: reportsLoading } = useReportsServiceGetUserReports();
   const reports = reportsData?.reports || [];
+  const [showManageUsers, setShowManageUsers] = React.useState(false);
 
   React.useEffect(() => {
     if (isError) {
@@ -71,6 +74,14 @@ export const Dashboard: React.FC = () => {
       color: "blue" as const,
       onClick: () => navigate("/action-plan"),
     },
+    // Conditionally add Manage Users card for org admins
+    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin") ? [{
+      title: "Manage Users",
+      description: "Add and manage users in your organization.",
+      icon: Users,
+      color: "blue" as const,
+      onClick: () => navigate("/user/manage-users"),
+    }] : []),
   ];
 
   const getStatusColor = (status: string) => {
@@ -124,6 +135,9 @@ export const Dashboard: React.FC = () => {
   } else if (user?.organisation) {
     orgName = user.organisation;
   }
+
+  // Check if user has Org_admin role
+  const isOrgAdmin = (user?.roles || user?.realm_access?.roles || []).includes("Org_admin");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -284,6 +298,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Remove modal logic for Manage Users */}
       {/* Hidden canvas for PDF radar chart export */}
       <canvas id="radar-canvas" width={500} height={400} style={{ display: 'none' }} />
     </div>

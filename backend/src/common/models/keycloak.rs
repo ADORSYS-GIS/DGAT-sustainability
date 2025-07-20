@@ -36,13 +36,15 @@ pub struct KeycloakOrganization {
 pub struct KeycloakOrganizationMember {
     pub id: String,
     pub username: String,
-    #[serde(rename = "firstName")]
-    pub first_name: String,
-    #[serde(rename = "lastName")]
-    pub last_name: String,
+    #[serde(rename = "firstName", default)]
+    pub first_name: Option<String>,
+    #[serde(rename = "lastName", default)]
+    pub last_name: Option<String>,
     pub email: String,
-    #[serde(rename = "emailVerified")]
+    #[serde(rename = "emailVerified", default)]
     pub email_verified: bool,
+    #[serde(default)]
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

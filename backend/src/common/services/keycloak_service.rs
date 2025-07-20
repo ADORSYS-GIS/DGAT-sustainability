@@ -376,6 +376,78 @@ impl KeycloakService {
             }
         }
     }
+
+    pub async fn set_user_categories_by_email(&self, token: &str, email: &str, categories: &Vec<String>) -> Result<()> {
+        let user = self.find_user_by_username_or_email(token, email).await?.ok_or_else(|| anyhow!("User not found by email: {}", email))?;
+        let user_id = user.id;
+        let user_email = user.email.clone().unwrap_or_default();
+        let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+        let payload = serde_json::json!({
+            "email": user_email,
+            "attributes": { "categories": categories }
+        });
+        let response = self.client.put(&url)
+            .bearer_auth(token)
+            .json(&payload)
+            .send()
+            .await?;
+        match response.status() {
+            StatusCode::NO_CONTENT | StatusCode::OK => Ok(()),
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to set user categories: {}", error_text);
+                Err(anyhow!("Failed to set user categories: {}", error_text))
+            }
+        }
+    }
+    pub async fn get_user_categories_by_id(&self, token: &str, user_id: &str) -> Result<Vec<String>> {
+        let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+        let response = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
+        if response.status().is_success() {
+            let user: serde_json::Value = response.json().await?;
+            if let Some(attrs) = user.get("attributes").and_then(|a| a.get("categories")) {
+                if let Some(arr) = attrs.as_array() {
+                    return Ok(arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect());
+                }
+            }
+            Ok(vec![])
+        } else {
+            let error_text = response.text().await?;
+            error!("Failed to get user categories: {}", error_text);
+            Err(anyhow!("Failed to get user categories: {}", error_text))
+        }
+    }
+
+    pub async fn set_user_categories_by_id(&self, token: &str, user_id: &str, categories: &Vec<String>) -> Result<()> {
+        let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+        // Fetch the user to get their email
+        let response = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
+        let user: serde_json::Value = response.json().await?;
+        let user_email = user.get("email").and_then(|e| e.as_str()).unwrap_or("");
+        let payload = serde_json::json!({
+            "email": user_email,
+            "attributes": { "categories": categories }
+        });
+        let response = self.client.put(&url)
+            .bearer_auth(token)
+            .json(&payload)
+            .send()
+            .await?;
+        match response.status() {
+            StatusCode::NO_CONTENT | StatusCode::OK => Ok(()),
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to set user categories by id: {}", error_text);
+                Err(anyhow!("Failed to set user categories by id: {}", error_text))
+            }
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

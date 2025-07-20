@@ -13,7 +13,8 @@ use crate::web::api::handlers::{
         get_member, get_member_organizations, get_member_organizations_in_org, get_members, 
         get_members_count, get_organization, get_organizations, get_organizations_count, 
         invite_existing_user, invite_user, remove_identity_provider, remove_member, 
-        update_member_roles, update_organization,
+        update_member_roles, update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
+        update_org_admin_member_categories,
     },
     questions::{create_question, delete_question_revision_by_id, get_question, list_questions, update_question},
     reports::{delete_report, generate_report, get_report, list_reports, list_user_reports},
@@ -121,5 +122,9 @@ pub fn create_router(app_state: AppState) -> Router {
         )
         .route("/api/reports/:report_id", get(get_report))
         .route("/api/reports/:report_id", delete(delete_report))
+        .route("/api/organizations/:org_id/org-admin/members", post(add_org_admin_member))
+        .route("/api/organizations/:org_id/org-admin/members", get(get_org_admin_members))
+        .route("/api/organizations/:org_id/org-admin/members/:member_id", delete(remove_org_admin_member))
+        .route("/api/organizations/:org_id/org-admin/members/:member_id/categories", put(update_org_admin_member_categories))
         .with_state(app_state)
 }

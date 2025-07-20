@@ -70,6 +70,11 @@ pub struct MemberRequest {
     pub roles: Vec<String>,
 }
 
+// Helper to check if user is a member of org by org_id
+fn is_member_of_org_by_id(claims: &Claims, org_id: &str) -> bool {
+    claims.organizations.orgs.values().any(|info| info.id.as_deref() == Some(org_id))
+}
+
 // Get all organizations filtered according to the specified parameters
 pub async fn get_organizations(
     Extension(_claims): Extension<Claims>,
@@ -277,8 +282,8 @@ pub async fn get_members(
                 members.retain(|member| {
                     let username_matches = member.username.to_lowercase().contains(&search_term.to_lowercase());
                     let email_matches = member.email.to_lowercase().contains(&search_term.to_lowercase());
-                    let first_name_matches = member.first_name.to_lowercase().contains(&search_term.to_lowercase());
-                    let last_name_matches = member.last_name.to_lowercase().contains(&search_term.to_lowercase());
+                    let first_name_matches = member.first_name.as_deref().unwrap_or("").to_lowercase().contains(&search_term.to_lowercase());
+                    let last_name_matches = member.last_name.as_deref().unwrap_or("").to_lowercase().contains(&search_term.to_lowercase());
 
                     if params.exact.unwrap_or(false) {
                         username_matches || email_matches || first_name_matches || last_name_matches
@@ -801,4 +806,109 @@ pub async fn remove_member(
             Err(ApiError::InternalServerError("Failed to remove member from organization".to_string()))
         }
     }
+}
+
+#[derive(serde::Deserialize)]
+pub struct OrgAdminMemberRequest {
+    pub email: String,
+    pub roles: Vec<String>,
+    pub categories: Vec<String>,
+}
+
+// POST /api/organizations/:org_id/org-admin/members
+pub async fn add_org_admin_member(
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    State(app_state): State<AppState>,
+    Path(org_id): Path<String>,
+    Json(request): Json<OrgAdminMemberRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    let token = get_token_from_extensions(&token)?;
+    // Only org_admins for this org can add
+    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
+        tracing::error!(?claims, org_id = %org_id, "Permission denied: not org_admin or not member of org");
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+    // Add user to org
+    app_state.keycloak_service.add_user_to_organization(&token, &org_id, &request.email, request.roles.clone()).await.map_err(|e| {
+        tracing::error!("Failed to add org user: {}", e);
+        ApiError::InternalServerError("Failed to add org user".to_string())
+    })?;
+    // Set categories as user attribute
+    app_state.keycloak_service.set_user_categories_by_email(&token, &request.email, &request.categories).await.map_err(|e| {
+        tracing::error!("Failed to set user categories: {}", e);
+        ApiError::InternalServerError("Failed to set user categories".to_string())
+    })?;
+    Ok(StatusCode::CREATED)
+}
+
+// GET /api/organizations/:org_id/org-admin/members
+pub async fn get_org_admin_members(
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    State(app_state): State<AppState>,
+    Path(org_id): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    let token = get_token_from_extensions(&token)?;
+    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
+        tracing::error!(?claims, org_id = %org_id, "Permission denied: not org_admin or not member of org");
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+    let members = app_state.keycloak_service.get_organization_members(&token, &org_id).await.map_err(|e| {
+        tracing::error!("Failed to get org members: {}", e);
+        ApiError::InternalServerError("Failed to get org members".to_string())
+    })?;
+    // For each member, fetch categories from user attributes
+    let mut members_with_categories = Vec::new();
+    for member in members {
+        let categories = app_state.keycloak_service.get_user_categories_by_id(&token, &member.id).await.unwrap_or_default();
+        let mut member_json = serde_json::to_value(&member).unwrap_or_default();
+        member_json["categories"] = serde_json::json!(categories);
+        members_with_categories.push(member_json);
+    }
+    Ok((StatusCode::OK, Json(members_with_categories)))
+}
+
+// DELETE /api/organizations/:org_id/org-admin/members/:member_id
+pub async fn remove_org_admin_member(
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    State(app_state): State<AppState>,
+    Path((org_id, member_id)): Path<(String, String)>,
+) -> Result<StatusCode, ApiError> {
+    let token = get_token_from_extensions(&token)?;
+    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
+        tracing::error!(?claims, org_id = %org_id, member_id = %member_id, "Permission denied: not org_admin or not member of org");
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+    app_state.keycloak_service.remove_user_from_organization(&token, &org_id, &member_id).await.map_err(|e| {
+        tracing::error!("Failed to remove org user: {}", e);
+        ApiError::InternalServerError("Failed to remove org user".to_string())
+    })?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(serde::Deserialize)]
+pub struct OrgAdminMemberCategoryUpdateRequest {
+    pub categories: Vec<String>,
+}
+
+// PUT /api/organizations/:org_id/org-admin/members/:member_id/categories
+pub async fn update_org_admin_member_categories(
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    State(app_state): State<AppState>,
+    Path((org_id, member_id)): Path<(String, String)>,
+    Json(request): Json<OrgAdminMemberCategoryUpdateRequest>,
+) -> Result<StatusCode, ApiError> {
+    let token = get_token_from_extensions(&token)?;
+    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
+        tracing::error!(?claims, org_id = %org_id, member_id = %member_id, "Permission denied: not org_admin or not member of org");
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+    app_state.keycloak_service.set_user_categories_by_id(&token, &member_id, &request.categories).await.map_err(|e| {
+        tracing::error!("Failed to update user categories: {}", e);
+        ApiError::InternalServerError("Failed to update user categories".to_string())
+    })?;
+    Ok(StatusCode::NO_CONTENT)
 }
