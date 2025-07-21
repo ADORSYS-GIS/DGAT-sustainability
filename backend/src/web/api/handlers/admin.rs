@@ -173,7 +173,7 @@ pub async fn list_all_submissions(
         let submission = AdminSubmissionDetail {
             submission_id: model.submission_id,
             assessment_id: model.submission_id,
-            user_id: model.user_id,
+            org_id: model.org_id,
             content: AdminSubmissionContent {
                 assessment: assessment_info,
                 responses,

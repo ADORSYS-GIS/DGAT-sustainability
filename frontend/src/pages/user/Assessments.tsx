@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
 // TODO: Replace with org-scoped assessment listing endpoint when available
-import { useAssessmentsServiceGetAssessments } from "@/openapi-rq/queries/queries";
+import { useSubmissionsServiceGetSubmissions } from "@/openapi-rq/queries/queries";
 import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
 import { offlineDB } from "@/services/indexeddb";
 import { useResponsesServiceGetAssessmentsByAssessmentIdResponses } from "@/openapi-rq/queries/queries";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
+import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
 import * as React from "react";
 import { useNavigate, NavigateFunction } from "react-router-dom";
@@ -31,74 +32,28 @@ type AssessmentWithStatus = Assessment & { status?: string };
 
 export const Assessments: React.FC = () => {
   const { user } = useAuth();
-  // Helper to get org_id from token
-  const orgId = React.useMemo(() => {
-    if (!user || !user.organizations) return "";
-    const orgKeys = Object.keys(user.organizations);
-    if (orgKeys.length === 0) return "";
-    const orgObj = user.organizations[orgKeys[0]] || {};
-    return orgObj.id || "";
-  }, [user]);
-
   const { isOnline } = useSyncStatus();
-  const [assessments, setAssessments] = useState<AssessmentWithStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const { data: remoteData, isLoading: remoteLoading } = useAssessmentsServiceGetAssessments(
-    {}, // an empty object for the first parameter (params)
-    undefined, // an empty object for the second parameter (body)
-    { enabled: isOnline }, // the third parameter is for TanStack Query options
-  );
-
-  useEffect(() => {
-    const loadAssessments = async () => {
-      setIsLoading(true);
-      if (isOnline) {
-        if (remoteData?.assessments) {
-          // If online, use fresh data from the server and update local cache
-          await offlineDB.saveAssessments(remoteData.assessments);
-          setAssessments(remoteData.assessments);
-        }
-      } else {
-        // If offline, load data from IndexedDB
-        const localAssessments = await offlineDB.getAllAssessments();
-        setAssessments(localAssessments as AssessmentWithStatus[]);
-      }
-      setIsLoading(false);
-    };
-
-    loadAssessments();
-  }, [isOnline, remoteData]);
-
   const navigate = useNavigate();
 
-  // Helper to count unique categories completed and total for an assessment
-  const useCategoryCounts = (assessmentId: string) => {
-    // Fetch responses for this assessment
-    const { data: responsesData } =
-      useResponsesServiceGetAssessmentsByAssessmentIdResponses({
-        assessmentId,
-      });
-    // Count unique categories answered
-    const completed = React.useMemo(() => {
-      if (!responsesData?.responses) return 0;
-      const categories = new Set<string>();
-      for (const resp of responsesData.responses) {
-        // Assume question_revision_id encodes category, or fetch category if available
-        // For now, just count unique question_revision_id as a proxy
-        categories.add(resp.question_revision_id);
-      }
-      return categories.size;
-    }, [responsesData]);
+  // Fetch all submissions for the current user/org
+  const { data, isLoading: remoteLoading } = useSubmissionsServiceGetSubmissions();
+  const submissions = data?.submissions || [];
+
+  useEffect(() => {
+    setIsLoading(remoteLoading);
+  }, [remoteLoading]);
+
+  // Helper to count unique categories completed and total for a submission
+  // (You may want to update this logic based on your actual submission structure)
+  const useCategoryCounts = (submission: Submission) => {
+    // If your submission includes responses, you can count them here
+    const completed = submission?.content?.responses?.length || 0;
     // For total, you may need to fetch questions for the assessment
     // For now, just return completed as total (placeholder)
     const total = completed;
     return { completed, total };
   };
-
-  // Placeholder: If you want to show status, you may need to fetch submissions separately
-  const getStatusColor = (_status: string) => "bg-gray-500 text-white";
-  const formatStatus = (_status: string) => "-";
 
   if (isLoading) {
     return (
@@ -111,17 +66,17 @@ export const Assessments: React.FC = () => {
     );
   }
 
-  // Child component to render each assessment card and use hooks safely
-  const AssessmentCard: React.FC<{
-    assessment: AssessmentWithStatus;
-    user: AuthUser | null; // Use a specific type for the user
-    navigate: NavigateFunction; // Use the NavigateFunction type
+  // Card for each submission
+  const SubmissionCard: React.FC<{
+    submission: Submission;
+    user: AuthUser | null;
+    navigate: NavigateFunction;
     index: number;
-  }> = ({ assessment, user, navigate, index }) => {
-    const { completed, total } = useCategoryCounts(assessment.assessment_id);
+  }> = ({ submission, user, navigate, index }) => {
+    const { completed, total } = useCategoryCounts(submission);
     return (
       <Card
-        key={assessment.assessment_id}
+        key={submission.submission_id}
         className="animate-fade-in"
         style={{ animationDelay: `${index * 100}ms` }}
       >
@@ -133,16 +88,13 @@ export const Assessments: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  Sustainability Assessment
+                  Sustainability Assessment Submission
                 </h3>
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
                     <span>
-                      Created:{" "}
-                      {assessment.created_at
-                        ? new Date(assessment.created_at).toLocaleDateString()
-                        : "-"}
+                      Submitted: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "-"}
                     </span>
                   </div>
                 </div>
@@ -151,14 +103,14 @@ export const Assessments: React.FC = () => {
             <div className="flex items-center space-x-3">
               <Badge
                 className={
-                  assessment.status === "submitted"
+                  submission.review_status === "approved"
                     ? "bg-dgrv-green text-white"
                     : "bg-gray-500 text-white"
                 }
               >
-                {assessment.status
-                  ? assessment.status.charAt(0).toUpperCase() +
-                    assessment.status.slice(1)
+                {submission.review_status
+                  ? submission.review_status.charAt(0).toUpperCase() +
+                    submission.review_status.slice(1)
                   : "-"}
               </Badge>
             </div>
@@ -172,29 +124,16 @@ export const Assessments: React.FC = () => {
               </p>
             </div>
             <div className="flex space-x-2">
-              {user?.roles?.includes("org_admin") ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    navigate(`/submission-view/${assessment.assessment_id}`)
-                  }
-                >
-                  <Eye className="w-4 h-4 mr-1" />
-                  View Details
-                </Button>
-              ) : assessment.status === "submitted" ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    navigate(`/submission-view/${assessment.assessment_id}`)
-                  }
-                >
-                  <Eye className="w-4 h-4 mr-1" />
-                  View Submission
-                </Button>
-              ) : null}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  navigate(`/submission-view/${submission.submission_id}`)
+                }
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                View Submission
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -221,33 +160,21 @@ export const Assessments: React.FC = () => {
                   View and manage all your sustainability submissions
                 </p>
               </div>
-              {user?.roles?.includes("org_admin") &&
-                user?.organizations &&
-                Object.keys(user.organizations).length > 0 && (
-                  <Button
-                    onClick={() => navigate("/assessment/sustainability")}
-                    className="bg-dgrv-green hover:bg-green-700"
-                  >
-                    Start New Assessment
-                  </Button>
-                )}
             </div>
           </div>
 
           <div className="grid gap-6">
-            {assessments
-              .filter((a) => a.status === "submitted")
-              .map((assessment, index) => (
-                <AssessmentCard
-                  key={assessment.assessment_id}
-                  assessment={assessment}
-                  user={user}
-                  navigate={navigate}
-                  index={index}
-                />
-              ))}
+            {submissions.map((submission: Submission, index) => (
+              <SubmissionCard
+                key={submission.submission_id}
+                submission={submission}
+                user={user}
+                navigate={navigate}
+                index={index}
+              />
+            ))}
 
-            {assessments.length === 0 && (
+            {submissions.length === 0 && !isLoading && (
               <Card className="text-center py-12">
                 <CardContent>
                   <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -258,15 +185,6 @@ export const Assessments: React.FC = () => {
                     Start your first sustainability assessment to track your
                     cooperative's progress.
                   </p>
-                  {user?.organizations &&
-                    Object.keys(user.organizations).length > 0 && (
-                      <Button
-                        onClick={() => navigate("/assessment/sustainability")}
-                        className="bg-dgrv-green hover:bg-green-700"
-                      >
-                        Start Assessment
-                      </Button>
-                    )}
                 </CardContent>
               </Card>
             )}

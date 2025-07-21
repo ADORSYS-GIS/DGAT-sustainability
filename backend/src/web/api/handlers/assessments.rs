@@ -100,12 +100,10 @@ pub async fn list_assessments(
     Extension(claims): Extension<Claims>,
     Query(query): Query<AssessmentQuery>,
 ) -> Result<Json<AssessmentListResponse>, ApiError> {
-    // Get org_id from claims (first org for now)
-    let org_id = claims.organizations.orgs.values().next()
-        .and_then(|info| info.id.clone())
-        .ok_or(ApiError::BadRequest("No organization found in token".to_string()))?;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Fetch assessments from the database for the current org
+    // Fetch assessments from the database for the current organization
     let assessment_models = app_state
         .database
         .assessments
@@ -135,7 +133,7 @@ pub async fn list_assessments(
 
         assessments.push(Assessment {
             assessment_id: model.assessment_id,
-            org_id: model.org_id.clone(),
+            org_id: model.org_id,
             language: model.language,
             status,
             created_at: model.created_at.to_rfc3339(),
@@ -164,15 +162,8 @@ pub async fn create_assessment(
     Extension(claims): Extension<Claims>,
     Json(request): Json<CreateAssessmentRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // Get org_id from claims (first org for now)
-    let org_id = claims.organizations.orgs.values().next()
-        .and_then(|info| info.id.clone())
-        .ok_or(ApiError::BadRequest("No organization found in token".to_string()))?;
-
-    // Only org_admins can create
-    if !claims.is_organization_admin() {
-        return Err(ApiError::BadRequest("Only org_admin can create assessments".to_string()));
-    }
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate request
     if request.language.trim().is_empty() {
@@ -185,7 +176,7 @@ pub async fn create_assessment(
     let assessment_model = app_state
         .database
         .assessments
-        .create_assessment(org_id.clone(), request.language)
+        .create_assessment(org_id, request.language)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create assessment: {e}")))?;
 
@@ -207,6 +198,9 @@ pub async fn get_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<AssessmentWithResponsesResponse>, ApiError> {
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
+
     // Fetch the assessment from the database
     let assessment_model = app_state
         .database
@@ -220,8 +214,8 @@ pub async fn get_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // Check org membership
-    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
+    // Verify that the current organization is the owner of the assessment
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -244,7 +238,7 @@ pub async fn get_assessment(
         "draft".to_string()
     };
 
-    // Convert database model to API model
+    // Convert a database model to an API model
     let assessment = Assessment {
         assessment_id: assessment_model.assessment_id,
         org_id: assessment_model.org_id,
@@ -296,6 +290,9 @@ pub async fn update_assessment(
     Path(assessment_id): Path<Uuid>,
     Json(request): Json<UpdateAssessmentRequest>,
 ) -> Result<Json<AssessmentResponse>, ApiError> {
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
+
     // Validate request
     if request.language.trim().is_empty() {
         return Err(ApiError::BadRequest(
@@ -316,8 +313,8 @@ pub async fn update_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // Check org membership and admin
-    if !is_member_of_org_by_id(&claims, &existing_assessment.org_id) || !claims.is_organization_admin() {
+    // Verify that the current organization is the owner of the assessment
+    if existing_assessment.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to update this assessment".to_string(),
         ));
@@ -372,6 +369,9 @@ pub async fn delete_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
+
     // Check if the assessment exists and get its details
     let assessment = app_state
         .database
@@ -385,8 +385,8 @@ pub async fn delete_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // Check org membership and admin
-    if !is_member_of_org_by_id(&claims, &assessment.org_id) || !claims.is_organization_admin() {
+    // Verify that the current organization is the owner of the assessment
+    if assessment.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to delete this assessment".to_string(),
         ));
@@ -425,9 +425,10 @@ pub async fn submit_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let user_id = claims.sub.clone();
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the assessment exists and user is a member of the org
+    // Verify that the assessment exists and belongs to the organization
     let assessment_model = app_state
         .database
         .assessments
@@ -440,8 +441,8 @@ pub async fn submit_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // Check org membership and that user is not org_admin (only org_user can submit)
-    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) || claims.is_organization_admin() {
+    // Verify that the current organization is the owner of the assessment
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to submit this assessment".to_string(),
         ));
@@ -542,7 +543,7 @@ pub async fn submit_assessment(
     let existing_submission = app_state
         .database
         .assessments_submission
-        .get_submission_by_assessment_id(assessment_id)
+        .create_submission(assessment_id, org_id.clone(), submission_content.clone())
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch org submission: {e}")))?;
 
@@ -618,8 +619,8 @@ pub async fn submit_assessment(
     let now = chrono::Utc::now().to_rfc3339();
     let submission = AssessmentSubmission {
         assessment_id,
-        user_id,
-        content: merged_content,
+        org_id,
+        content: submission_content,
         submitted_at: now,
         review_status: _submission_model.status.to_string(),
         reviewed_at: None,

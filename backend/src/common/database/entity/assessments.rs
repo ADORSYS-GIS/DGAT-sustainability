@@ -149,7 +149,7 @@ mod tests {
 
         let mock_submission = SubmissionModel {
             submission_id: mock_assessment.assessment_id,
-            user_id: "test_user".to_string(),
+            org_id: "test_org".to_string(),
             content: json!({}),
             submitted_at: Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -266,7 +266,7 @@ mod tests {
 
         let mock_submission = SubmissionModel {
             submission_id: assessment_id,
-            user_id: "test_user".to_string(),
+            org_id: "test_org".to_string(),
             content: json!({}),
             submitted_at: Utc::now(),
             status: SubmissionStatus::UnderReview,

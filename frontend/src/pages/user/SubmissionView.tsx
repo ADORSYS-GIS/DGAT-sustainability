@@ -1,40 +1,14 @@
 import * as React from "react";
-import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
-import {
-  useSubmissionsServiceGetSubmissionsBySubmissionId,
-  useAssessmentsServiceGetAssessmentsByAssessmentId,
-  useQuestionsServiceGetQuestions,
-} from "../../openapi-rq/queries/queries";
-import type {
-  Question,
-  QuestionRevision,
-  Response as SubmissionResponse,
-} from "../../openapi-rq/requests/types.gen";
-import { useAuth } from "@/hooks/shared/useAuth";
+import { useSubmissionsServiceGetSubmissionsBySubmissionId } from "../../openapi-rq/queries/queries";
+import type { Submission_content_responses } from "../../openapi-rq/requests/types.gen";
 
 export const SubmissionView: React.FC = () => {
   const { submissionId } = useParams<{ submissionId: string }>();
-  const { user } = useAuth();
-  // Helper to get org_id from token
-  const orgId = React.useMemo(() => {
-    if (!user || !user.organizations) return "";
-    const orgKeys = Object.keys(user.organizations);
-    if (orgKeys.length === 0) return "";
-    const orgObj = user.organizations[orgKeys[0]] || {};
-    return orgObj.id || "";
-  }, [user]);
-  // Fetch submission to get assessment_id
   const {
     data: submissionData,
     isLoading: submissionLoading,
@@ -43,181 +17,17 @@ export const SubmissionView: React.FC = () => {
     submissionId: submissionId || "",
   });
   const submission = submissionData?.submission;
-  const assessmentId = submission?.assessment_id;
+  const responses = submission?.content?.responses as Submission_content_responses[] | undefined;
 
-  // Fetch assessment detail (questions + responses)
-  const {
-    data: assessmentDetail,
-    isLoading: assessmentLoading,
-    isError: assessmentError,
-  } = useAssessmentsServiceGetAssessmentsByAssessmentId(
-    assessmentId ? { assessmentId } : { assessmentId: "" },
-    undefined,
-    { enabled: !!assessmentId },
-  );
-
-  //  Fetch all questions (to get categories)
-  const {
-    data: questionsData,
-    isLoading: questionsLoading,
-    isError: questionsError,
-  } = useQuestionsServiceGetQuestions();
-
-  // Group questions by category (support both old and new formats, like Assessment.tsx)
-  const groupedQuestions = useMemo(() => {
-    if (!questionsData?.questions) return {};
-    const groups: Record<
-      string,
-      { question: Question; revision: QuestionRevision }[]
-    > = {};
-    type QuestionNewFormat = {
-      question_id: string;
-      category: string;
-      created_at: string;
-      latest_revision: QuestionRevision;
-    };
-    type QuestionOldFormat = {
-      question: Question;
-      revisions: QuestionRevision[];
-    };
-    type QuestionUnion = QuestionNewFormat | QuestionOldFormat;
-    (questionsData.questions as QuestionUnion[]).forEach((q) => {
-      let category: string | undefined;
-      let question: Question | undefined;
-      let revision: QuestionRevision | undefined;
-      if ("category" in q && "latest_revision" in q) {
-        // New format
-        category = q.category;
-        question = {
-          question_id: q.question_id,
-          category: q.category,
-          created_at: q.created_at,
-        };
-        revision = q.latest_revision;
-      } else if ("question" in q && "revisions" in q) {
-        // Old format
-        category = q.question.category;
-        question = q.question;
-        revision = q.revisions[q.revisions.length - 1];
-      }
-      if (category && question && revision) {
-        if (!groups[category]) groups[category] = [];
-        groups[category].push({ question, revision });
-      }
-    });
-    return groups;
-  }, [questionsData]);
-
-  const categories = Object.keys(groupedQuestions);
-
-  // Helper to find response for a question
-  const findResponseForQuestion = (
-    question_revision_id: string,
-    revision: QuestionRevision,
-  ) => {
-    const responses = submission?.content?.responses as
-      | SubmissionResponse[]
-      | undefined;
-    if (!responses) return undefined;
-    // Try to match by question_revision_id first
-    let found = responses.find(
-      (r) => r.question_revision_id === question_revision_id,
-    );
-    if (found) return found;
-    // Fallback: match by question text (en)
-    let questionText = "";
-    if (typeof revision.text === "object" && revision.text !== null) {
-      const textObj = revision.text as Record<string, unknown>;
-      if (typeof textObj["en"] === "string") {
-        questionText = textObj["en"] as string;
-      } else {
-        const firstString = Object.values(textObj).find(
-          (v) => typeof v === "string",
-        );
-        questionText = typeof firstString === "string" ? firstString : "";
-      }
-    } else if (typeof revision.text === "string") {
-      questionText = revision.text;
-    }
-    // Type guard for question property
-    function hasQuestionEn(obj: unknown): obj is { question: { en: string } } {
-      return (
-        typeof obj === "object" &&
-        obj !== null &&
-        "question" in obj &&
-        typeof (obj as { question?: unknown }).question === "object" &&
-        (obj as { question?: unknown }).question !== null &&
-        "en" in (obj as { question: { en?: unknown } }).question &&
-        typeof (
-          (obj as { question: { en?: unknown } }).question as { en?: unknown }
-        ).en === "string"
-      );
-    }
-    // Try to match by question.en in response
-    found = responses.find((r) => {
-      if (hasQuestionEn(r)) {
-        return r.question.en === questionText;
-      }
-      return false;
-    });
-    return found;
-  };
-
-  // Helper to get the question revision id key
-  function hasQuestionRevisionId(
-    obj: QuestionRevision,
-  ): obj is QuestionRevision & { question_revision_id: string } {
-    return (
-      "question_revision_id" in obj &&
-      typeof (obj as { question_revision_id?: unknown })
-        .question_revision_id === "string"
-    );
-  }
-  const getRevisionKey = (revision: QuestionRevision): string => {
-    if (hasQuestionRevisionId(revision)) {
-      return revision.question_revision_id;
-    } else if (
-      "latest_revision" in revision &&
-      typeof (revision as { latest_revision?: unknown }).latest_revision ===
-        "string"
-    ) {
-      return (revision as { latest_revision: string }).latest_revision;
-    }
-    return "";
-  };
-
-  // Helper to extract question text (copied from Assessment.tsx)
-  const getQuestionText = (revision: QuestionRevision): string => {
-    if (typeof revision.text === "object" && revision.text !== null) {
-      const textObj = revision.text as Record<string, unknown>;
-      if (typeof textObj["en"] === "string") {
-        return textObj["en"] as string;
-      }
-      const firstString = Object.values(textObj).find(
-        (v) => typeof v === "string",
-      );
-      return typeof firstString === "string" ? firstString : "";
-    } else if (typeof revision.text === "string") {
-      return revision.text;
-    }
-    return "";
-  };
-
-  // Render a read-only answer block matching Assessment.tsx UI
-  const renderReadOnlyAnswer = (
-    revision: QuestionRevision,
-    response: SubmissionResponse | undefined,
-  ) => {
-    // Parse the answer
+  // Helper to parse and display the answer
+  const renderReadOnlyAnswer = (response: Submission_content_responses) => {
     let answer: Record<string, unknown> | string | undefined = undefined;
     try {
       if (response?.response) {
         let parsed: unknown = undefined;
         if (Array.isArray(response.response) && response.response.length > 0) {
-          // Parse the first element (could extend to all if needed)
           parsed = JSON.parse(response.response[0]);
         } else if (typeof response.response === "string") {
-          // Try to parse as array of strings
           let arr: unknown = undefined;
           try {
             arr = JSON.parse(response.response);
@@ -233,15 +43,12 @@ export const SubmissionView: React.FC = () => {
           } else if (typeof arr === "object" && arr !== null) {
             parsed = arr;
           } else {
-            // fallback: try to parse as object
             parsed = JSON.parse(response.response);
           }
         }
         if (
           typeof parsed === "string" ||
-          (typeof parsed === "object" &&
-            parsed !== null &&
-            !Array.isArray(parsed))
+          (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed))
         ) {
           answer = parsed as string | Record<string, unknown>;
         } else {
@@ -249,12 +56,10 @@ export const SubmissionView: React.FC = () => {
         }
       }
     } catch {
-      // fallback to raw string if parsing fails
       answer = Array.isArray(response?.response)
         ? response?.response[0]
         : response?.response;
     }
-    // Extract values
     const yesNoValue =
       typeof answer === "object" && answer !== null && "yesNo" in answer
         ? (answer as { yesNo?: boolean }).yesNo
@@ -267,13 +72,10 @@ export const SubmissionView: React.FC = () => {
       typeof answer === "object" && answer !== null && "text" in answer
         ? (answer as { text?: string }).text
         : "";
-    // Files are inside the answer object, not the top-level response
     const files: { name?: string; url?: string }[] =
       typeof answer === "object" &&
       answer !== null &&
-      Array.isArray(
-        (answer as { files?: { name?: string; url?: string }[] }).files,
-      )
+      Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
         ? (answer as { files: { name?: string; url?: string }[] }).files
         : [];
     return (
@@ -373,7 +175,7 @@ export const SubmissionView: React.FC = () => {
     );
   };
 
-  if (submissionLoading || assessmentLoading || questionsLoading) {
+  if (submissionLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -383,13 +185,7 @@ export const SubmissionView: React.FC = () => {
       </div>
     );
   }
-  if (
-    submissionError ||
-    assessmentError ||
-    questionsError ||
-    !submission ||
-    !assessmentDetail
-  ) {
+  if (submissionError || !submission) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -442,46 +238,26 @@ export const SubmissionView: React.FC = () => {
                   </div>
                 )}
               </div>
-              {/* All categories and questions in a single card */}
-              <div className="mt-6">
-                <Accordion
-                  type="multiple"
-                  className="w-full divide-y divide-gray-100"
-                >
-                  {categories.flatMap((category, catIdx) => [
-                    <div key={category} className="text-left px-2 py-4">
-                      <div className="text-lg font-semibold text-dgrv-blue mb-2">
-                        {category}
-                      </div>
-                    </div>,
-                    ...groupedQuestions[category].map(
-                      ({ question, revision }, idx) => {
-                        const questionText = getQuestionText(revision);
-                        const response = findResponseForQuestion(
-                          getRevisionKey(revision),
-                          revision,
-                        );
-                        return (
-                          <AccordionItem
-                            key={getRevisionKey(revision)}
-                            value={getRevisionKey(revision)}
-                            className="bg-white/80"
-                          >
-                            <AccordionTrigger className="text-left text-base font-medium text-gray-900 px-6 py-4 hover:bg-dgrv-blue/5 focus:bg-dgrv-blue/10 rounded-md justify-start items-start">
-                              <span className="mr-2 text-gray-400">
-                                {idx + 1}.
-                              </span>{" "}
-                              {questionText}
-                            </AccordionTrigger>
-                            <AccordionContent className="px-6 pb-6 pt-2">
-                              {renderReadOnlyAnswer(revision, response)}
-                            </AccordionContent>
-                          </AccordionItem>
-                        );
-                      },
-                    ),
-                  ])}
-                </Accordion>
+              {/* Display all responses */}
+              <div className="mt-6 space-y-8">
+                {responses && responses.length > 0 ? (
+                  responses.map((response, idx) => (
+                    <Card key={idx} className="mb-4">
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold text-dgrv-blue">
+                          {response.question != null && typeof response.question === "object"
+                            ? (response.question.en ?? "Question")
+                            : typeof response.question === "string"
+                              ? response.question
+                              : "Question"}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>{renderReadOnlyAnswer(response)}</CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-gray-500">No responses found.</div>
+                )}
               </div>
             </CardContent>
           </Card>

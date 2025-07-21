@@ -107,16 +107,17 @@ pub async fn list_user_submissions(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<SubmissionListResponse>, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Fetch user submissions from the database
+    // Fetch organization submissions from the database
     let submission_models = app_state
         .database
         .assessments_submission
-        .get_submissions_by_user(user_id)
+        .get_submissions_by_org(&org_id)
         .await
         .map_err(|e| {
-            ApiError::InternalServerError(format!("Failed to fetch user submissions: {e}"))
+            ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}"))
         })?;
 
     // Convert database models to API models
@@ -130,7 +131,7 @@ pub async fn list_user_submissions(
 
         submissions.push(Submission {
             submission_id: model.submission_id,
-            user_id: model.user_id,
+            org_id: model.org_id,
             content: enhanced_content,
             submitted_at: model.submitted_at.to_rfc3339(),
             review_status: model.status.to_string(),
@@ -146,7 +147,8 @@ pub async fn get_submission(
     Extension(claims): Extension<Claims>,
     Path(submission_id): Path<Uuid>,
 ) -> Result<Json<SubmissionDetailResponse>, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // In the database model, submission_id is actually the assessment_id (primary key)
     // Fetch the specific submission from the database
@@ -162,19 +164,8 @@ pub async fn get_submission(
         None => return Err(ApiError::NotFound("Submission not found".to_string())),
     };
 
-    // Allow any org member to view the submission
-    // Fetch the assessment to get org_id
-    let assessment = app_state
-        .database
-        .assessments
-        .get_assessment_by_id(submission_model.submission_id)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
-    let assessment = match assessment {
-        Some(a) => a,
-        None => return Err(ApiError::NotFound("Assessment not found".to_string())),
-    };
-    if !is_member_of_org_by_id(&claims, &assessment.org_id) {
+    // Verify that the current organization is the owner of the submission
+    if submission_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this submission".to_string(),
         ));
@@ -189,7 +180,7 @@ pub async fn get_submission(
     // Convert database model to API model
     let submission = AssessmentSubmission {
         assessment_id: submission_model.submission_id,
-        user_id: submission_model.user_id,
+        org_id: submission_model.org_id,
         content: enhanced_content,
         submitted_at: submission_model.submitted_at.to_rfc3339(),
         review_status: submission_model.status.to_string(),

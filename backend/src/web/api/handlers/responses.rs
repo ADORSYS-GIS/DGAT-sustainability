@@ -98,9 +98,10 @@ pub async fn list_responses(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<ResponseListResponse>, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -113,7 +114,7 @@ pub async fn list_responses(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -155,7 +156,8 @@ pub async fn create_response(
     Path(assessment_id): Path<Uuid>,
     Json(request): Json<CreateResponseRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate request
     if request.response.trim().is_empty() {
@@ -164,7 +166,7 @@ pub async fn create_response(
         ));
     }
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -177,7 +179,7 @@ pub async fn create_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -282,9 +284,10 @@ pub async fn get_response(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -297,7 +300,7 @@ pub async fn get_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -349,7 +352,8 @@ pub async fn update_response(
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<UpdateResponseRequest>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate request
     if request.response.is_empty() || request.response.iter().all(|s| s.trim().is_empty()) {
@@ -358,7 +362,7 @@ pub async fn update_response(
         ));
     }
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -371,7 +375,7 @@ pub async fn update_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -461,9 +465,10 @@ pub async fn delete_response(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -476,7 +481,7 @@ pub async fn delete_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
