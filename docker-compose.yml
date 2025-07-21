@@ -1,133 +1,106 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  # PostgresSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: sustainability_postgres
-    environment:
-      POSTGRES_DB: sustainability
-      POSTGRES_USER: sustainability_user
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5435:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sustainability_user -d sustainability"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - sustainability_network
-
-  # Keycloak with HTTP
-  keycloak:
-    image: quay.io/keycloak/keycloak:22.0.1
-    container_name: sustainability_keycloak
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: sustainability_user
-      KC_DB_PASSWORD: postgres
-      KC_HTTP_RELATIVE_PATH: /auth
-      KC_HOSTNAME_STRICT: "false"
-      KC_PROXY: edge
-      # Email configuration - conditionally set in dev/prod
-      KC_SPI_EMAIL_SENDER_FROM: ${MAIL_FROM:-noreply@dgrv.de}
-      KC_SPI_EMAIL_SENDER_HOST: ${MAIL_HOST:-mailhog}
-      KC_SPI_EMAIL_SENDER_PORT: ${MAIL_PORT:-1025}
-      KC_SPI_EMAIL_SENDER_STARTTLS: ${MAIL_STARTTLS:-false}
-      KC_SPI_EMAIL_SENDER_AUTH: ${MAIL_AUTH:-false}
-      KC_SPI_EMAIL_SENDER_USER: ${MAIL_USER:-}
-      KC_SPI_EMAIL_SENDER_PASSWORD: ${MAIL_PASSWORD:-}
-    volumes:
-      - ./infrastructure/realm-export.json:/opt/keycloak/data/import/realm-export.json
-    ports:
-      - "8082:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: [
-      "start",
-      "--hostname=localhost",
-      "--http-enabled=true",
-      "--import-realm"
-    ]
-    networks:
-      - sustainability_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/auth/"]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 30s
-
-  # Mail server - conditionally deployed based on ENVIRONMENT
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: sustainability_mailhog
-    ports:
-      - "1025:1025" # SMTP server
-      - "8025:8025" # Web UI
-    networks:
-      - sustainability_network
-    profiles:
-      - dev
-
-  # Backend API Server
+  #
+  # ─────────────────────────────── BACKEND ───────────────────────────────
+  #
   backend:
     build:
       context: .
-      dockerfile: ./infrastructure/Dockerfile.backend
-    container_name: sustainability_backend
+      dockerfile: ./infrastructure/Dockerfile.backend          # uses the multi-stage Rust image
+    image: sustainability-backend:latest
+    container_name: sustainability-backend
+    command: ["/app/sustainability-tool"]     # binary copied in Dockerfile
+    env_file: .env                            # keep secrets out of compose
     environment:
-      KEYCLOAK_URL: http://keycloak:8080
-      KEYCLOAK_REALM: dgrv
-      KEYCLOAK_CLIENT_ID: sustainability-backend
-      KEYCLOAK_CLIENT_SECRET: sustainability-backend-secret
-      SERVER_PORT: 3001
-      SERVER_HOST: 0.0.0.0
-      DATABASE_URL: postgresql://sustainability_user:postgres@postgres:5432/sustainability
-      RUST_LOG: info
-      CORS_ORIGIN: http://localhost:3000
-      # Production mode flag
-      ENVIRONMENT: ${ENVIRONMENT:-dev}
-    ports:
-      - "3001:3001"
+      RUST_LOG: "${RUST_LOG:-info}"
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
+      KEYCLOAK_URL: "http://keycloak:8080"
     depends_on:
+      db:
+        condition: service_healthy
       keycloak:
         condition: service_healthy
-      postgres:
-        condition: service_healthy
-    networks:
-      - sustainability_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "8081:8080"                            # hostPort:containerPort
+    networks: [tool-net]
 
-  # Frontend Application
+  #
+  # ────────────────────────────── POSTGRES ──────────────────────────────
+  #
+  db:
+    image: postgres:16-alpine
+    container_name: sustainability-db
+    environment:
+      POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
+      POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── KEYCLOAK ──────────────────────────────
+  #
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.1
+    container_name: sustainability-keycloak
+    environment:
+      KC_DB:                   "postgres"
+      KC_DB_URL_HOST:          db
+      KC_DB_URL_DATABASE:      "${POSTGRES_DB:-sustainability}"
+      KC_DB_USERNAME:          "${POSTGRES_USER:-postgres}"
+      KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
+      KEYCLOAK_ADMIN:          "${KEYCLOAK_ADMIN:-admin}"
+      KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
+    command: ["start-dev", "--import-realm"]   # picks up any JSON in /opt/keycloak/data/import
+    volumes:
+      - ./infrastructure/keycloak/realm-export:/opt/keycloak/data/import:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/master"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "8080:8080"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── USER PWA ──────────────────────────────
+  #
   frontend:
-    build:
+    build:                           # uses the new multi-stage Dockerfile shown below
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
-    container_name: sustainability_frontend
-    environment:
-      VITE_API_URL: http://localhost:3001
-      VITE_KEYCLOAK_URL: http://localhost:8082
-      VITE_KEYCLOAK_REALM: dgrv
-      VITE_KEYCLOAK_CLIENT_ID: sustainability-frontend
-      ENVIRONMENT: ${ENVIRONMENT:-dev}
-    ports:
-      - "3000:3000"
+    image: sustainability-frontend:latest
+    container_name: sustainability-frontend
+    env_file: .env
     depends_on:
       - backend
-      - keycloak
-    networks:
-      - sustainability_network
+    ports:
+      - "3000:80"                    # nginx serves the built app
+    networks: [tool-net]
+
+# ────────────────────────────── VOLUMES / NETS ───────────────────────────
+#
+volumes:
+  postgres-data:
 
 networks:
-  sustainability_network:
-    driver: bridge
-
-volumes:
-  postgres_data:
+  tool-net:
+    name: sustainability-net

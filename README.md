@@ -1,5 +1,26 @@
 # Sustainability Assessment Tool
+# Keycloak Realm Import Fix
 
+## Issue
+The Keycloak realm import is failing due to an unsupported field `maxTemporaryLockouts` in the realm export file.
+
+## Solution
+
+1. Run the fix script to remove the unsupported field:
+   ```bash
+   chmod +x fix-realm-export.sh
+   ./fix-realm-export.sh
+   ```
+
+2. Restart the Keycloak container:
+   ```bash
+   docker-compose restart keycloak
+   ```
+
+## Explanation
+The error occurs because the realm export file contains a field (`maxTemporaryLockouts`) that is not recognized by the current version of Keycloak (22.0.1). The fix script removes this field from the JSON file.
+
+If you need to preserve this setting, you will need to manually configure it through the Keycloak admin UI after import.
 The Sustainability Assessment Tool is a digital platform designed to help cooperatives in Southern Africa evaluate their sustainability performance. Built as a Progressive Web App (PWA), it allows users to conduct assessments offline and sync data when connected. This tool is part of a broader initiative by DGRV to support cooperative development through digital transformation, empowering cooperatives to assess their sustainability across environmental, financial, and governance dimensions.
 
 ## Development Status
