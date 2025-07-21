@@ -1,5 +1,4 @@
 use sea_orm_migration::prelude::*;
-use sea_orm_migration::sea_orm::sea_query::Iden;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
