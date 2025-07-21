@@ -1,4 +1,5 @@
 use sea_orm_migration::prelude::*;
+use sea_orm_migration::sea_orm::sea_query::Iden;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -18,7 +19,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Assessments::UserId).string().not_null())
+                    .col(ColumnDef::new(Assessments::OrgId).string().not_null())
                     .col(ColumnDef::new(Assessments::Language).string().not_null())
                     .col(
                         ColumnDef::new(Assessments::CreatedAt)
@@ -45,7 +46,7 @@ impl MigrationTrait for Migration {
 enum Assessments {
     Table,
     AssessmentId,
-    UserId,
+    OrgId,
     Language,
     CreatedAt,
 }
