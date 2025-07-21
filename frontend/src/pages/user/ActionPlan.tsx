@@ -30,23 +30,25 @@ export const ActionPlan: React.FC = () => {
     return data.reports.flatMap((report) => {
       if (Array.isArray(report.data)) {
         return report.data.flatMap((catObj) => {
-          if (catObj && typeof catObj === 'object') {
-            return Object.entries(catObj).map(([category, value]) => {
-              if (
-                value &&
-                typeof value === 'object' &&
-                'recommendation' in value &&
-                typeof value.recommendation === 'string'
-              ) {
-                return {
-                  id: `${report.report_id}-${category}-${idx++}`,
-                  category,
-                  recommendation: value.recommendation,
-                  status: 'todo',
-                };
-              }
-              return null;
-            }).filter(Boolean) as KanbanRecommendation[];
+          if (catObj && typeof catObj === "object") {
+            return Object.entries(catObj)
+              .map(([category, value]) => {
+                if (
+                  value &&
+                  typeof value === "object" &&
+                  "recommendation" in value &&
+                  typeof value.recommendation === "string"
+                ) {
+                  return {
+                    id: `${report.report_id}-${category}-${idx++}`,
+                    category,
+                    recommendation: value.recommendation,
+                    status: "todo",
+                  };
+                }
+                return null;
+              })
+              .filter(Boolean) as KanbanRecommendation[];
           }
           return [];
         });
@@ -55,7 +57,9 @@ export const ActionPlan: React.FC = () => {
     });
   };
   // State for Kanban recommendations
-  const [kanbanRecs, setKanbanRecs] = React.useState<KanbanRecommendation[]>([]);
+  const [kanbanRecs, setKanbanRecs] = React.useState<KanbanRecommendation[]>(
+    [],
+  );
   // On data load, initialize state (only once)
   React.useEffect(() => {
     if (kanbanRecs.length === 0 && data?.reports) {
@@ -83,11 +87,14 @@ export const ActionPlan: React.FC = () => {
   ];
 
   // Filter recommendations by status
-  const getTasksByStatus = (status: string) => kanbanRecs.filter((rec) => rec.status === status);
+  const getTasksByStatus = (status: string) =>
+    kanbanRecs.filter((rec) => rec.status === status);
 
   // Move a recommendation to a new status
   const moveRecommendation = (id: string, newStatus: string) => {
-    setKanbanRecs((prev) => prev.map((rec) => rec.id === id ? { ...rec, status: newStatus } : rec));
+    setKanbanRecs((prev) =>
+      prev.map((rec) => (rec.id === id ? { ...rec, status: newStatus } : rec)),
+    );
   };
 
   const getStatusIcon = (status: string) => {
@@ -175,60 +182,84 @@ export const ActionPlan: React.FC = () => {
                     {columnTasks.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No tasks in {column.title.toLowerCase()}</p>
+                        <p className="text-sm">
+                          No tasks in {column.title.toLowerCase()}
+                        </p>
                       </div>
                     ) : (
                       columnTasks.map((task) => (
-                        <Card key={task.id} className={getStatusColor(task.status)}>
+                        <Card
+                          key={task.id}
+                          className={getStatusColor(task.status)}
+                        >
                           <CardContent className="p-4">
                             <div className="flex flex-col gap-1">
-                              <div className="font-bold text-dgrv-blue mb-1">{task.category}</div>
-                              <div className="text-sm text-gray-900 mb-2">{task.recommendation}</div>
+                              <div className="font-bold text-dgrv-blue mb-1">
+                                {task.category}
+                              </div>
+                              <div className="text-sm text-gray-900 mb-2">
+                                {task.recommendation}
+                              </div>
                               <div className="flex gap-2 mt-2">
-                                {task.status === 'todo' && (
+                                {task.status === "todo" && (
                                   <button
                                     className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                                    onClick={() => moveRecommendation(task.id, 'in_progress')}
+                                    onClick={() =>
+                                      moveRecommendation(task.id, "in_progress")
+                                    }
                                   >
                                     Move to In Progress
                                   </button>
                                 )}
-                                {task.status === 'in_progress' && (
+                                {task.status === "in_progress" && (
                                   <>
                                     <button
                                       className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                                      onClick={() => moveRecommendation(task.id, 'todo')}
+                                      onClick={() =>
+                                        moveRecommendation(task.id, "todo")
+                                      }
                                     >
                                       Back to To Do
                                     </button>
                                     <button
                                       className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
-                                      onClick={() => moveRecommendation(task.id, 'done')}
+                                      onClick={() =>
+                                        moveRecommendation(task.id, "done")
+                                      }
                                     >
                                       Move to Done
                                     </button>
                                   </>
                                 )}
-                                {task.status === 'done' && (
+                                {task.status === "done" && (
                                   <>
                                     <button
                                       className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                                      onClick={() => moveRecommendation(task.id, 'in_progress')}
+                                      onClick={() =>
+                                        moveRecommendation(
+                                          task.id,
+                                          "in_progress",
+                                        )
+                                      }
                                     >
                                       Back to In Progress
                                     </button>
                                     <button
                                       className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"
-                                      onClick={() => moveRecommendation(task.id, 'approved')}
+                                      onClick={() =>
+                                        moveRecommendation(task.id, "approved")
+                                      }
                                     >
                                       Approve
                                     </button>
                                   </>
                                 )}
-                                {task.status === 'approved' && (
+                                {task.status === "approved" && (
                                   <button
                                     className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
-                                    onClick={() => moveRecommendation(task.id, 'done')}
+                                    onClick={() =>
+                                      moveRecommendation(task.id, "done")
+                                    }
                                   >
                                     Back to Done
                                   </button>

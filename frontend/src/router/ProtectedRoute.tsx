@@ -25,35 +25,45 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/" replace />;
   }
 
-  // Block tchikayaline@gmail.com from /dashboard
+  // Role-based access control
+  const isDrgvAdmin = roles.includes("drgv_admin");
+  const isOrgAdmin = roles.includes("org_admin");
+  const isOrgUser = roles.includes("org_user");
+
+  // Only drgv_admin can access /admin
+  if (window.location.pathname.startsWith("/admin") && !isDrgvAdmin) {
+    console.log(
+      "[ProtectedRoute] Non-drgrv_admin trying to access /admin, redirecting to /unauthorized",
+    );
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Only org_admin and org_user can access /dashboard
   if (
     window.location.pathname.startsWith("/dashboard") &&
-    user?.email === "tchikayaline@gmail.com"
+    !(isOrgAdmin || isOrgUser)
   ) {
-    console.log("[ProtectedRoute] Admin user should not access /dashboard, redirecting to /unauthorized");
+    console.log(
+      "[ProtectedRoute] Non-org_admin/org_user trying to access /dashboard, redirecting to /unauthorized",
+    );
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Block non-admins from /admin
+  // Show toast if no organisation
   if (
-    window.location.pathname.startsWith("/admin") &&
-    user?.email !== "tchikayaline@gmail.com"
-  ) {
-    console.log("[ProtectedRoute] Non-admin trying to access /admin, redirecting to /unauthorized");
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  // Remove redirect to /no-organisation, just show toast if no organisation
-  if (
-    user?.email !== "tchikayaline@gmail.com" &&
+    !isDrgvAdmin &&
     (!user?.organizations || Object.keys(user.organizations).length === 0)
   ) {
-    toast.error("You need to be part of an organisation to start an assessment.");
+    toast.error(
+      "You need to be part of an organisation to start an assessment.",
+    );
   }
 
   // If allowedRoles is provided, check roles (legacy support)
   if (allowedRoles && !allowedRoles.some((role) => roles.includes(role))) {
-    console.log("[ProtectedRoute] User missing allowedRoles, redirecting to /unauthorized");
+    console.log(
+      "[ProtectedRoute] User missing allowedRoles, redirecting to /unauthorized",
+    );
     return <Navigate to="/unauthorized" replace />;
   }
 

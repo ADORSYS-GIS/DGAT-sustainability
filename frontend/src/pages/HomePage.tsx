@@ -1,14 +1,8 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
-import {
-  Leaf,
-  CheckSquare,
-  Users,
-  Globe,
-  Shield,
-} from "lucide-react";
+import { Leaf, CheckSquare, Users, Globe, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -20,11 +14,22 @@ export const Welcome: React.FC = () => {
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) return;
-    if (user?.email === "tchikayaline@gmail.com" && window.location.pathname !== "/admin/") {
-      console.log("[Welcome] Admin detected, redirecting to /admin/");
+    const roles = user?.roles || user?.realm_access?.roles || [];
+    const isDrgvAdmin = roles.includes("drgv_admin");
+    const isOrgAdmin = roles.includes("org_admin");
+    const isOrgUser = roles.includes("org_user");
+    if (isDrgvAdmin && window.location.pathname !== "/admin/") {
+      console.log(
+        "[Welcome] drgv_admin detected, redirecting to /admin/dashboard",
+      );
       navigate("/admin/dashboard", { replace: true });
-    } else if (user?.organisation && window.location.pathname !== "/dashboard") {
-      console.log("[Welcome] User has organisation, redirecting to /dashboard");
+    } else if (
+      (isOrgAdmin || isOrgUser) &&
+      window.location.pathname !== "/dashboard"
+    ) {
+      console.log(
+        "[Welcome] Org user/admin detected, redirecting to /dashboard",
+      );
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, loading, user, navigate]);
@@ -68,7 +73,9 @@ export const Welcome: React.FC = () => {
 
   const handleStartAssessment = () => {
     if (!user?.organizations || Object.keys(user.organizations).length === 0) {
-      toast.error("You need to be part of an organisation to start an assessment.");
+      toast.error(
+        "You need to be part of an organisation to start an assessment.",
+      );
       return;
     }
     navigate("/dashboard");

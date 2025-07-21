@@ -77,7 +77,9 @@ export const AdminDashboard: React.FC = () => {
 
     // Include both 'pending_review' and 'under_review' statuses
     const pendingSubmissions = submissions.filter(
-      (s) => s.review_status === "pending_review" || s.review_status === "under_review"
+      (s) =>
+        s.review_status === "pending_review" ||
+        s.review_status === "under_review",
     );
     const userMap = new Map(
       users.map((u) => [u.userId, `${u.firstName ?? ""} ${u.lastName ?? ""}`]),
@@ -97,14 +99,17 @@ export const AdminDashboard: React.FC = () => {
 
   // Dynamic pending reviews count (pending_review or under_review)
   const pendingReviewsCount = React.useMemo(
-    () => submissions.filter(
-      (s) => s.review_status === "pending_review" || s.review_status === "under_review"
-    ).length,
-    [submissions]
+    () =>
+      submissions.filter(
+        (s) =>
+          s.review_status === "pending_review" ||
+          s.review_status === "under_review",
+      ).length,
+    [submissions],
   );
   const completedCount = React.useMemo(
     () => submissions.filter((s) => s.review_status === "approved").length,
-    [submissions]
+    [submissions],
   );
 
   const navigate = useNavigate();
@@ -127,8 +132,7 @@ export const AdminDashboard: React.FC = () => {
     },
     {
       title: "Manage Categories",
-      description:
-        "Configure assessment categories for sustainability tools.",
+      description: "Configure assessment categories for sustainability tools.",
       icon: List,
       color: "green" as const,
       onClick: () => navigate("/admin/categories"),
@@ -165,7 +169,9 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const cats = (await get("sustainability_categories")) as { categoryId: string }[] | undefined;
+        const cats = (await get("sustainability_categories")) as
+          | { categoryId: string }[]
+          | undefined;
         setCategoryCount(cats ? cats.length : 0);
       } catch {
         setCategoryCount(0);
@@ -177,7 +183,11 @@ export const AdminDashboard: React.FC = () => {
   // Fetch questions count from API
   const { data: questionsData } = useQuestionsServiceGetQuestions();
   function isQuestionsResponse(obj: unknown): obj is { questions: unknown[] } {
-    return typeof obj === 'object' && obj !== null && Array.isArray((obj as { questions?: unknown[] }).questions);
+    return (
+      typeof obj === "object" &&
+      obj !== null &&
+      Array.isArray((obj as { questions?: unknown[] }).questions)
+    );
   }
   useEffect(() => {
     if (isQuestionsResponse(questionsData)) {
@@ -270,7 +280,7 @@ export const AdminDashboard: React.FC = () => {
                       <div className="flex items-center space-x-4">
                         <div className="p-2 rounded-full bg-gray-100">
                           {/* Assuming type is derived from submission or can be inferred */}
-                            <Star className="w-5 h-5 text-dgrv-green" />
+                          <Star className="w-5 h-5 text-dgrv-green" />
                         </div>
                         <div>
                           <h3 className="font-medium">
@@ -289,7 +299,9 @@ export const AdminDashboard: React.FC = () => {
                           {review.submittedAt}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {review.reviewStatus === 'under_review' ? 'Under Review' : 'Review Required'}
+                          {review.reviewStatus === "under_review"
+                            ? "Under Review"
+                            : "Review Required"}
                         </Badge>
                       </div>
                     </div>
@@ -306,7 +318,10 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Admin Guide */}
             <div className="space-y-6">
-              <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+              <Card
+                className="animate-fade-in"
+                style={{ animationDelay: "200ms" }}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <BookOpen className="w-5 h-5 text-dgrv-blue" />
@@ -315,13 +330,55 @@ export const AdminDashboard: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm text-gray-700">
-                    <p>Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:</p>
+                    <p>
+                      Welcome to the DGRV Admin Dashboard! Here are some tips to
+                      help you manage the platform:
+                    </p>
                     <ul className="list-disc pl-5 space-y-1">
-                      <li>Use the <span className="font-semibold text-dgrv-blue">Manage Organizations</span> and <span className="font-semibold text-dgrv-blue">Manage Users</span> sections to control access and membership.</li>
-                      <li>Review and approve assessments in the <span className="font-semibold text-dgrv-blue">Review Assessments</span> section.</li>
-                      <li>Configure categories and questions to tailor the assessment process to your needs.</li>
-                      <li>For detailed documentation, visit <a href="https://dgrv-admin-docs.example.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Admin Documentation</a>.</li>
-                      <li>If you need help, contact <a href="mailto:support@dgrv.org" className="text-blue-600 underline">support@dgrv.org</a>.</li>
+                      <li>
+                        Use the{" "}
+                        <span className="font-semibold text-dgrv-blue">
+                          Manage Organizations
+                        </span>{" "}
+                        and{" "}
+                        <span className="font-semibold text-dgrv-blue">
+                          Manage Users
+                        </span>{" "}
+                        sections to control access and membership.
+                      </li>
+                      <li>
+                        Review and approve assessments in the{" "}
+                        <span className="font-semibold text-dgrv-blue">
+                          Review Assessments
+                        </span>{" "}
+                        section.
+                      </li>
+                      <li>
+                        Configure categories and questions to tailor the
+                        assessment process to your needs.
+                      </li>
+                      <li>
+                        For detailed documentation, visit{" "}
+                        <a
+                          href="https://dgrv-admin-docs.example.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline"
+                        >
+                          Admin Documentation
+                        </a>
+                        .
+                      </li>
+                      <li>
+                        If you need help, contact{" "}
+                        <a
+                          href="mailto:support@dgrv.org"
+                          className="text-blue-600 underline"
+                        >
+                          support@dgrv.org
+                        </a>
+                        .
+                      </li>
                     </ul>
                   </div>
                 </CardContent>

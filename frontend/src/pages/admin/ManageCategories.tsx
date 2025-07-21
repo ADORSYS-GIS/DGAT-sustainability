@@ -79,7 +79,10 @@ export const ManageCategories: React.FC = () => {
   const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
 
   // Calculate total weight
-  const totalWeight = sortedCategories.reduce((sum, cat) => sum + cat.weight, 0);
+  const totalWeight = sortedCategories.reduce(
+    (sum, cat) => sum + cat.weight,
+    0,
+  );
   const weightExceeds = totalWeight > 100;
   const weightNot100 = totalWeight !== 100;
 
@@ -106,11 +109,17 @@ export const ManageCategories: React.FC = () => {
       ...cat,
       weight: base + (i < remainder ? 1 : 0),
     }));
-    setCategories(newCats.filter((cat) => cat.categoryId !== "temp-redistribute-id"));
-    persistCategories(newCats.filter((cat) => cat.categoryId !== "temp-redistribute-id"));
+    setCategories(
+      newCats.filter((cat) => cat.categoryId !== "temp-redistribute-id"),
+    );
+    persistCategories(
+      newCats.filter((cat) => cat.categoryId !== "temp-redistribute-id"),
+    );
     // If we just redistributed including a new category, update the form weight
     if (includeNewCategory && newCat) {
-      const idx = cats.findIndex((cat) => cat.categoryId === "temp-redistribute-id");
+      const idx = cats.findIndex(
+        (cat) => cat.categoryId === "temp-redistribute-id",
+      );
       const newWeight = base + (idx < remainder ? 1 : 0);
       setFormData((prev) => ({ ...prev, weight: newWeight }));
     }
@@ -282,7 +291,10 @@ export const ManageCategories: React.FC = () => {
                     </div>
                     {showDialogWeightError && (
                       <div className="text-red-600 text-center space-y-2">
-                        <p>Total weight would exceed 100%. Please adjust or redistribute.</p>
+                        <p>
+                          Total weight would exceed 100%. Please adjust or
+                          redistribute.
+                        </p>
                         <Button
                           type="button"
                           variant="outline"
@@ -342,17 +354,28 @@ export const ManageCategories: React.FC = () => {
                 {/* Show error and redistribute button if needed */}
                 {weightExceeds && (
                   <div className="text-center py-4 text-red-600">
-                    <p className="mb-2">Total weight exceeds 100%. Please adjust or redistribute.</p>
-                    <Button variant="outline" onClick={redistributeWeights} className="bg-dgrv-blue text-white hover:bg-blue-700">
+                    <p className="mb-2">
+                      Total weight exceeds 100%. Please adjust or redistribute.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={redistributeWeights}
+                      className="bg-dgrv-blue text-white hover:bg-blue-700"
+                    >
                       Redistribute Weights Evenly
                     </Button>
                   </div>
                 )}
-                {!weightExceeds && weightNot100 && sortedCategories.length > 0 && (
-                  <div className="text-center py-4 text-yellow-600">
-                    <p>Total weight is {totalWeight}%. It should be exactly 100% for a valid assessment.</p>
-                  </div>
-                )}
+                {!weightExceeds &&
+                  weightNot100 &&
+                  sortedCategories.length > 0 && (
+                    <div className="text-center py-4 text-yellow-600">
+                      <p>
+                        Total weight is {totalWeight}%. It should be exactly
+                        100% for a valid assessment.
+                      </p>
+                    </div>
+                  )}
                 {sortedCategories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <List className="w-12 h-12 mx-auto mb-4 opacity-50" />

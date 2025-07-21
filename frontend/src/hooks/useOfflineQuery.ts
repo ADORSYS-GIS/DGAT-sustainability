@@ -1,7 +1,12 @@
-import { useQuery, useMutation, useQueryClient, QueryKey } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { offlineDB } from '../services/indexeddb';
-import { syncService, SyncStatus } from '../services/syncService';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  QueryKey,
+} from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { offlineDB } from "../services/indexeddb";
+import { syncService, SyncStatus } from "../services/syncService";
 
 interface OfflineQueryOptions<T> {
   queryKey: QueryKey;
@@ -19,13 +24,19 @@ interface OfflineMutationOptions<TData, TVariables> {
   localMutationFn: (variables: TVariables) => Promise<TData>;
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: Error, variables: TVariables) => void;
-  onSettled?: (data: TData | undefined, error: Error | null, variables: TVariables) => void;
+  onSettled?: (
+    data: TData | undefined,
+    error: Error | null,
+    variables: TVariables,
+  ) => void;
   // Additional options for sync queue
   getUrl?: (variables: TVariables) => string;
-  getMethod?: (variables: TVariables) => 'POST' | 'PUT' | 'DELETE';
-  getEntityType?: (variables: TVariables) => 'assessment' | 'response' | 'submission' | 'question';
+  getMethod?: (variables: TVariables) => "POST" | "PUT" | "DELETE";
+  getEntityType?: (
+    variables: TVariables,
+  ) => "assessment" | "response" | "submission" | "question";
   getEntityId?: (variables: TVariables) => string;
-  getOperation?: (variables: TVariables) => 'create' | 'update' | 'delete';
+  getOperation?: (variables: TVariables) => "create" | "update" | "delete";
 }
 
 // Custom hook for offline-first queries
@@ -39,12 +50,12 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -54,7 +65,7 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
       setSyncStatus(status);
 
       // Invalidate queries when sync completes
-      if (status.type === 'sync_complete') {
+      if (status.type === "sync_complete") {
         queryClient.invalidateQueries({ queryKey: options.queryKey });
       }
     };
@@ -87,7 +98,7 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
           } catch (networkError) {
             // Fallback to local data if network fails
             if (localData) {
-              console.warn('Network failed, using local data:', networkError);
+              console.warn("Network failed, using local data:", networkError);
               return localData;
             }
             throw networkError;
@@ -99,9 +110,9 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
           return localData;
         }
 
-        throw new Error('No data available offline');
+        throw new Error("No data available offline");
       } catch (error) {
-        console.error('Query failed:', error);
+        console.error("Query failed:", error);
         throw error;
       }
     },
@@ -127,7 +138,7 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
 
 // Custom hook for offline-first mutations
 export function useOfflineMutation<TData, TVariables>(
-  options: OfflineMutationOptions<TData, TVariables>
+  options: OfflineMutationOptions<TData, TVariables>,
 ) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const queryClient = useQueryClient();
@@ -137,12 +148,12 @@ export function useOfflineMutation<TData, TVariables>(
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -155,18 +166,21 @@ export function useOfflineMutation<TData, TVariables>(
             const result = await options.mutationFn(variables);
             return result;
           } catch (networkError) {
-            console.warn('Network mutation failed, using local mutation:', networkError);
+            console.warn(
+              "Network mutation failed, using local mutation:",
+              networkError,
+            );
             // Fallback to local mutation and queue for sync
             const result = await options.localMutationFn(variables);
 
             // Add to sync queue with proper details
             await offlineDB.addToSyncQueue({
-              operation: options.getOperation?.(variables) || 'update',
-              entity_type: options.getEntityType?.(variables) || 'response',
-              entity_id: options.getEntityId?.(variables) || '',
+              operation: options.getOperation?.(variables) || "update",
+              entity_type: options.getEntityType?.(variables) || "response",
+              entity_id: options.getEntityId?.(variables) || "",
               data: variables,
-              url: options.getUrl?.(variables) || '',
-              method: options.getMethod?.(variables) || 'PUT',
+              url: options.getUrl?.(variables) || "",
+              method: options.getMethod?.(variables) || "PUT",
               max_retries: 3,
             });
 
@@ -178,19 +192,19 @@ export function useOfflineMutation<TData, TVariables>(
 
           // Add to sync queue with proper details
           await offlineDB.addToSyncQueue({
-            operation: options.getOperation?.(variables) || 'update',
-            entity_type: options.getEntityType?.(variables) || 'response',
-            entity_id: options.getEntityId?.(variables) || '',
+            operation: options.getOperation?.(variables) || "update",
+            entity_type: options.getEntityType?.(variables) || "response",
+            entity_id: options.getEntityId?.(variables) || "",
             data: variables,
-            url: options.getUrl?.(variables) || '',
-            method: options.getMethod?.(variables) || 'PUT',
+            url: options.getUrl?.(variables) || "",
+            method: options.getMethod?.(variables) || "PUT",
             max_retries: 3,
           });
 
           return result;
         }
       } catch (error) {
-        console.error('Mutation failed:', error);
+        console.error("Mutation failed:", error);
         throw error;
       }
     },
@@ -212,25 +226,30 @@ export function useOfflineMutation<TData, TVariables>(
 }
 
 // Hook for questions with offline support
-export function useOfflineQuestions(params?: { category?: string; language?: string }) {
+export function useOfflineQuestions(params?: {
+  category?: string;
+  language?: string;
+}) {
   return useOfflineQuery({
-    queryKey: ['questions', params],
+    queryKey: ["questions", params],
     queryFn: async () => {
-      const response = await fetch('/api/v1/questions?' + new URLSearchParams(params || {}));
-      if (!response.ok) throw new Error('Failed to fetch questions');
+      const response = await fetch(
+        "/api/v1/questions?" + new URLSearchParams(params || {}),
+      );
+      if (!response.ok) throw new Error("Failed to fetch questions");
       return response.json();
     },
     localDataFn: async () => {
       const questions = await offlineDB.getAllQuestions();
 
       // Filter by category if specified
-      const filteredQuestions = params?.category 
-        ? questions.filter(q => q.category === params.category)
+      const filteredQuestions = params?.category
+        ? questions.filter((q) => q.category === params.category)
         : questions;
 
       // Transform to match API response format
       return {
-        questions: filteredQuestions.map(q => ({
+        questions: filteredQuestions.map((q) => ({
           question: {
             question_id: q.question_id,
             category: q.category,
@@ -245,19 +264,19 @@ export function useOfflineQuestions(params?: { category?: string; language?: str
 // Hook for assessments with offline support
 export function useOfflineAssessments(userId?: string) {
   return useOfflineQuery({
-    queryKey: ['assessments', userId],
+    queryKey: ["assessments", userId],
     queryFn: async () => {
-      const response = await fetch('/api/v1/assessments');
-      if (!response.ok) throw new Error('Failed to fetch assessments');
+      const response = await fetch("/api/v1/assessments");
+      if (!response.ok) throw new Error("Failed to fetch assessments");
       return response.json();
     },
     localDataFn: async () => {
-      const assessments = userId 
+      const assessments = userId
         ? await offlineDB.getAssessmentsByUser(userId)
         : await offlineDB.getAllAssessments();
 
       return {
-        assessments: assessments.map(a => ({
+        assessments: assessments.map((a) => ({
           assessment_id: a.assessment_id,
           user_id: a.user_id,
           language: a.language,
@@ -271,10 +290,10 @@ export function useOfflineAssessments(userId?: string) {
 // Hook for assessment detail with offline support
 export function useOfflineAssessmentDetail(assessmentId: string) {
   return useOfflineQuery({
-    queryKey: ['assessment', assessmentId],
+    queryKey: ["assessment", assessmentId],
     queryFn: async () => {
       const response = await fetch(`/api/v1/assessments/${assessmentId}`);
-      if (!response.ok) throw new Error('Failed to fetch assessment detail');
+      if (!response.ok) throw new Error("Failed to fetch assessment detail");
       return response.json();
     },
     localDataFn: async () => {
@@ -287,12 +306,18 @@ export function useOfflineAssessmentDetail(assessmentId: string) {
       if (!assessment) return null;
 
       // Get question revisions for the responses
-      const questionRevisions = responses.map(response => {
-        const question = questions.find(q => 
-          q.revisions.some(r => r.question_revision_id === response.question_revision_id)
-        );
-        return question?.revisions.find(r => r.question_revision_id === response.question_revision_id);
-      }).filter(Boolean);
+      const questionRevisions = responses
+        .map((response) => {
+          const question = questions.find((q) =>
+            q.revisions.some(
+              (r) => r.question_revision_id === response.question_revision_id,
+            ),
+          );
+          return question?.revisions.find(
+            (r) => r.question_revision_id === response.question_revision_id,
+          );
+        })
+        .filter(Boolean);
 
       return {
         assessment: {
@@ -302,7 +327,7 @@ export function useOfflineAssessmentDetail(assessmentId: string) {
           created_at: assessment.created_at,
         },
         questions: questionRevisions,
-        responses: responses.map(r => ({
+        responses: responses.map((r) => ({
           response_id: r.response_id,
           assessment_id: r.assessment_id,
           question_revision_id: r.question_revision_id,
@@ -319,19 +344,19 @@ export function useOfflineAssessmentDetail(assessmentId: string) {
 // Hook for submissions with offline support
 export function useOfflineSubmissions(userId?: string) {
   return useOfflineQuery({
-    queryKey: ['submissions', userId],
+    queryKey: ["submissions", userId],
     queryFn: async () => {
-      const response = await fetch('/api/v1/submissions');
-      if (!response.ok) throw new Error('Failed to fetch submissions');
+      const response = await fetch("/api/v1/submissions");
+      if (!response.ok) throw new Error("Failed to fetch submissions");
       return response.json();
     },
     localDataFn: async () => {
-      const submissions = userId 
+      const submissions = userId
         ? await offlineDB.getSubmissionsByUser(userId)
         : [];
 
       return {
-        submissions: submissions.map(s => ({
+        submissions: submissions.map((s) => ({
           submission_id: s.submission_id,
           assessment_id: s.assessment_id,
           user_id: s.user_id,
@@ -348,38 +373,38 @@ export function useOfflineSubmissions(userId?: string) {
 // Hook for creating/updating responses with offline support
 export function useOfflineResponseMutation(assessmentId: string) {
   return useOfflineMutation({
-    mutationFn: async (variables: { 
-      questionRevisionId: string; 
-      response: string; 
+    mutationFn: async (variables: {
+      questionRevisionId: string;
+      response: string;
       responseId?: string;
     }) => {
-      const url = variables.responseId 
+      const url = variables.responseId
         ? `/api/v1/assessments/${assessmentId}/responses/${variables.responseId}`
         : `/api/v1/assessments/${assessmentId}/responses`;
 
-      const method = variables.responseId ? 'PUT' : 'POST';
+      const method = variables.responseId ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question_revision_id: variables.questionRevisionId,
           response: variables.response,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to save response');
+      if (!response.ok) throw new Error("Failed to save response");
       return response.json();
     },
-    localMutationFn: async (variables: { 
-      questionRevisionId: string; 
-      response: string; 
+    localMutationFn: async (variables: {
+      questionRevisionId: string;
+      response: string;
       responseId?: string;
     }) => {
       const responseId = variables.responseId || crypto.randomUUID();
 
       // Get current version for conflict resolution
-      const existingResponse = variables.responseId 
+      const existingResponse = variables.responseId
         ? await offlineDB.getResponse(variables.responseId)
         : null;
 
@@ -390,7 +415,7 @@ export function useOfflineResponseMutation(assessmentId: string) {
         response: variables.response,
         version: existingResponse ? existingResponse.version + 1 : 1,
         updated_at: new Date().toISOString(),
-        sync_status: 'pending' as const,
+        sync_status: "pending" as const,
         local_changes: true,
       };
 

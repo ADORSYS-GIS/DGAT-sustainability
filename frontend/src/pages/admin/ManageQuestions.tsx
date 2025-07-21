@@ -227,9 +227,13 @@ const QuestionForm: React.FC<{
 export const ManageQuestions = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<QuestionWithLatestRevision | null>(null);
+  const [editingQuestion, setEditingQuestion] =
+    useState<QuestionWithLatestRevision | null>(null);
   const [formData, setFormData] = useState<QuestionFormData>({
-    text: LANGUAGES.reduce((acc, lang) => ({ ...acc, [lang.code]: "" }), {} as Record<string, string>),
+    text: LANGUAGES.reduce(
+      (acc, lang) => ({ ...acc, [lang.code]: "" }),
+      {} as Record<string, string>,
+    ),
     weight: 5,
     categoryName: "",
     order: 1,
@@ -252,17 +256,16 @@ export const ManageQuestions = () => {
     isLoading: questionsLoading,
     refetch: refetchQuestions,
   } = useQuestionsServiceGetQuestions();
-  
+
   // Cast the response to match the actual API structure
-  const questions = useMemo(
-    () => {
-      // Access the questions array directly from the response
-      const response = questionsData as Record<string, unknown>;
-      const questionsArray = response?.questions as QuestionWithLatestRevision[] | undefined;
-      return questionsArray || [];
-    },
-    [questionsData],
-  );
+  const questions = useMemo(() => {
+    // Access the questions array directly from the response
+    const response = questionsData as Record<string, unknown>;
+    const questionsArray = response?.questions as
+      | QuestionWithLatestRevision[]
+      | undefined;
+    return questionsArray || [];
+  }, [questionsData]);
 
   function getErrorMessage(error: unknown): string {
     if (
@@ -295,13 +298,14 @@ export const ManageQuestions = () => {
     onError: (error: unknown) => toast.error(getErrorMessage(error)),
   });
 
-  const deleteMutation = useQuestionsServiceDeleteQuestionsRevisionsByQuestionRevisionId({
-    onSuccess: () => {
-      toast.success("Question deleted.");
-      refetchQuestions();
-    },
-    onError: (error: unknown) => toast.error(getErrorMessage(error)),
-  });
+  const deleteMutation =
+    useQuestionsServiceDeleteQuestionsRevisionsByQuestionRevisionId({
+      onSuccess: () => {
+        toast.success("Question deleted.");
+        refetchQuestions();
+      },
+      onError: (error: unknown) => toast.error(getErrorMessage(error)),
+    });
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -350,10 +354,13 @@ export const ManageQuestions = () => {
   const handleEdit = useCallback((question: QuestionWithLatestRevision) => {
     setEditingQuestion(question);
     const weight = question.latest_revision?.weight || 5;
-    const text: Record<string, string> = LANGUAGES.reduce((acc, lang) => {
-      acc[lang.code] = question.latest_revision?.text[lang.code] || "";
-      return acc;
-    }, {} as Record<string, string>);
+    const text: Record<string, string> = LANGUAGES.reduce(
+      (acc, lang) => {
+        acc[lang.code] = question.latest_revision?.text[lang.code] || "";
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
     setFormData({
       text,
       weight,
@@ -436,7 +443,10 @@ export const ManageQuestions = () => {
                     onClick={() => {
                       setEditingQuestion(null);
                       setFormData({
-                        text: LANGUAGES.reduce((acc, lang) => ({ ...acc, [lang.code]: "" }), {} as Record<string, string>),
+                        text: LANGUAGES.reduce(
+                          (acc, lang) => ({ ...acc, [lang.code]: "" }),
+                          {} as Record<string, string>,
+                        ),
                         weight: 5,
                         categoryName: categories[0]?.name || "",
                         order: questions.length + 1,
@@ -469,9 +479,14 @@ export const ManageQuestions = () => {
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
                 {categories.map((category) => {
-                  const categoryQuestions = questions.filter(q => q.category === category.name);
+                  const categoryQuestions = questions.filter(
+                    (q) => q.category === category.name,
+                  );
                   return (
-                    <AccordionItem key={category.categoryId} value={category.categoryId}>
+                    <AccordionItem
+                      key={category.categoryId}
+                      value={category.categoryId}
+                    >
                       <AccordionTrigger className="text-left text-xl font-bold text-dgrv-blue">
                         {category.name}
                       </AccordionTrigger>
@@ -491,7 +506,8 @@ export const ManageQuestions = () => {
                                     <div className="flex space-x-4 text-sm text-gray-600">
                                       {question.latest_revision && (
                                         <span>
-                                          <strong>Weight:</strong> {question.latest_revision.weight}
+                                          <strong>Weight:</strong>{" "}
+                                          {question.latest_revision.weight}
                                         </span>
                                       )}
                                     </div>
@@ -504,16 +520,23 @@ export const ManageQuestions = () => {
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Button>
-                                    {question.latest_revision && question.latest_revision.question_revision_id && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDelete(question.latest_revision.question_revision_id)}
-                                        className="text-red-600 hover:text-red-700"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    )}
+                                    {question.latest_revision &&
+                                      question.latest_revision
+                                        .question_revision_id && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            handleDelete(
+                                              question.latest_revision
+                                                .question_revision_id,
+                                            )
+                                          }
+                                          className="text-red-600 hover:text-red-700"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      )}
                                   </div>
                                 </div>
                               </div>
@@ -546,14 +569,18 @@ export const ManageQuestions = () => {
   );
 };
 
-const QuestionText = ({ question }: { question: QuestionWithLatestRevision }) => {
+const QuestionText = ({
+  question,
+}: {
+  question: QuestionWithLatestRevision;
+}) => {
   if (!question.latest_revision || !question.latest_revision.text) {
     return <em>No text</em>;
   }
 
   const text = question.latest_revision.text;
   const languages = Object.keys(text);
-  
+
   if (languages.length === 0) {
     return <em>No text</em>;
   }
@@ -563,12 +590,12 @@ const QuestionText = ({ question }: { question: QuestionWithLatestRevision }) =>
       {languages.map((lang) => {
         const langText = text[lang];
         if (!langText) return null;
-        
+
         return (
           <div key={lang} className="text-sm">
             <span className="font-medium text-gray-600 uppercase">
-              {lang === 'en' ? 'English' : lang === 'zu' ? 'Zulu' : lang}:
-            </span>{' '}
+              {lang === "en" ? "English" : lang === "zu" ? "Zulu" : lang}:
+            </span>{" "}
             <span className="text-gray-800">{langText}</span>
           </div>
         );

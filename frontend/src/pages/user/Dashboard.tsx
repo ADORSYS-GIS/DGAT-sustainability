@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
 import { OrgUserManageUsers } from "./OrgUserManageUsers";
+import { useAssessmentsServiceGetAssessments } from "@/openapi-rq/queries/queries";
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -28,9 +29,13 @@ export const Dashboard: React.FC = () => {
   const { data, isLoading, isError, error, isSuccess } =
     useSubmissionsServiceGetSubmissions();
   const submissions: Submission[] = data?.submissions?.slice(0, 3) || [];
-  const { data: reportsData, isLoading: reportsLoading } = useReportsServiceGetUserReports();
+  const { data: reportsData, isLoading: reportsLoading } =
+    useReportsServiceGetUserReports();
   const reports = reportsData?.reports || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
+
+  // Get all org assessments for Answer Assessment action
+  const { data: assessmentsData } = useAssessmentsServiceGetAssessments();
 
   React.useEffect(() => {
     if (isError) {
@@ -50,14 +55,42 @@ export const Dashboard: React.FC = () => {
   }, [isError, error, isLoading, isSuccess, submissions.length]);
 
   const dashboardActions = [
-    {
-      title: "Start Sustainability Assessment",
-      description:
-        "Assess environmental, social, and governance practices for sustainable growth.",
-      icon: Leaf,
-      color: "green" as const,
-      onClick: () => navigate("/assessment/sustainability"),
-    },
+    // Only org_admin can start new assessment
+    ...(user?.roles?.includes("org_admin")
+      ? [
+          {
+            title: "Start Sustainability Assessment",
+            description:
+              "Assess environmental, social, and governance practices for sustainable growth.",
+            icon: Leaf,
+            color: "green" as const,
+            onClick: () => navigate("/assessment/sustainability"),
+          },
+        ]
+      : []),
+    // Only org_user sees 'Answer Assessment' card
+    ...(!user?.roles?.includes("org_admin")
+      ? [
+          {
+            title: "Answer Assessment",
+            description:
+              "Answer sustainability assessments assigned to you by your organization.",
+            icon: FileText,
+            color: "blue" as const,
+            onClick: () => {
+              // Find the first draft assessment and navigate to its answer page
+              const draft = (assessmentsData?.assessments || []).find(
+                (a: any) => a.status === "draft",
+              );
+              if (draft) {
+                navigate(`/user/assessment/${draft.assessment_id}`);
+              } else {
+                toast.info("No draft assessment available to answer.");
+              }
+            },
+          },
+        ]
+      : []),
     {
       title: "View Assessments",
       description:
@@ -75,13 +108,18 @@ export const Dashboard: React.FC = () => {
       onClick: () => navigate("/action-plan"),
     },
     // Conditionally add Manage Users card for org admins
-    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin") ? [{
-      title: "Manage Users",
-      description: "Add and manage users in your organization.",
-      icon: Users,
-      color: "blue" as const,
-      onClick: () => navigate("/user/manage-users"),
-    }] : []),
+    ...(user?.roles?.includes("org_admin") ||
+    user?.realm_access?.roles?.includes("org_admin")
+      ? [
+          {
+            title: "Manage Users",
+            description: "Add and manage users in your organization.",
+            icon: Users,
+            color: "blue" as const,
+            onClick: () => navigate("/user/manage-users"),
+          },
+        ]
+      : []),
   ];
 
   const getStatusColor = (status: string) => {
@@ -123,9 +161,10 @@ export const Dashboard: React.FC = () => {
   };
 
   // Get user name and organization name from user object (ID token)
-  const userName = user?.name || user?.preferred_username || user?.email || "User";
+  const userName =
+    user?.name || user?.preferred_username || user?.email || "User";
   let orgName = "your organisation";
-  if (user?.organizations && typeof user.organizations === 'object') {
+  if (user?.organizations && typeof user.organizations === "object") {
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length > 0) {
       orgName = orgKeys[0];
@@ -137,7 +176,9 @@ export const Dashboard: React.FC = () => {
   }
 
   // Check if user has Org_admin role
-  const isOrgAdmin = (user?.roles || user?.realm_access?.roles || []).includes("Org_admin");
+  const isOrgAdmin = (user?.roles || user?.realm_access?.roles || []).includes(
+    "Org_admin",
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -193,33 +234,33 @@ export const Dashboard: React.FC = () => {
                     </div>
                   ) : (
                     submissions.map((submission) => (
-                    <div
+                      <div
                         key={submission.submission_id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          <Leaf className="w-5 h-5 text-dgrv-green" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">
-                            Sustainability Assessment
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {new Date(
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="p-2 rounded-full bg-gray-100">
+                            <Leaf className="w-5 h-5 text-dgrv-green" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">
+                              Sustainability Assessment
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {new Date(
                                 submission.submitted_at,
-                            ).toLocaleDateString()}
-                          </p>
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3">
                           <Badge
                             className={getStatusColor(submission.review_status)}
                           >
                             {formatStatus(submission.review_status)}
-                        </Badge>
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
                     ))
                   )}
                   {submissions.length === 0 && !isLoading && (
@@ -300,7 +341,12 @@ export const Dashboard: React.FC = () => {
       </div>
       {/* Remove modal logic for Manage Users */}
       {/* Hidden canvas for PDF radar chart export */}
-      <canvas id="radar-canvas" width={500} height={400} style={{ display: 'none' }} />
+      <canvas
+        id="radar-canvas"
+        width={500}
+        height={400}
+        style={{ display: "none" }}
+      />
     </div>
   );
 };

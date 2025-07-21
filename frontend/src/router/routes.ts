@@ -40,14 +40,12 @@ const routes = [
   { path: "/", element: React.createElement(Welcome) },
   {
     path: "/dashboard",
-    element: React.createElement(ProtectedRoute, {
-    }),
+    element: React.createElement(ProtectedRoute, {}),
     children: [{ path: "", element: React.createElement(Dashboard) }],
   },
   {
     path: "/admin/dashboard",
-    element: React.createElement(ProtectedRoute, {
-    }),
+    element: React.createElement(ProtectedRoute, {}),
     children: [{ path: "", element: React.createElement(AdminDashboard) }],
   },
   { path: "*", element: React.createElement(NotFound) },

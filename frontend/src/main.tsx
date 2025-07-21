@@ -2,7 +2,6 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { syncService } from "./services/syncService";
 import { OpenAPI } from "@/openapi-rq/requests";
 import { oidcPromise } from "@/services/shared/oidc";
 
@@ -14,10 +13,13 @@ OpenAPI.interceptors.request.use(async (request) => {
     if (tokens?.accessToken) {
       if (!request.headers) request.headers = {};
       // If headers is a Headers object, convert to plain object
-      if (typeof Headers !== 'undefined' && request.headers instanceof Headers) {
-        request.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
+      if (
+        typeof Headers !== "undefined" &&
+        request.headers instanceof Headers
+      ) {
+        request.headers.set("Authorization", `Bearer ${tokens.accessToken}`);
       } else {
-        request.headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+        request.headers["Authorization"] = `Bearer ${tokens.accessToken}`;
       }
     }
   }
@@ -59,21 +61,24 @@ const queryClient = new QueryClient({
 async function initializeOfflineServices() {
   try {
     // Register service worker
-    if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
       });
 
-      console.log('Service Worker registered successfully:', registration);
+      console.log("Service Worker registered successfully:", registration);
 
       // Listen for service worker updates
-      registration.addEventListener('updatefound', () => {
+      registration.addEventListener("updatefound", () => {
         const newWorker = registration.installing;
         if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          newWorker.addEventListener("statechange", () => {
+            if (
+              newWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
               // New service worker is available
-              console.log('New service worker available');
+              console.log("New service worker available");
               // You could show a notification to the user here
             }
           });
@@ -81,15 +86,9 @@ async function initializeOfflineServices() {
       });
     }
 
-    // Initialize sync service
-    await syncService.init();
-
-    // Register for background sync
-    await syncService.registerBackgroundSync();
-
-    console.log('Offline services initialized successfully');
+    console.log("Offline services initialized successfully");
   } catch (error) {
-    console.error('Failed to initialize offline services:', error);
+    console.error("Failed to initialize offline services:", error);
   }
 }
 

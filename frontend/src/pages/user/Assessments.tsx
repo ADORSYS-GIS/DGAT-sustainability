@@ -2,59 +2,60 @@ import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useSubmissionsServiceGetSubmissions } from "../../openapi-rq/queries/queries";
-import type { Submission } from "../../openapi-rq/requests/types.gen";
+import { useAuth } from "@/hooks/shared/useAuth";
+// TODO: Replace with org-scoped assessment listing endpoint when available
+import { useAssessmentsServiceGetAssessments } from "@/openapi-rq/queries/queries";
+import { useResponsesServiceGetAssessmentsByAssessmentIdResponses } from "@/openapi-rq/queries/queries";
+import type { Assessment } from "@/openapi-rq/requests/types.gen";
 import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
+// Extend Assessment type to include status for local use
+type AssessmentWithStatus = Assessment & { status?: string };
+
 export const Assessments: React.FC = () => {
-  const { data, isLoading } = useSubmissionsServiceGetSubmissions();
-  const submissions: Submission[] = data?.submissions || [];
+  const { user } = useAuth();
+  // Helper to get org_id from token
+  const orgId = React.useMemo(() => {
+    if (!user || !user.organizations) return "";
+    const orgKeys = Object.keys(user.organizations);
+    if (orgKeys.length === 0) return "";
+    const orgObj = user.organizations[orgKeys[0]] || {};
+    return orgObj.id || "";
+  }, [user]);
+
+  const { data, isLoading } = useAssessmentsServiceGetAssessments();
+  const assessments: AssessmentWithStatus[] = data?.assessments || [];
   const navigate = useNavigate();
 
-  // Helper to count unique responses (as a proxy for categories completed)
-  const getCategoriesCompleted = (submission: Submission) => {
-    const responses = submission.content?.responses || [];
-    // If category info is not present, just count the number of responses
-    // If in the future, question_category is present, use a Set to count unique categories
-    return responses.length;
+  // Helper to count unique categories completed and total for an assessment
+  const useCategoryCounts = (assessmentId: string) => {
+    // Fetch responses for this assessment
+    const { data: responsesData } =
+      useResponsesServiceGetAssessmentsByAssessmentIdResponses({
+        assessmentId,
+      });
+    // Count unique categories answered
+    const completed = React.useMemo(() => {
+      if (!responsesData?.responses) return 0;
+      const categories = new Set<string>();
+      for (const resp of responsesData.responses) {
+        // Assume question_revision_id encodes category, or fetch category if available
+        // For now, just count unique question_revision_id as a proxy
+        categories.add(resp.question_revision_id);
+      }
+      return categories.size;
+    }, [responsesData]);
+    // For total, you may need to fetch questions for the assessment
+    // For now, just return completed as total (placeholder)
+    const total = completed;
+    return { completed, total };
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "bg-dgrv-green text-white";
-      case "pending_review":
-      case "pending":
-        return "bg-blue-500 text-white";
-      case "under_review":
-        return "bg-orange-500 text-white";
-      case "rejected":
-        return "bg-red-500 text-white";
-      case "revision_requested":
-        return "bg-yellow-500 text-white";
-      default:
-        return "bg-gray-500 text-white";
-    }
-  };
-  const formatStatus = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "Approved";
-      case "pending_review":
-      case "pending":
-        return "Pending Review";
-      case "under_review":
-        return "Under Review";
-      case "rejected":
-        return "Rejected";
-      case "revision_requested":
-        return "Revision Requested";
-      default:
-        return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
-    }
-  };
+  // Placeholder: If you want to show status, you may need to fetch submissions separately
+  const getStatusColor = (_status: string) => "bg-gray-500 text-white";
+  const formatStatus = (_status: string) => "-";
 
   if (isLoading) {
     return (
@@ -66,6 +67,97 @@ export const Assessments: React.FC = () => {
       </div>
     );
   }
+
+  // Child component to render each assessment card and use hooks safely
+  const AssessmentCard: React.FC<{
+    assessment: AssessmentWithStatus;
+    user: any;
+    navigate: any;
+    index: number;
+  }> = ({ assessment, user, navigate, index }) => {
+    const { completed, total } = useCategoryCounts(assessment.assessment_id);
+    return (
+      <Card
+        key={assessment.assessment_id}
+        className="animate-fade-in"
+        style={{ animationDelay: `${index * 100}ms` }}
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-3">
+              <div className="p-2 rounded-full bg-dgrv-green/10">
+                <FileText className="w-5 h-5 text-dgrv-green" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">
+                  Sustainability Assessment
+                </h3>
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      Created:{" "}
+                      {assessment.created_at
+                        ? new Date(assessment.created_at).toLocaleDateString()
+                        : "-"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardTitle>
+            <div className="flex items-center space-x-3">
+              <Badge
+                className={
+                  assessment.status === "submitted"
+                    ? "bg-dgrv-green text-white"
+                    : "bg-gray-500 text-white"
+                }
+              >
+                {assessment.status
+                  ? assessment.status.charAt(0).toUpperCase() +
+                    assessment.status.slice(1)
+                  : "-"}
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              <p>
+                Categories Completed: {completed}/{total}
+              </p>
+            </div>
+            <div className="flex space-x-2">
+              {user?.roles?.includes("org_admin") ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    navigate(`/submission-view/${assessment.assessment_id}`)
+                  }
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  View Details
+                </Button>
+              ) : assessment.status === "submitted" ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    navigate(`/submission-view/${assessment.assessment_id}`)
+                  }
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  View Submission
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -86,82 +178,33 @@ export const Assessments: React.FC = () => {
                   View and manage all your sustainability submissions
                 </p>
               </div>
-              <Button
-                onClick={() => navigate("/assessment/sustainability")}
-                className="bg-dgrv-green hover:bg-green-700"
-              >
-                Start New Assessment
-              </Button>
+              {user?.roles?.includes("org_admin") &&
+                user?.organizations &&
+                Object.keys(user.organizations).length > 0 && (
+                  <Button
+                    onClick={() => navigate("/assessment/sustainability")}
+                    className="bg-dgrv-green hover:bg-green-700"
+                  >
+                    Start New Assessment
+                  </Button>
+                )}
             </div>
           </div>
 
           <div className="grid gap-6">
-            {submissions.map((submission, index) => (
-              <Card
-                key={submission.submission_id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center space-x-3">
-                      <div className="p-2 rounded-full bg-dgrv-green/10">
-                        <FileText className="w-5 h-5 text-dgrv-green" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">
-                          Sustainability Assessment
-                        </h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                          {submission.reviewed_at && (
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>
-                                Reviewed: {new Date(submission.reviewed_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardTitle>
-                    <div className="flex items-center space-x-3">
-                      <Badge className={getStatusColor(submission.review_status)}>
-                        {formatStatus(submission.review_status)}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      <p>
-                        Categories Completed: {getCategoriesCompleted(submission)}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          navigate(`/submission-view/${submission.submission_id}`)
-                        }
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {assessments
+              .filter((a) => a.status === "submitted")
+              .map((assessment, index) => (
+                <AssessmentCard
+                  key={assessment.assessment_id}
+                  assessment={assessment}
+                  user={user}
+                  navigate={navigate}
+                  index={index}
+                />
+              ))}
 
-            {submissions.length === 0 && (
+            {assessments.length === 0 && (
               <Card className="text-center py-12">
                 <CardContent>
                   <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -172,12 +215,15 @@ export const Assessments: React.FC = () => {
                     Start your first sustainability assessment to track your
                     cooperative's progress.
                   </p>
-                  <Button
-                    onClick={() => navigate("/assessment/sustainability")}
-                    className="bg-dgrv-green hover:bg-green-700"
-                  >
-                    Start Assessment
-                  </Button>
+                  {user?.organizations &&
+                    Object.keys(user.organizations).length > 0 && (
+                      <Button
+                        onClick={() => navigate("/assessment/sustainability")}
+                        className="bg-dgrv-green hover:bg-green-700"
+                      >
+                        Start Assessment
+                      </Button>
+                    )}
                 </CardContent>
               </Card>
             )}

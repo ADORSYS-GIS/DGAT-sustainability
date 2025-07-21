@@ -20,7 +20,10 @@ import {
   useOrganizationsServicePutAdminOrganizationsById,
   useOrganizationsServiceDeleteAdminOrganizationsById,
 } from "@/openapi-rq/queries/queries";
-import type { OrganizationResponse, OrganizationCreateRequest } from "@/openapi-rq/requests/types.gen";
+import type {
+  OrganizationResponse,
+  OrganizationCreateRequest,
+} from "@/openapi-rq/requests/types.gen";
 import { get } from "idb-keyval";
 import Select from "react-select";
 
@@ -55,22 +58,25 @@ function toFixedOrg(org: unknown): OrganizationResponseFixed {
     id: o.id as string,
     name: o.name as string,
     alias: o.alias as string | undefined,
-    enabled: o.enabled as boolean ?? false,
+    enabled: (o.enabled as boolean) ?? false,
     description: o.description as string | null,
     redirectUrl: o.redirectUrl as string | null,
     domains: Array.isArray(o.domains)
       ? (o.domains as unknown[]).map((d) => ({
           name: (d as Record<string, unknown>).name as string,
-          verified: (d as Record<string, unknown>).verified as boolean | undefined,
+          verified: (d as Record<string, unknown>).verified as
+            | boolean
+            | undefined,
         }))
       : [],
-    attributes: o.attributes as { [key: string]: string[] } ?? {},
+    attributes: (o.attributes as { [key: string]: string[] }) ?? {},
   };
 }
 
 export const ManageOrganizations: React.FC = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingOrg, setEditingOrg] = useState<OrganizationResponseFixed | null>(null);
+  const [editingOrg, setEditingOrg] =
+    useState<OrganizationResponseFixed | null>(null);
   const [formData, setFormData] = useState<OrganizationCreateRequest>({
     name: "",
     domains: [{ name: "" }],
@@ -80,12 +86,22 @@ export const ManageOrganizations: React.FC = () => {
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const { data: organizations, isLoading, refetch } = useOrganizationsServiceGetAdminOrganizations();
+  const {
+    data: organizations,
+    isLoading,
+    refetch,
+  } = useOrganizationsServiceGetAdminOrganizations();
   const createOrgMutation = useOrganizationsServicePostAdminOrganizations({
     onSuccess: () => {
       refetch();
       setShowAddDialog(false);
-      setFormData({ name: "", domains: [{ name: "" }], redirectUrl: "", enabled: "true", attributes: { categories: [] } });
+      setFormData({
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl: "",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
     },
   });
   const updateOrgMutation = useOrganizationsServicePutAdminOrganizationsById({
@@ -93,18 +109,28 @@ export const ManageOrganizations: React.FC = () => {
       refetch();
       setShowAddDialog(false);
       setEditingOrg(null);
-      setFormData({ name: "", domains: [{ name: "" }], redirectUrl: "", enabled: "true", attributes: { categories: [] } });
+      setFormData({
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl: "",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
     },
   });
-  const deleteOrgMutation = useOrganizationsServiceDeleteAdminOrganizationsById({
-    onSuccess: () => refetch(),
-  });
+  const deleteOrgMutation = useOrganizationsServiceDeleteAdminOrganizationsById(
+    {
+      onSuccess: () => refetch(),
+    },
+  );
 
   // Load categories from IndexedDB on mount
   React.useEffect(() => {
     const loadCategories = async () => {
       setCategoriesLoading(true);
-      const stored = (await get("sustainability_categories")) as Category[] | undefined;
+      const stored = (await get("sustainability_categories")) as
+        | Category[]
+        | undefined;
       setCategories(stored || []);
       setCategoriesLoading(false);
     };
@@ -126,7 +152,9 @@ export const ManageOrganizations: React.FC = () => {
       ...formData,
       domains: cleanDomains,
       enabled: "true",
-      attributes: { categories: (formData.attributes?.categories as string[]) || [] },
+      attributes: {
+        categories: (formData.attributes?.categories as string[]) || [],
+      },
     };
     if (editingOrg) {
       updateOrgMutation.mutate({ id: editingOrg.id, requestBody });
@@ -155,7 +183,13 @@ export const ManageOrganizations: React.FC = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: "", domains: [{ name: "" }], redirectUrl: "", enabled: "true", attributes: { categories: [] } });
+    setFormData({
+      name: "",
+      domains: [{ name: "" }],
+      redirectUrl: "",
+      enabled: "true",
+      attributes: { categories: [] },
+    });
     setEditingOrg(null);
     setShowAddDialog(false);
   };
@@ -169,13 +203,19 @@ export const ManageOrganizations: React.FC = () => {
     });
   };
   const addDomain = () => {
-    setFormData((prev) => ({ ...prev, domains: [...(prev.domains || []), { name: "" }] }));
+    setFormData((prev) => ({
+      ...prev,
+      domains: [...(prev.domains || []), { name: "" }],
+    }));
   };
   const removeDomain = (idx: number) => {
     setFormData((prev) => {
       const newDomains = [...(prev.domains || [])];
       newDomains.splice(idx, 1);
-      return { ...prev, domains: newDomains.length ? newDomains : [{ name: "" }] };
+      return {
+        ...prev,
+        domains: newDomains.length ? newDomains : [{ name: "" }],
+      };
     });
   };
 
@@ -239,58 +279,109 @@ export const ManageOrganizations: React.FC = () => {
                   {/* --- FORM UI --- */}
                   <div className="space-y-6 p-2 md:p-4">
                     <div>
-                      <Label htmlFor="name" className="font-semibold text-dgrv-blue">Organization Name</Label>
+                      <Label
+                        htmlFor="name"
+                        className="font-semibold text-dgrv-blue"
+                      >
+                        Organization Name
+                      </Label>
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
                         placeholder="Enter organization name"
                         className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
                       />
                     </div>
                     <div>
-                      <Label className="font-semibold text-dgrv-blue">Domains <span className="text-red-500">*</span></Label>
+                      <Label className="font-semibold text-dgrv-blue">
+                        Domains <span className="text-red-500">*</span>
+                      </Label>
                       {formData.domains?.map((d, idx) => (
-                        <div key={idx} className="flex items-center space-x-2 mb-2">
+                        <div
+                          key={idx}
+                          className="flex items-center space-x-2 mb-2"
+                        >
                           <Input
                             value={d.name}
-                            onChange={(e) => handleDomainChange(idx, e.target.value)}
+                            onChange={(e) =>
+                              handleDomainChange(idx, e.target.value)
+                            }
                             placeholder="Enter domain (e.g. adorsys.com)"
-                            className={`border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${!d.name.trim() ? 'border-red-500' : ''}`}
+                            className={`border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${!d.name.trim() ? "border-red-500" : ""}`}
                             required
                           />
                           {formData.domains.length > 1 && (
-                            <Button type="button" size="icon" variant="ghost" onClick={() => removeDomain(idx)}>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => removeDomain(idx)}
+                            >
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
                           )}
                         </div>
                       ))}
-                      <Button type="button" size="sm" variant="outline" onClick={addDomain} className="mt-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={addDomain}
+                        className="mt-1"
+                      >
                         + Add Domain
                       </Button>
                     </div>
                     <div>
-                      <Label htmlFor="redirectUrl" className="font-semibold text-dgrv-blue">Redirect URL</Label>
+                      <Label
+                        htmlFor="redirectUrl"
+                        className="font-semibold text-dgrv-blue"
+                      >
+                        Redirect URL
+                      </Label>
                       <Input
                         id="redirectUrl"
                         value={formData.redirectUrl}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, redirectUrl: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            redirectUrl: e.target.value,
+                          }))
+                        }
                         placeholder="Enter redirect URL (e.g. https://adorsys.com/callback)"
                         className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="categories" className="font-semibold text-dgrv-blue">Categories</Label>
+                      <Label
+                        htmlFor="categories"
+                        className="font-semibold text-dgrv-blue"
+                      >
+                        Categories
+                      </Label>
                       <Select
                         id="categories"
                         isMulti
-                        options={categories.map(cat => ({ value: cat.name, label: cat.name }))}
-                        value={(formData.attributes?.categories || []).map(catName => ({ value: catName, label: catName }))}
-                        onChange={selected => {
-                          setFormData(prev => ({
+                        options={categories.map((cat) => ({
+                          value: cat.name,
+                          label: cat.name,
+                        }))}
+                        value={(formData.attributes?.categories || []).map(
+                          (catName) => ({ value: catName, label: catName }),
+                        )}
+                        onChange={(selected) => {
+                          setFormData((prev) => ({
                             ...prev,
-                            attributes: { ...prev.attributes, categories: selected.map(opt => opt.value) },
+                            attributes: {
+                              ...prev.attributes,
+                              categories: selected.map((opt) => opt.value),
+                            },
                             enabled: "true",
                           }));
                         }}
@@ -302,21 +393,24 @@ export const ManageOrganizations: React.FC = () => {
                             borderColor: "#2563eb",
                             minHeight: "44px",
                             boxShadow: "none",
-                            '&:hover': { borderColor: "#2563eb" }
+                            "&:hover": { borderColor: "#2563eb" },
                           }),
                           multiValue: (base) => ({
                             ...base,
                             backgroundColor: "#e0f2fe",
-                            color: "#0369a1"
+                            color: "#0369a1",
                           }),
                           multiValueLabel: (base) => ({
                             ...base,
-                            color: "#0369a1"
+                            color: "#0369a1",
                           }),
                           multiValueRemove: (base) => ({
                             ...base,
                             color: "#0369a1",
-                            ':hover': { backgroundColor: "#bae6fd", color: "#0ea5e9" }
+                            ":hover": {
+                              backgroundColor: "#bae6fd",
+                              color: "#0ea5e9",
+                            },
                           }),
                         }}
                       />
@@ -325,11 +419,18 @@ export const ManageOrganizations: React.FC = () => {
                       <Button
                         onClick={handleSubmit}
                         className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow"
-                        disabled={createOrgMutation.status === 'pending' || updateOrgMutation.status === 'pending'}
+                        disabled={
+                          createOrgMutation.status === "pending" ||
+                          updateOrgMutation.status === "pending"
+                        }
                       >
                         {editingOrg ? "Update" : "Create"} Organization
                       </Button>
-                      <Button variant="outline" onClick={resetForm} className="px-6 py-2 text-base font-semibold rounded shadow">
+                      <Button
+                        variant="outline"
+                        onClick={resetForm}
+                        className="px-6 py-2 text-base font-semibold rounded shadow"
+                      >
                         Cancel
                       </Button>
                     </div>
@@ -359,7 +460,8 @@ export const ManageOrganizations: React.FC = () => {
                   <div className="space-y-3">
                     {org.domains && org.domains.length > 0 && (
                       <div className="text-sm text-gray-600">
-                        <b>Domains:</b> {org.domains.map((d) => d.name).join(", ")}
+                        <b>Domains:</b>{" "}
+                        {org.domains.map((d) => d.name).join(", ")}
                       </div>
                     )}
                     {org.description && (

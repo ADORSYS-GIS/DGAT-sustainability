@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import * as React from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
@@ -32,12 +33,27 @@ import {
   Save,
   Send,
 } from "lucide-react";
+import { useAuth } from "@/hooks/shared/useAuth";
 
 type FileData = { name: string; url: string };
 
 export const Assessment: React.FC = () => {
   const { assessmentId } = useParams<{ assessmentId: string }>();
   const navigate = useNavigate();
+
+  const { user } = useAuth();
+  // Helper to get org_id and categories from token
+  const orgInfo = React.useMemo(() => {
+    if (!user || !user.organizations) return { orgId: "", categories: [] };
+    const orgKeys = Object.keys(user.organizations);
+    if (orgKeys.length === 0) return { orgId: "", categories: [] };
+    const orgObj = user.organizations[orgKeys[0]] || {};
+    // Use user.categories if present, otherwise fallback to orgObj.categories
+    return {
+      orgId: orgObj.id || "",
+      categories: user.categories || orgObj.categories || [],
+    };
+  }, [user]);
 
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<
@@ -70,7 +86,11 @@ export const Assessment: React.FC = () => {
 
   // Only call create assessment once if no assessmentId
   useEffect(() => {
-    if (!assessmentId && !hasCreatedAssessment && !createAssessmentMutation.isPending) {
+    if (
+      !assessmentId &&
+      !hasCreatedAssessment &&
+      !createAssessmentMutation.isPending
+    ) {
       setHasCreatedAssessment(true);
       createAssessmentMutation.mutate(
         { requestBody: { language: "en" } },
@@ -83,7 +103,7 @@ export const Assessment: React.FC = () => {
             toast("Failed to create assessment");
             setHasCreatedAssessment(false);
           },
-        }
+        },
       );
     }
   }, [assessmentId, hasCreatedAssessment, createAssessmentMutation, navigate]);
@@ -103,15 +123,26 @@ export const Assessment: React.FC = () => {
   // Group questions by category (support both old and new formats)
   const groupedQuestions = React.useMemo(() => {
     if (!questionsData?.questions) return {};
-    const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
-    type QuestionNewFormat = { question_id: string; category: string; created_at: string; latest_revision: QuestionRevision };
-    type QuestionOldFormat = { question: Question; revisions: QuestionRevision[] };
+    const groups: Record<
+      string,
+      { question: Question; revision: QuestionRevision }[]
+    > = {};
+    type QuestionNewFormat = {
+      question_id: string;
+      category: string;
+      created_at: string;
+      latest_revision: QuestionRevision;
+    };
+    type QuestionOldFormat = {
+      question: Question;
+      revisions: QuestionRevision[];
+    };
     type QuestionUnion = QuestionNewFormat | QuestionOldFormat;
     (questionsData.questions as QuestionUnion[]).forEach((q) => {
       let category: string | undefined;
       let question: Question | undefined;
       let revision: QuestionRevision | undefined;
-      if ('category' in q && 'latest_revision' in q) {
+      if ("category" in q && "latest_revision" in q) {
         // New format
         category = q.category;
         question = {
@@ -120,7 +151,7 @@ export const Assessment: React.FC = () => {
           created_at: q.created_at,
         };
         revision = q.latest_revision;
-      } else if ('question' in q && 'revisions' in q) {
+      } else if ("question" in q && "revisions" in q) {
         // Old format
         category = q.question.category;
         question = q.question;
@@ -131,8 +162,13 @@ export const Assessment: React.FC = () => {
         groups[category].push({ question, revision });
       }
     });
-    return groups;
-  }, [questionsData]);
+    // Filter to only categories assigned to the user (org_user)
+    const filtered: typeof groups = {};
+    for (const cat of orgInfo.categories) {
+      if (groups[cat]) filtered[cat] = groups[cat];
+    }
+    return filtered;
+  }, [questionsData, orgInfo.categories]);
 
   const categories = Object.keys(groupedQuestions);
   const getCurrentCategoryQuestions = () =>
@@ -146,18 +182,28 @@ export const Assessment: React.FC = () => {
   };
 
   // Type guard for QuestionRevision
-  function hasQuestionRevisionId(obj: QuestionRevision): obj is QuestionRevision & { question_revision_id: string } {
-    return 'question_revision_id' in obj && typeof (obj as { question_revision_id?: unknown }).question_revision_id === 'string';
+  function hasQuestionRevisionId(
+    obj: QuestionRevision,
+  ): obj is QuestionRevision & { question_revision_id: string } {
+    return (
+      "question_revision_id" in obj &&
+      typeof (obj as { question_revision_id?: unknown })
+        .question_revision_id === "string"
+    );
   }
 
   // Helper to get the question revision id key
   const getRevisionKey = (revision: QuestionRevision): string => {
     if (hasQuestionRevisionId(revision)) {
       return revision.question_revision_id;
-    } else if ('latest_revision' in revision && typeof (revision as { latest_revision?: unknown }).latest_revision === 'string') {
+    } else if (
+      "latest_revision" in revision &&
+      typeof (revision as { latest_revision?: unknown }).latest_revision ===
+        "string"
+    ) {
       return (revision as { latest_revision: string }).latest_revision;
     }
-    return '';
+    return "";
   };
 
   const handleAnswerChange = (
@@ -178,11 +224,17 @@ export const Assessment: React.FC = () => {
   };
 
   // --- Validation helpers ---
-  const isAnswerComplete = (answer: { yesNo?: boolean; percentage?: number; text?: string; files?: FileData[] }) => {
+  const isAnswerComplete = (answer: {
+    yesNo?: boolean;
+    percentage?: number;
+    text?: string;
+    files?: FileData[];
+  }) => {
     return (
-      typeof answer?.yesNo === 'boolean' &&
-      typeof answer?.percentage === 'number' &&
-      typeof answer?.text === 'string' && answer.text.trim() !== ''
+      typeof answer?.yesNo === "boolean" &&
+      typeof answer?.percentage === "number" &&
+      typeof answer?.text === "string" &&
+      answer.text.trim() !== ""
     );
   };
   const isCurrentCategoryComplete = () => {
@@ -197,7 +249,7 @@ export const Assessment: React.FC = () => {
     if (!files || files.length === 0) return;
     const file = files[0];
     if (file.size > 1024 * 1024) {
-      toast.error('File size must be less than 1MB');
+      toast.error("File size must be less than 1MB");
       return;
     }
     const reader = new FileReader();
@@ -223,25 +275,30 @@ export const Assessment: React.FC = () => {
   // --- Navigation handler: on Next, send all answers for current category to backend ---
   const nextCategory = async () => {
     if (!isCurrentCategoryComplete()) {
-      toast.error('Please answer all questions in this category before proceeding.');
+      toast.error(
+        "Please answer all questions in this category before proceeding.",
+      );
       return;
     }
     const currentQuestions = getCurrentCategoryQuestions();
-    const responsesToSend = currentQuestions.map((question) => {
-      const key = getRevisionKey(question.revision);
-      const answer = answers[key];
-      return answer
-        ? {
-            question_revision_id: key,
-            response: JSON.stringify(answer),
-          }
-        : null;
-    }).filter(Boolean);
+    const responsesToSend = currentQuestions
+      .map((question) => {
+        const key = getRevisionKey(question.revision);
+        const answer = answers[key];
+        return answer
+          ? {
+              question_revision_id: key,
+              response: JSON.stringify(answer),
+            }
+          : null;
+      })
+      .filter(Boolean);
 
-    if (responsesToSend.length > 0) {
+    // Send each response individually
+    for (const resp of responsesToSend) {
       createResponseMutation.mutate({
         assessmentId: assessmentId!,
-        requestBody: responsesToSend,
+        requestBody: resp, // send as single object
       });
     }
     if (currentCategoryIndex < categories.length - 1) {
@@ -252,32 +309,37 @@ export const Assessment: React.FC = () => {
   // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
     if (!isCurrentCategoryComplete()) {
-      toast.error('Please answer all questions in this category before submitting.');
+      toast.error(
+        "Please answer all questions in this category before submitting.",
+      );
       return;
     }
     const currentQuestions = getCurrentCategoryQuestions();
-    const responsesToSend = currentQuestions.map((question) => {
-      const key = getRevisionKey(question.revision);
-      const answer = answers[key];
-      return answer
-        ? {
-            question_revision_id: key,
-            response: JSON.stringify(answer),
-          }
-        : null;
-    }).filter(Boolean);
+    const responsesToSend = currentQuestions
+      .map((question) => {
+        const key = getRevisionKey(question.revision);
+        const answer = answers[key];
+        return answer
+          ? {
+              question_revision_id: key,
+              response: JSON.stringify(answer),
+            }
+          : null;
+      })
+      .filter(Boolean);
 
-    if (responsesToSend.length > 0) {
+    // Send each response individually
+    for (const resp of responsesToSend) {
       await new Promise((resolve) => {
         createResponseMutation.mutate(
           {
             assessmentId: assessmentId!,
-            requestBody: responsesToSend,
+            requestBody: resp, // send as single object
           },
           {
             onSuccess: resolve,
             onError: resolve,
-          }
+          },
         );
       });
     }
@@ -310,7 +372,9 @@ export const Assessment: React.FC = () => {
       <div className="space-y-4">
         {/* Yes/No */}
         <div>
-          <Label>Yes/No <span className="text-red-500">*</span></Label>
+          <Label>
+            Yes/No <span className="text-red-500">*</span>
+          </Label>
           <div className="flex space-x-4 mt-1">
             <Button
               type="button"
@@ -347,7 +411,9 @@ export const Assessment: React.FC = () => {
         {/* Percentage */}
         <div>
           <div className="flex items-center space-x-2 relative">
-            <Label>Percentage <span className="text-red-500">*</span></Label>
+            <Label>
+              Percentage <span className="text-red-500">*</span>
+            </Label>
             <button
               type="button"
               className="cursor-pointer text-dgrv-blue focus:outline-none"
@@ -425,12 +491,7 @@ export const Assessment: React.FC = () => {
               <input
                 type="file"
                 className="hidden"
-                onChange={(e) =>
-                  handleFileUpload(
-                    key,
-                    e.target.files,
-                  )
-                }
+                onChange={(e) => handleFileUpload(key, e.target.files)}
               />
             </label>
             {files.length > 0 && (
@@ -541,13 +602,22 @@ export const Assessment: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-8">
               {currentQuestions.map((question, index) => {
-                let questionText = '';
-                if (typeof question.revision.text === 'object' && question.revision.text !== null) {
-                  const textObj = question.revision.text as Record<string, unknown>;
-                  questionText = typeof textObj['en'] === 'string'
-                    ? textObj['en'] as string
-                    : Object.values(textObj).find((v) => typeof v === 'string') as string || '';
-                } else if (typeof question.revision.text === 'string') {
+                let questionText = "";
+                if (
+                  typeof question.revision.text === "object" &&
+                  question.revision.text !== null
+                ) {
+                  const textObj = question.revision.text as Record<
+                    string,
+                    unknown
+                  >;
+                  questionText =
+                    typeof textObj["en"] === "string"
+                      ? (textObj["en"] as string)
+                      : (Object.values(textObj).find(
+                          (v) => typeof v === "string",
+                        ) as string) || "";
+                } else if (typeof question.revision.text === "string") {
                   questionText = question.revision.text;
                 }
                 return (

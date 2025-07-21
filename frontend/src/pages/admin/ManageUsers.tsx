@@ -20,21 +20,29 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Users, Plus, Edit, Trash2, Mail, Building2 } from "lucide-react";
-import {
-  useOrganizationsServiceGetAdminOrganizations,
-} from "@/openapi-rq/queries/queries";
+import { useOrganizationsServiceGetAdminOrganizations } from "@/openapi-rq/queries/queries";
 import {
   useOrganizationMembersServiceGetOrganizationsByIdMembers,
   useOrganizationMembersServicePostOrganizationsByIdMembers,
   useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId,
   useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles,
 } from "@/openapi-rq/queries/queries";
-import type { OrganizationMember, MemberRequest, OrganizationResponse } from "@/openapi-rq/requests/types.gen";
+import type {
+  OrganizationMember,
+  MemberRequest,
+  OrganizationResponse,
+} from "@/openapi-rq/requests/types.gen";
 
 // Helper to extract domain names
 function getDomainNames(domains: unknown): string[] {
   if (Array.isArray(domains)) {
-    return domains.map((d) => typeof d === 'string' ? d : (d && typeof d === 'object' && 'name' in d ? (d as { name: string }).name : ''));
+    return domains.map((d) =>
+      typeof d === "string"
+        ? d
+        : d && typeof d === "object" && "name" in d
+          ? (d as { name: string }).name
+          : "",
+    );
   }
   return [];
 }
@@ -46,28 +54,45 @@ function getOrgDescription(org: OrganizationResponse): string | undefined {
 
 export const ManageUsers: React.FC = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingUser, setEditingUser] = useState<OrganizationMember | null>(null);
+  const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
+    null,
+  );
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   // Set the default role to 'org_admin' and make it the only selectable option
   const [formData, setFormData] = useState({
     email: "",
     roles: ["org_admin"],
   });
-  const { data: organizations, isLoading: orgsLoading } = useOrganizationsServiceGetAdminOrganizations();
+  const { data: organizations, isLoading: orgsLoading } =
+    useOrganizationsServiceGetAdminOrganizations();
   // Add a new state to track the selected organization object
-  const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(null);
+  const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(
+    null,
+  );
   // Only fetch users when selectedOrg is set
-  const { data: users, isLoading: usersLoading, refetch } = useOrganizationMembersServiceGetOrganizationsByIdMembers(
+  const {
+    data: users,
+    isLoading: usersLoading,
+    refetch,
+  } = useOrganizationMembersServiceGetOrganizationsByIdMembers(
     selectedOrg ? { id: selectedOrg.id } : { id: "" },
     undefined,
-    { enabled: !!selectedOrg }
+    { enabled: !!selectedOrg },
   );
-  const createUserMutation = useOrganizationMembersServicePostOrganizationsByIdMembers({
-    onSuccess: () => { refetch(); setShowAddDialog(false); resetForm(); },
-  });
-  const deleteUserMutation = useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId({
-    onSuccess: () => refetch(),
-  });
+  const createUserMutation =
+    useOrganizationMembersServicePostOrganizationsByIdMembers({
+      onSuccess: () => {
+        refetch();
+        setShowAddDialog(false);
+        resetForm();
+      },
+    });
+  const deleteUserMutation =
+    useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId(
+      {
+        onSuccess: () => refetch(),
+      },
+    );
   // For role update, you can use useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles
 
   useEffect(() => {
@@ -104,7 +129,9 @@ export const ManageUsers: React.FC = () => {
   };
 
   const handleDelete = (userId: string) => {
-    const confirmed = window.confirm("Are you sure you want to delete this user from the organization? This action cannot be undone.");
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this user from the organization? This action cannot be undone.",
+    );
     if (!confirmed) return;
     if (!selectedOrgId) return;
     deleteUserMutation.mutate({ id: selectedOrgId, membershipId: userId });
@@ -166,36 +193,44 @@ export const ManageUsers: React.FC = () => {
             <div className="mb-8 animate-fade-in">
               <div className="flex items-center space-x-3 mb-4">
                 <Building2 className="w-8 h-8 text-dgrv-blue" />
-                <h1 className="text-3xl font-bold text-dgrv-blue">Select an Organization</h1>
+                <h1 className="text-3xl font-bold text-dgrv-blue">
+                  Select an Organization
+                </h1>
               </div>
-              <p className="text-lg text-gray-600">Click an organization to manage its users</p>
+              <p className="text-lg text-gray-600">
+                Click an organization to manage its users
+              </p>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {(organizations || []).map((org: OrganizationResponse, index: number) => (
-                <Card
-                  key={org.id}
-                  className="animate-fade-in hover:shadow-lg transition-shadow cursor-pointer border-2 border-gray-200 hover:border-dgrv-blue"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                  onClick={() => setSelectedOrg(org)}
-                >
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-3">
-                      <Building2 className="w-5 h-5 text-dgrv-blue" />
-                      <span className="text-lg font-semibold">{org.name}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-gray-600 mb-1">
-                      <b>Domains:</b> {getDomainNames(org.domains).join(", ")}
-                    </div>
-                    {getOrgDescription(org) && (
+              {(organizations || []).map(
+                (org: OrganizationResponse, index: number) => (
+                  <Card
+                    key={org.id}
+                    className="animate-fade-in hover:shadow-lg transition-shadow cursor-pointer border-2 border-gray-200 hover:border-dgrv-blue"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                    onClick={() => setSelectedOrg(org)}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-3">
+                        <Building2 className="w-5 h-5 text-dgrv-blue" />
+                        <span className="text-lg font-semibold">
+                          {org.name}
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
                       <div className="text-sm text-gray-600 mb-1">
-                        <b>Description:</b> {getOrgDescription(org)}
+                        <b>Domains:</b> {getDomainNames(org.domains).join(", ")}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      {getOrgDescription(org) && (
+                        <div className="text-sm text-gray-600 mb-1">
+                          <b>Description:</b> {getOrgDescription(org)}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ),
+              )}
             </div>
           </div>
         </div>
@@ -237,8 +272,7 @@ export const ManageUsers: React.FC = () => {
               setShowAddDialog(open);
             }}
           >
-            <DialogTrigger asChild>
-            </DialogTrigger>
+            <DialogTrigger asChild></DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
@@ -283,10 +317,7 @@ export const ManageUsers: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {(organizations || []).map((org) => (
-                        <SelectItem
-                          key={org.id}
-                          value={org.id}
-                        >
+                        <SelectItem key={org.id} value={org.id}>
                           {org.name}
                         </SelectItem>
                       ))}
@@ -330,12 +361,21 @@ export const ManageUsers: React.FC = () => {
                           @{user.username}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Org: {(organizations || []).find(org => org.id === selectedOrgId)?.name || "Unknown"}
+                          Org:{" "}
+                          {(organizations || []).find(
+                            (org) => org.id === selectedOrgId,
+                          )?.name || "Unknown"}
                         </p>
                       </div>
                     </div>
-                    <Badge className={user.emailVerified ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
-                      {user.emailVerified ? 'Verified' : 'Not Verified'}
+                    <Badge
+                      className={
+                        user.emailVerified
+                          ? "bg-green-500 text-white"
+                          : "bg-red-500 text-white"
+                      }
+                    >
+                      {user.emailVerified ? "Verified" : "Not Verified"}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
