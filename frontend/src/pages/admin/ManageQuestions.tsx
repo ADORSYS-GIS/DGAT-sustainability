@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
@@ -33,16 +33,30 @@ import {
   useQuestionsServiceGetQuestions,
   useQuestionsServicePostQuestions,
   useQuestionsServicePutQuestionsByQuestionId,
-  useQuestionsServiceDeleteQuestionsByQuestionId,
-  useQuestionsServiceGetQuestionsByQuestionId,
+  useQuestionsServiceDeleteQuestionsRevisionsByQuestionRevisionId,
 } from "../../openapi-rq/queries/queries";
 import type {
   Question,
-  QuestionRevision,
   CreateQuestionRequest,
   UpdateQuestionRequest,
-  QuestionWithRevisionsResponse,
 } from "../../openapi-rq/requests/types.gen";
+import { useState as useLocalState } from "react";
+
+// Extended types to match actual API response
+interface QuestionRevision {
+  question_revision_id: string;
+  question_id: string;
+  text: Record<string, string>;
+  weight: number;
+  created_at: string;
+}
+
+interface QuestionWithLatestRevision {
+  question_id: string;
+  category: string;
+  created_at: string;
+  latest_revision: QuestionRevision;
+}
 
 const CATEGORIES_KEY = "sustainability_categories";
 
@@ -54,11 +68,19 @@ interface Category {
   templateId: string;
 }
 
+const LANGUAGES = [
+  { code: "en", name: "English", flag: "🇺🇸" },
+  { code: "ss", name: "siSwati", flag: "🇸🇿" },
+  { code: "pt", name: "Português", flag: "🇵🇹" },
+  { code: "zu", name: "isiZulu", flag: "🇿🇦" },
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "fr", name: "Français", flag: "🇫🇷" },
+];
+
 interface QuestionFormData {
-  text_en: string;
-  text_zu: string;
+  text: Record<string, string>;
   weight: number;
-  categoryId: string;
+  categoryName: string;
   order: number;
 }
 
@@ -68,7 +90,7 @@ const QuestionForm: React.FC<{
   setFormData: React.Dispatch<React.SetStateAction<QuestionFormData>>;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
-  editingQuestion: Question | null;
+  editingQuestion: QuestionWithLatestRevision | null;
 }> = ({
   categories,
   formData,
@@ -77,45 +99,66 @@ const QuestionForm: React.FC<{
   isPending,
   editingQuestion,
 }) => {
+  // Track which language dropdown is open (only one at a time)
+  const [openLang, setOpenLang] = useLocalState<string | null>(null);
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {/* English always visible */}
       <div>
-        <Label htmlFor="text_en">Question Text (English)</Label>
+        <Label htmlFor="text_en">🇺🇸 English (Required)</Label>
         <Textarea
           id="text_en"
-          value={formData.text_en}
+          value={formData.text["en"] || ""}
           onChange={(e) =>
             setFormData((prev) => ({
               ...prev,
-              text_en: e.target.value,
+              text: { ...prev.text, en: e.target.value },
             }))
           }
-          placeholder="e.g., Does your cooperative have a recycling program?"
+          placeholder="Enter question in English"
           required
         />
       </div>
-      <div>
-        <Label htmlFor="text_zu">Question Text (Zulu - Optional)</Label>
-        <Textarea
-          id="text_zu"
-          value={formData.text_zu}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              text_zu: e.target.value,
-            }))
-          }
-          placeholder="e.g., Ingabe umfelandawonye wakho unomgomo wokugayisa kabusha?"
-        />
+      {/* Other languages as dropdowns */}
+      <div className="space-y-2">
+        {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
+          <Select
+            key={lang.code}
+            open={openLang === lang.code}
+            onOpenChange={(isOpen) => setOpenLang(isOpen ? lang.code : null)}
+            value={openLang === lang.code ? lang.code : ""}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={lang.name}>{lang.name}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <div className="p-2">
+                <Label htmlFor={`text_${lang.code}`}>{lang.name}</Label>
+                <Textarea
+                  id={`text_${lang.code}`}
+                  value={formData.text[lang.code] || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      text: { ...prev.text, [lang.code]: e.target.value },
+                    }))
+                  }
+                  placeholder={`Enter question in ${lang.name}`}
+                />
+              </div>
+            </SelectContent>
+          </Select>
+        ))}
       </div>
       <div>
-        <Label htmlFor="categoryId">Category</Label>
+        <Label htmlFor="categoryName">Category</Label>
         <Select
-          value={formData.categoryId}
+          value={formData.categoryName}
           onValueChange={(value) =>
             setFormData((prev) => ({
               ...prev,
-              categoryId: value,
+              categoryName: value,
             }))
           }
         >
@@ -124,7 +167,7 @@ const QuestionForm: React.FC<{
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
-              <SelectItem key={category.categoryId} value={category.categoryId}>
+              <SelectItem key={category.categoryId} value={category.name}>
                 {category.name}
               </SelectItem>
             ))}
@@ -181,15 +224,18 @@ const QuestionForm: React.FC<{
   );
 };
 
-export const ManageQuestions: React.FC = () => {
+export const ManageQuestions = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingQuestion, setEditingQuestion] =
+    useState<QuestionWithLatestRevision | null>(null);
   const [formData, setFormData] = useState<QuestionFormData>({
-    text_en: "",
-    text_zu: "",
+    text: LANGUAGES.reduce(
+      (acc, lang) => ({ ...acc, [lang.code]: "" }),
+      {} as Record<string, string>,
+    ),
     weight: 5,
-    categoryId: "",
+    categoryName: "",
     order: 1,
   });
   const [categories, setCategories] = useState<Category[]>([]);
@@ -209,11 +255,17 @@ export const ManageQuestions: React.FC = () => {
     data: questionsData,
     isLoading: questionsLoading,
     refetch: refetchQuestions,
-  } = useQuestionsServiceGetQuestions({ category: undefined });
-  const questions: Question[] = useMemo(
-    () => questionsData?.questions || [],
-    [questionsData],
-  );
+  } = useQuestionsServiceGetQuestions();
+
+  // Cast the response to match the actual API structure
+  const questions = useMemo(() => {
+    // Access the questions array directly from the response
+    const response = questionsData as Record<string, unknown>;
+    const questionsArray = response?.questions as
+      | QuestionWithLatestRevision[]
+      | undefined;
+    return questionsArray || [];
+  }, [questionsData]);
 
   function getErrorMessage(error: unknown): string {
     if (
@@ -246,22 +298,23 @@ export const ManageQuestions: React.FC = () => {
     onError: (error: unknown) => toast.error(getErrorMessage(error)),
   });
 
-  const deleteMutation = useQuestionsServiceDeleteQuestionsByQuestionId({
-    onSuccess: () => {
-      toast.success("Question deleted.");
-      refetchQuestions();
-    },
-    onError: (error: unknown) => toast.error(getErrorMessage(error)),
-  });
+  const deleteMutation =
+    useQuestionsServiceDeleteQuestionsRevisionsByQuestionRevisionId({
+      onSuccess: () => {
+        toast.success("Question deleted.");
+        refetchQuestions();
+      },
+      onError: (error: unknown) => toast.error(getErrorMessage(error)),
+    });
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (!formData.text_en.trim()) {
+      if (!formData.text.en.trim()) {
         toast.error("Question text (English) is required.");
         return;
       }
-      if (!formData.categoryId) {
+      if (!formData.categoryName) {
         toast.error("Category is required.");
         return;
       }
@@ -269,20 +322,28 @@ export const ManageQuestions: React.FC = () => {
         toast.error("Weight must be between 1 and 10.");
         return;
       }
-      const text = { en: formData.text_en };
-      if (formData.text_zu) text["zu"] = formData.text_zu;
+      // Remove empty language fields
+      const text: Record<string, string> = {};
+      for (const code of Object.keys(formData.text)) {
+        if (formData.text[code] && formData.text[code].trim()) {
+          text[code] = formData.text[code].trim();
+        }
+      }
       if (editingQuestion) {
-        const updateBody: UpdateQuestionRequest = {
-          text: formData.text_en,
+        const updateBody = {
+          category: formData.categoryName,
+          text,
+          weight: formData.weight,
         };
         updateMutation.mutate({
           questionId: editingQuestion.question_id,
-          requestBody: updateBody,
+          requestBody: updateBody as unknown as UpdateQuestionRequest,
         });
       } else {
         const createBody: CreateQuestionRequest = {
-          category: formData.categoryId,
+          category: formData.categoryName,
           text,
+          weight: formData.weight,
         };
         createMutation.mutate({ requestBody: createBody });
       }
@@ -290,23 +351,30 @@ export const ManageQuestions: React.FC = () => {
     [formData, editingQuestion, createMutation, updateMutation],
   );
 
-  const handleEdit = useCallback((question: Question) => {
+  const handleEdit = useCallback((question: QuestionWithLatestRevision) => {
     setEditingQuestion(question);
+    const weight = question.latest_revision?.weight || 5;
+    const text: Record<string, string> = LANGUAGES.reduce(
+      (acc, lang) => {
+        acc[lang.code] = question.latest_revision?.text[lang.code] || "";
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
     setFormData({
-      text_en: "",
-      text_zu: "",
-      weight: 5,
-      categoryId: question.category,
+      text,
+      weight,
+      categoryName: question.category,
       order: 1,
     });
     setIsDialogOpen(true);
   }, []);
 
   const handleDelete = useCallback(
-    (questionId: string) => {
+    (questionRevisionId: string) => {
       if (!window.confirm("Are you sure you want to delete this question?"))
         return;
-      deleteMutation.mutate({ questionId });
+      deleteMutation.mutate({ questionRevisionId });
     },
     [deleteMutation],
   );
@@ -314,7 +382,7 @@ export const ManageQuestions: React.FC = () => {
   const getQuestionsByCategory = useCallback(
     (categoryId: string) => {
       return questions
-        .filter((q) => q.category === categoryId)
+        .filter((q: QuestionWithLatestRevision) => q.category === categoryId)
         .sort((a, b) => 0);
     },
     [questions],
@@ -326,6 +394,23 @@ export const ManageQuestions: React.FC = () => {
         <Navbar />
         <div className="pt-20 pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety check for questions data
+  if (!questions || !Array.isArray(questions)) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="pt-20 pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center py-8 text-gray-500">
+              <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No questions data available.</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -358,10 +443,12 @@ export const ManageQuestions: React.FC = () => {
                     onClick={() => {
                       setEditingQuestion(null);
                       setFormData({
-                        text_en: "",
-                        text_zu: "",
+                        text: LANGUAGES.reduce(
+                          (acc, lang) => ({ ...acc, [lang.code]: "" }),
+                          {} as Record<string, string>,
+                        ),
                         weight: 5,
-                        categoryId: categories[0]?.categoryId || "",
+                        categoryName: categories[0]?.name || "",
                         order: questions.length + 1,
                       });
                     }}
@@ -392,74 +479,69 @@ export const ManageQuestions: React.FC = () => {
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
                 {categories.map((category) => {
-                  const categoryQuestions = getQuestionsByCategory(
-                    category.categoryId,
+                  const categoryQuestions = questions.filter(
+                    (q) => q.category === category.name,
                   );
                   return (
                     <AccordionItem
                       key={category.categoryId}
                       value={category.categoryId}
                     >
-                      <AccordionTrigger className="text-left">
-                        <div>
-                          <h3 className="font-medium text-lg">
-                            {category.name}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {categoryQuestions.length} questions
-                          </p>
-                        </div>
+                      <AccordionTrigger className="text-left text-xl font-bold text-dgrv-blue">
+                        {category.name}
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-4 pt-4">
-                          {categoryQuestions.map((question) => (
-                            <div
-                              key={question.question_id}
-                              className="border rounded-lg p-4"
-                            >
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <h4 className="font-medium">
-                                    ID: {question.question_id}
-                                  </h4>
-                                  <div className="flex space-x-4 mt-2 text-sm text-gray-500">
-                                    <span>
-                                      Created:{" "}
-                                      {new Date(
-                                        question.created_at,
-                                      ).toLocaleDateString()}
-                                    </span>
+                          {categoryQuestions.length > 0 ? (
+                            categoryQuestions.map((question) => (
+                              <div
+                                key={question.question_id}
+                                className="border rounded-lg p-4"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="mb-2">
+                                      <QuestionText question={question} />
+                                    </div>
+                                    <div className="flex space-x-4 text-sm text-gray-600">
+                                      {question.latest_revision && (
+                                        <span>
+                                          <strong>Weight:</strong>{" "}
+                                          {question.latest_revision.weight}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="mt-2 text-gray-800">
-                                    <strong>Text:</strong>{" "}
-                                    <QuestionRevisionText
-                                      questionId={question.question_id}
-                                    />
+                                  <div className="flex space-x-2 ml-4">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEdit(question)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    {question.latest_revision &&
+                                      question.latest_revision
+                                        .question_revision_id && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            handleDelete(
+                                              question.latest_revision
+                                                .question_revision_id,
+                                            )
+                                          }
+                                          className="text-red-600 hover:text-red-700"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      )}
                                   </div>
-                                </div>
-                                <div className="flex space-x-2 ml-4">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEdit(question)}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleDelete(question.question_id)
-                                    }
-                                    className="text-red-600 hover:text-red-700"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
                                 </div>
                               </div>
-                            </div>
-                          ))}
-                          {categoryQuestions.length === 0 && (
+                            ))
+                          ) : (
                             <div className="text-center py-8 text-gray-500">
                               <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
                               <p>No questions in this category yet.</p>
@@ -487,15 +569,37 @@ export const ManageQuestions: React.FC = () => {
   );
 };
 
-const QuestionRevisionText: React.FC<{ questionId: string }> = ({
-  questionId,
+const QuestionText = ({
+  question,
+}: {
+  question: QuestionWithLatestRevision;
 }) => {
-  const { data } = useQuestionsServiceGetQuestionsByQuestionId({ questionId });
-  if (!data || !data.revisions || data.revisions.length === 0)
+  if (!question.latest_revision || !question.latest_revision.text) {
     return <em>No text</em>;
-  const latest = data.revisions.reduce((a, b) =>
-    a.version > b.version ? a : b,
+  }
+
+  const text = question.latest_revision.text;
+  const languages = Object.keys(text);
+
+  if (languages.length === 0) {
+    return <em>No text</em>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {languages.map((lang) => {
+        const langText = text[lang];
+        if (!langText) return null;
+
+        return (
+          <div key={lang} className="text-sm">
+            <span className="font-medium text-gray-600 uppercase">
+              {lang === "en" ? "English" : lang === "zu" ? "Zulu" : lang}:
+            </span>{" "}
+            <span className="text-gray-800">{langText}</span>
+          </div>
+        );
+      })}
+    </div>
   );
-  if (latest.language === "en") return <>{latest.text}</>;
-  return <>{latest.text}</>;
 };

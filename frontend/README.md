@@ -1,8 +1,8 @@
-# Minimal React HomePage App
+# Sustainability Assessment Tool
 
 ## Project Overview
 
-This project is a minimal React application built with Vite, TypeScript, Tailwind CSS, and shadcn-ui. It features a single, modern HomePage with a clean structure, ready for further extension.
+This project is a Sustainability Assessment Tool built with Vite, TypeScript, Tailwind CSS, and shadcn-ui. It features a modern HomePage and tools for sustainability assessment, ready for further extension.
 
 ## Features
 
@@ -32,8 +32,8 @@ This project is a minimal React application built with Vite, TypeScript, Tailwin
 
 ```sh
 # Clone the repository
-git clone https://github.com/ADORSYS-GIS/DGAT-sustainability
-cd DGAT-sustainability/frontend
+git clone <your-sustainability-tool-repo>
+cd sustainability-tool/frontend
 
 # Install dependencies
 npm install

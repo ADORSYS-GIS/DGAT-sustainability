@@ -1,5 +1,6 @@
 use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
 use serde_json::Value;
@@ -10,16 +11,19 @@ use std::sync::Arc;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub report_id: Uuid,
-    pub assessment_id: Uuid,
-    pub data: Value, // Report content as JSON
+    pub submission_id: Uuid, // Changed from assessment_id to match OpenAPI spec
+    pub report_type: String,
+    pub status: String,
+    pub generated_at: DateTime<Utc>,
+    pub data: Option<Value>, // Report content as JSON, nullable
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::assessments_submission::Entity",
-        from = "Column::AssessmentId",
-        to = "super::assessments_submission::Column::AssessmentId"
+        from = "Column::SubmissionId",
+        to = "super::assessments_submission::Column::SubmissionId"
     )]
     AssessmentSubmission,
 }
@@ -48,10 +52,17 @@ impl SubmissionReportsService {
         }
     }
 
-    pub async fn create_report(&self, assessment_id: Uuid, data: Value) -> Result<Model, DbErr> {
+    pub async fn create_report(
+        &self,
+        submission_id: Uuid,
+        data: Option<Value>,
+    ) -> Result<Model, DbErr> {
         let report = ActiveModel {
             report_id: Set(Uuid::new_v4()),
-            assessment_id: Set(assessment_id),
+            submission_id: Set(submission_id),
+            report_type: Set("default".to_string()), // Default value since report_type is not needed
+            status: Set("generating".to_string()),
+            generated_at: Set(Utc::now()),
             data: Set(data),
         };
 
@@ -62,13 +73,25 @@ impl SubmissionReportsService {
         self.db_service.find_by_id(id).await
     }
 
-    pub async fn get_report_by_assessment(
+    pub async fn get_reports_by_submission(
         &self,
-        assessment_id: Uuid,
-    ) -> Result<Option<Model>, DbErr> {
+        submission_id: Uuid,
+    ) -> Result<Vec<Model>, DbErr> {
         Entity::find()
-            .filter(Column::AssessmentId.eq(assessment_id))
-            .one(self.db_service.get_connection())
+            .filter(Column::SubmissionId.eq(submission_id))
+            .all(self.db_service.get_connection())
+            .await
+    }
+
+    pub async fn get_reports_by_submission_and_type(
+        &self,
+        submission_id: Uuid,
+        report_type: String,
+    ) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .filter(Column::SubmissionId.eq(submission_id))
+            .filter(Column::ReportType.eq(report_type))
+            .all(self.db_service.get_connection())
             .await
     }
 
@@ -76,14 +99,22 @@ impl SubmissionReportsService {
         self.db_service.find_all().await
     }
 
-    pub async fn update_report_data(&self, id: Uuid, data: Value) -> Result<Model, DbErr> {
+    pub async fn update_report_status(
+        &self,
+        id: Uuid,
+        status: String,
+        data: Option<Value>,
+    ) -> Result<Model, DbErr> {
         let report = self
             .get_report_by_id(id)
             .await?
             .ok_or(DbErr::Custom("Report not found".to_string()))?;
 
         let mut report: ActiveModel = report.into();
-        report.data = Set(data);
+        report.status = Set(status);
+        if let Some(data) = data {
+            report.data = Set(Some(data));
+        }
 
         self.db_service.update(report).await
     }
@@ -103,18 +134,21 @@ mod tests {
     async fn test_submission_reports_service() -> Result<(), Box<dyn std::error::Error>> {
         let mock_report = Model {
             report_id: Uuid::new_v4(),
-            assessment_id: Uuid::new_v4(),
-            data: json!({"score": 85, "feedback": "Good work"}),
+            submission_id: Uuid::new_v4(),
+            report_type: "sustainability".to_string(),
+            status: "completed".to_string(),
+            generated_at: Utc::now(),
+            data: Some(json!({"score": 85, "feedback": "Good work"})),
         };
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([
                 vec![mock_report.clone()], // create_report result
                 vec![mock_report.clone()], // get_report_by_id result
-                vec![mock_report.clone()], // get_report_by_assessment result
+                vec![mock_report.clone()], // get_reports_by_submission result
                 vec![mock_report.clone()], // get_all_reports result
-                vec![mock_report.clone()], // update_report_data internal get_report_by_id
-                vec![mock_report.clone()], // update_report_data result
+                vec![mock_report.clone()], // update_report_status internal get_report_by_id
+                vec![mock_report.clone()], // update_report_status result
             ])
             .append_exec_results([MockExecResult {
                 last_insert_id: 1,
@@ -127,32 +161,33 @@ mod tests {
         // Test create
         let report = service
             .create_report(
-                mock_report.assessment_id,
-                json!({"score": 85, "feedback": "Good work"}),
+                mock_report.submission_id,
+                Some(json!({"score": 85, "feedback": "Good work"})),
             )
             .await?;
 
-        assert_eq!(report.assessment_id, mock_report.assessment_id);
+        assert_eq!(report.submission_id, mock_report.submission_id);
 
         // Test get by id
         let found = service.get_report_by_id(report.report_id).await?;
         assert!(found.is_some());
 
-        // Test get by assessment id
-        let assessment_report = service
-            .get_report_by_assessment(report.assessment_id)
+        // Test get by submission id
+        let submission_reports = service
+            .get_reports_by_submission(report.submission_id)
             .await?;
-        assert!(assessment_report.is_some());
+        assert!(!submission_reports.is_empty());
 
         // Test get all
         let all_reports = service.get_all_reports().await?;
         assert!(!all_reports.is_empty());
 
-        // Test update
+        // Test update status
         let updated = service
-            .update_report_data(
+            .update_report_status(
                 report.report_id,
-                json!({"score": 90, "feedback": "Excellent work"}),
+                "completed".to_string(),
+                Some(json!({"score": 90, "feedback": "Excellent work"})),
             )
             .await?;
         assert_eq!(updated.report_id, report.report_id);

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import * as React from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
@@ -32,12 +33,27 @@ import {
   Save,
   Send,
 } from "lucide-react";
+import { useAuth } from "@/hooks/shared/useAuth";
 
 type FileData = { name: string; url: string };
 
 export const Assessment: React.FC = () => {
   const { assessmentId } = useParams<{ assessmentId: string }>();
   const navigate = useNavigate();
+
+  const { user } = useAuth();
+  // Helper to get org_id and categories from token
+  const orgInfo = React.useMemo(() => {
+    if (!user || !user.organizations) return { orgId: "", categories: [] };
+    const orgKeys = Object.keys(user.organizations);
+    if (orgKeys.length === 0) return { orgId: "", categories: [] };
+    const orgObj = user.organizations[orgKeys[0]] || {};
+    // Use user.categories if present, otherwise fallback to orgObj.categories
+    return {
+      orgId: orgObj.id || "",
+      categories: user.categories || orgObj.categories || [],
+    };
+  }, [user]);
 
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<
@@ -53,6 +69,7 @@ export const Assessment: React.FC = () => {
   >({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [showPercentInfo, setShowPercentInfo] = useState(false);
+  const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
 
   const templateId = "sustainability_template";
   const toolName = "Sustainability Assessment";
@@ -67,18 +84,29 @@ export const Assessment: React.FC = () => {
   const updateResponseMutation =
     useResponsesServicePutAssessmentsByAssessmentIdResponsesByResponseId();
 
-  // Fix assessment creation mutation call
+  // Only call create assessment once if no assessmentId
   useEffect(() => {
-    if (!assessmentId) {
-      createAssessmentMutation.mutate(undefined, {
-        onSuccess: (data) => {
-          const newId = data.assessment.assessment_id;
-          navigate(`/user/assessment/${newId}`);
+    if (
+      !assessmentId &&
+      !hasCreatedAssessment &&
+      !createAssessmentMutation.isPending
+    ) {
+      setHasCreatedAssessment(true);
+      createAssessmentMutation.mutate(
+        { requestBody: { language: "en" } },
+        {
+          onSuccess: (data) => {
+            const newId = data.assessment.assessment_id;
+            navigate(`/user/assessment/${newId}`);
+          },
+          onError: () => {
+            toast("Failed to create assessment");
+            setHasCreatedAssessment(false);
+          },
         },
-        onError: () => toast("Failed to create assessment"),
-      });
+      );
     }
-  }, [assessmentId, createAssessmentMutation, navigate]);
+  }, [assessmentId, hasCreatedAssessment, createAssessmentMutation, navigate]);
 
   // Fetch assessment detail if assessmentId exists
   const { data: assessmentDetail, isLoading: assessmentLoading } =
@@ -92,26 +120,55 @@ export const Assessment: React.FC = () => {
   const { data: questionsData, isLoading: questionsLoading } =
     useQuestionsServiceGetQuestions();
 
-  // Group questions by category
+  // Group questions by category (support both old and new formats)
   const groupedQuestions = React.useMemo(() => {
     if (!questionsData?.questions) return {};
     const groups: Record<
       string,
       { question: Question; revision: QuestionRevision }[]
     > = {};
-    questionsData.questions.forEach(
-      (qwr: { question: Question; revisions: QuestionRevision[] }) => {
-        const category = qwr.question.category;
-        const latestRevision = qwr.revisions[qwr.revisions.length - 1];
+    type QuestionNewFormat = {
+      question_id: string;
+      category: string;
+      created_at: string;
+      latest_revision: QuestionRevision;
+    };
+    type QuestionOldFormat = {
+      question: Question;
+      revisions: QuestionRevision[];
+    };
+    type QuestionUnion = QuestionNewFormat | QuestionOldFormat;
+    (questionsData.questions as QuestionUnion[]).forEach((q) => {
+      let category: string | undefined;
+      let question: Question | undefined;
+      let revision: QuestionRevision | undefined;
+      if ("category" in q && "latest_revision" in q) {
+        // New format
+        category = q.category;
+        question = {
+          question_id: q.question_id,
+          category: q.category,
+          created_at: q.created_at,
+        };
+        revision = q.latest_revision;
+      } else if ("question" in q && "revisions" in q) {
+        // Old format
+        category = q.question.category;
+        question = q.question;
+        revision = q.revisions[q.revisions.length - 1];
+      }
+      if (category && question && revision) {
         if (!groups[category]) groups[category] = [];
-        groups[category].push({
-          question: qwr.question,
-          revision: latestRevision,
-        });
-      },
-    );
-    return groups;
-  }, [questionsData]);
+        groups[category].push({ question, revision });
+      }
+    });
+    // Filter to only categories assigned to the user (org_user)
+    const filtered: typeof groups = {};
+    for (const cat of orgInfo.categories) {
+      if (groups[cat]) filtered[cat] = groups[cat];
+    }
+    return filtered;
+  }, [questionsData, orgInfo.categories]);
 
   const categories = Object.keys(groupedQuestions);
   const getCurrentCategoryQuestions = () =>
@@ -124,6 +181,31 @@ export const Assessment: React.FC = () => {
     );
   };
 
+  // Type guard for QuestionRevision
+  function hasQuestionRevisionId(
+    obj: QuestionRevision,
+  ): obj is QuestionRevision & { question_revision_id: string } {
+    return (
+      "question_revision_id" in obj &&
+      typeof (obj as { question_revision_id?: unknown })
+        .question_revision_id === "string"
+    );
+  }
+
+  // Helper to get the question revision id key
+  const getRevisionKey = (revision: QuestionRevision): string => {
+    if (hasQuestionRevisionId(revision)) {
+      return revision.question_revision_id;
+    } else if (
+      "latest_revision" in revision &&
+      typeof (revision as { latest_revision?: unknown }).latest_revision ===
+        "string"
+    ) {
+      return (revision as { latest_revision: string }).latest_revision;
+    }
+    return "";
+  };
+
   const handleAnswerChange = (
     question_revision_id: string,
     value: {
@@ -134,31 +216,42 @@ export const Assessment: React.FC = () => {
     },
   ) => {
     setAnswers((prev) => ({ ...prev, [question_revision_id]: value }));
-    const existingResponse = findResponseForQuestion(question_revision_id);
-    if (existingResponse) {
-      updateResponseMutation.mutate({
-        assessmentId: assessmentId!,
-        responseId: existingResponse.response_id,
-        requestBody: { response: JSON.stringify(value) },
-      });
-    } else {
-      createResponseMutation.mutate({
-        assessmentId: assessmentId!,
-        requestBody: {
-          question_revision_id,
-          response: JSON.stringify(value),
-        },
-      });
-    }
+    // No backend call here!
   };
 
   const handleCommentChange = (questionId: string, comment: string) => {
     setComments((prev) => ({ ...prev, [questionId]: comment }));
   };
 
+  // --- Validation helpers ---
+  const isAnswerComplete = (answer: {
+    yesNo?: boolean;
+    percentage?: number;
+    text?: string;
+    files?: FileData[];
+  }) => {
+    return (
+      typeof answer?.yesNo === "boolean" &&
+      typeof answer?.percentage === "number" &&
+      typeof answer?.text === "string" &&
+      answer.text.trim() !== ""
+    );
+  };
+  const isCurrentCategoryComplete = () => {
+    const currentQuestions = getCurrentCategoryQuestions();
+    return currentQuestions.every((q) => {
+      const key = getRevisionKey(q.revision);
+      return isAnswerComplete(answers[key]);
+    });
+  };
+
   const handleFileUpload = (questionId: string, files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
+    if (file.size > 1024 * 1024) {
+      toast.error("File size must be less than 1MB");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       const fileData = {
@@ -179,11 +272,77 @@ export const Assessment: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const saveDraft = async () => {
-    // This function is no longer needed as responses are saved immediately
+  // --- Navigation handler: on Next, send all answers for current category to backend ---
+  const nextCategory = async () => {
+    if (!isCurrentCategoryComplete()) {
+      toast.error(
+        "Please answer all questions in this category before proceeding.",
+      );
+      return;
+    }
+    const currentQuestions = getCurrentCategoryQuestions();
+    const responsesToSend = currentQuestions
+      .map((question) => {
+        const key = getRevisionKey(question.revision);
+        const answer = answers[key];
+        return answer
+          ? {
+              question_revision_id: key,
+              response: JSON.stringify(answer),
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    // Send each response individually
+    for (const resp of responsesToSend) {
+      createResponseMutation.mutate({
+        assessmentId: assessmentId!,
+        requestBody: resp, // send as single object
+      });
+    }
+    if (currentCategoryIndex < categories.length - 1) {
+      setCategoryIndex(currentCategoryIndex + 1);
+    }
   };
 
+  // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
+    if (!isCurrentCategoryComplete()) {
+      toast.error(
+        "Please answer all questions in this category before submitting.",
+      );
+      return;
+    }
+    const currentQuestions = getCurrentCategoryQuestions();
+    const responsesToSend = currentQuestions
+      .map((question) => {
+        const key = getRevisionKey(question.revision);
+        const answer = answers[key];
+        return answer
+          ? {
+              question_revision_id: key,
+              response: JSON.stringify(answer),
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    // Send each response individually
+    for (const resp of responsesToSend) {
+      await new Promise((resolve) => {
+        createResponseMutation.mutate(
+          {
+            assessmentId: assessmentId!,
+            requestBody: resp, // send as single object
+          },
+          {
+            onSuccess: resolve,
+            onError: resolve,
+          },
+        );
+      });
+    }
     submitAssessmentMutation.mutate({
       assessmentId: assessmentId!,
     });
@@ -193,12 +352,8 @@ export const Assessment: React.FC = () => {
     }, 2000);
   };
 
-  const nextCategory = async () => {
-    // This function is no longer needed as responses are saved immediately
-    if (currentCategoryIndex < categories.length - 1) {
-      setCategoryIndex(currentCategoryIndex + 1);
-    }
-  };
+  // Remove or disable saveDraft
+  const saveDraft = async () => {};
 
   const previousCategory = () => {
     if (currentCategoryIndex > 0) {
@@ -207,17 +362,19 @@ export const Assessment: React.FC = () => {
   };
 
   const renderQuestionInput = (question: QuestionRevision) => {
-    const yesNoValue = answers[question.question_revision_id]?.yesNo;
-    const percentageValue = answers[question.question_revision_id]?.percentage;
-    const textValue = answers[question.question_revision_id]?.text || "";
-    const comment = comments[question.question_revision_id] || "";
-    const files: FileData[] =
-      answers[question.question_revision_id]?.files || [];
+    const key = getRevisionKey(question);
+    const yesNoValue = answers[key]?.yesNo;
+    const percentageValue = answers[key]?.percentage;
+    const textValue = answers[key]?.text || "";
+    const comment = comments[key] || "";
+    const files: FileData[] = answers[key]?.files || [];
     return (
       <div className="space-y-4">
         {/* Yes/No */}
         <div>
-          <Label>Yes/No</Label>
+          <Label>
+            Yes/No <span className="text-red-500">*</span>
+          </Label>
           <div className="flex space-x-4 mt-1">
             <Button
               type="button"
@@ -226,8 +383,8 @@ export const Assessment: React.FC = () => {
                 yesNoValue === true ? "bg-dgrv-green hover:bg-green-700" : ""
               }
               onClick={() =>
-                handleAnswerChange(question.question_revision_id, {
-                  ...answers[question.question_revision_id],
+                handleAnswerChange(key, {
+                  ...answers[key],
                   yesNo: true,
                 })
               }
@@ -241,8 +398,8 @@ export const Assessment: React.FC = () => {
                 yesNoValue === false ? "bg-red-500 hover:bg-red-600" : ""
               }
               onClick={() =>
-                handleAnswerChange(question.question_revision_id, {
-                  ...answers[question.question_revision_id],
+                handleAnswerChange(key, {
+                  ...answers[key],
                   yesNo: false,
                 })
               }
@@ -254,7 +411,9 @@ export const Assessment: React.FC = () => {
         {/* Percentage */}
         <div>
           <div className="flex items-center space-x-2 relative">
-            <Label>Percentage</Label>
+            <Label>
+              Percentage <span className="text-red-500">*</span>
+            </Label>
             <button
               type="button"
               className="cursor-pointer text-dgrv-blue focus:outline-none"
@@ -295,8 +454,8 @@ export const Assessment: React.FC = () => {
                     : "bg-white text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue/10"
                 }
                 onClick={() =>
-                  handleAnswerChange(question.question_revision_id, {
-                    ...answers[question.question_revision_id],
+                  handleAnswerChange(key, {
+                    ...answers[key],
                     percentage: val,
                   })
                 }
@@ -308,15 +467,15 @@ export const Assessment: React.FC = () => {
         </div>
         {/* Text Input */}
         <div>
-          <Label htmlFor={`input-text-${question.question_revision_id}`}>
-            Your Response
+          <Label htmlFor={`input-text-${key}`}>
+            Your Response <span className="text-red-500">*</span>
           </Label>
           <Textarea
-            id={`input-text-${question.question_revision_id}`}
+            id={`input-text-${key}`}
             value={textValue}
             onChange={(e) =>
-              handleAnswerChange(question.question_revision_id, {
-                ...answers[question.question_revision_id],
+              handleAnswerChange(key, {
+                ...answers[key],
                 text: e.target.value,
               })
             }
@@ -332,12 +491,7 @@ export const Assessment: React.FC = () => {
               <input
                 type="file"
                 className="hidden"
-                onChange={(e) =>
-                  handleFileUpload(
-                    question.question_revision_id,
-                    e.target.files,
-                  )
-                }
+                onChange={(e) => handleFileUpload(key, e.target.files)}
               />
             </label>
             {files.length > 0 && (
@@ -447,19 +601,39 @@ export const Assessment: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
-              {currentQuestions.map((question, index) => (
-                <div
-                  key={question.revision.question_revision_id}
-                  className="border-b pb-6 last:border-b-0"
-                >
-                  <div className="mb-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {index + 1}. {question.revision.text}
-                    </h3>
+              {currentQuestions.map((question, index) => {
+                let questionText = "";
+                if (
+                  typeof question.revision.text === "object" &&
+                  question.revision.text !== null
+                ) {
+                  const textObj = question.revision.text as Record<
+                    string,
+                    unknown
+                  >;
+                  questionText =
+                    typeof textObj["en"] === "string"
+                      ? (textObj["en"] as string)
+                      : (Object.values(textObj).find(
+                          (v) => typeof v === "string",
+                        ) as string) || "";
+                } else if (typeof question.revision.text === "string") {
+                  questionText = question.revision.text;
+                }
+                return (
+                  <div
+                    key={getRevisionKey(question.revision)}
+                    className="border-b pb-6 last:border-b-0"
+                  >
+                    <div className="mb-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {index + 1}. {questionText}
+                      </h3>
+                    </div>
+                    {renderQuestionInput(question.revision)}
                   </div>
-                  {renderQuestionInput(question.revision)}
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -489,6 +663,7 @@ export const Assessment: React.FC = () => {
                 <Button
                   onClick={submitAssessment}
                   className="bg-dgrv-green hover:bg-green-700 flex items-center space-x-2"
+                  disabled={!isCurrentCategoryComplete()}
                 >
                   <Send className="w-4 h-4" />
                   <span>Submit Assessment</span>
@@ -497,6 +672,7 @@ export const Assessment: React.FC = () => {
                 <Button
                   onClick={nextCategory}
                   className="bg-dgrv-blue hover:bg-blue-700 flex items-center space-x-2"
+                  disabled={!isCurrentCategoryComplete()}
                 >
                   <span>Next</span>
                   <ChevronRight className="w-4 h-4" />

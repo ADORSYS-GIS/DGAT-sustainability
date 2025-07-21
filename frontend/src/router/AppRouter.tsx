@@ -32,8 +32,16 @@ const AppRouter = () => (
     <Router>
       <MainLayout>
         <Routes>
-          {routes.map(({ path, element: Element }, idx) => (
-            <Route key={idx} path={path} element={<Element />} />
+          {routes.map(({ path, element }, idx) => (
+            <Route
+              key={idx}
+              path={path}
+              element={
+                React.isValidElement(element)
+                  ? element
+                  : React.createElement(element)
+              }
+            />
           ))}
         </Routes>
       </MainLayout>
