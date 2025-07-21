@@ -70,6 +70,11 @@ impl Claims {
         self.organizations.orgs.keys().cloned().collect()
     }
 
+    /// Get the organization ID from the first organization (for database operations)
+    pub fn get_org_id(&self) -> Option<String> {
+        self.organizations.orgs.values().next()?.id.clone()
+    }
+
     /// Check if user has a specific role in a specific organization
     /// Note: Organization roles are no longer supported in the current JWT format
     pub fn has_organization_role(&self, _organization_id: &str, _role: &str) -> bool {

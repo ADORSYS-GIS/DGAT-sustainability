@@ -117,7 +117,7 @@ pub struct QuestionRevisionListResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {
     pub assessment_id: Uuid,
-    pub user_id: String,
+    pub org_id: String,
     pub language: String,
     pub status: String,
     pub created_at: String,
@@ -190,7 +190,7 @@ pub struct ResponseListResponse {
 #[derive(Debug, Serialize)]
 pub struct AssessmentSubmission {
     pub assessment_id: Uuid,
-    pub user_id: String,
+    pub org_id: String,
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,
@@ -199,7 +199,7 @@ pub struct AssessmentSubmission {
 #[derive(Debug, Serialize)]
 pub struct Submission {
     pub submission_id: Uuid,
-    pub user_id: String,
+    pub org_id: String,
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,
@@ -227,7 +227,7 @@ pub struct SubmissionDetailResponse {
 pub struct AdminSubmissionDetail {
     pub submission_id: Uuid,
     pub assessment_id: Uuid,
-    pub user_id: String,
+    pub org_id: String,
     pub content: AdminSubmissionContent,
     pub review_status: String,
     pub submitted_at: String,

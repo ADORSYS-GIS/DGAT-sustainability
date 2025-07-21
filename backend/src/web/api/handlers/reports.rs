@@ -154,26 +154,27 @@ async fn generate_report_content(
 
 
 
-/// List all reports for the authenticated user
+/// List all reports for the authenticated organization
 /// GET /user/reports
 pub async fn list_user_reports(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Get all submissions for the user
-    let user_submissions = app_state
+    // Get all submissions for the organization
+    let org_submissions = app_state
         .database
         .assessments_submission
-        .get_submissions_by_user(user_id)
+        .get_submissions_by_org(&org_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch user submissions: {e}")))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}")))?;
 
-    // Collect all reports for user's submissions
+    // Collect all reports for organization's submissions
     let mut all_reports = Vec::new();
 
-    for submission in user_submissions {
+    for submission in org_submissions {
         let submission_id = submission.submission_id;
 
         // Get reports for this submission

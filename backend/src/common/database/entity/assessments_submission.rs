@@ -62,7 +62,7 @@ impl std::fmt::Display for SubmissionStatus {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub submission_id: Uuid, // Also FK to assessments
-    pub user_id: String,             // Keycloak sub
+    pub org_id: String,             // Keycloak organization id
     pub content: Value,              // JSON blob with all answers
     pub submitted_at: DateTime<Utc>, // When the submission was created
     pub status: SubmissionStatus,    // Review status (under_review, reviewed, etc.)
@@ -121,12 +121,12 @@ impl AssessmentsSubmissionService {
     pub async fn create_submission(
         &self,
         assessment_id: Uuid,
-        user_id: String,
+        org_id: String,
         content: Value,
     ) -> Result<Model, DbErr> {
         let submission = ActiveModel {
             submission_id: Set(assessment_id),
-            user_id: Set(user_id),
+            org_id: Set(org_id),
             content: Set(content),
             submitted_at: Set(Utc::now()),
             status: Set(SubmissionStatus::UnderReview),
@@ -161,9 +161,9 @@ impl AssessmentsSubmissionService {
         self.db_service.find_by_id(assessment_id).await
     }
 
-    pub async fn get_submissions_by_user(&self, user_id: &str) -> Result<Vec<Model>, DbErr> {
+    pub async fn get_submissions_by_org(&self, org_id: &str) -> Result<Vec<Model>, DbErr> {
         Entity::find()
-            .filter(Column::UserId.eq(user_id))
+            .filter(Column::OrgId.eq(org_id))
             .all(self.db_service.get_connection())
             .await
     }
@@ -235,14 +235,14 @@ mod tests {
 
         let mock_assessment = AssessmentModel {
             assessment_id,
-            user_id: "test_user".to_string(),
+            org_id: "test_org".to_string(),
             language: "en".to_string(),
             created_at: chrono::Utc::now(),
         };
 
         let mock_submission = Model {
             submission_id: assessment_id,
-            user_id: "test_user".to_string(),
+            org_id: "test_org".to_string(),
             content: json!({"question1": "answer1"}),
             submitted_at: chrono::Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -296,7 +296,7 @@ mod tests {
             .await?;
 
         assert_eq!(result.submission_id, assessment_id);
-        assert_eq!(result.user_id, "test_user");
+        assert_eq!(result.org_id, "test_org");
         assert_eq!(result.status, SubmissionStatus::UnderReview);
 
         // The test verifies that the submission was created successfully
@@ -311,7 +311,7 @@ mod tests {
     async fn test_assessments_submission_service() -> Result<(), Box<dyn std::error::Error>> {
         let mock_submission = Model {
             submission_id: Uuid::new_v4(),
-            user_id: "test_user".to_string(),
+            org_id: "test_org".to_string(),
             content: json!({"question1": "answer1", "question2": "answer2"}),
             submitted_at: Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -343,7 +343,7 @@ mod tests {
             .await?;
 
         assert_eq!(submission.submission_id, mock_submission.submission_id);
-        assert_eq!(submission.user_id, "test_user");
+        assert_eq!(submission.org_id, "test_org");
 
         // Test get by assessment id
         let found = service
@@ -351,10 +351,10 @@ mod tests {
             .await?;
         assert!(found.is_some());
 
-        // Test get by user
-        let user_submissions = service.get_submissions_by_user("test_user").await?;
-        assert!(!user_submissions.is_empty());
-        assert_eq!(user_submissions[0].user_id, "test_user");
+        // Test get by org
+        let org_submissions = service.get_submissions_by_org("test_org").await?;
+        assert!(!org_submissions.is_empty());
+        assert_eq!(org_submissions[0].org_id, "test_org");
 
         // Test get all
         let all_submissions = service.get_all_submissions().await?;

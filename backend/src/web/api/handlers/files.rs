@@ -156,7 +156,8 @@ pub async fn delete_file(
     Extension(claims): Extension<Claims>,
     Path(file_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch the file to verify ownership
     let file_model = app_state
@@ -171,16 +172,17 @@ pub async fn delete_file(
         None => return Err(ApiError::NotFound("File not found".to_string())),
     };
 
-    // Check if the current user uploaded the file
+    // Check if the current organization uploaded the file
     let default_map = serde_json::Map::new();
     let metadata_obj = file_model.metadata.as_object().unwrap_or(&default_map);
 
-    let uploaded_by = metadata_obj
-        .get("uploaded_by")
+    let uploaded_by_org = metadata_obj
+        .get("uploaded_by_org")
         .and_then(|v| v.as_str())
+        .or_else(|| metadata_obj.get("uploaded_by").and_then(|v| v.as_str())) // fallback for old files
         .unwrap_or("");
 
-    if uploaded_by != *user_id {
+    if uploaded_by_org != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to delete this file".to_string(),
         ));
@@ -278,9 +280,10 @@ pub async fn attach_file(
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<AttachFileRequest>,
 ) -> Result<StatusCode, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -293,7 +296,7 @@ pub async fn attach_file(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -369,9 +372,10 @@ pub async fn remove_file(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id, file_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -384,7 +388,7 @@ pub async fn remove_file(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if assessment_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
