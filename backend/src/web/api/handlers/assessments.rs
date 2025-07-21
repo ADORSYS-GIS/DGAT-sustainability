@@ -11,7 +11,6 @@ use crate::common::models::claims::Claims;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
-use serde::Serialize;
 
 // Helper function to convert file::Model to FileMetadata
 async fn convert_file_model_to_metadata(
@@ -76,25 +75,11 @@ async fn fetch_files_for_response(
     Ok(files)
 }
 
-// Helper: check if user is member of org by org_id
-fn is_member_of_org_by_id(claims: &Claims, org_id: &str) -> bool {
-    claims.organizations.orgs.values().any(|info| info.id.as_deref() == Some(org_id))
-}
-
 #[derive(Debug, Deserialize)]
 pub struct AssessmentQuery {
     status: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct OrgAssessmentResults {
-    pub org_id: String,
-    pub num_assessments: usize,
-    pub num_submissions: usize,
-    pub category_counts: std::collections::HashMap<String, usize>,
-}
-
-// GET /api/assessments - List all org assessments for current user's org (org_admin and org_user)
 pub async fn list_assessments(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -156,7 +141,6 @@ pub async fn list_assessments(
     }))
 }
 
-// POST /api/assessments - Only org_admin can create
 pub async fn create_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -300,7 +284,7 @@ pub async fn update_assessment(
         ));
     }
 
-    // First, fetch the assessment to verify org membership and admin
+    // First, fetch the assessment to verify ownership and status
     let existing_assessment = app_state
         .database
         .assessments
@@ -448,11 +432,21 @@ pub async fn submit_assessment(
         ));
     }
 
-    // Get allowed categories for this user from claims
-    let allowed_categories: Vec<String> = claims.organizations.orgs.values()
-        .find(|info| info.id.as_deref() == Some(&assessment_model.org_id))
-        .map(|info| info.categories.clone())
-        .unwrap_or_default();
+    // Check if assessment has already been submitted
+    let existing_submission = app_state
+        .database
+        .assessments_submission
+        .get_submission_by_assessment_id(assessment_id)
+        .await
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to check existing submission: {e}"))
+        })?;
+
+    if existing_submission.is_some() {
+        return Err(ApiError::BadRequest(
+            "Assessment has already been submitted".to_string(),
+        ));
+    }
 
     // Fetch all responses for this assessment to include in the submission
     let response_models = app_state
@@ -463,38 +457,6 @@ pub async fn submit_assessment(
         .map_err(|e| {
             ApiError::InternalServerError(format!("Failed to fetch assessment responses: {e}"))
         })?;
-
-    // Check that all responses are for allowed categories (org_user can only submit their assigned categories)
-    for response_model in &response_models {
-        // Fetch the question revision to get the category
-        let question_revision = app_state
-            .database
-            .questions_revisions
-            .get_revision_by_id(response_model.question_revision_id)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revision: {e}")))?;
-        let question_revision = match question_revision {
-            Some(qr) => qr,
-            None => return Err(ApiError::BadRequest("Question revision not found".to_string())),
-        };
-        // Fetch the question to get the category
-        let question = app_state
-            .database
-            .questions
-            .get_question_by_id(question_revision.question_id)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question: {e}")))?;
-        let question = match question {
-            Some(q) => q,
-            None => return Err(ApiError::BadRequest("Question not found".to_string())),
-        };
-        let category = question.category;
-        if !allowed_categories.contains(&category) {
-            return Err(ApiError::BadRequest(format!(
-                "You are not allowed to answer questions in category: {}", category
-            )));
-        }
-    }
 
     // Build the submission content with file metadata
     let mut responses_with_files = Vec::new();
@@ -539,81 +501,13 @@ pub async fn submit_assessment(
         "responses": responses_with_files
     });
 
-    // Check if an org-level submission already exists for this assessment
-    let existing_submission = app_state
+    // Create the submission record in the database
+    let _submission_model = app_state
         .database
         .assessments_submission
         .create_submission(assessment_id, org_id.clone(), submission_content.clone())
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch org submission: {e}")))?;
-
-    let (merged_content, had_existing_submission);
-    if let Some(existing) = existing_submission {
-        // Merge new user responses into existing org submission
-        let mut content = existing.content.clone();
-        let mut responses = content
-            .get_mut("responses")
-            .and_then(|r| r.as_array_mut())
-            .cloned()
-            .unwrap_or_else(Vec::new);
-        // Remove any previous responses from this user for the same question_revision_id
-        let new_responses = responses_with_files
-            .iter()
-            .map(|resp| {
-                let mut resp_obj = resp.clone();
-                if let Some(obj) = resp_obj.as_object_mut() {
-                    obj.insert("user_id".to_string(), serde_json::json!(user_id));
-                }
-                resp_obj
-            })
-            .collect::<Vec<_>>();
-        // Remove old responses from this user for the same question_revision_id
-        let new_qrids: Vec<_> = new_responses.iter().filter_map(|r| r.get("question_revision_id")).cloned().collect();
-        responses.retain(|r| {
-            let qrid = r.get("question_revision_id");
-            let uid = r.get("user_id");
-            !(uid == Some(&serde_json::json!(user_id)) && qrid.map_or(false, |q| new_qrids.contains(q)))
-        });
-        // Add new responses
-        responses.extend(new_responses);
-        // Update content
-        if let Some(obj) = content.as_object_mut() {
-            obj.insert("responses".to_string(), serde_json::json!(responses));
-        }
-        merged_content = content;
-        had_existing_submission = true;
-    } else {
-        // New org submission: add user_id to each response
-        let mut content = submission_content.clone();
-        if let Some(responses) = content.get_mut("responses").and_then(|r| r.as_array_mut()) {
-            for resp in responses.iter_mut() {
-                if let Some(obj) = resp.as_object_mut() {
-                    obj.insert("user_id".to_string(), serde_json::json!(user_id));
-                }
-            }
-        }
-        merged_content = content;
-        had_existing_submission = false;
-    }
-
-    // Create or update the org-level submission
-    let _submission_model = if had_existing_submission {
-        // Update existing
-        app_state
-            .database
-            .assessments_submission
-            .update_submission_content(assessment_id, merged_content.clone())
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to update org submission: {e}")))?
-    } else {
-        // Create new
-        app_state
-            .database
-            .assessments_submission
-            .create_submission(assessment_id, user_id.clone(), merged_content.clone())
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to create org submission: {e}")))?
-    };
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to create submission: {e}")))?;
 
     // Build the response
     let now = chrono::Utc::now().to_rfc3339();
@@ -631,79 +525,3 @@ pub async fn submit_assessment(
         Json(AssessmentSubmissionResponse { submission }),
     ))
 }
-
-// GET /api/organizations/:org_id/assessments/results
-pub async fn get_org_assessment_results(
-    State(app_state): State<AppState>,
-    Extension(claims): Extension<Claims>,
-    Path(org_id): Path<String>,
-) -> Result<Json<OrgAssessmentResults>, ApiError> {
-    // Only org_admins for this org can access
-    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
-        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
-    }
-
-    // Get all assessments for this org
-    let assessments = app_state
-        .database
-        .assessments
-        .get_assessments_by_org(&org_id)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessments: {e}")))?;
-    let num_assessments = assessments.len();
-
-    // Get all submissions for these assessments
-    let mut num_submissions = 0;
-    let mut category_counts = std::collections::HashMap::new();
-    for assessment in &assessments {
-        let submission = app_state
-            .database
-            .assessments_submission
-            .get_submission_by_assessment_id(assessment.assessment_id)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?;
-        if let Some(sub) = submission {
-            num_submissions += 1;
-            // Parse content for category counts
-            if let Some(responses) = sub.content.get("responses").and_then(|v| v.as_array()) {
-                for resp in responses {
-                    if let Some(qrid) = resp.get("question_revision_id").and_then(|v| v.as_str()) {
-                        // Parse UUID
-                        if let Ok(qrid) = uuid::Uuid::parse_str(qrid) {
-                            // Get question revision
-                            let question_revision = app_state
-                                .database
-                                .questions_revisions
-                                .get_revision_by_id(qrid)
-                                .await
-                                .ok()
-                                .flatten();
-                            if let Some(qr) = question_revision {
-                                // Get question
-                                let question = app_state
-                                    .database
-                                    .questions
-                                    .get_question_by_id(qr.question_id)
-                                    .await
-                                    .ok()
-                                    .flatten();
-                                if let Some(q) = question {
-                                    *category_counts.entry(q.category).or_insert(0) += 1;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(Json(OrgAssessmentResults {
-        org_id,
-        num_assessments,
-        num_submissions,
-        category_counts,
-    }))
-}
-
-// NOTE: org_user can answer any assessment for their org, but only for their assigned categories. All permission checks are org-based.
