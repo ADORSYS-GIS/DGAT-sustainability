@@ -8,12 +8,11 @@ use crate::web::api::handlers::{
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
     organizations::{
-        add_identity_provider, add_member, create_invitation, create_organization, delete_invitation, 
-        delete_organization, get_identity_provider, get_identity_providers, get_invitations, 
+        add_identity_provider, add_member, create_organization, delete_organization, get_identity_provider, get_identity_providers, 
         get_member, get_member_organizations, get_member_organizations_in_org, get_members, 
         get_members_count, get_organization, get_organizations, get_organizations_count, 
         invite_existing_user, invite_user, remove_identity_provider, remove_member, 
-        update_member_roles, update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
+        update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
         update_org_admin_member_categories,
     },
     questions::{create_question, delete_question_revision_by_id, get_question, list_questions, update_question},
@@ -60,7 +59,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/questions/:question_id", get(get_question))
         .route("/api/questions/:question_id", put(update_question))
         .route("/api/questions/revisions/:revision_id", delete(delete_question_revision_by_id))
-        // Assessment endpoints
+        // Assessment endpoints (org-scoped)
         .route("/api/assessments", get(list_assessments))
         .route("/api/assessments", post(create_assessment))
         .route("/api/assessments/:assessment_id", get(get_assessment))

@@ -5,11 +5,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
 // TODO: Replace with org-scoped assessment listing endpoint when available
 import { useAssessmentsServiceGetAssessments } from "@/openapi-rq/queries/queries";
+import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
+import { offlineDB } from "@/services/indexeddb";
 import { useResponsesServiceGetAssessmentsByAssessmentIdResponses } from "@/openapi-rq/queries/queries";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
 import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavigateFunction } from "react-router-dom";
+import { useState, useEffect } from "react";
+
+type AuthUser = {
+  sub?: string;
+  name?: string;
+  preferred_username?: string;
+  email?: string;
+  roles?: string[];
+  organizations?: Record<string, unknown>;
+  realm_access?: { roles?: string[] };
+  organisation_name?: string;
+  organisation?: string;
+};
 
 // Extend Assessment type to include status for local use
 type AssessmentWithStatus = Assessment & { status?: string };
@@ -25,8 +40,36 @@ export const Assessments: React.FC = () => {
     return orgObj.id || "";
   }, [user]);
 
-  const { data, isLoading } = useAssessmentsServiceGetAssessments();
-  const assessments: AssessmentWithStatus[] = data?.assessments || [];
+  const { isOnline } = useSyncStatus();
+  const [assessments, setAssessments] = useState<AssessmentWithStatus[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const { data: remoteData, isLoading: remoteLoading } = useAssessmentsServiceGetAssessments(
+    {}, // an empty object for the first parameter (params)
+    undefined, // an empty object for the second parameter (body)
+    { enabled: isOnline }, // the third parameter is for TanStack Query options
+  );
+
+  useEffect(() => {
+    const loadAssessments = async () => {
+      setIsLoading(true);
+      if (isOnline) {
+        if (remoteData?.assessments) {
+          // If online, use fresh data from the server and update local cache
+          await offlineDB.saveAssessments(remoteData.assessments);
+          setAssessments(remoteData.assessments);
+        }
+      } else {
+        // If offline, load data from IndexedDB
+        const localAssessments = await offlineDB.getAllAssessments();
+        setAssessments(localAssessments as AssessmentWithStatus[]);
+      }
+      setIsLoading(false);
+    };
+
+    loadAssessments();
+  }, [isOnline, remoteData]);
+
   const navigate = useNavigate();
 
   // Helper to count unique categories completed and total for an assessment
@@ -71,8 +114,8 @@ export const Assessments: React.FC = () => {
   // Child component to render each assessment card and use hooks safely
   const AssessmentCard: React.FC<{
     assessment: AssessmentWithStatus;
-    user: any;
-    navigate: any;
+    user: AuthUser | null; // Use a specific type for the user
+    navigate: NavigateFunction; // Use the NavigateFunction type
     index: number;
   }> = ({ assessment, user, navigate, index }) => {
     const { completed, total } = useCategoryCounts(assessment.assessment_id);

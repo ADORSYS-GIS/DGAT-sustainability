@@ -218,6 +218,20 @@ impl AssessmentsSubmissionService {
 
         self.db_service.update(submission).await
     }
+
+    pub async fn update_submission_content(
+        &self,
+        assessment_id: Uuid,
+        content: Value,
+    ) -> Result<Model, DbErr> {
+        let submission = self
+            .get_submission_by_assessment_id(assessment_id)
+            .await?
+            .ok_or(DbErr::Custom("Submission not found".to_string()))?;
+        let mut submission: ActiveModel = submission.into();
+        submission.content = Set(content);
+        self.db_service.update(submission).await
+    }
 }
 
 #[cfg(test)]
@@ -235,7 +249,7 @@ mod tests {
 
         let mock_assessment = AssessmentModel {
             assessment_id,
-            user_id: "test_user".to_string(),
+            org_id: "test-org-id".to_string(),
             language: "en".to_string(),
             created_at: chrono::Utc::now(),
         };

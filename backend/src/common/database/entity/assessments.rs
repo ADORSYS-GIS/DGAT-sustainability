@@ -11,7 +11,7 @@ use super::assessments_submission::AssessmentsSubmissionService;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub assessment_id: Uuid,
-    pub user_id: String,
+    pub org_id: String,
     pub language: String,
     pub created_at: DateTime<Utc>,
 }
@@ -69,12 +69,12 @@ impl AssessmentsService {
 
     pub async fn create_assessment(
         &self,
-        user_id: String,
+        org_id: String,
         language: String,
     ) -> Result<Model, DbErr> {
         let assessment = ActiveModel {
             assessment_id: Set(Uuid::new_v4()),
-            user_id: Set(user_id),
+            org_id: Set(org_id),
             language: Set(language),
             created_at: Set(Utc::now()),
         };
@@ -86,9 +86,9 @@ impl AssessmentsService {
         self.db_service.find_by_id(id).await
     }
 
-    pub async fn get_assessments_by_user(&self, user_id: &str) -> Result<Vec<Model>, DbErr> {
+    pub async fn get_assessments_by_org(&self, org_id: &str) -> Result<Vec<Model>, DbErr> {
         Entity::find()
-            .filter(Column::UserId.eq(user_id))
+            .filter(Column::OrgId.eq(org_id))
             .all(self.db_service.get_connection())
             .await
     }
@@ -142,7 +142,7 @@ mod tests {
 
         let mock_assessment = Model {
             assessment_id: Uuid::new_v4(),
-            user_id: "test_user".to_string(),
+            org_id: "test_org".to_string(),
             language: "en".to_string(),
             created_at: Utc::now(),
         };
@@ -165,7 +165,7 @@ mod tests {
                 vec![mock_assessment.clone()],
                 // get_assessment_by_id result
                 vec![mock_assessment.clone()],
-                // get_assessments_by_user result
+                // get_assessments_by_org result
                 vec![mock_assessment.clone()],
                 // update_assessment result
             ])
@@ -190,10 +190,10 @@ mod tests {
 
         // Test create
         let assessment = assessments_service
-            .create_assessment("test_user".to_string(), "en".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string())
             .await?;
 
-        assert_eq!(assessment.user_id, "test_user");
+        assert_eq!(assessment.org_id, "test_org");
         assert_eq!(assessment.language, "en");
 
         // Test get all assessments
@@ -206,7 +206,7 @@ mod tests {
             .await?;
         assert!(found.is_some());
         let found = found.unwrap();
-        assert_eq!(found.user_id, assessment.user_id);
+        assert_eq!(found.org_id, assessment.org_id);
 
         // Test delete assessment
         let delete_result = assessments_service
@@ -214,12 +214,12 @@ mod tests {
             .await?;
         assert_eq!(delete_result.rows_affected, 1);
 
-        // Test get by user
-        let user_assessments = assessments_service
-            .get_assessments_by_user("test_user")
+        // Test get by org
+        let org_assessments = assessments_service
+            .get_assessments_by_org("test_org")
             .await?;
-        assert!(!user_assessments.is_empty());
-        assert_eq!(user_assessments[0].user_id, "test_user");
+        assert!(!org_assessments.is_empty());
+        assert_eq!(org_assessments[0].org_id, "test_org");
 
         Ok(())
     }
@@ -259,7 +259,7 @@ mod tests {
 
         let mock_assessment = Model {
             assessment_id,
-            user_id: "test_user".to_string(),
+            org_id: "test_org".to_string(),
             language: "en".to_string(),
             created_at: Utc::now(),
         };
@@ -335,7 +335,7 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_user".to_string(), "en".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string())
             .await?;
 
         // Create some responses for this assessment
@@ -387,7 +387,7 @@ mod tests {
 
         let mock_assessment = Model {
             assessment_id,
-            user_id: "test_user".to_string(),
+            org_id: "test_org".to_string(),
             language: "en".to_string(),
             created_at: Utc::now(),
         };
@@ -412,7 +412,7 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_user".to_string(), "en".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string())
             .await?;
 
         // Try to delete the assessment without creating a submission - this should fail

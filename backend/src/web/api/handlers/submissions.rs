@@ -98,6 +98,11 @@ async fn enhance_submission_content_with_questions(
     Ok(enhanced_content)
 }
 
+// Helper: check if user is member of org by org_id
+fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
+    claims.organizations.orgs.values().any(|info| info.id.as_deref() == Some(org_id))
+}
+
 pub async fn list_user_submissions(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -157,8 +162,19 @@ pub async fn get_submission(
         None => return Err(ApiError::NotFound("Submission not found".to_string())),
     };
 
-    // Verify that the current user is the owner of the submission
-    if submission_model.user_id != *user_id {
+    // Allow any org member to view the submission
+    // Fetch the assessment to get org_id
+    let assessment = app_state
+        .database
+        .assessments
+        .get_assessment_by_id(submission_model.submission_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
+    let assessment = match assessment {
+        Some(a) => a,
+        None => return Err(ApiError::NotFound("Assessment not found".to_string())),
+    };
+    if !is_member_of_org_by_id(&claims, &assessment.org_id) {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this submission".to_string(),
         ));

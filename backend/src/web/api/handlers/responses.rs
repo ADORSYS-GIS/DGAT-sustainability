@@ -88,6 +88,11 @@ async fn fetch_files_for_response(
     Ok(files)
 }
 
+// Helper: check if user is member of org by org_id
+fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
+    claims.organizations.orgs.values().any(|info| info.id.as_deref() == Some(org_id))
+}
+
 pub async fn list_responses(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -108,7 +113,7 @@ pub async fn list_responses(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -148,23 +153,15 @@ pub async fn create_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
-    Json(requests): Json<Vec<CreateResponseRequest>>,
+    Json(request): Json<CreateResponseRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let user_id = &claims.sub;
 
-    // Validate requests
-    if requests.is_empty() {
+    // Validate request
+    if request.response.trim().is_empty() {
         return Err(ApiError::BadRequest(
-            "At least one response is required".to_string(),
+            "Response must not be empty".to_string(),
         ));
-    }
-
-    for request in &requests {
-        if request.response.trim().is_empty() {
-            return Err(ApiError::BadRequest(
-                "Response must not be empty".to_string(),
-            ));
-        }
     }
 
     // Verify that the current user is the owner of the assessment
@@ -180,7 +177,7 @@ pub async fn create_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -212,52 +209,48 @@ pub async fn create_response(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
 
     let mut updated_responses = Vec::new();
+    // Check if a response already exists for this question_revision_id
+    if let Some(existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
+        // Parse existing response as JSON array or create new array
+        let mut response_array: Vec<String> = match serde_json::from_str(&existing.response) {
+            Ok(arr) => arr,
+            Err(_) => vec![existing.response.clone()], // If not JSON array, treat as single string
+        };
 
-    // Process each request
-    for request in requests {
-        // Check if a response already exists for this question_revision_id
-        if let Some(existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
-            // Parse existing response as JSON array or create new array
-            let mut response_array: Vec<String> = match serde_json::from_str(&existing.response) {
-                Ok(arr) => arr,
-                Err(_) => vec![existing.response.clone()], // If not JSON array, treat as single string
-            };
-
-            // Append new response if it doesn't already exist
-            if !response_array.contains(&request.response) {
-                response_array.push(request.response);
-            }
-
-            // Update the response with the new array
-            let updated_response = app_state
-                .database
-                .assessments_response
-                .update_response(
-                    assessment_id,
-                    request.question_revision_id,
-                    serde_json::to_string(&response_array).unwrap(),
-                )
-                .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
-
-            updated_responses.push(updated_response);
-        } else {
-            // Create new response with array containing single item
-            let response_array = vec![request.response];
-            let new_response = app_state
-                .database
-                .assessments_response
-                .create_response(
-                    assessment_id,
-                    request.question_revision_id,
-                    serde_json::to_string(&response_array).unwrap(),
-                    1,
-                )
-                .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
-
-            updated_responses.push(new_response);
+        // Append new response if it doesn't already exist
+        if !response_array.contains(&request.response) {
+            response_array.push(request.response.clone());
         }
+
+        // Update the response with the new array
+        let updated_response = app_state
+            .database
+            .assessments_response
+            .update_response(
+                assessment_id,
+                request.question_revision_id,
+                serde_json::to_string(&response_array).unwrap(),
+            )
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
+
+        updated_responses.push(updated_response);
+    } else {
+        // Create new response with array containing single item
+        let response_array = vec![request.response.clone()];
+        let new_response = app_state
+            .database
+            .assessments_response
+            .create_response(
+                assessment_id,
+                request.question_revision_id,
+                serde_json::to_string(&response_array).unwrap(),
+                1,
+            )
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
+
+        updated_responses.push(new_response);
     }
 
     // Convert database models to API models
@@ -304,7 +297,7 @@ pub async fn get_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -378,7 +371,7 @@ pub async fn update_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -483,7 +476,7 @@ pub async fn delete_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));

@@ -12,6 +12,11 @@ use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
 
+// Helper: check if user is member of org by org_id
+fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
+    claims.organizations.orgs.values().any(|info| info.id.as_deref() == Some(org_id))
+}
+
 pub async fn upload_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -293,7 +298,7 @@ pub async fn attach_file(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));
@@ -384,7 +389,7 @@ pub async fn remove_file(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
+    if !is_member_of_org_by_id(&claims, &assessment_model.org_id) {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this assessment".to_string(),
         ));

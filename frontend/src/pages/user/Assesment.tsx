@@ -1,161 +1,142 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { v4 as uuidv4 } from 'uuid';
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  useAssessmentsServicePostAssessments,
-  useAssessmentsServiceGetAssessmentsByAssessmentId,
-  useResponsesServicePostAssessmentsByAssessmentIdResponses,
-  useResponsesServicePutAssessmentsByAssessmentIdResponsesByResponseId,
-  useFilesServicePostAssessmentsByAssessmentIdResponsesByResponseIdFiles,
-  useAssessmentsServicePostAssessmentsByAssessmentIdSubmit,
-  useQuestionsServiceGetQuestions,
-} from "../../openapi-rq/queries/queries";
-import {
-  AssessmentDetailResponse,
-  CreateResponseRequest,
-  UpdateResponseRequest,
-  response_id_files_body,
-  Question,
-  QuestionRevision,
-} from "../../openapi-rq/requests/types.gen";
+import { useOfflineQuestions, useOfflineAssessment, useOfflineAssessmentMutation, useOfflineResponseMutation } from "../../hooks/useOfflineLocal";
 import { toast } from "sonner";
-import {
-  Info,
-  Paperclip,
-  ChevronLeft,
-  ChevronRight,
-  Save,
-  Send,
-} from "lucide-react";
+import { Info, Paperclip, ChevronLeft, ChevronRight, Save, Send } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
+import type { Question, QuestionRevision, Assessment as AssessmentType, Response as ResponseType } from "@/openapi-rq/requests/types.gen";
+import { offlineDB } from "../../services/indexeddb";
 
 type FileData = { name: string; url: string };
+
+type LocalAnswer = {
+  yesNo?: boolean;
+  percentage?: number;
+  text?: string;
+  files?: FileData[];
+};
 
 export const Assessment: React.FC = () => {
   const { assessmentId } = useParams<{ assessmentId: string }>();
   const navigate = useNavigate();
-
   const { user } = useAuth();
-  // Helper to get org_id and categories from token
+
   const orgInfo = React.useMemo(() => {
     if (!user || !user.organizations) return { orgId: "", categories: [] };
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length === 0) return { orgId: "", categories: [] };
     const orgObj = user.organizations[orgKeys[0]] || {};
-    // Use user.categories if present, otherwise fallback to orgObj.categories
     return {
       orgId: orgObj.id || "",
       categories: user.categories || orgObj.categories || [],
     };
   }, [user]);
-
+  
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
-  const [answers, setAnswers] = useState<
-    Record<
-      string,
-      {
-        yesNo?: boolean;
-        percentage?: number;
-        text?: string;
-        files?: FileData[];
-      }
-    >
-  >({});
+  const [answers, setAnswers] = useState<Record<string, LocalAnswer>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [showPercentInfo, setShowPercentInfo] = useState(false);
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
+  const toolName = "Sustainability Assessment"; // Define toolName
 
-  const templateId = "sustainability_template";
-  const toolName = "Sustainability Assessment";
+  const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
+  const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment({ assessmentId: assessmentId || "" });
 
-  const createAssessmentMutation = useAssessmentsServicePostAssessments();
-  const submitAssessmentMutation =
-    useAssessmentsServicePostAssessmentsByAssessmentIdSubmit();
+  const createAssessmentMutation = useOfflineAssessmentMutation();
+  const createResponseMutation = useOfflineResponseMutation();
+  const submitAssessmentMutation = useOfflineAssessmentMutation();
 
-  // Add response mutation hooks
-  const createResponseMutation =
-    useResponsesServicePostAssessmentsByAssessmentIdResponses();
-  const updateResponseMutation =
-    useResponsesServicePutAssessmentsByAssessmentIdResponsesByResponseId();
-
-  // Only call create assessment once if no assessmentId
   useEffect(() => {
-    if (
-      !assessmentId &&
-      !hasCreatedAssessment &&
-      !createAssessmentMutation.isPending
-    ) {
+    // Only an org_admin should be able to create a new assessment
+    const canCreate = user?.roles?.includes("org_admin");
+
+    if (!assessmentId && !hasCreatedAssessment && !createAssessmentMutation.isPending && user?.sub && canCreate) {
       setHasCreatedAssessment(true);
-      createAssessmentMutation.mutate(
-        { requestBody: { language: "en" } },
-        {
-          onSuccess: (data) => {
-            const newId = data.assessment.assessment_id;
-            navigate(`/user/assessment/${newId}`);
-          },
-          onError: () => {
-            toast("Failed to create assessment");
-            setHasCreatedAssessment(false);
-          },
+      const newAssessmentId = uuidv4();
+      const newAssessment: AssessmentType = {
+        assessment_id: newAssessmentId,
+        user_id: user.sub,
+        language: "en",
+        created_at: new Date().toISOString(),
+      };
+      createAssessmentMutation.mutate(newAssessment, {
+        onSuccess: () => navigate(`/user/assessment/${newAssessmentId}`),
+        onError: (err) => {
+          toast.error("Failed to create assessment locally.");
+          console.error(err);
+          setHasCreatedAssessment(false);
         },
-      );
+      });
     }
-  }, [assessmentId, hasCreatedAssessment, createAssessmentMutation, navigate]);
+  }, [assessmentId, hasCreatedAssessment, user, createAssessmentMutation, navigate]);
+  
+    // --- Final submit: send all answers for current category, then submit assessment ---
+  const submitAssessment = async () => {
+    if (!isCurrentCategoryComplete()) {
+      toast.error(
+        "Please answer all questions in this category before submitting.",
+      );
+      return;
+    }
+    const currentQuestions = getCurrentCategoryQuestions();
+    const responsesToSend = currentQuestions
+      .map((question) => {
+        const key = getRevisionKey(question.revision);
+        const answer = answers[key];
+        if (!answer) return null;
+        return createResponseToSave(key, answer);
+      })
+      .filter((r): r is ResponseType => r !== null);
 
-  // Fetch assessment detail if assessmentId exists
-  const { data: assessmentDetail, isLoading: assessmentLoading } =
-    useAssessmentsServiceGetAssessmentsByAssessmentId(
-      assessmentId ? { assessmentId } : { assessmentId: "" },
-      undefined,
-      { enabled: !!assessmentId },
-    );
-
-  // Fetch questions with categories and revisions
-  const { data: questionsData, isLoading: questionsLoading } =
-    useQuestionsServiceGetQuestions();
+    // Save all responses
+    for (const resp of responsesToSend) {
+        createResponseMutation.mutate(resp);
+    }
+    
+    // Mark assessment as submitted (locally)
+    if (assessmentDetail) {
+        const updatedAssessment = { ...assessmentDetail, status: 'submitted' };
+        submitAssessmentMutation.mutate(updatedAssessment, {
+            onSuccess: () => {
+                // Also add a specific "submit" action to the sync queue
+                offlineDB.addToSyncQueue({
+                    type: "submit_assessment",
+                    data: { assessment_id: assessmentDetail.assessment_id }
+                });
+                toast.success("Assessment has been submitted locally and will sync when online.");
+                navigate("/dashboard");
+            }
+        });
+    }
+  };
 
   // Group questions by category (support both old and new formats)
   const groupedQuestions = React.useMemo(() => {
     if (!questionsData?.questions) return {};
-    const groups: Record<
-      string,
-      { question: Question; revision: QuestionRevision }[]
-    > = {};
-    type QuestionNewFormat = {
-      question_id: string;
-      category: string;
-      created_at: string;
-      latest_revision: QuestionRevision;
-    };
-    type QuestionOldFormat = {
-      question: Question;
-      revisions: QuestionRevision[];
-    };
-    type QuestionUnion = QuestionNewFormat | QuestionOldFormat;
-    (questionsData.questions as QuestionUnion[]).forEach((q) => {
+    const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
+    (questionsData.questions as unknown[]).forEach((q) => {
       let category: string | undefined;
       let question: Question | undefined;
       let revision: QuestionRevision | undefined;
-      if ("category" in q && "latest_revision" in q) {
+      if (typeof q === 'object' && q !== null && 'latest_revision' in q && 'category' in q) {
         // New format
-        category = q.category;
-        question = {
-          question_id: q.question_id,
-          category: q.category,
-          created_at: q.created_at,
-        };
-        revision = q.latest_revision;
-      } else if ("question" in q && "revisions" in q) {
+        category = (q as { category: string }).category;
+        question = q as unknown as Question;
+        revision = (q as { latest_revision: unknown }).latest_revision as unknown as QuestionRevision;
+      } else if (typeof q === 'object' && q !== null && 'question' in q && 'revisions' in q) {
         // Old format
-        category = q.question.category;
-        question = q.question;
-        revision = q.revisions[q.revisions.length - 1];
+        category = (q as { question: { category: string } }).question.category;
+        question = (q as { question: unknown }).question as unknown as Question;
+        const revisions = (q as { revisions: unknown[] }).revisions as unknown as QuestionRevision[];
+        revision = revisions[revisions.length - 1];
       }
       if (category && question && revision) {
         if (!groups[category]) groups[category] = [];
@@ -176,19 +157,21 @@ export const Assessment: React.FC = () => {
 
   // Helper to find response for a question
   const findResponseForQuestion = (question_revision_id: string) => {
-    return assessmentDetail?.responses?.find(
-      (r) => r.question_revision_id === question_revision_id,
-    );
+    // This function now needs to get responses from the `answers` state,
+    // as `assessmentDetail` does not contain them.
+    // This is a placeholder for the correct logic.
+    return null;
   };
 
   // Type guard for QuestionRevision
   function hasQuestionRevisionId(
-    obj: QuestionRevision,
+    obj: QuestionRevision | object,
   ): obj is QuestionRevision & { question_revision_id: string } {
     return (
-      "question_revision_id" in obj &&
-      typeof (obj as { question_revision_id?: unknown })
-        .question_revision_id === "string"
+      typeof obj === 'object' &&
+      obj !== null &&
+      'question_revision_id' in obj &&
+      typeof (obj as { question_revision_id?: unknown }).question_revision_id === 'string'
     );
   }
 
@@ -206,21 +189,24 @@ export const Assessment: React.FC = () => {
     return "";
   };
 
-  const handleAnswerChange = (
-    question_revision_id: string,
-    value: {
-      yesNo?: boolean;
-      percentage?: number;
-      text?: string;
-      files?: FileData[];
-    },
-  ) => {
-    setAnswers((prev) => ({ ...prev, [question_revision_id]: value }));
-    // No backend call here!
+  const handleAnswerChange = (question_revision_id: string, value: Partial<LocalAnswer>) => {
+    setAnswers((prev) => ({ ...prev, [question_revision_id]: { ...prev[question_revision_id], ...value } as LocalAnswer }));
   };
 
   const handleCommentChange = (questionId: string, comment: string) => {
     setComments((prev) => ({ ...prev, [questionId]: comment }));
+  };
+
+  // When creating a response to save:
+  const createResponseToSave = (key: string, answer: LocalAnswer): ResponseType => {
+    return {
+      response_id: uuidv4(),
+      assessment_id: assessmentId!,
+      question_revision_id: key,
+      response: JSON.stringify(answer), // Stringify the whole local answer object
+      version: 1,
+      updated_at: new Date().toISOString(),
+    };
   };
 
   // --- Validation helpers ---
@@ -285,71 +271,26 @@ export const Assessment: React.FC = () => {
       .map((question) => {
         const key = getRevisionKey(question.revision);
         const answer = answers[key];
-        return answer
-          ? {
-              question_revision_id: key,
-              response: JSON.stringify(answer),
-            }
-          : null;
-      })
-      .filter(Boolean);
+        if (!answer) return null;
 
-    // Send each response individually
+        return {
+          response_id: uuidv4(),
+          assessment_id: assessmentId!,
+          question_revision_id: key,
+          response: JSON.stringify(answer),
+          version: 1,
+          updated_at: new Date().toISOString(),
+        } as ResponseType;
+      })
+      .filter((r): r is ResponseType => r !== null);
+
+    // Save all responses
     for (const resp of responsesToSend) {
-      createResponseMutation.mutate({
-        assessmentId: assessmentId!,
-        requestBody: resp, // send as single object
-      });
+        createResponseMutation.mutate(resp);
     }
     if (currentCategoryIndex < categories.length - 1) {
       setCategoryIndex(currentCategoryIndex + 1);
     }
-  };
-
-  // --- Final submit: send all answers for current category, then submit assessment ---
-  const submitAssessment = async () => {
-    if (!isCurrentCategoryComplete()) {
-      toast.error(
-        "Please answer all questions in this category before submitting.",
-      );
-      return;
-    }
-    const currentQuestions = getCurrentCategoryQuestions();
-    const responsesToSend = currentQuestions
-      .map((question) => {
-        const key = getRevisionKey(question.revision);
-        const answer = answers[key];
-        return answer
-          ? {
-              question_revision_id: key,
-              response: JSON.stringify(answer),
-            }
-          : null;
-      })
-      .filter(Boolean);
-
-    // Send each response individually
-    for (const resp of responsesToSend) {
-      await new Promise((resolve) => {
-        createResponseMutation.mutate(
-          {
-            assessmentId: assessmentId!,
-            requestBody: resp, // send as single object
-          },
-          {
-            onSuccess: resolve,
-            onError: resolve,
-          },
-        );
-      });
-    }
-    submitAssessmentMutation.mutate({
-      assessmentId: assessmentId!,
-    });
-    toast(`Your ${toolName.toLowerCase()} has been submitted successfully`);
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 2000);
   };
 
   // Remove or disable saveDraft
@@ -361,8 +302,8 @@ export const Assessment: React.FC = () => {
     }
   };
 
-  const renderQuestionInput = (question: QuestionRevision) => {
-    const key = getRevisionKey(question);
+  const renderQuestionInput = (revision: QuestionRevision) => {
+    const key = getRevisionKey(revision);
     const yesNoValue = answers[key]?.yesNo;
     const percentageValue = answers[key]?.percentage;
     const textValue = answers[key]?.text || "";
