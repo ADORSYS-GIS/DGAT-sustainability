@@ -19,7 +19,7 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(AssessmentsSubmission::UserId)
+                        ColumnDef::new(AssessmentsSubmission::OrgId)
                             .string()
                             .not_null(),
                     )
@@ -63,7 +63,7 @@ impl MigrationTrait for Migration {
 enum AssessmentsSubmission {
     Table,
     SubmissionId,
-    UserId,
+    OrgId,
     Content,
     SubmittedAt,
 }
