@@ -442,12 +442,6 @@ pub async fn submit_assessment(
             ApiError::InternalServerError(format!("Failed to check existing submission: {e}"))
         })?;
 
-    if existing_submission.is_some() {
-        return Err(ApiError::BadRequest(
-            "Assessment has already been submitted".to_string(),
-        ));
-    }
-
     // Fetch all responses for this assessment to include in the submission
     let response_models = app_state
         .database
@@ -501,23 +495,33 @@ pub async fn submit_assessment(
         "responses": responses_with_files
     });
 
-    // Create the submission record in the database
-    let _submission_model = app_state
-        .database
-        .assessments_submission
-        .create_submission(assessment_id, org_id.clone(), submission_content.clone())
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to create submission: {e}")))?;
+    // Create or update the submission record in the database
+    let _submission_model = if existing_submission.is_some() {
+        // Update existing submission by appending new content
+        app_state
+            .database
+            .assessments_submission
+            .update_submission_content(assessment_id, submission_content.clone())
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to update submission: {e}")))?
+    } else {
+        // Create new submission
+        app_state
+            .database
+            .assessments_submission
+            .create_submission(assessment_id, org_id.clone(), submission_content.clone())
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to create submission: {e}")))?
+    };
 
     // Build the response
-    let now = chrono::Utc::now().to_rfc3339();
     let submission = AssessmentSubmission {
         assessment_id,
         org_id,
-        content: submission_content,
-        submitted_at: now,
+        content: _submission_model.content.clone(),
+        submitted_at: _submission_model.submitted_at.to_rfc3339(),
         review_status: _submission_model.status.to_string(),
-        reviewed_at: None,
+        reviewed_at: _submission_model.reviewed_at.map(|dt| dt.to_rfc3339()),
     };
 
     Ok((
