@@ -1,0 +1,563 @@
+{
+  "home": "Ikhaya",
+  "homePage": {
+    "hero": {
+      "title": "Nika amandla iKoparetivu yakho",
+      "subtitle": "Hloza izinhloso zokuSimama",
+      "description": "Kulula, kuphephile, futhi kunomthelela—siza ikoparetivu yakho ukuthi ichume esikhathini sedijithali ngenkathi yakha izindlela zokusimama zesikhathi esizayo.",
+      "cta": "Qala ukuhlola"
+    },
+    "features": {
+      "title": "Izici",
+      "items": [
+        {
+          "title": "Ukuhlola kokuSimama",
+          "description": "Hloza izindlela zemvelo, zezenhlalakahle, kanye nezokuphatha ukuze wakhe ikoparetivu esinakekela futhi enomthwalo."
+        },
+        {
+          "title": "Izinhlelo zokusebenza",
+          "description": "Landelela inqubekela yakho ngamabhodi eKanban asebenzisanayo, aguqula imininingwane yokuhlola ibe yimisebenzi ephathekayo kanye nentuthuko elinganisekayo."
+        }
+      ]
+    },
+    "benefits": {
+      "title": "Izinzuzo",
+      "items": [
+        {
+          "title": "Yakhelwe amaKoparetivu",
+          "description": "Yenzelwe ngokukhethekile izinhlangano zamakoparetivu eNingizimu Afrika"
+        },
+        {
+          "title": "Ukusekela izilimi eziningi",
+          "description": "Itholakala ngesiNgisi, siSwati, isiPutukezi, isiZulu, isiJalimani, kanye nesiFulentshi"
+        },
+        {
+          "title": "Ikhono lokusebenza ngaphandle kwe-inthanethi",
+          "description": "Isebenza ngokuthembekile noma kuxhumeka kwe-inthanethi kuncane"
+        }
+      ]
+    }
+  },
+  "login": "Ngena",
+  "logout": "Phuma",
+  "profile": "Iphrofayili",
+  "sustainability": "Ukusimama",
+  "assessment": "Ukuhlola",
+  "submit": "Thumela",
+  "next": "Okulandelayo",
+  "previous": "Okudlule",
+  "saveDraft": "Gcina uhlaka",
+  "category": "Isigaba",
+  "progress": "Inqubekela",
+  "viewSubmission": "Buka okuthunyelwe",
+  "yourSubmissions": "Okuthunyelwe kwakho",
+  "noSubmissions": "Akukho okuthunyelwe okwamanje",
+  "startAssessment": "Qala ukuhlola",
+  "status": "Isimo",
+  "submittedAt": "Ithunyelwe ng",
+  "reviewedAt": "Ibukwe ng",
+  "manageUsers": "Phatha abasebenzisi",
+  "actionPlan": "Uhlelo lokusebenza",
+  "viewAssessments": "Buka ukuhlola",
+  "answerAssessment": "Phendula ukuhlola",
+  "viewAll": "Buka konke",
+  "welcome": "Wamukelekile, {{user}} ovela ku-{{org}}!",
+  "loading": "Iyalayisha...",
+  "noData": "Ayikho idatha etholakalayo",
+  "adminDashboard": {
+    "welcome": "Wamukelekile, Mphathi! Shintsha umthelela wamaKoparetivu!",
+    "intro": "Phatha indawo yokuhlola ye-DGRV futhi usekele amakoparetivu kuyo yonke iNingizimu Afrika.",
+    "numCategories": "Inani lezigaba",
+    "numQuestions": "Inani lemibuzo",
+    "pendingReviews": "Ukubuyekezwa okusalindile",
+    "completedAssessments": "Ukuhlola okuqediwe",
+    "manageOrganizations": "Phatha izinhlangano",
+    "manageOrganizationsDesc": "Engeza, hlela, futhi phatha izinhlangano zamakoparetivu ohlelweni.",
+    "manageUsers": "Phatha abasebenzisi",
+    "manageUsersDesc": "Lawula ukufinyelela kwabasebenzisi kanye nezindima kuzo zonke izinhlangano.",
+    "manageCategories": "Phatha izigaba",
+    "manageCategoriesDesc": "Lungisa izigaba zokuhlola zamathuluzi okusimama.",
+    "manageQuestions": "Phatha imibuzo",
+    "manageQuestionsDesc": "Dala futhi hlela imibuzo ngaphakathi kwesigaba ngasinye sokuhlola.",
+    "reviewAssessments": "Buyekeza ukuhlola",
+    "reviewAssessmentsDesc": "Buyekeza ukuhlola okuthunyelwe futhi unikeze izincomo.",
+    "standardRecommendations": "Izincomo ezijwayelekile",
+    "standardRecommendationsDesc": "Phatha izincomo ezingasetshenziswa kabusha zezimo zokuhlola ezivamile.",
+    "pendingReviewsCard": "Ukubuyekezwa okusalindile",
+    "pendingCount": "{{count}} okusalindile",
+    "sustainabilityAssessment": "Ukuhlola kokuSimama",
+    "byUser": "ngu {{user}}",
+    "underReview": "Kuyabuyekezwa",
+    "reviewRequired": "Ukubuyekezwa kuyadingeka",
+    "allUpToDate": "Konke ukuhlola kusesikhathi!",
+    "adminGuide": "Umhlahlandlela womphathi",
+    "guideIntro": "Wamukelekile kudeshibhodi yomphathi ye-DGRV! Nawa amathiphu okukusiza ukuphatha indawo:",
+    "guideOrgsUsers": "Sebenzisa izigaba zokuPhatha izinhlangano kanye nokuPhatha abasebenzisi ukuze ulawule ukufinyelela kanye nobulungu.",
+    "guideReview": "Buyekeza futhi uvume ukuhlola esigabeni sokubuyekezwa kokuhlola.",
+    "guideCategoriesQuestions": "Lungisa izigaba nemibuzo ukuze ulungiselele inqubo yokuhlola ezidingweni zakho.",
+    "guideDocs": "Ngemininingwane ephelele, vakashela imibhalo yomphathi.",
+    "guideSupport": "Uma udinga usizo, xhumana ne support@dgrv.org."
+  },
+  "standardRecommendations": {
+    "title": "Izincomo ezijwayelekile",
+    "manageDesc": "Phatha izincomo ezingasetshenziswa kabusha zokubuyekezwa kokuhlola",
+    "add": "Engeza izincomo",
+    "edit": "Hlela izincomo ezijwayelekile",
+    "addDialog": "Engeza izincomo ezijwayelekile",
+    "textLabel": "Umbhalo wezincomo",
+    "textPlaceholder": "Faka umbhalo wezincomo...",
+    "update": "Buyekeza izincomo",
+    "create": "Dala izincomo",
+    "cancel": "Khansela",
+    "singleTitle": "Izincomo ezijwayelekile",
+    "editBtn": "Hlela",
+    "emptyTitle": "Azikho izincomo ezijwayelekile okwamanje",
+    "emptyDesc": "Dala izincomo ezingasetshenziswa kabusha ukuze usheshise ukubuyekezwa kokuhlola.",
+    "addFirst": "Engeza izincomo zokuqala",
+    "textRequired": "Umbhalo wezincomo uyadingeka",
+    "confirmDelete": "Uqinisekile ukuthi ufuna ukususa lezincomo ezijwayelekile?",
+    "deleteSuccess": "Izincomo ezijwayelekile zisuswe ngempumelelo",
+    "updateSuccess": "Izincomo zibuyekezwe ngempumelelo",
+    "createSuccess": "Izincomo ezijwayelekile zidalwe ngempumelelo"
+  },
+  "dashboard": {
+    "welcome": {
+      "title": "Wamukelekile, Mphathi! Shintsha umthelela wamaKoparetivu!",
+      "description": "Phatha indawo yokuhlola ye-DGRV futhi usekele amakoparetivu kuyo yonke iNingizimu Afrika."
+    },
+    "pendingReviews": {
+      "title": "Ukubuyekezwa okusalindile",
+      "badge": "okusalindile",
+      "assessmentType": "Ukuhlola kokuSimama",
+      "submittedBy": "ngu",
+      "reviewRequired": "Ukubuyekezwa kuyadingeka",
+      "upToDate": "Konke ukuhlola kusesikhathi!"
+    },
+    "systemHealth": {
+      "title": "Impilo yohlelo",
+      "database": "Isizindalwazi",
+      "healthy": "Inempilo",
+      "apiResponse": "Impendulo ye-API",
+      "fast": "Iyashesha",
+      "syncQueue": "Ulayini wokuvumelanisa",
+      "clear": "Hlanzekile"
+    },
+    "quickActions": {
+      "title": "Izenzo ezisheshayo",
+      "exportReport": "Thumela umbiko wohlelo",
+      "backupDatabase": "Gcina isizindalwazi",
+      "viewAuditLogs": "Buka amalogi okuhlola",
+      "systemSettings": "Izilungiselelo zohlelo"
+    },
+    "stats": {
+      "numCategories": "Inani lezigaba",
+      "numQuestions": "Inani lemibuzo",
+      "pendingReviews": "Ukubuyekezwa okusalindile",
+      "completedAssessments": "Ukuhlola okuqediwe"
+    },
+    "assessments": {
+      "subtitle": "Buka futhi uphathe konke okuthunyelwe kwakho kokusimama",
+      "emptyState": "Qala ukuhlola kwakho kokuqala kokusimama ukuze ulandelele inqubekela yekoparetivu yakho."
+    },
+      "numCategories": "Inani lezigaba",
+      "numQuestions": "Inani lemibuzo",
+      "pendingReviews": "Ukubuyekezwa okusalindile",
+      "completedAssessments": "Ukuhlola okuqediwe"
+    },
+    "actions": {
+      "manageOrganizations": "Phatha izinhlangano",
+      "manageOrganizationsDesc": "Engeza, hlela, futhi phatha izinhlangano zamakoparetivu ohlelweni.",
+      "manageUsers": "Phatha abasebenzisi",
+      "manageUsersDesc": "Lawula ukufinyelela kwabasebenzisi kanye nezindima kuzo zonke izinhlangano.",
+      "manageCategories": "Phatha izigaba",
+      "manageCategoriesDesc": "Lungisa izigaba zokuhlola zamathuluzi okusimama.",
+      "manageQuestions": "Phatha imibuzo",
+      "manageQuestionsDesc": "Dala futhi hlela imibuzo ngaphakathi kwesigaba ngasinye sokuhlola.",
+      "reviewAssessments": "Buyekeza ukuhlola",
+      "reviewAssessmentsDesc": "Buyekeza ukuhlola okuthunyelwe futhi unikeze izincomo.",
+      "standardRecommendations": "Izincomo ezijwayelekile",
+      "standardRecommendationsDesc": "Phatha izincomo ezingasetshenziswa kabusha zezimo zokuhlola ezivamile."
+    },
+    "guide": {
+      "title": "Umhlahlandlela womphathi",
+      "intro": "Wamukelekile kudeshibhodi yomphathi ye-DGRV! Nawa amathiphu okukusiza ukuphatha indawo:",
+      "orgsUsers": "Sebenzisa izigaba zokuPhatha izinhlangano kanye nokuPhatha abasebenzisi ukuze ulawule ukufinyelela kanye nobulungu.",
+      "review": "Buyekeza futhi uvume ukuhlola esigabeni sokubuyekezwa kokuhlola.",
+      "categoriesQuestions": "Lungisa izigaba nemibuzo ukuze ulungiselele inqubo yokuhlola ezidingweni zakho.",
+      "docs": "Ngemininingwane ephelele, vakashela imibhalo yomphathi.",
+      "support": "Uma udinga usizo, xhumana ne support@dgrv.org."
+    },
+  "questions": {
+    "manage": {
+      "title": "Phatha imibuzo",
+      "description": "Dala futhi hlela imibuzo ngaphakathi kwesigaba ngasinye sokuhlola.",
+      "add": "Engeza umbuzo omusha",
+      "edit": "Hlela umbuzo",
+      "delete": "Susa umbuzo",
+      "confirmDelete": "Uqinisekile ukuthi ufuna ukususa lo mbuzo?",
+      "success": "Umbuzo ususwe ngempumelelo!",
+      "error": "Iphutha ekususeni umbuzo."
+    },
+    "list": {
+      "title": "Yonke imibuzo",
+      "noQuestions": "Ayikho imibuzo etholakele.",
+      "question": "Umbuzo",
+      "category": "Isigaba",
+      "actions": "Izenzo"
+    },
+    "form": {
+      "title": "Ifomu lombuzo",
+      "question": "Umbuzo",
+      "category": "Isigaba",
+      "type": "Uhlobo",
+      "options": "Izinketho",
+      "required": "Kuyadingeka",
+      "save": "Gcina umbuzo",
+      "cancel": "Khansela",
+      "success": "Umbuzo ugcinwe ngempumelelo!",
+      "error": "Iphutha ekugcineni umbuzo."
+    }
+  },
+  "categories": {
+    "manage": {
+      "title": "Phatha izigaba",
+      "description": "Lungisa izigaba zokuhlola zamathuluzi okusimama.",
+      "add": "Engeza isigaba esisha",
+      "edit": "Hlela isigaba",
+      "delete": "Susa isigaba",
+      "confirmDelete": "Uqinisekile ukuthi ufuna ukususa lesi sigaba?",
+      "success": "Isigaba sisuswe ngempumelelo!",
+      "error": "Iphutha ekususeni isigaba."
+    },
+    "list": {
+      "title": "Zonke izigaba",
+      "noCategories": "Azikho izigaba ezitholakele.",
+      "category": "Isigaba",
+      "actions": "Izenzo"
+    },
+    "form": {
+      "title": "Ifomu lesigaba",
+      "name": "Igama",
+      "description": "Incazelo",
+      "save": "Gcina isigaba",
+      "cancel": "Khansela",
+      "success": "Isigaba sigcinwe ngempumelelo!",
+      "error": "Iphutha ekugcineni isigaba."
+    }
+  },
+  "organizations": {
+    "manage": {
+      "title": "Phatha izinhlangano",
+      "description": "Engeza, hlela, futhi phatha izinhlangano zamakoparetivu ohlelweni.",
+      "add": "Engeza inhlangano entsha",
+      "edit": "Hlela inhlangano",
+      "delete": "Susa inhlangano",
+      "confirmDelete": "Uqinisekile ukuthi ufuna ukususa le nhlangano?",
+      "success": "Inhlangano isuswe ngempumelelo!",
+      "error": "Iphutha ekususeni inhlangano."
+    },
+    "list": {
+      "title": "Zonke izinhlangano",
+      "noOrganizations": "Azikho izinhlangano ezitholakele.",
+      "organization": "Inhlangano",
+      "actions": "Izenzo"
+    },
+    "form": {
+      "title": "Ifomu lenhlangano",
+      "name": "Igama",
+      "description": "Incazelo",
+      "save": "Gcina inhlangano",
+      "cancel": "Khansela",
+      "success": "Inhlangano igcinwe ngempumelelo!",
+      "error": "Iphutha ekugcineni inhlangano."
+    }
+  },
+  "users": {
+    "manage": {
+      "title": "Phatha abasebenzisi",
+      "description": "Lawula ukufinyelela kwabasebenzisi kanye nezindima kuzo zonke izinhlangano.",
+      "add": "Engeza umsebenzisi omusha",
+      "edit": "Hlela umsebenzisi",
+      "delete": "Susa umsebenzisi",
+      "confirmDelete": "Uqinisekile ukuthi ufuna ukususa lo msebenzisi?",
+      "success": "Umsebenzisi ususwe ngempumelelo!",
+      "error": "Iphutha ekususeni umsebenzisi."
+    },
+    "list": {
+      "title": "Bonke abasebenzisi",
+      "noUsers": "Abekho abasebenzisi abatholakele.",
+      "user": "Umsebenzisi",
+      "actions": "Izenzo"
+    },
+    "form": {
+      "title": "Ifomu lomsebenzisi",
+      "username": "Igama lomsebenzisi",
+      "email": "I-imeyili",
+      "role": "Indima",
+      "organization": "Inhlangano",
+      "save": "Gcina umsebenzisi",
+      "cancel": "Khansela",
+      "success": "Umsebenzisi ugcinwe ngempumelelo!",
+      "error": "Iphutha ekugcineni umsebenzisi."
+    }
+  },
+  "reviews": {
+    "manage": {
+      "title": "Buyekeza ukuhlola",
+      "description": "Buyekeza ukuhlola okuthunyelwe futhi unikeze izincomo.",
+      "review": "Buyekeza",
+      "approve": "Vuma",
+      "reject": "Nqaba",
+      "comments": "Amazwana",
+      "recommendations": "Izincomo",
+      "save": "Gcina ukubuyekezwa",
+      "cancel": "Khansela",
+      "success": "Ukubuyekezwa kugcinwe ngempumelelo!",
+      "error": "Iphutha ekugcineni ukubuyekezwa."
+    },
+    "list": {
+      "title": "Konke ukubuyekezwa",
+      "noReviews": "Akukho ukubuyekezwa okutholakele.",
+      "assessment": "Ukuhlola",
+      "status": "Isimo",
+      "reviewedBy": "Kubuyekezwe ngu",
+      "actions": "Izenzo"
+    }
+  },
+  "recommendations": {
+    "manage": {
+      "title": "Izincomo ezijwayelekile",
+      "description": "Phatha izincomo ezingasetshenziswa kabusha zezimo zokuhlola ezivamile.",
+      "add": "Engeza izincomo entsha",
+      "edit": "Hlela izincomo",
+      "delete": "Susa izincomo",
+      "confirmDelete": "Uqinisekile ukuthi ufuna ukususa lezincomo?",
+      "success": "Izincomo zisuswe ngempumelelo!",
+      "error": "Iphutha ekususeni izincomo."
+    },
+    "list": {
+      "title": "Zonke izincomo",
+      "noRecommendations": "Azikho izincomo ezitholakele.",
+      "recommendation": "Izincomo",
+      "actions": "Izenzo"
+    },
+    "form": {
+      "formTitle": "Ifomu lezincomo",
+      "title": "Isihloko",
+      "description": "Incazelo",
+      "save": "Gcina izincomo",
+      "cancel": "Khansela",
+      "success": "Izincomo zigcinwe ngempumelelo!",
+      "error": "Iphutha ekugcineni izincomo."
+    }
+  },
+  "manageCategories": {
+    "title": "Phatha izigaba",
+    "configureCategories": "Lungisa izigaba zokuhlola kokusimama",
+    "categories": "Izigaba zokuhlola kokusimama",
+    "addCategory": "Engeza isigaba",
+    "editCategory": "Hlela isigaba",
+    "categoryName": "Igama lesigaba",
+    "categoryNamePlaceholder": "isb. Umthelela wemvelo",
+    "weight": "Isisindo (%)",
+    "displayOrder": "Ukuboniswa ngokulandelana",
+    "createCategory": "Dala isigaba",
+    "updateCategory": "Buyekeza isigaba",
+    "loadSuccess": "{{count}} izigaba zilayishwe ngempumelelo!",
+    "saveSuccess": "{{count}} izigaba zigcinwe ngempumelelo!",
+    "deleteSuccess": "Isigaba sisuswe ngempumelelo!",
+    "weightExceedsError": "Isisindo esiphelele singadlula u-100%. Sicela ulungise noma uhlele kabusha.",
+    "redistributeWeights": "Hlela kabusha izisindo ngokulinganayo",
+    "totalWeightExceeds": "Isisindo esiphelele sidlula u-100%. Sicela ulungise noma uhlele kabusha.",
+    "totalWeightNot100": "Isisindo esiphelele singu-{{total}}%. Kufanele sibe ngu-100% ukuze kube nokuhlola okusemthethweni.",
+    "noCategoriesYet": "Azikho izigaba okwamanje. Engeza isigaba sakho sokuqala ukuze uqale!",
+    "weightLabel": "Isisindo: {{weight}}% | Ukulandelana: {{order}}"
+  },
+  "manageOrganizations": {
+    "title": "Phatha izinhlangano",
+    "subtitle": "Engeza futhi uphathe izinhlangano zamakoparetivu",
+    "addOrganization": "Engeza inhlangano",
+    "domains": "Izizinda",
+    "description": "Incazelo",
+    "edit": "Hlela",
+    "delete": "Susa",
+    "noOrganizations": "Azikho izinhlangano okwamanje",
+    "getStarted": "Engeza inhlangano yakho yamakoparetivu yokuqala ukuze uqale.",
+    "addFirstOrganization": "Engeza inhlangano yokuqala",
+    "update": "Buyekeza inhlangano",
+    "create": "Dala inhlangano",
+    "cancel": "Khansela"
+  },
+  "user": {
+    "dashboard": {
+      "welcome": "Wamukelekile, {{user}} ovela ku-{{org}}!",
+      "readyToContinue": "Ulungele ukuqhubeka nohambo lwakho lokusimama kwekoparetivu?",
+      "answerAssessment": {
+        "title": "Phendula ukuhlola",
+        "description": "Phendula ukuhlola kokusimama okusalindile kwekoparetivu yakho."
+      },
+      "viewAssessments": {
+        "title": "Buka ukuhlola",
+        "description": "Buka konke ukuhlola kwakho kokusimama kwamanje nokwedlule.",
+        "subtitle": "Landelela futhi uphathe imisebenzi yekoparetivu yakho yokuthuthukisa ukusimama."
+      },
+      "actionPlan": {
+        "kanban": {
+          "todo": "Okufanele kwenziwe",
+          "inProgress": "Kuyaqhubeka",
+          "done": "Kuphelile",
+          "approved": "Kuvunyiwe",
+          "approve": "Vuma",
+          "moveToInProgress": "Hambisa ku-Kuyaqhubeka",
+          "backToTodo": "Buyela ku-Okufanele kwenziwe",
+          "moveToDone": "Hambisa ku-Kuphelile",
+          "backToInProgress": "Buyela ku-Kuyaqhubeka",
+          "backToDone": "Buyela ku-Kuphelile"
+        },
+        "title": "Uhlelo lokusebenza",
+        "description": "Landelela futhi uphathe imisebenzi yekoparetivu yakho yokuthuthukisa ukusimama.",
+        "recentSubmissions": "Okuthunyelwe kwakamuva",
+        "viewAll": "Buka konke",
+        "noSubmissions": "Akukho okuthunyelwe okwamanje.",
+        "exportReports": "Thumela imibiko",
+        "downloadReportsDescription": "Landa imibiko yakho yokuhlola ngezindlela ezahlukene.",
+        "exportAsPDF": "Thumela njenge-PDF",
+        "exportAsWord": "Thumela njenge-Word",
+        "exportAsCSV": "Thumela njenge-CSV",
+        "needHelp": "Udinga usizo?",
+        "getSupport": "Thola usizo kanye nezinsiza zokuqeqesha ukuze usebenzise kahle ukuhlola kwakho.",
+        "viewUserGuide": "Buka umhlahlandlela womsebenzisi",
+        "manageUsers": {
+          "title": "Phatha abasebenzisi",
+          "description": "Engeza futhi uphathe abasebenzisi enhlanganweni yakho."
+        },
+        "status": {
+          "approved": "Kuvunyiwe",
+          "pendingReview": "Kusalindele ukubuyekezwa",
+          "underReview": "Kuyabuyekezwa",
+          "rejected": "Kunqatshiwe",
+          "revisionRequested": "Kuceliwe ukubuyekezwa",
+          "unknown": "Akwaziwa"
+        },
+        "loadingSubmissionsInline": "Iyalayisha okuthunyelwe...",
+        "user": "Umsebenzisi",
+        "org": "inhlangano yakho",
+        "startAssessment": {
+          "title": "Qala ukuhlola kokuSimama",
+          "description": "Hloza izindlela zemvelo, zezenhlalakahle, kanye nezokuphatha ukuze ukhule ngokusimama."
+        },
+        "noDraftAssessment": "Akukho uhlaka lokuhlola olutholakalayo ukuze luphendulwe.",
+        "sustainabilityAssessment": "Ukuhlola kokuSimama",
+        "noSubmissionsMessage": "Akukho okuthunyelwe okwamanje. Qala ukuhlola kwakho kokuqala ngenhla!"
+      },
+      "recentSubmissions": "Okuthunyelwe kwakamuva",
+      "viewAll": "Buka konke",
+      "noSubmissions": "Akukho okuthunyelwe okwamanje.",
+      "exportReports": "Thumela imibiko",
+      "downloadReportsDescription": "Landa imibiko yakho yokuhlola ngezindlela ezahlukene.",
+      "exportAsPDF": "Thumela njenge-PDF",
+      "exportAsWord": "Thumela njenge-Word",
+      "exportAsCSV": "Thumela njenge-CSV",
+      "needHelp": "Udinga usizo?",
+      "getSupport": "Thola usizo kanye nezinsiza zokuqeqesha ukuze usebenzise kahle ukuhlola kwakho.",
+      "viewUserGuide": "Buka umhlahlandlela womsebenzisi",
+      "manageUsers": {
+        "title": "Phatha abasebenzisi",
+        "description": "Engeza futhi uphathe abasebenzisi enhlanganweni yakho."
+      },
+      "status": {
+        "approved": "Kuvunyiwe",
+        "pendingReview": "Kusalindele ukubuyekezwa",
+        "underReview": "Kuyabuyekezwa",
+        "rejected": "Kunqatshiwe",
+        "revisionRequested": "Kuceliwe ukubuyekezwa",
+        "unknown": "Akwaziwa"
+      },
+      "loadingSubmissionsInline": "Iyalayisha okuthunyelwe...",
+      "user": "Umsebenzisi",
+      "org": "inhlangano yakho",
+      "startAssessment": {
+        "title": "Qala ukuhlola kokuSimama",
+        "description": "Hloza izindlela zemvelo, zezenhlalakahle, kanye nezokuphatha ukuze ukhule ngokusimama."
+      },
+      "noDraftAssessment": "Akukho uhlaka lokuhlola olutholakalayo ukuze luphendulwe.",
+      "sustainabilityAssessment": "Ukuhlola kokuSimama",
+      "noSubmissionsMessage": "Akukho okuthunyelwe okwamanje. Qala ukuhlola kwakho kokuqala ngenhla!"
+    }
+  },
+  "manageUsers.selectOrganization": "Khetha inhlangano",
+  "manageUsers.clickOrgToManage": "Chofoza inhlangano ukuze uphathe abasebenzisi bayo",
+  "manageUsers.backToOrganizations": "Buyela ezinhlanganweni",
+  "manageUsers.addUser": "+ Engeza umsebenzisi",
+  "manageUsers.manageUsersForOrg": "Engeza futhi uphathe abasebenzisi ku-{{org}}",
+  "manageUsers.editUser": "Hlela umsebenzisi",
+  "manageUsers.addNewUser": "Engeza umsebenzisi omusha",
+  "manageUsers.email": "I-imeyili",
+  "manageUsers.emailPlaceholder": "Faka i-imeyili",
+  "manageUsers.role": "Indima",
+  "manageUsers.organizationAdmin": "Umphathi wenhlangano",
+  "manageUsers.organization": "Inhlangano",
+  "manageUsers.selectOrganizationPlaceholder": "Khetha inhlangano",
+  "manageUsers.update": "Buyekeza",
+  "manageUsers.create": "Dala",
+  "manageUsers.user": "Umsebenzisi",
+  "manageUsers.cancel": "Khansela",
+  "manageUsers.verified": "Kuqinisekisiwe",
+  "manageUsers.notVerified": "Akuqinisekiswanga",
+  "manageUsers.edit": "Hlela",
+  "manageUsers.noUsersYet": "Abekho abasebenzisi okwamanje",
+  "manageUsers.addFirstUserDesc": "Engeza umsebenzisi wakho wokuqala ukuze uqale.",
+  "manageUsers.addFirstUser": "Engeza umsebenzisi wokuqala",
+  "manageUsers.orgLabel": "Inhlangano:",
+  "manageUsers.unknown": "Akwaziwa",
+  "manageUsers.admin": "Umphathi",
+  "manageUsers.orgAdmin": "Umphathi we-Org",
+  "manageUsers.orgUser": "Umsebenzisi we-Org",
+  "manageUsers.createUser": "Dala umsebenzisi",
+  "manageUsers.updateUser": "Buyekeza umsebenzisi",
+  "manageUsers.emailRequired": "I-imeyili iyadingeka",
+  "manageUsers.selectOrgRequired": "Sicela ukhethe inhlangano",
+  "manageUsers.confirmDelete": "Uqinisekile ukuthi ufuna ukususa lo msebenzisi enhlanganweni? Lesi senzo asikwazi ukubuyiselwa emuva.",
+  "manageQuestions.questionEnPlaceholder": "Faka umbuzo ngesiNgisi",
+  "manageQuestions.questionLangPlaceholder": "Faka umbuzo nge-{{lang}}",
+  "manageQuestions.category": "Isigaba",
+  "manageQuestions.selectCategoryPlaceholder": "Khetha isigaba",
+  "manageQuestions.weightLabel": "Isisindo (1-10)",
+  "manageQuestions.displayOrder": "Ukuboniswa ngokulandelana",
+  "manageQuestions.saving": "Iyasigcina...",
+  "manageQuestions.updateQuestion": "Buyekeza umbuzo",
+  "manageQuestions.createQuestion": "Dala umbuzo",
+  "manageQuestions.createSuccess": "Umbuzo udaliwe.",
+  "manageQuestions.updateSuccess": "Umbuzo ubuyekezwe.",
+  "manageQuestions.deleteSuccess": "Umbuzo ususwe.",
+  "manageQuestions.textRequired": "Umbhalo wombuzo (ngesiNgisi) uyadingeka.",
+  "manageQuestions.categoryRequired": "Isigaba siyadingeka.",
+  "manageQuestions.weightRangeError": "Isisindo kufanele sibe phakathi kuka-1 no-10.",
+  "manageQuestions.confirmDelete": "Uqinisekile ukuthi ufuna ukususa lo mbuzo?",
+  "manageQuestions.title": "Phatha imibuzo",
+  "manageQuestions.subtitle": "Phatha imibuzo yokuhlola kokusimama",
+  "manageQuestions.cardTitle": "Imibuzo yokuhlola kokusimama",
+  "manageQuestions.addQuestion": "Engeza umbuzo",
+  "manageQuestions.editQuestion": "Hlela umbuzo",
+  "manageQuestions.addNewQuestion": "Engeza umbuzo omusha",
+  "manageQuestions.noQuestionsInCategory": "Ayikho imibuzo kulesi sigaba okwamanje.",
+  "assessment.yesNo": "Yebo/Cha",
+  "assessment.yes": "Yebo",
+  "assessment.no": "Cha",
+  "assessment.percentage": "Iphesenti",
+  "assessment.percentNotStarted": "Akuqaliwe",
+  "assessment.percentSomeProgress": "Inqubekela encane",
+  "assessment.percentHalfway": "Maphakathi",
+  "assessment.percentAlmostDone": "Cishe kuphelile",
+  "assessment.percentFullyAchieved": "Kuphelile ngokuphelele",
+  "assessment.yourResponse": "Impendulo yakho",
+  "assessment.enterYourResponse": "Faka impendulo yakho...",
+  "assessment.addFile": "Engeza ifayela",
+    "assessment.completeAllQuestions": "Sicela uphendule yonke imibuzo kulesigaba ngaphambi kokuthumela.",
+    "assessment.submittedLocally": "Ukuhlolwa kuthunyelwe endaweni futhi kuzohambisana lapho usuxhunywe ku-inthanethi.",
+    "assessment.failedToCreate": "Yehlulekile ukudala ukuhlolwa endaweni.",
+    "assessment.fileTooLarge": "Usayizi wefayela akufanele udlule ku-1MB.",
+    "assessment.completeAllQuestionsNext": "Sicela uphendule yonke imibuzo kulesigaba ngaphambi kokuqhubeka.",
+  "manageQuestions.noCategories": "Azikho izigaba ezitholakalayo. Sicela udale izigaba kuqala!",
+  "manageQuestions.noText": "Awukho umbhalo otholakalayo."
+}

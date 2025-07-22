@@ -20,15 +20,17 @@ class SyncService {
           const requestBody = { requestBody: item.data as CreateAssessmentRequest };
           await AssessmentsService.postAssessments(requestBody);
         } else if (item.type === "response") {
-          // The `postAssessmentsByAssessmentIdResponses` method expects an `assessmentId` and a `requestBody`
           const { assessment_id, ...responseData } = item.data;
-          const requestBody = { assessmentId: assessment_id, requestBody: responseData as CreateResponseRequest };
+          const requestBody = { assessmentId: assessment_id, requestBody: [responseData as CreateResponseRequest] };
           await ResponsesService.postAssessmentsByAssessmentIdResponses(requestBody);
+        } else if (item.type === "batch_responses") {
+          const { assessmentId, responses } = item.data;
+          if (responses && responses.length > 0) {
+            const requestBody = { assessmentId: assessmentId, requestBody: responses as CreateResponseRequest[] };
+            await ResponsesService.postAssessmentsByAssessmentIdResponses(requestBody);
+          }
         } else if (item.type === "submit_assessment") {
-          // Handle the submission action
-          await AssessmentsService.postAssessmentsByAssessmentIdSubmit({
-            assessmentId: item.data.assessment_id,
-          });
+          await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId: item.data.assessment_id });
         }
       } catch (error) {
         console.error("Failed to sync item:", item, error);

@@ -26,6 +26,7 @@ import type {
 } from "@/openapi-rq/requests/types.gen";
 import { get } from "idb-keyval";
 import Select from "react-select";
+import { useTranslation } from "react-i18next";
 
 interface Category {
   categoryId: string;
@@ -74,6 +75,7 @@ function toFixedOrg(org: unknown): OrganizationResponseFixed {
 }
 
 export const ManageOrganizations: React.FC = () => {
+  const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingOrg, setEditingOrg] =
     useState<OrganizationResponseFixed | null>(null);
@@ -247,11 +249,11 @@ export const ManageOrganizations: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <Building2 className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    Manage Organizations
+                    {t('manageOrganizations.title')}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  Add and manage cooperative organizations
+                  {t('manageOrganizations.subtitle')}
                 </p>
               </div>
 
@@ -265,7 +267,7 @@ export const ManageOrganizations: React.FC = () => {
                 <DialogTrigger asChild>
                   <Button className="bg-dgrv-green hover:bg-green-700">
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Organization
+                    {t('manageOrganizations.addOrganization')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -424,14 +426,14 @@ export const ManageOrganizations: React.FC = () => {
                           updateOrgMutation.status === "pending"
                         }
                       >
-                        {editingOrg ? "Update" : "Create"} Organization
+                        {editingOrg ? t('manageOrganizations.update') : t('manageOrganizations.create')}
                       </Button>
                       <Button
                         variant="outline"
                         onClick={resetForm}
                         className="px-6 py-2 text-base font-semibold rounded shadow"
                       >
-                        Cancel
+                        {t('manageOrganizations.cancel')}
                       </Button>
                     </div>
                   </div>
@@ -460,13 +462,13 @@ export const ManageOrganizations: React.FC = () => {
                   <div className="space-y-3">
                     {org.domains && org.domains.length > 0 && (
                       <div className="text-sm text-gray-600">
-                        <b>Domains:</b>{" "}
+                        <b>{t('manageOrganizations.domains')}:</b>{" "}
                         {org.domains.map((d) => d.name).join(", ")}
                       </div>
                     )}
                     {org.description && (
                       <div className="text-sm text-gray-600">
-                        <b>Description:</b> {org.description}
+                        <b>{t('manageOrganizations.description')}:</b> {org.description}
                       </div>
                     )}
                     <div className="flex space-x-2 pt-4">
@@ -477,7 +479,7 @@ export const ManageOrganizations: React.FC = () => {
                         className="flex-1"
                       >
                         <Edit className="w-4 h-4 mr-1" />
-                        Edit
+                        {t('manageOrganizations.edit')}
                       </Button>
                       <Button
                         size="sm"
@@ -486,6 +488,7 @@ export const ManageOrganizations: React.FC = () => {
                         className="text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="w-4 h-4" />
+                        {t('manageOrganizations.delete')}
                       </Button>
                     </div>
                   </div>
@@ -498,16 +501,16 @@ export const ManageOrganizations: React.FC = () => {
                 <CardContent>
                   <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No organizations yet
+                    {t('manageOrganizations.noOrganizations')}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Add your first cooperative organization to get started.
+                    {t('manageOrganizations.getStarted')}
                   </p>
                   <Button
                     onClick={() => setShowAddDialog(true)}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    Add First Organization
+                    {t('manageOrganizations.addFirstOrganization')}
                   </Button>
                 </CardContent>
               </Card>

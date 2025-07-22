@@ -8,12 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { useOfflineQuestions, useOfflineAssessment, useOfflineAssessmentMutation, useOfflineResponseMutation } from "../../hooks/useOfflineLocal";
+import { useOfflineQuestions, useOfflineAssessment, useOfflineAssessmentMutation, useOfflineBatchResponseMutation } from "../../hooks/useOfflineLocal";
 import { toast } from "sonner";
 import { Info, Paperclip, ChevronLeft, ChevronRight, Save, Send } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import type { Question, QuestionRevision, Assessment as AssessmentType, Response as ResponseType } from "@/openapi-rq/requests/types.gen";
 import { offlineDB } from "../../services/indexeddb";
+import type { CreateResponseRequest } from "@/openapi-rq/requests/types.gen";
+import { useTranslation } from "react-i18next";
 
 type FileData = { name: string; url: string };
 
@@ -25,6 +27,7 @@ type LocalAnswer = {
 };
 
 export const Assessment: React.FC = () => {
+  const { t } = useTranslation();
   const { assessmentId } = useParams<{ assessmentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -45,20 +48,30 @@ export const Assessment: React.FC = () => {
   const [comments, setComments] = useState<Record<string, string>>({});
   const [showPercentInfo, setShowPercentInfo] = useState(false);
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
-  const toolName = "Sustainability Assessment"; // Define toolName
+  const toolName = t("sustainability") + " " + t("assessment");
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment({ assessmentId: assessmentId || "" });
 
   const createAssessmentMutation = useOfflineAssessmentMutation();
-  const createResponseMutation = useOfflineResponseMutation();
+  const createResponseMutation = useOfflineBatchResponseMutation();
   const submitAssessmentMutation = useOfflineAssessmentMutation();
 
   useEffect(() => {
-    // Only an org_admin should be able to create a new assessment
-    const canCreate = user?.roles?.includes("org_admin");
+    // Robust role check: only an org_admin should be able to create an assessment
+    const allRoles = [
+      ...(user?.roles || []),
+      ...(user?.realm_access?.roles || []),
+    ].map((r) => r.toLowerCase());
+    const canCreate = allRoles.includes("org_admin");
 
-    if (!assessmentId && !hasCreatedAssessment && !createAssessmentMutation.isPending && user?.sub && canCreate) {
+    if (
+      !assessmentId &&
+      !hasCreatedAssessment &&
+      !createAssessmentMutation.isPending &&
+      user?.sub &&
+      canCreate
+    ) {
       setHasCreatedAssessment(true);
       const newAssessmentId = uuidv4();
       const newAssessment: AssessmentType = {
@@ -70,7 +83,7 @@ export const Assessment: React.FC = () => {
       createAssessmentMutation.mutate(newAssessment, {
         onSuccess: () => navigate(`/user/assessment/${newAssessmentId}`),
         onError: (err) => {
-          toast.error("Failed to create assessment locally.");
+          toast.error(t('assessment.failedToCreate'));
           console.error(err);
           setHasCreatedAssessment(false);
         },
@@ -81,9 +94,7 @@ export const Assessment: React.FC = () => {
     // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
     if (!isCurrentCategoryComplete()) {
-      toast.error(
-        "Please answer all questions in this category before submitting.",
-      );
+      toast.error(t('assessment.completeAllQuestions'));
       return;
     }
     const currentQuestions = getCurrentCategoryQuestions();
@@ -94,11 +105,11 @@ export const Assessment: React.FC = () => {
         if (!answer) return null;
         return createResponseToSave(key, answer);
       })
-      .filter((r): r is ResponseType => r !== null);
+      .filter((r): r is CreateResponseRequest => r !== null);
 
-    // Save all responses
-    for (const resp of responsesToSend) {
-        createResponseMutation.mutate(resp);
+    // Save all responses as a batch
+    if (assessmentId && responsesToSend.length > 0) {
+      createResponseMutation.mutate({ assessmentId, responses: responsesToSend });
     }
     
     // Mark assessment as submitted (locally)
@@ -111,7 +122,7 @@ export const Assessment: React.FC = () => {
                     type: "submit_assessment",
                     data: { assessment_id: assessmentDetail.assessment_id }
                 });
-                toast.success("Assessment has been submitted locally and will sync when online.");
+                toast.success(t('assessment.submittedLocally'));
                 navigate("/dashboard");
             }
         });
@@ -198,14 +209,11 @@ export const Assessment: React.FC = () => {
   };
 
   // When creating a response to save:
-  const createResponseToSave = (key: string, answer: LocalAnswer): ResponseType => {
+  const createResponseToSave = (key: string, answer: LocalAnswer): CreateResponseRequest => {
     return {
-      response_id: uuidv4(),
-      assessment_id: assessmentId!,
       question_revision_id: key,
       response: JSON.stringify(answer), // Stringify the whole local answer object
       version: 1,
-      updated_at: new Date().toISOString(),
     };
   };
 
@@ -235,7 +243,7 @@ export const Assessment: React.FC = () => {
     if (!files || files.length === 0) return;
     const file = files[0];
     if (file.size > 1024 * 1024) {
-      toast.error("File size must be less than 1MB");
+      toast.error(t('assessment.fileTooLarge'));
       return;
     }
     const reader = new FileReader();
@@ -262,7 +270,7 @@ export const Assessment: React.FC = () => {
   const nextCategory = async () => {
     if (!isCurrentCategoryComplete()) {
       toast.error(
-        "Please answer all questions in this category before proceeding.",
+        t('assessment.completeAllQuestionsNext'),
       );
       return;
     }
@@ -274,20 +282,18 @@ export const Assessment: React.FC = () => {
         if (!answer) return null;
 
         return {
-          response_id: uuidv4(),
-          assessment_id: assessmentId!,
           question_revision_id: key,
           response: JSON.stringify(answer),
           version: 1,
-          updated_at: new Date().toISOString(),
-        } as ResponseType;
+        } as CreateResponseRequest; // Use CreateResponseRequest type
       })
-      .filter((r): r is ResponseType => r !== null);
+      .filter((r): r is CreateResponseRequest => r !== null);
 
-    // Save all responses
-    for (const resp of responsesToSend) {
-        createResponseMutation.mutate(resp);
+    // Save all responses as a batch
+    if (assessmentId && responsesToSend.length > 0) {
+      createResponseMutation.mutate({ assessmentId, responses: responsesToSend });
     }
+
     if (currentCategoryIndex < categories.length - 1) {
       setCategoryIndex(currentCategoryIndex + 1);
     }
@@ -314,7 +320,7 @@ export const Assessment: React.FC = () => {
         {/* Yes/No */}
         <div>
           <Label>
-            Yes/No <span className="text-red-500">*</span>
+            {t('assessment.yesNo')} <span className="text-red-500">*</span>
           </Label>
           <div className="flex space-x-4 mt-1">
             <Button
@@ -353,7 +359,7 @@ export const Assessment: React.FC = () => {
         <div>
           <div className="flex items-center space-x-2 relative">
             <Label>
-              Percentage <span className="text-red-500">*</span>
+              {t('assessment.percentage')} <span className="text-red-500">*</span>
             </Label>
             <button
               type="button"
@@ -366,19 +372,19 @@ export const Assessment: React.FC = () => {
             {showPercentInfo && (
               <div className="absolute left-8 top-6 z-10 bg-white border rounded shadow-md p-3 w-56 text-xs text-gray-700">
                 <div>
-                  <b>0%:</b> Not started
+                  <b>0%:</b> {t('assessment.percentNotStarted')}
                 </div>
                 <div>
-                  <b>25%:</b> Some progress
+                  <b>25%:</b> {t('assessment.percentSomeProgress')}
                 </div>
                 <div>
-                  <b>50%:</b> Halfway
+                  <b>50%:</b> {t('assessment.percentHalfway')}
                 </div>
                 <div>
-                  <b>75%:</b> Almost done
+                  <b>75%:</b> {t('assessment.percentAlmostDone')}
                 </div>
                 <div>
-                  <b>100%:</b> Fully achieved
+                  <b>100%:</b> {t('assessment.percentFullyAchieved')}
                 </div>
               </div>
             )}
@@ -409,7 +415,7 @@ export const Assessment: React.FC = () => {
         {/* Text Input */}
         <div>
           <Label htmlFor={`input-text-${key}`}>
-            Your Response <span className="text-red-500">*</span>
+            {t('assessment.yourResponse')} <span className="text-red-500">*</span>
           </Label>
           <Textarea
             id={`input-text-${key}`}
@@ -420,7 +426,7 @@ export const Assessment: React.FC = () => {
                 text: e.target.value,
               })
             }
-            placeholder="Enter your response..."
+            placeholder={t('assessment.enterYourResponse')}
             className="mt-1"
             rows={4}
           />
@@ -428,7 +434,7 @@ export const Assessment: React.FC = () => {
           <div className="mt-2 flex items-center space-x-2">
             <label className="flex items-center cursor-pointer text-dgrv-blue hover:underline">
               <Paperclip className="w-4 h-4 mr-1" />
-              <span>Add file</span>
+              <span>{t('assessment.addFile')}</span>
               <input
                 type="file"
                 className="hidden"
@@ -462,7 +468,7 @@ export const Assessment: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading assessment...</p>
+          <p className="text-gray-600">{t("loading")}</p>
         </div>
       </div>
     );
@@ -477,17 +483,16 @@ export const Assessment: React.FC = () => {
             <Card>
               <CardContent className="p-8 text-center">
                 <h2 className="text-2xl font-bold text-dgrv-blue mb-4">
-                  Assessment Not Available
+                  {t("assessment")} {t("notAvailable", { defaultValue: "Not Available" })}
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  The {toolName.toLowerCase()} is not yet configured. Please
-                  contact your administrator.
+                  {toolName.toLowerCase()} {t("notConfigured", { defaultValue: "is not yet configured. Please contact your administrator." })}
                 </p>
                 <Button
                   onClick={() => navigate("/dashboard")}
                   className="bg-dgrv-blue hover:bg-blue-700"
                 >
-                  Return to Dashboard
+                  {t("home")}
                 </Button>
               </CardContent>
             </Card>
@@ -514,8 +519,7 @@ export const Assessment: React.FC = () => {
               {toolName}
             </h1>
             <p className="text-lg text-gray-600">
-              Category {currentCategoryIndex + 1} of {categories.length}:{" "}
-              {currentCategory}
+              {t("category")} {currentCategoryIndex + 1} {t("of", { defaultValue: "of" })} {categories.length}: {currentCategory}
             </p>
           </div>
 
@@ -524,7 +528,7 @@ export const Assessment: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">
-                  Progress
+                  {t("progress")}
                 </span>
                 <span className="text-sm font-medium text-dgrv-blue">
                   {Math.round(progress)}%
@@ -587,7 +591,7 @@ export const Assessment: React.FC = () => {
               className="flex items-center space-x-2"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
+              <span>{t("previous")}</span>
             </Button>
 
             <div className="flex space-x-4">
@@ -597,7 +601,7 @@ export const Assessment: React.FC = () => {
                 className="flex items-center space-x-2"
               >
                 <Save className="w-4 h-4" />
-                <span>Save Draft</span>
+                <span>{t("saveDraft")}</span>
               </Button>
 
               {isLastCategory ? (
@@ -607,7 +611,7 @@ export const Assessment: React.FC = () => {
                   disabled={!isCurrentCategoryComplete()}
                 >
                   <Send className="w-4 h-4" />
-                  <span>Submit Assessment</span>
+                  <span>{t("submit")}</span>
                 </Button>
               ) : (
                 <Button
@@ -615,7 +619,7 @@ export const Assessment: React.FC = () => {
                   className="bg-dgrv-blue hover:bg-blue-700 flex items-center space-x-2"
                   disabled={!isCurrentCategoryComplete()}
                 >
-                  <span>Next</span>
+                  <span>{t("next")}</span>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               )}

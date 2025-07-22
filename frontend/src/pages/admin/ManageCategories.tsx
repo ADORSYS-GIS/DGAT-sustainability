@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, List } from "lucide-react";
 import { get, set } from "idb-keyval";
+import { useTranslation } from "react-i18next";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
 const CATEGORIES_KEY = "sustainability_categories";
@@ -27,6 +28,7 @@ interface Category {
 }
 
 export const ManageCategories: React.FC = () => {
+  const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
@@ -48,7 +50,7 @@ export const ManageCategories: React.FC = () => {
         const stored = (await get(CATEGORIES_KEY)) as Category[] | undefined;
         setCategories(stored || []);
         toast.success(
-          `Loaded ${stored?.length ?? 0} categories successfully!`,
+          t('manageCategories.loadSuccess', { count: stored?.length ?? 0 }),
           {
             className: "bg-dgrv-green text-white",
           },
@@ -67,7 +69,7 @@ export const ManageCategories: React.FC = () => {
     try {
       await set(CATEGORIES_KEY, cats);
       setCategories(cats);
-      toast.success(`Saved ${cats.length} categories successfully!`, {
+      toast.success(t('manageCategories.saveSuccess', { count: cats.length }), {
         className: "bg-dgrv-green text-white",
       });
     } catch (err) {
@@ -206,17 +208,17 @@ export const ManageCategories: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center space-x-3 mb-4">
               <List className="w-8 h-8 text-dgrv-blue" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">
-                Manage Categories
+              <h1 className="text-3xl font-bold text-dgrv-blue mb-6">
+                {t('manageCategories.title')}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Configure categories for the Sustainability Assessment
+              {t('manageCategories.configureCategories')}
             </p>
           </div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Sustainability Assessment Categories</CardTitle>
+              <CardTitle>{t('manageCategories.categories')}</CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -231,18 +233,18 @@ export const ManageCategories: React.FC = () => {
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Category
+                    {t('manageCategories.addCategory')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
-                      {editingCategory ? "Edit Category" : "Add New Category"}
+                      {editingCategory ? t('manageCategories.editCategory') : t('manageCategories.addCategory')}
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="name">Category Name</Label>
+                      <Label htmlFor="name">{t('manageCategories.categoryName')}</Label>
                       <Input
                         id="name"
                         value={formData.name}
@@ -252,12 +254,12 @@ export const ManageCategories: React.FC = () => {
                             name: e.target.value,
                           }))
                         }
-                        placeholder="e.g., Environmental Impact"
+                        placeholder={t('manageCategories.categoryNamePlaceholder')}
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="weight">Weight (%)</Label>
+                      <Label htmlFor="weight">{t('manageCategories.weight')}</Label>
                       <Input
                         id="weight"
                         type="number"
@@ -274,7 +276,7 @@ export const ManageCategories: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="order">Display Order</Label>
+                      <Label htmlFor="order">{t('manageCategories.displayOrder')}</Label>
                       <Input
                         id="order"
                         type="number"
@@ -292,8 +294,7 @@ export const ManageCategories: React.FC = () => {
                     {showDialogWeightError && (
                       <div className="text-red-600 text-center space-y-2">
                         <p>
-                          Total weight would exceed 100%. Please adjust or
-                          redistribute.
+                          {t('manageCategories.weightExceedsError')}
                         </p>
                         <Button
                           type="button"
@@ -304,7 +305,7 @@ export const ManageCategories: React.FC = () => {
                             setShowDialogWeightError(false);
                           }}
                         >
-                          Redistribute Weights Evenly
+                          {t('manageCategories.redistributeWeights')}
                         </Button>
                       </div>
                     )}
@@ -313,7 +314,7 @@ export const ManageCategories: React.FC = () => {
                       className="w-full bg-dgrv-blue hover:bg-blue-700"
                       disabled={showDialogWeightError}
                     >
-                      {editingCategory ? "Update Category" : "Create Category"}
+                      {editingCategory ? t('manageCategories.updateCategory') : t('manageCategories.createCategory')}
                     </Button>
                   </form>
                 </DialogContent>
@@ -329,7 +330,7 @@ export const ManageCategories: React.FC = () => {
                     <div>
                       <h3 className="font-medium text-lg">{category.name}</h3>
                       <p className="text-sm text-gray-600">
-                        Weight: {category.weight}% | Order: {category.order}
+                        {t('manageCategories.weightLabel', { weight: category.weight, order: category.order })}
                       </p>
                     </div>
                     <div className="flex space-x-2">
@@ -355,14 +356,14 @@ export const ManageCategories: React.FC = () => {
                 {weightExceeds && (
                   <div className="text-center py-4 text-red-600">
                     <p className="mb-2">
-                      Total weight exceeds 100%. Please adjust or redistribute.
+                      {t('manageCategories.totalWeightExceeds')}
                     </p>
                     <Button
                       variant="outline"
-                      onClick={redistributeWeights}
+                      onClick={() => redistributeWeights()}
                       className="bg-dgrv-blue text-white hover:bg-blue-700"
                     >
-                      Redistribute Weights Evenly
+                      {t('manageCategories.redistributeWeights')}
                     </Button>
                   </div>
                 )}
@@ -371,8 +372,7 @@ export const ManageCategories: React.FC = () => {
                   sortedCategories.length > 0 && (
                     <div className="text-center py-4 text-yellow-600">
                       <p>
-                        Total weight is {totalWeight}%. It should be exactly
-                        100% for a valid assessment.
+                        {t('manageCategories.totalWeightNot100', { total: totalWeight })}
                       </p>
                     </div>
                   )}
@@ -380,7 +380,7 @@ export const ManageCategories: React.FC = () => {
                   <div className="text-center py-8 text-gray-500">
                     <List className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>
-                      No categories yet. Add your first category to get started!
+                      {t('manageCategories.noCategoriesYet')}
                     </p>
                   </div>
                 )}

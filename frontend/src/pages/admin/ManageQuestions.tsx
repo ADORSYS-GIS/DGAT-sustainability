@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,7 @@ interface QuestionFormData {
 
 const QuestionForm: React.FC<{
   categories: Category[];
+  
   formData: QuestionFormData;
   setFormData: React.Dispatch<React.SetStateAction<QuestionFormData>>;
   onSubmit: (e: React.FormEvent) => void;
@@ -101,6 +103,7 @@ const QuestionForm: React.FC<{
 }) => {
   // Track which language dropdown is open (only one at a time)
   const [openLang, setOpenLang] = useLocalState<string | null>(null);
+  const { t } = useTranslation();
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -116,7 +119,7 @@ const QuestionForm: React.FC<{
               text: { ...prev.text, en: e.target.value },
             }))
           }
-          placeholder="Enter question in English"
+          placeholder={t('manageQuestions.questionEnPlaceholder')}
           required
         />
       </div>
@@ -144,7 +147,7 @@ const QuestionForm: React.FC<{
                       text: { ...prev.text, [lang.code]: e.target.value },
                     }))
                   }
-                  placeholder={`Enter question in ${lang.name}`}
+                  placeholder={t('manageQuestions.questionLangPlaceholder', { lang: lang.name })}
                 />
               </div>
             </SelectContent>
@@ -152,7 +155,7 @@ const QuestionForm: React.FC<{
         ))}
       </div>
       <div>
-        <Label htmlFor="categoryName">Category</Label>
+        <Label htmlFor="categoryName">{t('manageQuestions.category')}</Label>
         <Select
           value={formData.categoryName}
           onValueChange={(value) =>
@@ -163,7 +166,7 @@ const QuestionForm: React.FC<{
           }
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select a category" />
+            <SelectValue placeholder={t('manageQuestions.selectCategoryPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
@@ -176,7 +179,7 @@ const QuestionForm: React.FC<{
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="weight">Weight (1-10)</Label>
+          <Label htmlFor="weight">{t('manageQuestions.weightLabel')}</Label>
           <Input
             id="weight"
             type="number"
@@ -193,7 +196,7 @@ const QuestionForm: React.FC<{
           />
         </div>
         <div>
-          <Label htmlFor="order">Display Order</Label>
+          <Label htmlFor="order">{t('manageQuestions.displayOrder')}</Label>
           <Input
             id="order"
             type="number"
@@ -215,16 +218,17 @@ const QuestionForm: React.FC<{
         disabled={isPending}
       >
         {isPending
-          ? "Saving..."
+          ? t('manageQuestions.saving')
           : editingQuestion
-            ? "Update Question"
-            : "Create Question"}
+            ? t('manageQuestions.updateQuestion')
+            : t('manageQuestions.createQuestion')}
       </Button>
     </form>
   );
 };
 
 export const ManageQuestions = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] =
@@ -281,7 +285,7 @@ export const ManageQuestions = () => {
 
   const createMutation = useQuestionsServicePostQuestions({
     onSuccess: () => {
-      toast.success("Question created.");
+      toast.success(t('manageQuestions.createSuccess'));
       refetchQuestions();
       setIsDialogOpen(false);
     },
@@ -290,7 +294,7 @@ export const ManageQuestions = () => {
 
   const updateMutation = useQuestionsServicePutQuestionsByQuestionId({
     onSuccess: () => {
-      toast.success("Question updated.");
+      toast.success(t('manageQuestions.updateSuccess'));
       refetchQuestions();
       setIsDialogOpen(false);
       setEditingQuestion(null);
@@ -301,7 +305,7 @@ export const ManageQuestions = () => {
   const deleteMutation =
     useQuestionsServiceDeleteQuestionsRevisionsByQuestionRevisionId({
       onSuccess: () => {
-        toast.success("Question deleted.");
+        toast.success(t('manageQuestions.deleteSuccess'));
         refetchQuestions();
       },
       onError: (error: unknown) => toast.error(getErrorMessage(error)),
@@ -311,15 +315,15 @@ export const ManageQuestions = () => {
     (e: React.FormEvent) => {
       e.preventDefault();
       if (!formData.text.en.trim()) {
-        toast.error("Question text (English) is required.");
+        toast.error(t('manageQuestions.textRequired'));
         return;
       }
       if (!formData.categoryName) {
-        toast.error("Category is required.");
+        toast.error(t('manageQuestions.categoryRequired'));
         return;
       }
       if (formData.weight < 1 || formData.weight > 10) {
-        toast.error("Weight must be between 1 and 10.");
+        toast.error(t('manageQuestions.weightRangeError'));
         return;
       }
       // Remove empty language fields
@@ -372,7 +376,7 @@ export const ManageQuestions = () => {
 
   const handleDelete = useCallback(
     (questionRevisionId: string) => {
-      if (!window.confirm("Are you sure you want to delete this question?"))
+      if (!window.confirm(t('manageQuestions.confirmDelete')))
         return;
       deleteMutation.mutate({ questionRevisionId });
     },
@@ -426,16 +430,16 @@ export const ManageQuestions = () => {
             <div className="flex items-center space-x-3 mb-4">
               <BookOpen className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                Manage Questions
+                {t('manageQuestions.title')}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Manage questions for the Sustainability Assessment
+              {t('manageQuestions.subtitle')}
             </p>
           </div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Sustainability Assessment Questions</CardTitle>
+              <CardTitle>{t('manageQuestions.cardTitle')}</CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -454,13 +458,13 @@ export const ManageQuestions = () => {
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Question
+                    {t('manageQuestions.addQuestion')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>
-                      {editingQuestion ? "Edit Question" : "Add New Question"}
+                      {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
                     </DialogTitle>
                   </DialogHeader>
                   <QuestionForm
@@ -544,7 +548,7 @@ export const ManageQuestions = () => {
                           ) : (
                             <div className="text-center py-8 text-gray-500">
                               <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                              <p>No questions in this category yet.</p>
+                              <p>{t('manageQuestions.noQuestionsInCategory')}</p>
                             </div>
                           )}
                         </div>
@@ -555,9 +559,7 @@ export const ManageQuestions = () => {
                 {categories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>
-                      No categories available. Please create categories first!
-                    </p>
+                    <p>{t('manageQuestions.noCategories')}</p>
                   </div>
                 )}
               </Accordion>
@@ -574,15 +576,16 @@ const QuestionText = ({
 }: {
   question: QuestionWithLatestRevision;
 }) => {
+  const { t } = useTranslation();
   if (!question.latest_revision || !question.latest_revision.text) {
-    return <em>No text</em>;
+    return <em>{t('manageQuestions.noText')}</em>;
   }
 
   const text = question.latest_revision.text;
   const languages = Object.keys(text);
 
   if (languages.length === 0) {
-    return <em>No text</em>;
+    return <em>{t('manageQuestions.noText')}</em>;
   }
 
   return (
@@ -594,7 +597,7 @@ const QuestionText = ({
         return (
           <div key={lang} className="text-sm">
             <span className="font-medium text-gray-600 uppercase">
-              {lang === "en" ? "English" : lang === "zu" ? "Zulu" : lang}:
+              {t(`languages.${lang}`)}:
             </span>{" "}
             <span className="text-gray-800">{langText}</span>
           </div>

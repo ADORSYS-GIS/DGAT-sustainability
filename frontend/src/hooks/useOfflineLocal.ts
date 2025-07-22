@@ -3,6 +3,7 @@ import { offlineDB } from "@/services/indexeddb";
 import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
 import type { Question, Assessment, CreateAssessmentRequest, CreateResponseRequest } from "@/openapi-rq/requests/types.gen";
 import { AssessmentsService } from "@/openapi-rq/requests";
+import { v4 as uuidv4 } from "uuid";
 
 export function useOfflineQuestions() {
   const [data, setData] = useState<{ questions: Question[] }>({ questions: [] });
@@ -80,6 +81,33 @@ export function useOfflineResponseMutation() {
         await offlineDB.saveResponse(response);
         await offlineDB.addToSyncQueue({ type: "response", data: response });
         options?.onSuccess?.(response);
+      } catch (err) {
+        options?.onError?.(err);
+      }
+    },
+    isPending: false,
+  };
+}
+
+export function useOfflineBatchResponseMutation() {
+  return {
+    mutate: async (
+      { assessmentId, responses }: { assessmentId: string; responses: CreateResponseRequest[] },
+      options?: {
+        onSuccess?: (data: CreateResponseRequest[]) => void;
+        onError?: (err: unknown) => void;
+      },
+    ) => {
+      try {
+        const responsesWithIds = responses.map(r => ({ ...r, response_id: uuidv4(), assessment_id: assessmentId }));
+        for (const response of responsesWithIds) {
+          await offlineDB.saveResponse(response);
+        }
+        await offlineDB.addToSyncQueue({
+          type: "batch_responses",
+          data: { assessmentId, responses },
+        });
+        options?.onSuccess?.(responses);
       } catch (err) {
         options?.onError?.(err);
       }

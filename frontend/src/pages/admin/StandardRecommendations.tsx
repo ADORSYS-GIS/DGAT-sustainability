@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,7 @@ interface Recommendation {
 }
 
 export const StandardRecommendations: React.FC = () => {
+  const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingRec, setEditingRec] = useState<Recommendation | null>(null);
   const [formData, setFormData] = useState({ text: "" });
@@ -68,7 +70,7 @@ export const StandardRecommendations: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!formData.text.trim()) {
-      toast.error("Recommendation text is required");
+      toast.error("t('standardRecommendations.textRequired')");
       return;
     }
     try {
@@ -77,11 +79,11 @@ export const StandardRecommendations: React.FC = () => {
           r.id === editingRec.id ? { ...r, text: formData.text } : r,
         );
         await saveRecommendations(updated);
-        toast.success("Recommendation updated successfully");
+        toast.success("t('standardRecommendations.updateSuccess')");
       } else {
         const newRec: Recommendation = { id: uuidv4(), text: formData.text };
         await saveRecommendations([...recommendations, newRec]);
-        toast.success("Standard recommendation created successfully");
+        toast.success("t('standardRecommendations.createSuccess')");
       }
       resetForm();
     } catch (err) {
@@ -99,14 +101,14 @@ export const StandardRecommendations: React.FC = () => {
     async (recId: string) => {
       if (
         !confirm(
-          "Are you sure you want to delete this standard recommendation?",
+          "t('standardRecommendations.confirmDelete')",
         )
       )
         return;
       try {
         const updated = recommendations.filter((r) => r.id !== recId);
         await saveRecommendations(updated);
-        toast.success("Standard recommendation deleted successfully");
+        toast.success("t('standardRecommendations.deleteSuccess')");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err));
       }
@@ -138,11 +140,11 @@ export const StandardRecommendations: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <Star className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    Standard Recommendations
+                    {t('standardRecommendations.title')}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  Manage reusable recommendations for assessment reviews
+                  {t('standardRecommendations.manageDesc')}
                 </p>
               </div>
 
@@ -156,20 +158,20 @@ export const StandardRecommendations: React.FC = () => {
                 <DialogTrigger asChild>
                   <Button className="bg-dgrv-green hover:bg-green-700">
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Recommendation
+                    {t('standardRecommendations.add')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
                       {editingRec
-                        ? "Edit Standard Recommendation"
-                        : "Add Standard Recommendation"}
+                        ? "{t('standardRecommendations.edit')}"
+                        : "{t('standardRecommendations.addDialog')}"}
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="text">Recommendation Text</Label>
+                      <Label htmlFor="text">{t('standardRecommendations.textLabel')}</Label>
                       <Textarea
                         id="text"
                         value={formData.text}
@@ -179,7 +181,7 @@ export const StandardRecommendations: React.FC = () => {
                             text: e.target.value,
                           }))
                         }
-                        placeholder="Enter the recommendation text..."
+                        placeholder="{t('standardRecommendations.textPlaceholder')}"
                         rows={4}
                       />
                     </div>
@@ -189,11 +191,11 @@ export const StandardRecommendations: React.FC = () => {
                         className="bg-dgrv-green hover:bg-green-700"
                       >
                         {editingRec
-                          ? "Update Recommendation"
-                          : "Create Recommendation"}
+                          ? "{t('standardRecommendations.update')}"
+                          : "{t('standardRecommendations.create')}"}
                       </Button>
                       <Button variant="outline" onClick={resetForm}>
-                        Cancel
+                        {t('standardRecommendations.cancel')}
                       </Button>
                     </div>
                   </div>
@@ -250,17 +252,16 @@ export const StandardRecommendations: React.FC = () => {
                 <CardContent>
                   <Star className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No standard recommendations yet
+                    {t('standardRecommendations.emptyTitle')}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Create reusable recommendations to speed up assessment
-                    reviews.
+                    {t('standardRecommendations.emptyDesc')}
                   </p>
                   <Button
                     onClick={() => setShowAddDialog(true)}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    Add First Recommendation
+                    {t('standardRecommendations.addFirst')}
                   </Button>
                 </CardContent>
               </Card>

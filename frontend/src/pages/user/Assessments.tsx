@@ -14,6 +14,7 @@ import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
 import * as React from "react";
 import { useNavigate, NavigateFunction } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 type AuthUser = {
   sub?: string;
@@ -31,6 +32,7 @@ type AuthUser = {
 type AssessmentWithStatus = Assessment & { status?: string };
 
 export const Assessments: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { isOnline } = useSyncStatus();
   const [isLoading, setIsLoading] = useState(true);
@@ -88,13 +90,13 @@ export const Assessments: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  Sustainability Assessment Submission
+                  {t("sustainability")} {t("assessment")} {t("submission", { defaultValue: "Submission" })}
                 </h3>
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
                     <span>
-                      Submitted: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "-"}
+                      {t("submittedAt")}: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "-"}
                     </span>
                   </div>
                 </div>
@@ -120,7 +122,7 @@ export const Assessments: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               <p>
-                Categories Completed: {completed}/{total}
+                {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}/{total}
               </p>
             </div>
             <div className="flex space-x-2">
@@ -132,7 +134,7 @@ export const Assessments: React.FC = () => {
                 }
               >
                 <Eye className="w-4 h-4 mr-1" />
-                View Submission
+                {t("viewSubmission")}
               </Button>
             </div>
           </div>
@@ -153,11 +155,11 @@ export const Assessments: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <FileText className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    Your Submissions
+                    {t("yourSubmissions")}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  View and manage all your sustainability submissions
+                  {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
                 </p>
               </div>
             </div>
@@ -179,11 +181,10 @@ export const Assessments: React.FC = () => {
                 <CardContent>
                   <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No submissions yet
+                    {t("noSubmissions")}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Start your first sustainability assessment to track your
-                    cooperative's progress.
+                    {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
                   </p>
                 </CardContent>
               </Card>

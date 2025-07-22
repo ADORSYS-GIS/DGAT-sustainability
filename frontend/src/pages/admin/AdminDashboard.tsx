@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { get } from "idb-keyval";
 import { useQuestionsServiceGetQuestions } from "../../openapi-rq/queries/queries";
+import { useTranslation } from "react-i18next";
 
 type Organization = { organizationId: string; name: string };
 type User = { userId: string; firstName?: string; lastName?: string };
@@ -33,6 +34,7 @@ interface PendingReview {
 }
 
 export const AdminDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [orgs] = React.useState<Organization[]>([
     { organizationId: "org1", name: "Mock Cooperative 1" },
     { organizationId: "org2", name: "Mock Cooperative 2" },
@@ -116,45 +118,43 @@ export const AdminDashboard: React.FC = () => {
   const keycloakAdminUrl = import.meta.env.VITE_KEYCLOAK_ADMIN_URL;
   const adminActions = [
     {
-      title: "Manage Organizations",
-      description:
-        "Add, edit, and manage cooperative organizations in the system.",
+      title: t('adminDashboard.manageOrganizations'),
+      description: t('adminDashboard.manageOrganizationsDesc'),
       icon: Users,
-      color: "blue" as const,
+      color: "blue" as const, 
       onClick: () => navigate("/admin/organizations"),
     },
     {
-      title: "Manage Users",
-      description: "Control user access and roles across all organizations.",
+      title: t('adminDashboard.manageUsers'),
+      description: t('adminDashboard.manageUsersDesc'),
       icon: Users,
       color: "blue" as const,
       onClick: () => navigate("/admin/users"),
     },
     {
-      title: "Manage Categories",
-      description: "Configure assessment categories for sustainability tools.",
+      title: t('adminDashboard.manageCategories'),
+      description: t('adminDashboard.manageCategoriesDesc'),
       icon: List,
       color: "green" as const,
       onClick: () => navigate("/admin/categories"),
     },
     {
-      title: "Manage Questions",
-      description: "Create and edit questions within each assessment category.",
+      title: t('adminDashboard.manageQuestions'),
+      description: t('adminDashboard.manageQuestionsDesc'),
       icon: BookOpen,
       color: "blue" as const,
       onClick: () => navigate("/admin/questions"),
     },
     {
-      title: "Review Assessments",
-      description: "Review submitted assessments and provide recommendations.",
+      title: t('adminDashboard.reviewAssessments'),
+      description: t('adminDashboard.reviewAssessmentsDesc'),
       icon: CheckSquare,
       color: "green" as const,
       onClick: () => navigate("/admin/reviews"),
     },
     {
-      title: "Standard Recommendations",
-      description:
-        "Manage reusable recommendations for common assessment scenarios.",
+      title: t('adminDashboard.standardRecommendations'),
+      description: t('adminDashboard.standardRecommendationsDesc'),
       icon: Star,
       color: "blue" as const,
       onClick: () => navigate("/admin/recommendations"),
@@ -196,11 +196,11 @@ export const AdminDashboard: React.FC = () => {
   }, [questionsData]);
 
   const systemStats = [
-    { label: "Number of Categories", value: categoryCount, color: "blue" },
-    { label: "Number of Questions", value: questionCount, color: "green" },
-    { label: "Pending Reviews", value: pendingReviewsCount, color: "yellow" },
+    { label: t('adminDashboard.numCategories'), value: categoryCount, color: "blue" },
+    { label: t('adminDashboard.numQuestions'), value: questionCount, color: "green" },
+    { label: t('adminDashboard.pendingReviews'), value: pendingReviewsCount, color: "yellow" },
     {
-      label: "Completed Assessments",
+      label: t('adminDashboard.completedAssessments'),
       value: completedCount,
       color: "blue",
     },
@@ -217,12 +217,11 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center space-x-3 mb-4">
               <Settings className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                Welcome, Admin! Drive Cooperative Impact!
+                {t('adminDashboard.welcome')}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Manage the DGRV assessment platform and support cooperatives
-              across Southern Africa.
+              {t('adminDashboard.intro')}
             </p>
           </div>
 
@@ -264,10 +263,10 @@ export const AdminDashboard: React.FC = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <span>Pending Reviews</span>
+                  <span>{t('adminDashboard.pendingReviewsCard')}</span>
                 </CardTitle>
                 <Badge className="bg-orange-500 text-white">
-                  {pendingReviewsCount} pending
+                  {pendingReviewsCount} {t('adminDashboard.pendingCount', { count: pendingReviewsCount })}
                 </Badge>
               </CardHeader>
               <CardContent>
@@ -300,8 +299,8 @@ export const AdminDashboard: React.FC = () => {
                         </p>
                         <Badge variant="outline" className="text-xs">
                           {review.reviewStatus === "under_review"
-                            ? "Under Review"
-                            : "Review Required"}
+                            ? t('adminDashboard.underReview')
+                            : t('adminDashboard.reviewRequired')}
                         </Badge>
                       </div>
                     </div>
@@ -309,7 +308,7 @@ export const AdminDashboard: React.FC = () => {
                   {pendingReviews.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>All assessments are up to date!</p>
+                      <p>{t('adminDashboard.allUpToDate')}</p>
                     </div>
                   )}
                 </div>
@@ -325,60 +324,18 @@ export const AdminDashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <BookOpen className="w-5 h-5 text-dgrv-blue" />
-                    <span>Admin Guide</span>
+                    <span>{t('adminDashboard.adminGuide')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm text-gray-700">
-                    <p>
-                      Welcome to the DGRV Admin Dashboard! Here are some tips to
-                      help you manage the platform:
-                    </p>
+                    <p>{t('adminDashboard.guideIntro')}</p>
                     <ul className="list-disc pl-5 space-y-1">
-                      <li>
-                        Use the{" "}
-                        <span className="font-semibold text-dgrv-blue">
-                          Manage Organizations
-                        </span>{" "}
-                        and{" "}
-                        <span className="font-semibold text-dgrv-blue">
-                          Manage Users
-                        </span>{" "}
-                        sections to control access and membership.
-                      </li>
-                      <li>
-                        Review and approve assessments in the{" "}
-                        <span className="font-semibold text-dgrv-blue">
-                          Review Assessments
-                        </span>{" "}
-                        section.
-                      </li>
-                      <li>
-                        Configure categories and questions to tailor the
-                        assessment process to your needs.
-                      </li>
-                      <li>
-                        For detailed documentation, visit{" "}
-                        <a
-                          href="https://dgrv-admin-docs.example.com"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline"
-                        >
-                          Admin Documentation
-                        </a>
-                        .
-                      </li>
-                      <li>
-                        If you need help, contact{" "}
-                        <a
-                          href="mailto:support@dgrv.org"
-                          className="text-blue-600 underline"
-                        >
-                          support@dgrv.org
-                        </a>
-                        .
-                      </li>
+                      <li>{t('adminDashboard.guideOrgsUsers')}</li>
+                      <li>{t('adminDashboard.guideReview')}</li>
+                      <li>{t('adminDashboard.guideCategoriesQuestions')}</li>
+                      <li>{t('adminDashboard.guideDocs')}</li>
+                      <li>{t('adminDashboard.guideSupport')}</li>
                     </ul>
                   </div>
                 </CardContent>

@@ -6,8 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useSubmissionsServiceGetSubmissionsBySubmissionId } from "../../openapi-rq/queries/queries";
 import type { Submission_content_responses } from "../../openapi-rq/requests/types.gen";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+import { useTranslation } from "react-i18next";
+
+// Locally extend the type to include question_category
+interface SubmissionResponseWithCategory extends Submission_content_responses {
+  question_category?: string;
+}
 
 export const SubmissionView: React.FC = () => {
+  const { t } = useTranslation();
   const { submissionId } = useParams<{ submissionId: string }>();
   const {
     data: submissionData,
@@ -17,10 +30,24 @@ export const SubmissionView: React.FC = () => {
     submissionId: submissionId || "",
   });
   const submission = submissionData?.submission;
-  const responses = submission?.content?.responses as Submission_content_responses[] | undefined;
+  const responses = submission?.content?.responses as SubmissionResponseWithCategory[] | undefined;
+
+  // Group responses by category
+  const groupedByCategory = React.useMemo(() => {
+    const groups: Record<string, SubmissionResponseWithCategory[]> = {};
+    if (responses) {
+      for (const resp of responses) {
+        const cat = resp.question_category || "Uncategorized";
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(resp);
+      }
+    }
+    return groups;
+  }, [responses]);
+  const categories = Object.keys(groupedByCategory);
 
   // Helper to parse and display the answer
-  const renderReadOnlyAnswer = (response: Submission_content_responses) => {
+  const renderReadOnlyAnswer = (response: SubmissionResponseWithCategory) => {
     let answer: Record<string, unknown> | string | undefined = undefined;
     try {
       if (response?.response) {
@@ -204,14 +231,14 @@ export const SubmissionView: React.FC = () => {
           <Card className="shadow-md bg-white/90 border-0">
             <CardHeader className="border-b pb-2 mb-2">
               <CardTitle className="text-2xl font-bold text-dgrv-blue tracking-tight text-left">
-                Submission Overview
+                {t("viewSubmission")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
               <div className="flex flex-col md:flex-row md:space-x-8 space-y-2 md:space-y-0">
                 <div className="flex-1">
                   <span className="block text-xs text-gray-500 font-medium mb-1">
-                    Status
+                    {t("status")}
                   </span>
                   <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
                     {submission.review_status
@@ -221,7 +248,7 @@ export const SubmissionView: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <span className="block text-xs text-gray-500 font-medium mb-1">
-                    Submitted At
+                    {t("submittedAt")}
                   </span>
                   <span className="text-sm text-gray-700">
                     {new Date(submission.submitted_at).toLocaleString()}
@@ -230,7 +257,7 @@ export const SubmissionView: React.FC = () => {
                 {submission.reviewed_at && (
                   <div className="flex-1">
                     <span className="block text-xs text-gray-500 font-medium mb-1">
-                      Reviewed At
+                      {t("reviewedAt")}
                     </span>
                     <span className="text-sm text-gray-700">
                       {new Date(submission.reviewed_at).toLocaleString()}
@@ -238,26 +265,43 @@ export const SubmissionView: React.FC = () => {
                   </div>
                 )}
               </div>
-              {/* Display all responses */}
-              <div className="mt-6 space-y-8">
-                {responses && responses.length > 0 ? (
-                  responses.map((response, idx) => (
-                    <Card key={idx} className="mb-4">
-                      <CardHeader>
-                        <CardTitle className="text-base font-semibold text-dgrv-blue">
-                          {response.question != null && typeof response.question === "object"
-                            ? (response.question.en ?? "Question")
-                            : typeof response.question === "string"
-                              ? response.question
-                              : "Question"}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>{renderReadOnlyAnswer(response)}</CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <div className="text-gray-500">No responses found.</div>
-                )}
+              {/* Grouped by category with dropdown */}
+              <div className="mt-6">
+                <Accordion type="multiple" className="w-full divide-y divide-gray-100">
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <AccordionItem key={category} value={category} className="bg-white/80">
+                        <AccordionTrigger className="text-left text-lg font-semibold text-dgrv-blue px-6 py-4 hover:bg-dgrv-blue/5 focus:bg-dgrv-blue/10 rounded-md justify-start items-start">
+                          {category}
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 pb-6 pt-2">
+                          {groupedByCategory[category].map((response, idx) => (
+                            <Card key={idx} className="mb-4">
+                              <CardHeader>
+                                <CardTitle className="text-base font-semibold text-dgrv-blue">
+                                  {(() => {
+                                    const q = response.question;
+                                    if (q && typeof q === "object") {
+                                      // @ts-expect-error: OpenAPI type is too loose, but backend always sends { en: string }
+                                      return q.en ?? t("category");
+                                    }
+                                    if (typeof q === "string") {
+                                      return q;
+                                    }
+                                    return t("category");
+                                  })()}
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>{renderReadOnlyAnswer(response)}</CardContent>
+                            </Card>
+                          ))}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))
+                  ) : (
+                    <div className="text-gray-500">{t("noData")}</div>
+                  )}
+                </Accordion>
               </div>
             </CardContent>
           </Card>

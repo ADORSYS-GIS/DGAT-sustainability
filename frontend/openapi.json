@@ -604,9 +604,9 @@
       },
       "post": {
         "tags": ["Responses"],
-        "summary": "Create response",
-        "description": "Create or update a response to a question",
-        "operationId": "create_response",
+        "summary": "Create batch of responses",
+        "description": "Create or update a batch of responses to questions for a given assessment.",
+        "operationId": "create_batch_responses",
         "parameters": [
           {
             "name": "assessment_id",
@@ -623,7 +623,10 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateResponseRequest"
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreateResponseRequest"
+                }
               }
             }
           },
@@ -631,11 +634,11 @@
         },
         "responses": {
           "201": {
-            "description": "Response created successfully",
+            "description": "Responses created successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseResponse"
+                  "$ref": "#/components/schemas/ResponseListResponse"
                 }
               }
             }

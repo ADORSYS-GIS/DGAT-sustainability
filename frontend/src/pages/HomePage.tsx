@@ -6,10 +6,12 @@ import { Leaf, CheckSquare, Users, Globe, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const Welcome: React.FC = () => {
   const { isAuthenticated, loading, user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (loading) return;
@@ -36,16 +38,14 @@ export const Welcome: React.FC = () => {
 
   const features = [
     {
-      title: "Sustainability Assessment",
-      description:
-        "Evaluate environmental, social, and governance practices to build a more sustainable and responsible cooperative.",
+      title: t('homePage.features.items.0.title'),
+      description: t('homePage.features.items.0.description'),
       icon: Leaf,
       color: "green" as const,
     },
     {
-      title: "Action Plans",
-      description:
-        "Track your progress with interactive Kanban boards, turning assessment insights into actionable tasks and measurable improvements.",
+      title: t('homePage.features.items.1.title'),
+      description: t('homePage.features.items.1.description'),
       icon: CheckSquare,
       color: "blue" as const,
     },
@@ -53,20 +53,18 @@ export const Welcome: React.FC = () => {
 
   const benefits = [
     {
-      title: "Built for Cooperatives",
-      description:
-        "Designed specifically for cooperative organizations in Southern Africa",
+      title: t('homePage.benefits.items.0.title'),
+      description: t('homePage.benefits.items.0.description'),
       icon: Users,
     },
     {
-      title: "Multilingual Support",
-      description:
-        "Available in English, siSwati, Portuguese, Zulu, German, and French",
+      title: t('homePage.benefits.items.1.title'),
+      description: t('homePage.benefits.items.1.description'),
       icon: Globe,
     },
     {
-      title: "Offline Capable",
-      description: "Works reliably even with limited internet connectivity",
+      title: t('homePage.benefits.items.2.title'),
+      description: t('homePage.benefits.items.2.description'),
       icon: Shield,
     },
   ];
@@ -95,21 +93,19 @@ export const Welcome: React.FC = () => {
                 <span className="text-white font-bold text-3xl">D</span>
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-dgrv-blue mb-4 animate-scale-in">
-                Empower Your Cooperative
+                {t('homePage.hero.title')}
               </h1>
               <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
-                Assess Sustainability Goals
+                {t('homePage.hero.subtitle')}
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Simple, secure, and impactful—help your cooperative thrive in
-                the digital age while building sustainable practices for the
-                future.
+                {t('homePage.hero.description')}
               </p>
               <Button
                 className="mt-4 px-8 py-3 text-lg font-semibold bg-dgrv-green text-white rounded shadow hover:bg-dgrv-blue transition"
                 onClick={handleStartAssessment}
               >
-                Start Assessment
+                {t('homePage.hero.cta')}
               </Button>
             </div>
           </div>

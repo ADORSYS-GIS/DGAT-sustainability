@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +54,7 @@ function getOrgDescription(org: OrganizationResponse): string | undefined {
 }
 
 export const ManageUsers: React.FC = () => {
+  const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
@@ -104,11 +106,11 @@ export const ManageUsers: React.FC = () => {
   // Update handleSubmit to only send email and roles
   const handleSubmit = () => {
     if (!formData.email.trim()) {
-      alert("Email is required");
+      alert(t('manageUsers.emailRequired'));
       return;
     }
     if (!selectedOrgId) {
-      alert("Please select an organization");
+      alert(t('manageUsers.selectOrgRequired'));
       return;
     }
     const memberReq: MemberRequest = {
@@ -130,7 +132,7 @@ export const ManageUsers: React.FC = () => {
 
   const handleDelete = (userId: string) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this user from the organization? This action cannot be undone.",
+      t('manageUsers.confirmDelete'),
     );
     if (!confirmed) return;
     if (!selectedOrgId) return;
@@ -164,9 +166,9 @@ export const ManageUsers: React.FC = () => {
       case "admin":
         return "Admin";
       case "org_admin":
-        return "Org Admin";
+        return "{t('manageUsers.orgAdmin')}";
       case "org_user":
-        return "Org User";
+        return "{t('manageUsers.orgUser')}";
       default:
         return role;
     }
@@ -194,11 +196,11 @@ export const ManageUsers: React.FC = () => {
               <div className="flex items-center space-x-3 mb-4">
                 <Building2 className="w-8 h-8 text-dgrv-blue" />
                 <h1 className="text-3xl font-bold text-dgrv-blue">
-                  Select an Organization
+                  {t('manageUsers.selectOrganization')}
                 </h1>
               </div>
               <p className="text-lg text-gray-600">
-                Click an organization to manage its users
+                {t('manageUsers.clickOrgToManage')}
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -251,18 +253,18 @@ export const ManageUsers: React.FC = () => {
               onClick={() => setSelectedOrg(null)}
               className="px-4 py-2 text-base font-semibold rounded shadow border-2 border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 transition"
             >
-              <span className="mr-2">&larr;</span> Back to Organizations
+              <span className="mr-2">&larr;</span> {t('manageUsers.backToOrganizations')}
             </Button>
             <Button
               className="bg-dgrv-green hover:bg-green-700"
               onClick={() => setShowAddDialog(true)}
             >
-              + Add User
+              {t('manageUsers.addUser')}
             </Button>
           </div>
-          {/* Remove the subheader 'Manage Users for {selectedOrg.name}' */}
+          {/* Remove the subheader '{t('manageUsers.manageUsersForOrg', { org: selectedOrg.name })}' */}
           <p className="text-lg text-gray-600 mb-6">
-            Add and manage users across {selectedOrg.name}
+            {t('manageUsers.manageUsersForOrg', { org: selectedOrg.name })}
           </p>
 
           <Dialog
@@ -276,13 +278,13 @@ export const ManageUsers: React.FC = () => {
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingUser ? "Edit User" : "Add New User"}
+                  {editingUser ? t('manageUsers.editUser') : t('manageUsers.addNewUser')}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 {/* In the form UI, only show email and role fields */}
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('manageUsers.email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -293,27 +295,27 @@ export const ManageUsers: React.FC = () => {
                         email: e.target.value,
                       }))
                     }
-                    placeholder="Enter email"
+                    placeholder={t('manageUsers.emailPlaceholder')}
                   />
                 </div>
                 {/* In the form UI, make the role select fixed to 'org_admin' and not editable */}
                 <div>
-                  <Label htmlFor="role">Role</Label>
+                  <Label htmlFor="role">{t('manageUsers.role')}</Label>
                   <Input
                     id="role"
-                    value="Organization Admin"
+                    value={t('manageUsers.organizationAdmin')}
                     readOnly
                     className="bg-gray-100 cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="organization">Organization</Label>
+                  <Label htmlFor="organization">{t('manageUsers.organization')}</Label>
                   <Select
                     value={selectedOrgId}
                     onValueChange={(value) => setSelectedOrgId(value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select organization" />
+                      <SelectValue placeholder={t('manageUsers.selectOrganizationPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {(organizations || []).map((org) => (
@@ -329,10 +331,10 @@ export const ManageUsers: React.FC = () => {
                     onClick={handleSubmit}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    {editingUser ? "Update" : "Create"} User
+                    {editingUser ? t('manageUsers.update') : t('manageUsers.create')} {t('manageUsers.user')}
                   </Button>
                   <Button variant="outline" onClick={resetForm}>
-                    Cancel
+                    {t('manageUsers.cancel')}
                   </Button>
                 </div>
               </div>
@@ -361,10 +363,10 @@ export const ManageUsers: React.FC = () => {
                           @{user.username}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Org:{" "}
+                          {t('manageUsers.orgLabel')}{" "}
                           {(organizations || []).find(
                             (org) => org.id === selectedOrgId,
-                          )?.name || "Unknown"}
+                          )?.name || "{t('manageUsers.unknown')}"}
                         </p>
                       </div>
                     </div>
@@ -375,7 +377,7 @@ export const ManageUsers: React.FC = () => {
                           : "bg-red-500 text-white"
                       }
                     >
-                      {user.emailVerified ? "Verified" : "Not Verified"}
+                      {user.emailVerified ? t('manageUsers.verified') : t('manageUsers.notVerified')}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -415,16 +417,16 @@ export const ManageUsers: React.FC = () => {
                 <CardContent>
                   <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No users yet
+                    {t('manageUsers.noUsersYet')}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Add your first user to get started.
+                    {t('manageUsers.addFirstUserDesc')}
                   </p>
                   <Button
                     onClick={() => setShowAddDialog(true)}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    Add First User
+                    {t('manageUsers.addFirstUser')}
                   </Button>
                 </CardContent>
               </Card>
