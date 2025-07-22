@@ -222,15 +222,61 @@ impl AssessmentsSubmissionService {
     pub async fn update_submission_content(
         &self,
         assessment_id: Uuid,
-        content: Value,
+        new_content: Value,
     ) -> Result<Model, DbErr> {
         let submission = self
             .get_submission_by_assessment_id(assessment_id)
             .await?
             .ok_or(DbErr::Custom("Submission not found".to_string()))?;
+
+        // Merge the new content with existing content
+        let merged_content = self.merge_submission_content(&submission.content, &new_content)?;
+
         let mut submission: ActiveModel = submission.into();
-        submission.content = Set(content);
+        submission.content = Set(merged_content);
+        submission.submitted_at = Set(Utc::now()); // Update submission timestamp
+
         self.db_service.update(submission).await
+    }
+
+    fn merge_submission_content(&self, existing: &Value, new: &Value) -> Result<Value, DbErr> {
+        // Both should be objects with "assessment" and "responses" fields
+        let existing_obj = existing.as_object()
+            .ok_or(DbErr::Custom("Existing content is not a valid object".to_string()))?;
+        let new_obj = new.as_object()
+            .ok_or(DbErr::Custom("New content is not a valid object".to_string()))?;
+
+        // Get existing responses array
+        let mut existing_responses = existing_obj
+            .get("responses")
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        // Get new responses array
+        let new_responses = new_obj
+            .get("responses")
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        // Append new responses to existing ones
+        existing_responses.extend(new_responses);
+
+        // Create merged content
+        let mut merged = serde_json::Map::new();
+
+        // Keep the assessment info from the new submission (it should be the same)
+        if let Some(assessment) = new_obj.get("assessment") {
+            merged.insert("assessment".to_string(), assessment.clone());
+        } else if let Some(assessment) = existing_obj.get("assessment") {
+            merged.insert("assessment".to_string(), assessment.clone());
+        }
+
+        // Add the merged responses
+        merged.insert("responses".to_string(), Value::Array(existing_responses));
+
+        Ok(Value::Object(merged))
     }
 }
 
