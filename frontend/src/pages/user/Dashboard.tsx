@@ -15,13 +15,12 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { useSubmissionsServiceGetSubmissions } from "../..//openapi-rq//queries/queries";
-import type { Submission } from "../../openapi-rq/requests/types.gen";
+import { useSubmissionsServiceGetSubmissions } from "@/openapi-rq/queries";
+import type { Submission } from "@/openapi-rq/requests";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
-import { OrgUserManageUsers } from "./OrgUserManageUsers";
+import { useReportsServiceGetApiUserReports } from "@/openapi-rq/queries";
 import { useAssessmentsServiceGetAssessments } from "@/openapi-rq/queries/queries";
 
 export const Dashboard: React.FC = () => {
@@ -32,7 +31,7 @@ export const Dashboard: React.FC = () => {
     useSubmissionsServiceGetSubmissions();
   const submissions: Submission[] = data?.submissions?.slice(0, 3) || [];
   const { data: reportsData, isLoading: reportsLoading } =
-  useReportsServiceGetUserReports();
+      useReportsServiceGetApiUserReports();
   const reports = reportsData?.reports || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
 
