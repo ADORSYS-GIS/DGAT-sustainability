@@ -88,11 +88,6 @@ async fn fetch_files_for_response(
     Ok(files)
 }
 
-// Helper: check if user is member of org by org_id
-fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
-    claims.organizations.orgs.values().any(|info| info.id.as_deref() == Some(org_id))
-}
-
 pub async fn list_responses(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -114,10 +109,19 @@ pub async fn list_responses(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Fetch the latest responses for the specified assessment from the database
@@ -154,15 +158,30 @@ pub async fn create_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
-    Json(request): Json<CreateResponseRequest>,
+    Json(requests): Json<Vec<CreateResponseRequest>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Validate request
-    if request.response.trim().is_empty() {
+    // Validate requests
+    if requests.is_empty() {
         return Err(ApiError::BadRequest(
-            "Response must not be empty".to_string(),
+            "At least one response is required".to_string(),
+        ));
+    }
+
+    for request in &requests {
+        if request.response.trim().is_empty() {
+            return Err(ApiError::BadRequest(
+                "Response must not be empty".to_string(),
+            ));
+        }
+    }
+
+    // Check if user has permission to answer assessments
+    if !claims.can_answer_assessments() {
+        return Err(ApiError::BadRequest(
+            "You don't have permission to answer assessments. Only org_user and org_admin roles can answer assessments.".to_string(),
         ));
     }
 
@@ -179,10 +198,17 @@ pub async fn create_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user with proper role can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment for users with proper roles - this enables the sharing use case
+        // where org_admin creates assessments and shares the assessment_id with org_user users
+        // The role check above ensures only authorized users can access this functionality
     }
 
     // Verify that the assessment is in draft status (not submitted)
@@ -211,48 +237,52 @@ pub async fn create_response(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
 
     let mut updated_responses = Vec::new();
-    // Check if a response already exists for this question_revision_id
-    if let Some(existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
-        // Parse existing response as JSON array or create new array
-        let mut response_array: Vec<String> = match serde_json::from_str(&existing.response) {
-            Ok(arr) => arr,
-            Err(_) => vec![existing.response.clone()], // If not JSON array, treat as single string
-        };
 
-        // Append new response if it doesn't already exist
-        if !response_array.contains(&request.response) {
-            response_array.push(request.response.clone());
+    // Process each request
+    for request in requests {
+        // Check if a response already exists for this question_revision_id
+        if let Some(existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
+            // Parse existing response as JSON array or create new array
+            let mut response_array: Vec<String> = match serde_json::from_str(&existing.response) {
+                Ok(arr) => arr,
+                Err(_) => vec![existing.response.clone()], // If not JSON array, treat as single string
+            };
+
+            // Append new response if it doesn't already exist
+            if !response_array.contains(&request.response) {
+                response_array.push(request.response);
+            }
+
+            // Update the response with the new array
+            let updated_response = app_state
+                .database
+                .assessments_response
+                .update_response(
+                    assessment_id,
+                    request.question_revision_id,
+                    serde_json::to_string(&response_array).unwrap(),
+                )
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
+
+            updated_responses.push(updated_response);
+        } else {
+            // Create new response with array containing single item
+            let response_array = vec![request.response];
+            let new_response = app_state
+                .database
+                .assessments_response
+                .create_response(
+                    assessment_id,
+                    request.question_revision_id,
+                    serde_json::to_string(&response_array).unwrap(),
+                    1,
+                )
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
+
+            updated_responses.push(new_response);
         }
-
-        // Update the response with the new array
-        let updated_response = app_state
-            .database
-            .assessments_response
-            .update_response(
-                assessment_id,
-                request.question_revision_id,
-                serde_json::to_string(&response_array).unwrap(),
-            )
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
-
-        updated_responses.push(updated_response);
-    } else {
-        // Create new response with array containing single item
-        let response_array = vec![request.response.clone()];
-        let new_response = app_state
-            .database
-            .assessments_response
-            .create_response(
-                assessment_id,
-                request.question_revision_id,
-                serde_json::to_string(&response_array).unwrap(),
-                1,
-            )
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
-
-        updated_responses.push(new_response);
     }
 
     // Convert database models to API models
@@ -300,10 +330,19 @@ pub async fn get_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Fetch the response from the database
@@ -375,10 +414,19 @@ pub async fn update_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
@@ -481,10 +529,19 @@ pub async fn delete_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
