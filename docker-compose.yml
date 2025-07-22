@@ -11,7 +11,7 @@ services:
     command: ["/app/sustainability-tool"]
     env_file: .env
     environment:
-      RUST_LOG: "${RUST_LOG:-info}"
+      RUST_LOG: "debug,hyper=info,sea_orm=info"
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
       KEYCLOAK_URL: "http://keycloak:8080"
       SERVER_PORT: "3001"
@@ -24,7 +24,8 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 20s
     ports:
       - "3001:3001"
     networks: [tool-net]
@@ -54,7 +55,7 @@ services:
   # ────────────────────────────── KEYCLOAK ──────────────────────────────
   #
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    image: quay.io/keycloak/keycloak:26.1.0
     container_name: sustainability-keycloak
     environment:
       KC_DB:                   "postgres"
@@ -65,17 +66,20 @@ services:
       KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
       KEYCLOAK_ADMIN:          "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
-    command: ["start-dev", "--import-realm"]
+      KEYCLOAK_REALM:          "sustainability-realm"
+      KC_FEATURES:             "preview,organization"
+    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true"]
     volumes:
-      - ./infrastructure/keycloak/realm-export:/opt/keycloak/data/import:ro
+      - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/realms/master || exit 0"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 0"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 90s
     ports:
       - "8080:8080"
     networks: [tool-net]
@@ -87,14 +91,24 @@ services:
     build:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
+      args:
+        # These are the URLs that will be embedded in the built code and used by the browser
+        VITE_KEYCLOAK_ISSUER_URI: "http://localhost:8080/realms/sustainability-realm"
+        VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
+        VITE_KEYCLOAK_SCOPES: "openid profile email"
+        VITE_KEYCLOAK_HOME_URL: "http://localhost:5173/"
+        VITE_API_URL: "http://localhost:3001"
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
-    env_file: .env
+    environment:
+      # Runtime environment variables (note: Vite vars are embedded at build time)
+      # These won't affect the built code but are kept for potential server-side code
+      NODE_ENV: "production"
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5173/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
