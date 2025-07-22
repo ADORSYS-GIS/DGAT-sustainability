@@ -11,12 +11,12 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import * as React from "react";
-import { useReportsServiceGetApiUserReports } from "../../openapi-rq/queries/queries";
+import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
 
 export const ActionPlan: React.FC = () => {
   const { t } = useTranslation();
   // Fetch all user reports
-  const { data, isLoading } = useReportsServiceGetApiUserReports();
+  const { data, isLoading } = useReportsServiceGetUserReports();
 
   // Flat recommendation type for Kanban with status
   type KanbanRecommendation = {
