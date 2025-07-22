@@ -39,7 +39,7 @@ fn create_placeholder_question_json(question_revision_id: Uuid) -> serde_json::V
     })
 }
 
-/// Process a single response to replace question_revision_id with question text
+/// Process a single response to replace question_revision_id with question text and category
 async fn process_response(
     app_state: &AppState,
     response_obj: &mut serde_json::Map<String, serde_json::Value>,
@@ -49,14 +49,29 @@ async fn process_response(
         None => return Ok(()), // Skip if no valid question_revision_id
     };
 
-    let question_text = match app_state
+    // Fetch question text and category using question_revision_id
+    let (question_text, question_category) = match app_state
         .database
         .questions_revisions
         .get_revision_by_id(question_revision_id)
         .await
     {
-        Ok(Some(question_revision)) => question_revision.text,
-        Ok(None) => serde_json::json!({"en": "Question not found"}),
+        Ok(Some(revision)) => {
+            // Get the question to fetch category
+            match app_state
+                .database
+                .questions
+                .get_question_by_id(revision.question_id)
+                .await
+            {
+                Ok(Some(question)) => {
+                    // Use the revision text directly (it's already a JSON Value)
+                    (revision.text, question.category)
+                }
+                _ => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
+            }
+        }
+        Ok(None) => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
         Err(e) => {
             return Err(ApiError::InternalServerError(
                 format!("Failed to fetch question data: {e}")
@@ -64,9 +79,10 @@ async fn process_response(
         }
     };
 
-    // Remove question_revision_id and replace with question text
+    // Remove question_revision_id and replace with question text and category
     response_obj.remove("question_revision_id");
     response_obj.insert("question".to_string(), question_text);
+    response_obj.insert("question_category".to_string(), serde_json::Value::String(question_category));
     Ok(())
 }
 
