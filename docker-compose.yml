@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   #
   # ─────────────────────────────── BACKEND ───────────────────────────────
@@ -7,27 +5,28 @@ services:
   backend:
     build:
       context: .
-      dockerfile: ./infrastructure/Dockerfile.backend          # uses the multi-stage Rust image
+      dockerfile: ./infrastructure/Dockerfile.backend
     image: sustainability-backend:latest
     container_name: sustainability-backend
-    command: ["/app/sustainability-tool"]     # binary copied in Dockerfile
-    env_file: .env                            # keep secrets out of compose
+    command: ["/app/sustainability-tool"]
+    env_file: .env
     environment:
       RUST_LOG: "${RUST_LOG:-info}"
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
       KEYCLOAK_URL: "http://keycloak:8080"
+      SERVER_PORT: "3001"
     depends_on:
       db:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     ports:
-      - "8081:8080"                            # hostPort:containerPort
+      - "3001:3001"
     networks: [tool-net]
 
   #
@@ -44,38 +43,39 @@ services:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks: [tool-net]
 
   #
   # ────────────────────────────── KEYCLOAK ──────────────────────────────
   #
   keycloak:
-    image: quay.io/keycloak/keycloak:22.0.1
+    image: quay.io/keycloak/keycloak:26.0
     container_name: sustainability-keycloak
     environment:
       KC_DB:                   "postgres"
       KC_DB_URL_HOST:          db
+      KC_DB_URL_PORT:          5432
       KC_DB_URL_DATABASE:      "${POSTGRES_DB:-sustainability}"
       KC_DB_USERNAME:          "${POSTGRES_USER:-postgres}"
       KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
       KEYCLOAK_ADMIN:          "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
-    command: ["start-dev", "--import-realm"]   # picks up any JSON in /opt/keycloak/data/import
+    command: ["start-dev", "--import-realm"]
     volumes:
       - ./infrastructure/keycloak/realm-export:/opt/keycloak/data/import:ro
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/master"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/realms/master || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     ports:
       - "8080:8080"
     networks: [tool-net]
@@ -84,23 +84,29 @@ services:
   # ────────────────────────────── USER PWA ──────────────────────────────
   #
   frontend:
-    build:                           # uses the new multi-stage Dockerfile shown below
+    build:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
     env_file: .env
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
     ports:
-      - "3000:80"                    # nginx serves the built app
+      - "5173:5173"
     networks: [tool-net]
 
 # ────────────────────────────── VOLUMES / NETS ───────────────────────────
-#
 volumes:
   postgres-data:
 
 networks:
   tool-net:
-    name: sustainability-net
+    driver: bridge

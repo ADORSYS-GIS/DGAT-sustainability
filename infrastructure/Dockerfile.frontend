@@ -17,13 +17,17 @@ RUN npm run build
 # Runtime stage using Nginx
 FROM nginx:alpine
 
+# Install curl for healthchecks
+RUN apk add --no-cache curl
+
 # Copy the built app to nginx's serve directory
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy custom nginx configuration
 COPY infrastructure/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 3000
-EXPOSE 3000
+# Expose port 5173
+EXPOSE 5173
 
+# Make sure nginx uses our custom config
 CMD ["nginx", "-g", "daemon off;"]
