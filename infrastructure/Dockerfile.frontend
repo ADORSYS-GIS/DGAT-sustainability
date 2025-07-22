@@ -39,7 +39,7 @@ COPY .env /usr/share/nginx/html/.env
 COPY infrastructure/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 5173
-EXPOSE 5173
+EXPOSE 80 443
 
 # Make sure nginx uses our custom config
 CMD ["nginx", "-g", "daemon off;"]
