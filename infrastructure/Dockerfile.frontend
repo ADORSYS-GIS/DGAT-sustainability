@@ -1,0 +1,33 @@
+FROM node:20-slim as builder
+
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY frontend/package.json frontend/package-lock.json frontend/openapi.json ./
+RUN npm ci
+
+# Copy source code
+COPY frontend/public/ ./public/
+COPY frontend/src/ ./src/
+COPY frontend/tsconfig.json frontend/tsconfig.app.json frontend/tsconfig.node.json frontend/vite.config.ts frontend/index.html ./
+
+# Build the application
+RUN npm run build
+
+# Runtime stage using Nginx
+FROM nginx:alpine
+
+# Install curl for healthchecks
+RUN apk add --no-cache curl
+
+# Copy the built app to nginx's serve directory
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy custom nginx configuration
+COPY infrastructure/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 5173
+EXPOSE 5173
+
+# Make sure nginx uses our custom config
+CMD ["nginx", "-g", "daemon off;"]
