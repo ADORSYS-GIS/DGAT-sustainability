@@ -87,7 +87,7 @@ impl Claims {
 
     /// Check if user has org_user role
     pub fn is_org_user(&self) -> bool {
-        self.has_role("org_user")
+        self.has_role("Org_User")
     }
 
     /// Check if user can create assessments (only org_admin)
