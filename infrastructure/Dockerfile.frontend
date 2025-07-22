@@ -4,6 +4,8 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY frontend/package.json frontend/package-lock.json frontend/openapi.json ./
+RUN npm run codegen
+
 RUN npm ci
 
 # Copy source code
