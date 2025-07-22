@@ -211,22 +211,9 @@ pub async fn create_response(
         // The role check above ensures only authorized users can access this functionality
     }
 
-    // Verify that the assessment is in draft status (not submitted)
-    let has_submission = app_state
-        .database
-        .assessments_submission
-        .get_submission_by_assessment_id(assessment_id)
-        .await
-        .map_err(|e| {
-            ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
-        })?
-        .is_some();
-
-    if has_submission {
-        return Err(ApiError::BadRequest(
-            "Cannot create response for a submitted assessment".to_string(),
-        ));
-    }
+    // Allow multiple users to answer the same assessment even if it has been submitted
+    // This enables the use case where org_admin creates assessments and multiple org_user users
+    // can answer and submit responses to the same assessment
 
     // Get existing responses for this assessment
     let existing_responses = app_state
