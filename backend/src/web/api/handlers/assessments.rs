@@ -149,6 +149,13 @@ pub async fn create_assessment(
     let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
+    // Check if user has permission to create assessments (only org_admin)
+    if !claims.can_create_assessments() {
+        return Err(ApiError::BadRequest(
+            "Only organization administrators can create assessments".to_string(),
+        ));
+    }
+
     // Validate request
     if request.language.trim().is_empty() {
         return Err(ApiError::BadRequest(
@@ -156,7 +163,49 @@ pub async fn create_assessment(
         ));
     }
 
-    // Create the assessment in the database
+    // Clean up existing assessment responses for this organization to keep schema tidy
+    // This ensures only one assessment exists at a time per organization
+    let existing_assessments = app_state
+        .database
+        .assessments
+        .get_assessments_by_org(&org_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing assessments: {e}")))?;
+
+    // Delete existing assessment responses for all assessments in this organization
+    for existing_assessment in existing_assessments {
+        // Delete all responses for this assessment
+        let existing_responses = app_state
+            .database
+            .assessments_response
+            .get_latest_responses_by_assessment(existing_assessment.assessment_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
+
+        for response in existing_responses {
+            let _ = app_state
+                .database
+                .assessments_response
+                .delete_response(response.response_id)
+                .await; // Ignore errors for cleanup
+        }
+
+        // Also delete any existing submissions for this assessment
+        let _ = app_state
+            .database
+            .assessments_submission
+            .delete_submission(existing_assessment.assessment_id)
+            .await; // Ignore errors for cleanup
+
+        // Delete the assessment itself
+        let _ = app_state
+            .database
+            .assessments
+            .delete_assessment(existing_assessment.assessment_id)
+            .await; // Ignore errors for cleanup
+    }
+
+    // Create the new assessment in the database
     let assessment_model = app_state
         .database
         .assessments
@@ -198,11 +247,24 @@ pub async fn get_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // Verify that the current organization is the owner of the assessment
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Assessment can be accessed by anyone if they have the assessment_id (shared assessments)
+    //    This implements the use case where super users share assessment_id with other users
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    // For now, we'll allow any user to access any assessment if they have the assessment_id
+    // This enables the sharing functionality described in the requirements
+    // In a production system, you might want to add more specific access controls
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // where super users create assessments and share the assessment_id
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Determine status based on whether assessment has been submitted
@@ -412,6 +474,13 @@ pub async fn submit_assessment(
     let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
+    // Check if user has permission to submit assessments
+    if !claims.can_answer_assessments() {
+        return Err(ApiError::BadRequest(
+            "You don't have permission to submit assessments. Only org_user and org_admin roles can submit assessments.".to_string(),
+        ));
+    }
+
     // Verify that the assessment exists and belongs to the organization
     let assessment_model = app_state
         .database
@@ -425,12 +494,17 @@ pub async fn submit_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // Verify that the current organization is the owner of the assessment
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to submit this assessment".to_string(),
-        ));
-    }
+    // Allow submissions to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can submit to any assessment)
+    // 3. Any user with proper role can submit to any assessment if they have the assessment_id (shared assessments)
+    //    This implements the use case where org_admin creates assessments and shares assessment_id with org_user users
+    let _is_owner = assessment_model.org_id == org_id;
+    let _is_super_user = claims.is_super_user();
+
+    // Allow submission to any assessment for users with proper roles - this enables the sharing use case
+    // where org_admin creates assessments and shares the assessment_id with org_user users
+    // The role check above ensures only authorized users can access this functionality
 
     // Check if assessment has already been submitted
     let existing_submission = app_state

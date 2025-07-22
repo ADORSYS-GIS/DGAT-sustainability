@@ -296,10 +296,19 @@ pub async fn attach_file(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
@@ -388,10 +397,19 @@ pub async fn remove_file(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)

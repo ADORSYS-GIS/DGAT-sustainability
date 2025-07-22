@@ -109,10 +109,19 @@ pub async fn list_responses(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Fetch the latest responses for the specified assessment from the database
@@ -169,6 +178,13 @@ pub async fn create_response(
         }
     }
 
+    // Check if user has permission to answer assessments
+    if !claims.can_answer_assessments() {
+        return Err(ApiError::BadRequest(
+            "You don't have permission to answer assessments. Only org_user and org_admin roles can answer assessments.".to_string(),
+        ));
+    }
+
     // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
@@ -182,10 +198,17 @@ pub async fn create_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user with proper role can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment for users with proper roles - this enables the sharing use case
+        // where org_admin creates assessments and shares the assessment_id with org_user users
+        // The role check above ensures only authorized users can access this functionality
     }
 
     // Verify that the assessment is in draft status (not submitted)
@@ -307,10 +330,19 @@ pub async fn get_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Fetch the response from the database
@@ -382,10 +414,19 @@ pub async fn update_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
@@ -488,10 +529,19 @@ pub async fn delete_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.org_id != org_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)

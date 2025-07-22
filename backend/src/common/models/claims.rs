@@ -75,6 +75,31 @@ impl Claims {
         self.organizations.orgs.values().next()?.id.clone()
     }
 
+    /// Check if user is a super user (application admin)
+    pub fn is_super_user(&self) -> bool {
+        self.is_application_admin()
+    }
+
+    /// Check if user has org_admin role
+    pub fn is_org_admin(&self) -> bool {
+        self.has_role("org_admin")
+    }
+
+    /// Check if user has org_user role
+    pub fn is_org_user(&self) -> bool {
+        self.has_role("org_user")
+    }
+
+    /// Check if user can create assessments (only org_admin)
+    pub fn can_create_assessments(&self) -> bool {
+        self.is_org_admin() || self.is_application_admin()
+    }
+
+    /// Check if user can answer assessments (org_user or org_admin)
+    pub fn can_answer_assessments(&self) -> bool {
+        self.is_org_user() || self.is_org_admin() || self.is_application_admin()
+    }
+
     /// Check if user has a specific role in a specific organization
     /// Note: Organization roles are no longer supported in the current JWT format
     pub fn has_organization_role(&self, _organization_id: &str, _role: &str) -> bool {
