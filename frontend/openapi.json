@@ -1113,7 +1113,7 @@
         }
       }
     },
-    "/user/reports": {
+    "/api/user/reports": {
       "get": {
         "tags": ["Reports"],
         "summary": "Get user reports",

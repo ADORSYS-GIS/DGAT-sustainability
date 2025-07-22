@@ -1,71 +1,126 @@
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15
-    container_name: sustainability-postgres
+  #
+  # ─────────────────────────────── BACKEND ───────────────────────────────
+  #
+  backend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.backend
+    image: sustainability-backend:latest
+    container_name: sustainability-backend
+    command: ["/app/sustainability-tool"]
+    env_file: .env
     environment:
-      POSTGRES_DB: dgrv_db
-      POSTGRES_USER: dgrv_user
-      POSTGRES_PASSWORD: dgrv_password
-      # Add multiple databases
-      POSTGRES_MULTIPLE_DATABASES: keycloak
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/database/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
-    networks:
-      - sustainability-network
+      RUST_LOG: "debug,hyper=info,sea_orm=info"
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
+      KEYCLOAK_URL: "http://keycloak:8080"
+      SERVER_PORT: "3001"
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dgrv_user -d dgrv_db"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "3001:3001"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── POSTGRES ──────────────────────────────
+  #
+  db:
+    image: postgres:16-alpine
+    container_name: sustainability-db
+    environment:
+      POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
+      POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
-      retries: 3
-    command: ["postgres", "-c", "max_connections=200"]
+      retries: 5
+    ports:
+      - "5433:5432"
+    networks: [tool-net]
 
-  # Keycloak Authentication
+  #
+  # ────────────────────────────── KEYCLOAK ──────────────────────────────
+  #
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:26.1.0
     container_name: sustainability-keycloak
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin123
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: dgrv_user
-      KC_DB_PASSWORD: dgrv_password
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HTTP_ENABLED: "true"
-      KC_HEALTH_ENABLED: "true"
-      KC_METRICS_ENABLED: "true"
-      KC_PROXY_HEADERS: "forwarded"
-      KC_PROXY_ADDRESS_FORWARDING: "true"
-    command:
-      - start-dev
-      - --http-port=8080
-      - --hostname-strict=false
-      - --hostname-strict-https=false
-      - --health-enabled=true
+      KC_DB:                   "postgres"
+      KC_DB_URL_HOST:          db
+      KC_DB_URL_PORT:          5432
+      KC_DB_URL_DATABASE:      "${POSTGRES_DB:-sustainability}"
+      KC_DB_USERNAME:          "${POSTGRES_USER:-postgres}"
+      KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
+      KEYCLOAK_ADMIN:          "${KEYCLOAK_ADMIN:-admin}"
+      KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
+      KEYCLOAK_REALM:          "sustainability-realm"
+      KC_FEATURES:             "preview,organization"
+    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true"]
+    volumes:
+      - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
     ports:
       - "8080:8080"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── USER PWA ──────────────────────────────
+  #
+  frontend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.frontend
+      args:
+        # These are the URLs that will be embedded in the built code and used by the browser
+        VITE_KEYCLOAK_ISSUER_URI: "http://localhost:8080/realms/sustainability-realm"
+        VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
+        VITE_KEYCLOAK_SCOPES: "openid profile email"
+        VITE_KEYCLOAK_HOME_URL: "http://localhost:5173/"
+        VITE_API_URL: "http://localhost:3001"
+    image: sustainability-frontend:latest
+    container_name: sustainability-frontend
+    environment:
+      # Runtime environment variables (note: Vite vars are embedded at build time)
+      # These won't affect the built code but are kept for potential server-side code
+      NODE_ENV: "production"
     depends_on:
-      postgres:
+      backend:
         condition: service_healthy
-    networks:
-      - sustainability-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/ready" ]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5173/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    ports:
+      - "5173:5173"
+    networks: [tool-net]
 
-# Define the networks section
-networks:
-  sustainability-network:
-    driver: bridge
-
-# Define the volumes section
+# ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
-  postgres_data:
+  postgres-data:
+
+networks:
+  tool-net:
+    driver: bridge
