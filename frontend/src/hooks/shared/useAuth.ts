@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
-import { oidcPromise } from "../../services/shared/oidc";
+import { createOidc } from "oidc-spa";
+
+export const oidcPromise = createOidc({
+  issuerUri: import.meta.env.VITE_KEYCLOAK_ISSUER_URI,
+  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
+  publicUrl: import.meta.env.VITE_KEYCLOAK_HOME_URL, // This is crucial!
+  // Optional: Add more specific configuration
+  silentSigninTimeoutInMs: 10000, // Increase timeout
+  extraQueryParams: {
+    // Add any extra params if needed
+  },
+});
 
 /**
  * React hook for OIDC authentication state using oidc-spa.
