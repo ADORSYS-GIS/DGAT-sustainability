@@ -49,7 +49,7 @@ export function useAuth(): AuthState {
       console.log('[useAuth] Logging in...');
       await oidc.login();
     } catch (err) {
-      console.error('[useAuth] Login failed:', err);
+      console.error('[useAuth] Login failed:', err.message);
       setError(err instanceof Error ? err : new Error(String(err)));
     }
   };

@@ -27,10 +27,12 @@ export const oidcPromise = createOidc({
   issuerUri: import.meta.env.VITE_KEYCLOAK_ISSUER_URI,
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
   redirectUri: redirectUri,
+  homeUrl: import.meta.env.VITE_KEYCLOAK_HOME_URL || "http://13.49.74.167",
 
   // Based on OIDC-SPA examples
   scope: import.meta.env.VITE_KEYCLOAK_SCOPES || "openid profile email",
   responseType: "code",
+
 
   // Silent renewal configuration
   silentSigninRedirectUri: `${import.meta.env.VITE_KEYCLOAK_HOME_URL}/silent-renew.html`,
