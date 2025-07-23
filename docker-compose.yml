@@ -42,6 +42,7 @@ services:
       POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
       POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+    entrypoint: ["/bin/bash", "/update-keycloak-ssl.sh"]
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -118,29 +119,6 @@ services:
       - "443:443"
     networks: [tool-net]
 
-  #
-  # ────────────────────────────── KEYCLOAK SSL UPDATE ──────────────────────────────
-  #
-  keycloak-ssl-update:
-    image: postgres:16-alpine
-    container_name: keycloak-ssl-update
-    environment:
-      POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
-      POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
-      PGHOST:            "db"
-      PGUSER:            "${POSTGRES_USER:-postgres}"
-      PGPASSWORD:        "${POSTGRES_PASSWORD:-postgres}"
-      PGDATABASE:        "${POSTGRES_DB:-sustainability}"
-    volumes:
-      - ./infrastructure/update-keycloak-ssl.sh:/update-keycloak-ssl.sh
-    entrypoint: ["/bin/bash", "/update-keycloak-ssl.sh"]
-    depends_on:
-      db:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-    networks: [tool-net]
 
 # ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
