@@ -6,9 +6,13 @@ export const oidcPromise = createOidc({
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
   publicUrl: import.meta.env.VITE_KEYCLOAK_HOME_URL, // This is crucial!
   // Optional: Add more specific configuration
-  silentSigninTimeoutInMs: 10000, // Increase timeout
+  silentSigninTimeoutInMs: 15000, // Increase timeout
+  enableDebugLogs: true,
+
   extraQueryParams: {
     // Add any extra params if needed
+    getRedirectUri: () => `${import.meta.env.VITE_KEYCLOAK_HOME_URL}/`,
+
   },
 });
 
