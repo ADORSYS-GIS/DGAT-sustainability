@@ -9,6 +9,7 @@ services:
     image: sustainability-backend:latest
     container_name: sustainability-backend
     command: ["/app/sustainability-tool"]
+    env_file: .env
     environment:
       RUST_LOG: "debug,hyper=info,sea_orm=info"
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
@@ -99,10 +100,6 @@ services:
         VITE_KEYCLOAK_HOME_URL: "http://13.49.74.167"
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
-    environment:
-      # Runtime environment variables (note: Vite vars are embedded at build time)
-      # These won't affect the built code but are kept for potential server-side code
-      NODE_ENV: "production"
     depends_on:
       backend:
         condition: service_healthy
