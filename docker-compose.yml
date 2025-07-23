@@ -72,6 +72,8 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM:          "sustainability-realm"
       KC_FEATURES:             "preview,organization"
+      KC_HOSTNAME:             "13.49.74.167"
+
     command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
