@@ -1,77 +1,83 @@
-import { useEffect, useState } from 'react';
-import { oidcPromise } from '../../services/shared/oidc';
+import { useEffect, useState } from "react";
+import { oidcPromise } from "../../services/shared/oidc";
 
-export type AuthState = {
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: Error | null;
-  user: any | null;
-  login: () => void;
-  logout: () => void;
-};
-
-export function useAuth(): AuthState {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [user, setUser] = useState<any | null>(null);
-  const [oidc, setOidc] = useState<any | null>(null);
+/**
+ * React hook for OIDC authentication state using oidc-spa.
+ * Waits for the OIDC instance to be ready, then polls every 500ms.
+ * Returns: { isAuthenticated, user, roles, login, logout, loading }
+ */
+export const useAuth = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [oidc, setOidc] = useState<any>(null);
+  const [snapshot, setSnapshot] = useState({
+    isAuthenticated: false,
+    user: null,
+    roles: [],
+    login: () => {},
+    logout: () => {},
+    loading: true,
+  });
 
   useEffect(() => {
-    const initializeOidc = async () => {
-      try {
-        console.log('[useAuth] Initializing OIDC...');
-        const oidcInstance = await oidcPromise;
-        setOidc(oidcInstance);
-
-        const isLoggedIn = await oidcInstance.isLoggedIn();
-        setIsAuthenticated(isLoggedIn);
-
-        if (isLoggedIn) {
-          const userData = await oidcInstance.getUserInfo();
-          setUser(userData);
-        }
-
-        setIsLoading(false);
-      } catch (err) {
-        console.error('[useAuth] OIDC initialization failed:', err);
-        setError(err instanceof Error ? err : new Error(String(err)));
-        setIsLoading(false);
-      }
+    let interval: NodeJS.Timeout;
+    let cancelled = false;
+    oidcPromise.then((resolvedOidc) => {
+      if (cancelled) return;
+      setOidc(resolvedOidc);
+      setSnapshot(getSnapshot(resolvedOidc));
+      interval = setInterval(() => {
+        setSnapshot(getSnapshot(resolvedOidc));
+      }, 30000); // Increased polling interval to 5 seconds
+    });
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
     };
-
-    initializeOidc();
   }, []);
 
-  const login = async () => {
-    if (!oidc) return;
-    try {
-      console.log('[useAuth] Logging in...');
-      await oidc.login();
-    } catch (err) {
-      console.error('[useAuth] Login failed:', err.message);
-      setError(err instanceof Error ? err : new Error(String(err)));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function getSnapshot(oidcInstance: any) {
+    if (!oidcInstance) {
+      return {
+        isAuthenticated: false,
+        user: null,
+        roles: [],
+        login: () => {},
+        logout: () => {},
+        loading: true,
+      };
     }
-  };
-
-  const logout = async () => {
-    if (!oidc) return;
-    try {
-      await oidc.logout();
-      setIsAuthenticated(false);
-      setUser(null);
-    } catch (err) {
-      console.error('[useAuth] Logout failed:', err);
-      setError(err instanceof Error ? err : new Error(String(err)));
+    if (oidcInstance.isUserLoggedIn) {
+      const tokens = oidcInstance.getTokens();
+      const user = tokens.decodedIdToken;
+      // Removed noisy debug log
+      console.log("[useAuth] decodedIdToken:", user);
+      const roles = user?.roles || user?.realm_access?.roles || [];
+      return {
+        isAuthenticated: true,
+        user,
+        roles,
+        login: () => {},
+        logout:
+            typeof oidcInstance.logout === "function"
+                ? oidcInstance.logout
+                : () => {},
+        loading: false,
+      };
+    } else {
+      return {
+        isAuthenticated: false,
+        user: null,
+        roles: [],
+        login:
+            typeof oidcInstance.login === "function"
+                ? () => oidcInstance.login({ doesCurrentHrefRequiresAuth: true })
+                : () => {},
+        logout: () => {},
+        loading: false,
+      };
     }
-  };
+  }
 
-  return {
-    isAuthenticated,
-    isLoading,
-    error,
-    user,
-    login,
-    logout,
-  };
-}
+  return snapshot;
+};
