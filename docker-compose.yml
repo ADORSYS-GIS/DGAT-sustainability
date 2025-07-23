@@ -115,6 +115,25 @@ services:
       start_period: 15s
     ports:
       - "80:80"
+      - "443:443"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── KEYCLOAK SSL UPDATE ──────────────────────────────
+  #
+  keycloak-ssl-update:
+    image: postgres:16-alpine
+    container_name: keycloak-ssl-update
+    environment:
+      POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
+      POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+    volumes:
+      - ./infrastructure/update-keycloak-ssl.sh:/update-keycloak-ssl.sh
+    entrypoint: ["/bin/bash", "/update-keycloak-ssl.sh"]
+    depends_on:
+      keycloak:
+        condition: service_healthy
     networks: [tool-net]
 
 # ────────────────────────────── VOLUMES / NETS ───────────────────────────
