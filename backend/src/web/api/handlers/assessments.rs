@@ -163,8 +163,7 @@ pub async fn create_assessment(
         ));
     }
 
-    // Clean up existing assessment responses for this organization to keep schema tidy
-    // This ensures only one assessment exists at a time per organization
+    // Clean up only previous draft assessments (no submission) and their responses for this organization
     let existing_assessments = app_state
         .database
         .assessments
@@ -172,37 +171,40 @@ pub async fn create_assessment(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing assessments: {e}")))?;
 
-    // Delete existing assessment responses for all assessments in this organization
     for existing_assessment in existing_assessments {
-        // Delete all responses for this assessment
-        let existing_responses = app_state
-            .database
-            .assessments_response
-            .get_latest_responses_by_assessment(existing_assessment.assessment_id)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
-
-        for response in existing_responses {
-            let _ = app_state
-                .database
-                .assessments_response
-                .delete_response(response.response_id)
-                .await; // Ignore errors for cleanup
-        }
-
-        // Also delete any existing submissions for this assessment
-        let _ = app_state
+        // Check if this assessment has a submission (submitted)
+        let has_submission = app_state
             .database
             .assessments_submission
-            .delete_submission(existing_assessment.assessment_id)
-            .await; // Ignore errors for cleanup
+            .get_submission_by_assessment_id(existing_assessment.assessment_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {e}")))?
+            .is_some();
 
-        // Delete the assessment itself
-        let _ = app_state
-            .database
-            .assessments
-            .delete_assessment(existing_assessment.assessment_id)
-            .await; // Ignore errors for cleanup
+        if !has_submission {
+            // Only delete responses and the assessment if it is a draft (no submission)
+            let existing_responses = app_state
+                .database
+                .assessments_response
+                .get_latest_responses_by_assessment(existing_assessment.assessment_id)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
+
+            for response in existing_responses {
+                let _ = app_state
+                    .database
+                    .assessments_response
+                    .delete_response(response.response_id)
+                    .await; // Ignore errors for cleanup
+            }
+
+            // Delete the draft assessment itself
+            let _ = app_state
+                .database
+                .assessments
+                .delete_assessment(existing_assessment.assessment_id)
+                .await; // Ignore errors for cleanup
+        }
     }
 
     // Create the new assessment in the database
