@@ -78,12 +78,15 @@ export const Dashboard: React.FC = () => {
             icon: FileText,
             color: "blue" as const,
             onClick: () => {
-              // Find the first draft assessment and navigate to its answer page
-              const draft = (assessmentsData?.assessments || []).find(
-                (a: any) => a.status === "draft",
+              // Find the latest draft assessment (by created_at descending) and navigate to its answer page
+              const drafts = (assessmentsData?.assessments || []).filter(
+                (a: any) => a.status === "draft"
               );
-              if (draft) {
-                navigate(`/user/assessment/${draft.assessment_id}`);
+              if (drafts.length > 0) {
+                const latestDraft = drafts.reduce((latest, current) => {
+                  return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
+                }, drafts[0]);
+                navigate(`/user/assessment/${latestDraft.assessment_id}`);
               } else {
                 toast.info(t('user.dashboard.noDraftAssessment'));
               }
