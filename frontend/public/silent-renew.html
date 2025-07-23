@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Silent Renew</title>
+  <meta charset="utf-8" />
+</head>
+<body>
+  <script>
+    window.onload = function() {
+      // This page is loaded in an iframe by oidc-client to complete the silent renew process
+      // Post the response back to the parent window
+      if (window.parent && window.location.hash) {
+        window.parent.postMessage(window.location.hash, window.location.origin);
+      }
+    };
+  </script>
+</body>
+</html>
