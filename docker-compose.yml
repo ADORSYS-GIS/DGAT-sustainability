@@ -9,13 +9,12 @@ services:
     image: sustainability-backend:latest
     container_name: sustainability-backend
     command: ["/app/sustainability-tool"]
-    env_file: .env
     environment:
       RUST_LOG: "debug,hyper=info,sea_orm=info"
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
       KEYCLOAK_URL: "http://keycloak:8080"
       SERVER_PORT: "3001"
-      CORS_ORIGIN: http://localhost
+      CORS_ORIGIN: http://13.49.74.167
 
     depends_on:
       db:
@@ -94,10 +93,10 @@ services:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
-        VITE_KEYCLOAK_ISSUER_URI: "http://localhost:8080/realms/sustainability-realm"
+        VITE_KEYCLOAK_ISSUER_URI: "http://13.49.74.167:8080/realms/sustainability-realm"
         VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
         VITE_KEYCLOAK_SCOPES: "openid profile email"
-        VITE_KEYCLOAK_HOME_URL: "http://localhost"
+        VITE_KEYCLOAK_HOME_URL: "http://13.49.74.167"
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
     environment:
