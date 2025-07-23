@@ -63,6 +63,7 @@ services:
       KC_DB:                   "postgres"
       KC_DB_URL_HOST:          db
       KC_DB_URL_PORT:          5432
+      KC_HTTP_ENABLED:         "true"
       KC_DB_URL_DATABASE:      "${POSTGRES_DB:-sustainability}"
       KC_DB_USERNAME:          "${POSTGRES_USER:-postgres}"
       KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
