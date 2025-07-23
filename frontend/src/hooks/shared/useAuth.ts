@@ -46,6 +46,7 @@ export function useAuth(): AuthState {
   const login = async () => {
     if (!oidc) return;
     try {
+      console.log('[useAuth] Logging in...');
       await oidc.login();
     } catch (err) {
       console.error('[useAuth] Login failed:', err);
