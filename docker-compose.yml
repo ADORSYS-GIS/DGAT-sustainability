@@ -15,6 +15,8 @@ services:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
       KEYCLOAK_URL: "http://keycloak:8080"
       SERVER_PORT: "3001"
+      CORS_ORIGIN: http://localhost
+
     depends_on:
       db:
         condition: service_healthy
@@ -92,12 +94,10 @@ services:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
-        # These are the URLs that will be embedded in the built code and used by the browser
         VITE_KEYCLOAK_ISSUER_URI: "http://localhost:8080/realms/sustainability-realm"
         VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
         VITE_KEYCLOAK_SCOPES: "openid profile email"
-        VITE_KEYCLOAK_HOME_URL: "http://localhost:5173/"
-        VITE_API_URL: "http://localhost:3001"
+        VITE_KEYCLOAK_HOME_URL: "http://localhost"
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
     environment:
