@@ -63,7 +63,7 @@ async function initializeOfflineServices() {
   try {
     // Register service worker
     if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.register("/sw.js", {
+      const registration = await navigator.serviceWorker.register("/custom-sw.js", {
         scope: "/",
       });
 
