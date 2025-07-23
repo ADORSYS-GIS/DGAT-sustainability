@@ -25,11 +25,7 @@ if (!homeUrl) {
 console.log("Creating OIDC with:", { issuerUri, clientId, publicUrl: homeUrl });
 
 export const oidcPromise = createOidc({
-  issuerUri: issuerUri,
-  clientId: clientId,
-  publicUrl: homeUrl, // Changed from homeUrl to publicUrl
-  
-  // Additional configuration for debugging
-  silentSigninTimeoutInMs: 15000,
-  enableDebugLogs: true,
+  issuerUri: import.meta.env.VITE_KEYCLOAK_ISSUER_URI,
+  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
+  publicUrl: import.meta.env.VITE_KEYCLOAK_HOME_URL,
 });
