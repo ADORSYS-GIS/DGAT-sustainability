@@ -100,7 +100,6 @@ services:
         VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
         VITE_KEYCLOAK_SCOPES: "openid profile email"
         VITE_KEYCLOAK_HOME_URL: "http://13.49.74.167"
-        VITE_KEYCLOAK_PUBLIC_URL: "http://13.49.74.167"
 
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
