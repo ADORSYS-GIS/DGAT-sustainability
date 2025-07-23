@@ -61,8 +61,8 @@ services:
     container_name: sustainability-keycloak
     environment:
       KC_DB:                   "postgres"
-      KC_DB_URL_HOST:          keycloak-ssl-update
-      KC_DB_URL_PORT:          5434
+      KC_DB_URL_HOST:          db
+      KC_DB_URL_PORT:          5432
       KC_HTTP_ENABLED:         "true"
       KC_PROXY:                "edge"
       KC_HOSTNAME_STRICT_HTTPS: "false"
@@ -131,8 +131,6 @@ services:
     volumes:
       - ./infrastructure/update-keycloak-ssl.sh:/update-keycloak-ssl.sh
     entrypoint: ["/bin/bash", "/update-keycloak-ssl.sh"]
-    ports:
-      - "5434:5434"
     depends_on:
       keycloak:
         condition: service_healthy
