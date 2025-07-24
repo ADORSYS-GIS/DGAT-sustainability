@@ -10,16 +10,18 @@ export const keycloakConfig = {
 // Initialize Keycloak instance
 export const keycloak = new Keycloak(keycloakConfig);
 
-// Check if Web Crypto API is available
-const isWebCryptoAvailable = typeof window !== 'undefined' && 
-  window.crypto && 
-  window.crypto.subtle;
+// Check if we're in a sandbox environment
+const isSandboxEnvironment = () => {
+  return window.location.hostname.includes('sandbox') || 
+         window.location.hostname.includes('test') ||
+         !window.crypto?.subtle;
+};
 
-// Keycloak initialization options
+// Keycloak initialization options - adapted for environment
 export const keycloakInitOptions: Keycloak.KeycloakInitOptions = {
   checkLoginIframe: false,
   onLoad: 'check-sso',
-  // Only use PKCE if Web Crypto API is available
-  ...(isWebCryptoAvailable && { pkceMethod: 'S256' }),
+  // Disable PKCE for sandbox environments
+  ...(isSandboxEnvironment() ? {} : { pkceMethod: 'S256' }),
   enableLogging: import.meta.env.DEV,
 }; 

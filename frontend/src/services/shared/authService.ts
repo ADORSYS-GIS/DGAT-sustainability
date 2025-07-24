@@ -74,10 +74,12 @@ export const initializeAuth = async (): Promise<boolean> => {
       return keycloak.authenticated || false;
     }
 
-    // Check if Web Crypto API is available
-    if (typeof window !== 'undefined' && !window.crypto) {
-      console.warn('Web Crypto API not available, using fallback authentication method');
-    }
+    // Debug: Check environment and capabilities
+    console.log('[Keycloak] Environment check:');
+    console.log('[Keycloak] - window.crypto available:', typeof window !== 'undefined' && !!window.crypto);
+    console.log('[Keycloak] - window.crypto.subtle available:', typeof window !== 'undefined' && !!window.crypto?.subtle);
+    console.log('[Keycloak] - User agent:', navigator.userAgent);
+    console.log('[Keycloak] - Init options:', keycloakInitOptions);
 
     const authenticated = await keycloak.init(keycloakInitOptions);
     isInitialized = true;
@@ -99,6 +101,7 @@ export const initializeAuth = async (): Promise<boolean> => {
     // Handle Web Crypto API errors specifically
     if (error instanceof Error && error.message.includes('Web Crypto API')) {
       console.warn('Web Crypto API not available, trying alternative authentication method');
+      console.warn('This might be due to sandbox environment restrictions');
       // You could implement a fallback here if needed
     }
     
@@ -116,11 +119,25 @@ export const initializeAuth = async (): Promise<boolean> => {
  */
 export const login = async (): Promise<void> => {
   try {
+    console.log('[Keycloak] Attempting login...');
+    console.log('[Keycloak] Current URL:', window.location.href);
+    
     await keycloak.login({
       redirectUri: window.location.origin + '/',
     });
   } catch (error) {
     console.error('Login failed:', error);
+    
+    // Handle Web Crypto API errors specifically
+    if (error instanceof Error && error.message.includes('Web Crypto API')) {
+      console.error('Web Crypto API not available in this environment');
+      console.error('This is likely due to sandbox environment restrictions');
+      console.error('Please contact your administrator to configure the Keycloak client to not require PKCE');
+      
+      // Show user-friendly error
+      throw new Error('Authentication is not available in this environment. Please try a different browser or contact support.');
+    }
+    
     throw error;
   }
 };
