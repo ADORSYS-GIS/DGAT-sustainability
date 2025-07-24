@@ -37,8 +37,8 @@ RUN npm run build
 # Runtime stage using Nginx
 FROM nginx:alpine
 
-# Install curl for healthchecks
-RUN apk add --no-cache curl
+# Install required packages: curl for healthchecks, openssl for certificates
+RUN apk add --no-cache curl openssl bash
 
 # Copy the built app to nginx's serve directory
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -49,8 +49,13 @@ COPY .env /usr/share/nginx/html/.env
 # Copy custom nginx configuration
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
+# Create SSL directory
+RUN mkdir -p /etc/nginx/ssl
+
+# Note: SSL certificates will be mounted at runtime from the host
+
 # Expose port 80 and 443
 EXPOSE 80 443
 
-# Make sure nginx uses our custom config
+# Start Nginx after initializing certificates
 CMD ["nginx", "-g", "daemon off;"]

@@ -7,15 +7,19 @@ import "@/services/syncService"; // Ensure the sync service is initialized
 
 const App = () => {
   const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   useInitialDataLoad(); // Pre-load data for offline use
 
   useEffect(() => {
     const initApp = async () => {
       try {
-        // Initialize Keycloak authentication
-        await initializeAuth();
+        // Initialize Keycloak authentication without forcing login
+        const isAuth = await initializeAuth();
+        console.log('Authentication status:', isAuth ? 'Authenticated' : 'Not authenticated');
+        setAuthenticated(isAuth);
       } catch (error) {
         console.error('Failed to initialize authentication:', error);
+        setAuthenticated(false);
       } finally {
         setLoading(false);
       }

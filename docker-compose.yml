@@ -58,21 +58,22 @@ services:
     image: quay.io/keycloak/keycloak:26.3.1
     container_name: sustainability-keycloak
     environment:
-      KC_DB:                   "postgres"
-      KC_DB_URL_HOST:          db
-      KC_DB_URL_PORT:          5432
-      KC_HTTP_ENABLED:         "true"
-      KC_PROXY:                "edge"
+      KC_DB: "postgres"
+      KC_DB_URL_HOST: db
+      KC_DB_URL_PORT: 5432
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY: "edge"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HOSTNAME_STRICT: "false"
-      KC_DB_URL_DATABASE:      "${POSTGRES_DB:-sustainability}"
-      KC_DB_USERNAME:          "${POSTGRES_USER:-postgres}"
-      KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
-      KEYCLOAK_ADMIN:          "${KEYCLOAK_ADMIN:-admin}"
+      KC_DB_URL_DATABASE: "${POSTGRES_DB:-sustainability}"
+      KC_DB_USERNAME: "${POSTGRES_USER:-postgres}"
+      KC_DB_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
-      KEYCLOAK_REALM:          "sustainability-realm"
-      KC_FEATURES:             "preview,organization"
-      KC_HOSTNAME:             "13.49.74.167"
+      KEYCLOAK_REALM: "sustainability-realm"
+      KC_FEATURES: "preview,organization"
+      KC_HOSTNAME: "localhost"
+      KC_HTTP_RELATIVE_PATH: "/auth"
 
     command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true"]
     volumes:
@@ -81,7 +82,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 0"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/auth || exit 0"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -89,6 +90,21 @@ services:
     ports:
       - "8080:8080"
     networks: [tool-net]
+
+  keycloak-config:
+      image: postgres:16-alpine
+      container_name: sustainability-keycloak-config
+      environment:
+        POSTGRES_DB: "${POSTGRES_DB:-sustainability}"
+        POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+        POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      volumes:
+       - ./infrastructure/update-keycloak-ssl.sh:/update-keycloak-ssl.sh
+      entrypoint: ["bash", "/update-keycloak-ssl.sh"]
+      depends_on:
+        keycloak:
+         condition: service_healthy
+      networks: [tool-net]
 
   #
   # ────────────────────────────── USER PWA ──────────────────────────────
@@ -98,19 +114,21 @@ services:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
-        VITE_KEYCLOAK_ISSUER_URI: "http://13.49.74.167:8080/realms/sustainability-realm"
+        VITE_KEYCLOAK_ISSUER_URI: "https://localhost/auth/realms/sustainability-realm"
         VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
         VITE_KEYCLOAK_SCOPES: "openid profile email"
-        VITE_KEYCLOAK_HOME_URL: "http://13.49.74.167/"
-        VITE_KEYCLOAK_REDIRECT_URI: "http://13.49.74.167/callback"
+        VITE_KEYCLOAK_HOME_URL: "https://localhost/"
+        VITE_KEYCLOAK_REDIRECT_URI: "https://localhost/callback"
 
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
     depends_on:
       backend:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost/health || exit 1"]
+      test: ["CMD-SHELL", "curl -k -f https://localhost/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -118,12 +136,16 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
     networks: [tool-net]
 
 
 # ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
   postgres-data:
+  ssl-certs:
+    driver: local
 
 networks:
   tool-net:
