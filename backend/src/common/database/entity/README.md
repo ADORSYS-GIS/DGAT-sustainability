@@ -67,6 +67,7 @@ ASSESSMENTS_RESPONSE_FILE |o--o| FILE : "one"
     QUESTIONS {
         uuid question_id PK
         text categoty
+        timestamp created_at
     }
 
     QUESTIONS_REVISIONS {

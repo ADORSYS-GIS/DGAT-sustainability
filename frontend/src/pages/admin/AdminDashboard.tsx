@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,9 @@ import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen"
 import { useAdminServiceGetAdminSubmissions } from "../../openapi-rq/queries/queries";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { get } from "idb-keyval";
+import { useQuestionsServiceGetQuestions } from "../../openapi-rq/queries/queries";
+import { useTranslation } from "react-i18next";
 
 type Organization = { organizationId: string; name: string };
 type User = { userId: string; firstName?: string; lastName?: string };
@@ -31,6 +34,7 @@ interface PendingReview {
 }
 
 export const AdminDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [orgs] = React.useState<Organization[]>([
     { organizationId: "org1", name: "Mock Cooperative 1" },
     { organizationId: "org2", name: "Mock Cooperative 2" },
@@ -73,8 +77,11 @@ export const AdminDashboard: React.FC = () => {
   const pendingReviews = useMemo(() => {
     if (orgsLoading || usersLoading || submissionsLoading) return [];
 
+    // Include both 'pending_review' and 'under_review' statuses
     const pendingSubmissions = submissions.filter(
-      (s) => s.review_status === "pending_review",
+      (s) =>
+        s.review_status === "pending_review" ||
+        s.review_status === "under_review",
     );
     const userMap = new Map(
       users.map((u) => [u.userId, `${u.firstName ?? ""} ${u.lastName ?? ""}`]),
@@ -88,78 +95,113 @@ export const AdminDashboard: React.FC = () => {
       submittedAt: new Date(submission.submitted_at).toLocaleDateString(
         "en-CA",
       ),
+      reviewStatus: submission.review_status,
     }));
   }, [users, submissions, orgsLoading, usersLoading, submissionsLoading]);
 
-  const stats = useMemo(() => {
-    return {
-      orgCount: orgs.length,
-      userCount: users.length,
-      pendingCount: submissions.filter(
-        (s) => s.review_status === "pending_review",
+  // Dynamic pending reviews count (pending_review or under_review)
+  const pendingReviewsCount = React.useMemo(
+    () =>
+      submissions.filter(
+        (s) =>
+          s.review_status === "pending_review" ||
+          s.review_status === "under_review",
       ).length,
-      completedCount: submissions.filter((s) => s.review_status === "approved")
-        .length,
-    };
-  }, [users, submissions, orgs.length]);
+    [submissions],
+  );
+  const completedCount = React.useMemo(
+    () => submissions.filter((s) => s.review_status === "approved").length,
+    [submissions],
+  );
 
   const navigate = useNavigate();
-
+  const keycloakAdminUrl = import.meta.env.VITE_KEYCLOAK_ADMIN_URL;
   const adminActions = [
     {
-      title: "Manage Organizations",
-      description:
-        "Add, edit, and manage cooperative organizations in the system.",
+      title: t('adminDashboard.manageOrganizations'),
+      description: t('adminDashboard.manageOrganizationsDesc'),
       icon: Users,
-      color: "blue" as const,
+      color: "blue" as const, 
       onClick: () => navigate("/admin/organizations"),
     },
     {
-      title: "Manage Users",
-      description: "Control user access and roles across all organizations.",
+      title: t('adminDashboard.manageUsers'),
+      description: t('adminDashboard.manageUsersDesc'),
       icon: Users,
       color: "blue" as const,
       onClick: () => navigate("/admin/users"),
     },
     {
-      title: "Manage Categories",
-      description:
-        "Configure assessment categories for DGAT and Sustainability tools.",
+      title: t('adminDashboard.manageCategories'),
+      description: t('adminDashboard.manageCategoriesDesc'),
       icon: List,
       color: "green" as const,
       onClick: () => navigate("/admin/categories"),
     },
     {
-      title: "Manage Questions",
-      description: "Create and edit questions within each assessment category.",
+      title: t('adminDashboard.manageQuestions'),
+      description: t('adminDashboard.manageQuestionsDesc'),
       icon: BookOpen,
       color: "blue" as const,
       onClick: () => navigate("/admin/questions"),
     },
     {
-      title: "Review Assessments",
-      description: "Review submitted assessments and provide recommendations.",
+      title: t('adminDashboard.reviewAssessments'),
+      description: t('adminDashboard.reviewAssessmentsDesc'),
       icon: CheckSquare,
       color: "green" as const,
       onClick: () => navigate("/admin/reviews"),
     },
     {
-      title: "Standard Recommendations",
-      description:
-        "Manage reusable recommendations for common assessment scenarios.",
+      title: t('adminDashboard.standardRecommendations'),
+      description: t('adminDashboard.standardRecommendationsDesc'),
       icon: Star,
       color: "blue" as const,
       onClick: () => navigate("/admin/recommendations"),
     },
   ];
 
+  // Dynamic counts for categories and questions
+  const [categoryCount, setCategoryCount] = useState<number>(0);
+  const [questionCount, setQuestionCount] = useState<number>(0);
+
+  // Fetch categories count from IndexedDB
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const cats = (await get("sustainability_categories")) as
+          | { categoryId: string }[]
+          | undefined;
+        setCategoryCount(cats ? cats.length : 0);
+      } catch {
+        setCategoryCount(0);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch questions count from API
+  const { data: questionsData } = useQuestionsServiceGetQuestions();
+  function isQuestionsResponse(obj: unknown): obj is { questions: unknown[] } {
+    return (
+      typeof obj === "object" &&
+      obj !== null &&
+      Array.isArray((obj as { questions?: unknown[] }).questions)
+    );
+  }
+  useEffect(() => {
+    if (isQuestionsResponse(questionsData)) {
+      setQuestionCount(questionsData.questions.length);
+    }
+  }, [questionsData]);
+
   const systemStats = [
-    { label: "Active Organizations", value: stats.orgCount, color: "blue" },
-    { label: "Total Users", value: stats.userCount, color: "green" },
-    { label: "Pending Reviews", value: stats.pendingCount, color: "yellow" },
+    { label: t('adminDashboard.numCategories'), value: categoryCount, color: "blue" },
+    { label: t('adminDashboard.numQuestions'), value: questionCount, color: "green" },
+    { label: t('adminDashboard.pendingReviews'), value: pendingReviewsCount, color: "yellow" },
     {
-      label: "Completed Assessments",
-      value: stats.completedCount,
+      label: t('adminDashboard.completedAssessments'),
+      value: completedCount,
       color: "blue",
     },
   ];
@@ -175,12 +217,11 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center space-x-3 mb-4">
               <Settings className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                Welcome, Admin! Drive Cooperative Impact!
+                {t('adminDashboard.welcome')}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Manage the DGRV assessment platform and support cooperatives
-              across Southern Africa.
+              {t('adminDashboard.intro')}
             </p>
           </div>
 
@@ -222,10 +263,10 @@ export const AdminDashboard: React.FC = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <span>Pending Reviews</span>
+                  <span>{t('adminDashboard.pendingReviewsCard')}</span>
                 </CardTitle>
                 <Badge className="bg-orange-500 text-white">
-                  {stats.pendingCount} pending
+                  {pendingReviewsCount} {t('adminDashboard.pendingCount', { count: pendingReviewsCount })}
                 </Badge>
               </CardHeader>
               <CardContent>
@@ -257,7 +298,9 @@ export const AdminDashboard: React.FC = () => {
                           {review.submittedAt}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          Review Required
+                          {review.reviewStatus === "under_review"
+                            ? t('adminDashboard.underReview')
+                            : t('adminDashboard.reviewRequired')}
                         </Badge>
                       </div>
                     </div>
@@ -265,14 +308,14 @@ export const AdminDashboard: React.FC = () => {
                   {pendingReviews.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>All assessments are up to date!</p>
+                      <p>{t('adminDashboard.allUpToDate')}</p>
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* System Health */}
+            {/* Admin Guide */}
             <div className="space-y-6">
               <Card
                 className="animate-fade-in"
@@ -280,53 +323,20 @@ export const AdminDashboard: React.FC = () => {
               >
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 text-dgrv-green" />
-                    <span>System Health</span>
+                    <BookOpen className="w-5 h-5 text-dgrv-blue" />
+                    <span>{t('adminDashboard.adminGuide')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Database</span>
-                      <Badge className="bg-dgrv-green text-white">
-                        Healthy
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">API Response</span>
-                      <Badge className="bg-dgrv-green text-white">Fast</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Sync Queue</span>
-                      <Badge className="bg-dgrv-green text-white">Clear</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card
-                className="animate-fade-in"
-                style={{ animationDelay: "300ms" }}
-              >
-                <CardHeader>
-                  <CardTitle className="text-dgrv-blue">
-                    Quick Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <button className="w-full text-left p-2 rounded hover:bg-gray-100 text-sm">
-                      Export System Report
-                    </button>
-                    <button className="w-full text-left p-2 rounded hover:bg-gray-100 text-sm">
-                      Backup Database
-                    </button>
-                    <button className="w-full text-left p-2 rounded hover:bg-gray-100 text-sm">
-                      View Audit Logs
-                    </button>
-                    <button className="w-full text-left p-2 rounded hover:bg-gray-100 text-sm">
-                      System Settings
-                    </button>
+                  <div className="space-y-3 text-sm text-gray-700">
+                    <p>{t('adminDashboard.guideIntro')}</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>{t('adminDashboard.guideOrgsUsers')}</li>
+                      <li>{t('adminDashboard.guideReview')}</li>
+                      <li>{t('adminDashboard.guideCategoriesQuestions')}</li>
+                      <li>{t('adminDashboard.guideDocs')}</li>
+                      <li>{t('adminDashboard.guideSupport')}</li>
+                    </ul>
                   </div>
                 </CardContent>
               </Card>

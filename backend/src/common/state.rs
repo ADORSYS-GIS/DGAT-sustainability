@@ -5,6 +5,7 @@ use crate::common::database::entity::assessments_submission::AssessmentsSubmissi
 use crate::common::database::entity::file::FileService;
 use crate::common::database::entity::questions::QuestionsService;
 use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
+use crate::common::database::entity::submission_reports::SubmissionReportsService;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -12,13 +13,14 @@ use std::sync::Arc;
 #[allow(dead_code)]
 pub struct AppDatabase {
     conn: Arc<DatabaseConnection>,
-    assessments: AssessmentsService,
-    assessments_response: AssessmentsResponseService,
-    assessments_submission: AssessmentsSubmissionService,
-    assessments_response_file: AssessmentsResponseFileService,
-    file: FileService,
-    questions: QuestionsService,
-    questions_revisions: QuestionsRevisionsService,
+    pub assessments: Arc<AssessmentsService>,
+    pub assessments_response: AssessmentsResponseService,
+    pub assessments_submission: AssessmentsSubmissionService,
+    pub assessments_response_file: AssessmentsResponseFileService,
+    pub file: FileService,
+    pub questions: QuestionsService,
+    pub questions_revisions: QuestionsRevisionsService,
+    pub submission_reports: SubmissionReportsService,
 }
 
 #[allow(dead_code)]
@@ -32,7 +34,25 @@ impl AppDatabase {
             file: FileService::new(conn.clone()),
             questions: QuestionsService::new(conn.clone()),
             questions_revisions: QuestionsRevisionsService::new(conn.clone()),
+            submission_reports: SubmissionReportsService::new(conn.clone()),
             conn,
+        }
+    }
+
+    pub fn get_connection(&self) -> &DatabaseConnection {
+        &self.conn
+    }
+}
+
+#[derive(Clone)]
+pub struct AppState {
+    pub database: AppDatabase,
+}
+
+impl AppState {
+    pub async fn new(conn: Arc<DatabaseConnection>) -> Self {
+        Self {
+            database: AppDatabase::new(conn).await,
         }
     }
 }

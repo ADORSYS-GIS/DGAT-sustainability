@@ -6,7 +6,7 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Assessments table
+        // Assessment table
         manager
             .create_table(
                 Table::create()
@@ -18,7 +18,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Assessments::UserId).string().not_null())
+                    .col(ColumnDef::new(Assessments::OrgId).string().not_null())
                     .col(ColumnDef::new(Assessments::Language).string().not_null())
                     .col(
                         ColumnDef::new(Assessments::CreatedAt)
@@ -45,7 +45,7 @@ impl MigrationTrait for Migration {
 enum Assessments {
     Table,
     AssessmentId,
-    UserId,
+    OrgId,
     Language,
     CreatedAt,
 }

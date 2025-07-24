@@ -1,4 +1,564 @@
 {
-  "greeting": "Hello",
-  "farewell": "Goodbye"
+  "home": "Home",
+  "homePage": {
+    "hero": {
+      "title": "Empower Your Cooperative",
+      "subtitle": "Assess Sustainability Goals",
+      "description": "Simple, secure, and impactful—help your cooperative thrive in the digital age while building sustainable practices for the future.",
+      "cta": "Start Assessment"
+    },
+    "features": {
+      "title": "Features",
+      "items": [
+        {
+          "title": "Sustainability Assessment",
+          "description": "Evaluate environmental, social, and governance practices to build a more sustainable and responsible cooperative."
+        },
+        {
+          "title": "Action Plans",
+          "description": "Track your progress with interactive Kanban boards, turning assessment insights into actionable tasks and measurable improvements."
+        }
+      ]
+    },
+    "benefits": {
+      "title": "Benefits",
+      "items": [
+        {
+          "title": "Built for Cooperatives",
+          "description": "Designed specifically for cooperative organizations in Southern Africa"
+        },
+        {
+          "title": "Multilingual Support",
+          "description": "Available in English, siSwati, Portuguese, Zulu, German, and French"
+        },
+        {
+          "title": "Offline Capable",
+          "description": "Works reliably even with limited internet connectivity"
+        }
+      ]
+    }
+  },
+  "login": "Login",
+  "logout": "Logout",
+  "profile": "Profile",
+  "sustainability": "Sustainability",
+  "assessment": "Assessment",
+  "submit": "Submit",
+  "next": "Next",
+  "previous": "Previous",
+  "saveDraft": "Save Draft",
+  "category": "Category",
+  "progress": "Progress",
+  "viewSubmission": "View Submission",
+  "yourSubmissions": "Your Submissions",
+  "noSubmissions": "No submissions yet",
+  "startAssessment": "Start Assessment",
+  "status": "Status",
+  "submittedAt": "Submitted At",
+  "reviewedAt": "Reviewed At",
+  "manageUsers": "Manage Users",
+  "actionPlan": "Action Plan",
+  "viewAssessments": "View Assessments",
+  "answerAssessment": "Answer Assessment",
+  "viewAll": "View All",
+  "welcome": "Welcome, {{user}} from {{org}}!",
+  "loading": "Loading...",
+  "noData": "No data available",
+  "adminDashboard": {
+    "welcome": "Welcome, Admin! Drive Cooperative Impact!",
+    "intro": "Manage the DGRV assessment platform and support cooperatives across Southern Africa.",
+    "numCategories": "Number of Categories",
+    "numQuestions": "Number of Questions",
+    "pendingReviews": "Pending Reviews",
+    "completedAssessments": "Completed Assessments",
+    "manageOrganizations": "Manage Organizations",
+    "manageOrganizationsDesc": "Add, edit, and manage cooperative organizations in the system.",
+    "manageUsers": "Manage Users",
+    "manageUsersDesc": "Control user access and roles across all organizations.",
+    "manageCategories": "Manage Categories",
+    "manageCategoriesDesc": "Configure assessment categories for sustainability tools.",
+    "manageQuestions": "Manage Questions",
+    "manageQuestionsDesc": "Create and edit questions within each assessment category.",
+    "reviewAssessments": "Review Assessments",
+    "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
+    "standardRecommendations": "Standard Recommendations",
+    "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios.",
+    "pendingReviewsCard": "Pending Reviews",
+    "pendingCount": "{count} pending",
+    "sustainabilityAssessment": "Sustainability Assessment",
+    "byUser": "by {user}",
+    "underReview": "Under Review",
+    "reviewRequired": "Review Required",
+    "allUpToDate": "All assessments are up to date!",
+    "adminGuide": "Admin Guide",
+    "guideIntro": "Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:",
+    "guideOrgsUsers": "Use the Manage Organizations and Manage Users sections to control access and membership.",
+    "guideReview": "Review and approve assessments in the Review Assessments section.",
+    "guideCategoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
+    "guideDocs": "For detailed documentation, visit the Admin Documentation.",
+    "guideSupport": "If you need help, contact support@dgrv.org."
+  },
+  "standardRecommendations": {
+    "title": "Standard Recommendations",
+    "manageDesc": "Manage reusable recommendations for assessment reviews",
+    "add": "Add Recommendation",
+    "edit": "Edit Standard Recommendation",
+    "addDialog": "Add Standard Recommendation",
+    "textLabel": "Recommendation Text",
+    "textPlaceholder": "Enter the recommendation text...",
+    "update": "Update Recommendation",
+    "create": "Create Recommendation",
+    "cancel": "Cancel",
+    "singleTitle": "Standard Recommendation",
+    "editBtn": "Edit",
+    "emptyTitle": "No standard recommendations yet",
+    "emptyDesc": "Create reusable recommendations to speed up assessment reviews.",
+    "addFirst": "Add First Recommendation",
+    "textRequired": "Recommendation text is required",
+    "confirmDelete": "Are you sure you want to delete this standard recommendation?",
+    "deleteSuccess": "Standard recommendation deleted successfully",
+    "updateSuccess": "Recommendation updated successfully",
+    "createSuccess": "Standard recommendation created successfully"
+  },
+  "dashboard": {
+    "welcome": {
+      "title": "Welcome, Admin! Drive Cooperative Impact!",
+      "description": "Manage the DGRV assessment platform and support cooperatives across Southern Africa."
+    },
+    "pendingReviews": {
+      "title": "Pending Reviews",
+      "badge": "pending",
+      "assessmentType": "Sustainability Assessment",
+      "submittedBy": "by",
+      "reviewRequired": "Review Required",
+      "upToDate": "All assessments are up to date!"
+    },
+    "systemHealth": {
+      "title": "System Health",
+      "database": "Database",
+      "healthy": "Healthy",
+      "apiResponse": "API Response",
+      "fast": "Fast",
+      "syncQueue": "Sync Queue",
+      "clear": "Clear"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "exportReport": "Export System Report",
+      "backupDatabase": "Backup Database",
+      "viewAuditLogs": "View Audit Logs",
+      "systemSettings": "System Settings"
+    },
+    "stats": {
+      "numCategories": "Number of Categories",
+      "numQuestions": "Number of Questions",
+      "pendingReviews": "Pending Reviews",
+      "completedAssessments": "Completed Assessments"
+    },
+    "assessments": {
+      "subtitle": "View and manage all your sustainability submissions",
+      "emptyState": "Start your first sustainability assessment to track your cooperative's progress."
+    },
+      "numCategories": "Number of Categories",
+      "numQuestions": "Number of Questions",
+      "pendingReviews": "Pending Reviews",
+      "completedAssessments": "Completed Assessments"
+    },
+    "actions": {
+      "manageOrganizations": "Manage Organizations",
+      "manageOrganizationsDesc": "Add, edit, and manage cooperative organizations in the system.",
+      "manageUsers": "Manage Users",
+      "manageUsersDesc": "Control user access and roles across all organizations.",
+      "manageCategories": "Manage Categories",
+      "manageCategoriesDesc": "Configure assessment categories for sustainability tools.",
+      "manageQuestions": "Manage Questions",
+      "manageQuestionsDesc": "Create and edit questions within each assessment category.",
+      "reviewAssessments": "Review Assessments",
+      "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
+      "standardRecommendations": "Standard Recommendations",
+      "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios."
+    },
+    "guide": {
+      "title": "Admin Guide",
+      "intro": "Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:",
+      "orgsUsers": "Use the Manage Organizations and Manage Users sections to control access and membership.",
+      "review": "Review and approve assessments in the Review Assessments section.",
+      "categoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
+      "docs": "For detailed documentation, visit the Admin Documentation.",
+      "support": "If you need help, contact support@dgrv.org."
+    },
+  "questions": {
+    "manage": {
+      "title": "Manage Questions",
+      "description": "Create and edit questions within each assessment category.",
+      "add": "Add New Question",
+      "edit": "Edit Question",
+      "delete": "Delete Question",
+      "confirmDelete": "Are you sure you want to delete this question?",
+      "success": "Question deleted successfully!",
+      "error": "Error deleting question."
+    },
+    "list": {
+      "title": "All Questions",
+      "noQuestions": "No questions found.",
+      "question": "Question",
+      "category": "Category",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Question Form",
+      "question": "Question",
+      "category": "Category",
+      "type": "Type",
+      "options": "Options",
+      "required": "Required",
+      "save": "Save Question",
+      "cancel": "Cancel",
+      "success": "Question saved successfully!",
+      "error": "Error saving question."
+    }
+  },
+  "categories": {
+    "manage": {
+      "title": "Manage Categories",
+      "description": "Configure assessment categories for sustainability tools.",
+      "add": "Add New Category",
+      "edit": "Edit Category",
+      "delete": "Delete Category",
+      "confirmDelete": "Are you sure you want to delete this category?",
+      "success": "Category deleted successfully!",
+      "error": "Error deleting category."
+    },
+    "list": {
+      "title": "All Categories",
+      "noCategories": "No categories found.",
+      "category": "Category",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Category Form",
+      "name": "Name",
+      "description": "Description",
+      "save": "Save Category",
+      "cancel": "Cancel",
+      "success": "Category saved successfully!",
+      "error": "Error saving category."
+    }
+  },
+  "organizations": {
+    "manage": {
+      "title": "Manage Organizations",
+      "description": "Add, edit, and manage cooperative organizations in the system.",
+      "add": "Add New Organization",
+      "edit": "Edit Organization",
+      "delete": "Delete Organization",
+      "confirmDelete": "Are you sure you want to delete this organization?",
+      "success": "Organization deleted successfully!",
+      "error": "Error deleting organization."
+    },
+    "list": {
+      "title": "All Organizations",
+      "noOrganizations": "No organizations found.",
+      "organization": "Organization",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Organization Form",
+      "name": "Name",
+      "description": "Description",
+      "save": "Save Organization",
+      "cancel": "Cancel",
+      "success": "Organization saved successfully!",
+      "error": "Error saving organization."
+    }
+  },
+  "users": {
+    "manage": {
+      "title": "Manage Users",
+      "description": "Control user access and roles across all organizations.",
+      "add": "Add New User",
+      "edit": "Edit User",
+      "delete": "Delete User",
+      "confirmDelete": "Are you sure you want to delete this user?",
+      "success": "User deleted successfully!",
+      "error": "Error deleting user."
+    },
+    "list": {
+      "title": "All Users",
+      "noUsers": "No users found.",
+      "user": "User",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "User Form",
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "organization": "Organization",
+      "save": "Save User",
+      "cancel": "Cancel",
+      "success": "User saved successfully!",
+      "error": "Error saving user."
+    }
+  },
+  "reviews": {
+    "manage": {
+      "title": "Review Assessments",
+      "description": "Review submitted assessments and provide recommendations.",
+      "review": "Review",
+      "approve": "Approve",
+      "reject": "Reject",
+      "comments": "Comments",
+      "recommendations": "Recommendations",
+      "save": "Save Review",
+      "cancel": "Cancel",
+      "success": "Review saved successfully!",
+      "error": "Error saving review."
+    },
+    "list": {
+      "title": "All Reviews",
+      "noReviews": "No reviews found.",
+      "assessment": "Assessment",
+      "status": "Status",
+      "reviewedBy": "Reviewed By",
+      "actions": "Actions"
+    }
+  },
+  "recommendations": {
+    "manage": {
+      "title": "Standard Recommendations",
+      "description": "Manage reusable recommendations for common assessment scenarios.",
+      "add": "Add New Recommendation",
+      "edit": "Edit Recommendation",
+      "delete": "Delete Recommendation",
+      "confirmDelete": "Are you sure you want to delete this recommendation?",
+      "success": "Recommendation deleted successfully!",
+      "error": "Error deleting recommendation."
+    },
+    "list": {
+      "title": "All Recommendations",
+      "noRecommendations": "No recommendations found.",
+      "recommendation": "Recommendation",
+      "actions": "Actions"
+    },
+    "form": {
+      "formTitle": "Recommendation Form",
+      "title": "Title",
+      "description": "Description",
+      "save": "Save Recommendation",
+      "cancel": "Cancel",
+      "success": "Recommendation saved successfully!",
+      "error": "Error saving recommendation."
+    }
+  },
+  "manageCategories": {
+    "title": "Manage Categories",
+    "configureCategories": "Configure categories for the Sustainability Assessment",
+    "categories": "Sustainability Assessment Categories",
+    "addCategory": "Add Category",
+    "editCategory": "Edit Category",
+    "categoryName": "Category Name",
+    "categoryNamePlaceholder": "e.g., Environmental Impact",
+    "weight": "Weight (%)",
+    "displayOrder": "Display Order",
+    "createCategory": "Create Category",
+    "updateCategory": "Update Category",
+    "loadSuccess": "Loaded {{count}} categories successfully!",
+    "saveSuccess": "Saved {{count}} categories successfully!",
+    "deleteSuccess": "Category deleted successfully!",
+    "weightExceedsError": "Total weight would exceed 100%. Please adjust or redistribute.",
+    "redistributeWeights": "Redistribute Weights Evenly",
+    "totalWeightExceeds": "Total weight exceeds 100%. Please adjust or redistribute.",
+    "totalWeightNot100": "Total weight is {{total}}%. It should be exactly 100% for a valid assessment.",
+    "noCategoriesYet": "No categories yet. Add your first category to get started!",
+    "weightLabel": "Weight: {{weight}}% | Order: {{order}}"
+  },
+  "manageOrganizations": {
+    "title": "Manage Organizations",
+    "subtitle": "Add and manage cooperative organizations",
+    "addOrganization": "Add Organization",
+    "domains": "Domains",
+    "description": "Description",
+    "edit": "Edit",
+    "delete": "Delete",
+    "noOrganizations": "No organizations yet",
+    "getStarted": "Add your first cooperative organization to get started.",
+    "addFirstOrganization": "Add First Organization",
+    "update": "Update Organization",
+    "create": "Create Organization",
+    "cancel": "Cancel"
+  },
+  "user": {
+    "dashboard": {
+      "welcome": "Welcome, {{user}} from {{org}}!",
+      "readyToContinue": "Ready to continue your cooperative's sustainability journey?",
+      "answerAssessment": {
+        "title": "Answer Assessment",
+        "description": "Answer pending sustainability assessments for your cooperative."
+      },
+      "viewAssessments": {
+        "title": "View Assessments",
+        "description": "View all your past and current sustainability assessments.",
+        "subtitle": "Track and manage your cooperative's sustainability improvement tasks."
+      },
+      "actionPlan": {
+  "kanban": {
+    "todo": "To Do",
+    "inProgress": "In Progress",
+    "done": "Done",
+    "approved": "Approved",
+    "approve": "Approve",
+    "moveToInProgress": "Move to In Progress",
+    "backToTodo": "Back to To Do",
+    "moveToDone": "Move to Done",
+    "backToInProgress": "Back to In Progress",
+    "backToDone": "Back to Done"
+  },
+        "title": "Action Plan",
+        "description": "Track and manage your cooperative's sustainability improvement tasks.",
+        "recentSubmissions": "Recent Submissions",
+        "viewAll": "View All",
+        "noSubmissions": "No submissions yet.",
+        "exportReports": "Export Reports",
+        "downloadReportsDescription": "Download your assessment reports in various formats.",
+        "exportAsPDF": "Export as PDF",
+        "exportAsWord": "Export as Word",
+        "exportAsCSV": "Export as CSV",
+        "needHelp": "Need Help?",
+        "getSupport": "Get support and training materials to make the most of your assessments.",
+        "viewUserGuide": "View User Guide",
+        "manageUsers": {
+          "title": "Manage Users",
+          "description": "Add and manage users in your organization."
+        },
+        "status": {
+          "approved": "Approved",
+          "pendingReview": "Pending Review",
+          "underReview": "Under Review",
+          "rejected": "Rejected",
+          "revisionRequested": "Revision Requested",
+          "unknown": "Unknown"
+        },
+        "loadingSubmissionsInline": "Loading submissions...",
+        "user": "User",
+        "org": "your organisation",
+        "startAssessment": {
+          "title": "Start Sustainability Assessment",
+          "description": "Assess environmental, social, and governance practices for sustainable growth."
+        },
+        "noDraftAssessment": "No draft assessment available to answer.",
+        "sustainabilityAssessment": "Sustainability Assessment",
+        "noSubmissionsMessage": "No submissions yet. Start your first assessment above!"
+      },
+      "recentSubmissions": "Recent Submissions",
+      "viewAll": "View All",
+      "noSubmissions": "No submissions yet.",
+      "exportReports": "Export Reports",
+      "downloadReportsDescription": "Download your assessment reports in various formats.",
+      "exportAsPDF": "Export as PDF",
+      "exportAsWord": "Export as Word",
+      "exportAsCSV": "Export as CSV",
+      "needHelp": "Need Help?",
+      "getSupport": "Get support and training materials to make the most of your assessments.",
+      "viewUserGuide": "View User Guide",
+      "manageUsers": {
+        "title": "Manage Users",
+        "description": "Add and manage users in your organization."
+      },
+      "status": {
+        "approved": "Approved",
+        "pendingReview": "Pending Review",
+        "underReview": "Under Review",
+        "rejected": "Rejected",
+        "revisionRequested": "Revision Requested",
+        "unknown": "Unknown"
+      },
+      "loadingSubmissionsInline": "Loading submissions...",
+      "user": "User",
+      "org": "your organisation",
+      "startAssessment": {
+        "title": "Start Sustainability Assessment",
+        "description": "Assess environmental, social, and governance practices for sustainable growth."
+      },
+      "noDraftAssessment": "No draft assessment available to answer.",
+      "sustainabilityAssessment": "Sustainability Assessment",
+      "noSubmissionsMessage": "No submissions yet. Start your first assessment above!"
+    }
+  },
+  "manageUsers.selectOrganization": "Select an Organization",
+  "manageUsers.clickOrgToManage": "Click an organization to manage its users",
+  "manageUsers.backToOrganizations": "Back to Organizations",
+  "manageUsers.addUser": "+ Add User",
+  "manageUsers.manageUsersForOrg": "Add and manage users across {{org}}",
+  "manageUsers.editUser": "Edit User",
+  "manageUsers.addNewUser": "Add New User",
+  "manageUsers.email": "Email",
+  "manageUsers.emailPlaceholder": "Enter email",
+  "manageUsers.role": "Role",
+  "manageUsers.organizationAdmin": "Organization Admin",
+  "manageUsers.organization": "Organization",
+  "manageUsers.selectOrganizationPlaceholder": "Select organization",
+  "manageUsers.update": "Update",
+  "manageUsers.create": "Create",
+  "manageUsers.user": "User",
+  "manageUsers.cancel": "Cancel",
+  "manageUsers.verified": "Verified",
+  "manageUsers.notVerified": "Not Verified",
+  "manageUsers.edit": "Edit",
+  "manageUsers.noUsersYet": "No users yet",
+  "manageUsers.addFirstUserDesc": "Add your first user to get started.",
+  "manageUsers.addFirstUser": "Add First User",
+  "manageUsers.orgLabel": "Org:",
+  "manageUsers.unknown": "Unknown",
+  "manageUsers.admin": "Admin",
+  "manageUsers.orgAdmin": "Org Admin",
+  "manageUsers.orgUser": "Org User",
+  "manageUsers.createUser": "Create User",
+  "manageUsers.updateUser": "Update User",
+  "manageUsers.emailRequired": "Email is required",
+  "manageUsers.selectOrgRequired": "Please select an organization",
+  "manageUsers.confirmDelete": "Are you sure you want to delete this user from the organization? This action cannot be undone.",
+  "manageQuestions.questionEnPlaceholder": "Enter question in English",
+  "manageQuestions.questionLangPlaceholder": "Enter question in {{lang}}",
+  "manageQuestions.category": "Category",
+  "manageQuestions.selectCategoryPlaceholder": "Select a category",
+  "manageQuestions.weightLabel": "Weight (1-10)",
+  "manageQuestions.displayOrder": "Display Order",
+  "manageQuestions.saving": "Saving...",
+  "manageQuestions.updateQuestion": "Update Question",
+  "manageQuestions.createQuestion": "Create Question",
+  "manageQuestions.createSuccess": "Question created.",
+  "manageQuestions.updateSuccess": "Question updated.",
+  "manageQuestions.deleteSuccess": "Question deleted.",
+  "manageQuestions.textRequired": "Question text (English) is required.",
+  "manageQuestions.categoryRequired": "Category is required.",
+  "manageQuestions.weightRangeError": "Weight must be between 1 and 10.",
+  "manageQuestions.confirmDelete": "Are you sure you want to delete this question?",
+  "manageQuestions.title": "Manage Questions",
+  "manageQuestions.subtitle": "Manage questions for the Sustainability Assessment",
+  "manageQuestions.cardTitle": "Sustainability Assessment Questions",
+  "manageQuestions.addQuestion": "Add Question",
+  "manageQuestions.editQuestion": "Edit Question",
+  "manageQuestions.addNewQuestion": "Add New Question",
+  "manageQuestions.noQuestionsInCategory": "No questions in this category yet.",
+  "assessment.yesNo": "Yes/No",
+  "assessment.yes": "Yes",
+  "assessment.no": "No",
+  "assessment.percentage": "Percentage",
+  "assessment.percentNotStarted": "Not started",
+  "assessment.percentSomeProgress": "Some progress",
+  "assessment.percentHalfway": "Halfway",
+  "assessment.percentAlmostDone": "Almost done",
+  "assessment.percentFullyAchieved": "Fully achieved",
+  "assessment.yourResponse": "Your Response",
+  "assessment.enterYourResponse": "Enter your response...",
+  "assessment.addFile": "Add file",
+  "assessment.completeAllQuestions": "Please answer all questions in this category before submitting.",
+  "assessment.submittedLocally": "Assessment has been submitted locally and will sync when online.",
+  "assessment.failedToCreate": "Failed to create assessment locally.",
+  "assessment.fileTooLarge": "File size must be less than 1MB.",
+  "assessment.completeAllQuestionsNext": "Please answer all questions in this category before proceeding.",
+  "manageQuestions.noCategories": "No categories available. Please create categories first!",
+  "manageQuestions.noText": "No text available."
+
 }

@@ -13,13 +13,13 @@ impl MigrationTrait for Migration {
                     .table(AssessmentsSubmission::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(AssessmentsSubmission::AssessmentId)
+                        ColumnDef::new(AssessmentsSubmission::SubmissionId)
                             .uuid()
                             .not_null()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(AssessmentsSubmission::UserId)
+                        ColumnDef::new(AssessmentsSubmission::OrgId)
                             .string()
                             .not_null(),
                     )
@@ -28,12 +28,17 @@ impl MigrationTrait for Migration {
                             .json_binary()
                             .not_null(),
                     )
+                    .col(
+                        ColumnDef::new(AssessmentsSubmission::SubmittedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_assessment_submission_assessment")
                             .from(
                                 AssessmentsSubmission::Table,
-                                AssessmentsSubmission::AssessmentId,
+                                AssessmentsSubmission::SubmissionId,
                             )
                             .to(Assessments::Table, Assessments::AssessmentId)
                             .on_delete(ForeignKeyAction::Cascade),
@@ -57,9 +62,10 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 enum AssessmentsSubmission {
     Table,
-    AssessmentId,
-    UserId,
+    SubmissionId,
+    OrgId,
     Content,
+    SubmittedAt,
 }
 
 #[derive(Iden)]

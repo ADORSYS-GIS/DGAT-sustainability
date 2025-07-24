@@ -1,28 +1,130 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15
+  #
+  # ─────────────────────────────── BACKEND ───────────────────────────────
+  #
+  backend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.backend
+    image: sustainability-backend:latest
+    container_name: sustainability-backend
+    command: ["/app/sustainability-tool"]
+    env_file: .env
     environment:
-      POSTGRES_DB: dgrv_db
-      POSTGRES_USER: dgrv_user
-      POSTGRES_PASSWORD: dgrv_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/database/seeds:/docker-entrypoint-initdb.d
+      RUST_LOG: "debug,hyper=info,sea_orm=info"
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
+      KEYCLOAK_URL: "http://keycloak:8080"
+      SERVER_PORT: "3001"
+      CORS_ORIGIN: http://13.49.74.167
 
-  # Keycloak Authentication
-  keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "3001:3001"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── POSTGRES ──────────────────────────────
+  #
+  db:
+    image: postgres:16-alpine
+    container_name: sustainability-db
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
+      POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5432"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── KEYCLOAK ──────────────────────────────
+  #
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: sustainability-keycloak
+    environment:
+      KC_DB:                   "postgres"
+      KC_DB_URL_HOST:          db
+      KC_DB_URL_PORT:          5432
+      KC_HTTP_ENABLED:         "true"
+      KC_PROXY:                "edge"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HOSTNAME_STRICT: "false"
+      KC_DB_URL_DATABASE:      "${POSTGRES_DB:-sustainability}"
+      KC_DB_USERNAME:          "${POSTGRES_USER:-postgres}"
+      KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
+      KEYCLOAK_ADMIN:          "${KEYCLOAK_ADMIN:-admin}"
+      KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
+      KEYCLOAK_REALM:          "sustainability-realm"
+      KC_FEATURES:             "preview,organization"
+      KC_HOSTNAME:             "13.49.74.167"
+
+    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true"]
+    volumes:
+      - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
     ports:
       - "8080:8080"
-    command: start-dev
+    networks: [tool-net]
 
+  #
+  # ────────────────────────────── USER PWA ──────────────────────────────
+  #
+  frontend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.frontend
+      args:
+        VITE_KEYCLOAK_ISSUER_URI: "http://13.49.74.167:8080/realms/sustainability-realm"
+        VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
+        VITE_KEYCLOAK_SCOPES: "openid profile email"
+        VITE_KEYCLOAK_HOME_URL: "http://13.49.74.167/"
+        VITE_KEYCLOAK_REDIRECT_URI: "http://13.49.74.167/callback"
+
+    image: sustainability-frontend:latest
+    container_name: sustainability-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    ports:
+      - "80:80"
+      - "443:443"
+    networks: [tool-net]
+
+
+# ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
-  postgres_data:
+  postgres-data:
+
+networks:
+  tool-net:
+    driver: bridge

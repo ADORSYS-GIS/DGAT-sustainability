@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, List } from "lucide-react";
 import { get, set } from "idb-keyval";
+import { useTranslation } from "react-i18next";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
 const CATEGORIES_KEY = "sustainability_categories";
@@ -27,6 +28,7 @@ interface Category {
 }
 
 export const ManageCategories: React.FC = () => {
+  const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
@@ -37,6 +39,8 @@ export const ManageCategories: React.FC = () => {
   // Local state for categories
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  // State for add/edit dialog weight error
+  const [showDialogWeightError, setShowDialogWeightError] = useState(false);
 
   // Load categories from IndexedDB on mount
   useEffect(() => {
@@ -46,7 +50,7 @@ export const ManageCategories: React.FC = () => {
         const stored = (await get(CATEGORIES_KEY)) as Category[] | undefined;
         setCategories(stored || []);
         toast.success(
-          `Loaded ${stored?.length ?? 0} categories successfully!`,
+          t('manageCategories.loadSuccess', { count: stored?.length ?? 0 }),
           {
             className: "bg-dgrv-green text-white",
           },
@@ -65,7 +69,7 @@ export const ManageCategories: React.FC = () => {
     try {
       await set(CATEGORIES_KEY, cats);
       setCategories(cats);
-      toast.success(`Saved ${cats.length} categories successfully!`, {
+      toast.success(t('manageCategories.saveSuccess', { count: cats.length }), {
         className: "bg-dgrv-green text-white",
       });
     } catch (err) {
@@ -76,8 +80,70 @@ export const ManageCategories: React.FC = () => {
   // Sort categories by order
   const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
 
+  // Calculate total weight
+  const totalWeight = sortedCategories.reduce(
+    (sum, cat) => sum + cat.weight,
+    0,
+  );
+  const weightExceeds = totalWeight > 100;
+  const weightNot100 = totalWeight !== 100;
+
+  // Evenly redistribute weights, optionally including a new category
+  const redistributeWeights = (includeNewCategory = false) => {
+    let cats = sortedCategories;
+    let newCat: Category | null = null;
+    if (includeNewCategory && !editingCategory) {
+      // Prepare a temp new category using formData
+      newCat = {
+        categoryId: "temp-redistribute-id",
+        name: formData.name || "New Category",
+        weight: 0, // will be set below
+        order: formData.order || cats.length + 1,
+        templateId: SUSTAINABILITY_TEMPLATE_ID,
+      };
+      cats = [...cats, newCat];
+    }
+    const n = cats.length;
+    if (n === 0) return;
+    const base = Math.floor(100 / n);
+    let remainder = 100 - base * n;
+    const newCats = cats.map((cat, i) => ({
+      ...cat,
+      weight: base + (i < remainder ? 1 : 0),
+    }));
+    setCategories(
+      newCats.filter((cat) => cat.categoryId !== "temp-redistribute-id"),
+    );
+    persistCategories(
+      newCats.filter((cat) => cat.categoryId !== "temp-redistribute-id"),
+    );
+    // If we just redistributed including a new category, update the form weight
+    if (includeNewCategory && newCat) {
+      const idx = cats.findIndex(
+        (cat) => cat.categoryId === "temp-redistribute-id",
+      );
+      const newWeight = base + (idx < remainder ? 1 : 0);
+      setFormData((prev) => ({ ...prev, weight: newWeight }));
+    }
+    toast.success("Weights redistributed evenly.", {
+      className: "bg-dgrv-green text-white",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // If editing, subtract old weight, else just add new
+    let newTotal = formData.weight;
+    if (editingCategory) {
+      newTotal = totalWeight - editingCategory.weight + formData.weight;
+    } else {
+      newTotal = totalWeight + formData.weight;
+    }
+    if (newTotal > 100) {
+      setShowDialogWeightError(true);
+      return;
+    }
+    setShowDialogWeightError(false);
     const categoryData: Category = {
       categoryId:
         editingCategory?.categoryId || Math.random().toString(36).slice(2),
@@ -142,17 +208,17 @@ export const ManageCategories: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center space-x-3 mb-4">
               <List className="w-8 h-8 text-dgrv-blue" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">
-                Manage Categories
+              <h1 className="text-3xl font-bold text-dgrv-blue mb-6">
+                {t('manageCategories.title')}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Configure categories for the Sustainability Assessment
+              {t('manageCategories.configureCategories')}
             </p>
           </div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Sustainability Assessment Categories</CardTitle>
+              <CardTitle>{t('manageCategories.categories')}</CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -167,18 +233,18 @@ export const ManageCategories: React.FC = () => {
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Category
+                    {t('manageCategories.addCategory')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
-                      {editingCategory ? "Edit Category" : "Add New Category"}
+                      {editingCategory ? t('manageCategories.editCategory') : t('manageCategories.addCategory')}
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="name">Category Name</Label>
+                      <Label htmlFor="name">{t('manageCategories.categoryName')}</Label>
                       <Input
                         id="name"
                         value={formData.name}
@@ -188,12 +254,12 @@ export const ManageCategories: React.FC = () => {
                             name: e.target.value,
                           }))
                         }
-                        placeholder="e.g., Environmental Impact"
+                        placeholder={t('manageCategories.categoryNamePlaceholder')}
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="weight">Weight (%)</Label>
+                      <Label htmlFor="weight">{t('manageCategories.weight')}</Label>
                       <Input
                         id="weight"
                         type="number"
@@ -210,7 +276,7 @@ export const ManageCategories: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="order">Display Order</Label>
+                      <Label htmlFor="order">{t('manageCategories.displayOrder')}</Label>
                       <Input
                         id="order"
                         type="number"
@@ -225,11 +291,30 @@ export const ManageCategories: React.FC = () => {
                         required
                       />
                     </div>
+                    {showDialogWeightError && (
+                      <div className="text-red-600 text-center space-y-2">
+                        <p>
+                          {t('manageCategories.weightExceedsError')}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-dgrv-blue text-white hover:bg-blue-700"
+                          onClick={() => {
+                            redistributeWeights(true); // include new category
+                            setShowDialogWeightError(false);
+                          }}
+                        >
+                          {t('manageCategories.redistributeWeights')}
+                        </Button>
+                      </div>
+                    )}
                     <Button
                       type="submit"
                       className="w-full bg-dgrv-blue hover:bg-blue-700"
+                      disabled={showDialogWeightError}
                     >
-                      {editingCategory ? "Update Category" : "Create Category"}
+                      {editingCategory ? t('manageCategories.updateCategory') : t('manageCategories.createCategory')}
                     </Button>
                   </form>
                 </DialogContent>
@@ -245,7 +330,7 @@ export const ManageCategories: React.FC = () => {
                     <div>
                       <h3 className="font-medium text-lg">{category.name}</h3>
                       <p className="text-sm text-gray-600">
-                        Weight: {category.weight}% | Order: {category.order}
+                        {t('manageCategories.weightLabel', { weight: category.weight, order: category.order })}
                       </p>
                     </div>
                     <div className="flex space-x-2">
@@ -267,11 +352,35 @@ export const ManageCategories: React.FC = () => {
                     </div>
                   </div>
                 ))}
+                {/* Show error and redistribute button if needed */}
+                {weightExceeds && (
+                  <div className="text-center py-4 text-red-600">
+                    <p className="mb-2">
+                      {t('manageCategories.totalWeightExceeds')}
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => redistributeWeights()}
+                      className="bg-dgrv-blue text-white hover:bg-blue-700"
+                    >
+                      {t('manageCategories.redistributeWeights')}
+                    </Button>
+                  </div>
+                )}
+                {!weightExceeds &&
+                  weightNot100 &&
+                  sortedCategories.length > 0 && (
+                    <div className="text-center py-4 text-yellow-600">
+                      <p>
+                        {t('manageCategories.totalWeightNot100', { total: totalWeight })}
+                      </p>
+                    </div>
+                  )}
                 {sortedCategories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <List className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>
-                      No categories yet. Add your first category to get started!
+                      {t('manageCategories.noCategoriesYet')}
                     </p>
                   </div>
                 )}

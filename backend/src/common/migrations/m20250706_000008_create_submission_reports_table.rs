@@ -34,7 +34,7 @@ impl MigrationTrait for Migration {
                             .from(SubmissionReports::Table, SubmissionReports::AssessmentId)
                             .to(
                                 AssessmentsSubmission::Table,
-                                AssessmentsSubmission::AssessmentId,
+                                AssessmentsSubmission::SubmissionId,
                             )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -65,5 +65,5 @@ enum SubmissionReports {
 #[derive(Iden)]
 enum AssessmentsSubmission {
     Table,
-    AssessmentId,
+    SubmissionId,
 }
