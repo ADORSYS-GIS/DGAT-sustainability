@@ -246,22 +246,12 @@ impl AssessmentsSubmissionService {
         let new_obj = new.as_object()
             .ok_or(DbErr::Custom("New content is not a valid object".to_string()))?;
 
-        // Get existing responses array
-        let mut existing_responses = existing_obj
-            .get("responses")
-            .and_then(|r| r.as_array())
-            .cloned()
-            .unwrap_or_default();
-
-        // Get new responses array
+        // Get new responses array - this should replace the existing ones
         let new_responses = new_obj
             .get("responses")
             .and_then(|r| r.as_array())
             .cloned()
             .unwrap_or_default();
-
-        // Append new responses to existing ones
-        existing_responses.extend(new_responses);
 
         // Create merged content
         let mut merged = serde_json::Map::new();
@@ -273,8 +263,8 @@ impl AssessmentsSubmissionService {
             merged.insert("assessment".to_string(), assessment.clone());
         }
 
-        // Add the merged responses
-        merged.insert("responses".to_string(), Value::Array(existing_responses));
+        // Replace existing responses with new ones instead of appending
+        merged.insert("responses".to_string(), Value::Array(new_responses));
 
         Ok(Value::Object(merged))
     }

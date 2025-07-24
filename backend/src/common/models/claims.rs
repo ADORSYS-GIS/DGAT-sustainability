@@ -4,7 +4,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,                       // Keycloak user ID
-    pub organizations: Organizations,      // Organizations with roles and metadata
+    pub organizations: Option<Organizations>, // Organizations with roles and metadata (optional for application_admin)
     pub realm_access: Option<RealmAccess>, // Realm roles
     pub preferred_username: String,        // Username
     pub email: Option<String>,             // Email
@@ -52,27 +52,27 @@ impl Claims {
     pub fn can_manage_organization(&self, organization_id: &str) -> bool {
         self.is_application_admin()
             || (self.is_organization_admin()
-                && self.organizations.orgs.contains_key(organization_id))
+                && self.organizations.as_ref().map(|orgs| orgs.orgs.contains_key(organization_id)).unwrap_or(false))
     }
 
     /// Get the first organization ID (for backward compatibility)
     pub fn get_primary_organization_id(&self) -> Option<String> {
-        self.organizations.orgs.keys().next().cloned()
+        self.organizations.as_ref().and_then(|orgs| orgs.orgs.keys().next().cloned())
     }
 
     /// Get the organization name (for backward compatibility)
     pub fn get_organization_name(&self) -> Option<String> {
-        self.organizations.orgs.keys().next().cloned()
+        self.organizations.as_ref().and_then(|orgs| orgs.orgs.keys().next().cloned())
     }
 
     /// Get all organization IDs
     pub fn get_organization_ids(&self) -> Vec<String> {
-        self.organizations.orgs.keys().cloned().collect()
+        self.organizations.as_ref().map(|orgs| orgs.orgs.keys().cloned().collect()).unwrap_or_default()
     }
 
     /// Get the organization ID from the first organization (for database operations)
     pub fn get_org_id(&self) -> Option<String> {
-        self.organizations.orgs.values().next()?.id.clone()
+        self.organizations.as_ref()?.orgs.values().next()?.id.clone()
     }
 
     /// Check if user is a super user (application admin)
@@ -151,5 +151,38 @@ mod tests {
         assert!(serialized.contains("adorsys"));
         assert!(serialized.contains("environment"));
         assert!(serialized.contains("social"));
+    }
+
+    #[test]
+    fn test_application_admin_without_organizations() {
+        // Test data for application_admin without organizations field
+        let test_json = json!({
+            "sub": "admin-123",
+            "realm_access": {
+                "roles": ["application_admin", "drgv_admin"]
+            },
+            "preferred_username": "admin@example.com",
+            "exp": 1234567890_u64,
+            "iat": 1234567890_u64,
+            "aud": "test-audience",
+            "iss": "test-issuer"
+        });
+
+        // Test deserialization
+        let claims: Claims =
+            serde_json::from_value(test_json).expect("Should deserialize successfully");
+
+        // Test that application admin methods work
+        assert!(claims.is_application_admin());
+        assert!(claims.is_super_user());
+
+        // Test that organization methods return None/empty for admin without organizations
+        assert!(claims.get_primary_organization_id().is_none());
+        assert!(claims.get_organization_name().is_none());
+        assert_eq!(claims.get_organization_ids().len(), 0);
+        assert!(claims.get_org_id().is_none());
+
+        // Test that admin can still manage any organization
+        assert!(claims.can_manage_organization("any-org"));
     }
 }

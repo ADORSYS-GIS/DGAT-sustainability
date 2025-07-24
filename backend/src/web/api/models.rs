@@ -424,3 +424,41 @@ pub struct InvitationRequest {
     pub roles: Vec<String>,
     pub expiration: Option<String>,
 }
+
+// =============== Category Models ===============
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Category {
+    pub category_id: Uuid,
+    pub name: String,
+    pub weight: i32,
+    pub order: i32,
+    pub template_id: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateCategoryRequest {
+    pub name: String,
+    pub weight: i32,
+    pub order: i32,
+    pub template_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateCategoryRequest {
+    pub name: Option<String>,
+    pub weight: Option<i32>,
+    pub order: Option<i32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CategoryResponse {
+    pub category: Category,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CategoryListResponse {
+    pub categories: Vec<Category>,
+}

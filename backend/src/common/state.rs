@@ -2,6 +2,7 @@ use crate::common::database::entity::assessments::AssessmentsService;
 use crate::common::database::entity::assessments_response::AssessmentsResponseService;
 use crate::common::database::entity::assessments_response_file::AssessmentsResponseFileService;
 use crate::common::database::entity::assessments_submission::AssessmentsSubmissionService;
+use crate::common::database::entity::categories::CategoriesService;
 use crate::common::database::entity::file::FileService;
 use crate::common::database::entity::questions::QuestionsService;
 use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
@@ -17,6 +18,7 @@ pub struct AppDatabase {
     pub assessments_response: AssessmentsResponseService,
     pub assessments_submission: AssessmentsSubmissionService,
     pub assessments_response_file: AssessmentsResponseFileService,
+    pub categories: CategoriesService,
     pub file: FileService,
     pub questions: QuestionsService,
     pub questions_revisions: QuestionsRevisionsService,
@@ -31,6 +33,7 @@ impl AppDatabase {
             assessments_response: AssessmentsResponseService::new(conn.clone()),
             assessments_submission: AssessmentsSubmissionService::new(conn.clone()),
             assessments_response_file: AssessmentsResponseFileService::new(conn.clone()),
+            categories: CategoriesService::new(conn.clone()),
             file: FileService::new(conn.clone()),
             questions: QuestionsService::new(conn.clone()),
             questions_revisions: QuestionsRevisionsService::new(conn.clone()),

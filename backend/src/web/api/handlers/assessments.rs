@@ -311,9 +311,8 @@ pub async fn get_assessment(
     for response_model in response_models {
         let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
 
-        // Parse response from JSON string to Vec<String>
-        let response_array: Vec<String> = serde_json::from_str(&response_model.response)
-            .unwrap_or_else(|_| vec![response_model.response.clone()]);
+        // Store response as single string instead of array
+        let response_array = vec![response_model.response.clone()];
 
         responses.push(Response {
             response_id: response_model.response_id,

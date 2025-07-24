@@ -116,7 +116,13 @@ async fn enhance_submission_content_with_questions(
 
 // Helper: check if user is member of org by org_id
 fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
-    claims.organizations.orgs.values().any(|info| info.id.as_deref() == Some(org_id))
+    // Application admins bypass organization membership checks
+    if claims.is_application_admin() {
+        return true;
+    }
+    claims.organizations.as_ref()
+        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
+        .unwrap_or(false)
 }
 
 pub async fn list_user_submissions(

@@ -4,7 +4,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use serde_json::Value;
+use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
@@ -94,22 +94,11 @@ async fn generate_report_content(
 
             let category = &question.category;
 
-            // Parse the escaped JSON response string
-            let parsed_response: Vec<serde_json::Value> = match serde_json::from_str(response_str) {
-                Ok(parsed) => parsed,
-                Err(_) => continue, // Skip invalid JSON
-            };
-
-            // Extract the complete answer data set from the parsed response
-            let answer = if let Some(first_response) = parsed_response.first() {
-                if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(first_response.as_str().unwrap_or("{}")) {
-                    // Return the complete response object as the answer
-                    response_obj
-                } else {
-                    serde_json::json!({"text": first_response.as_str().unwrap_or("No response")})
-                }
+            // Parse the response string directly (no longer an array)
+            let answer = if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(response_str) {
+                response_obj
             } else {
-                serde_json::json!({"text": "No response"})
+                json!({"text": response_str})
             };
 
             // Include responses if all categories are requested or if this category is specifically requested

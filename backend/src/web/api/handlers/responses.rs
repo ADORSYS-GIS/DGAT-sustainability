@@ -136,9 +136,8 @@ pub async fn list_responses(
     let mut responses = Vec::new();
     for response_model in response_models {
         let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
-        // Parse response from JSON string to Vec<String>
-        let response_array: Vec<String> = serde_json::from_str(&response_model.response)
-            .unwrap_or_else(|_| vec![response_model.response.clone()]);
+        // Store response as single string instead of array
+        let response_array = vec![response_model.response.clone()];
 
         responses.push(Response {
             response_id: response_model.response_id,
@@ -229,40 +228,28 @@ pub async fn create_response(
     for request in requests {
         // Check if a response already exists for this question_revision_id
         if let Some(existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
-            // Parse existing response as JSON array or create new array
-            let mut response_array: Vec<String> = match serde_json::from_str(&existing.response) {
-                Ok(arr) => arr,
-                Err(_) => vec![existing.response.clone()], // If not JSON array, treat as single string
-            };
-
-            // Append new response if it doesn't already exist
-            if !response_array.contains(&request.response) {
-                response_array.push(request.response);
-            }
-
-            // Update the response with the new array
+            // Replace existing response with new one instead of appending
             let updated_response = app_state
                 .database
                 .assessments_response
                 .update_response(
                     assessment_id,
                     request.question_revision_id,
-                    serde_json::to_string(&response_array).unwrap(),
+                    request.response,
                 )
                 .await
                 .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
 
             updated_responses.push(updated_response);
         } else {
-            // Create new response with array containing single item
-            let response_array = vec![request.response];
+            // Create new response
             let new_response = app_state
                 .database
                 .assessments_response
                 .create_response(
                     assessment_id,
                     request.question_revision_id,
-                    serde_json::to_string(&response_array).unwrap(),
+                    request.response,
                     1,
                 )
                 .await
@@ -277,9 +264,8 @@ pub async fn create_response(
     for response_model in updated_responses {
         let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
 
-        // Parse response from JSON string to Vec<String>
-        let response_array: Vec<String> = serde_json::from_str(&response_model.response)
-            .unwrap_or_else(|_| vec![response_model.response.clone()]);
+        // Store response as single string instead of array
+        let response_array = vec![response_model.response.clone()];
 
         let response = Response {
             response_id: response_model.response_id,
@@ -355,9 +341,8 @@ pub async fn get_response(
     // Convert database model to API model
     let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
 
-    // Parse response from JSON string to Vec<String>
-    let response_array: Vec<String> = serde_json::from_str(&response_model.response)
-        .unwrap_or_else(|_| vec![response_model.response.clone()]);
+    // Store response as single string instead of array
+    let response_array = vec![response_model.response.clone()];
 
     let response = Response {
         response_id: response_model.response_id,
@@ -460,8 +445,8 @@ pub async fn update_response(
         ));
     }
 
-    // Convert Vec<String> to JSON string for database storage
-    let response_json = serde_json::to_string(&request.response).unwrap();
+    // Convert Vec<String> to single string for database storage (take first response)
+    let response_json = request.response.first().unwrap_or(&String::new()).clone();
 
     // Update the response in the database
     let updated_response = app_state
@@ -478,9 +463,8 @@ pub async fn update_response(
     // Convert database model to API model
     let files = fetch_files_for_response(&app_state, updated_response.response_id).await?;
 
-    // Parse response from JSON string to Vec<String>
-    let response_array: Vec<String> = serde_json::from_str(&updated_response.response)
-        .unwrap_or_else(|_| vec![updated_response.response.clone()]);
+    // Store response as single string instead of array
+    let response_array = vec![updated_response.response.clone()];
 
     let response = Response {
         response_id: updated_response.response_id,

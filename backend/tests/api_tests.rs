@@ -23,14 +23,15 @@ async fn mock_auth_middleware(
     // Create mock claims for testing
     let mock_claims = Claims {
         sub: "test-user-123".to_string(),
-        organizations: sustainability_tool::common::models::claims::Organizations {
+        organizations: Some(sustainability_tool::common::models::claims::Organizations {
             orgs: std::collections::HashMap::from([(
                 "test-organization".to_string(),
                 sustainability_tool::common::models::claims::OrganizationInfo {
+                    id: Some("test-org-id".to_string()),
                     categories: vec!["environment".to_string(), "social".to_string()],
                 },
             )]),
-        },
+        }),
         realm_access: Some(sustainability_tool::common::models::claims::RealmAccess {
             roles: vec!["user".to_string()],
         }),

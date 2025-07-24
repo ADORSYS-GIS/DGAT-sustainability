@@ -12,6 +12,7 @@ mod m20250706_000010_remove_assessment_submission_fk;
 mod m20250715_000011_add_status_to_assessments_submission;
 mod m20250715_000012_add_reviewed_at_to_assessments_submission;
 mod m20250715_000013_update_submission_reports_table;
+mod m20250123_000014_create_categories_table;
 
 pub struct Migrator;
 
@@ -31,6 +32,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250715_000011_add_status_to_assessments_submission::Migration),
             Box::new(m20250715_000012_add_reviewed_at_to_assessments_submission::Migration),
             Box::new(m20250715_000013_update_submission_reports_table::Migration),
+            Box::new(m20250123_000014_create_categories_table::Migration),
         ]
     }
 }

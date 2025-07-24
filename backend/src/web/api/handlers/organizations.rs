@@ -60,7 +60,7 @@ fn can_access_organization(claims: &Claims, organization_id: &str) -> bool {
     // 2. Organization admin and member of the organization
     // 3. Regular user and member of the organization
     claims.is_application_admin() 
-        || claims.organizations.orgs.contains_key(organization_id)
+        || claims.organizations.as_ref().map(|orgs| orgs.orgs.contains_key(organization_id)).unwrap_or(false)
 }
 
 // Add this struct at the top of the file (if not already present):
@@ -72,7 +72,13 @@ pub struct MemberRequest {
 
 // Helper to check if user is a member of org by org_id
 fn is_member_of_org_by_id(claims: &Claims, org_id: &str) -> bool {
-    claims.organizations.orgs.values().any(|info| info.id.as_deref() == Some(org_id))
+    // Application admins bypass organization membership checks
+    if claims.is_application_admin() {
+        return true;
+    }
+    claims.organizations.as_ref()
+        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
+        .unwrap_or(false)
 }
 
 // Get all organizations filtered according to the specified parameters
@@ -825,7 +831,7 @@ pub async fn add_org_admin_member(
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
     // Only org_admins for this org can add
-    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
+    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
         tracing::error!(?claims, org_id = %org_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
@@ -850,7 +856,7 @@ pub async fn get_org_admin_members(
     Path(org_id): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
-    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
+    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
         tracing::error!(?claims, org_id = %org_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
@@ -877,7 +883,7 @@ pub async fn remove_org_admin_member(
     Path((org_id, member_id)): Path<(String, String)>,
 ) -> Result<StatusCode, ApiError> {
     let token = get_token_from_extensions(&token)?;
-    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
+    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
         tracing::error!(?claims, org_id = %org_id, member_id = %member_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
@@ -902,7 +908,7 @@ pub async fn update_org_admin_member_categories(
     Json(request): Json<OrgAdminMemberCategoryUpdateRequest>,
 ) -> Result<StatusCode, ApiError> {
     let token = get_token_from_extensions(&token)?;
-    if !claims.is_organization_admin() || !is_member_of_org_by_id(&claims, &org_id) {
+    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
         tracing::error!(?claims, org_id = %org_id, member_id = %member_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
