@@ -1,6 +1,6 @@
 # Keycloak Authentication Guide for Sustainability Assessment Tool
 
-This document provides a comprehensive, clear, and professional guide to integrating Keycloak authentication and authorization into the Sustainability Assessment Tool, a React-based Progressive Web App (PWA) with an offline-first architecture and a Rust-based backend. It addresses the specific issue where, after clearing local data (e.g., IndexedDB `auth_user`), clicking "Login" redirects directly to `/dashboard` instead of the Keycloak login page due to a persistent Single Sign-On (SSO) session. The guide includes corrected Mermaid diagrams, implementation details, security best practices, configuration, testing, and troubleshooting.
+This document provides a comprehensive, clear, and professional guide to integrating Keycloak authentication and authorization into the Sustainability Assessment Tool, a React-based Progressive Web App (PWA) with an offline-first architecture and a Rust-based backend. The application uses the official `keycloak-js` library for authentication, providing a stable and secure authentication experience.
 
 ## Table of Contents
 
@@ -15,17 +15,17 @@ This document provides a comprehensive, clear, and professional guide to integra
     - [Login](#login)
     - [Authenticated API Call](#authenticated-api-call)
     - [Logout](#logout)
-  - [Architecture \& Key Files](#architecture--key-files)
+  - [Architecture & Key Files](#architecture--key-files)
   - [Security Best Practices](#security-best-practices)
 
 ## Overview
 
-The Sustainability Assessment Tool uses [Keycloak](https://www.keycloak.org/) for secure authentication and role-based access control (RBAC) via the OpenID Connect (OIDC) Authorization Code Flow with Proof Key for Code Exchange (PKCE). The `keycloak-js` library handles frontend authentication, replacing `oidc-client-ts` to resolve issues like CORS, 404 errors, and `redirect_uri` mismatches. Key features include:
+The Sustainability Assessment Tool uses [Keycloak](https://www.keycloak.org/) for secure authentication and role-based access control (RBAC) via the OpenID Connect (OIDC) Authorization Code Flow with Proof Key for Code Exchange (PKCE). The `keycloak-js` library handles frontend authentication, providing a stable and secure authentication experience. Key features include:
 
 - **Login/Logout**: Users authenticate via Keycloak at `http://localhost:8080/realms/sustainability-realm/protocol/openid-connect/auth`.
 - **Tokens**: Access, refresh, and ID tokens are stored in IndexedDB for offline access.
 - **RBAC**: Roles (e.g., `DGRV_Admin`, `Org_User`, `Org_Admin`, `Org_Expert`) are checked in the frontend for UI/routing and enforced in the backend for API security.
-- **Issue Addressed**: Clearing local data (e.g., IndexedDB `auth_user`) should force a logout and redirect to the Keycloak login page, but a persistent SSO session causes automatic re-authentication to `/dashboard`.
+- **Offline Support**: User data is cached in IndexedDB for offline access.
 
 ## Architecture Overview
 
@@ -50,7 +50,7 @@ graph TD
 - **Frontend ↔ Keycloak**: Uses `keycloak-js` for OIDC authentication, redirecting to Keycloak for login/logout.
 - **Frontend ↔ Backend**: Sends API requests with `Authorization: Bearer <token>`.
 - **Frontend ↔ IndexedDB**: Stores tokens using `idb-keyval` for offline access.
-- **Backend ↔ Keycloak**: Validates JWTs or uses Keycloak’s Admin API for user management (e.g., `POST /admin/realms/sustainability-realm/users`).
+- **Backend ↔ Keycloak**: Validates JWTs or uses Keycloak's Admin API for user management (e.g., `POST /admin/realms/sustainability-realm/users`).
 
 ## Authentication Sequence Diagram
 
@@ -62,11 +62,11 @@ sequenceDiagram
   participant BE as Backend (Rust API)
   participant IDB as IndexedDB
 
-  User->>FE: Clicks Login (/login)
+  User->>FE: Clicks Login
   FE->>KC: Redirect to /realms/sustainability-realm/.../auth
   KC->>User: Show login form
   User->>KC: Enter credentials (testuser/test123)
-  KC->>FE: Redirect to /callback?code=...&state=...
+  KC->>FE: Redirect with authorization code
   FE->>KC: Exchange code for tokens (PKCE)
   KC-->>FE: Return access_token, refresh_token, id_token
   FE->>IDB: Store tokens, roles in auth_user
@@ -86,16 +86,17 @@ sequenceDiagram
 
 **Notes**:
 
-- The `/callback` route (`/src/pages/user/Callback.tsx`) handles token exchange and redirects to `/dashboard`.
-- The issue (direct redirect to `/dashboard` after clearing data) occurs because `keycloak-js` (`check-sso`) detects an active SSO session and authenticates silently.
+- The authentication flow is handled automatically by `keycloak-js`
+- Token refresh is handled transparently by the authentication service
+- User data is stored in IndexedDB for offline access
 
 ## Component Interaction Diagram
 
 ```mermaid
 graph TD
-  A[Login.tsx] -->|Calls| B[useAuth.ts Zustand]
-  A[Callback.tsx] -->|Calls| B
-  A[Navbar.tsx] -->|Calls| B
+  A[Navbar.tsx] -->|Calls| B[useAuth.ts]
+  A[HomePage.tsx] -->|Calls| B
+  A[ProtectedRoute.tsx] -->|Calls| B
   B -->|Interacts| C[authService.ts]
   C -->|Uses| D[keycloakConfig.ts]
   C -->|Manages| E[keycloak-js]
@@ -105,8 +106,8 @@ graph TD
 
 **Explanation**:
 
-- **React Components**: `Login.tsx`, `Callback.tsx`, `Navbar.tsx` trigger authentication actions.
-- **useAuth.ts**: Zustand store for auth state (`isAuthenticated`, `roles`, `profile`).
+- **React Components**: `Navbar.tsx`, `HomePage.tsx`, `ProtectedRoute.tsx` trigger authentication actions.
+- **useAuth.ts**: React hook for auth state (`isAuthenticated`, `roles`, `profile`).
 - **authService.ts**: Wraps `keycloak-js` for login, logout, and token management.
 - **keycloakConfig.ts**: Defines Keycloak settings (URL, realm, client ID).
 - **IndexedDB**: Stores tokens using `idb-keyval`.
@@ -116,29 +117,28 @@ graph TD
 
 ### Login
 
-1. User navigates to `/login` (`/src/pages/user/Login.tsx`) and clicks “Sign in with Keycloak”.
-2. `authService.login()` triggers `keycloak-js` to redirect to Keycloak’s login endpoint (`http://localhost:8080/realms/sustainability-realm/protocol/openid-connect/auth`).
+1. User clicks "Login" in `Navbar.tsx`.
+2. `authService.login()` triggers `keycloak-js` to redirect to Keycloak's login endpoint (`http://localhost:8080/realms/sustainability-realm/protocol/openid-connect/auth`).
 3. User enters credentials (e.g., `testuser`/`test123`).
-4. Keycloak redirects to `/callback` (`/src/pages/user/Callback.tsx`) with an authorization code.
-5. `authService.handleCallback()` exchanges the code for tokens, stores them in IndexedDB (`auth_user`), and updates the Zustand store (`useAuth`).
-6. User is redirected to `/dashboard` based on roles (e.g., `DGRV_Admin`).
+4. Keycloak redirects back to the application with an authorization code.
+5. `keycloak-js` automatically exchanges the code for tokens.
+6. `authService` stores tokens in IndexedDB (`auth_user`) and updates the auth state.
+7. User is redirected to `/dashboard` based on roles (e.g., `DGRV_Admin`).
 
 ### Authenticated API Call
 
 1. A component (e.g., `/src/pages/dashboard/Dashboard.tsx`) calls an API (e.g., `POST /organizations`).
-2. `authService.getToken()` retrieves a fresh access token from `keycloak-js` or IndexedDB, refreshing if needed.
+2. `authService.getAccessToken()` retrieves a fresh access token from `keycloak-js`, refreshing if needed.
 3. The request is sent with `Authorization: Bearer <token>`.
 4. The Rust backend validates the JWT and checks roles (e.g., `DGRV_Admin`).
 5. The backend returns protected data.
 
 ### Logout
 
-1. User clicks “Logout” in `Navbar.tsx`.
-2. `authService.logout()` clears IndexedDB (`auth_user`) and redirects to Keycloak’s logout endpoint (`http://localhost:8080/realms/sustainability-realm/protocol/openid-connect/logout`).
-3. Keycloak terminates the SSO session and redirects to `/login`.
-4. The frontend clears the Zustand state.
-
-**Issue**: Clearing IndexedDB manually (e.g., via dev tools) doesn’t terminate the Keycloak SSO session, causing `keycloak-js` to re-authenticate and redirect to `/dashboard`.
+1. User clicks "Logout" in `Navbar.tsx`.
+2. `authService.logout()` clears IndexedDB (`auth_user`) and redirects to Keycloak's logout endpoint (`http://localhost:8080/realms/sustainability-realm/protocol/openid-connect/logout`).
+3. Keycloak terminates the SSO session and redirects to the application.
+4. The frontend clears the auth state.
 
 ## Architecture & Key Files
 
@@ -146,15 +146,12 @@ graph TD
 | ---------------------------------------- | -------------------------------------------------------------------------- |
 | `/src/services/shared/keycloakConfig.ts` | Defines Keycloak settings (URL, realm, client ID).                         |
 | `/src/services/shared/authService.ts`    | Manages authentication (login, logout, token refresh) using `keycloak-js`. |
-| `/src/hooks/shared/useAuth.ts`           | Zustand store for auth state (`isAuthenticated`, `roles`, `profile`).      |
-| `/src/pages/user/Login.tsx`              | Renders login UI and triggers `authService.login()`.                       |
-| `/src/pages/user/Callback.tsx`           | Handles Keycloak redirect, token exchange, and navigation.                 |
+| `/src/hooks/shared/useAuth.ts`           | React hook for auth state (`isAuthenticated`, `roles`, `profile`).         |
 | `/src/components/shared/Navbar.tsx`      | Provides login/logout UI.                                                  |
 | `/src/router/ProtectedRoute.tsx`         | Protects routes based on auth state and roles.                             |
-| `/src/services/shared/storageService.ts` | Manages IndexedDB storage (uses `idb-keyval`).                             |
-| `/src/types/auth.ts`                     | TypeScript types for user profile and roles.                               |
+| `/src/services/shared/fetchWithAuth.ts`  | Fetch wrapper with automatic token injection.                              |
 | `/frontend/.env`                         | Environment variables for Keycloak configuration.                          |
-| `/src/__tests__/Login.test.tsx`          | Cypress tests for login/logout flows.                                      |
+| `/public/silent-check-sso.html`          | Silent SSO check page for token refresh.                                   |
 
 **JSDoc**: All exported functions in `authService.ts` include JSDoc comments for clarity.
 
@@ -168,5 +165,17 @@ graph TD
 - **Environment Variables**: Store sensitive Keycloak settings in `.env`, excluded from version control using `.gitignore`.
 - **PKCE**: Enabled by default in `keycloak-js` for secure SPA authentication.
 - **HTTPS**: Use HTTPS in production (e.g., `https://dgrv-sustainability.com`) for secure token transmission.
-- **Required User Actions**: Use “Update Password” for new users to enforce secure initial logins.
+- **Required User Actions**: Use "Update Password" for new users to enforce secure initial logins.
 - **Session Management**: Limit SSO session duration (e.g., 30 minutes idle) to reduce risk.
+
+## Migration from oidc-spa
+
+This application was migrated from `oidc-spa` to `keycloak-js` to resolve authentication issues in sandbox environments. For detailed migration information, see [Keycloak-Migration.md](./Keycloak-Migration.md).
+
+### Key Benefits of keycloak-js
+
+1. **Official Library**: `keycloak-js` is the official Keycloak JavaScript adapter
+2. **Better Stability**: Improved compatibility with Keycloak server versions
+3. **Enhanced Security**: PKCE enabled by default, better token validation
+4. **Simplified Configuration**: Direct Keycloak configuration without abstraction layers
+5. **Better Error Handling**: More detailed error messages and improved offline support

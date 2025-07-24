@@ -10,6 +10,7 @@ import { Globe, User, LogOut, Home } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
+import { toast } from "sonner";
 
 const languages = [
   { code: "en", name: "English", flag: "🇺🇸" },
@@ -23,7 +24,7 @@ const languages = [
 export const Navbar = () => {
   const { t } = useTranslation();
   const [currentLanguage, setCurrentLanguage] = useState(i18n.language || "en");
-  const { isAuthenticated, user, login, logout } = useAuth();
+  const { isAuthenticated, user, login, logout, loading } = useAuth();
 
   const currentLang =
       languages.find((lang) => lang.code === currentLanguage) || languages[0];
@@ -42,6 +43,26 @@ export const Navbar = () => {
   const handleLanguageChange = (langCode: string) => {
     setCurrentLanguage(langCode);
     i18n.changeLanguage(langCode);
+  };
+
+  const handleLogin = async () => {
+    try {
+      await login();
+      toast.success(t("login.success"));
+    } catch (error) {
+      console.error("Login failed:", error);
+      toast.error(t("login.failed") || "Login failed. Please try again.");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success(t("logout.success"));
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error(t("logout.failed") || "Logout failed. Please try again.");
+    }
   };
 
   return (
@@ -102,10 +123,11 @@ export const Navbar = () => {
                   <Button
                       variant="outline"
                       size="sm"
-                      onClick={login}
+                      onClick={handleLogin}
+                      disabled={loading}
                       className="ml-2"
                   >
-                    {t("login")}
+                    {loading ? t("loading") || "Loading..." : t("login")}
                   </Button>
               ) : (
                   <DropdownMenu>
@@ -135,11 +157,12 @@ export const Navbar = () => {
                     </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                          onClick={logout}
+                          onClick={handleLogout}
+                          disabled={loading}
                           className="flex items-center space-x-2 text-red-600"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span>{t("logout")}</span>
+                        <span>{loading ? t("loading") || "Loading..." : t("logout")}</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

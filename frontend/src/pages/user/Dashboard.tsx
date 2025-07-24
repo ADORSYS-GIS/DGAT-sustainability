@@ -16,7 +16,7 @@ import {
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useSubmissionsServiceGetSubmissions } from "@/openapi-rq/queries";
-import type { Submission } from "@/openapi-rq/requests";
+import type { Submission, Assessment } from "@/openapi-rq/requests";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
@@ -77,14 +77,12 @@ export const Dashboard: React.FC = () => {
             icon: FileText,
             color: "blue" as const,
             onClick: () => {
-              // Find the first draft assessment and navigate to its answer page
-              const draft = (assessmentsData?.assessments || []).find(
-                (a: any) => a.status === "draft",
-              );
-              if (draft) {
-                navigate(`/user/assessment/${draft.assessment_id}`);
+              // Find the first assessment and navigate to its answer page
+              const firstAssessment = (assessmentsData?.assessments || [])[0];
+              if (firstAssessment) {
+                navigate(`/user/assessment/${firstAssessment.assessment_id}`);
               } else {
-                toast.info(t('user.dashboard.noDraftAssessment'));
+                toast.info(t('user.dashboard.noAssessment'));
               }
             },
           },
@@ -105,8 +103,7 @@ export const Dashboard: React.FC = () => {
       onClick: () => navigate("/action-plan"),
     },
     // Conditionally add Manage Users card for org admins
-    ...(user?.roles?.includes("org_admin") ||
-    user?.realm_access?.roles?.includes("org_admin")
+    ...(user?.roles?.includes("org_admin")
       ? [
           {
             title: t('user.dashboard.manageUsers.title'),
@@ -173,8 +170,8 @@ export const Dashboard: React.FC = () => {
   }
 
   // Check if user has Org_admin role
-  const isOrgAdmin = (user?.roles || user?.realm_access?.roles || []).includes(
-    "Org_admin",
+  const isOrgAdmin = (user?.roles || []).includes(
+    "org_admin",
   );
 
   return (

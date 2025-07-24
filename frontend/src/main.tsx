@@ -3,33 +3,34 @@ import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OpenAPI } from "@/openapi-rq/requests";
-import { getOidc } from "@/services/shared/oidc";
+import { getAccessToken, setOnInitializedCallback } from "@/services/shared/authService";
 import './i18n';
 
-// Register OpenAPI request middleware to add Bearer token
-OpenAPI.interceptors.request.use(async (request) => {
-  try {
-    const oidc = await getOidc();
-    if (oidc && oidc.isUserLoggedIn) {
-      const { accessToken } = await oidc.getTokens();
-      if (accessToken) {
+// Function to set up OpenAPI interceptors
+const setupOpenAPIInterceptors = () => {
+  // Register OpenAPI request middleware to add Bearer token
+  OpenAPI.interceptors.request.use(async (request) => {
+    try {
+      const token = await getAccessToken();
+      if (token) {
         if (!request.headers) request.headers = {};
         // If headers is a Headers object, convert to plain object
         if (
           typeof Headers !== "undefined" &&
           request.headers instanceof Headers
         ) {
-          request.headers.set("Authorization", `Bearer ${accessToken}`);
+          request.headers.set("Authorization", `Bearer ${token}`);
         } else {
-          request.headers["Authorization"] = `Bearer ${accessToken}`;
+          request.headers["Authorization"] = `Bearer ${token}`;
         }
       }
+    } catch (error) {
+      console.warn("Failed to get Keycloak token for request:", error);
     }
-  } catch (error) {
-    console.warn("Failed to get OIDC token for request:", error);
-  }
-  return request;
-});
+
+    return request;
+  });
+};
 
 // Configure QueryClient for offline-first behavior
 const queryClient = new QueryClient({
@@ -99,6 +100,12 @@ async function initializeOfflineServices() {
 
 // Initialize offline services
 initializeOfflineServices();
+
+// Set up OpenAPI interceptors when Keycloak is initialized
+setOnInitializedCallback(() => {
+  console.log("Keycloak initialized, setting up OpenAPI interceptors");
+  setupOpenAPIInterceptors();
+});
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>

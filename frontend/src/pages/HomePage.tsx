@@ -16,11 +16,16 @@ export const Welcome: React.FC = () => {
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) return;
-    const roles = user?.roles || user?.realm_access?.roles || [];
+    const roles = user?.roles || [];
+    console.log("[Welcome] User roles:", roles);
+    console.log("[Welcome] Current pathname:", window.location.pathname);
     const isDrgvAdmin = roles.includes("drgv_admin");
     const isOrgAdmin = roles.includes("org_admin");
     const isOrgUser = roles.includes("org_user");
-    if (isDrgvAdmin && window.location.pathname !== "/admin/") {
+    console.log("[Welcome] isDrgvAdmin:", isDrgvAdmin);
+    console.log("[Welcome] isOrgAdmin:", isOrgAdmin);
+    console.log("[Welcome] isOrgUser:", isOrgUser);
+    if (isDrgvAdmin && window.location.pathname !== "/admin/dashboard") {
       console.log(
         "[Welcome] drgv_admin detected, redirecting to /admin/dashboard",
       );
@@ -70,6 +75,11 @@ export const Welcome: React.FC = () => {
   ];
 
   const handleStartAssessment = () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to start an assessment.");
+      return;
+    }
+    
     if (!user?.organizations || Object.keys(user.organizations).length === 0) {
       toast.error(
         "You need to be part of an organisation to start an assessment.",
