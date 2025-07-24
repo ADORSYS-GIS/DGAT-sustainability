@@ -23,7 +23,6 @@ import {
   useAdminServiceGetAdminSubmissions,
   useReportsServicePostSubmissionsBySubmissionIdReports,
   useResponsesServiceGetAssessmentsByAssessmentIdResponses,
-  useOrganizationsServiceGetApiOrganizationsByIdAssessmentsResults,
 } from "../../openapi-rq/queries/queries";
 import type {
   AdminSubmissionDetail,
@@ -49,22 +48,6 @@ type Answer = {
 export const ReviewAssessments: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  // Helper to get org_id from token
-  const orgId = React.useMemo(() => {
-    if (!user || !user.organizations) return "";
-    const orgKeys = Object.keys(user.organizations);
-    if (orgKeys.length === 0) return "";
-    const orgObj = user.organizations[orgKeys[0]] || {};
-    return orgObj.id || "";
-  }, [user]);
-
-  // Fetch org-level assessment results
-  const { data: orgResults, isLoading: orgResultsLoading } =
-    useOrganizationsServiceGetApiOrganizationsByIdAssessmentsResults(
-      { id: orgId },
-      undefined,
-      { enabled: !!orgId },
-    );
   const [selectedSubmission, setSelectedSubmission] =
     useState<AdminSubmissionDetail | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -235,6 +218,8 @@ export const ReviewAssessments: React.FC = () => {
         return "bg-blue-500 text-white";
       case "under_review":
         return "bg-orange-500 text-white";
+      case "reviewed":
+        return "bg-purple-500 text-white";
       case "approved":
         return "bg-dgrv-green text-white";
       case "rejected":
@@ -252,6 +237,8 @@ export const ReviewAssessments: React.FC = () => {
         return "Pending Review";
       case "under_review":
         return "Under Review";
+      case "reviewed":
+        return "Reviewed";
       case "approved":
         return "Approved";
       case "rejected":
@@ -303,103 +290,6 @@ export const ReviewAssessments: React.FC = () => {
               Review submitted assessments and provide recommendations
             </p>
           </div>
-
-          {/* Org Analytics Card */}
-          {orgResultsLoading ? (
-            <Card className="mb-6 animate-fade-in">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-3">
-                  <div className="p-2 rounded-full bg-dgrv-blue/10">
-                    <FileText className="w-5 h-5 text-dgrv-blue" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-dgrv-blue">
-                    Organization Analytics
-                  </h2>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600">
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      Total Assessments:
-                    </p>
-                    <p>Loading...</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      Total Submissions:
-                    </p>
-                    <p>Loading...</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      Category Counts:
-                    </p>
-                    <p>Loading...</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : orgResults ? (
-            <Card className="mb-6 animate-fade-in">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-3">
-                  <div className="p-2 rounded-full bg-dgrv-blue/10">
-                    <FileText className="w-5 h-5 text-dgrv-blue" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-dgrv-blue">
-                    Organization Analytics
-                  </h2>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600">
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      Total Assessments:
-                    </p>
-                    <p>{orgResults.num_assessments}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      Total Submissions:
-                    </p>
-                    <p>{orgResults.num_submissions}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      Category Counts:
-                    </p>
-                    <p>
-                      {Object.entries(orgResults.category_counts || {}).map(
-                        ([category, count]) => (
-                          <span key={category} className="block">
-                            {category}: {count}
-                          </span>
-                        ),
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="mb-6 animate-fade-in">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-3">
-                  <div className="p-2 rounded-full bg-dgrv-blue/10">
-                    <FileText className="w-5 h-5 text-dgrv-blue" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-dgrv-blue">
-                    Organization Analytics
-                  </h2>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">No organization data available.</p>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Submissions Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -1,8 +1,7 @@
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
-import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -65,6 +64,13 @@ export const Assessment: React.FC = () => {
     ].map((r) => r.toLowerCase());
     const canCreate = allRoles.includes("org_admin");
 
+    // If user tries to access assessment creation route without permission, redirect them
+    if (!assessmentId && !canCreate && user?.sub) {
+      toast.error(t('assessment.noPermissionToCreate', { defaultValue: 'Only organization administrators can create assessments.' }));
+      navigate("/dashboard");
+      return;
+    }
+
     if (
       !assessmentId &&
       !hasCreatedAssessment &&
@@ -89,7 +95,7 @@ export const Assessment: React.FC = () => {
         },
       });
     }
-  }, [assessmentId, hasCreatedAssessment, user, createAssessmentMutation, navigate]);
+  }, [assessmentId, hasCreatedAssessment, user, createAssessmentMutation, navigate, t]);
   
     // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
@@ -477,7 +483,6 @@ export const Assessment: React.FC = () => {
   if (categories.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="pt-20 pb-8">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <Card>
@@ -509,8 +514,6 @@ export const Assessment: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <div className="pt-20 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}

@@ -3,26 +3,30 @@ import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OpenAPI } from "@/openapi-rq/requests";
-import { oidcPromise } from "@/services/shared/oidc";
+import { getOidc } from "@/services/shared/oidc";
 import './i18n';
 
 // Register OpenAPI request middleware to add Bearer token
 OpenAPI.interceptors.request.use(async (request) => {
-  const oidc = await oidcPromise;
-  if (oidc && oidc.isUserLoggedIn) {
-    const tokens = oidc.getTokens();
-    if (tokens?.accessToken) {
-      if (!request.headers) request.headers = {};
-      // If headers is a Headers object, convert to plain object
-      if (
-        typeof Headers !== "undefined" &&
-        request.headers instanceof Headers
-      ) {
-        request.headers.set("Authorization", `Bearer ${tokens.accessToken}`);
-      } else {
-        request.headers["Authorization"] = `Bearer ${tokens.accessToken}`;
+  try {
+    const oidc = await getOidc();
+    if (oidc && oidc.isUserLoggedIn) {
+      const { accessToken } = await oidc.getTokens();
+      if (accessToken) {
+        if (!request.headers) request.headers = {};
+        // If headers is a Headers object, convert to plain object
+        if (
+          typeof Headers !== "undefined" &&
+          request.headers instanceof Headers
+        ) {
+          request.headers.set("Authorization", `Bearer ${accessToken}`);
+        } else {
+          request.headers["Authorization"] = `Bearer ${accessToken}`;
+        }
       }
     }
+  } catch (error) {
+    console.warn("Failed to get OIDC token for request:", error);
   }
   return request;
 });
@@ -99,5 +103,5 @@ initializeOfflineServices();
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
     <App />
-  </QueryClientProvider>,
+  </QueryClientProvider>
 );

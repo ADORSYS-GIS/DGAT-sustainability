@@ -1,5 +1,4 @@
 import { FeatureCard } from "@/components/shared/FeatureCard";
-import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +29,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { data, isLoading, isError, error, isSuccess } =
     useSubmissionsServiceGetSubmissions();
-  const submissions: Submission[] = data?.submissions?.slice(0, 3) || [];
+  const submissions: Submission[] = data?.submissions?.slice(0, 5) || [];
   const { data: reportsData, isLoading: reportsLoading } =
   useReportsServiceGetUserReports();
   const reports = reportsData?.reports || [];
@@ -80,7 +79,7 @@ export const Dashboard: React.FC = () => {
             onClick: () => {
               // Find the latest draft assessment (by created_at descending) and navigate to its answer page
               const drafts = (assessmentsData?.assessments || []).filter(
-                (a: any) => a.status === "draft"
+                (assessment) => (assessment as unknown as { status: string }).status === "draft"
               );
               if (drafts.length > 0) {
                 const latestDraft = drafts.reduce((latest, current) => {
@@ -183,8 +182,6 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 animate-fade-in">
@@ -330,7 +327,12 @@ export const Dashboard: React.FC = () => {
                   <p className="text-sm text-gray-600 mb-4">
                     {t('user.dashboard.getSupport')}
                   </p>
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full bg-dgrv-green text-white hover:bg-green-700"
+                    onClick={() => navigate("/user/guide")}
+                  >
                     {t('user.dashboard.viewUserGuide')}
                   </Button>
                 </CardContent>

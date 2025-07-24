@@ -17,6 +17,8 @@ import { SubmissionView } from "../pages/user/SubmissionView";
 import { ManageOrganizations } from "../pages/admin/ManageOrganizations";
 import { ManageUsers } from "../pages/admin/ManageUsers";
 import { OrgUserManageUsers } from "../pages/user/OrgUserManageUsers";
+import { AdminGuide } from "../pages/admin/AdminGuide";
+import { UserGuide } from "../pages/user/UserGuide";
 
 const routes = [
   { path: "/", element: Welcome },
@@ -28,6 +30,7 @@ const routes = [
   { path: "/admin/questions", element: ManageQuestions },
   { path: "/admin/reviews", element: ReviewAssessments },
   { path: "/admin/recommendations", element: StandardRecommendations },
+  { path: "/admin/guide", element: AdminGuide },
   { path: "/assessment/sustainability", element: Assessment },
   { path: "/user/assessment/:assessmentId", element: Assessment },
   { path: "/assessments", element: Assessments },
@@ -35,6 +38,7 @@ const routes = [
   { path: "/action-plan/:reportId", element: ActionPlan },
   { path: "/submission-view/:submissionId", element: SubmissionView },
   { path: "/user/manage-users", element: OrgUserManageUsers },
+  { path: "/user/guide", element: UserGuide },
   { path: "*", element: NotFound },
   { path: "/unauthorized", element: React.createElement(Unauthorized) },
   { path: "/", element: React.createElement(Welcome) },

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import AppRouter from "./router/AppRouter";
 import { LoadingSpinner } from "./components/shared/LoadingSpinner";
 import { useInitialDataLoad } from "./hooks/useInitialDataLoad";
+import { OidcProvider } from "./services/shared/oidc";
 import "@/services/syncService"; // Ensure the sync service is initialized
 
 const App = () => {
@@ -16,7 +17,11 @@ const App = () => {
     );
   }
 
-  return <AppRouter />;
+  return (
+    <OidcProvider>
+      <AppRouter />
+    </OidcProvider>
+  );
 };
 
 export default App;

@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useMemo, useEffect, useState } from "react";
-import { Navbar } from "@/components/shared/Navbar";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +17,12 @@ import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen"
 import { useAdminServiceGetAdminSubmissions } from "../../openapi-rq/queries/queries";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { get } from "idb-keyval";
 import { useQuestionsServiceGetQuestions } from "../../openapi-rq/queries/queries";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
+import { CategoriesService } from "@/openapi-rq/requests/services.gen";
+import type { GetCategoriesResponse } from "@/openapi-rq/requests/types.gen";
+import { Button } from "@/components/ui/button";
 
 type Organization = { organizationId: string; name: string };
 type User = { userId: string; firstName?: string; lastName?: string };
@@ -110,7 +112,12 @@ export const AdminDashboard: React.FC = () => {
     [submissions],
   );
   const completedCount = React.useMemo(
-    () => submissions.filter((s) => s.review_status === "approved").length,
+    () => submissions.filter((s) => 
+      (s.review_status as string) === "reviewed" ||
+      s.review_status === "approved" ||
+      s.review_status === "rejected" ||
+      s.review_status === "revision_requested"
+    ).length,
     [submissions],
   );
 
@@ -162,23 +169,15 @@ export const AdminDashboard: React.FC = () => {
   ];
 
   // Dynamic counts for categories and questions
-  const [categoryCount, setCategoryCount] = useState<number>(0);
   const [questionCount, setQuestionCount] = useState<number>(0);
 
-  // Fetch categories count from IndexedDB
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const cats = (await get("sustainability_categories")) as
-          | { categoryId: string }[]
-          | undefined;
-        setCategoryCount(cats ? cats.length : 0);
-      } catch {
-        setCategoryCount(0);
-      }
-    };
-    fetchCategories();
-  }, []);
+  // Fetch categories count from remote API using the same pattern as ManageCategories
+  const { data: categoriesData } = useQuery<GetCategoriesResponse>({
+    queryKey: ["categories"],
+    queryFn: () => CategoriesService.getCategories(),
+  });
+
+  const categoryCount = categoriesData?.categories?.length || 0;
 
   // Fetch questions count from API
   const { data: questionsData } = useQuestionsServiceGetQuestions();
@@ -208,8 +207,6 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Welcome Header */}
@@ -318,8 +315,9 @@ export const AdminDashboard: React.FC = () => {
             {/* Admin Guide */}
             <div className="space-y-6">
               <Card
-                className="animate-fade-in"
+                className="animate-fade-in cursor-pointer hover:shadow-lg transition-shadow"
                 style={{ animationDelay: "200ms" }}
+                onClick={() => navigate("/admin/guide")}
               >
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -337,6 +335,19 @@ export const AdminDashboard: React.FC = () => {
                       <li>{t('adminDashboard.guideDocs')}</li>
                       <li>{t('adminDashboard.guideSupport')}</li>
                     </ul>
+                    <div className="pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full bg-dgrv-blue text-white hover:bg-blue-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate("/admin/guide");
+                        }}
+                      >
+                        View Complete Guide
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

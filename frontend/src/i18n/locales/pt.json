@@ -1,0 +1,581 @@
+{
+    "home": "Início",
+    "homePage": {
+      "hero": {
+        "title": "Fortaleça Sua Cooperativa",
+        "subtitle": "Avalie Metas de Sustentabilidade",
+        "description": "Simples, seguro e impactante—ajude sua cooperativa a prosperar na era digital enquanto constrói práticas sustentáveis para o futuro.",
+        "cta": "Iniciar Avaliação"
+      },
+      "features": {
+        "title": "Recursos",
+        "items": [
+          {
+            "title": "Avaliação de Sustentabilidade",
+            "description": "Avalie práticas ambientais, sociais e de governança para construir uma cooperativa mais sustentável e responsável."
+          },
+          {
+            "title": "Planos de Ação",
+            "description": "Acompanhe seu progresso com quadros Kanban interativos, transformando insights de avaliação em tarefas acionáveis e melhorias mensuráveis."
+          }
+        ]
+      },
+      "benefits": {
+        "title": "Benefícios",
+        "items": [
+          {
+            "title": "Construído para Cooperativas",
+            "description": "Projetado especificamente para organizações cooperativas na África Austral"
+          },
+          {
+            "title": "Suporte Multilíngue",
+            "description": "Disponível em inglês, siSwati, português, zulu, alemão e francês"
+          },
+          {
+            "title": "Capacidade Offline",
+            "description": "Funciona de forma confiável mesmo com conectividade limitada à internet"
+          }
+        ]
+      }
+    },
+    "login": "Entrar",
+    "logout": "Sair",
+    "profile": "Perfil",
+    "sustainability": "Sustentabilidade",
+    "assessment": "Avaliação",
+    "submit": "Enviar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "saveDraft": "Salvar Rascunho",
+    "category": "Categoria",
+    "progress": "Progresso",
+    "viewSubmission": "Ver Envio",
+    "yourSubmissions": "Seus Envios",
+    "noSubmissions": "Ainda não há envios",
+    "startAssessment": "Iniciar Avaliação",
+    "status": "Status",
+    "submittedAt": "Enviado Em",
+    "reviewedAt": "Revisado Em",
+    "manageUsers": "Gerenciar Usuários",
+    "actionPlan": "Plano de Ação",
+    "viewAssessments": "Ver Avaliações",
+    "answerAssessment": "Responder Avaliação",
+    "viewAll": "Ver Tudo",
+    "welcome": "Bem-vindo, {{user}} de {{org}}!",
+    "loading": "Carregando...",
+    "noData": "Nenhum dado disponível",
+    "adminDashboard": {
+      "welcome": "Bem-vindo, Admin! Impulsione o Impacto Cooperativo!",
+      "intro": "Gerencie a plataforma de avaliação DGRV e apoie cooperativas em toda a África Austral.",
+      "numCategories": "Número de Categorias",
+      "numQuestions": "Número de Perguntas",
+      "pendingReviews": "Revisões Pendentes",
+      "completedAssessments": "Avaliações Concluídas",
+      "manageOrganizations": "Gerenciar Organizações",
+      "manageOrganizationsDesc": "Adicione, edite e gerencie organizações cooperativas no sistema.",
+      "manageUsers": "Gerenciar Usuários",
+      "manageUsersDesc": "Controle o acesso e papéis dos usuários em todas as organizações.",
+      "manageCategories": "Gerenciar Categorias",
+      "manageCategoriesDesc": "Configure categorias de avaliação para ferramentas de sustentabilidade.",
+      "manageQuestions": "Gerenciar Perguntas",
+      "manageQuestionsDesc": "Crie e edite perguntas dentro de cada categoria de avaliação.",
+      "reviewAssessments": "Revisar Avaliações",
+      "reviewAssessmentsDesc": "Revise avaliações enviadas e forneça recomendações.",
+      "standardRecommendations": "Recomendações Padrão",
+      "standardRecommendationsDesc": "Gerencie recomendações reutilizáveis para cenários comuns de avaliação.",
+      "pendingReviewsCard": "Revisões Pendentes",
+      "pendingCount": "{count} pendente(s)",
+      "sustainabilityAssessment": "Avaliação de Sustentabilidade",
+      "byUser": "por {user}",
+      "underReview": "Em Revisão",
+      "reviewRequired": "Revisão Necessária",
+      "allUpToDate": "Todas as avaliações estão atualizadas!",
+      "adminGuide": "Guia do Administrador",
+      "guideIntro": "Bem-vindo ao Painel de Administração DGRV! Aqui estão algumas dicas para ajudar a gerenciar a plataforma:",
+      "guideOrgsUsers": "Use as seções Gerenciar Organizações e Gerenciar Usuários para controlar acesso e membresia.",
+      "guideReview": "Revise e aprove avaliações na seção Revisar Avaliações.",
+      "guideCategoriesQuestions": "Configure categorias e perguntas para personalizar o processo de avaliação às suas necessidades.",
+      "guideDocs": "Para documentação detalhada, visite a Documentação do Administrador.",
+      "guideSupport": "Se precisar de ajuda, entre em contato com support@dgrv.org."
+    },
+    "standardRecommendations": {
+      "title": "Recomendações Padrão",
+      "manageDesc": "Gerencie recomendações reutilizáveis para revisões de avaliação",
+      "add": "Adicionar Recomendação",
+      "edit": "Editar Recomendação Padrão",
+      "addDialog": "Adicionar Recomendação Padrão",
+      "textLabel": "Texto da Recomendação",
+      "textPlaceholder": "Digite o texto da recomendação...",
+      "update": "Atualizar Recomendação",
+      "create": "Criar Recomendação",
+      "cancel": "Cancelar",
+      "singleTitle": "Recomendação Padrão",
+      "editBtn": "Editar",
+      "emptyTitle": "Ainda não há recomendações padrão",
+      "emptyDesc": "Crie recomendações reutilizáveis para acelerar revisões de avaliação.",
+      "addFirst": "Adicionar Primeira Recomendação",
+      "textRequired": "O texto da recomendação é obrigatório",
+      "confirmDelete": "Tem certeza de que deseja excluir esta recomendação padrão?",
+      "deleteSuccess": "Recomendação padrão excluída com sucesso",
+      "updateSuccess": "Recomendação atualizada com sucesso",
+      "createSuccess": "Recomendação padrão criada com sucesso"
+    },
+    "dashboard": {
+      "welcome": {
+        "title": "Bem-vindo, Admin! Impulsione o Impacto Cooperativo!",
+        "description": "Gerencie a plataforma de avaliação DGRV e apoie cooperativas em toda a África Austral."
+      },
+      "pendingReviews": {
+        "title": "Revisões Pendentes",
+        "badge": "pendente",
+        "assessmentType": "Avaliação de Sustentabilidade",
+        "submittedBy": "por",
+        "reviewRequired": "Revisão Necessária",
+        "upToDate": "Todas as avaliações estão atualizadas!"
+      },
+      "systemHealth": {
+        "title": "Saúde do Sistema",
+        "database": "Banco de Dados",
+        "healthy": "Saudável",
+        "apiResponse": "Resposta da API",
+        "fast": "Rápido",
+        "syncQueue": "Fila de Sincronização",
+        "clear": "Limpar"
+      },
+      "quickActions": {
+        "title": "Ações Rápidas",
+        "exportReport": "Exportar Relatório do Sistema",
+        "backupDatabase": "Fazer Backup do Banco de Dados",
+        "viewAuditLogs": "Ver Logs de Auditoria",
+        "systemSettings": "Configurações do Sistema"
+      },
+      "stats": {
+        "numCategories": "Número de Categorias",
+        "numQuestions": "Número de Perguntas",
+        "pendingReviews": "Revisões Pendentes",
+        "completedAssessments": "Avaliações Concluídas"
+      },
+      "assessments": {
+        "subtitle": "Visualize e gerencie todas as suas submissões de sustentabilidade",
+        "emptyState": "Inicie sua primeira avaliação de sustentabilidade para acompanhar o progresso da sua cooperativa."
+      },
+      "numCategories": "Número de Categorias",
+      "numQuestions": "Número de Perguntas",
+      "pendingReviews": "Revisões Pendentes",
+      "completedAssessments": "Avaliações Concluídas"
+    },
+    "actions": {
+      "manageOrganizations": "Gerenciar Organizações",
+      "manageOrganizationsDesc": "Adicione, edite e gerencie organizações cooperativas no sistema.",
+      "manageUsers": "Gerenciar Usuários",
+      "manageUsersDesc": "Controle o acesso e papéis dos usuários em todas as organizações.",
+      "manageCategories": "Gerenciar Categorias",
+      "manageCategoriesDesc": "Configure categorias de avaliação para ferramentas de sustentabilidade.",
+      "manageQuestions": "Gerenciar Perguntas",
+      "manageQuestionsDesc": "Crie e edite perguntas dentro de cada categoria de avaliação.",
+      "reviewAssessments": "Revisar Avaliações",
+      "reviewAssessmentsDesc": "Revise avaliações enviadas e forneça recomendações.",
+      "standardRecommendations": "Recomendações Padrão",
+      "standardRecommendationsDesc": "Gerencie recomendações reutilizáveis para cenários comuns de avaliação."
+    },
+    "guide": {
+      "title": "Guia do Administrador",
+      "intro": "Bem-vindo ao Painel de Administração DGRV! Aqui estão algumas dicas para ajudar a gerenciar a plataforma:",
+      "orgsUsers": "Use as seções Gerenciar Organizações e Gerenciar Usuários para controlar acesso e membresia.",
+      "review": "Revise e aprove avaliações na seção Revisar Avaliações.",
+      "categoriesQuestions": "Configure categorias e perguntas para personalizar o processo de avaliação às suas necessidades.",
+      "docs": "Para documentação detalhada, visite a Documentação do Administrador.",
+      "support": "Se precisar de ajuda, entre em contato com support@dgrv.org."
+    },
+    "questions": {
+      "manage": {
+        "title": "Gerenciar Perguntas",
+        "description": "Crie e edite perguntas dentro de cada categoria de avaliação.",
+        "add": "Adicionar Nova Pergunta",
+        "edit": "Editar Pergunta",
+        "delete": "Excluir Pergunta",
+        "confirmDelete": "Tem certeza de que deseja excluir esta pergunta?",
+        "success": "Pergunta excluída com sucesso!",
+        "error": "Erro ao excluir pergunta."
+      },
+      "list": {
+        "title": "Todas as Perguntas",
+        "noQuestions": "Nenhuma pergunta encontrada.",
+        "question": "Pergunta",
+        "category": "Categoria",
+        "actions": "Ações"
+      },
+      "form": {
+        "title": "Formulário de Pergunta",
+        "question": "Pergunta",
+        "category": "Categoria",
+        "type": "Tipo",
+        "options": "Opções",
+        "required": "Obrigatório",
+        "save": "Salvar Pergunta",
+        "cancel": "Cancelar",
+        "success": "Pergunta salva com sucesso!",
+        "error": "Erro ao salvar pergunta."
+      }
+    },
+    "categories": {
+      "manage": {
+        "title": "Gerenciar Categorias",
+        "description": "Configure categorias de avaliação para ferramentas de sustentabilidade.",
+        "add": "Adicionar Nova Categoria",
+        "edit": "Editar Categoria",
+        "delete": "Excluir Categoria",
+        "confirmDelete": "Tem certeza de que deseja excluir esta categoria?",
+        "success": "Categoria excluída com sucesso!",
+        "error": "Erro ao excluir categoria."
+      },
+      "list": {
+        "title": "Todas as Categorias",
+        "noCategories": "Nenhuma categoria encontrada.",
+        "category": "Categoria",
+        "actions": "Ações"
+      },
+      "form": {
+        "title": "Formulário de Categoria",
+        "name": "Nome",
+        "description": "Descrição",
+        "save": "Salvar Categoria",
+        "cancel": "Cancelar",
+        "success": "Categoria salva com sucesso!",
+        "error": "Erro ao salvar categoria."
+      }
+    },
+    "organizations": {
+      "manage": {
+        "title": "Gerenciar Organizações",
+        "description": "Adicione, edite e gerencie organizações cooperativas no sistema.",
+        "add": "Adicionar Nova Organização",
+        "edit": "Editar Organização",
+        "delete": "Excluir Organização",
+        "confirmDelete": "Tem certeza de que deseja excluir esta organização?",
+        "success": "Organização excluída com sucesso!",
+        "error": "Erro ao excluir organização."
+      },
+      "list": {
+        "title": "Todas as Organizações",
+        "noOrganizations": "Nenhuma organização encontrada.",
+        "organization": "Organização",
+        "actions": "Ações"
+      },
+      "form": {
+        "title": "Formulário de Organização",
+        "name": "Nome",
+        "description": "Descrição",
+        "save": "Salvar Organização",
+        "cancel": "Cancelar",
+        "success": "Organização salva com sucesso!",
+        "error": "Erro ao salvar organização."
+      }
+    },
+    "users": {
+      "manage": {
+        "title": "Gerenciar Usuários",
+        "description": "Controle o acesso e papéis dos usuários em todas as organizações.",
+        "add": "Adicionar Novo Usuário",
+        "edit": "Editar Usuário",
+        "delete": "Excluir Usuário",
+        "confirmDelete": "Tem certeza de que deseja excluir este usuário?",
+        "success": "Usuário excluído com sucesso!",
+        "error": "Erro ao excluir usuário."
+      },
+      "list": {
+        "title": "Todos os Usuários",
+        "noUsers": "Nenhum usuário encontrado.",
+        "user": "Usuário",
+        "actions": "Ações"
+      },
+      "form": {
+        "title": "Formulário de Usuário",
+        "username": "Nome de Usuário",
+        "email": "E-mail",
+        "role": "Papel",
+        "organization": "Organização",
+        "save": "Salvar Usuário",
+        "cancel": "Cancelar",
+        "success": "Usuário salvo com sucesso!",
+        "error": "Erro ao salvar usuário."
+      }
+    },
+    "reviews": {
+      "manage": {
+        "title": "Revisar Avaliações",
+        "description": "Revise avaliações enviadas e forneça recomendações.",
+        "review": "Revisar",
+        "approve": "Aprovar",
+        "reject": "Rejeitar",
+        "comments": "Comentários",
+        "recommendations": "Recomendações",
+        "save": "Salvar Revisão",
+        "cancel": "Cancelar",
+        "success": "Revisão salva com sucesso!",
+        "error": "Erro ao salvar revisão."
+      },
+      "list": {
+        "title": "Todas as Revisões",
+        "noReviews": "Nenhuma revisão encontrada.",
+        "assessment": "Avaliação",
+        "status": "Status",
+        "reviewedBy": "Revisado Por",
+        "actions": "Ações"
+      }
+    },
+    "recommendations": {
+      "manage": {
+        "title": "Recomendações Padrão",
+        "description": "Gerencie recomendações reutilizáveis para cenários comuns de avaliação.",
+        "add": "Adicionar Nova Recomendação",
+        "edit": "Editar Recomendação",
+        "delete": "Excluir Recomendação",
+        "confirmDelete": "Tem certeza de que deseja excluir esta recomendação?",
+        "success": "Recomendação excluída com sucesso!",
+        "error": "Erro ao excluir recomendação."
+      },
+      "list": {
+        "title": "Todas as Recomendações",
+        "noRecommendations": "Nenhuma recomendação encontrada.",
+        "recommendation": "Recomendação",
+        "actions": "Ações"
+      },
+      "form": {
+        "formTitle": "Formulário de Recomendação",
+        "title": "Título",
+        "description": "Descrição",
+        "save": "Salvar Recomendação",
+        "cancel": "Cancelar",
+        "success": "Recomendação salva com sucesso!",
+        "error": "Erro ao salvar recomendação."
+      }
+    },
+    "manageCategories": {
+      "title": "Gerenciar Categorias",
+      "configureCategories": "Configure e gerencie categorias de avaliação",
+      "categories": "Categorias",
+      "addCategory": "Adicionar Categoria",
+      "editCategory": "Editar Categoria",
+      "categoryName": "Nome da Categoria",
+      "categoryNamePlaceholder": "Digite o nome da categoria...",
+      "weight": "Peso (%)",
+      "displayOrder": "Ordem de Exibição",
+      "createCategory": "Criar Categoria",
+      "updateCategory": "Atualizar Categoria",
+      "loadSuccess": "Carregou {{count}} categorias com sucesso!",
+      "saveSuccess": "Salvou {{count}} categorias com sucesso!",
+      "deleteSuccess": "Categoria excluída com sucesso!",
+      "weightExceedsError": "O peso total excede 100%. Por favor, redistribua os pesos ou reduza o peso desta categoria.",
+      "redistributeWeights": "Redistribuir Pesos",
+      "totalWeightExceeds": "O peso total excede 100%. Por favor, redistribua os pesos.",
+      "totalWeightNot100": "O peso total é {{total}}%. Deve ser igual a 100%.",
+      "noCategoriesYet": "Ainda não foram criadas categorias.",
+      "weightLabel": "Peso: {{weight}}% | Ordem: {{order}}",
+      "categoryCreated": "Categoria criada com sucesso!",
+      "categoryUpdated": "Categoria atualizada com sucesso!",
+      "categoryDeleted": "Categoria excluída com sucesso!",
+      "weightsRedistributed": "Pesos redistribuídos uniformemente.",
+      "createError": "Falha ao criar categoria",
+      "updateError": "Falha ao atualizar categoria",
+      "deleteError": "Falha ao excluir categoria",
+      "redistributeError": "Falha ao redistribuir pesos",
+      "loadError": "Erro ao Carregar Categorias",
+      "unknownError": "Ocorreu um erro desconhecido",
+      "retry": "Tentar Novamente"
+    },
+    "manageOrganizations": {
+      "title": "Gerenciar Organizações",
+      "subtitle": "Adicione e gerencie organizações cooperativas",
+      "addOrganization": "Adicionar Organização",
+      "domains": "Domínios",
+      "description": "Descrição",
+      "edit": "Editar",
+      "delete": "Excluir",
+      "noOrganizations": "Ainda não há organizações",
+      "getStarted": "Adicione sua primeira organização cooperativa para começar.",
+      "addFirstOrganization": "Adicionar Primeira Organização",
+      "update": "Atualizar Organização",
+      "create": "Criar Organização",
+      "cancel": "Cancelar"
+    },
+    "user": {
+      "dashboard": {
+        "welcome": "Bem-vindo, {{user}} de {{org}}!",
+        "readyToContinue": "Pronto para continuar a jornada de sustentabilidade da sua cooperativa?",
+        "answerAssessment": {
+          "title": "Responder Avaliação",
+          "description": "Responda às avaliações de sustentabilidade pendentes para sua cooperativa."
+        },
+        "viewAssessments": {
+          "title": "Ver Avaliações",
+          "description": "Visualize todas as suas avaliações de sustentabilidade passadas e atuais.",
+          "subtitle": "Acompanhe e gerencie as tarefas de melhoria de sustentabilidade da sua cooperativa."
+        },
+        "actionPlan": {
+          "kanban": {
+            "todo": "A Fazer",
+            "inProgress": "Em Progresso",
+            "done": "Concluído",
+            "approved": "Aprovado",
+            "approve": "Aprovar",
+            "moveToInProgress": "Mover para Em Progresso",
+            "backToTodo": "Voltar para A Fazer",
+            "moveToDone": "Mover para Concluído",
+            "backToInProgress": "Voltar para Em Progresso",
+            "backToDone": "Voltar para Concluído"
+          },
+          "title": "Plano de Ação",
+          "description": "Acompanhe e gerencie as tarefas de melhoria de sustentabilidade da sua cooperativa.",
+          "recentSubmissions": "Envios Recentes",
+          "viewAll": "Ver Tudo",
+          "noSubmissions": "Ainda não há envios.",
+          "exportReports": "Exportar Relatórios",
+          "downloadReportsDescription": "Baixe seus relatórios de avaliação em vários formatos.",
+          "exportAsPDF": "Exportar como PDF",
+          "exportAsWord": "Exportar como Word",
+          "exportAsCSV": "Exportar como CSV",
+          "needHelp": "Precisa de Ajuda?",
+          "getSupport": "Obtenha suporte e materiais de treinamento para aproveitar ao máximo suas avaliações.",
+          "viewUserGuide": "Ver Guia do Usuário",
+          "manageUsers": {
+            "title": "Gerenciar Usuários",
+            "description": "Adicione e gerencie usuários em sua organização."
+          },
+          "status": {
+            "approved": "Aprovado",
+            "pendingReview": "Pendente de Revisão",
+            "underReview": "Em Revisão",
+            "rejected": "Rejeitado",
+            "revisionRequested": "Revisão Solicitada",
+            "unknown": "Desconhecido"
+          },
+          "loadingSubmissionsInline": "Carregando envios...",
+          "user": "Usuário",
+          "org": "sua organização",
+          "startAssessment": {
+            "title": "Iniciar Avaliação de Sustentabilidade",
+            "description": "Avalie práticas ambientais, sociais e de governança para crescimento sustentável."
+          },
+          "noDraftAssessment": "Nenhuma avaliação em rascunho disponível para responder.",
+          "sustainabilityAssessment": "Avaliação de Sustentabilidade",
+          "noSubmissionsMessage": "Ainda não há envios. Inicie sua primeira avaliação acima!"
+        },
+        "recentSubmissions": "Envios Recentes",
+        "viewAll": "Ver Tudo",
+        "noSubmissions": "Ainda não há envios.",
+        "exportReports": "Exportar Relatórios",
+        "downloadReportsDescription": "Baixe seus relatórios de avaliação em vários formatos.",
+        "exportAsPDF": "Exportar como PDF",
+        "exportAsWord": "Exportar como Word",
+        "exportAsCSV": "Exportar como CSV",
+        "needHelp": "Precisa de Ajuda?",
+        "getSupport": "Obtenha suporte e materiais de treinamento para aproveitar ao máximo suas avaliações.",
+        "viewUserGuide": "Ver Guia do Usuário",
+        "manageUsers": {
+          "title": "Gerenciar Usuários",
+          "description": "Adicione e gerencie usuários em sua organização."
+        },
+        "status": {
+          "approved": "Aprovado",
+          "pendingReview": "Pendente de Revisão",
+          "underReview": "Em Revisão",
+          "rejected": "Rejeitado",
+          "revisionRequested": "Revisão Solicitada",
+          "unknown": "Desconhecido"
+        },
+        "loadingSubmissionsInline": "Carregando envios...",
+        "user": "Usuário",
+        "org": "sua organização",
+        "startAssessment": {
+          "title": "Iniciar Avaliação de Sustentabilidade",
+          "description": "Avalie práticas ambientais, sociais e de governança para crescimento sustentável."
+        },
+        "noDraftAssessment": "Nenhuma avaliação em rascunho disponível para responder.",
+        "sustainabilityAssessment": "Avaliação de Sustentabilidade",
+        "noSubmissionsMessage": "Ainda não há envios. Inicie sua primeira avaliação acima!"
+      }
+    },
+    "manageUsers.selectOrganization": "Selecionar uma Organização",
+    "manageUsers.clickOrgToManage": "Clique em uma organização para gerenciar seus usuários",
+    "manageUsers.backToOrganizations": "Voltar para Organizações",
+    "manageUsers.addUser": "+ Adicionar Usuário",
+    "manageUsers.manageUsersForOrg": "Adicione e gerencie usuários em {{org}}",
+    "manageUsers.editUser": "Editar Usuário",
+    "manageUsers.addNewUser": "Adicionar Novo Usuário",
+    "manageUsers.email": "E-mail",
+    "manageUsers.emailPlaceholder": "Digite o e-mail",
+    "manageUsers.role": "Papel",
+    "manageUsers.organizationAdmin": "Administrador da Organização",
+    "manageUsers.organization": "Organização",
+    "manageUsers.selectOrganizationPlaceholder": "Selecionar organização",
+    "manageUsers.update": "Atualizar",
+    "manageUsers.create": "Criar",
+    "manageUsers.user": "Usuário",
+    "manageUsers.cancel": "Cancelar",
+    "manageUsers.verified": "Verificado",
+    "manageUsers.notVerified": "Não Verificado",
+    "manageUsers.edit": "Editar",
+    "manageUsers.noUsersYet": "Ainda não há usuários",
+    "manageUsers.addFirstUserDesc": "Adicione seu primeiro usuário para começar.",
+    "manageUsers.addFirstUser": "Adicionar Primeiro Usuário",
+    "manageUsers.orgLabel": "Org:",
+    "manageUsers.unknown": "Desconhecido",
+    "manageUsers.admin": "Admin",
+    "manageUsers.orgAdmin": "Admin da Org",
+    "manageUsers.orgUser": "Usuário da Org",
+    "manageUsers.createUser": "Criar Usuário",
+    "manageUsers.updateUser": "Atualizar Usuário",
+    "manageUsers.emailRequired": "E-mail é obrigatório",
+    "manageUsers.selectOrgRequired": "Por favor, selecione uma organização",
+    "manageUsers.confirmDelete": "Tem certeza de que deseja excluir este usuário da organização? Esta ação não pode ser desfeita.",
+    "manageQuestions": {
+      "title": "Gerenciar Perguntas",
+      "subtitle": "Crie e organize perguntas de avaliação por categoria",
+      "cardTitle": "Perguntas de Avaliação",
+      "addQuestion": "Adicionar Pergunta",
+      "addNewQuestion": "Adicionar Nova Pergunta",
+      "editQuestion": "Editar Pergunta",
+      "category": "Categoria",
+      "selectCategoryPlaceholder": "Selecione uma categoria...",
+      "weightLabel": "Peso (1-10)",
+      "displayOrder": "Ordem de Exibição",
+      "questionEnPlaceholder": "Digite a pergunta em inglês...",
+      "questionLangPlaceholder": "Digite a pergunta em {{lang}}...",
+      "createQuestion": "Criar Pergunta",
+      "updateQuestion": "Atualizar Pergunta",
+      "saving": "Salvando...",
+      "textRequired": "Texto em inglês é obrigatório",
+      "categoryRequired": "Categoria é obrigatória",
+      "weightRangeError": "O peso deve estar entre 1 e 10",
+      "createSuccess": "Pergunta criada com sucesso!",
+      "updateSuccess": "Pergunta atualizada com sucesso!",
+      "deleteSuccess": "Pergunta excluída com sucesso!",
+      "confirmDelete": "Tem certeza de que deseja excluir esta pergunta?",
+      "noQuestionsInCategory": "Ainda não há perguntas nesta categoria.",
+      "noCategories": "Nenhuma categoria disponível. Por favor, crie categorias primeiro!",
+      "noText": "Nenhum texto disponível.",
+      "categoriesLoadError": "Falha ao carregar categorias. Por favor, tente novamente.",
+      "retry": "Tentar Novamente"
+    },
+    "assessment.yesNo": "Sim/Não",
+    "assessment.yes": "Sim",
+    "assessment.no": "Não",
+    "assessment.percentage": "Porcentagem",
+    "assessment.percentNotStarted": "Não iniciado",
+    "assessment.percentSomeProgress": "Algum progresso",
+    "assessment.percentHalfway": "Metade do caminho",
+    "assessment.percentAlmostDone": "Quase concluído",
+    "assessment.percentFullyAchieved": "Totalmente alcançado",
+    "assessment.yourResponse": "Sua Resposta",
+    "assessment.enterYourResponse": "Digite sua resposta...",
+    "assessment.addFile": "Adicionar arquivo",
+    "assessment.completeAllQuestions": "Por favor, responda todas as perguntas nesta categoria antes de enviar.",
+    "assessment.submittedLocally": "A avaliação foi enviada localmente e será sincronizada quando estiver online.",
+    "assessment.failedToCreate": "Falha ao criar avaliação localmente.",
+    "assessment.fileTooLarge": "O tamanho do arquivo deve ser inferior a 1MB.",
+    "assessment.completeAllQuestionsNext": "Por favor, responda todas as perguntas nesta categoria antes de prosseguir.",
+    "assessment.noPermissionToCreate": "Apenas administradores da organização podem criar avaliações.",
+    "manageQuestions.noCategories": "Nenhuma categoria disponível. Por favor, crie categorias primeiro!",
+    "manageQuestions.noText": "Nenhum texto disponível."
+  }

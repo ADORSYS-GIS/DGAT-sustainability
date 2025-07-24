@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
-import { Navbar } from "@/components/shared/Navbar";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +28,8 @@ import {
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
-import { get } from "idb-keyval";
+import { CategoriesService } from "@/openapi-rq/requests/services.gen";
+import type { GetCategoriesResponse } from "@/openapi-rq/requests/types.gen";
 import {
   useQuestionsServiceGetQuestions,
   useQuestionsServicePostQuestions,
@@ -59,14 +59,15 @@ interface QuestionWithLatestRevision {
   latest_revision: QuestionRevision;
 }
 
-const CATEGORIES_KEY = "sustainability_categories";
-
+// Updated Category interface to match API response
 interface Category {
-  categoryId: string;
+  category_id: string;
   name: string;
   weight: number;
   order: number;
-  templateId: string;
+  template_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const LANGUAGES = [
@@ -170,7 +171,7 @@ const QuestionForm: React.FC<{
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
-              <SelectItem key={category.categoryId} value={category.name}>
+              <SelectItem key={category.category_id} value={category.name}>
                 {category.name}
               </SelectItem>
             ))}
@@ -242,18 +243,18 @@ export const ManageQuestions = () => {
     categoryName: "",
     order: 1,
   });
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      setCategoriesLoading(true);
-      const stored = (await get(CATEGORIES_KEY)) as Category[] | undefined;
-      setCategories(stored || []);
-      setCategoriesLoading(false);
-    };
-    loadCategories();
-  }, []);
+  // Fetch categories from API using the same method as ManageCategories
+  const { 
+    data: categoriesData, 
+    isLoading: categoriesLoading, 
+    error: categoriesError 
+  } = useQuery<GetCategoriesResponse>({
+    queryKey: ["categories"],
+    queryFn: () => CategoriesService.getCategories(),
+  });
+
+  const categories = categoriesData?.categories || [];
 
   const {
     data: questionsData,
@@ -395,9 +396,30 @@ export const ManageQuestions = () => {
   if (categoriesLoading || questionsLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="pt-20 pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if categories failed to load
+  if (categoriesError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="pt-20 pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center py-8 text-red-500">
+              <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>{t('manageQuestions.categoriesLoadError')}</p>
+              <Button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["categories"] })}
+                className="mt-4 bg-dgrv-blue hover:bg-blue-700"
+              >
+                {t('manageQuestions.retry')}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -407,7 +429,6 @@ export const ManageQuestions = () => {
   if (!questions || !Array.isArray(questions)) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center py-8 text-gray-500">
@@ -422,8 +443,6 @@ export const ManageQuestions = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 animate-fade-in">
@@ -488,8 +507,8 @@ export const ManageQuestions = () => {
                   );
                   return (
                     <AccordionItem
-                      key={category.categoryId}
-                      value={category.categoryId}
+                      key={category.category_id}
+                      value={category.category_id}
                     >
                       <AccordionTrigger className="text-left text-xl font-bold text-dgrv-blue">
                         {category.name}
@@ -539,7 +558,7 @@ export const ManageQuestions = () => {
                                           className="text-red-600 hover:text-red-700"
                                         >
                                           <Trash2 className="w-4 h-4" />
-                                        </Button>
+                          o              </Button>
                                       )}
                                   </div>
                                 </div>

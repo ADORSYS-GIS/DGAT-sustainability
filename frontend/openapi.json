@@ -301,6 +301,203 @@
         }
       }
     },
+    "/categories": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "List categories",
+        "description": "Get all categories",
+        "operationId": "list_categories",
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Categories"],
+        "summary": "Create category",
+        "description": "Create a new category (Admin only)",
+        "operationId": "create_category",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/categories/{category_id}": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Get category",
+        "description": "Get specific category by ID",
+        "operationId": "get_category",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Categories"],
+        "summary": "Update category",
+        "description": "Update a category (Admin only)",
+        "operationId": "update_category",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Categories"],
+        "summary": "Delete category",
+        "description": "Delete a category (Admin only)",
+        "operationId": "delete_category",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Category deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/assessments": {
       "get": {
         "tags": ["Assessments"],
@@ -2048,7 +2245,7 @@
   "components": {
     "schemas": {
       "Question": {
-        "required": ["category", "created_at", "question_id"],
+        "required": ["question_id", "category", "created_at", "latest_revision"],
         "type": "object",
         "properties": {
           "question_id": {
@@ -2061,20 +2258,23 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "latest_revision": {
+            "$ref": "#/components/schemas/QuestionRevision"
           }
         }
       },
       "QuestionRevision": {
         "required": [
-          "created_at",
-          "language",
-          "latest_revision",
+          "question_revision_id",
           "question_id",
-          "text"
+          "text",
+          "weight",
+          "created_at"
         ],
         "type": "object",
         "properties": {
-          "latest_revision": {
+          "question_revision_id": {
             "type": "string",
             "format": "uuid"
           },
@@ -2086,7 +2286,7 @@
             "type": "object"
           },
           "weight": {
-            "type": "integer"
+            "type": "number"
           },
           "created_at": {
             "type": "string",
@@ -2108,8 +2308,8 @@
             }
           },
           "weight": {
-            "type": "integer",
-            "default": 1
+            "type": "number",
+            "default": 1.0
           }
         }
       },
@@ -2123,7 +2323,7 @@
             "type": "object"
           },
           "weight": {
-            "type": "integer"
+            "type": "number"
           }
         }
       },
@@ -3290,6 +3490,95 @@
           }
         },
         "required": ["language"]
+      },
+      "Category": {
+        "required": ["category_id", "name", "weight", "order", "template_id", "created_at", "updated_at"],
+        "type": "object",
+        "properties": {
+          "category_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateCategoryRequest": {
+        "required": ["name", "weight", "order", "template_id"],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "template_id": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "CategoryResponse": {
+        "required": ["category"],
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          }
+        }
+      },
+      "CategoryListResponse": {
+        "required": ["categories"],
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          }
+        }
       }
     },
     "responses": {

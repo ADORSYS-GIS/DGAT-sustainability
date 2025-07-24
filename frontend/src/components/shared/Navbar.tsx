@@ -14,6 +14,7 @@ import i18n from "@/i18n";
 const languages = [
   { code: "en", name: "English", flag: "🇺🇸" },
   { code: "ss", name: "siSwati", flag: "🇸🇿" },
+  { code: "pt", name: "Português", flag: "🇵🇹" },
   { code: "zu", name: "isiZulu", flag: "🇿🇦" },
   { code: "de", name: "Deutsch", flag: "🇩🇪" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
@@ -31,9 +32,9 @@ export const Navbar = () => {
   const getUserDisplay = () => {
     if (!user) return t("profile");
     return (
-      user.profile?.name ||
-      user.profile?.email ||
-      user.profile?.sub ||
+      user.name ||
+      user.preferred_username ||
+      user.email ||
       t("profile")
     );
   };
@@ -101,9 +102,7 @@ export const Navbar = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  login();
-                }}
+                onClick={login}
                 className="ml-2"
               >
                 {t("login")}
@@ -128,7 +127,7 @@ export const Navbar = () => {
                     <span className="font-semibold">
                       {user?.name ||
                         user?.preferred_username ||
-                        user?.sub ||
+                        user?.email ||
                         t("profile")}
                     </span>
                     <span className="text-xs text-gray-500">

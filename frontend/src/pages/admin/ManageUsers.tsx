@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -177,7 +176,6 @@ export const ManageUsers: React.FC = () => {
   if (orgsLoading || usersLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="pt-20 pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
@@ -189,7 +187,6 @@ export const ManageUsers: React.FC = () => {
   if (!selectedOrg) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-8 animate-fade-in">
@@ -242,8 +239,6 @@ export const ManageUsers: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
