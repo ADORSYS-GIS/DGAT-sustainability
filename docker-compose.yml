@@ -15,7 +15,7 @@ services:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
       KEYCLOAK_URL: "http://keycloak:8080"
       SERVER_PORT: "3001"
-      CORS_ORIGIN: http://13.49.74.167
+      CORS_ORIGIN: https://13.49.74.167
 
     depends_on:
       db:
@@ -72,7 +72,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
       KC_FEATURES: "preview,organization"
-      KC_HOSTNAME: "localhost"
+      KC_HOSTNAME: "13.49.74.167"
       KC_HTTP_RELATIVE_PATH: "/auth"
 
     command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true"]
@@ -114,11 +114,11 @@ services:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
-        VITE_KEYCLOAK_ISSUER_URI: "https://localhost/auth/realms/sustainability-realm"
+        VITE_KEYCLOAK_ISSUER_URI: "https://13.49.74.167/auth/realms/sustainability-realm"
         VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
         VITE_KEYCLOAK_SCOPES: "openid profile email"
-        VITE_KEYCLOAK_HOME_URL: "https://localhost/"
-        VITE_KEYCLOAK_REDIRECT_URI: "https://localhost/callback"
+        VITE_KEYCLOAK_HOME_URL: "https://13.49.74.167/"
+        VITE_KEYCLOAK_REDIRECT_URI: "https://13.49.74.167/callback"
 
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
