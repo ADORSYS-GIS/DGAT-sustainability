@@ -2,11 +2,12 @@ import Keycloak from 'keycloak-js';
 
 // Keycloak configuration
 export const keycloakConfig = {
-  url: import.meta.env.VITE_KEYCLOAK_ISSUER_URI?.replace('/realms/sustainability-realm', '') || 'http://localhost:8080',
+  // Use the Nginx proxy path for external browser access
+  url: window.location.protocol + '//' + window.location.host + '/keycloak',
   realm: 'sustainability-realm',
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'sustainability-tool',
   // Needed for self-signed certificates
-  checkSsl: window.location.hostname === 'localhost' ? false : true,
+  checkSsl: false,
 };
 
 // Initialize Keycloak instance
