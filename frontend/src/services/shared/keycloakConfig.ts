@@ -10,10 +10,16 @@ export const keycloakConfig = {
 // Initialize Keycloak instance
 export const keycloak = new Keycloak(keycloakConfig);
 
+// Check if Web Crypto API is available
+const isWebCryptoAvailable = typeof window !== 'undefined' && 
+  window.crypto && 
+  window.crypto.subtle;
+
 // Keycloak initialization options
 export const keycloakInitOptions: Keycloak.KeycloakInitOptions = {
   checkLoginIframe: false,
   onLoad: 'check-sso',
-  pkceMethod: 'S256',
+  // Only use PKCE if Web Crypto API is available
+  ...(isWebCryptoAvailable && { pkceMethod: 'S256' }),
   enableLogging: import.meta.env.DEV,
 }; 

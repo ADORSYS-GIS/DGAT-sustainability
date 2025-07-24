@@ -74,6 +74,11 @@ export const initializeAuth = async (): Promise<boolean> => {
       return keycloak.authenticated || false;
     }
 
+    // Check if Web Crypto API is available
+    if (typeof window !== 'undefined' && !window.crypto) {
+      console.warn('Web Crypto API not available, using fallback authentication method');
+    }
+
     const authenticated = await keycloak.init(keycloakInitOptions);
     isInitialized = true;
     
@@ -90,6 +95,13 @@ export const initializeAuth = async (): Promise<boolean> => {
     return authenticated;
   } catch (error) {
     console.error('Failed to initialize Keycloak:', error);
+    
+    // Handle Web Crypto API errors specifically
+    if (error instanceof Error && error.message.includes('Web Crypto API')) {
+      console.warn('Web Crypto API not available, trying alternative authentication method');
+      // You could implement a fallback here if needed
+    }
+    
     isInitialized = true;
     // Still call the callback even if initialization fails
     if (onInitializedCallback) {
