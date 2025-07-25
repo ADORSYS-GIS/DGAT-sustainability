@@ -21,13 +21,13 @@ The Nginx server is configured to:
 1. Redirect all HTTP traffic to HTTPS (except for health checks)
 2. Serve the frontend application on `/`
 3. Proxy API requests to the backend at `/api`
-4. Proxy authentication requests to Keycloak at `/auth`
+4. Proxy authentication requests to Keycloak at `/keycloak`
 
 ### URL Structure
 
 - Frontend UI: `https://localhost/`
 - Backend API: `https://localhost/api/`
-- Keycloak: `https://localhost/auth/`
+- Keycloak: `https://localhost/keycloak/`
 
 ## Browser Security Warning
 

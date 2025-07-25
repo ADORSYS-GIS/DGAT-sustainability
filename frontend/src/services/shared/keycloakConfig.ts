@@ -1,11 +1,12 @@
 import Keycloak from 'keycloak-js';
+import config from '../../config/environments';
 
 // Keycloak configuration
 export const keycloakConfig = {
   // Use the Nginx proxy path for external browser access
   url: window.location.protocol + '//' + window.location.host + '/keycloak',
   realm: 'sustainability-realm',
-  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'sustainability-tool',
+  clientId: config.auth.clientId,
   // Needed for self-signed certificates
   checkSsl: false,
 };

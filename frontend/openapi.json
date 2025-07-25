@@ -15,16 +15,14 @@
   },
   "servers": [
     {
-      "url": "http://13.49.74.167:3001/api",
-      "description": "Production server"
-    },
-    {
-      "url": "http://13.49.74.167:3001/api",
-      "description": "Staging server"
-    },
-    {
-      "url": "http://13.49.74.167:3001/api",
-      "description": "Development server"
+      "url": "https://{host}/api",
+      "description": "API server with configurable host",
+      "variables": {
+        "host": {
+          "default": "localhost",
+          "description": "Host name or IP address"
+        }
+      }
     }
   ],
   "security": [
