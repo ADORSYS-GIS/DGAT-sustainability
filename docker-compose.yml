@@ -79,7 +79,7 @@ services:
       KC_SPI_CONNECTIONS_HTTP_DEFAULT_CLIENT_DISABLE_TRUST_MANAGER: "true"
       # Fix for admin console loading indefinitely
       KC_SPI_LOGIN_PROTOCOL_OPENID_CONNECT_LEGACY_LOGOUT_REDIRECT_URI: "true"
-    command: ["start", "--optimized" "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
+    command: ["start", "--optimized", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
     depends_on:
