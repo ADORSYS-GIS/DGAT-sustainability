@@ -72,11 +72,9 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
       KC_FEATURES: "preview,organization"
-      KC_HOSTNAME: ec2-16-171-203-85.eu-north-1.compute.amazonaws.com
-      KC_HOSTNAME_PATH: /keycloak
-      KC_HOSTNAME_URL: https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak
+      KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
+      KC_HOSTNAME_PATH: "/keycloak"
       KC_HTTP_ENABLED: "true"                  # if you also want to allow HTTP, for debugging only
-      KC_HOSTNAME_ADMIN_URL: https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak
       # Allow CORS from frontend
       KC_SPI_CONNECTIONS_HTTP_DEFAULT_CLIENT_DISABLE_TRUST_MANAGER: "true"
       # Fix for admin console loading indefinitely
