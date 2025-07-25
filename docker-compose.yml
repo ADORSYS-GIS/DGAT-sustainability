@@ -15,7 +15,7 @@ services:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
       KEYCLOAK_URL: "http://keycloak:8080"
       SERVER_PORT: "3001"
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://localhost}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}
 
     depends_on:
       db:
@@ -72,7 +72,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
       KC_FEATURES: "preview,organization"
-      KC_HOSTNAME: "localhost"
+      KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
       # Allow CORS from frontend
       KC_SPI_CONNECTIONS_HTTP_DEFAULT_CLIENT_DISABLE_TRUST_MANAGER: "true"
 
@@ -100,11 +100,11 @@ services:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
-        VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://localhost/keycloak/realms/sustainability-realm}"
+        VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak/realms/sustainability-realm}"
         VITE_KEYCLOAK_CLIENT_ID: "${VITE_KEYCLOAK_CLIENT_ID:-sustainability-tool}"
         VITE_KEYCLOAK_SCOPES: "${VITE_KEYCLOAK_SCOPES:-openid profile email}"
-        VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://localhost}"
-        VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://localhost/callback}"
+        VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
+        VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/callback}"
 
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
@@ -114,7 +114,7 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -k https://localhost/health || exit 1"]
+      test: ["CMD-SHELL", "curl -k https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -123,7 +123,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./frontend/ssl:/etc/nginx/ssl:ro
+      - ./ssl:/etc/nginx/ssl:ro
       - ./infrastructure/frontend-entrypoint.sh:/docker-entrypoint.d/40-check-network.sh:ro
     networks: [tool-net]
 
