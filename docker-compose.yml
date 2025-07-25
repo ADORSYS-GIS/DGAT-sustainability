@@ -62,7 +62,6 @@ services:
       KC_DB_URL_HOST: db
       KC_DB_URL_PORT: 5432
       KC_HTTPS_ENABLED: "true"
-      KC_PROXY: "edge"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HOSTNAME_STRICT: "false"
       KC_DB_URL_DATABASE: "${POSTGRES_DB:-sustainability}"
@@ -71,6 +70,8 @@ services:
       KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
+      KC_PROXY_HEADERS: "forwarded"
+      JAVA_OPTS_APPEND: "-Dquarkus.log.category.\"org.keycloak\".level=DEBUG"
       KC_FEATURES: "preview,organization"
       KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
       KC_HOSTNAME_PATH: "/keycloak"
