@@ -73,13 +73,18 @@ services:
       KEYCLOAK_REALM: "sustainability-realm"
       KC_FEATURES: "preview,organization"
       KC_HOSTNAME: ec2-16-171-203-85.eu-north-1.compute.amazonaws.com
+      KC_HOSTNAME_PATH: /keycloak
       KC_HOSTNAME_URL: https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak
       KC_HTTP_ENABLED: "true"                  # if you also want to allow HTTP, for debugging only
-      KC_HOSTNAME_ADMIN_URL: https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak/
+      KC_HOSTNAME_ADMIN_URL: https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak
       # Allow CORS from frontend
       KC_SPI_CONNECTIONS_HTTP_DEFAULT_CLIENT_DISABLE_TRUST_MANAGER: "true"
+      # Fix for admin console loading indefinitely
+      KC_SPI_LOGIN_PROTOCOL_OPENID_CONNECT_LEGACY_LOGOUT_REDIRECT_URI: "true"
+      KC_CACHE: "local"
+      KC_CACHE_CONFIG_FILE: "cache-local.xml"
 
-    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
+    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak", "--optimized"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
     depends_on:
