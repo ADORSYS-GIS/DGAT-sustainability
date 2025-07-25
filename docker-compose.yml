@@ -123,7 +123,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./ssl:/etc/nginx/ssl:ro
+      - ./frontend/ssl:/etc/nginx/ssl:ro
       - ./infrastructure/frontend-entrypoint.sh:/docker-entrypoint.d/40-check-network.sh:ro
     networks: [tool-net]
 
