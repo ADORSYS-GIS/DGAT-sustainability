@@ -84,7 +84,7 @@ services:
       KC_CACHE: "local"
       KC_CACHE_CONFIG_FILE: "cache-local.xml"
 
-    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak", "--optimized"]
+    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
     depends_on:
