@@ -71,7 +71,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
       KC_PROXY_HEADERS: "forwarded"
-      JAVA_OPTS_APPEND: "-Dquarkus.log.category.\"org.keycloak\".level=DEBUG"
+      JAVA_OPTS_APPEND: "-Dquarkus.log.category.\"org.keycloak\".level=DEBUG -Djavax.net.debug=ssl:handshake"
       KC_FEATURES: "preview,organization"
       KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
       KC_HOSTNAME_PATH: "/keycloak"
