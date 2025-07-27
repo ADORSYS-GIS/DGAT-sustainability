@@ -87,7 +87,7 @@ services:
     command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
-      - ./infrastructure/keycloak/setup-scripts:/opt/keycloak/setup-scripts:rx
+      - ./infrastructure/keycloak/setup-scripts:/opt/keycloak/setup-scripts:ro
     depends_on:
       db:
         condition: service_healthy
