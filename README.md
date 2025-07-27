@@ -1,5 +1,260 @@
 # Sustainability Assessment Tool
-# Keycloak Realm Import Fix
+# Sustainability Assessment Tool
+
+# Keycloak Fixes
+
+## Keycloak Permissions Fix
+
+If you encounter a permission denied error for the startup.sh script, run:
+
+```bash
+chmod +x fix-keycloak-permissions.sh
+./fix-keycloak-permissions.sh
+docker-compose restart keycloak
+```
+
+## Keycloak Realm Import Fix
+
+## Issue
+The Keycloak realm import is failing due to an unsupported field `maxTemporaryLockouts` in the realm export file.
+
+## Solution
+
+1. Run the fix script to remove the unsupported field:
+   ```bash
+   chmod +x fix-realm-export.sh
+   ./fix-realm-export.sh
+   ```
+
+2. Restart the Keycloak container:
+   ```bash
+   docker-compose restart keycloak
+   ```
+
+## Explanation
+The error occurs because the realm export file contains a field (`maxTemporaryLockouts`) that is not recognized by the current version of Keycloak (22.0.1). The fix script removes this field from the JSON file.
+
+If you need to preserve this setting, you will need to manually configure it through the Keycloak admin UI after import.
+
+## Keycloak SSL Certificate Validation Fix
+
+## Issue
+The Keycloak service may fail to connect to services with SSL certificates due to certificate validation errors, showing errors like:
+```
+Failed to send request - PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+```
+
+## Solution
+This issue has been fixed by adding Java options to disable SSL certificate validation. The fix is implemented in:
+
+1. The startup.sh script
+2. The admin.sh script
+3. The Keycloak service configuration in docker-compose.yml
+4. The Nginx configuration for proxying requests
+
+Note: Disabling SSL certificate validation is only recommended for development or testing environments. For production, proper SSL certificates should be set up and validated.
+
+The Sustainability Assessment Tool is a digital platform designed to help cooperatives in Southern Africa evaluate their sustainability performance. Built as a Progressive Web App (PWA), it allows users to conduct assessments offline and sync data when connected. This tool is part of a broader initiative by DGRV to support cooperative development through digital transformation, empowering cooperatives to assess their sustainability across environmental, financial, and governance dimensions.
+
+## Development Status
+
+This project is currently in **active development**. Core features such as assessment creation, offline synchronization, and user management are being implemented. The tool is not yet ready for production use. For updates, please refer to the issue tracker in the repository.
+
+## Features
+
+- **Offline Capability**: Conduct assessments without an internet connection; data syncs automatically when online.
+- **Multilingual Support**: Interface and content available in multiple languages to cater to diverse users.
+- **Role-Based Access Control**: Secure access for different user types, including cooperative users and DGRV administrators.
+- **Assessment Management**: Create, save, and submit sustainability assessments with dynamic question sets.
+- **Reporting**: Generate detailed reports with scores, visualizations, and recommendations.
+- **Secure Architecture**: Built with security in mind, using encryption and compliant with data protection standards.
+
+## Technology Stack
+
+- **Backend**: Rust microservices for high performance and memory safety.
+- **Frontend**: ReactJS for the user PWA and admin interface.
+- **Database**: PostgreSQL for secure and scalable data storage.
+- **Identity Management**: Keycloak for authentication and authorization.
+- **Deployment**: Kubernetes on AWS for cloud-native scalability.
+- **Other Tools**: Docker for containerization, GitHub Actions for CI/CD.
+
+## Project Structure
+
+The project is organized as follows:
+
+```
+/sustainability-tool
+├── /backend                # Rust microservices for core functionality
+├── /frontend               # ReactJS applications (User PWA and Admin Frontend)
+├── /infrastructure         # Kubernetes, AWS, Keycloak, and database configurations
+├── /docs                   # Project documentation and training materials
+├── /scripts                # Utility scripts for setup, testing, and deployment
+├── /tests                  # Integration and end-to-end tests
+├── /.github                # CI/CD pipeline configurations
+├── README.md               # Project overview and setup instructions
+├── LICENSE                 # License file (to be defined)
+└── docker-compose.yml      # Local development environment setup
+```
+
+For a detailed breakdown, see the [project structure documentation](link-to-project-structure-artifact).
+
+## Installation and Setup
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Node.js (v14 or later)
+- Rust (stable version)
+- AWS CLI (if deploying to AWS)
+- Git
+
+### Steps
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/your-org/sustainability-tool.git
+   cd sustainability-tool
+   ```
+
+2. **Set Up Environment Variables**
+   - Copy the example env file:
+     ```bash
+     cp .env.example .env
+     ```
+   - Edit `.env` to include database credentials, Keycloak settings, and other required variables.
+
+3. **Start Local Development Environment**
+   - Launch services with Docker Compose:
+     ```bash
+     docker-compose up -d
+     ```
+   - This starts PostgreSQL, Keycloak, and other dependencies.
+   - Wait for the services to be fully up (check with `docker-compose ps`)
+
+4. **Automated Keycloak Setup**
+   - Run the automated setup script to configure Keycloak:
+     ```bash
+     cd backend
+     cargo run
+     ```
+   - This will automatically create the realm, client, roles, and test user
+
+5. **Build and Run Backend Services**
+   - Navigate to a backend service directory (e.g., `/backend/sustainability-service`) and run:
+     ```bash
+     cargo build
+     cargo run
+     ```
+
+6. **Build and Run Frontend Applications**
+   - For the user PWA:
+     ```bash
+     cd frontend/user-pwa
+     npm install
+     npm start
+     ```
+   - For the admin frontend:
+     ```bash
+     cd frontend/admin-frontend
+     npm install
+     npm start
+     ```
+
+7. **Verify Keycloak Configuration**
+   - Access the Keycloak admin console at `http://localhost:8080/admin/`
+   - Login with username `admin` and password `admin123`
+   - Select the `sustainability_realm` realm to verify the configuration
+
+7. **Apply Database Migrations**
+   - Run migrations using the db-migrator binary:
+     ```bash
+     cd backend
+     cargo run --bin db-migrator
+     ```
+   - This will connect to the database and apply all migrations if they haven't been applied yet.
+
+For production deployment, refer to the [deployment documentation](link-to-deployment-docs).
+
+## Usage
+
+### Accessing the PWA
+
+- Open `http://localhost:3000` in your browser.
+- Register or log in with provided credentials.
+- Start a new sustainability assessment or continue a draft.
+
+### Accessing the Admin Interface
+
+- Navigate to `http://localhost:3001`.
+- Log in with DGRV admin credentials.
+- Manage users, configure assessment questions, and generate reports.
+
+### Example Workflow
+
+#### Cooperative User
+1. Log in to the PWA.
+2. Select "New Assessment" and choose a sustainability template.
+3. Answer questions, saving drafts as needed.
+4. Submit the assessment.
+5. View the generated report with scores and recommendations.
+
+#### DGRV Admin
+1. Log in to the admin interface.
+2. Add new users or assign roles.
+3. Update assessment questions or weights.
+4. Generate aggregate reports for multiple cooperatives.
+
+## Security Considerations
+
+- **Authentication**: Users authenticate via Keycloak using OAuth2.
+- **Data Encryption**: Sensitive data is encrypted at rest and in transit.
+- **Access Control**: Role-based permissions restrict access to authorized features.
+- **Compliance**: Designed to meet GDPR and other data protection standards.
+
+## Contributing
+
+We welcome contributions! To contribute:
+
+1. Fork the repository.
+2. Create a branch for your feature or bugfix.
+3. Submit a pull request with a clear description of your changes.
+
+For major updates, please open an issue first to discuss your ideas.
+
+## Documentation
+
+- **Technical Documentation**: See the `/docs` directory for architecture and API details.
+- **User Manuals & Training**: Refer to `/docs/user-guides` and `/docs/training`.
+
+## Support
+
+For issues or questions, open an issue on the GitHub repository or contact the development team.
+
+## License
+
+This project is licensed under the [License Name] - see the `LICENSE` file for details.
+
+---
+
+### Notes
+- **Placeholders**: Replace `link-to-project-structure-artifact`, `link-to-deployment-docs`, and `[License Name]` with actual links or text in your repository.
+- **License**: Update the `LICENSE` file with the specific license (e.g., MIT, Apache 2.0).
+- **Environment Variables**: Ensure `.env.example` includes all necessary variables.
+- **Keycloak**: Provide detailed setup instructions in `/infrastructure/keycloak` if needed.
+- **Migrations**: Specify the migration tool in the setup steps.
+# Keycloak Fixes
+
+## Keycloak Permissions Fix
+
+If you encounter a permission denied error for the startup.sh script, run:
+
+```bash
+chmod +x fix-keycloak-permissions.sh
+./fix-keycloak-permissions.sh
+docker-compose restart keycloak
+```
+
+## Keycloak Realm Import Fix
 
 ## Issue
 The Keycloak realm import is failing due to an unsupported field `maxTemporaryLockouts` in the realm export file.
