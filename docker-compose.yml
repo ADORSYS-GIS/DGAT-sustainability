@@ -80,9 +80,14 @@ services:
       KC_SPI_CONNECTIONS_HTTP_DEFAULT_CLIENT_DISABLE_TRUST_MANAGER: "true"
       # Fix for admin console loading indefinitely
       KC_SPI_LOGIN_PROTOCOL_OPENID_CONNECT_LEGACY_LOGOUT_REDIRECT_URI: "true"
+      # Fernando user password
+      FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-ChangeMe123!}"
+      KC_URL: "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak"
+    entrypoint: ["/opt/keycloak/setup-scripts/startup.sh"]
     command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
+      - ./infrastructure/keycloak/setup-scripts:/opt/keycloak/setup-scripts:ro
     depends_on:
       db:
         condition: service_healthy
