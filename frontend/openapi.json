@@ -15,11 +15,11 @@
   },
   "servers": [
     {
-      "url": "https://{host}/api",
+      "url": "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/api",
       "description": "API server with configurable host",
       "variables": {
         "host": {
-          "default": "localhost",
+          "default": "localhost:3001",
           "description": "Host name or IP address"
         }
       }
