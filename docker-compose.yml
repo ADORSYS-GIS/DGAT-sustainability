@@ -71,13 +71,12 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
       KC_PROXY_HEADERS: "forwarded"
-      JAVA_OPTS_APPEND: "-Dquarkus.log.category.\"org.keycloak\".level=DEBUG -Djavax.net.debug=ssl:handshake"
       KC_FEATURES: "preview,organization"
       KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
       KC_HOSTNAME_PATH: "/keycloak"
       KC_HTTP_ENABLED: "false"                  # if you also want to allow HTTP, for debugging only
       # Fernando user password
-      FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-ChangeMe123!}"
+      FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
       KC_URL: "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak"
       # Use the nginx certificate paths
       SSL_CERT_PATH: "/etc/x509/https/nginx.crt"
@@ -85,7 +84,7 @@ services:
       KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
       KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
     entrypoint: ["/opt/keycloak/setup-scripts/startup.sh"]
-    command: ["start-dev", "--optimized", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
+    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
       - ./infrastructure/keycloak/setup-scripts:/opt/keycloak/setup-scripts:ro,Z
