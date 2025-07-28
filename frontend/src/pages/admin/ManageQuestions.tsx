@@ -28,14 +28,12 @@ import {
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
-import { CategoriesService } from "@/openapi-rq/requests/services.gen";
-import type { GetCategoriesResponse } from "@/openapi-rq/requests/types.gen";
-import {
-  useQuestionsServiceGetQuestions,
-  useQuestionsServicePostQuestions,
-  useQuestionsServicePutQuestionsByQuestionId,
-  useQuestionsServiceDeleteQuestionsRevisionsByQuestionRevisionId,
-} from "../../openapi-rq/queries/queries";
+import { 
+  useOfflineQuestions, 
+  useOfflineCategories, 
+  useOfflineQuestionsMutation,
+  useOfflineSyncStatus
+} from "../../hooks/useOfflineApi";
 import type {
   Question,
   CreateQuestionRequest,
@@ -94,6 +92,7 @@ const QuestionForm: React.FC<{
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
   editingQuestion: QuestionWithLatestRevision | null;
+  isOnline: boolean;
 }> = ({
   categories,
   formData,
@@ -101,6 +100,7 @@ const QuestionForm: React.FC<{
   onSubmit,
   isPending,
   editingQuestion,
+  isOnline,
 }) => {
   // Track which language dropdown is open (only one at a time)
   const [openLang, setOpenLang] = useLocalState<string | null>(null);
@@ -244,33 +244,27 @@ export const ManageQuestions = () => {
     order: 1,
   });
 
-  // Fetch categories from API using the same method as ManageCategories
+  // Use offline hooks for all data fetching
   const { 
     data: categoriesData, 
     isLoading: categoriesLoading, 
     error: categoriesError 
-  } = useQuery<GetCategoriesResponse>({
-    queryKey: ["categories"],
-    queryFn: () => CategoriesService.getCategories(),
-  });
+  } = useOfflineCategories();
 
   const categories = categoriesData?.categories || [];
 
-  const {
+  const { 
     data: questionsData,
     isLoading: questionsLoading,
     refetch: refetchQuestions,
-  } = useQuestionsServiceGetQuestions();
+  } = useOfflineQuestions();
 
   // Cast the response to match the actual API structure
-  const questions = useMemo(() => {
-    // Access the questions array directly from the response
-    const response = questionsData as Record<string, unknown>;
-    const questionsArray = response?.questions as
-      | QuestionWithLatestRevision[]
-      | undefined;
-    return questionsArray || [];
-  }, [questionsData]);
+  const questions = (questionsData?.questions || []) as QuestionWithLatestRevision[];
+
+  // Use enhanced offline mutation hooks
+  const { createQuestion, updateQuestion, deleteQuestion, isPending } = useOfflineQuestionsMutation();
+  const { isOnline } = useOfflineSyncStatus();
 
   function getErrorMessage(error: unknown): string {
     if (
@@ -284,36 +278,8 @@ export const ManageQuestions = () => {
     return "Unknown error";
   }
 
-  const createMutation = useQuestionsServicePostQuestions({
-    onSuccess: () => {
-      toast.success(t('manageQuestions.createSuccess'));
-      refetchQuestions();
-      setIsDialogOpen(false);
-    },
-    onError: (error: unknown) => toast.error(getErrorMessage(error)),
-  });
-
-  const updateMutation = useQuestionsServicePutQuestionsByQuestionId({
-    onSuccess: () => {
-      toast.success(t('manageQuestions.updateSuccess'));
-      refetchQuestions();
-      setIsDialogOpen(false);
-      setEditingQuestion(null);
-    },
-    onError: (error: unknown) => toast.error(getErrorMessage(error)),
-  });
-
-  const deleteMutation =
-    useQuestionsServiceDeleteQuestionsRevisionsByQuestionRevisionId({
-      onSuccess: () => {
-        toast.success(t('manageQuestions.deleteSuccess'));
-        refetchQuestions();
-      },
-      onError: (error: unknown) => toast.error(getErrorMessage(error)),
-    });
-
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       if (!formData.text.en.trim()) {
         toast.error(t('manageQuestions.textRequired'));
@@ -335,14 +301,19 @@ export const ManageQuestions = () => {
         }
       }
       if (editingQuestion) {
-        const updateBody = {
+        const updateBody: UpdateQuestionRequest = {
           category: formData.categoryName,
           text,
           weight: formData.weight,
         };
-        updateMutation.mutate({
-          questionId: editingQuestion.question_id,
-          requestBody: updateBody as unknown as UpdateQuestionRequest,
+        await updateQuestion(editingQuestion.question_id, updateBody, {
+          onSuccess: () => {
+            toast.success(t('manageQuestions.updateSuccess'));
+            refetchQuestions();
+            setIsDialogOpen(false);
+            setEditingQuestion(null);
+          },
+          onError: (error: unknown) => toast.error(getErrorMessage(error)),
         });
       } else {
         const createBody: CreateQuestionRequest = {
@@ -350,10 +321,17 @@ export const ManageQuestions = () => {
           text,
           weight: formData.weight,
         };
-        createMutation.mutate({ requestBody: createBody });
+        await createQuestion(createBody, {
+          onSuccess: () => {
+            toast.success(t('manageQuestions.createSuccess'));
+            refetchQuestions();
+            setIsDialogOpen(false);
+          },
+          onError: (error: unknown) => toast.error(getErrorMessage(error)),
+        });
       }
     },
-    [formData, editingQuestion, createMutation, updateMutation],
+    [formData, editingQuestion, createQuestion, updateQuestion, refetchQuestions, setIsDialogOpen, setEditingQuestion, t],
   );
 
   const handleEdit = useCallback((question: QuestionWithLatestRevision) => {
@@ -376,12 +354,19 @@ export const ManageQuestions = () => {
   }, []);
 
   const handleDelete = useCallback(
-    (questionRevisionId: string) => {
+    async (questionId: string) => {
       if (!window.confirm(t('manageQuestions.confirmDelete')))
         return;
-      deleteMutation.mutate({ questionRevisionId });
+      
+      await deleteQuestion(questionId, {
+        onSuccess: () => {
+          toast.success(t('manageQuestions.deleteSuccess'));
+          refetchQuestions();
+        },
+        onError: (error: unknown) => toast.error(getErrorMessage(error)),
+      });
     },
-    [deleteMutation],
+    [deleteQuestion, refetchQuestions, t],
   );
 
   const getQuestionsByCategory = useCallback(
@@ -445,6 +430,20 @@ export const ManageQuestions = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Offline Status Indicator */}
+          <div className="mb-4 flex items-center justify-end">
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+              isOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOnline ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
+              <span>{isOnline ? 'Online' : 'Offline'}</span>
+            </div>
+          </div>
+
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center space-x-3 mb-4">
               <BookOpen className="w-8 h-8 text-dgrv-blue" />
@@ -491,10 +490,9 @@ export const ManageQuestions = () => {
                     formData={formData}
                     setFormData={setFormData}
                     onSubmit={handleSubmit}
-                    isPending={
-                      createMutation.isPending || updateMutation.isPending
-                    }
+                    isPending={isPending}
                     editingQuestion={editingQuestion}
+                    isOnline={true}
                   />
                 </DialogContent>
               </Dialog>
@@ -540,6 +538,7 @@ export const ManageQuestions = () => {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => handleEdit(question)}
+                                      disabled={false}
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Button>
@@ -551,14 +550,14 @@ export const ManageQuestions = () => {
                                           size="sm"
                                           onClick={() =>
                                             handleDelete(
-                                              question.latest_revision
-                                                .question_revision_id,
+                                              question.question_id,
                                             )
                                           }
+                                          disabled={false}
                                           className="text-red-600 hover:text-red-700"
                                         >
                                           <Trash2 className="w-4 h-4" />
-                          o              </Button>
+                                        </Button>
                                       )}
                                   </div>
                                 </div>

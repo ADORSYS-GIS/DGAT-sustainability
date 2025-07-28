@@ -11,49 +11,137 @@ import {
   Leaf,
   Star,
   Users,
+  RefreshCw,
 } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { useSubmissionsServiceGetSubmissions } from "../..//openapi-rq//queries/queries";
 import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
 import { OrgUserManageUsers } from "./OrgUserManageUsers";
-import { useAssessmentsServiceGetAssessments } from "@/openapi-rq/queries/queries";
+import { 
+  useOfflineSubmissions, 
+  useOfflineReports, 
+  useOfflineAssessments,
+  useOfflineAdminSubmissions
+} from "@/hooks/useOfflineApi";
+import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data, isLoading, isError, error, isSuccess } =
-    useSubmissionsServiceGetSubmissions();
-  const submissions: Submission[] = data?.submissions?.slice(0, 5) || [];
-  const { data: reportsData, isLoading: reportsLoading } =
-  useReportsServiceGetUserReports();
+  
+  // Always call both hooks to avoid React hooks violation
+  const { data: userSubmissionsData, isLoading: userSubmissionsLoading, error: userSubmissionsError } = useOfflineSubmissions();
+  const { data: adminSubmissionsData, isLoading: adminSubmissionsLoading, error: adminSubmissionsError } = useOfflineAdminSubmissions();
+  const { data: reportsData, isLoading: reportsLoading } = useOfflineReports();
+  const { data: assessmentsData } = useOfflineAssessments();
+  
+  // Add initial data loading hook
+  const { refreshData } = useInitialDataLoad();
+  
+  // Choose the appropriate submissions data based on user role
+  const isOrgUser = user?.roles?.includes('org_user') || user?.realm_access?.roles?.includes('org_user');
+  const submissionsData = isOrgUser ? adminSubmissionsData : userSubmissionsData;
+  const submissionsLoading = isOrgUser ? adminSubmissionsLoading : userSubmissionsLoading;
+  const submissionsError = isOrgUser ? adminSubmissionsError : userSubmissionsError;
+  
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    try {
+      await refreshData();
+      toast.success('Data refreshed successfully!');
+    } catch (error) {
+      toast.error('Failed to refresh data');
+      console.error('Manual refresh failed:', error);
+    }
+  };
+
+  // Force clear and reload function
+  const handleForceReload = async () => {
+    try {
+      console.log('🔍 Force reload triggered');
+      const { InitialDataLoader } = await import('@/services/initialDataLoader');
+      const loader = new InitialDataLoader();
+      
+      // Clear all data
+      await loader.clearAllData();
+      console.log('🔍 All data cleared');
+      
+      // Force reload
+      await refreshData();
+      toast.success('Data force reloaded successfully!');
+    } catch (error) {
+      toast.error('Failed to force reload data');
+      console.error('Force reload failed:', error);
+    }
+  };
+  
+  // Filter assessments by organization and status
+  const filteredAssessments = React.useMemo(() => {
+    if (!assessmentsData?.assessments || !user?.organizations) {
+      return [];
+    }
+    
+    // Get the user's organization ID
+    const orgKeys = Object.keys(user.organizations);
+    if (orgKeys.length === 0) {
+      return [];
+    }
+    
+    const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+    const organizationId = orgData?.id;
+    
+    if (!organizationId) {
+      return [];
+    }
+    
+    console.log('🔍 Filtering assessments for organization:', organizationId);
+    console.log('🔍 Total assessments available:', assessmentsData.assessments.length);
+    
+    // Filter by organization and status
+    const filtered = assessmentsData.assessments.filter((assessment) => {
+      const assessmentData = assessment as unknown as { 
+        status: string; 
+        organization_id?: string;
+      };
+      
+      const isDraft = assessmentData.status === "draft";
+      const isInOrganization = assessmentData.organization_id === organizationId;
+      
+      console.log('🔍 Assessment:', assessment.assessment_id, 'status:', assessmentData.status, 'org:', assessmentData.organization_id, 'isDraft:', isDraft, 'isInOrg:', isInOrganization);
+      
+      return isDraft && isInOrganization;
+    });
+    
+    console.log('🔍 Filtered assessments for org user:', filtered.length);
+    return filtered;
+  }, [assessmentsData?.assessments, user?.organizations]);
+  
+  const submissions: Submission[] = submissionsData?.submissions?.slice(0, 5) || [];
   const reports = reportsData?.reports || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
 
-  // Get all org assessments for Answer Assessment action
-  const { data: assessmentsData } = useAssessmentsServiceGetAssessments();
-
   React.useEffect(() => {
-    if (isError) {
+    if (submissionsError) {
       toast.error(t('user.dashboard.errorLoadingSubmissions'), {
-        description: error instanceof Error ? error.message : String(error),
+        description: submissionsError.message,
       });
-    } else if (isLoading) {
+    } else if (submissionsLoading) {
       toast.info(t('user.dashboard.loadingSubmissions'), {
         description: t('user.dashboard.fetchingRecentSubmissions'),
       });
-    } else if (isSuccess) {
+    } else if (submissionsData) {
       toast.success(t('user.dashboard.submissionsLoaded'), {
         description: t('user.dashboard.loadedSubmissions', { count: submissions.length }),
         className: "bg-dgrv-green text-white",
       });
     }
-  }, [isError, error, isLoading, isSuccess, submissions.length]);
+  }, [submissionsError, submissionsLoading, submissionsData, submissions.length, t]);
+
+  // Remove the offline status useEffect
 
   const dashboardActions = [
     // Only org_admin can start new assessment
@@ -77,17 +165,16 @@ export const Dashboard: React.FC = () => {
             icon: FileText,
             color: "blue" as const,
             onClick: () => {
-              // Find the latest draft assessment (by created_at descending) and navigate to its answer page
-              const drafts = (assessmentsData?.assessments || []).filter(
-                (assessment) => (assessment as unknown as { status: string }).status === "draft"
-              );
-              if (drafts.length > 0) {
-                const latestDraft = drafts.reduce((latest, current) => {
+              // Use the filtered assessments (already filtered by organization and status)
+              if (filteredAssessments.length > 0) {
+                const latestDraft = filteredAssessments.reduce((latest, current) => {
                   return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
-                }, drafts[0]);
+                }, filteredAssessments[0]);
                 navigate(`/user/assessment/${latestDraft.assessment_id}`);
               } else {
-                toast.info(t('user.dashboard.noDraftAssessment'));
+                toast.info(t('user.dashboard.noDraftAssessment', { 
+                  defaultValue: 'No draft assessment available. Please contact your organization administrator to create an assessment.' 
+                }));
               }
             },
           },
@@ -164,15 +251,31 @@ export const Dashboard: React.FC = () => {
   const userName =
     user?.name || user?.preferred_username || user?.email || t('user.dashboard.user');
   let orgName = t('user.dashboard.org');
+  let orgId = "";
+  let categories: string[] = [];
+  
+  // Debug: Log the decoded ID token
+  console.log('Decoded ID Token:', user);
+  console.log('🔍 Dashboard - User organizations:', user?.organizations);
+  console.log('🔍 Dashboard - Assessments data:', assessmentsData);
+  console.log('🔍 Dashboard - User submissions data:', userSubmissionsData);
+  console.log('🔍 Dashboard - Admin submissions data:', adminSubmissionsData);
+  console.log('🔍 Dashboard - Is org user:', isOrgUser);
+  console.log('🔍 Dashboard - Selected submissions data:', submissionsData);
+  console.log('🔍 Dashboard - Filtered assessments:', filteredAssessments);
+  
   if (user?.organizations && typeof user.organizations === "object") {
     const orgKeys = Object.keys(user.organizations);
+    console.log('Organization keys:', orgKeys);
     if (orgKeys.length > 0) {
-      orgName = orgKeys[0];
+      orgName = orgKeys[0]; // First organization name
+      const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgName];
+      console.log('Organization data for', orgName, ':', orgData);
+      if (orgData) {
+        orgId = orgData.id || "";
+        categories = orgData.categories || [];
+      }
     }
-  } else if (user?.organisation_name) {
-    orgName = user.organisation_name;
-  } else if (user?.organisation) {
-    orgName = user.organisation;
   }
 
   // Check if user has Org_admin role
@@ -185,11 +288,33 @@ export const Dashboard: React.FC = () => {
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 animate-fade-in">
-            <div className="flex items-center space-x-3 mb-4">
-              <Star className="w-8 h-8 text-dgrv-green" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">
-                {t('user.dashboard.welcome', { user: userName, org: orgName })}
-              </h1>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Star className="w-8 h-8 text-dgrv-green" />
+                <h1 className="text-3xl font-bold text-dgrv-blue">
+                  {t('user.dashboard.welcome', { user: userName, org: orgName })}
+                </h1>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleManualRefresh}
+                  className="flex items-center space-x-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Refresh Data</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleForceReload}
+                  className="flex items-center space-x-2 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Force Reload</span>
+                </Button>
+              </div>
             </div>
             <p className="text-lg text-gray-600">
               {t('user.dashboard.readyToContinue')}
@@ -225,7 +350,7 @@ export const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {isLoading ? (
+                  {submissionsLoading ? (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>{t('user.dashboard.loadingSubmissionsInline')}</p>
@@ -261,7 +386,7 @@ export const Dashboard: React.FC = () => {
                       </div>
                     ))
                   )}
-                  {submissions.length === 0 && !isLoading && (
+                  {submissions.length === 0 && !submissionsLoading && (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>

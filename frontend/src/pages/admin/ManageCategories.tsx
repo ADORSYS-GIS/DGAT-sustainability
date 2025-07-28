@@ -13,8 +13,11 @@ import {
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, List } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CategoriesService } from "@/openapi-rq/requests/services.gen";
+import { 
+  useOfflineCategories, 
+  useOfflineCategoriesMutation,
+  useOfflineSyncStatus 
+} from "@/hooks/useOfflineApi";
 import type { 
   GetCategoriesResponse, 
   PostCategoriesData, 
@@ -41,7 +44,6 @@ interface ApiError {
 
 export const ManageCategories: React.FC = () => {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
@@ -52,62 +54,15 @@ export const ManageCategories: React.FC = () => {
   // State for add/edit dialog weight error
   const [showDialogWeightError, setShowDialogWeightError] = useState(false);
 
-  // Fetch categories from API
-  const { data: categoriesData, isLoading, error } = useQuery<GetCategoriesResponse>({
-    queryKey: ["categories"],
-    queryFn: () => CategoriesService.getCategories(),
-  });
+  // Use offline hooks for all data fetching
+  const { data: categoriesData, isLoading, error, refetch } = useOfflineCategories();
 
   const categories = categoriesData?.categories || [];
 
-  // Create category mutation
-  const createCategoryMutation = useMutation({
-    mutationFn: (data: PostCategoriesData['requestBody']) =>
-      CategoriesService.postCategories({ requestBody: data }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success(t('manageCategories.categoryCreated', { defaultValue: 'Category created successfully!' }), {
-        className: "bg-dgrv-green text-white",
-      });
-      setIsDialogOpen(false);
-      setEditingCategory(null);
-    },
-    onError: (error: ApiError) => {
-      toast.error(error?.message || t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
-    },
-  });
+  // Use enhanced offline mutation hooks
+  const { createCategory, updateCategory, deleteCategory, isPending } = useOfflineCategoriesMutation();
 
-  // Update category mutation
-  const updateCategoryMutation = useMutation({
-    mutationFn: (data: PutCategoriesByCategoryIdData) =>
-      CategoriesService.putCategoriesByCategoryId(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success(t('manageCategories.categoryUpdated', { defaultValue: 'Category updated successfully!' }), {
-        className: "bg-dgrv-green text-white",
-      });
-      setIsDialogOpen(false);
-      setEditingCategory(null);
-    },
-    onError: (error: ApiError) => {
-      toast.error(error?.message || t('manageCategories.updateError', { defaultValue: 'Failed to update category' }));
-    },
-  });
-
-  // Delete category mutation
-  const deleteCategoryMutation = useMutation({
-    mutationFn: (data: DeleteCategoriesByCategoryIdData) => 
-      CategoriesService.deleteCategoriesByCategoryId(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success(t('manageCategories.categoryDeleted', { defaultValue: 'Category deleted successfully!' }), {
-        className: "bg-dgrv-green text-white",
-      });
-    },
-    onError: (error: ApiError) => {
-      toast.error(error?.message || t('manageCategories.deleteError', { defaultValue: 'Failed to delete category' }));
-    },
-  });
+  const { isOnline } = useOfflineSyncStatus();
 
   // Sort categories by order
   const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
@@ -123,7 +78,6 @@ export const ManageCategories: React.FC = () => {
   // Evenly redistribute weights, optionally including a new category
   const redistributeWeights = async (includeNewCategory = false) => {
     let cats = sortedCategories;
-    let newCat: Category | null = null;
     
     if (includeNewCategory && !editingCategory) {
       // For redistribution including new category, we just calculate the weight
@@ -138,77 +92,91 @@ export const ManageCategories: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
       cats = [...cats, tempCat];
-      newCat = tempCat;
     }
 
-    const n = cats.length;
-    if (n === 0) return;
-    
-    const base = Math.floor(100 / n);
-    const remainder = 100 - base * n;
-    
-    // Update existing categories with new weights
-    const updatePromises = cats
-      .filter(cat => cat.category_id !== "temp")
-      .map((cat, i) => {
-        const newWeight = base + (i < remainder ? 1 : 0);
-        return updateCategoryMutation.mutateAsync({
-          categoryId: cat.category_id,
-          requestBody: { weight: newWeight }
+    const totalCats = cats.length;
+    if (totalCats === 0) return;
+
+    const newWeight = Math.floor(100 / totalCats);
+    const remainder = 100 % totalCats;
+
+    const updatedCategories = cats.map((cat, index) => ({
+      ...cat,
+      weight: newWeight + (index < remainder ? 1 : 0),
+    }));
+
+    // Update each category
+    for (const cat of updatedCategories) {
+      if (cat.category_id !== "temp") {
+        await updateCategory(cat.category_id, {
+          name: cat.name,
+          weight: cat.weight,
+          order: cat.order,
+        }, {
+          onSuccess: () => {
+            console.log(`Updated category ${cat.name} with weight ${cat.weight}`);
+          },
+          onError: (error) => {
+            console.error(`Failed to update category ${cat.name}:`, error);
+          }
         });
-      });
-
-    try {
-      await Promise.all(updatePromises);
-      
-      // If we just redistributed including a new category, update the form weight
-      if (includeNewCategory && newCat) {
-        const idx = cats.findIndex(cat => cat.category_id === "temp");
-        const newWeight = base + (idx < remainder ? 1 : 0);
-        setFormData(prev => ({ ...prev, weight: newWeight }));
       }
-      
-      toast.success(t('manageCategories.weightsRedistributed', { defaultValue: 'Weights redistributed evenly.' }), {
-        className: "bg-dgrv-green text-white",
-      });
-    } catch (error) {
-      toast.error(t('manageCategories.redistributeError', { defaultValue: 'Failed to redistribute weights' }));
     }
+
+    // Update form data if redistributing for new category
+    if (includeNewCategory && !editingCategory) {
+      const newCatWeight = updatedCategories.find(cat => cat.category_id === "temp")?.weight || 25;
+      setFormData(prev => ({ ...prev, weight: newCatWeight }));
+    }
+
+    await refetch();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // If editing, subtract old weight, else just add new
-    let newTotal = formData.weight;
-    if (editingCategory) {
-      newTotal = totalWeight - editingCategory.weight + formData.weight;
-    } else {
-      newTotal = totalWeight + formData.weight;
-    }
-    
-    if (newTotal > 100) {
+
+    // Check if total weight would exceed 100
+    const newTotalWeight = totalWeight + formData.weight - (editingCategory?.weight || 0);
+    if (newTotalWeight > 100) {
       setShowDialogWeightError(true);
       return;
     }
-    
-    setShowDialogWeightError(false);
 
     if (editingCategory) {
-      updateCategoryMutation.mutate({
-        categoryId: editingCategory.category_id,
-        requestBody: {
-          name: formData.name,
-          weight: formData.weight,
-          order: formData.order,
+      // Update existing category
+      await updateCategory(editingCategory.category_id, {
+        name: formData.name,
+        weight: formData.weight,
+        order: formData.order,
+      }, {
+        onSuccess: () => {
+          toast.success(t('manageCategories.updateSuccess', { defaultValue: 'Category updated successfully' }));
+          setIsDialogOpen(false);
+          setEditingCategory(null);
+          setFormData({ name: "", weight: 25, order: 1 });
+          refetch();
+        },
+        onError: (error) => {
+          toast.error(t('manageCategories.updateError', { defaultValue: 'Failed to update category' }));
         }
       });
     } else {
-      createCategoryMutation.mutate({
+      // Create new category
+      await createCategory({
         name: formData.name,
         weight: formData.weight,
         order: formData.order,
         template_id: SUSTAINABILITY_TEMPLATE_ID,
+      }, {
+        onSuccess: () => {
+          toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
+          setIsDialogOpen(false);
+          setFormData({ name: "", weight: 25, order: categories.length + 1 });
+          refetch();
+        },
+        onError: (error) => {
+          toast.error(t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
+        }
       });
     }
   };
@@ -227,7 +195,15 @@ export const ManageCategories: React.FC = () => {
     if (!window.confirm(t('manageCategories.confirmDelete', { defaultValue: 'Are you sure you want to delete this category?' })))
       return;
     
-    deleteCategoryMutation.mutate({ categoryId });
+    await deleteCategory(categoryId, {
+      onSuccess: () => {
+        toast.success(t('manageCategories.deleteSuccess', { defaultValue: 'Category deleted successfully' }));
+        refetch();
+      },
+      onError: (error) => {
+        toast.error(t('manageCategories.deleteError', { defaultValue: 'Failed to delete category' }));
+      }
+    });
   };
 
   if (isLoading) {
@@ -252,7 +228,7 @@ export const ManageCategories: React.FC = () => {
               {error instanceof Error ? error.message : t('manageCategories.unknownError', { defaultValue: 'An unknown error occurred' })}
             </p>
             <Button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ["categories"] })}
+              onClick={() => refetch()}
               className="bg-dgrv-blue hover:bg-blue-700"
             >
               {t('manageCategories.retry', { defaultValue: 'Retry' })}
@@ -267,6 +243,20 @@ export const ManageCategories: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Offline Status Indicator */}
+          <div className="mb-4 flex items-center justify-end">
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+              isOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOnline ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
+              <span>{isOnline ? 'Online' : 'Offline'}</span>
+            </div>
+          </div>
+
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center space-x-3 mb-4">
               <List className="w-8 h-8 text-dgrv-blue" />
@@ -374,9 +364,13 @@ export const ManageCategories: React.FC = () => {
                     <Button
                       type="submit"
                       className="w-full bg-dgrv-blue hover:bg-blue-700"
-                      disabled={showDialogWeightError || createCategoryMutation.isPending || updateCategoryMutation.isPending}
+                      disabled={showDialogWeightError || isPending}
                     >
-                      {editingCategory ? t('manageCategories.updateCategory') : t('manageCategories.createCategory')}
+                      {isPending
+                        ? t('manageCategories.saving', { defaultValue: 'Saving...' })
+                        : editingCategory 
+                          ? t('manageCategories.updateCategory') 
+                          : t('manageCategories.createCategory')}
                     </Button>
                   </form>
                 </DialogContent>
@@ -400,7 +394,7 @@ export const ManageCategories: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEdit(category)}
-                        disabled={updateCategoryMutation.isPending}
+                        disabled={isPending}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -409,7 +403,7 @@ export const ManageCategories: React.FC = () => {
                         size="sm"
                         onClick={() => handleDelete(category.category_id)}
                         className="text-red-600 hover:text-red-700"
-                        disabled={deleteCategoryMutation.isPending}
+                        disabled={isPending}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -426,7 +420,7 @@ export const ManageCategories: React.FC = () => {
                       variant="outline"
                       onClick={() => redistributeWeights()}
                       className="bg-dgrv-blue text-white hover:bg-blue-700"
-                      disabled={updateCategoryMutation.isPending}
+                      disabled={isPending}
                     >
                       {t('manageCategories.redistributeWeights')}
                     </Button>

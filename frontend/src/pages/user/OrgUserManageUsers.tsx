@@ -14,36 +14,252 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Users, Edit, Trash2, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
-import {
-  useOrganizationMembersServiceGetOrganizationsByIdOrgAdminMembers,
-  useOrganizationMembersServicePostOrganizationsByIdOrgAdminMembers,
-  useOrganizationMembersServiceDeleteOrganizationsByIdOrgAdminMembersByMemberId,
-  useOrganizationMembersServicePutOrganizationsByIdOrgAdminMembersByMemberIdCategories,
-} from "@/openapi-rq/queries/queries";
+import { 
+  useOfflineUsers
+} from "@/hooks/useOfflineApi";
 import type {
   OrganizationMember,
   OrgAdminMemberRequest,
   OrgAdminMemberCategoryUpdateRequest,
 } from "@/openapi-rq/requests/types.gen";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { offlineDB } from "@/services/indexeddb";
+import { OrganizationMembersService } from "@/openapi-rq/requests/services.gen";
+import type { OfflineUser } from "@/types/offline";
 
 // Helper to get org and categories from ID token
-function getOrgAndCategoriesAndId(user: any) {
+function getOrgAndCategoriesAndId(user: Record<string, unknown>) {
   if (!user || !user.organizations)
     return { orgName: "", orgId: "", categories: [] };
-  const orgKeys = Object.keys(user.organizations);
-  if (orgKeys.length === 0) return { orgName: "", orgId: "", categories: [] };
-  const orgName = orgKeys[0];
-  const orgObj = user.organizations[orgName] || {};
-  const orgId = orgObj.id || "";
-  const categories = orgObj.categories || [];
-  return { orgName, orgId, categories };
+  
+  const organizations = user.organizations as Record<string, { id: string; categories: string[] }>;
+  const orgKeys = Object.keys(organizations);
+  
+  if (orgKeys.length === 0) 
+    return { orgName: "", orgId: "", categories: [] };
+  
+  const orgName = orgKeys[0]; // First organization
+  const orgData = organizations[orgName];
+  
+  return { 
+    orgName, 
+    orgId: orgData?.id || "", 
+    categories: orgData?.categories || [] 
+  };
+}
+
+// Offline-first user mutation hooks
+function useUserMutations() {
+  const [isPending, setIsPending] = useState(false);
+  
+  const createUser = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
+    setIsPending(true);
+    try {
+      // Create a temporary user object for optimistic update
+      const tempId = `temp_${crypto.randomUUID()}`;
+      const now = new Date().toISOString();
+      
+      const tempUser: OfflineUser = {
+        id: tempId,
+        email: data.requestBody.email,
+        username: data.requestBody.email.split('@')[0], // Use email prefix as username
+        firstName: '',
+        lastName: '',
+        emailVerified: false,
+        roles: data.requestBody.roles,
+        updated_at: now,
+        sync_status: 'pending',
+        organization_id: data.id,
+      };
+      
+      // Save to IndexedDB immediately for optimistic update
+      await offlineDB.saveUser(tempUser);
+      
+      // Attempt API call
+      try {
+        const result = await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
+          id: data.id,
+          requestBody: data.requestBody
+        });
+        
+        // If API call succeeds, update the local user with real data
+        if (result) {
+          await offlineDB.deleteUser(tempId);
+          // The API response is unknown, so we'll create a basic user object
+          const offlineUser: OfflineUser = {
+            id: tempId, // We'll need to get the real ID from the response
+            email: data.requestBody.email,
+            username: data.requestBody.email.split('@')[0],
+            firstName: '',
+            lastName: '',
+            emailVerified: false,
+            roles: data.requestBody.roles,
+            sync_status: 'synced',
+            updated_at: new Date().toISOString(),
+            organization_id: data.id,
+          };
+          await offlineDB.saveUser(offlineUser);
+        }
+        
+        toast.success("User created successfully");
+        return { success: true };
+      } catch (apiError) {
+        // API call failed, keep the temporary user and queue for sync
+        await offlineDB.addToSyncQueue({
+          id: crypto.randomUUID(),
+          operation: 'create',
+          entity_type: 'user',
+          entity_id: tempId,
+          data: { organizationId: data.id, userData: data.requestBody },
+          retry_count: 0,
+          max_retries: 3,
+          priority: 'normal',
+          created_at: new Date().toISOString()
+        });
+        
+        toast.success("User created (offline mode)");
+        return { success: true };
+      }
+    } catch (error) {
+      toast.error("Failed to create user");
+      throw error;
+    } finally {
+      setIsPending(false);
+    }
+  };
+  
+  const updateUser = async (data: { id: string; memberId: string; requestBody: OrgAdminMemberCategoryUpdateRequest }) => {
+    setIsPending(true);
+    try {
+      // Get existing user from IndexedDB
+      const existingUser = await offlineDB.getUser(data.memberId);
+      if (!existingUser) {
+        throw new Error('User not found');
+      }
+      
+      // Update user locally - categories are stored separately in the API response
+      const updatedUser: OfflineUser = {
+        ...existingUser,
+        sync_status: 'pending',
+        updated_at: new Date().toISOString()
+      };
+      
+      await offlineDB.saveUser(updatedUser);
+      
+      // Attempt API call
+      try {
+        await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories({
+          id: data.id,
+          memberId: data.memberId,
+          requestBody: data.requestBody
+        });
+        
+        // API call succeeded, mark as synced
+        await offlineDB.saveUser({
+          ...updatedUser,
+          sync_status: 'synced',
+          updated_at: new Date().toISOString()
+        });
+        
+        toast.success("User updated successfully");
+        return { success: true };
+      } catch (apiError) {
+        // API call failed, queue for sync
+        await offlineDB.addToSyncQueue({
+          id: crypto.randomUUID(),
+          operation: 'update',
+          entity_type: 'user',
+          entity_id: data.memberId,
+          data: { organizationId: data.id, memberId: data.memberId, userData: data.requestBody },
+          retry_count: 0,
+          max_retries: 3,
+          priority: 'normal',
+          created_at: new Date().toISOString()
+        });
+        
+        toast.success("User updated (offline mode)");
+        return { success: true };
+      }
+    } catch (error) {
+      toast.error("Failed to update user");
+      throw error;
+    } finally {
+      setIsPending(false);
+    }
+  };
+  
+  const deleteUser = async (data: { id: string; memberId: string }) => {
+    setIsPending(true);
+    try {
+      // Get existing user from IndexedDB
+      const existingUser = await offlineDB.getUser(data.memberId);
+      if (!existingUser) {
+        throw new Error('User not found');
+      }
+      
+      // Mark as deleted locally
+      await offlineDB.saveUser({
+        ...existingUser,
+        sync_status: 'pending',
+        updated_at: new Date().toISOString()
+      });
+      
+      // Attempt API call
+      try {
+        await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId({
+          id: data.id,
+          memberId: data.memberId
+        });
+        
+        // API call succeeded, actually delete from IndexedDB
+        await offlineDB.deleteUser(data.memberId);
+        
+        toast.success("User deleted successfully");
+        return { success: true };
+      } catch (apiError) {
+        // API call failed, queue for sync
+        await offlineDB.addToSyncQueue({
+          id: crypto.randomUUID(),
+          operation: 'delete',
+          entity_type: 'user',
+          entity_id: data.memberId,
+          data: { organizationId: data.id, memberId: data.memberId },
+          retry_count: 0,
+          max_retries: 3,
+          priority: 'normal',
+          created_at: new Date().toISOString()
+        });
+        
+        toast.success("User deleted (offline mode)");
+        return { success: true };
+      }
+    } catch (error) {
+      toast.error("Failed to delete user");
+      throw error;
+    } finally {
+      setIsPending(false);
+    }
+  };
+  
+  return {
+    createUser: { mutate: createUser, isPending },
+    updateUser: { mutate: updateUser, isPending },
+    deleteUser: { mutate: deleteUser, isPending }
+  };
 }
 
 export const OrgUserManageUsers: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Debug: Log the decoded ID token
+  console.log('OrgUserManageUsers - Decoded ID Token:', user);
+  console.log('OrgUserManageUsers - User organizations:', user?.organizations);
+  
   const { orgName, orgId, categories } = getOrgAndCategoriesAndId(user);
+  
+  console.log('OrgUserManageUsers - Extracted data:', { orgName, orgId, categories });
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
@@ -58,55 +274,49 @@ export const OrgUserManageUsers: React.FC = () => {
   const {
     data: users,
     isLoading: usersLoading,
+    error,
     refetch,
-  } = useOrganizationMembersServiceGetOrganizationsByIdOrgAdminMembers(
-    { id: orgId },
-    undefined,
-    { enabled: !!orgId },
-  );
-  const createUserMutation =
-    useOrganizationMembersServicePostOrganizationsByIdOrgAdminMembers({
-      onSuccess: () => {
-        refetch();
-        setShowAddDialog(false);
-        resetForm();
-      },
-    });
-  const deleteUserMutation =
-    useOrganizationMembersServiceDeleteOrganizationsByIdOrgAdminMembersByMemberId(
-      {
-        onSuccess: () => refetch(),
-      },
-    );
-  const updateCategoriesMutation =
-    useOrganizationMembersServicePutOrganizationsByIdOrgAdminMembersByMemberIdCategories(
-      {
-        onSuccess: () => {
-          refetch();
-          setShowAddDialog(false);
-          resetForm();
-        },
-      },
-    );
+  } = useOfflineUsers(orgId);
+  
+  // Debug logging for users
+  console.log('OrgUserManageUsers - orgId:', orgId);
+  console.log('OrgUserManageUsers - users data:', users);
+  console.log('OrgUserManageUsers - users loading:', usersLoading);
+  console.log('OrgUserManageUsers - users error:', error);
+  
+  const { createUser, updateUser, deleteUser } = useUserMutations();
+  // Remove useOfflineSyncStatus, useOfflineSync, sync, isSyncing
+
+  // Remove all useEffect related to sync
+
+  // Manual sync function
+  // Remove handleManualSync function
 
   const handleSubmit = () => {
     if (!formData.email.trim()) {
-      alert("Email is required");
+      toast.error("Email is required");
       return;
     }
     if (!orgId) {
-      alert("Organization not found");
+      toast.error("Organization not found");
       return;
     }
+    
     if (editingUser) {
       // Only update categories for existing user
       const req: OrgAdminMemberCategoryUpdateRequest = {
         categories: formData.categories,
       };
-      updateCategoriesMutation.mutate({
+      updateUser.mutate({
         id: orgId,
         memberId: editingUser.id,
         requestBody: req,
+      }).then(() => {
+        refetch();
+        setShowAddDialog(false);
+        resetForm();
+      }).catch(() => {
+        // Error already handled in mutation
       });
     } else {
       const memberReq: OrgAdminMemberRequest = {
@@ -114,7 +324,13 @@ export const OrgUserManageUsers: React.FC = () => {
         roles: ["Org_User"],
         categories: formData.categories,
       };
-      createUserMutation.mutate({ id: orgId, requestBody: memberReq });
+      createUser.mutate({ id: orgId, requestBody: memberReq }).then(() => {
+        refetch();
+        setShowAddDialog(false);
+        resetForm();
+      }).catch(() => {
+        // Error already handled in mutation
+      });
     }
   };
 
@@ -136,7 +352,12 @@ export const OrgUserManageUsers: React.FC = () => {
     )
       return;
     if (!orgId) return;
-    deleteUserMutation.mutate({ id: orgId, memberId: userId });
+    
+    deleteUser.mutate({ id: orgId, memberId: userId }).then(() => {
+      refetch();
+    }).catch(() => {
+      // Error already handled in mutation
+    });
   };
 
   const resetForm = () => {
@@ -164,6 +385,8 @@ export const OrgUserManageUsers: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Remove Offline Status Indicator and Manual Sync Button */}
+        
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="outline"
@@ -245,8 +468,11 @@ export const OrgUserManageUsers: React.FC = () => {
                 <Button
                   onClick={handleSubmit}
                   className="bg-dgrv-green hover:bg-green-700"
+                  disabled={createUser.isPending || updateUser.isPending}
                 >
-                  {editingUser ? "Update" : "Create"} User
+                  {createUser.isPending || updateUser.isPending 
+                    ? "Processing..." 
+                    : editingUser ? "Update" : "Create"} User
                 </Button>
                 <Button variant="outline" onClick={resetForm}>
                   Cancel
@@ -318,6 +544,7 @@ export const OrgUserManageUsers: React.FC = () => {
                         variant="outline"
                         onClick={() => handleEdit(user)}
                         className="flex-1"
+                        disabled={false}
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         Edit
@@ -327,6 +554,7 @@ export const OrgUserManageUsers: React.FC = () => {
                         variant="outline"
                         onClick={() => handleDelete(user.id)}
                         className="text-red-600 hover:bg-red-50"
+                        disabled={deleteUser.isPending}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

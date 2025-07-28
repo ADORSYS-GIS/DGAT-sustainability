@@ -4,7 +4,7 @@ import { Navbar } from "@/components/shared/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useSubmissionsServiceGetSubmissionsBySubmissionId } from "../../openapi-rq/queries/queries";
+import { useOfflineSubmissions } from "../../hooks/useOfflineApi";
 import type { Submission_content_responses } from "../../openapi-rq/requests/types.gen";
 import {
   Accordion,
@@ -23,13 +23,13 @@ export const SubmissionView: React.FC = () => {
   const { t } = useTranslation();
   const { submissionId } = useParams<{ submissionId: string }>();
   const {
-    data: submissionData,
+    data: submissionsData,
     isLoading: submissionLoading,
-    isError: submissionError,
-  } = useSubmissionsServiceGetSubmissionsBySubmissionId({
-    submissionId: submissionId || "",
-  });
-  const submission = submissionData?.submission;
+    error: submissionError,
+  } = useOfflineSubmissions();
+  
+  // Find the specific submission by ID
+  const submission = submissionsData?.submissions?.find(s => s.submission_id === submissionId);
   const responses = submission?.content?.responses as SubmissionResponseWithCategory[] | undefined;
 
   // Group responses by category
@@ -224,10 +224,12 @@ export const SubmissionView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-dgrv-light-blue">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-24 pb-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Remove online status indicator */}
+        
+        <div className="mb-6">
           <Card className="shadow-md bg-white/90 border-0">
             <CardHeader className="border-b pb-2 mb-2">
               <CardTitle className="text-2xl font-bold text-dgrv-blue tracking-tight text-left">

@@ -3,7 +3,7 @@ import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OpenAPI } from "@/openapi-rq/requests";
-import { getOidc } from "@/services/shared/oidc";
+import { getOidc, OidcProvider } from "@/services/shared/oidc";
 import './i18n';
 
 // Register OpenAPI request middleware to add Bearer token
@@ -65,6 +65,11 @@ const queryClient = new QueryClient({
 // Initialize offline services
 async function initializeOfflineServices() {
   try {
+    // Temporarily disable service worker registration to fix React hooks error
+    console.log("Service worker registration temporarily disabled");
+    
+    // TODO: Re-enable when service worker is properly configured
+    /*
     // Register service worker
     if ("serviceWorker" in navigator) {
       const registration = await navigator.serviceWorker.register("/sw.js", {
@@ -90,6 +95,7 @@ async function initializeOfflineServices() {
         }
       });
     }
+    */
 
     console.log("Offline services initialized successfully");
   } catch (error) {
@@ -101,7 +107,9 @@ async function initializeOfflineServices() {
 initializeOfflineServices();
 
 createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <App />
-  </QueryClientProvider>
+  <OidcProvider>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </OidcProvider>
 );

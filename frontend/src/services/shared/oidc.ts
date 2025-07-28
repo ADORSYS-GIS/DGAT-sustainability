@@ -14,6 +14,10 @@ const decodedIdTokenSchema = z.object({
   organisations: z.record(z.string(), z.unknown()).optional(),
   organisation_name: z.string().optional(),
   organisation: z.string().optional(),
+  organizations: z.record(z.string(), z.object({
+    id: z.string(),
+    categories: z.array(z.string())
+  })).optional(),
 });
 
 export const { OidcProvider, useOidc, getOidc, withLoginEnforced, enforceLogin } =

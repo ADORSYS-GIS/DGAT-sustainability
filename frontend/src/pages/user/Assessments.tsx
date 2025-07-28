@@ -2,11 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
-// TODO: Replace with org-scoped assessment listing endpoint when available
-import { useSubmissionsServiceGetSubmissions } from "@/openapi-rq/queries/queries";
-import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
+import { useOfflineSubmissions } from "@/hooks/useOfflineApi";
 import { offlineDB } from "@/services/indexeddb";
-import { useResponsesServiceGetAssessmentsByAssessmentIdResponses } from "@/openapi-rq/queries/queries";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
 import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
@@ -33,12 +30,11 @@ type AssessmentWithStatus = Assessment & { status?: string };
 export const Assessments: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { isOnline } = useSyncStatus();
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   // Fetch all submissions for the current user/org
-  const { data, isLoading: remoteLoading } = useSubmissionsServiceGetSubmissions();
+  const { data, isLoading: remoteLoading } = useOfflineSubmissions();
   const submissions = data?.submissions || [];
 
   useEffect(() => {
@@ -143,49 +139,47 @@ export const Assessments: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center space-x-3 mb-4">
-                  <FileText className="w-8 h-8 text-dgrv-blue" />
-                  <h1 className="text-3xl font-bold text-dgrv-blue">
-                    {t("yourSubmissions")}
-                  </h1>
-                </div>
-                <p className="text-lg text-gray-600">
-                  {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
-                </p>
-              </div>
+      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Remove online status indicator */}
+        
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <div className="flex items-center space-x-3 mb-4">
+              <FileText className="w-8 h-8 text-dgrv-blue" />
+              <h1 className="text-3xl font-bold text-dgrv-blue">
+                {t("yourSubmissions")}
+              </h1>
             </div>
+            <p className="text-lg text-gray-600">
+              {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
+            </p>
           </div>
+        </div>
 
-          <div className="grid gap-6">
-            {submissions.map((submission: Submission, index) => (
-              <SubmissionCard
-                key={submission.submission_id}
-                submission={submission}
-                user={user}
-                navigate={navigate}
-                index={index}
-              />
-            ))}
+        <div className="grid gap-6">
+          {submissions.map((submission: Submission, index) => (
+            <SubmissionCard
+              key={submission.submission_id}
+              submission={submission}
+              user={user}
+              navigate={navigate}
+              index={index}
+            />
+          ))}
 
-            {submissions.length === 0 && !isLoading && (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {t("noSubmissions")}
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          {submissions.length === 0 && !isLoading && (
+            <Card className="text-center py-12">
+              <CardContent>
+                <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {t("noSubmissions")}
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

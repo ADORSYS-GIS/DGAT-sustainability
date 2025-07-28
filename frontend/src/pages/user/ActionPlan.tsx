@@ -11,12 +11,12 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import * as React from "react";
-import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
+import { useOfflineReports } from "../../hooks/useOfflineApi";
 
 export const ActionPlan: React.FC = () => {
   const { t } = useTranslation();
   // Fetch all user reports
-  const { data, isLoading } = useReportsServiceGetUserReports();
+  const { data, isLoading } = useOfflineReports();
 
   // Flat recommendation type for Kanban with status
   type KanbanRecommendation = {
@@ -145,6 +145,8 @@ export const ActionPlan: React.FC = () => {
       <Navbar />
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Remove online status indicator */}
+          
           {/* Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between">

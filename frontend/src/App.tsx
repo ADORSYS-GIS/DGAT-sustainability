@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import AppRouter from "./router/AppRouter";
 import { LoadingSpinner } from "./components/shared/LoadingSpinner";
 import { useInitialDataLoad } from "./hooks/useInitialDataLoad";
-import { OidcProvider } from "./services/shared/oidc";
 import "@/services/syncService"; // Ensure the sync service is initialized
 
-const App = () => {
+// Separate component that uses authentication hooks
+const AuthenticatedApp = () => {
   const [loading, setLoading] = useState(false);
   useInitialDataLoad(); // Pre-load data for offline use
 
@@ -17,11 +17,11 @@ const App = () => {
     );
   }
 
-  return (
-    <OidcProvider>
-      <AppRouter />
-    </OidcProvider>
-  );
+  return <AppRouter />;
+};
+
+const App = () => {
+  return <AuthenticatedApp />;
 };
 
 export default App;

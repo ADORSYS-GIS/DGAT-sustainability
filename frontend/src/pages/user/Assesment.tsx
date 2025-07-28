@@ -2,18 +2,24 @@ import * as React from "react";
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
+import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { useOfflineQuestions, useOfflineAssessment, useOfflineAssessmentMutation, useOfflineBatchResponseMutation } from "../../hooks/useOfflineLocal";
+import { 
+  useOfflineQuestions, 
+  useOfflineAssessment, 
+  useOfflineAssessmentsMutation, 
+  useOfflineResponsesMutation
+} from "../../hooks/useOfflineApi";
 import { toast } from "sonner";
 import { Info, Paperclip, ChevronLeft, ChevronRight, Save, Send } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
-import type { Question, QuestionRevision, Assessment as AssessmentType, Response as ResponseType } from "@/openapi-rq/requests/types.gen";
+import type { Question, QuestionRevision, Assessment as AssessmentType, Response as ResponseType, AssessmentDetailResponse } from "@/openapi-rq/requests/types.gen";
 import { offlineDB } from "../../services/indexeddb";
-import type { CreateResponseRequest } from "@/openapi-rq/requests/types.gen";
+import type { CreateResponseRequest, CreateAssessmentRequest } from "@/openapi-rq/requests/types.gen";
 import { useTranslation } from "react-i18next";
 
 type FileData = { name: string; url: string };
@@ -31,14 +37,23 @@ export const Assessment: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  console.log('🔍 Assessment component loaded with assessmentId:', assessmentId);
+
   const orgInfo = React.useMemo(() => {
     if (!user || !user.organizations) return { orgId: "", categories: [] };
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length === 0) return { orgId: "", categories: [] };
-    const orgObj = user.organizations[orgKeys[0]] || {};
+    const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+    
+    // Debug logging
+    console.log('Assessment - User organizations:', user.organizations);
+    console.log('Assessment - Org keys:', orgKeys);
+    console.log('Assessment - Org data:', orgData);
+    console.log('Assessment - Extracted categories:', orgData?.categories);
+    
     return {
-      orgId: orgObj.id || "",
-      categories: user.categories || orgObj.categories || [],
+      orgId: orgData?.id || "",
+      categories: orgData?.categories || [],
     };
   }, [user]);
   
@@ -50,11 +65,11 @@ export const Assessment: React.FC = () => {
   const toolName = t("sustainability") + " " + t("assessment");
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
-  const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment({ assessmentId: assessmentId || "" });
+  const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
 
-  const createAssessmentMutation = useOfflineAssessmentMutation();
-  const createResponseMutation = useOfflineBatchResponseMutation();
-  const submitAssessmentMutation = useOfflineAssessmentMutation();
+  // Use enhanced offline mutation hooks
+  const { createAssessment, updateAssessment, deleteAssessment, submitAssessment: submitAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
+  const { createResponses, updateResponse, deleteResponse, isPending: responseMutationPending } = useOfflineResponsesMutation();
 
   useEffect(() => {
     // Robust role check: only an org_admin should be able to create an assessment
@@ -74,69 +89,136 @@ export const Assessment: React.FC = () => {
     if (
       !assessmentId &&
       !hasCreatedAssessment &&
-      !createAssessmentMutation.isPending &&
+      !assessmentMutationPending &&
       user?.sub &&
       canCreate
     ) {
       setHasCreatedAssessment(true);
-      const newAssessmentId = uuidv4();
-      const newAssessment: AssessmentType = {
-        assessment_id: newAssessmentId,
-        user_id: user.sub,
+      const newAssessment: CreateAssessmentRequest = {
         language: "en",
-        created_at: new Date().toISOString(),
       };
-      createAssessmentMutation.mutate(newAssessment, {
-        onSuccess: () => navigate(`/user/assessment/${newAssessmentId}`),
-        onError: (err) => {
-          toast.error(t('assessment.failedToCreate'));
-          console.error(err);
-          setHasCreatedAssessment(false);
-        },
-      });
+      try {
+        createAssessment(newAssessment, {
+          onSuccess: (result) => {
+            console.log('🔍 Assessment creation success result:', result);
+            // The result should contain the API response with the real assessment ID
+            if (result && typeof result === 'object' && 'assessment' in result) {
+              const apiResponse = result as { assessment: AssessmentType };
+              console.log('🔍 API response assessment:', apiResponse.assessment);
+              if (apiResponse.assessment && apiResponse.assessment.assessment_id) {
+                const realAssessmentId = apiResponse.assessment.assessment_id;
+                console.log('🔍 Assessment created with ID:', realAssessmentId);
+                
+                // Only navigate if we have a real assessment ID (not a temp one)
+                if (!realAssessmentId.startsWith('temp_')) {
+                  toast.success(t('assessment.previousDraftsDeleted', { defaultValue: 'Previous draft assessments have been deleted. New assessment created successfully!' }));
+                  
+                  // Add a small delay to ensure the assessment is properly saved to IndexedDB
+                  setTimeout(() => {
+                    console.log('🔍 Navigating to assessment:', realAssessmentId);
+                    navigate(`/user/assessment/${realAssessmentId}`);
+                  }, 500);
+                } else {
+                  console.warn('Received temporary assessment ID, waiting for real ID');
+                  // Don't navigate yet, wait for the real assessment ID
+                }
+              } else {
+                console.error('API response missing assessment ID:', result);
+                toast.error(t('assessment.failedToCreate'));
+                setHasCreatedAssessment(false);
+              }
+            } else {
+              console.error('Unexpected API response format:', result);
+              toast.error(t('assessment.failedToCreate'));
+              setHasCreatedAssessment(false);
+            }
+          },
+          onError: (err) => {
+            console.error('❌ Assessment creation error:', err);
+            toast.error(t('assessment.failedToCreate'));
+            setHasCreatedAssessment(false);
+          },
+          organizationId: orgInfo.orgId,
+          userEmail: user?.email,
+        });
+      } catch (err) {
+        setHasCreatedAssessment(false);
+      }
     }
-  }, [assessmentId, hasCreatedAssessment, user, createAssessmentMutation, navigate, t]);
+  }, [assessmentId, hasCreatedAssessment, user, createAssessment, navigate, t, assessmentMutationPending, orgInfo.orgId, user?.email]);
   
     // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
-    if (!isCurrentCategoryComplete()) {
-      toast.error(t('assessment.completeAllQuestions'));
+    console.log('🔍 submitAssessment called');
+    console.log('🔍 assessmentId from params:', assessmentId);
+    console.log('🔍 assessmentDetail:', assessmentDetail);
+    console.log('🔍 assessmentLoading:', assessmentLoading);
+    
+    if (!assessmentDetail) {
+      console.error('❌ assessmentDetail is null or undefined');
+      toast.error(t('assessment.failedToSubmit', { defaultValue: 'Assessment details not loaded. Please try again.' }));
       return;
     }
-    const currentQuestions = getCurrentCategoryQuestions();
-    const responsesToSend = currentQuestions
-      .map((question) => {
-        const key = getRevisionKey(question.revision);
-        const answer = answers[key];
-        if (!answer) return null;
-        return createResponseToSave(key, answer);
-      })
-      .filter((r): r is CreateResponseRequest => r !== null);
-
-    // Save all responses as a batch
-    if (assessmentId && responsesToSend.length > 0) {
-      createResponseMutation.mutate({ assessmentId, responses: responsesToSend });
+    
+    // Handle the case where assessmentDetail is AssessmentDetailResponse (contains assessment, questions, responses)
+    // or just Assessment directly
+    let actualAssessment: AssessmentType;
+    if ('assessment' in assessmentDetail && assessmentDetail.assessment) {
+      actualAssessment = assessmentDetail.assessment;
+    } else if ('assessment_id' in assessmentDetail) {
+      actualAssessment = assessmentDetail as AssessmentType;
+    } else {
+      console.error('❌ Invalid assessment detail format:', assessmentDetail);
+      toast.error(t('assessment.failedToSubmit', { defaultValue: 'Invalid assessment format. Please try again.' }));
+      return;
     }
     
-    // Mark assessment as submitted (locally)
-    if (assessmentDetail) {
-        const updatedAssessment = { ...assessmentDetail, status: 'submitted' };
-        submitAssessmentMutation.mutate(updatedAssessment, {
-            onSuccess: () => {
-                // Also add a specific "submit" action to the sync queue
-                offlineDB.addToSyncQueue({
-                    type: "submit_assessment",
-                    data: { assessment_id: assessmentDetail.assessment_id }
-                });
-                toast.success(t('assessment.submittedLocally'));
-                navigate("/dashboard");
-            }
-        });
+    if (!actualAssessment.assessment_id) {
+      console.error('❌ assessment.assessment_id is missing:', actualAssessment);
+      toast.error(t('assessment.failedToSubmit', { defaultValue: 'Assessment ID is missing. Please try again.' }));
+      return;
+    }
+    
+    try {
+      // First save all current responses
+      const currentCategoryQuestions = getCurrentCategoryQuestions();
+      const responsesToSave: CreateResponseRequest[] = [];
+      
+      for (const { revision } of currentCategoryQuestions) {
+        const key = getRevisionKey(revision);
+        const answer = answers[key];
+        if (answer && isAnswerComplete(answer)) {
+          responsesToSave.push(createResponseToSave(key, answer));
+        }
+      }
+      
+      if (responsesToSave.length > 0) {
+        await createResponses(actualAssessment.assessment_id, responsesToSave);
+      }
+      
+      // Then submit the assessment
+      console.log('🔍 Submitting assessment with ID:', actualAssessment.assessment_id);
+      await submitAssessmentHook(actualAssessment.assessment_id, {
+        onSuccess: () => {
+          toast.success(t('assessment.submittedSuccessfully', { defaultValue: 'Assessment submitted successfully!' }));
+          navigate("/dashboard");
+        },
+        onError: (err) => {
+          toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
+          console.error(err);
+        }
+      });
+    } catch (error) {
+      toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
+      console.error('Submit assessment error:', error);
     }
   };
 
   // Group questions by category (support both old and new formats)
   const groupedQuestions = React.useMemo(() => {
+    console.log('Assessment - Questions data:', questionsData);
+    console.log('Assessment - Org info categories:', orgInfo.categories);
+    
     if (!questionsData?.questions) return {};
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
     (questionsData.questions as unknown[]).forEach((q) => {
@@ -160,11 +242,18 @@ export const Assessment: React.FC = () => {
         groups[category].push({ question, revision });
       }
     });
+    
+    console.log('Assessment - All grouped questions:', groups);
+    
     // Filter to only categories assigned to the user (org_user)
     const filtered: typeof groups = {};
     for (const cat of orgInfo.categories) {
       if (groups[cat]) filtered[cat] = groups[cat];
     }
+    
+    console.log('Assessment - Filtered questions for user categories:', filtered);
+    console.log('Assessment - Available categories after filtering:', Object.keys(filtered));
+    
     return filtered;
   }, [questionsData, orgInfo.categories]);
 
@@ -297,7 +386,14 @@ export const Assessment: React.FC = () => {
 
     // Save all responses as a batch
     if (assessmentId && responsesToSend.length > 0) {
-      createResponseMutation.mutate({ assessmentId, responses: responsesToSend });
+      await createResponses(assessmentId, responsesToSend, {
+        onSuccess: () => {
+          console.log('Responses saved successfully');
+        },
+        onError: (error) => {
+          console.error('Failed to save responses:', error);
+        }
+      });
     }
 
     if (currentCategoryIndex < categories.length - 1) {
@@ -514,8 +610,8 @@ export const Assessment: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Navbar />
+      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 animate-fade-in">
             <h1 className="text-3xl font-bold text-dgrv-blue mb-2">
@@ -630,6 +726,5 @@ export const Assessment: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };

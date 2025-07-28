@@ -14,15 +14,17 @@ import {
   AlertCircle,
 } from "lucide-react";
 import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen";
-import { useAdminServiceGetAdminSubmissions } from "../../openapi-rq/queries/queries";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useQuestionsServiceGetQuestions } from "../../openapi-rq/queries/queries";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { CategoriesService } from "@/openapi-rq/requests/services.gen";
-import type { GetCategoriesResponse } from "@/openapi-rq/requests/types.gen";
 import { Button } from "@/components/ui/button";
+import { 
+  useOfflineAdminSubmissions, 
+  useOfflineQuestions, 
+  useOfflineCategories,
+  useOfflineSyncStatus 
+} from "@/hooks/useOfflineApi";
+import { useAuth } from "@/hooks/shared/useAuth";
 
 type Organization = { organizationId: string; name: string };
 type User = { userId: string; firstName?: string; lastName?: string };
@@ -37,6 +39,12 @@ interface PendingReview {
 
 export const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  
+  console.log('🔍 AdminDashboard: User context:', user);
+  console.log('🔍 AdminDashboard: User roles:', user?.roles);
+  console.log('🔍 AdminDashboard: User realm_access roles:', user?.realm_access?.roles);
+  
   const [orgs] = React.useState<Organization[]>([
     { organizationId: "org1", name: "Mock Cooperative 1" },
     { organizationId: "org2", name: "Mock Cooperative 2" },
@@ -48,20 +56,29 @@ export const AdminDashboard: React.FC = () => {
   const orgsLoading = false;
   const usersLoading = false;
 
+  // Use offline hooks for all data fetching
   const {
     data: submissionsData,
     isLoading: submissionsLoading,
-    isError,
     error,
-    isSuccess,
-  } = useAdminServiceGetAdminSubmissions();
+  } = useOfflineAdminSubmissions();
+  
+  console.log('🔍 AdminDashboard: useOfflineAdminSubmissions hook called');
+  console.log('🔍 AdminDashboard: submissionsData:', submissionsData);
+  console.log('🔍 AdminDashboard: submissionsLoading:', submissionsLoading);
+  console.log('🔍 AdminDashboard: error:', error);
+  
   const submissions: AdminSubmissionDetail[] = React.useMemo(
     () => submissionsData?.submissions ?? [],
     [submissionsData],
   );
+  
+  console.log('🔍 AdminDashboard: submissions array:', submissions);
+
+  const { isOnline } = useOfflineSyncStatus();
 
   React.useEffect(() => {
-    if (isError) {
+    if (error) {
       toast.error("Error loading submissions", {
         description: error instanceof Error ? error.message : String(error),
       });
@@ -69,15 +86,30 @@ export const AdminDashboard: React.FC = () => {
       toast.info("Loading submissions...", {
         description: "Fetching latest submission data.",
       });
-    } else if (isSuccess) {
+    } else if (submissionsData && submissions.length > 0) {
+      console.log('🔍 AdminDashboard: Loaded submissions data:', submissionsData);
+      console.log('🔍 AdminDashboard: Submissions array:', submissions);
+      console.log('🔍 AdminDashboard: Submission statuses:', submissions.map(s => ({ 
+        id: s.submission_id, 
+        status: s.review_status,
+        user_id: s.user_id,
+        submitted_at: s.submitted_at
+      })));
       toast.success(`Loaded ${submissions.length} submissions successfully!`, {
         className: "bg-dgrv-green text-white",
       });
+    } else {
+      console.log('🔍 AdminDashboard: No submissions data or empty array');
+      console.log('🔍 AdminDashboard: submissionsData:', submissionsData);
+      console.log('🔍 AdminDashboard: submissions array:', submissions);
     }
-  }, [isError, error, submissionsLoading, isSuccess, submissions.length]);
+  }, [error, submissionsLoading, submissionsData, submissions.length]);
 
   const pendingReviews = useMemo(() => {
     if (orgsLoading || usersLoading || submissionsLoading) return [];
+
+    console.log('🔍 All submissions loaded:', submissions);
+    console.log('🔍 Submission statuses:', submissions.map(s => ({ id: s.submission_id, status: s.review_status })));
 
     // Include both 'pending_review' and 'under_review' statuses
     const pendingSubmissions = submissions.filter(
@@ -85,6 +117,9 @@ export const AdminDashboard: React.FC = () => {
         s.review_status === "pending_review" ||
         s.review_status === "under_review",
     );
+
+    console.log('🔍 Pending submissions after filter:', pendingSubmissions);
+
     const userMap = new Map(
       users.map((u) => [u.userId, `${u.firstName ?? ""} ${u.lastName ?? ""}`]),
     );
@@ -168,19 +203,15 @@ export const AdminDashboard: React.FC = () => {
     },
   ];
 
-  // Dynamic counts for categories and questions
+  // Dynamic counts for categories and questions using offline hooks
   const [questionCount, setQuestionCount] = useState<number>(0);
 
-  // Fetch categories count from remote API using the same pattern as ManageCategories
-  const { data: categoriesData } = useQuery<GetCategoriesResponse>({
-    queryKey: ["categories"],
-    queryFn: () => CategoriesService.getCategories(),
-  });
-
+  // Fetch categories count from offline data
+  const { data: categoriesData } = useOfflineCategories();
   const categoryCount = categoriesData?.categories?.length || 0;
 
-  // Fetch questions count from API
-  const { data: questionsData } = useQuestionsServiceGetQuestions();
+  // Fetch questions count from offline data
+  const { data: questionsData } = useOfflineQuestions();
   function isQuestionsResponse(obj: unknown): obj is { questions: unknown[] } {
     return (
       typeof obj === "object" &&
@@ -209,13 +240,29 @@ export const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Offline Status Indicator */}
+          <div className="mb-4 flex items-center justify-end">
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+              isOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOnline ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
+              <span>{isOnline ? 'Online' : 'Offline'}</span>
+            </div>
+          </div>
+
           {/* Welcome Header */}
           <div className="mb-8 animate-fade-in">
-            <div className="flex items-center space-x-3 mb-4">
-              <Settings className="w-8 h-8 text-dgrv-blue" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">
-                {t('adminDashboard.welcome')}
-              </h1>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Settings className="w-8 h-8 text-dgrv-blue" />
+                <h1 className="text-3xl font-bold text-dgrv-blue">
+                  {t('adminDashboard.welcome')}
+                </h1>
+              </div>
             </div>
             <p className="text-lg text-gray-600">
               {t('adminDashboard.intro')}
@@ -272,6 +319,7 @@ export const AdminDashboard: React.FC = () => {
                     <div
                       key={review.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/admin/reviews/${review.id}`)}
                     >
                       <div className="flex items-center space-x-4">
                         <div className="p-2 rounded-full bg-gray-100">

@@ -10,8 +10,12 @@ interface AuthState {
     roles?: string[];
     realm_access?: { roles: string[] };
     organisations?: Record<string, unknown>;
-    organisation_name?: string;
-    organisation?: string;
+    organization_name?: string;
+    organization?: string;
+    organizations?: Record<string, {
+      id: string;
+      categories: string[];
+    }>;
   } | null;
   roles: string[];
   login: () => void;
@@ -28,6 +32,12 @@ export const useAuth = (): AuthState => {
 
   if (oidc.isUserLoggedIn) {
     const user = oidc.decodedIdToken;
+    
+    // Debug: Log the raw decoded ID token
+    console.log('useAuth - Raw decoded ID token:', user);
+    console.log('useAuth - User organizations:', user?.organizations);
+    console.log('useAuth - All user properties:', Object.keys(user || {}));
+    
     const roles = user?.roles || user?.realm_access?.roles || [];
     
     return {

@@ -16,10 +16,12 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
 
 export const AdminGuide: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isOnline } = useOfflineSyncStatus();
 
   const guideSection = [
     {
@@ -110,6 +112,17 @@ export const AdminGuide: React.FC = () => {
       ]
     },
     {
+      id: "offline-mode",
+      title: "Offline Mode",
+      icon: AlertTriangle,
+      content: [
+        "The system supports offline functionality, allowing you to continue working without an internet connection.",
+        "When offline: You can view existing data, but creating or updating records will be queued for sync when online.",
+        "Data is automatically synchronized when the connection is restored.",
+        "Look for the online/offline status indicator in the top-right corner of each page."
+      ]
+    },
+    {
       id: "troubleshooting",
       title: "Troubleshooting",
       icon: AlertTriangle,
@@ -138,6 +151,20 @@ export const AdminGuide: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Offline Status Indicator */}
+          <div className="mb-4 flex items-center justify-end">
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+              isOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOnline ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
+              <span>{isOnline ? 'Online' : 'Offline'}</span>
+            </div>
+          </div>
+
           {/* Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between mb-6">
