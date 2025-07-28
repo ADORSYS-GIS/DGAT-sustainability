@@ -72,6 +72,7 @@ services:
       KC_FEATURES: "preview,organization"
       # Hostname v2 configuration (replaces deprecated v1 options)
       KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
+      KC_HOSTNAME_URL: "http://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak"
       KC_HOSTNAME_PATH: "/keycloak"
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
@@ -88,7 +89,7 @@ services:
     command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
-      -  ./infrastructure/themes/theme-ssegning-tw-01.jar:/opt/keycloak/providers/theme-ssegning-tw-01.jar
+      - ./infrastructure/themes/theme-ssegning-tw-01.jar:/opt/keycloak/providers/theme-ssegning-tw-01.jar
 #      - ./infrastructure/keycloak/setup-scripts:/opt/keycloak/setup-scripts:ro,Z
       # Mount the same SSL certificates used by the frontend container
       - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
