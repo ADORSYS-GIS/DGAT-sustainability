@@ -74,7 +74,9 @@ services:
       KC_FEATURES: "preview,organization"
       KC_HOSTNAME: "${KC_HOSTNAME:-ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
       KC_HOSTNAME_PATH: "/keycloak"
-      KC_HTTP_ENABLED: "true"                  # if you also want to allow HTTP, for debugging only
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_URL: "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak"
+      # if you also want to allow HTTP, for debugging only
       # Fernando user password
       FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
       KC_URL: "${KC_URL:-ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
