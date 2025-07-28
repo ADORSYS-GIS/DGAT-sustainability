@@ -79,12 +79,9 @@ export function useInitialDataLoad() {
     console.log('🔍 useInitialDataLoad: Data loading required:', needsLoading);
     console.log('🔍 useInitialDataLoad: hasLoadedData:', hasLoadedData);
     
-    // TEMPORARY: Force loading for org users to test
-    const forceLoading = userContext.roles.includes('org_user');
-    console.log('🔍 Force loading for org user:', forceLoading);
-    
+    // Both org_admin and org_user load the same data - no differentiation
     // Always load if needed, regardless of hasLoadedData state
-    if (!needsLoading && !forceLoading) {
+    if (!needsLoading) {
       console.log('🔍 Data loading not required, skipping');
       return;
     }

@@ -28,7 +28,7 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   // Role-based access control
   const isDrgvAdmin = roles.includes("drgv_admin");
   const isOrgAdmin = roles.includes("org_admin");
-  const isOrgUser = roles.includes("org_user");
+  const isOrgUser = roles.includes("Org_User");
 
   // Only drgv_admin can access /admin
   if (window.location.pathname.startsWith("/admin") && !isDrgvAdmin) {
@@ -38,13 +38,13 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Only org_admin and org_user can access /dashboard
+  // Only org_admin and Org_User can access /dashboard
   if (
     window.location.pathname.startsWith("/dashboard") &&
     !(isOrgAdmin || isOrgUser)
   ) {
     console.log(
-      "[ProtectedRoute] Non-org_admin/org_user trying to access /dashboard, redirecting to /unauthorized",
+      "[ProtectedRoute] Non-org_admin/Org_User trying to access /dashboard, redirecting to /unauthorized",
     );
     return <Navigate to="/unauthorized" replace />;
   }

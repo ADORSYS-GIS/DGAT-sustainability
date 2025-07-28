@@ -16,6 +16,7 @@ interface AuthState {
       id: string;
       categories: string[];
     }>;
+    categories?: string[]; // Personal categories from ID token for org_user
   } | null;
   roles: string[];
   login: () => void;
@@ -36,6 +37,7 @@ export const useAuth = (): AuthState => {
     // Debug: Log the raw decoded ID token
     console.log('useAuth - Raw decoded ID token:', user);
     console.log('useAuth - User organizations:', user?.organizations);
+    console.log('useAuth - User categories:', user?.categories);
     console.log('useAuth - All user properties:', Object.keys(user || {}));
     
     const roles = user?.roles || user?.realm_access?.roles || [];

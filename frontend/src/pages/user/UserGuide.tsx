@@ -38,7 +38,7 @@ export const UserGuide: React.FC = () => {
       icon: Users,
       content: [
         "Organization Administrator (org_admin): Can create new assessments, manage users, and view all organization data.",
-        "Organization User (org_user): Can answer assigned assessments, view results, and manage action plans.",
+        "Organization User (Org_User): Can answer assigned assessments, view results, and manage action plans.",
         "Both roles can access the dashboard, view submissions, and export reports for their organization."
       ]
     },

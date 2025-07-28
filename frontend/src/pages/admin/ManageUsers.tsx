@@ -186,7 +186,7 @@ export const ManageUsers: React.FC = () => {
     setEditingUser(user);
     setFormData({
       email: user.email,
-      roles: user.roles || ["org_user"],
+      roles: user.roles || ["Org_User"],
     });
     setShowAddDialog(true);
   };
@@ -220,7 +220,7 @@ export const ManageUsers: React.FC = () => {
         return "bg-purple-500 text-white";
       case "org_admin":
         return "bg-blue-500 text-white";
-      case "org_user":
+      case "Org_User":
         return "bg-green-500 text-white";
       default:
         return "bg-gray-500 text-white";
@@ -233,7 +233,7 @@ export const ManageUsers: React.FC = () => {
         return "Admin";
       case "org_admin":
         return t('manageUsers.orgAdmin');
-      case "org_user":
+      case "Org_User":
         return t('manageUsers.orgUser');
       default:
         return role;

@@ -42,11 +42,11 @@ export const Dashboard: React.FC = () => {
   // Add initial data loading hook
   const { refreshData } = useInitialDataLoad();
   
-  // Choose the appropriate submissions data based on user role
-  const isOrgUser = user?.roles?.includes('org_user') || user?.realm_access?.roles?.includes('org_user');
-  const submissionsData = isOrgUser ? adminSubmissionsData : userSubmissionsData;
-  const submissionsLoading = isOrgUser ? adminSubmissionsLoading : userSubmissionsLoading;
-  const submissionsError = isOrgUser ? adminSubmissionsError : userSubmissionsError;
+  // Both org_admin and org_user use the same data source - no differentiation
+  // All users load the same data to their local storage
+  const submissionsData = userSubmissionsData;
+  const submissionsLoading = userSubmissionsLoading;
+  const submissionsError = userSubmissionsError;
   
   // Manual refresh function
   const handleManualRefresh = async () => {
@@ -145,7 +145,7 @@ export const Dashboard: React.FC = () => {
 
   const dashboardActions = [
     // Only org_admin can start new assessment
-    ...(user?.roles?.includes("org_admin")
+    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
             title: t('user.dashboard.startAssessment.title'),
@@ -157,7 +157,7 @@ export const Dashboard: React.FC = () => {
         ]
       : []),
     // Only org_user sees 'Answer Assessment' card
-    ...(!user?.roles?.includes("org_admin")
+    ...(!user?.roles?.includes("org_admin") && !user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
             title: t('user.dashboard.answerAssessment.title'),
@@ -260,7 +260,7 @@ export const Dashboard: React.FC = () => {
   console.log('🔍 Dashboard - Assessments data:', assessmentsData);
   console.log('🔍 Dashboard - User submissions data:', userSubmissionsData);
   console.log('🔍 Dashboard - Admin submissions data:', adminSubmissionsData);
-  console.log('🔍 Dashboard - Is org user:', isOrgUser);
+  console.log('🔍 Dashboard - Is org user:', user?.roles?.includes('org_user') || user?.realm_access?.roles?.includes('org_user'));
   console.log('🔍 Dashboard - Selected submissions data:', submissionsData);
   console.log('🔍 Dashboard - Filtered assessments:', filteredAssessments);
   

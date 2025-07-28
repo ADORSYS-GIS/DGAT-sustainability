@@ -50,7 +50,7 @@ export const AdminGuide: React.FC = () => {
       title: "User Management",
       icon: Users,
       content: [
-        "Users are assigned to organizations with specific roles: org_admin (can create assessments) or org_user (can answer assessments).",
+        "Users are assigned to organizations with specific roles: org_admin (can create assessments) or Org_User (can answer assessments).",
         "To add users: Go to 'Manage Users' → Select an organization → Click 'Add User' → Enter email and select role.",
         "Organization admins can manage users within their own organization through the user dashboard.",
         "Monitor user activity and manage permissions through the user management interface."

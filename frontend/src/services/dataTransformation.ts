@@ -436,10 +436,10 @@ export class DataTransformationService {
     }
     
     if (roles.includes('org_admin')) {
-      permissions.push('manage_org_users', 'create_assessments', 'view_org_data', 'manage_org_settings');
+      permissions.push('manage_Org_Users', 'create_assessments', 'view_org_data', 'manage_org_settings');
     }
     
-    if (roles.includes('org_user')) {
+    if (roles.includes('Org_User')) {
       permissions.push('answer_assessments', 'view_own_data', 'export_reports');
     }
     

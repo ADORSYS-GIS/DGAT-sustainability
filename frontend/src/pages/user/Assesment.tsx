@@ -40,20 +40,33 @@ export const Assessment: React.FC = () => {
   console.log('🔍 Assessment component loaded with assessmentId:', assessmentId);
 
   const orgInfo = React.useMemo(() => {
-    if (!user || !user.organizations) return { orgId: "", categories: [] };
-    const orgKeys = Object.keys(user.organizations);
-    if (orgKeys.length === 0) return { orgId: "", categories: [] };
-    const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+    if (!user) return { orgId: "", categories: [] };
+    
+    // Get organization ID from user organizations
+    let orgId = "";
+    if (user.organizations && typeof user.organizations === 'object') {
+      const orgKeys = Object.keys(user.organizations);
+      if (orgKeys.length > 0) {
+        const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+        orgId = orgData?.id || "";
+      }
+    }
+    
+    // Get user's personal categories from ID token (not organization categories)
+    // For org_user, this comes from the root level 'categories' field in the ID token
+    const userCategories = user.categories || [];
     
     // Debug logging
-    console.log('Assessment - User organizations:', user.organizations);
-    console.log('Assessment - Org keys:', orgKeys);
-    console.log('Assessment - Org data:', orgData);
-    console.log('Assessment - Extracted categories:', orgData?.categories);
+    console.log('🔍 Assessment - Full user object:', user);
+    console.log('🔍 Assessment - User organizations:', user.organizations);
+    console.log('🔍 Assessment - User personal categories:', userCategories);
+    console.log('🔍 Assessment - Organization ID:', orgId);
+    console.log('🔍 Assessment - User roles:', user.roles);
+    console.log('🔍 Assessment - User realm_access roles:', user.realm_access?.roles);
     
     return {
-      orgId: orgData?.id || "",
-      categories: orgData?.categories || [],
+      orgId: orgId,
+      categories: userCategories, // Use user's personal categories
     };
   }, [user]);
   
@@ -62,6 +75,7 @@ export const Assessment: React.FC = () => {
   const [comments, setComments] = useState<Record<string, string>>({});
   const [showPercentInfo, setShowPercentInfo] = useState(false);
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
+  const [creationAttempts, setCreationAttempts] = useState(0);
   const toolName = t("sustainability") + " " + t("assessment");
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
@@ -91,9 +105,11 @@ export const Assessment: React.FC = () => {
       !hasCreatedAssessment &&
       !assessmentMutationPending &&
       user?.sub &&
-      canCreate
+      canCreate &&
+      creationAttempts < 3 // Limit retry attempts
     ) {
       setHasCreatedAssessment(true);
+      setCreationAttempts(prev => prev + 1);
       const newAssessment: CreateAssessmentRequest = {
         language: "en",
       };
@@ -113,14 +129,34 @@ export const Assessment: React.FC = () => {
                 if (!realAssessmentId.startsWith('temp_')) {
                   toast.success(t('assessment.previousDraftsDeleted', { defaultValue: 'Previous draft assessments have been deleted. New assessment created successfully!' }));
                   
-                  // Add a small delay to ensure the assessment is properly saved to IndexedDB
-                  setTimeout(() => {
-                    console.log('🔍 Navigating to assessment:', realAssessmentId);
+                  // Wait for the assessment to be properly saved to IndexedDB
+                  const waitForAssessment = async () => {
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    
+                    while (attempts < maxAttempts) {
+                      const savedAssessment = await offlineDB.getAssessment(realAssessmentId);
+                      if (savedAssessment) {
+                        console.log('🔍 Assessment found in IndexedDB, navigating...');
+                        navigate(`/user/assessment/${realAssessmentId}`);
+                        return;
+                      }
+                      
+                      console.log(`🔍 Assessment not found in IndexedDB yet, waiting... (attempt ${attempts + 1}/${maxAttempts})`);
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                      attempts++;
+                    }
+                    
+                    console.warn('🔍 Assessment not found in IndexedDB after maximum attempts, navigating anyway...');
                     navigate(`/user/assessment/${realAssessmentId}`);
-                  }, 500);
+                  };
+                  
+                  waitForAssessment();
                 } else {
                   console.warn('Received temporary assessment ID, waiting for real ID');
                   // Don't navigate yet, wait for the real assessment ID
+                  // The mutation will retry and eventually provide the real ID
+                  setHasCreatedAssessment(false); // Allow retry
                 }
               } else {
                 console.error('API response missing assessment ID:', result);
@@ -144,8 +180,26 @@ export const Assessment: React.FC = () => {
       } catch (err) {
         setHasCreatedAssessment(false);
       }
+    } else if (creationAttempts >= 3) {
+      // Show error after max retries
+      toast.error(t('assessment.maxRetriesExceeded', { defaultValue: 'Failed to create assessment after multiple attempts. Please try again later.' }));
+      navigate("/dashboard");
     }
-  }, [assessmentId, hasCreatedAssessment, user, createAssessment, navigate, t, assessmentMutationPending, orgInfo.orgId, user?.email]);
+  }, [assessmentId, hasCreatedAssessment, user, createAssessment, navigate, t, assessmentMutationPending, orgInfo.orgId, user?.email, creationAttempts]);
+
+  // Add a timeout mechanism to prevent infinite waiting
+  useEffect(() => {
+    if (hasCreatedAssessment && !assessmentId) {
+      const timeout = setTimeout(() => {
+        console.warn('Assessment creation timeout - redirecting to dashboard');
+        toast.error(t('assessment.creationTimeout', { defaultValue: 'Assessment creation timed out. Please try again.' }));
+        setHasCreatedAssessment(false);
+        navigate("/dashboard");
+      }, 30000); // 30 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [hasCreatedAssessment, assessmentId, navigate, t]);
   
     // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
@@ -166,7 +220,8 @@ export const Assessment: React.FC = () => {
     if ('assessment' in assessmentDetail && assessmentDetail.assessment) {
       actualAssessment = assessmentDetail.assessment;
     } else if ('assessment_id' in assessmentDetail) {
-      actualAssessment = assessmentDetail as AssessmentType;
+      // Properly cast to AssessmentType with type assertion
+      actualAssessment = assessmentDetail as unknown as AssessmentType;
     } else {
       console.error('❌ Invalid assessment detail format:', assessmentDetail);
       toast.error(t('assessment.failedToSubmit', { defaultValue: 'Invalid assessment format. Please try again.' }));
@@ -216,8 +271,9 @@ export const Assessment: React.FC = () => {
 
   // Group questions by category (support both old and new formats)
   const groupedQuestions = React.useMemo(() => {
-    console.log('Assessment - Questions data:', questionsData);
-    console.log('Assessment - Org info categories:', orgInfo.categories);
+    console.log('🔍 Assessment - Questions data:', questionsData);
+    console.log('🔍 Assessment - Org info categories:', orgInfo.categories);
+    console.log('🔍 Assessment - User categories for filtering:', orgInfo.categories);
     
     if (!questionsData?.questions) return {};
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
@@ -243,16 +299,37 @@ export const Assessment: React.FC = () => {
       }
     });
     
-    console.log('Assessment - All grouped questions:', groups);
+    console.log('🔍 Assessment - All available categories in questions:', Object.keys(groups));
+    console.log('🔍 Assessment - All grouped questions:', groups);
     
     // Filter to only categories assigned to the user (org_user)
     const filtered: typeof groups = {};
-    for (const cat of orgInfo.categories) {
-      if (groups[cat]) filtered[cat] = groups[cat];
+    console.log('🔍 Assessment - Starting filtering process...');
+    console.log('🔍 Assessment - User categories to filter by:', orgInfo.categories);
+    
+    // Create a case-insensitive map of available categories
+    const availableCategoriesMap = new Map<string, string>();
+    Object.keys(groups).forEach(cat => {
+      availableCategoriesMap.set(cat.toLowerCase(), cat);
+    });
+    
+    for (const userCat of orgInfo.categories) {
+      console.log(`🔍 Assessment - Checking if category "${userCat}" exists in questions...`);
+      const normalizedUserCat = userCat.toLowerCase();
+      const matchingCategory = availableCategoriesMap.get(normalizedUserCat);
+      
+      if (matchingCategory && groups[matchingCategory]) {
+        console.log(`🔍 Assessment - Category "${userCat}" found as "${matchingCategory}", adding to filtered questions`);
+        filtered[matchingCategory] = groups[matchingCategory];
+      } else {
+        console.log(`🔍 Assessment - Category "${userCat}" NOT found in questions`);
+        console.log(`🔍 Assessment - Available categories:`, Object.keys(groups));
+        console.log(`🔍 Assessment - Normalized user category: "${normalizedUserCat}"`);
+      }
     }
     
-    console.log('Assessment - Filtered questions for user categories:', filtered);
-    console.log('Assessment - Available categories after filtering:', Object.keys(filtered));
+    console.log('🔍 Assessment - Filtered questions for user categories:', filtered);
+    console.log('🔍 Assessment - Available categories after filtering:', Object.keys(filtered));
     
     return filtered;
   }, [questionsData, orgInfo.categories]);
@@ -565,7 +642,39 @@ export const Assessment: React.FC = () => {
     );
   };
 
+  // Check if we're waiting for assessment creation
+  if (assessmentId && assessmentId.startsWith('temp_')) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
+          <p className="text-gray-600">{t("assessment.creating", { defaultValue: "Creating assessment..." })}</p>
+          <p className="text-sm text-gray-500 mt-2">{t("assessment.pleaseWait", { defaultValue: "Please wait while we set up your assessment." })}</p>
+          {creationAttempts > 0 && (
+            <p className="text-xs text-gray-400 mt-1">
+              {t("assessment.attempt", { defaultValue: "Attempt" })} {creationAttempts}/3
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Check if we're waiting for assessment to be saved to IndexedDB
+  if (assessmentLoading && assessmentId && !assessmentId.startsWith('temp_')) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
+          <p className="text-gray-600">{t("assessment.loading", { defaultValue: "Loading assessment..." })}</p>
+          <p className="text-sm text-gray-500 mt-2">{t("assessment.settingUp", { defaultValue: "Setting up your assessment interface." })}</p>
+        </div>
+      </div>
+    );
+  }
+  
   if (assessmentLoading || !assessmentDetail) {
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -577,6 +686,37 @@ export const Assessment: React.FC = () => {
   }
 
   if (categories.length === 0) {
+    console.log('🔍 Assessment - NO CATEGORIES FOUND!');
+    console.log('🔍 Assessment - Questions data available:', !!questionsData);
+    console.log('🔍 Assessment - Questions count:', questionsData?.questions?.length || 0);
+    console.log('🔍 Assessment - User categories from ID token:', user?.categories);
+    console.log('🔍 Assessment - Org info categories:', orgInfo.categories);
+    
+    // Let's see what categories are actually available in the questions
+    if (questionsData?.questions) {
+      const availableCategories = new Set<string>();
+      const allQuestions = [];
+      (questionsData.questions as unknown[]).forEach((q, index) => {
+        let category: string | undefined;
+        let questionText = '';
+        
+        if (typeof q === 'object' && q !== null && 'category' in q) {
+          category = (q as { category: string }).category;
+          questionText = (q as { latest_revision?: { text?: { en?: string } } }).latest_revision?.text?.en || 'No text';
+        } else if (typeof q === 'object' && q !== null && 'question' in q) {
+          category = (q as { question: { category: string } }).question.category;
+          questionText = (q as { question?: { latest_revision?: { text?: { en?: string } } } }).question?.latest_revision?.text?.en || 'No text';
+        }
+        
+        if (category) {
+          availableCategories.add(category);
+          allQuestions.push({ index, category, questionText: questionText.substring(0, 50) + '...' });
+        }
+      });
+      console.log('🔍 Assessment - Available categories in questions:', Array.from(availableCategories));
+      console.log('🔍 Assessment - All questions with categories:', allQuestions);
+    }
+    
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="pt-20 pb-8">
@@ -589,6 +729,30 @@ export const Assessment: React.FC = () => {
                 <p className="text-gray-600 mb-6">
                   {toolName.toLowerCase()} {t("notConfigured", { defaultValue: "is not yet configured. Please contact your administrator." })}
                 </p>
+                <div className="text-sm text-gray-500 mb-4 text-left">
+                  <p><strong>Debug Info:</strong></p>
+                  <p>User Categories: {user?.categories?.join(', ') || 'None'}</p>
+                  <p>Questions Available: {questionsData?.questions?.length || 0}</p>
+                  <p>User Roles: {user?.roles?.join(', ') || 'None'}</p>
+                  <p>Is Org User: {user?.roles?.includes('Org_User') ? 'Yes' : 'No'}</p>
+                  {questionsData?.questions && (
+                    <div className="mt-4">
+                      <p><strong>Available Categories in Questions:</strong></p>
+                      <ul className="list-disc pl-4">
+                        {Array.from(new Set((questionsData.questions as unknown[]).map((q: unknown) => {
+                          if (typeof q === 'object' && q !== null && 'category' in q) {
+                            return (q as { category: string }).category;
+                          } else if (typeof q === 'object' && q !== null && 'question' in q) {
+                            return (q as { question: { category: string } }).question.category;
+                          }
+                          return null;
+                        }).filter(Boolean))).map((cat, i) => (
+                          <li key={i}>{cat}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
                 <Button
                   onClick={() => navigate("/dashboard")}
                   className="bg-dgrv-blue hover:bg-blue-700"

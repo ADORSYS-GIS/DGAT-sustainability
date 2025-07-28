@@ -478,7 +478,7 @@ pub async fn submit_assessment(
     // Check if user has permission to submit assessments
     if !claims.can_answer_assessments() {
         return Err(ApiError::BadRequest(
-            "You don't have permission to submit assessments. Only org_user and org_admin roles can submit assessments.".to_string(),
+            "You don't have permission to submit assessments. Only Org_User and org_admin roles can submit assessments.".to_string(),
         ));
     }
 
@@ -499,12 +499,12 @@ pub async fn submit_assessment(
     // 1. User owns the assessment (same org_id)
     // 2. User is a super user (can submit to any assessment)
     // 3. Any user with proper role can submit to any assessment if they have the assessment_id (shared assessments)
-    //    This implements the use case where org_admin creates assessments and shares assessment_id with org_user users
+    //    This implements the use case where org_admin creates assessments and shares assessment_id with Org_User users
     let _is_owner = assessment_model.org_id == org_id;
     let _is_super_user = claims.is_super_user();
 
     // Allow submission to any assessment for users with proper roles - this enables the sharing use case
-    // where org_admin creates assessments and shares the assessment_id with org_user users
+    // where org_admin creates assessments and shares the assessment_id with Org_User users
     // The role check above ensures only authorized users can access this functionality
 
     // Check if assessment has already been submitted

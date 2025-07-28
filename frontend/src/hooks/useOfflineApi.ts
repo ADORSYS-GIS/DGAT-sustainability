@@ -493,10 +493,13 @@ export function useOfflineAssessment(assessmentId: string) {
             // If it starts with 'temp_', it might be a temporary assessment
             if (assessmentId.startsWith('temp_')) {
               console.log('🔍 This appears to be a temporary assessment ID');
-              throw new Error('Temporary assessment - please wait for creation to complete');
+              // Return a more user-friendly error that indicates waiting
+              throw new Error('Assessment is being created, please wait...');
             }
             
-            throw new Error('Assessment not found');
+            // For real assessment IDs that aren't found, provide better error message
+            console.log(`🔍 Assessment ${assessmentId} not found in IndexedDB - this might be a timing issue`);
+            throw new Error(`Assessment ${assessmentId} not found. Please try refreshing the page or contact support if the problem persists.`);
           }
           
           console.log('🔍 Found offline assessment:', offlineAssessment);

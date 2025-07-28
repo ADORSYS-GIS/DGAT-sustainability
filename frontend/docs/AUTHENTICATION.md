@@ -130,7 +130,7 @@ The system supports the following roles:
 
 - `drgv_admin`: Full administrative access
 - `org_admin`: Organization-level administrative access
-- `org_user`: Regular user access
+- `Org_User`: Regular user access
 
 ## User Object Structure
 
