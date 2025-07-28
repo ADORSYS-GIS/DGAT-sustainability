@@ -72,12 +72,12 @@ services:
       KEYCLOAK_REALM: "sustainability-realm"
       KC_PROXY_HEADERS: "forwarded"
       KC_FEATURES: "preview,organization"
-      KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
+      KC_HOSTNAME: "${KC_HOSTNAME:-ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
       KC_HOSTNAME_PATH: "/keycloak"
       KC_HTTP_ENABLED: "false"                  # if you also want to allow HTTP, for debugging only
       # Fernando user password
       FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
-      KC_URL: "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak"
+      KC_URL: "${KC_URL:-ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
       # Use the nginx certificate paths
       SSL_CERT_PATH: "/etc/x509/https/nginx.crt"
       SSL_KEY_PATH: "/etc/x509/https/nginx.key"
@@ -87,6 +87,7 @@ services:
     command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
+      -  ./infrastructure/themes/theme-ssegning-tw-01.jar:/opt/keycloak/providers/theme-ssegning-tw-01.jar
 #      - ./infrastructure/keycloak/setup-scripts:/opt/keycloak/setup-scripts:ro,Z
       # Mount the same SSL certificates used by the frontend container
       - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
@@ -112,6 +113,7 @@ services:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
+        FE_HOST: "${FE_HOST:-localhost}"
         VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak/realms/sustainability-realm}"
         VITE_KEYCLOAK_CLIENT_ID: "${VITE_KEYCLOAK_CLIENT_ID:-sustainability-tool}"
         VITE_KEYCLOAK_SCOPES: "${VITE_KEYCLOAK_SCOPES:-openid profile email}"
@@ -126,7 +128,7 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -k https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/health || exit 1"]
+      test: ["CMD-SHELL", "sh -c 'curl -k https://$$FE_HOST/health || exit 1'"]
       interval: 30s
       timeout: 10s
       retries: 5
