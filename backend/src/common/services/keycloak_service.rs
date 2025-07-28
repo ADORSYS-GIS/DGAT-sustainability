@@ -112,7 +112,7 @@ impl KeycloakService {
     /// Get a specific organization by ID
     pub async fn get_organization(&self, token: &str, org_id: &str) -> Result<KeycloakOrganization> {
         let url = format!("{}/admin/realms/{}/organizations/{}", self.config.url, self.config.realm, org_id);
-
+println!("GET ORG: {}", token);
         let response = self.client.get(&url)
             .bearer_auth(token)
             .send()
