@@ -61,9 +61,6 @@ services:
       KC_DB: "postgres"
       KC_DB_URL_HOST: db
       KC_DB_URL_PORT: 5432
-      KC_HTTPS_ENABLED: "true"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HOSTNAME_STRICT: "false"
       KC_DB_URL_DATABASE: "${POSTGRES_DB:-sustainability}"
       KC_DB_USERNAME: "${POSTGRES_USER:-postgres}"
       KC_DB_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
@@ -73,10 +70,11 @@ services:
       KC_PROXY_HEADERS: "forwarded"
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
-      KC_HOSTNAME: "${KC_HOSTNAME:-ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
+      # Hostname v2 configuration (replaces deprecated v1 options)
+      KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
       KC_HOSTNAME_PATH: "/keycloak"
-      KC_HTTP_ENABLED: "false"
-      KC_HOSTNAME_URL: "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
       # if you also want to allow HTTP, for debugging only
       # Fernando user password
       FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
