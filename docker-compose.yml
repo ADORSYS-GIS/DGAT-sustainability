@@ -114,6 +114,7 @@ services:
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
         FE_HOST: "${FE_HOST:-localhost}"
+        API_BASE_URL: "${https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
         VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak/realms/sustainability-realm}"
         VITE_KEYCLOAK_CLIENT_ID: "${VITE_KEYCLOAK_CLIENT_ID:-sustainability-tool}"
         VITE_KEYCLOAK_SCOPES: "${VITE_KEYCLOAK_SCOPES:-openid profile email}"
