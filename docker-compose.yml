@@ -15,13 +15,15 @@ services:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
       KEYCLOAK_URL: "http://keycloak:8080"
       SERVER_PORT: "3001"
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}
+
     depends_on:
       db:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "curl http://localhost:3001/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -40,8 +42,6 @@ services:
       POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
       POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
       interval: 10s
@@ -55,31 +55,51 @@ services:
   # ────────────────────────────── KEYCLOAK ──────────────────────────────
   #
   keycloak:
-    image: quay.io/keycloak/keycloak:26.1.0
+    image: quay.io/keycloak/keycloak:26.3.1
     container_name: sustainability-keycloak
     environment:
-      KC_DB:                   "postgres"
-      KC_DB_URL_HOST:          db
-      KC_DB_URL_PORT:          5432
-      KC_DB_URL_DATABASE:      "${POSTGRES_DB:-sustainability}"
-      KC_DB_USERNAME:          "${POSTGRES_USER:-postgres}"
-      KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
-      KEYCLOAK_ADMIN:          "${KEYCLOAK_ADMIN:-admin}"
+      KC_DB: "postgres"
+      KC_DB_URL_HOST: db
+      KC_DB_URL_PORT: 5432
+      KC_HTTPS_ENABLED: "true"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HOSTNAME_STRICT: "false"
+      KC_DB_URL_DATABASE: "${POSTGRES_DB:-sustainability}"
+      KC_DB_USERNAME: "${POSTGRES_USER:-postgres}"
+      KC_DB_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
-      KEYCLOAK_REALM:          "sustainability-realm"
-      KC_FEATURES:             "preview,organization"
-    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true"]
+      KEYCLOAK_REALM: "sustainability-realm"
+      KC_PROXY_HEADERS: "forwarded"
+      KC_FEATURES: "preview,organization"
+      KC_HOSTNAME: "ec2-16-171-203-85.eu-north-1.compute.amazonaws.com"
+      KC_HOSTNAME_PATH: "/keycloak"
+      KC_HTTP_ENABLED: "false"                  # if you also want to allow HTTP, for debugging only
+      # Fernando user password
+      FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
+      KC_URL: "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak"
+      # Use the nginx certificate paths
+      SSL_CERT_PATH: "/etc/x509/https/nginx.crt"
+      SSL_KEY_PATH: "/etc/x509/https/nginx.key"
+      KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
+      KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
+#    entrypoint: ["/opt/keycloak/setup-scripts/startup.sh"]
+    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
+#      - ./infrastructure/keycloak/setup-scripts:/opt/keycloak/setup-scripts:ro,Z
+      # Mount the same SSL certificates used by the frontend container
+      - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
+      - ./ssl/nginx.key:/etc/x509/https/nginx.key:ro
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 0"]
+      test: [ "CMD-SHELL", "exit 0" ]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 90s
+      retries: 1
+      start_period: 240s
     ports:
       - "8080:8080"
     networks: [tool-net]
@@ -92,34 +112,39 @@ services:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
-        # These are the URLs that will be embedded in the built code and used by the browser
-        VITE_KEYCLOAK_ISSUER_URI: "http://localhost:8080/realms/sustainability-realm"
-        VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
-        VITE_KEYCLOAK_SCOPES: "openid profile email"
-        VITE_KEYCLOAK_HOME_URL: "http://localhost:5173/"
-        VITE_API_URL: "http://localhost:3001"
+        VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak/realms/sustainability-realm}"
+        VITE_KEYCLOAK_CLIENT_ID: "${VITE_KEYCLOAK_CLIENT_ID:-sustainability-tool}"
+        VITE_KEYCLOAK_SCOPES: "${VITE_KEYCLOAK_SCOPES:-openid profile email}"
+        VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
+        VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/callback}"
+
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
-    environment:
-      # Runtime environment variables (note: Vite vars are embedded at build time)
-      # These won't affect the built code but are kept for potential server-side code
-      NODE_ENV: "production"
     depends_on:
       backend:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5173/health || exit 1"]
+      test: ["CMD-SHELL", "curl -k https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 15s
     ports:
-      - "5173:5173"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./infrastructure/frontend-entrypoint.sh:/docker-entrypoint.d/40-check-network.sh:ro
     networks: [tool-net]
+
 
 # ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
   postgres-data:
+  ssl-certs:
+    driver: local
 
 networks:
   tool-net:

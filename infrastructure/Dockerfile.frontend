@@ -4,29 +4,42 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY frontend/package.json frontend/package-lock.json frontend/openapi.json ./
+
 RUN npm ci
+RUN npm run codegen
 
 # Copy source code
-COPY frontend/public/ ./public/
-COPY frontend/src/ ./src/
-COPY frontend/tsconfig.json frontend/tsconfig.app.json frontend/tsconfig.node.json frontend/vite.config.ts frontend/index.html ./
-
-# Copy .env file for build-time environment variables
-COPY .env ./
+COPY frontend .
 
 # Build the application with environment variables
 ARG VITE_KEYCLOAK_ISSUER_URI
 ARG VITE_KEYCLOAK_CLIENT_ID
 ARG VITE_KEYCLOAK_SCOPES
 ARG VITE_KEYCLOAK_HOME_URL
+ARG VITE_KEYCLOAK_REDIRECT_URI
+
+# Make them available as environment variables for the build
+ENV VITE_KEYCLOAK_ISSUER_URI=$VITE_KEYCLOAK_ISSUER_URI
+ENV VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
+ENV VITE_KEYCLOAK_SCOPES=$VITE_KEYCLOAK_SCOPES
+ENV VITE_KEYCLOAK_HOME_URL=$VITE_KEYCLOAK_HOME_URL
+ENV VITE_KEYCLOAK_REDIRECT_URI=$VITE_KEYCLOAK_REDIRECT_URI
+
+# Debug: Print the values we're building with
+RUN echo "=== Building with environment variables ===" && \
+    echo "VITE_KEYCLOAK_ISSUER_URI: $VITE_KEYCLOAK_ISSUER_URI" && \
+    echo "VITE_KEYCLOAK_CLIENT_ID: $VITE_KEYCLOAK_CLIENT_ID" && \
+    echo "VITE_KEYCLOAK_HOME_URL: $VITE_KEYCLOAK_HOME_URL"
+
+
 RUN npm run build
 
 
 # Runtime stage using Nginx
 FROM nginx:alpine
 
-# Install curl for healthchecks
-RUN apk add --no-cache curl
+# Install required packages: curl for healthchecks, openssl for certificates
+RUN apk add --no-cache curl openssl bash
 
 # Copy the built app to nginx's serve directory
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -35,10 +48,15 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY .env /usr/share/nginx/html/.env
 
 # Copy custom nginx configuration
-COPY infrastructure/nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 5173
-EXPOSE 5173
+# Create SSL directory
+RUN mkdir -p /etc/nginx/ssl
 
-# Make sure nginx uses our custom config
+# Note: SSL certificates will be mounted at runtime from the host
+
+# Expose port 80 and 443
+EXPOSE 80 443
+
+# Start Nginx after initializing certificates
 CMD ["nginx", "-g", "daemon off;"]

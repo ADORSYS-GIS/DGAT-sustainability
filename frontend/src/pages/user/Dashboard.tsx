@@ -31,7 +31,7 @@ export const Dashboard: React.FC = () => {
     useSubmissionsServiceGetSubmissions();
   const submissions: Submission[] = data?.submissions?.slice(0, 5) || [];
   const { data: reportsData, isLoading: reportsLoading } =
-  useReportsServiceGetUserReports();
+      useReportsServiceGetUserReports();
   const reports = reportsData?.reports || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
 
