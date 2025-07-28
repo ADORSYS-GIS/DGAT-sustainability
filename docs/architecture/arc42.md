@@ -25,7 +25,6 @@ The Sustainability Tool enables cooperative organizations, such as the National 
 
 - **Identity Management**: Integrate with Keycloak, using user_id (VARCHAR, Keycloak sub) and organization_id in JWT attributes.
 - **Database**: PostgresSQL with JSONB for flexible storage of answers and multilingual text.
-- **Encryption**: AES-256 for sensitive JSONB data.
 - **Security**: PostgresSQL row-level security for user-specific access.
 - **Performance**: GIN indexes on JSONB fields for query optimization.
 - **Frontend**: React with Tailwind CSS, hosted via CDN.
