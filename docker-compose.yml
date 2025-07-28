@@ -13,7 +13,7 @@ services:
     environment:
       RUST_LOG: "debug,hyper=info,sea_orm=info"
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
-      KEYCLOAK_URL: "https://keycloak:8080/keycloak"
+      KEYCLOAK_URL: "http://keycloak:8080/keycloak"
       SERVER_PORT: "3001"
       CORS_ORIGIN: ${CORS_ORIGIN:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}
 
@@ -74,7 +74,7 @@ services:
       KC_FEATURES: "preview,organization"
       KC_HOSTNAME: "${KC_HOSTNAME:-ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
       KC_HOSTNAME_PATH: "/keycloak"
-      KC_HTTP_ENABLED: "false"                  # if you also want to allow HTTP, for debugging only
+      KC_HTTP_ENABLED: "true"                  # if you also want to allow HTTP, for debugging only
       # Fernando user password
       FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
       KC_URL: "${KC_URL:-ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}"
