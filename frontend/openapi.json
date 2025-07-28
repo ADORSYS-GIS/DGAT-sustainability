@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "${API_BASE_URL}/api",
+      "url": "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/api",
       "description": "Production server"
     },
     {
-      "url": "${API_BASE_URL}/api",
+      "url": "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/api",
       "description": "Staging server"
     },
     {
-      "url": "${API_BASE_URL}/api",
+      "url": "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/api",
       "description": "Development server"
     }
   ],
