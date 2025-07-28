@@ -13,7 +13,7 @@ services:
     environment:
       RUST_LOG: "debug,hyper=info,sea_orm=info"
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
-      KEYCLOAK_URL: "http://keycloak:8080"
+      KEYCLOAK_URL: "https://keycloak:8080/keycloak"
       SERVER_PORT: "3001"
       CORS_ORIGIN: ${CORS_ORIGIN:-https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com}
 
