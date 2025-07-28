@@ -89,7 +89,7 @@ services:
     command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
-      - ./infrastructure/themes/theme-ssegning-tw-01.jar:/opt/keycloak/providers/theme-ssegning-tw-01.jar
+      - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
 #      - ./infrastructure/keycloak/setup-scripts:/opt/keycloak/setup-scripts:ro,Z
       # Mount the same SSL certificates used by the frontend container
       - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro

@@ -6,7 +6,7 @@ use axum::{
 };
 use serde::Deserialize;
 use std::collections::HashMap;
-
+use tracing::warn;
 use crate::common::models::claims::Claims;
 use crate::common::models::keycloak::*;
 use crate::web::routes::AppState;
@@ -89,8 +89,8 @@ pub async fn get_organizations(
     Query(params): Query<OrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
-
-    // Get all organizations first
+    warn!("this is the token {}", token);
+    // Get all organizations firstget_organizations
     match app_state.keycloak_service.get_organizations(&token).await {
         Ok(mut organizations) => {
             // Apply search filtering if provided
