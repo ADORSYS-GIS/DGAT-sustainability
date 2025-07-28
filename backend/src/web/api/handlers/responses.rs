@@ -180,7 +180,7 @@ pub async fn create_response(
     // Check if user has permission to answer assessments
     if !claims.can_answer_assessments() {
         return Err(ApiError::BadRequest(
-            "You don't have permission to answer assessments. Only org_user and org_admin roles can answer assessments.".to_string(),
+            "You don't have permission to answer assessments. Only Org_User and org_admin roles can answer assessments.".to_string(),
         ));
     }
 
@@ -206,12 +206,12 @@ pub async fn create_response(
 
     if !is_owner && !is_super_user {
         // Allow access to any assessment for users with proper roles - this enables the sharing use case
-        // where org_admin creates assessments and shares the assessment_id with org_user users
+        // where org_admin creates assessments and shares the assessment_id with Org_User users
         // The role check above ensures only authorized users can access this functionality
     }
 
     // Allow multiple users to answer the same assessment even if it has been submitted
-    // This enables the use case where org_admin creates assessments and multiple org_user users
+    // This enables the use case where org_admin creates assessments and multiple Org_User users
     // can answer and submit responses to the same assessment
 
     // Get existing responses for this assessment

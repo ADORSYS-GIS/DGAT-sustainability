@@ -1,4 +1,4 @@
-import { useOidc } from "../../services/shared/oidc";
+import { useKeycloak } from "../../services/shared/keycloakProvider";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -9,7 +9,7 @@ interface AuthState {
     email?: string;
     roles?: string[];
     realm_access?: { roles: string[] };
-    organisations?: Record<string, unknown>;
+    organizations?: Record<string, { id: string; categories: string[] }>;
     organisation_name?: string;
     organisation?: string;
   } | null;
@@ -17,35 +17,35 @@ interface AuthState {
   login: () => void;
   logout: () => void;
   loading: boolean;
+  // Organization-related properties
+  primaryOrganization: { name: string; details: { id: string; categories: string[] } } | null;
+  userCategories: string[];
 }
 
 /**
- * React hook for OIDC authentication state using oidc-spa.
- * Returns: { isAuthenticated, user, roles, login, logout, loading }
+ * React hook for Keycloak authentication state.
+ * Returns: { isAuthenticated, user, roles, login, logout, loading, primaryOrganization, userCategories }
  */
 export const useAuth = (): AuthState => {
-  const oidc = useOidc();
-
-  if (oidc.isUserLoggedIn) {
-    const user = oidc.decodedIdToken;
-    const roles = user?.roles || user?.realm_access?.roles || [];
-    
-    return {
-      isAuthenticated: true,
-      user,
-      roles,
-      login: () => console.warn("Already logged in"),
-      logout: () => oidc.logout({ redirectTo: "home" }),
-      loading: false,
-    };
-  }
+  const { 
+    isAuthenticated, 
+    user, 
+    roles, 
+    loading, 
+    login, 
+    logout, 
+    primaryOrganization, 
+    userCategories 
+  } = useKeycloak();
 
   return {
-    isAuthenticated: false,
-    user: null,
-    roles: [],
-    login: () => oidc.login({ doesCurrentHrefRequiresAuth: false }),
-    logout: () => console.warn("Not logged in"),
-    loading: false,
+    isAuthenticated,
+    user,
+    roles,
+    login: () => login(),
+    logout: () => logout(),
+    loading,
+    primaryOrganization,
+    userCategories,
   };
 };

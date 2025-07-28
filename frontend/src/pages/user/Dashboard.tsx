@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
           },
         ]
       : []),
-    // Only org_user sees 'Answer Assessment' card
+    // Only Org_User sees 'Answer Assessment' card
     ...(!user?.roles?.includes("org_admin")
       ? [
           {

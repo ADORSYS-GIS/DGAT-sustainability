@@ -1,10 +1,10 @@
 # Authentication System
 
-This application uses **oidc-spa** for OpenID Connect authentication with Keycloak.
+This application uses **Keycloak.js** for OpenID Connect authentication with Keycloak.
 
 ## Overview
 
-The authentication system is built on top of the [oidc-spa](https://docs.oidc-spa.dev/usage) library, which provides a modern, type-safe way to handle OIDC authentication in React applications.
+The authentication system is built on top of the [Keycloak.js](https://www.keycloak.org/docs/latest/securing_apps/#_javascript_adapter) library, which provides a modern, type-safe way to handle OIDC authentication in React applications.
 
 ## Key Features
 
@@ -16,19 +16,14 @@ The authentication system is built on top of the [oidc-spa](https://docs.oidc-sp
 
 ## Configuration
 
-The authentication is configured in `src/services/shared/oidc.ts`:
+The authentication is configured in `src/services/shared/keycloakService.ts`:
 
 ```typescript
-export const { OidcProvider, useOidc, getOidc, withLoginEnforced, enforceLogin } =
-  createReactOidc(async () => ({
-    issuerUri: import.meta.env.VITE_KEYCLOAK_ISSUER_URI,
-    clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
-    homeUrl: import.meta.env.VITE_KEYCLOAK_HOME_URL,
-    extraQueryParams: () => ({
-      ui_locales: "en"
-    }),
-    decodedIdTokenSchema
-  }));
+const keycloakConfig = {
+  url: import.meta.env.VITE_KEYCLOAK_ISSUER_URI?.replace('/realms/sustainability-realm', '') || 'http://localhost:8080',
+  realm: 'sustainability-realm',
+  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'sustainability-tool',
+};
 ```
 
 ### Environment Variables
@@ -79,18 +74,18 @@ const ProtectedComponent = withLoginEnforced(() => {
 });
 ```
 
-### 3. Direct OIDC Access
+### 3. Direct Keycloak Access
 
-For advanced use cases, use the `useOidc` hook directly:
+For advanced use cases, use the `useKeycloak` hook directly:
 
 ```typescript
-import { useOidc } from "@/services/shared/oidc";
+import { useKeycloak } from "@/services/shared/keycloakProvider";
 
 function AdvancedComponent() {
-  const oidc = useOidc({ assert: "user logged in" });
+  const { keycloak, isAuthenticated, login, logout } = useKeycloak();
   
   const handleLogout = () => {
-    oidc.logout({ redirectTo: "home" });
+    logout();
   };
   
   return <button onClick={handleLogout}>Logout</button>;
@@ -102,7 +97,7 @@ function AdvancedComponent() {
 Use the `fetchWithAuth` helper for API calls that require authentication:
 
 ```typescript
-import { fetchWithAuth } from "@/services/shared/oidc";
+import { fetchWithAuth } from "@/services/shared/keycloakService";
 
 async function fetchUserData() {
   const response = await fetchWithAuth("/api/user/profile");
@@ -130,7 +125,7 @@ The system supports the following roles:
 
 - `drgv_admin`: Full administrative access
 - `org_admin`: Organization-level administrative access
-- `org_user`: Regular user access
+- `Org_User`: Regular user access
 
 ## User Object Structure
 
@@ -167,6 +162,27 @@ The authentication system handles various error scenarios:
 - **Automatic logout**: Logout on token expiration
 - **CSRF protection**: Built-in CSRF protection
 - **Secure redirects**: Validated redirect URLs
+- **PKCE**: Enabled by default for secure SPA authentication
+
+## Migration from OIDC-spa
+
+The application has been migrated from `oidc-spa` to `keycloak-js` to resolve issues with the OIDC-spa library. The migration maintains full compatibility with existing code:
+
+### Key Changes
+
+1. **Provider**: `OidcProvider` now uses `KeycloakProvider` underneath
+2. **Hooks**: `useOidc` now uses `useKeycloak` underneath
+3. **Token Management**: Automatic token refresh with Keycloak.js
+4. **Silent SSO**: Improved silent token refresh handling
+
+### Compatibility Layer
+
+A compatibility layer has been implemented to ensure existing code continues to work:
+
+- `useOidc()` hook maintains the same interface
+- `getOidc()` function maintains the same interface
+- `fetchWithAuth()` helper maintains the same interface
+- All existing components continue to work without changes
 
 ## Troubleshooting
 
@@ -193,19 +209,48 @@ Enable debug logging by setting the environment variable:
 VITE_DEBUG=true
 ```
 
-## Migration from Previous Auth System
-
-If migrating from a previous authentication system:
-
-1. Replace `useAuth()` calls with the new implementation
-2. Update protected routes to use `ProtectedRoute`
-3. Replace direct API calls with `fetchWithAuth`
-4. Update user object access patterns
-
 ## Examples
 
-See `src/components/shared/AuthDemo.tsx` for complete examples of:
-- Basic authentication usage
-- Protected components
-- Role-based rendering
-- Login/logout functionality 
+### Login Component
+
+```typescript
+import { useAuth } from "@/hooks/shared/useAuth";
+
+export const Login = () => {
+  const { login } = useAuth();
+  
+  return (
+    <button onClick={login}>
+      Sign in with Keycloak
+    </button>
+  );
+};
+```
+
+### Protected Component
+
+```typescript
+import { useAuth } from "@/hooks/shared/useAuth";
+
+export const Dashboard = () => {
+  const { user, roles } = useAuth();
+  
+  return (
+    <div>
+      <h1>Welcome, {user?.name}!</h1>
+      <p>Your roles: {roles.join(", ")}</p>
+    </div>
+  );
+};
+```
+
+### API Call with Authentication
+
+```typescript
+import { fetchWithAuth } from "@/services/shared/keycloakService";
+
+const fetchUserData = async () => {
+  const response = await fetchWithAuth("/api/user/profile");
+  return response.json();
+};
+``` 

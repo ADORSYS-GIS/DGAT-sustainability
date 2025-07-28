@@ -160,7 +160,7 @@ export const Assessment: React.FC = () => {
         groups[category].push({ question, revision });
       }
     });
-    // Filter to only categories assigned to the user (org_user)
+    // Filter to only categories assigned to the user (Org_User)
     const filtered: typeof groups = {};
     for (const cat of orgInfo.categories) {
       if (groups[cat]) filtered[cat] = groups[cat];
