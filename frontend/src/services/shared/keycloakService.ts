@@ -46,6 +46,14 @@ const keycloakConfig = {
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'sustainability-tool',
 };
 
+console.log('🔧 Keycloak configuration:', {
+  url: keycloakConfig.url,
+  realm: keycloakConfig.realm,
+  clientId: keycloakConfig.clientId,
+  env_issuer_uri: import.meta.env.VITE_KEYCLOAK_ISSUER_URI,
+  env_client_id: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
+});
+
 // Initialize Keycloak instance
 let keycloakInstance: Keycloak | null = null;
 

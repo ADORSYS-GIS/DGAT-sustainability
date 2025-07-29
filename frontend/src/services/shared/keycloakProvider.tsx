@@ -48,14 +48,25 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
         setLoading(true);
         console.log("🔄 Initializing Keycloak...");
         
-        const kc = await initKeycloakAuth();
+        // Add a timeout to the Keycloak initialization itself
+        const initPromise = initKeycloakAuth();
+        const timeoutPromise = new Promise<Keycloak>((_, reject) => {
+          setTimeout(() => reject(new Error('Keycloak initialization timeout')), 3000);
+        });
+        
+        const kc = await Promise.race([initPromise, timeoutPromise]);
         setKeycloak(kc);
+        
+        console.log("🔍 Keycloak instance authenticated state:", kc.authenticated);
+        console.log("🔍 Keycloak token:", kc.token);
+        console.log("🔍 Keycloak refresh token:", kc.refreshToken);
         
         if (kc.authenticated) {
           setIsAuthenticated(true);
           
           // Get user data
           const decodedToken = await getDecodedIdToken();
+          console.log("🔍 Decoded token:", decodedToken);
           setUser(decodedToken);
           
           // Extract roles
@@ -78,12 +89,55 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
             });
           }
         } else {
-          setIsAuthenticated(false);
-          setUser(null);
-          setRoles([]);
-          setPrimaryOrganization(null);
-          setUserCategories([]);
-          console.log("✅ Keycloak initialized - User not authenticated");
+          // Check if we have a token but kc.authenticated is false
+          if (kc.token) {
+            console.log("⚠️ Keycloak has token but authenticated is false, attempting to decode token...");
+            try {
+              const decodedToken = await getDecodedIdToken();
+              if (decodedToken) {
+                console.log("✅ Found valid token, setting authenticated to true");
+                setIsAuthenticated(true);
+                setUser(decodedToken);
+                
+                const userRoles = decodedToken?.roles || decodedToken?.realm_access?.roles || [];
+                setRoles(userRoles);
+                
+                const primaryOrg = getPrimaryOrganization(decodedToken);
+                setPrimaryOrganization(primaryOrg);
+                
+                const categories = getUserCategories(decodedToken);
+                setUserCategories(categories);
+                
+                console.log("✅ Fixed authentication state - User authenticated:", {
+                  username: decodedToken?.preferred_username,
+                  roles: userRoles,
+                  organization: primaryOrg?.name,
+                  categories: categories
+                });
+              } else {
+                setIsAuthenticated(false);
+                setUser(null);
+                setRoles([]);
+                setPrimaryOrganization(null);
+                setUserCategories([]);
+                console.log("✅ Keycloak initialized - User not authenticated");
+              }
+            } catch (error) {
+              console.error("❌ Error decoding token:", error);
+              setIsAuthenticated(false);
+              setUser(null);
+              setRoles([]);
+              setPrimaryOrganization(null);
+              setUserCategories([]);
+            }
+          } else {
+            setIsAuthenticated(false);
+            setUser(null);
+            setRoles([]);
+            setPrimaryOrganization(null);
+            setUserCategories([]);
+            console.log("✅ Keycloak initialized - User not authenticated");
+          }
         }
         
         // Notify that Keycloak is initialized
@@ -100,11 +154,59 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
         
       } catch (error) {
         console.error('❌ Failed to initialize Keycloak auth:', error);
-        setIsAuthenticated(false);
-        setUser(null);
-        setRoles([]);
-        setPrimaryOrganization(null);
-        setUserCategories([]);
+        
+        // Try to get Keycloak instance and check for existing tokens
+        try {
+          const kc = getKeycloak();
+          console.log("🔄 Attempting fallback token check...");
+          console.log("🔍 Fallback - Keycloak token:", kc.token);
+          console.log("🔍 Fallback - Keycloak idToken:", kc.idToken);
+          
+          if (kc.token || kc.idToken) {
+            console.log("✅ Found existing tokens in fallback check");
+            const decodedToken = await getDecodedIdToken();
+            if (decodedToken) {
+              console.log("✅ Setting authentication from fallback token");
+              setIsAuthenticated(true);
+              setUser(decodedToken);
+              
+              const userRoles = decodedToken?.roles || decodedToken?.realm_access?.roles || [];
+              setRoles(userRoles);
+              
+              const primaryOrg = getPrimaryOrganization(decodedToken);
+              setPrimaryOrganization(primaryOrg);
+              
+              const categories = getUserCategories(decodedToken);
+              setUserCategories(categories);
+              
+              console.log("✅ Fallback authentication successful:", {
+                username: decodedToken?.preferred_username,
+                roles: userRoles,
+                organization: primaryOrg?.name,
+                categories: categories
+              });
+            } else {
+              setIsAuthenticated(false);
+              setUser(null);
+              setRoles([]);
+              setPrimaryOrganization(null);
+              setUserCategories([]);
+            }
+          } else {
+            setIsAuthenticated(false);
+            setUser(null);
+            setRoles([]);
+            setPrimaryOrganization(null);
+            setUserCategories([]);
+          }
+        } catch (fallbackError) {
+          console.error('❌ Fallback token check also failed:', fallbackError);
+          setIsAuthenticated(false);
+          setUser(null);
+          setRoles([]);
+          setPrimaryOrganization(null);
+          setUserCategories([]);
+        }
         
         // Still notify that initialization is complete (even if failed)
         globalThis.keycloakInitialized = true;
@@ -113,19 +215,27 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
       }
     };
 
-    // Add a timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.log("⚠️ Keycloak initialization timeout, setting loading to false");
-        setLoading(false);
-        setIsAuthenticated(false);
-        globalThis.keycloakInitialized = true;
-      }
-    }, 5000); // 5 second timeout
+    // Only add a timeout if we haven't already initialized
+    if (!globalThis.keycloakInitialized) {
+      const timeoutId = setTimeout(() => {
+        if (loading && !globalThis.keycloakInitialized) {
+          console.log("⚠️ Keycloak initialization timeout, setting loading to false");
+          setLoading(false);
+          // Don't reset authentication state if we already have user data
+          if (!user) {
+            setIsAuthenticated(false);
+          }
+          globalThis.keycloakInitialized = true;
+        }
+      }, 5000); // 5 second timeout
 
-    initializeAuth();
+      initializeAuth();
 
-    return () => clearTimeout(timeoutId);
+      return () => clearTimeout(timeoutId);
+    } else {
+      // If already initialized, just set loading to false
+      setLoading(false);
+    }
   }, []);
 
   // Set up token refresh and user data updates
