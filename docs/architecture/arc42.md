@@ -23,7 +23,7 @@ The Sustainability Tool enables cooperative organizations, such as the National 
 
 ### Technical Constraints
 
-- **Identity Management**: Integrate with Keycloak, using user_id (VARCHAR, Keycloak sub) and organization_id in JWT attributes.
+- **Identity Management**: Integrate with Keycloak, using user_id (VARCHAR, Keycloak sub) and organizations in JWT attributes.
 - **Database**: PostgresSQL with JSONB for flexible storage of answers and multilingual text.
 - **Security**: PostgresSQL row-level security for user-specific access.
 - **Performance**: GIN indexes on JSONB fields for query optimization.
@@ -125,7 +125,6 @@ graph TD
 - Built with React, using JSX and Tailwind CSS for styling.
 - Offline storage via IndexedDB for assessments and sync queue.
 - Features: Authentication, assessment creation/editing, synchronization, report viewing.
-- CDN-hosted via AWS S3 and CloudFront.
 
 #### Backend API Design and Microservices Structure:
 - **Authentication Service**: Validates Keycloak JWT tokens.
@@ -137,14 +136,15 @@ graph TD
 #### Database Schema and Data Flow:
 - **ASSESSMENTS**: Stores assessment_id (UUID PK), user_id (VARCHAR, Keycloak sub), data (JSONB for answers).
 - **ORGANIZATION_CATEGORIES**: Stores category_id (UUID PK), organization_id (UUID), name (VARCHAR), description (VARCHAR, nullable), categories (JSONB, array of strings).
-- **QUESTIONS**: Stores question_id (UUID PK), text (JSONB for multilingual), category_id (UUID FK to ORGANIZATION_CATEGORIES), weight (FLOAT).
+- **CATEGORIES**: Stores category_id (UUID PK), name (VARCHAR), weight (INTEGER), order (INTEGER), template_id (VARCHAR), created_at (TIMESTAMP WITH TIMEZONE), updated_at (TIMESTAMP WITH TIMEZONE). Represents assessment categories for organizing questions.
+- **QUESTIONS**: Stores question_id (UUID PK), text (JSONB for multilingual), category_id (UUID FK to CATEGORIES), weight (FLOAT).
 - **SYNC_QUEUE**: Stores sync_id (UUID PK), user_id (VARCHAR), assessment_id (UUID FK), data (JSONB), status (ENUM: pending, processing, completed).
 - **REPORTS**: Stores report_id (UUID PK), assessment_id (UUID FK), type (ENUM: PDF, CSV), data (JSONB).
-- **Data Flow**: Users create assessments via frontend, stored in ASSESSMENTS. Questions are organized by categories per organization. Offline changes queue in SYNC_QUEUE, synced to database. Reports generated from ASSESSMENTS and stored in REPORTS.
+- **Data Flow**: Users create assessments via frontend, stored in ASSESSMENTS. Questions are organized by categories, which are structured by weight and order. Offline changes queue in SYNC_QUEUE, synced to database. Reports generated from ASSESSMENTS and stored in REPORTS.
 
 #### Keycloak Integration:
 - Manages user identities and roles.
-- Provides JWT with user_id and organizations structure containing roles and metadata.
+- Provides JWT with user_id and organizations structure containing organization details and metadata.
 
 *Cross-reference: See Section 6 for runtime scenarios and Section 7 for deployment details.*
 
@@ -152,7 +152,7 @@ graph TD
 
 ### Scenario 1: Keycloak Authentication Flow
 1. User navigates to frontend, redirected to Keycloak login.
-2. Keycloak issues JWT with user_id (VARCHAR) and organizations structure (JWT attribute).
+2. Keycloak issues JWT with user_id (VARCHAR) and organizations structure containing organization details (JWT attribute).
 3. Frontend stores token, uses it for API requests.
 4. Authentication service validates token with Keycloak.
 
@@ -178,27 +178,23 @@ graph TD
 ```mermaid
 graph TD
     A[User] -->|HTTPS| B[CloudFront]
-    B -->|Static Assets| C[S3: Frontend]
     B -->|REST API| D[ECS: Backend Services]
     D -->|SQL| E[RDS: PostgreSQL]
     D -->|OAuth2| F[Keycloak]
-    D -->|Cache| G[ElastiCache: Redis]
     H[GitHub Actions] -->|CI/CD| D
     subgraph "AWS VPC"
         D[ECS: Backend Services]
         E[RDS: PostgreSQL]
-        G[ElastiCache: Redis]
     end
 ```
 
 ### Deployment and DevOps Pipeline
 
 #### Infrastructure:
-- **Frontend**: Hosted on AWS S3 with CloudFront CDN.
+- **Frontend**: Hosted with CloudFront CDN.
 - **Backend**: Rust microservices on ECS with auto-scaling.
 - **Database**: RDS PostgreSQL with automated backups and multi-AZ.
 - **Keycloak**: Managed instance for high availability.
-- **Caching**: ElastiCache (Redis) for performance.
 
 #### CI/CD Pipeline:
 - **Version Control**: GitHub for source code.
@@ -218,13 +214,11 @@ graph TD
 
 ### Security:
 - TLS for API communication.
-- AES-256 encryption for JSONB fields.
 - PostgreSQL row-level security.
 - Keycloak role-based access control.
 
 ### Performance:
 - GIN indexes on JSONB fields (data, text, answer).
-- Redis caching for frequent queries.
 - Asynchronous report generation.
 
 ### Internationalization:
@@ -247,7 +241,7 @@ graph TD
 | Decision | Justification                                                         | Alternatives Considered |
 |----------|-----------------------------------------------------------------------|------------------------|
 | Keycloak Integration | Simplifies authentication, supports multi-tenancy via JWT.            | Custom auth (higher maintenance). |
-| Groups-Based Multi-Tenancy | Efficiently implements organization isolation using Keycloak groups with simpler maintenance and deployment. | Phase Two Organizations extension (richer features but higher complexity). |
+| Organizations-Based Multi-Tenancy | Efficiently implements organization isolation using Keycloak organizations with simpler maintenance and deployment. | Phase Two Organizations extension (richer features but higher complexity). |
 | JSONB in PostgreSQL | Flexible for DGRV's questionnaire and multilingual text.              | Relational tables (less adaptable). |
 | React with Tailwind CSS | Responsive UI, rapid development.                                     | Angular (complexer setup). |
 | Microservices Architecture | Scalability, independent deployment.                                  | Monolith (less flexible). |
@@ -297,51 +291,73 @@ graph TD
 
 ```mermaid
 erDiagram
-    ORGANIZATIONS ||--o{ ASSESSMENTS : "linked via Keycloak JWT"
-    ORGANIZATIONS ||--o{ ORGANIZATION_CATEGORIES : "has"
-    ORGANIZATION_CATEGORIES ||--o{ QUESTIONS : "contains"
-    ASSESSMENTS ||--o{ SYNC_QUEUE : "queued for"
-    ASSESSMENTS ||--o| REPORTS : "generates"
+    CATEGORIES ||--o{ QUESTIONS : "contains"
+    ASSESSMENTS ||--o{ ASSESSMENTS_RESPONSE : "has"
+    ASSESSMENTS_SUBMISSION ||--o| SUBMISSION_REPORTS : "procudes"
+    QUESTIONS  || --o{ QUESTIONS_REVISIONS : "versions"
+    ASSESSMENTS_RESPONSE |o--o| QUESTIONS_REVISIONS : "one"
+    ASSESSMENTS_RESPONSE_FILE }o--|| ASSESSMENTS_RESPONSE : "one"
+    ASSESSMENTS_RESPONSE_FILE |o--o| FILE : "one"
 
-    ORGANIZATIONS {
-        uuid organization_id PK
-        varchar name
-        varchar country
+    ASSESSMENTS_SUBMISSION {
+        uuid assessment_id PK "from assessment table"
+        varchar user_id "Keycloak sub (string UUID)"
+        jsonb content "{question: response}[]"
     }
 
     ASSESSMENTS {
         uuid assessment_id PK
-        varchar user_id "Keycloak sub"
-        jsonb data "Answers: [{question_id, answer}]"
-        assessment_status status "ENUM(Draft, Submitted, Completed)"
+        varchar user_id "Keycloak sub (string UUID)"
+        text language "resolved from frontend"
     }
 
-    ORGANIZATION_CATEGORIES {
-        uuid category_id PK
-        uuid organization_id FK
-        varchar name
-        varchar description "nullable"
-        jsonb categories "Array of strings"
+    ASSESSMENTS_RESPONSE {
+        uuid response_id PK
+        uuid assessment_id FK
+        uuid question_revision_id FK "modifiable"
+        text response "modifiable"
+        int version "auto-increment, from frontend"
+        timestamp updated_at "auto-increment, from frontend"
+    }
+
+    ASSESSMENTS_RESPONSE_FILE {
+        uuid response_id FK
+        uuid file_id FK
+    }
+
+    FILE {
+        uuid file_id PK
+        blob content
+        json metadata
     }
 
     QUESTIONS {
         uuid question_id PK
-        jsonb text "Multilingual: {'en': 'Text', 'fr': 'Texte'}"
-        uuid category_id FK
+        text categoty
+        timpstamp created_at
+    }
+
+    QUESTIONS_REVISIONS {
+        uuid question_id PK
+        uuid question_revision_id
+        jsonb text "{i18n}"
         float weight
+        timestamp created_at "auto-update"
     }
 
-    SYNC_QUEUE {
-        uuid sync_id PK
-        varchar user_id "Keycloak sub"
-        uuid assessment_id FK
-        jsonb data "Changed fields"
-        sync_status status "ENUM(pending, processing, completed)"
-    }
-
-    REPORTS {
+    SUBMISSION_REPORTS {
         uuid report_id PK
         uuid assessment_id FK
         jsonb data "Report content"
+    }
+    
+    CATEGORIES {
+        uuid category_id PK
+        varchar name
+        integer weight
+        integer order
+        varchar template_id
+        timestamp created_at
+        timestamp updated_at
     }
 ```
