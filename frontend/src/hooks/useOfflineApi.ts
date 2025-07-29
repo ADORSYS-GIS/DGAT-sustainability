@@ -773,11 +773,15 @@ export function useOfflineAssessmentsMutation() {
       const tempId = `temp_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
 
+      // Create a proper submission object for IndexedDB storage
       const tempSubmissionForTransform: Submission = {
         submission_id: tempId,
         assessment_id: assessmentId,
         user_id: "current_user", // This will be replaced by the server's response
-        content: { assessment: { assessment_id: assessmentId } },
+        content: { 
+          assessment: { assessment_id: assessmentId },
+          responses: [] // Will be populated from responses in IndexedDB
+        },
         review_status: 'under_review',
         submitted_at: now,
       };
@@ -785,12 +789,16 @@ export function useOfflineAssessmentsMutation() {
       const offlineSubmission = DataTransformationService.transformSubmission(tempSubmissionForTransform);
       offlineSubmission.sync_status = 'pending';
 
+      // Always store in IndexedDB first for offline support
       await offlineDB.saveSubmission(offlineSubmission);
+      console.log('💾 Stored submission in IndexedDB:', offlineSubmission);
 
       const result = await interceptMutation(
         () => AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId }),
         async (apiResponse: Record<string, unknown>) => {
           console.log('🔍 API response for submission:', apiResponse);
+          
+          // Delete the temporary submission
           await offlineDB.deleteSubmission(tempId);
           
           if (!apiResponse.submission) {
@@ -810,15 +818,26 @@ export function useOfflineAssessmentsMutation() {
           await offlineDB.saveSubmission(finalOfflineSubmission);
         },
         { assessmentId } as Record<string, unknown>,
-        'submissions',
+        'submission',
         'create'
       );
 
+      // Check if we're online to determine success behavior
+      const isOnline = navigator.onLine;
+      
       if (result && typeof result === 'object' && 'submission' in result) {
+        // Online submission successful
         options?.onSuccess?.(result);
+      } else if (!isOnline) {
+        // Offline submission - stored in IndexedDB, will sync later
+        console.log('📱 Assessment submitted offline - stored in IndexedDB for later sync');
+        options?.onSuccess?.({ submission: offlineSubmission });
       } else {
-        console.log('Assessment submission queued for sync - not calling onSuccess yet');
+        // Online but API failed - still stored in IndexedDB for retry
+        console.log('Assessment submission queued for sync - stored in IndexedDB');
+        options?.onSuccess?.({ submission: offlineSubmission });
       }
+      
       return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to submit assessment');

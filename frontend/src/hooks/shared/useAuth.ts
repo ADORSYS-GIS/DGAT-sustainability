@@ -16,7 +16,7 @@ interface AuthState {
       id: string;
       categories: string[];
     }>;
-    categories?: string[]; // Personal categories from ID token for org_user
+    categories?: string[]; // Personal categories from ID token for Org_User
   } | null;
   roles: string[];
   login: () => void;

@@ -56,56 +56,37 @@ function useUserMutations() {
   const createUser = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
     setIsPending(true);
     try {
-      // Create a temporary user object for optimistic update
-      const tempId = `temp_${crypto.randomUUID()}`;
-      const now = new Date().toISOString();
-      
-      const tempUser: OfflineUser = {
-        id: tempId,
-        email: data.requestBody.email,
-        username: data.requestBody.email.split('@')[0], // Use email prefix as username
-        firstName: '',
-        lastName: '',
-        emailVerified: false,
-        roles: data.requestBody.roles,
-        updated_at: now,
-        sync_status: 'pending',
-        organization_id: data.id,
-      };
-      
-      // Save to IndexedDB immediately for optimistic update
-      await offlineDB.saveUser(tempUser);
-      
-      // Attempt API call
       try {
         const result = await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
           id: data.id,
           requestBody: data.requestBody
         });
         
-        // If API call succeeds, update the local user with real data
-        if (result) {
-          await offlineDB.deleteUser(tempId);
-          // The API response is unknown, so we'll create a basic user object
-          const offlineUser: OfflineUser = {
-            id: tempId, // We'll need to get the real ID from the response
-            email: data.requestBody.email,
-            username: data.requestBody.email.split('@')[0],
-            firstName: '',
-            lastName: '',
-            emailVerified: false,
-            roles: data.requestBody.roles,
-            sync_status: 'synced',
-            updated_at: new Date().toISOString(),
-            organization_id: data.id,
-          };
-          await offlineDB.saveUser(offlineUser);
-        }
-        
+        // If API call succeeds, the user will be fetched in the next data refresh
         toast.success("User created successfully");
         return { success: true };
       } catch (apiError) {
-        // API call failed, keep the temporary user and queue for sync
+        // API call failed, create a temporary user and queue for sync
+        const tempId = `temp_${crypto.randomUUID()}`;
+        const now = new Date().toISOString();
+        
+        const tempUser: OfflineUser = {
+          id: tempId,
+          email: data.requestBody.email,
+          username: data.requestBody.email.split('@')[0], // Use email prefix as username
+          firstName: '',
+          lastName: '',
+          emailVerified: false,
+          roles: data.requestBody.roles,
+          updated_at: now,
+          sync_status: 'pending',
+          organization_id: data.id,
+        };
+        
+        // Save to IndexedDB for offline mode
+        await offlineDB.saveUser(tempUser);
+        
+        // Queue for sync
         await offlineDB.addToSyncQueue({
           id: crypto.randomUUID(),
           operation: 'create',

@@ -18,7 +18,7 @@ const decodedIdTokenSchema = z.object({
     id: z.string(),
     categories: z.array(z.string())
   })).optional(),
-  categories: z.array(z.string()).optional(), // User's personal categories from ID token
+  categories: z.array(z.string()).optional(), 
 });
 
 export const { OidcProvider, useOidc, getOidc, withLoginEnforced, enforceLogin } =

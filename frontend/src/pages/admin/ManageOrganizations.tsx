@@ -22,7 +22,6 @@ import type {
   OrganizationResponse,
   OrganizationCreateRequest,
 } from "@/openapi-rq/requests/types.gen";
-import { get } from "idb-keyval";
 import Select from "react-select";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -251,11 +250,23 @@ export const ManageOrganizations: React.FC = () => {
   React.useEffect(() => {
     const loadCategories = async () => {
       setCategoriesLoading(true);
-      const stored = (await get("sustainability_categories")) as
-        | Category[]
-        | undefined;
-      setCategories(stored || []);
-      setCategoriesLoading(false);
+      try {
+        const stored = await offlineDB.getAllCategories();
+        // Map the IndexedDB category structure to the expected format
+        const mappedCategories = stored.map(cat => ({
+          categoryId: cat.category_id,
+          name: cat.name,
+          weight: cat.weight,
+          order: cat.order,
+          templateId: cat.template_id
+        }));
+        setCategories(mappedCategories);
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+        setCategories([]);
+      } finally {
+        setCategoriesLoading(false);
+      }
     };
     loadCategories();
   }, []);

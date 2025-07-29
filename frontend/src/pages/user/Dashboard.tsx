@@ -42,7 +42,7 @@ export const Dashboard: React.FC = () => {
   // Add initial data loading hook
   const { refreshData } = useInitialDataLoad();
   
-  // Both org_admin and org_user use the same data source - no differentiation
+  // Both org_admin and Org_User use the same data source - no differentiation
   // All users load the same data to their local storage
   const submissionsData = userSubmissionsData;
   const submissionsLoading = userSubmissionsLoading;
@@ -156,7 +156,7 @@ export const Dashboard: React.FC = () => {
           },
         ]
       : []),
-    // Only org_user sees 'Answer Assessment' card
+    // Only Org_User sees 'Answer Assessment' card
     ...(!user?.roles?.includes("org_admin") && !user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
@@ -260,7 +260,7 @@ export const Dashboard: React.FC = () => {
   console.log('🔍 Dashboard - Assessments data:', assessmentsData);
   console.log('🔍 Dashboard - User submissions data:', userSubmissionsData);
   console.log('🔍 Dashboard - Admin submissions data:', adminSubmissionsData);
-  console.log('🔍 Dashboard - Is org user:', user?.roles?.includes('org_user') || user?.realm_access?.roles?.includes('org_user'));
+  console.log('🔍 Dashboard - Is org user:', user?.roles?.includes('Org_User') || user?.realm_access?.roles?.includes('Org_User'));
   console.log('🔍 Dashboard - Selected submissions data:', submissionsData);
   console.log('🔍 Dashboard - Filtered assessments:', filteredAssessments);
   

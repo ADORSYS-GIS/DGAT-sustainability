@@ -79,7 +79,7 @@ export function useInitialDataLoad() {
     console.log('🔍 useInitialDataLoad: Data loading required:', needsLoading);
     console.log('🔍 useInitialDataLoad: hasLoadedData:', hasLoadedData);
     
-    // Both org_admin and org_user load the same data - no differentiation
+    // Both org_admin and Org_User load the same data - no differentiation
     // Always load if needed, regardless of hasLoadedData state
     if (!needsLoading) {
       console.log('🔍 Data loading not required, skipping');

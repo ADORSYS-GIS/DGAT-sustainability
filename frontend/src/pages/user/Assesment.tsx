@@ -12,7 +12,8 @@ import {
   useOfflineQuestions, 
   useOfflineAssessment, 
   useOfflineAssessmentsMutation, 
-  useOfflineResponsesMutation
+  useOfflineResponsesMutation,
+  useOfflineSyncStatus
 } from "../../hooks/useOfflineApi";
 import { toast } from "sonner";
 import { Info, Paperclip, ChevronLeft, ChevronRight, Save, Send } from "lucide-react";
@@ -39,6 +40,25 @@ export const Assessment: React.FC = () => {
 
   console.log('🔍 Assessment component loaded with assessmentId:', assessmentId);
 
+  // Network status from hook
+  const { isOnline } = useOfflineSyncStatus();
+
+  // Check for pending submissions
+  useEffect(() => {
+    const checkPendingSubmissions = async () => {
+      try {
+        const submissions = await offlineDB.getAllSubmissions();
+        const pending = submissions.filter(sub => sub.sync_status === 'pending');
+        setPendingSubmissions(pending);
+        console.log('🔍 Pending submissions:', pending);
+      } catch (error) {
+        console.error('Failed to check pending submissions:', error);
+      }
+    };
+
+    checkPendingSubmissions();
+  }, [isOnline]); // Re-check when network status changes
+
   const orgInfo = React.useMemo(() => {
     if (!user) return { orgId: "", categories: [] };
     
@@ -53,7 +73,7 @@ export const Assessment: React.FC = () => {
     }
     
     // Get user's personal categories from ID token (not organization categories)
-    // For org_user, this comes from the root level 'categories' field in the ID token
+    // For Org_User, this comes from the root level 'categories' field in the ID token
     const userCategories = user.categories || [];
     
     // Debug logging
@@ -76,6 +96,7 @@ export const Assessment: React.FC = () => {
   const [showPercentInfo, setShowPercentInfo] = useState(false);
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
   const [creationAttempts, setCreationAttempts] = useState(0);
+  const [pendingSubmissions, setPendingSubmissions] = useState<unknown[]>([]);
   const toolName = t("sustainability") + " " + t("assessment");
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
@@ -253,19 +274,46 @@ export const Assessment: React.FC = () => {
       
       // Then submit the assessment
       console.log('🔍 Submitting assessment with ID:', actualAssessment.assessment_id);
+      
+      // Check if we're online
+      const isOnline = navigator.onLine;
+      console.log('🔍 Network status:', isOnline ? 'Online' : 'Offline');
+      
+      if (!isOnline) {
+        toast.info(t('assessment.offlineSubmission', { defaultValue: 'You are offline. Assessment will be submitted when you come back online.' }));
+      }
+      
       await submitAssessmentHook(actualAssessment.assessment_id, {
-        onSuccess: () => {
-          toast.success(t('assessment.submittedSuccessfully', { defaultValue: 'Assessment submitted successfully!' }));
+        onSuccess: (result) => {
+          console.log('🔍 Submission success result:', result);
+          if (isOnline) {
+            toast.success(t('assessment.submittedSuccessfully', { defaultValue: 'Assessment submitted successfully!' }));
+          } else {
+            toast.success(t('assessment.queuedForSync', { defaultValue: 'Assessment saved offline and will be submitted when online.' }));
+          }
+          console.log('🔍 Redirecting to dashboard after submission');
           navigate("/dashboard");
         },
         onError: (err) => {
-          toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
-          console.error(err);
+          console.log('🔍 Submission error:', err);
+          if (!isOnline) {
+            toast.success(t('assessment.offlineSaved', { defaultValue: 'Assessment saved offline. Will sync when you come back online.' }));
+            console.log('🔍 Redirecting to dashboard after offline error');
+            navigate("/dashboard");
+          } else {
+            toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
+            console.error(err);
+          }
         }
       });
     } catch (error) {
-      toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
-      console.error('Submit assessment error:', error);
+      if (!navigator.onLine) {
+        toast.success(t('assessment.offlineSaved', { defaultValue: 'Assessment saved offline. Will sync when you come back online.' }));
+        navigate("/dashboard");
+      } else {
+        toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
+        console.error('Submit assessment error:', error);
+      }
     }
   };
 
@@ -302,7 +350,7 @@ export const Assessment: React.FC = () => {
     console.log('🔍 Assessment - All available categories in questions:', Object.keys(groups));
     console.log('🔍 Assessment - All grouped questions:', groups);
     
-    // Filter to only categories assigned to the user (org_user)
+    // Filter to only categories assigned to the user (Org_User)
     const filtered: typeof groups = {};
     console.log('🔍 Assessment - Starting filtering process...');
     console.log('🔍 Assessment - User categories to filter by:', orgInfo.categories);
@@ -785,6 +833,25 @@ export const Assessment: React.FC = () => {
               {t("category")} {currentCategoryIndex + 1} {t("of", { defaultValue: "of" })} {categories.length}: {currentCategory}
             </p>
           </div>
+
+          {/* Network Status Indicator */}
+          {!isOnline && (
+            <Card className="mb-6 border-orange-200 bg-orange-50">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-orange-800">
+                    {t('assessment.offlineMode', { defaultValue: 'You are offline. Your responses will be saved locally and synced when you come back online.' })}
+                  </span>
+                </div>
+                {pendingSubmissions.length > 0 && (
+                  <div className="mt-2 text-xs text-orange-700">
+                    {t('assessment.pendingSubmissions', { defaultValue: 'Pending submissions:' })} {pendingSubmissions.length}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Progress Bar */}
           <Card className="mb-8">

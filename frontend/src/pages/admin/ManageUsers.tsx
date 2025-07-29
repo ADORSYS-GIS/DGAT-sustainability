@@ -21,14 +21,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Users, Plus, Edit, Trash2, Mail, Building2 } from "lucide-react";
 import { 
-  useOfflineOrganizations, 
-  useOfflineUsers, 
-  useOfflineSyncStatus 
-} from "@/hooks/useOfflineApi";
+  useOrganizationsServiceGetAdminOrganizations,
+  useOrganizationMembersServiceGetOrganizationsByIdMembers,
+  useOrganizationMembersServicePostOrganizationsByIdMembers,
+  useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles,
+  useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId
+} from "@/openapi-rq/queries/queries";
 import type {
   OrganizationMember,
   MemberRequest,
   OrganizationResponse,
+  OrgAdminMemberRequest,
+  RoleAssignment,
 } from "@/openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 
@@ -51,62 +55,6 @@ function getOrgDescription(org: OrganizationResponse): string | undefined {
   return org.description ?? org.attributes?.description?.[0];
 }
 
-// Placeholder mutation hooks for user management
-function useUserMutations() {
-  const [isPending, setIsPending] = useState(false);
-  
-  const createUser = async (data: { id: string; requestBody: MemberRequest }) => {
-    setIsPending(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("User created successfully (offline mode)");
-      return { success: true };
-    } catch (error) {
-      toast.error("Failed to create user");
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  };
-  
-  const updateUser = async (data: { id: string; membershipId: string; requestBody: MemberRequest }) => {
-    setIsPending(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("User updated successfully (offline mode)");
-      return { success: true };
-    } catch (error) {
-      toast.error("Failed to update user");
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  };
-  
-  const deleteUser = async (data: { id: string; membershipId: string }) => {
-    setIsPending(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("User deleted successfully (offline mode)");
-      return { success: true };
-    } catch (error) {
-      toast.error("Failed to delete user");
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  };
-  
-  return {
-    createUser: { mutate: createUser, isPending },
-    updateUser: { mutate: updateUser, isPending },
-    deleteUser: { mutate: deleteUser, isPending }
-  };
-}
-
 export const ManageUsers: React.FC = () => {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -120,30 +68,70 @@ export const ManageUsers: React.FC = () => {
     roles: ["org_admin"],
   });
   
-  // Use offline hooks for all data fetching
-  const { data: organizations, isLoading: orgsLoading } =
-    useOfflineOrganizations();
+  // Use direct React Query hooks for data fetching
+  const { data: organizations, isLoading: orgsLoading } = useOrganizationsServiceGetAdminOrganizations();
+  
   // Add a new state to track the selected organization object
   const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(
     null,
   );
+  
   // Only fetch users when selectedOrg is set
   const {
     data: users,
     isLoading: usersLoading,
     refetch,
-  } = useOfflineUsers(selectedOrg ? selectedOrg.id : "");
+  } = useOrganizationMembersServiceGetOrganizationsByIdMembers(
+    { id: selectedOrg ? selectedOrg.id : "" },
+    undefined,
+    { enabled: !!selectedOrg?.id }
+  );
   
-  const { createUser, updateUser, deleteUser } = useUserMutations();
-  const { isOnline } = useOfflineSyncStatus();
+  // Use the generated mutation hooks
+  const createUserMutation = useOrganizationMembersServicePostOrganizationsByIdMembers({
+    onSuccess: () => {
+      toast.success("User created successfully");
+      refetch();
+      setShowAddDialog(false);
+      resetForm();
+    },
+    onError: (error) => {
+      console.error("Failed to create user:", error);
+      toast.error("Failed to create user");
+    }
+  });
+  
+  const updateUserMutation = useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles({
+    onSuccess: () => {
+      toast.success("User updated successfully");
+      refetch();
+      setShowAddDialog(false);
+      resetForm();
+    },
+    onError: (error) => {
+      console.error("Failed to update user:", error);
+      toast.error("Failed to update user");
+    }
+  });
+  
+  const deleteUserMutation = useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId({
+    onSuccess: () => {
+      toast.success("User deleted successfully");
+      refetch();
+    },
+    onError: (error) => {
+      console.error("Failed to delete user:", error);
+      toast.error("Failed to delete user");
+    }
+  });
 
   useEffect(() => {
-    if (!selectedOrgId && organizations?.organizations && organizations.organizations.length > 0) {
-      setSelectedOrgId(organizations.organizations[0].id);
+    if (!selectedOrgId && organizations && organizations.length > 0) {
+      setSelectedOrgId(organizations[0].id || "");
     }
   }, [organizations, selectedOrgId]);
 
-  // Update handleSubmit to only send email and roles
+  // Update handleSubmit to use the mutation hooks
   const handleSubmit = () => {
     if (!formData.email.trim()) {
       toast.error(t('manageUsers.emailRequired'));
@@ -153,30 +141,29 @@ export const ManageUsers: React.FC = () => {
       toast.error(t('manageUsers.selectOrgRequired'));
       return;
     }
-    const memberReq: MemberRequest = {
-      email: formData.email,
-      roles: formData.roles,
-    };
     
     if (editingUser) {
-      updateUser.mutate({ 
-        id: selectedOrgId, 
-        membershipId: editingUser.id, 
-        requestBody: memberReq 
-      }).then(() => {
-        refetch();
-        setShowAddDialog(false);
-        resetForm();
-      }).catch(() => {
-        // Error already handled in mutation
+      // For editing, use RoleAssignment
+      const roleAssignment: RoleAssignment = {
+        roles: formData.roles,
+      };
+      
+      updateUserMutation.mutate({
+        id: selectedOrgId,
+        membershipId: editingUser.id,
+        requestBody: roleAssignment
       });
     } else {
-      createUser.mutate({ id: selectedOrgId, requestBody: memberReq }).then(() => {
-        refetch();
-        setShowAddDialog(false);
-        resetForm();
-      }).catch(() => {
-        // Error already handled in mutation
+      // For creating, use OrgAdminMemberRequest
+      const memberReq: OrgAdminMemberRequest = {
+        email: formData.email,
+        roles: formData.roles,
+        categories: [], // Empty categories array for now
+      };
+      
+      createUserMutation.mutate({
+        id: selectedOrgId,
+        requestBody: memberReq
       });
     }
   };
@@ -198,10 +185,9 @@ export const ManageUsers: React.FC = () => {
     if (!confirmed) return;
     if (!selectedOrgId) return;
     
-    deleteUser.mutate({ id: selectedOrgId, membershipId: userId }).then(() => {
-      refetch();
-    }).catch(() => {
-      // Error already handled in mutation
+    deleteUserMutation.mutate({
+      id: selectedOrgId,
+      membershipId: userId
     });
   };
 
@@ -256,20 +242,6 @@ export const ManageUsers: React.FC = () => {
       <div className="min-h-screen bg-gray-50">
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Offline Status Indicator */}
-            <div className="mb-4 flex items-center justify-end">
-              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-                isOnline 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${
-                  isOnline ? 'bg-green-500' : 'bg-yellow-500'
-                }`}></div>
-                <span>{isOnline ? 'Online' : 'Offline'}</span>
-              </div>
-            </div>
-
             <div className="mb-8 animate-fade-in">
               <div className="flex items-center space-x-3 mb-4">
                 <Building2 className="w-8 h-8 text-dgrv-blue" />
@@ -282,7 +254,7 @@ export const ManageUsers: React.FC = () => {
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {(organizations?.organizations || []).map(
+              {(organizations || []).map(
                 (org: OrganizationResponse, index: number) => (
                   <Card
                     key={org.id}
@@ -322,20 +294,6 @@ export const ManageUsers: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Offline Status Indicator */}
-          <div className="mb-4 flex items-center justify-end">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-              isOnline 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
-              <span>{isOnline ? 'Online' : 'Offline'}</span>
-            </div>
-          </div>
-
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <Button
@@ -352,7 +310,6 @@ export const ManageUsers: React.FC = () => {
               {t('manageUsers.addUser')}
             </Button>
           </div>
-          {/* Remove the subheader '{t('manageUsers.manageUsersForOrg', { org: selectedOrg.name })}' */}
           <p className="text-lg text-gray-600 mb-6">
             {t('manageUsers.manageUsersForOrg', { org: selectedOrg.name })}
           </p>
@@ -408,8 +365,8 @@ export const ManageUsers: React.FC = () => {
                       <SelectValue placeholder={t('manageUsers.selectOrganizationPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {(organizations?.organizations || []).map((org) => (
-                        <SelectItem key={org.id} value={org.id}>
+                      {(organizations || []).map((org) => (
+                        <SelectItem key={org.id} value={org.id || ""}>
                           {org.name}
                         </SelectItem>
                       ))}
@@ -420,9 +377,9 @@ export const ManageUsers: React.FC = () => {
                   <Button
                     onClick={handleSubmit}
                     className="bg-dgrv-green hover:bg-green-700"
-                    disabled={createUser.isPending || updateUser.isPending}
+                    disabled={createUserMutation.isPending || updateUserMutation.isPending}
                   >
-                    {createUser.isPending || updateUser.isPending 
+                    {createUserMutation.isPending || updateUserMutation.isPending 
                       ? t('manageUsers.processing', { defaultValue: 'Processing...' })
                       : editingUser ? t('manageUsers.update') : t('manageUsers.create')} {t('manageUsers.user')}
                   </Button>
@@ -457,7 +414,7 @@ export const ManageUsers: React.FC = () => {
                         </p>
                         <p className="text-xs text-gray-500">
                           {t('manageUsers.orgLabel')}{" "}
-                          {(organizations?.organizations || []).find(
+                          {(organizations || []).find(
                             (org) => org.id === selectedOrgId,
                           )?.name || t('manageUsers.unknown')}
                         </p>
@@ -497,7 +454,7 @@ export const ManageUsers: React.FC = () => {
                         variant="outline"
                         onClick={() => handleDelete(user.id)}
                         className="text-red-600 hover:bg-red-50"
-                        disabled={deleteUser.isPending}
+                        disabled={deleteUserMutation.isPending}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

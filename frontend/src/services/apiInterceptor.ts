@@ -407,6 +407,13 @@ export class ApiInterceptor {
             await ResponsesService.postAssessmentsByAssessmentIdResponses(item.data as { assessmentId: string, requestBody: CreateResponseRequest[] });
           }
           break;
+        case 'submission':
+          if (item.operation === 'create') {
+            // Handle assessment submission
+            const { assessmentId } = item.data as { assessmentId: string };
+            await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId });
+          }
+          break;
         case 'user':
           if (item.operation === 'create') {
             const { organizationId, userData } = item.data as { organizationId: string; userData: OrgAdminMemberRequest };

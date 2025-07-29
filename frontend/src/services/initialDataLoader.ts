@@ -54,7 +54,7 @@ export class InitialDataLoader {
     const { roles } = userContext;
     const isDrgvAdmin = roles.includes('drgv_admin');
     const isOrgAdmin = roles.includes('org_admin');
-    const isOrgUser = roles.includes('org_user');
+    const isOrgUser = roles.includes('Org_User');
 
     return {
       // All users need questions and categories
