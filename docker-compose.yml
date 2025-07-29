@@ -86,7 +86,7 @@ services:
       KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
       KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
 #    entrypoint: ["/opt/keycloak/setup-scripts/startup.sh"]
-    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
+    command: ["start-dev", "--log-level=debug", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
       - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
