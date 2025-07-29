@@ -24,16 +24,20 @@ import type {
   OrganizationResponse,
   OrganizationCreateRequest,
 } from "@/openapi-rq/requests/types.gen";
-import { get } from "idb-keyval";
 import Select from "react-select";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
+import { CategoriesService } from "@/openapi-rq/requests/services.gen";
+import type { GetCategoriesResponse } from "@/openapi-rq/requests/types.gen";
 
 interface Category {
-  categoryId: string;
+  category_id: string;
   name: string;
   weight: number;
   order: number;
-  templateId: string;
+  template_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Update the OrganizationResponse type for local use
@@ -87,7 +91,13 @@ export const ManageOrganizations: React.FC = () => {
     attributes: { categories: [] },
   });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // Fetch categories from API using React Query
+  const { data: categoriesData, isLoading: categoriesLoadingFromAPI } = useQuery<GetCategoriesResponse>({
+    queryKey: ["categories"],
+    queryFn: () => CategoriesService.getCategories(),
+  });
+
   const {
     data: organizations,
     isLoading,
@@ -126,18 +136,12 @@ export const ManageOrganizations: React.FC = () => {
     },
   );
 
-  // Load categories from IndexedDB on mount
+  // Load categories from API on mount
   React.useEffect(() => {
-    const loadCategories = async () => {
-      setCategoriesLoading(true);
-      const stored = (await get("sustainability_categories")) as
-        | Category[]
-        | undefined;
-      setCategories(stored || []);
-      setCategoriesLoading(false);
-    };
-    loadCategories();
-  }, []);
+    if (categoriesData?.categories) {
+      setCategories(categoriesData.categories);
+    }
+  }, [categoriesData]);
 
   const handleSubmit = () => {
     if (!formData.name.trim()) {
@@ -221,7 +225,7 @@ export const ManageOrganizations: React.FC = () => {
     });
   };
 
-  if (isLoading || categoriesLoading) {
+  if (isLoading || categoriesLoadingFromAPI) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />

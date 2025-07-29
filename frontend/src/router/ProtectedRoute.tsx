@@ -29,8 +29,11 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   console.log("[ProtectedRoute] roles:", roles);
   console.log("[ProtectedRoute] pathname:", window.location.pathname);
 
+  // Check if user is authenticated (either by isAuthenticated flag or by having user data)
+  const isUserAuthenticated = isAuthenticated || (user && user.sub);
+
   // If timeout reached or not authenticated, redirect immediately
-  if (timeoutReached || (!loading && !isAuthenticated)) {
+  if (timeoutReached || (!loading && !isUserAuthenticated)) {
     console.log("[ProtectedRoute] Not authenticated or timeout reached, redirecting to /unauthorized");
     return <Navigate to="/unauthorized" replace />;
   }
