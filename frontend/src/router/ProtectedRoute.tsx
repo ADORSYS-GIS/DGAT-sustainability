@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/shared/useAuth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
@@ -9,26 +10,45 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   const { isAuthenticated, user, roles, loading } = useAuth();
+  const [timeoutReached, setTimeoutReached] = useState(false);
+
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log("[ProtectedRoute] Loading timeout reached, redirecting to unauthorized");
+        setTimeoutReached(true);
+      }
+    }, 3000); // 3 second timeout
+
+    return () => clearTimeout(timeoutId);
+  }, [loading]);
 
   console.log("[ProtectedRoute] isAuthenticated:", isAuthenticated);
   console.log("[ProtectedRoute] user:", user);
   console.log("[ProtectedRoute] roles:", roles);
   console.log("[ProtectedRoute] pathname:", window.location.pathname);
 
-  if (loading) {
-    console.log("[ProtectedRoute] Auth loading, rendering spinner...");
-    return <LoadingSpinner text="Checking authentication..." />;
+  // If timeout reached or not authenticated, redirect immediately
+  if (timeoutReached || (!loading && !isAuthenticated)) {
+    console.log("[ProtectedRoute] Not authenticated or timeout reached, redirecting to /unauthorized");
+    return <Navigate to="/unauthorized" replace />;
   }
 
-  if (!isAuthenticated) {
-    console.log("[ProtectedRoute] Not authenticated, redirecting to /");
-    return <Navigate to="/" replace />;
+  // If still loading, show a quick loading state
+  if (loading) {
+    console.log("[ProtectedRoute] Auth loading, rendering spinner...");
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner text="Checking authentication..." />
+      </div>
+    );
   }
 
   // Role-based access control
   const isDrgvAdmin = roles.includes("drgv_admin");
   const isOrgAdmin = roles.includes("org_admin");
-  const isOrgUser = roles.includes("org_user");
+  const isOrgUser = roles.includes("Org_User");
 
   // Only drgv_admin can access /admin
   if (window.location.pathname.startsWith("/admin") && !isDrgvAdmin) {

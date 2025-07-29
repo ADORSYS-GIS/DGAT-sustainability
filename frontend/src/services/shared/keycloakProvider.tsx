@@ -113,7 +113,19 @@ export const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) 
       }
     };
 
+    // Add a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log("⚠️ Keycloak initialization timeout, setting loading to false");
+        setLoading(false);
+        setIsAuthenticated(false);
+        globalThis.keycloakInitialized = true;
+      }
+    }, 5000); // 5 second timeout
+
     initializeAuth();
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Set up token refresh and user data updates
