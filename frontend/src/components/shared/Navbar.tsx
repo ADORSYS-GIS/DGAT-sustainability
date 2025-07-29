@@ -10,6 +10,7 @@ import { Globe, User, LogOut, Home } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
+import React from "react";
 
 const languages = [
   { code: "en", name: "English", flag: "🇺🇸" },
@@ -22,7 +23,10 @@ const languages = [
 
 export const Navbar = () => {
   const { t } = useTranslation();
-  const [currentLanguage, setCurrentLanguage] = useState(i18n.language || "en");
+  const [currentLanguage, setCurrentLanguage] = useState(() => {
+    // Get the saved language from localStorage or use i18n's current language
+    return localStorage.getItem('i18n_language') || i18n.language || "en";
+  });
   const { isAuthenticated, user, login, logout } = useAuth();
 
   const currentLang =
@@ -43,6 +47,19 @@ export const Navbar = () => {
     setCurrentLanguage(langCode);
     i18n.changeLanguage(langCode);
   };
+
+  // Listen for i18n language changes to keep state in sync
+  React.useEffect(() => {
+    const handleLanguageChange = () => {
+      setCurrentLanguage(i18n.language);
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+    
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b">
