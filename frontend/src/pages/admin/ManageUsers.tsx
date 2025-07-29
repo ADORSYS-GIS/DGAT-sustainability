@@ -61,7 +61,6 @@ export const ManageUsers: React.FC = () => {
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
   );
-  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   // Set the default role to 'org_admin' and make it the only selectable option
   const [formData, setFormData] = useState({
     email: "",
@@ -125,11 +124,8 @@ export const ManageUsers: React.FC = () => {
     }
   });
 
-  useEffect(() => {
-    if (!selectedOrgId && organizations && organizations.length > 0) {
-      setSelectedOrgId(organizations[0].id || "");
-    }
-  }, [organizations, selectedOrgId]);
+  // Remove the useEffect that auto-selects the first organization
+  // Users should manually select an organization from the grid
 
   // Update handleSubmit to use the mutation hooks
   const handleSubmit = () => {
@@ -137,7 +133,7 @@ export const ManageUsers: React.FC = () => {
       toast.error(t('manageUsers.emailRequired'));
       return;
     }
-    if (!selectedOrgId) {
+    if (!selectedOrg?.id) {
       toast.error(t('manageUsers.selectOrgRequired'));
       return;
     }
@@ -149,7 +145,7 @@ export const ManageUsers: React.FC = () => {
       };
       
       updateUserMutation.mutate({
-        id: selectedOrgId,
+        id: selectedOrg.id,
         membershipId: editingUser.id,
         requestBody: roleAssignment
       });
@@ -162,7 +158,7 @@ export const ManageUsers: React.FC = () => {
       };
       
       createUserMutation.mutate({
-        id: selectedOrgId,
+        id: selectedOrg.id,
         requestBody: memberReq
       });
     }
@@ -183,10 +179,10 @@ export const ManageUsers: React.FC = () => {
       t('manageUsers.confirmDelete'),
     );
     if (!confirmed) return;
-    if (!selectedOrgId) return;
+    if (!selectedOrg?.id) return;
     
     deleteUserMutation.mutate({
-      id: selectedOrgId,
+      id: selectedOrg.id,
       membershipId: userId
     });
   };
@@ -357,21 +353,15 @@ export const ManageUsers: React.FC = () => {
                 </div>
                 <div>
                   <Label htmlFor="organization">{t('manageUsers.organization')}</Label>
-                  <Select
-                    value={selectedOrgId}
-                    onValueChange={(value) => setSelectedOrgId(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('manageUsers.selectOrganizationPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(organizations || []).map((org) => (
-                        <SelectItem key={org.id} value={org.id || ""}>
-                          {org.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {/* Organization field - read-only since we're already in a specific org context */}
+                  <Input
+                    id="organization"
+                    value={selectedOrg?.name || ''}
+                    readOnly
+                    disabled
+                    className="bg-gray-100 cursor-not-allowed"
+                    placeholder="Current organization"
+                  />
                 </div>
                 <div className="flex space-x-2 pt-4">
                   <Button
@@ -414,9 +404,7 @@ export const ManageUsers: React.FC = () => {
                         </p>
                         <p className="text-xs text-gray-500">
                           {t('manageUsers.orgLabel')}{" "}
-                          {(organizations || []).find(
-                            (org) => org.id === selectedOrgId,
-                          )?.name || t('manageUsers.unknown')}
+                          {selectedOrg?.name || t('manageUsers.unknown')}
                         </p>
                       </div>
                     </div>
