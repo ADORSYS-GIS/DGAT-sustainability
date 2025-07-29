@@ -27,12 +27,10 @@ import {
 import { useAuth } from "@/hooks/shared/useAuth";
 
 type Organization = { organizationId: string; name: string };
-type User = { userId: string; firstName?: string; lastName?: string };
 
 interface PendingReview {
   id: string;
   organization: string;
-  user: string;
   type: string;
   submittedAt: string;
 }
@@ -49,12 +47,7 @@ export const AdminDashboard: React.FC = () => {
     { organizationId: "org1", name: "Mock Cooperative 1" },
     { organizationId: "org2", name: "Mock Cooperative 2" },
   ]);
-  const [users] = React.useState<User[]>([
-    { userId: "user1", firstName: "Alice", lastName: "Smith" },
-    { userId: "user2", firstName: "Bob", lastName: "Jones" },
-  ]);
   const orgsLoading = false;
-  const usersLoading = false;
 
   // Use offline hooks for all data fetching
   const {
@@ -92,7 +85,6 @@ export const AdminDashboard: React.FC = () => {
       console.log('🔍 AdminDashboard: Submission statuses:', submissions.map(s => ({ 
         id: s.submission_id, 
         status: s.review_status,
-        user_id: s.user_id,
         submitted_at: s.submitted_at
       })));
       toast.success(`Loaded ${submissions.length} submissions successfully!`, {
@@ -106,7 +98,7 @@ export const AdminDashboard: React.FC = () => {
   }, [error, submissionsLoading, submissionsData, submissions.length]);
 
   const pendingReviews = useMemo(() => {
-    if (orgsLoading || usersLoading || submissionsLoading) return [];
+    if (orgsLoading || submissionsLoading) return [];
 
     console.log('🔍 All submissions loaded:', submissions);
     console.log('🔍 Submission statuses:', submissions.map(s => ({ id: s.submission_id, status: s.review_status })));
@@ -120,21 +112,16 @@ export const AdminDashboard: React.FC = () => {
 
     console.log('🔍 Pending submissions after filter:', pendingSubmissions);
 
-    const userMap = new Map(
-      users.map((u) => [u.userId, `${u.firstName ?? ""} ${u.lastName ?? ""}`]),
-    );
-
     return pendingSubmissions.map((submission) => ({
       id: submission.submission_id,
-      organization: "Unknown Organization",
-      user: userMap.get(submission.user_id) || "Unknown User",
+      organization: submission.org_name || "Unknown Organization",
       type: "Sustainability",
       submittedAt: new Date(submission.submitted_at).toLocaleDateString(
         "en-CA",
       ),
       reviewStatus: submission.review_status,
     }));
-  }, [users, submissions, orgsLoading, usersLoading, submissionsLoading]);
+  }, [orgsLoading, submissions, submissionsLoading]);
 
   // Dynamic pending reviews count (pending_review or under_review)
   const pendingReviewsCount = React.useMemo(
@@ -332,9 +319,6 @@ export const AdminDashboard: React.FC = () => {
                           </h3>
                           <p className="text-sm text-gray-600">
                             {review.organization}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            by {review.user}
                           </p>
                         </div>
                       </div>

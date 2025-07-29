@@ -86,7 +86,7 @@ export default defineConfig({
       manifest: {
         name: 'DGAT Sustainability Assessment Tool',
         short_name: 'DGAT',
-        description: 'Digital Government Assessment Tool for Sustainability',
+        description: 'DGAT for Sustainability',
         start_url: '/',
         scope: '/',
         display: 'standalone',

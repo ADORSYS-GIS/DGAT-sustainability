@@ -9,6 +9,7 @@ import type { SyncQueueItem } from "@/types/offline";
 import { DataTransformationService } from "./dataTransformation";
 import type { 
   Question,
+  QuestionRevision, 
   Category,
   Assessment,
   Response,
@@ -18,9 +19,13 @@ import type {
   OrganizationMember,
   OrganizationInvitation,
   CreateQuestionRequest,
+  UpdateQuestionRequest,
   CreateCategoryRequest,
+  UpdateCategoryRequest,
   CreateAssessmentRequest,
+  UpdateAssessmentRequest,
   CreateResponseRequest,
+  UpdateResponseRequest,
   OrgAdminMemberRequest,
   OrgAdminMemberCategoryUpdateRequest
 } from "@/openapi-rq/requests/types.gen";
@@ -48,6 +53,7 @@ export class ApiInterceptor {
     };
 
     this.setupNetworkListeners();
+    this.setupPeriodicSync();
   }
 
   /**
@@ -61,6 +67,10 @@ export class ApiInterceptor {
       // Immediate sync attempt
       this.processQueue();
       
+      // Also trigger sync after a short delay to ensure all components are ready
+      setTimeout(() => {
+        this.processQueue();
+      }, 1000);
       
       toast.success('Connection restored. Syncing data...');
     });
@@ -70,6 +80,36 @@ export class ApiInterceptor {
       console.log('📱 Network connection lost - queuing changes for later sync');
       toast.warning('You are now offline. Changes will be synced when connection is restored.');
     });
+
+    // Also trigger sync when the page loads if online
+    if (this.isOnline) {
+      // Small delay to ensure IndexedDB is ready
+      setTimeout(() => {
+        this.processQueue();
+      }, 2000);
+    }
+  }
+
+  /**
+   * Setup periodic sync check
+   */
+  private setupPeriodicSync(): void {
+    // Check for pending sync items every 30 seconds when online
+    setInterval(async () => {
+      if (this.isOnline && this.config.enableQueueing) {
+        // Check if there are any pending items in the tables
+        const allQuestions = await offlineDB.getAllQuestions();
+        const allCategories = await offlineDB.getAllCategories();
+        const pendingQuestions = allQuestions.filter(q => q.sync_status === 'pending');
+        const pendingCategories = allCategories.filter(c => c.sync_status === 'pending');
+        const totalPending = pendingQuestions.length + pendingCategories.length;
+        
+        if (totalPending > 0) {
+          console.log(`🔄 Periodic sync check found ${totalPending} pending items`);
+          this.processQueue();
+        }
+      }
+    }, 30000); // Check every 30 seconds
   }
 
   /**
@@ -138,15 +178,9 @@ export class ApiInterceptor {
           return result;
         } catch (apiError) {
           console.error(`❌ API call failed for ${entityType}:`, apiError);
-          console.warn(`📋 Queuing ${entityType} for retry due to API failure`);
-          // Fall through to queueing
+          console.warn(`📋 ${entityType} will be synced when online`);
+          // Fall through to return data
         }
-      }
-
-      // Queue for background sync
-      if (this.config.enableQueueing) {
-        await this.queueForSync(data, entityType, operation);
-        console.log(`📋 Queued ${entityType} for background sync`);
       }
 
       // Return the data as if the API call succeeded
@@ -265,27 +299,6 @@ export class ApiInterceptor {
   }
 
   /**
-   * Queue data for background synchronization
-   */
-  private async queueForSync(
-    data: Record<string, unknown>,
-    entityType: string,
-    operation: 'create' | 'update' | 'delete'
-  ): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      entity_type: entityType as SyncQueueItem['entity_type'],
-      operation,
-      data,
-      retry_count: 0,
-      max_retries: this.config.maxRetries,
-      priority: this.getPriority(entityType, operation),
-      created_at: new Date().toISOString()
-    };
-    await offlineDB.addToSyncQueue(item);
-  }
-
-  /**
    * Get priority for sync queue items
    */
   private getPriority(entityType: string, operation: 'create' | 'update' | 'delete'): 'low' | 'normal' | 'high' | 'critical' {
@@ -307,55 +320,109 @@ export class ApiInterceptor {
    * Process the sync queue when online
    */
   async processQueue(): Promise<void> {
+    console.log('🔄 processQueue called - isOnline:', this.isOnline, 'enableQueueing:', this.config.enableQueueing);
+    
     if (!this.isOnline || !this.config.enableQueueing) {
       console.log('🔄 Sync skipped - offline or queueing disabled');
       return;
     }
 
+    // Import the necessary service methods dynamically to avoid circular dependencies
+    const { 
+      QuestionsService,
+      CategoriesService
+    } = await import('@/openapi-rq/requests/services.gen');
+
     try {
-      const queue = await offlineDB.getSyncQueue();
-      if (queue.length === 0) {
-        console.log('🔄 No items in sync queue');
-        return;
-      }
-
-      console.log(`🔄 Processing ${queue.length} queued items`);
-
+      // Instead of using a separate sync queue, scan all tables for pending items
+      console.log('🔄 Scanning tables for pending items...');
+      
       let successCount = 0;
       let failureCount = 0;
 
-      for (const item of queue) {
+      // Scan questions table for pending items
+      const allQuestions = await offlineDB.getAllQuestions();
+      const pendingQuestions = allQuestions.filter(q => q.sync_status === 'pending');
+      console.log(`🔄 Found ${pendingQuestions.length} pending questions:`, pendingQuestions.map(q => q.question_id));
+
+      for (const question of pendingQuestions) {
         try {
-          console.log(`🔄 Processing: ${item.operation} ${item.entity_type} (attempt ${item.retry_count + 1}/${item.max_retries})`);
+          console.log(`🔄 Syncing pending question: ${question.question_id}`);
           
-          // Process the item using the appropriate service method
-          await this.processQueueItem(item);
+          // Create the request data from the offline question
+          const questionData: CreateQuestionRequest = {
+            category: question.category,
+            text: question.latest_revision.text,
+            weight: question.latest_revision.weight
+          };
+
+          const response = await QuestionsService.postQuestions({ requestBody: questionData });
+          console.log('✅ Question created via API:', response);
           
-          // Remove from queue on success
-          await offlineDB.removeFromSyncQueue(item.id);
-          
-          successCount++;
-          console.log(`✅ Successfully synced ${item.entity_type}`);
-        } catch (error) {
-          console.error(`❌ Failed to sync ${item.entity_type}:`, error);
-          failureCount++;
-          
-          // Increment retry count
-          item.retry_count++;
-          
-          if (item.retry_count >= item.max_retries) {
-            // Remove from queue if max retries exceeded
-            await offlineDB.removeFromSyncQueue(item.id);
-            console.error(`🚫 Max retries exceeded for ${item.entity_type}`);
-          } else {
-            // Update the queue item
-            await offlineDB.addToSyncQueue(item);
+          if (response && response.question) {
+            const realQuestion = response.question as Question;
+            
+            // Delete the temporary question
+            await offlineDB.deleteQuestion(question.question_id);
+            console.log('🗑️ Deleted temporary question:', question.question_id);
+            
+            // Save the real question with proper ID
+            const offlineQuestion = DataTransformationService.transformQuestion(realQuestion);
+            offlineQuestion.sync_status = 'synced';
+            await offlineDB.saveQuestion(offlineQuestion);
+            console.log('✅ Updated local question with real ID:', realQuestion.question_id);
+            
+            successCount++;
           }
+        } catch (error) {
+          console.error(`❌ Failed to sync question ${question.question_id}:`, error);
+          failureCount++;
+        }
+      }
+
+      // Scan categories table for pending items
+      const allCategories = await offlineDB.getAllCategories();
+      const pendingCategories = allCategories.filter(c => c.sync_status === 'pending');
+      console.log(`🔄 Found ${pendingCategories.length} pending categories:`, pendingCategories.map(c => c.category_id));
+
+      for (const category of pendingCategories) {
+        try {
+          console.log(`🔄 Syncing pending category: ${category.category_id}`);
+          
+          // Create the request data from the offline category
+          const categoryData: CreateCategoryRequest = {
+            name: category.name,
+            weight: category.weight,
+            order: category.order,
+            template_id: category.template_id
+          };
+
+          const response = await CategoriesService.postCategories({ requestBody: categoryData });
+          console.log('✅ Category created via API:', response);
+          
+          if (response && response.category) {
+            const realCategory = response.category as Category;
+            
+            // Delete the temporary category
+            await offlineDB.deleteCategory(category.category_id);
+            console.log('🗑️ Deleted temporary category:', category.category_id);
+            
+            // Save the real category with proper ID
+            const offlineCategory = DataTransformationService.transformCategory(realCategory);
+            offlineCategory.sync_status = 'synced';
+            await offlineDB.saveCategory(offlineCategory);
+            console.log('✅ Updated local category with real ID:', realCategory.category_id);
+            
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`❌ Failed to sync category ${category.category_id}:`, error);
+          failureCount++;
         }
       }
 
       // Provide summary feedback
-      if (successCount > 0) {
+      if (successCount > 0 || failureCount > 0) {
         console.log(`✅ Sync completed: ${successCount} successful, ${failureCount} failed`);
         if (successCount > 0) {
           toast.success(`Synced ${successCount} items successfully`);
@@ -363,85 +430,12 @@ export class ApiInterceptor {
         if (failureCount > 0) {
           toast.error(`Failed to sync ${failureCount} items`);
         }
+      } else {
+        console.log('🔄 No pending items found to sync');
       }
     } catch (error) {
-      console.error('Failed to process sync queue:', error);
+      console.error('Failed to process sync:', error);
       toast.error('Sync failed. Please try again.');
-    }
-  }
-
-  /**
-   * Process a single queue item using service methods
-   */
-  private async processQueueItem(item: SyncQueueItem): Promise<void> {
-    // Import the necessary service methods dynamically to avoid circular dependencies
-    const { 
-      QuestionsService,
-      CategoriesService,
-      AssessmentsService,
-      ResponsesService,
-      OrganizationMembersService
-    } = await import('@/openapi-rq/requests/services.gen');
-
-    console.log(`Processing queue item: ${item.operation} ${item.entity_type}`);
-    
-    try {
-      switch (item.entity_type) {
-        case 'question':
-          if (item.operation === 'create') {
-            await QuestionsService.postQuestions({ requestBody: item.data as CreateQuestionRequest });
-          }
-          break;
-        case 'category':
-          if (item.operation === 'create') {
-            await CategoriesService.postCategories({ requestBody: item.data as CreateCategoryRequest });
-          }
-          break;
-        case 'assessment':
-          if (item.operation === 'create') {
-            await AssessmentsService.postAssessments({ requestBody: item.data as CreateAssessmentRequest });
-          }
-          break;
-        case 'response':
-          if (item.operation === 'create') {
-            await ResponsesService.postAssessmentsByAssessmentIdResponses(item.data as { assessmentId: string, requestBody: CreateResponseRequest[] });
-          }
-          break;
-        case 'submission':
-          if (item.operation === 'create') {
-            // Handle assessment submission
-            const { assessmentId } = item.data as { assessmentId: string };
-            await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId });
-          }
-          break;
-        case 'user':
-          if (item.operation === 'create') {
-            const { organizationId, userData } = item.data as { organizationId: string; userData: OrgAdminMemberRequest };
-            await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
-              id: organizationId,
-              requestBody: userData
-            });
-          } else if (item.operation === 'update') {
-            const { organizationId, memberId, userData } = item.data as { organizationId: string; memberId: string; userData: OrgAdminMemberCategoryUpdateRequest };
-            await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories({
-              id: organizationId,
-              memberId: memberId,
-              requestBody: userData
-            });
-          } else if (item.operation === 'delete') {
-            const { organizationId, memberId } = item.data as { organizationId: string; memberId: string };
-            await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId({
-              id: organizationId,
-              memberId: memberId
-            });
-          }
-          break;
-        default:
-          console.warn(`Unsupported entity type for queue processing: ${item.entity_type}`);
-      }
-    } catch (error) {
-      console.error(`Failed to process queue item ${item.entity_type}:`, error);
-      throw error;
     }
   }
 
@@ -465,12 +459,47 @@ export class ApiInterceptor {
   getConfig(): InterceptorConfig {
     return { ...this.config };
   }
+
+  /**
+   * Manually trigger sync (for testing)
+   */
+  async manualSync(): Promise<void> {
+    console.log('🔄 Manual sync triggered');
+    await this.processQueue();
+  }
+
+  /**
+   * Get sync queue status
+   */
+  async getSyncStatus(): Promise<{ queueLength: number; isOnline: boolean }> {
+    // Instead of checking sync queue, check pending items in tables
+    const allQuestions = await offlineDB.getAllQuestions();
+    const allCategories = await offlineDB.getAllCategories();
+    const pendingQuestions = allQuestions.filter(q => q.sync_status === 'pending');
+    const pendingCategories = allCategories.filter(c => c.sync_status === 'pending');
+    const totalPending = pendingQuestions.length + pendingCategories.length;
+    
+    return {
+      queueLength: totalPending,
+      isOnline: this.isOnline
+    };
+  }
 }
 
 // Create a singleton instance
 export const apiInterceptor = new ApiInterceptor();
 
+// Make it available globally for debugging
+if (typeof window !== 'undefined') {
+  (window as unknown as { apiInterceptor: ApiInterceptor; manualSync: () => Promise<void>; getSyncStatus: () => Promise<{ queueLength: number; isOnline: boolean }>; processQueue: () => Promise<void> }).apiInterceptor = apiInterceptor;
+  (window as unknown as { manualSync: () => Promise<void> }).manualSync = () => apiInterceptor.manualSync();
+  (window as unknown as { getSyncStatus: () => Promise<{ queueLength: number; isOnline: boolean }> }).getSyncStatus = () => apiInterceptor.getSyncStatus();
+  (window as unknown as { processQueue: () => Promise<void> }).processQueue = () => apiInterceptor.processQueue();
+}
+
 // Export convenience functions for common operations
 export const interceptGet = apiInterceptor.interceptGet.bind(apiInterceptor);
 export const interceptMutation = apiInterceptor.interceptMutation.bind(apiInterceptor);
-export const processQueue = apiInterceptor.processQueue.bind(apiInterceptor); 
+export const processQueue = apiInterceptor.processQueue.bind(apiInterceptor);
+export const manualSync = apiInterceptor.manualSync.bind(apiInterceptor);
+export const getSyncStatus = apiInterceptor.getSyncStatus.bind(apiInterceptor); 

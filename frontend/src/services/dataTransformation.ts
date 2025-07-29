@@ -185,7 +185,8 @@ export class DataTransformationService {
     
     return {
       ...submission,
-      organization_id: userOrganizationId,
+      organization_id: userOrganizationId || (adminSubmission.org_id || 'unknown'),
+      org_name: (adminSubmission.org_name as string) || 'Unknown Organization', // Store organization name
       reviewer_id: adminSubmission.reviewed_at ? adminSubmission.submission_id : undefined,
       reviewer_email: reviewerEmail,
       review_comments: '',

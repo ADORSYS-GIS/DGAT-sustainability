@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { apiInterceptor, interceptGet, interceptMutation } from "../services/apiInterceptor";
 import { offlineDB } from "../services/indexeddb";
 import { DataTransformationService } from "../services/dataTransformation";
+import type { OfflineQuestion, OfflineCategory } from "../types/offline";
 import { 
   QuestionsService,
   CategoriesService,
@@ -104,46 +105,28 @@ export function useOfflineQuestionsMutation() {
       
       // Manually set a temp ID and pending status for the optimistic update
       offlineQuestion.sync_status = 'pending';
-      
-      // Save the temporary question locally for immediate UI feedback
-      await offlineDB.saveQuestion(offlineQuestion);
 
       // Now, perform the actual API call and handle the sync queue
       const result = await interceptMutation(
         () => QuestionsService.postQuestions({ requestBody: question }),
-        async (apiResponse: Record<string, unknown>) => {
-          // When the API call succeeds, it returns the real question object.
-          // We need to delete the temporary local question and save the new one from the server.
-          await offlineDB.deleteQuestion(tempId);
-          
-          // Check if this is a valid API response or request data
-          if (!apiResponse.question) {
-            // This is the request data, not the API response
-            console.warn('Received request data instead of API response - API call may have failed');
-            console.log('Request data:', apiResponse);
-            // Don't delete the temp question, keep it for retry
-            return;
-          }
-          
-          const realQuestion = apiResponse.question as Question;
-          if (!realQuestion || !realQuestion.question_id) {
-            console.error('API did not return a valid question:', apiResponse);
-            throw new Error('API did not return a valid question');
-          }
-          const finalOfflineQuestion = DataTransformationService.transformQuestion(realQuestion);
-          await offlineDB.saveQuestion(finalOfflineQuestion);
+        async (data: Record<string, unknown>) => {
+          // This function is called by interceptMutation to save data locally
+          // For create operations, we save the temporary question
+          await offlineDB.saveQuestion(offlineQuestion);
         },
         question as Record<string, unknown>,
         'questions',
         'create'
       );
 
-      // Only call onSuccess if we got a valid API response
+      // Check if this is a valid API response (has question property) or request data (offline)
       if (result && typeof result === 'object' && 'question' in result) {
+        // This is a valid API response - call onSuccess
         options?.onSuccess?.(result);
       } else {
-        // This is request data, not API response - don't call onSuccess
-        console.log('Question creation queued for sync - not calling onSuccess yet');
+        // This is request data (offline scenario) - still call onSuccess for immediate feedback
+        console.log('Question creation queued for sync - providing immediate feedback');
+        options?.onSuccess?.(result);
       }
       return result;
     } catch (err) {
@@ -163,25 +146,32 @@ export function useOfflineQuestionsMutation() {
     try {
       setIsPending(true);
 
+      // Get the existing question to update it locally
+      const existingQuestion = await offlineDB.getQuestion(questionId);
+      if (!existingQuestion) {
+        throw new Error('Question not found in local database');
+      }
+
+      // Create updated question object
+      const updatedQuestion: OfflineQuestion = {
+        ...existingQuestion,
+        category: question.category,
+        latest_revision: {
+          ...existingQuestion.latest_revision,
+          text: question.text,
+          weight: question.weight,
+          created_at: new Date().toISOString(),
+        },
+        sync_status: 'pending',
+        updated_at: new Date().toISOString(),
+      };
+
       const result = await interceptMutation(
         () => QuestionsService.putQuestionsByQuestionId({ questionId, requestBody: question }),
         async (data: Record<string, unknown>) => {
-          // Check if this is a valid API response or request data
-          if (!data.question) {
-            // This is the request data, not the API response
-            console.warn('Received request data instead of API response - API call may have failed');
-            console.log('Request data:', data);
-            return;
-          }
-          
-          const realQuestion = data.question as Question;
-          if (!realQuestion || !realQuestion.question_id) {
-            console.error('API did not return a valid question:', data);
-            throw new Error('API did not return a valid question');
-          }
-          
-          const offlineQuestion = DataTransformationService.transformQuestion(realQuestion);
-          await offlineDB.saveQuestion(offlineQuestion);
+          // This function is called by interceptMutation to save data locally
+          // For update operations, we update the existing question
+          await offlineDB.saveQuestion(updatedQuestion);
         },
         question as Record<string, unknown>,
         'questions',
@@ -293,42 +283,27 @@ export function useOfflineCategoriesMutation() {
 
       const offlineCategory = DataTransformationService.transformCategory(tempCategoryForTransform);
       offlineCategory.sync_status = 'pending';
-      
-      await offlineDB.saveCategory(offlineCategory);
 
       const result = await interceptMutation(
         () => CategoriesService.postCategories({ requestBody: category }),
-        async (apiResponse: Record<string, unknown>) => {
-          await offlineDB.deleteCategory(tempId);
-          // The API response structure is { category: Category }
-          // But if the API call failed, we might get the request data instead
-          if (!apiResponse.category) {
-            // This is the request data, not the API response
-            console.warn('Received request data instead of API response - API call may have failed');
-            console.log('Request data:', apiResponse);
-            // Don't delete the temp category, keep it for retry
-            return;
-          }
-          
-          const realCategory = (apiResponse as { category: Category }).category;
-          if (!realCategory || !realCategory.category_id) {
-            console.error('API did not return a valid category:', apiResponse);
-            throw new Error('API did not return a valid category');
-          }
-          const finalOfflineCategory = DataTransformationService.transformCategory(realCategory);
-          await offlineDB.saveCategory(finalOfflineCategory);
+        async (data: Record<string, unknown>) => {
+          // This function is called by interceptMutation to save data locally
+          // For create operations, we save the temporary category
+          await offlineDB.saveCategory(offlineCategory);
         },
         category as Record<string, unknown>,
         'categories',
         'create'
       );
 
-      // Only call onSuccess if we got a valid API response
+      // Check if this is a valid API response (has category property) or request data (offline)
       if (result && typeof result === 'object' && 'category' in result) {
+        // This is a valid API response - call onSuccess
         options?.onSuccess?.(result);
       } else {
-        // This is request data, not API response - don't call onSuccess
-        console.log('Category creation queued for sync - not calling onSuccess yet');
+        // This is request data (offline scenario) - still call onSuccess for immediate feedback
+        console.log('Category creation queued for sync - providing immediate feedback');
+        options?.onSuccess?.(result);
       }
       return result;
     } catch (err) {
@@ -348,25 +323,28 @@ export function useOfflineCategoriesMutation() {
     try {
       setIsPending(true);
 
+      // Get the existing category to update it locally
+      const existingCategory = await offlineDB.getCategory(categoryId);
+      if (!existingCategory) {
+        throw new Error('Category not found in local database');
+      }
+
+      // Create updated category object
+      const updatedCategory: OfflineCategory = {
+        ...existingCategory,
+        name: category.name,
+        weight: category.weight,
+        order: category.order,
+        sync_status: 'pending',
+        updated_at: new Date().toISOString(),
+      };
+
       const result = await interceptMutation(
         () => CategoriesService.putCategoriesByCategoryId({ categoryId, requestBody: category }),
         async (data: Record<string, unknown>) => {
-          // Check if this is a valid API response or request data
-          if (!data.category) {
-            // This is the request data, not the API response
-            console.warn('Received request data instead of API response - API call may have failed');
-            console.log('Request data:', data);
-            return;
-          }
-          
-          const realCategory = data.category as Category;
-          if (!realCategory || !realCategory.category_id) {
-            console.error('API did not return a valid category:', data);
-            throw new Error('API did not return a valid category');
-          }
-          
-          const offlineCategory = DataTransformationService.transformCategory(realCategory);
-          await offlineDB.saveCategory(offlineCategory);
+          // This function is called by interceptMutation to save data locally
+          // For update operations, we update the existing category
+          await offlineDB.saveCategory(updatedCategory);
         },
         category as Record<string, unknown>,
         'categories',
@@ -793,6 +771,10 @@ export function useOfflineAssessmentsMutation() {
       await offlineDB.saveSubmission(offlineSubmission);
       console.log('💾 Stored submission in IndexedDB:', offlineSubmission);
 
+      // Debug: Check what's in IndexedDB after storage
+      const allSubmissions = await offlineDB.getAllSubmissions();
+      console.log('📊 All submissions in IndexedDB after storage:', allSubmissions);
+
       const result = await interceptMutation(
         () => AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId }),
         async (apiResponse: Record<string, unknown>) => {
@@ -1026,14 +1008,36 @@ export function useOfflineSubmissions() {
       setIsLoading(true);
       setError(null);
 
+      console.log('🔍 useOfflineSubmissions: Fetching submissions...');
       const result = await interceptGet(
         () => SubmissionsService.getSubmissions(),
-        () => offlineDB.getAllSubmissions().then(submissions => ({ submissions })),
+        async () => {
+          console.log('🔍 useOfflineSubmissions: Using offline fallback');
+          // For offline fallback, get all submissions and transform them to Submission format
+          const allSubmissions = await offlineDB.getAllSubmissions();
+          console.log('📊 useOfflineSubmissions: Offline submissions:', allSubmissions);
+          
+          // Transform OfflineSubmission to Submission format
+          const submissions: Submission[] = allSubmissions.map(submission => ({
+            submission_id: submission.submission_id,
+            assessment_id: submission.assessment_id,
+            user_id: submission.user_id || 'unknown',
+            content: submission.content || { assessment: { assessment_id: submission.assessment_id } },
+            review_status: submission.review_status,
+            submitted_at: submission.submitted_at,
+            reviewed_at: submission.reviewed_at
+          }));
+          
+          console.log('📊 useOfflineSubmissions: Transformed submissions:', submissions);
+          return { submissions };
+        },
         'submissions'
       );
 
+      console.log('📊 useOfflineSubmissions: Submissions result:', result);
       setData(result);
     } catch (err) {
+      console.error('❌ useOfflineSubmissions: Error fetching submissions:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch submissions'));
     } finally {
       setIsLoading(false);
@@ -1079,6 +1083,8 @@ export function useOfflineAdminSubmissions() {
             submission_id: submission.submission_id,
             assessment_id: submission.assessment_id,
             user_id: submission.user_id || 'unknown',
+            org_id: submission.organization_id || 'unknown',
+            org_name: submission.org_name || 'Offline Data - Organization Name Unavailable', // Use stored org_name
             content: {
               assessment: submission.content?.assessment || { assessment_id: submission.assessment_id },
               responses: submission.content?.responses || []

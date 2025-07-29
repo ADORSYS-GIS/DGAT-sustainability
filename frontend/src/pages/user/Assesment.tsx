@@ -51,6 +51,13 @@ export const Assessment: React.FC = () => {
         const pending = submissions.filter(sub => sub.sync_status === 'pending');
         setPendingSubmissions(pending);
         console.log('🔍 Pending submissions:', pending);
+        
+        // Debug: Check sync queue
+        const syncQueue = await offlineDB.getSyncQueue();
+        console.log('🔍 Sync queue:', syncQueue);
+        
+        // Debug: Check all submissions
+        console.log('🔍 All submissions in IndexedDB:', submissions);
       } catch (error) {
         console.error('Failed to check pending submissions:', error);
       }
@@ -838,11 +845,30 @@ export const Assessment: React.FC = () => {
           {!isOnline && (
             <Card className="mb-6 border-orange-200 bg-orange-50">
               <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-orange-800">
-                    {t('assessment.offlineMode', { defaultValue: 'You are offline. Your responses will be saved locally and synced when you come back online.' })}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-orange-800">
+                      {t('assessment.offlineMode', { defaultValue: 'You are offline. Your responses will be saved locally and synced when you come back online.' })}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const syncQueue = await offlineDB.getSyncQueue();
+                        console.log('Manual sync - Queue items:', syncQueue);
+                        // Trigger sync
+                        window.dispatchEvent(new Event('online'));
+                      } catch (error) {
+                        console.error('Manual sync failed:', error);
+                      }
+                    }}
+                    className="text-xs"
+                  >
+                    Sync Now
+                  </Button>
                 </div>
                 {pendingSubmissions.length > 0 && (
                   <div className="mt-2 text-xs text-orange-700">

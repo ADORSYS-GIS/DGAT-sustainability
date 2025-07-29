@@ -57,6 +57,7 @@ export interface OfflineCategory extends Category, OfflineEntity {
 // Enhanced Submission with offline fields
 export interface OfflineSubmission extends Submission, OfflineEntity {
   organization_id?: string;
+  org_name?: string; // Add organization name for offline display
   reviewer_id?: string;
   reviewer_email?: string;
   review_comments?: string;
