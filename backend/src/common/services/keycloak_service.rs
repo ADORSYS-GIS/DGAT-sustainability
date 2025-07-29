@@ -6,6 +6,7 @@ use serde_json::json;
 use std::sync::Arc;
 use tracing::{debug, error, info};
 use serde::Deserialize;
+use tracing::log::warn;
 
 #[derive(Debug, Clone)]
 pub struct KeycloakService {
@@ -15,7 +16,9 @@ pub struct KeycloakService {
 
 impl KeycloakService {
     pub fn new(config: KeycloakConfigs) -> Self {
-        let client = Client::new();
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build().expect("failed to build keycloak client");
         Self { client, config }
     }
 
@@ -98,7 +101,7 @@ impl KeycloakService {
     /// Get all organizations
     pub async fn get_organizations(&self, token: &str) -> Result<Vec<KeycloakOrganization>> {
         let url = format!("{}/admin/realms/{}/organizations", self.config.url, self.config.realm);
-        println!("GET ORG: {}", token);
+        warn!("GET ORG: {}", token);
         let response = self.client.get(&url)
             .bearer_auth(token)
             .send()
