@@ -18,7 +18,7 @@ export const Welcome: React.FC = () => {
     const roles = user?.roles || user?.realm_access?.roles || [];
     const isDrgvAdmin = roles.includes("drgv_admin");
     const isOrgAdmin = roles.includes("org_admin");
-    const isOrgUser = roles.includes("org_user");
+    const isOrgUser = roles.includes("Org_User");
     if (isDrgvAdmin && window.location.pathname !== "/admin/") {
       console.log(
         "[Welcome] drgv_admin detected, redirecting to /admin/dashboard",
