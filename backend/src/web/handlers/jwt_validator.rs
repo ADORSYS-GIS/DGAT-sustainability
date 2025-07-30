@@ -28,7 +28,10 @@ pub struct JwtValidator {
 impl JwtValidator {
     pub fn new(keycloak_url: String, realm: String) -> Self {
         Self {
-            client: Client::new(),
+            client: Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .expect("Client"),
             keycloak_url,
             realm,
             keys_cache: HashMap::new(),
