@@ -86,7 +86,7 @@ export default defineConfig({
       manifest: {
         name: 'DGAT Sustainability Assessment Tool',
         short_name: 'DGAT',
-        description: 'DGAT for Sustainability',
+        description: 'DGAT for Sustainability Assessment and Management',
         start_url: '/',
         scope: '/',
         display: 'standalone',
@@ -97,13 +97,37 @@ export default defineConfig({
         lang: 'en',
         icons: [
           {
-            src: '/sustainability.png',
+            src: '/sustainability-48-48.png',
+            sizes: '48x48',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/sustainability-72-72.png',
+            sizes: '72x72',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/sustainability-96-96.png',
+            sizes: '96x96',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/sustainability-144-144.png',
+            sizes: '144x144',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/sustainability-192-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/sustainability.png',
+            src: '/sustainability-512-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -111,11 +135,18 @@ export default defineConfig({
         ],
         screenshots: [
           {
-            src: '/sustainability.png',
-            sizes: '1280x720',
+            src: '/Screenshot.png',
+            sizes: '1111x975',
             type: 'image/png',
             form_factor: 'wide',
             label: 'DGAT Sustainability Dashboard'
+          },
+          {
+            src: '/Screenshot1.png',
+            sizes: '1111x975',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'DGAT Sustainability Assessment'
           }
         ]
       },

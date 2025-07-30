@@ -39,7 +39,8 @@ import {
   MessageSquare,
   Award,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/shared/useAuth';
@@ -51,6 +52,7 @@ import { ReportsService } from '@/openapi-rq/requests/services.gen';
 import { AdminSubmissionDetail } from '@/openapi-rq/requests/types.gen';
 import { offlineDB } from '@/services/indexeddb';
 import { apiInterceptor } from "@/services/apiInterceptor";
+import { syncService } from "@/services/syncService";
 
 interface CategoryRecommendation {
   id: string;
@@ -292,6 +294,19 @@ const ReviewAssessments: React.FC = () => {
     }
   };
 
+  // Manual sync function
+  const handleManualSync = async () => {
+    try {
+      toast.info("Syncing data with server...");
+      await syncService.performFullSync();
+      await refetchSubmissions(); // Refresh the submissions list
+      toast.success("Sync completed successfully");
+    } catch (error) {
+      console.error("Manual sync failed:", error);
+      toast.error("Sync failed. Please try again.");
+    }
+  };
+
   if (submissionsLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -343,6 +358,17 @@ const ReviewAssessments: React.FC = () => {
 
         {/* Status Indicators */}
         <div className="flex items-center space-x-4">
+          {/* Manual Sync Button */}
+          <Button 
+            onClick={handleManualSync}
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Sync Data</span>
+          </Button>
+
           {/* Offline/Online Status */}
           <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
             isOnline 

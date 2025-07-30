@@ -1144,6 +1144,48 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         }
+      },
+      "delete": {
+        "tags": ["Submissions"],
+        "summary": "Delete submission",
+        "description": "Delete a submission (Organization admins only)",
+        "operationId": "delete_submission",
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Submission deleted successfully"
+          },
+          "400": {
+            "description": "Bad Request - Only organization admins can delete submissions or submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
       }
     },
     "/admin/submissions": {

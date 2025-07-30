@@ -3,11 +3,9 @@
 // Uses existing OpenAPI-generated methods from @openapi-rq/requests/services.gen
 
 import { useState, useEffect, useCallback } from "react";
-import { apiInterceptor, interceptGet, interceptMutation } from "../services/apiInterceptor";
 import { offlineDB } from "../services/indexeddb";
-import { DataTransformationService } from "../services/dataTransformation";
-import type { OfflineQuestion, OfflineCategory } from "../types/offline";
-import { 
+import { apiInterceptor } from "../services/apiInterceptor";
+import {
   QuestionsService,
   CategoriesService,
   AssessmentsService,
@@ -19,11 +17,10 @@ import {
   AdminService
 } from "@/openapi-rq/requests/services.gen";
 import type { 
-  Question,
-  QuestionRevision, 
-  Category,
-  Assessment,
-  Response,
+  Question, 
+  Category, 
+  Assessment, 
+  Response, 
   Submission,
   Report,
   Organization,
@@ -37,8 +34,18 @@ import type {
   CreateResponseRequest,
   UpdateResponseRequest,
   AdminSubmissionDetail,
-  AssessmentDetailResponse
+  AssessmentDetailResponse,
+  QuestionRevision
 } from "@/openapi-rq/requests/types.gen";
+import type { 
+  OfflineQuestion, 
+  OfflineCategory, 
+  OfflineAssessment, 
+  OfflineResponse, 
+  OfflineSubmission 
+} from "@/types/offline";
+import { DataTransformationService } from "../services/dataTransformation";
+import { syncService } from "../services/syncService";
 
 // ===== QUESTIONS =====
 
@@ -52,13 +59,13 @@ export function useOfflineQuestions() {
       setIsLoading(true);
       setError(null);
 
-      const result = await interceptGet(
+      const result = await apiInterceptor.interceptGet(
         () => QuestionsService.getQuestions(),
         () => offlineDB.getAllQuestions().then(qs => ({ questions: qs })),
         'questions'
       );
 
-      setData(result);
+      setData(result as { questions: Question[] });
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch questions'));
     } finally {
@@ -111,7 +118,7 @@ export function useOfflineQuestionsMutation() {
       await offlineDB.saveQuestion(offlineQuestion);
 
       // Now, perform the actual API call
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => QuestionsService.postQuestions({ requestBody: question }),
         async (data: Record<string, unknown>) => {
           // This function is called by interceptMutation to save data locally
@@ -175,7 +182,7 @@ export function useOfflineQuestionsMutation() {
         updated_at: new Date().toISOString(),
       };
 
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => QuestionsService.putQuestionsByQuestionId({ questionId, requestBody: question }),
         async (data: Record<string, unknown>) => {
           // This function is called by interceptMutation to save data locally
@@ -221,11 +228,12 @@ export function useOfflineQuestionsMutation() {
       await offlineDB.deleteQuestion(questionId);
 
       // Now, perform the actual API call to delete the question revision
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         async () => {
           // Call the actual delete question revision API
           const { QuestionsService } = await import('@/openapi-rq/requests/services.gen');
-          return QuestionsService.deleteQuestionsRevisionsByQuestionRevisionId({ questionRevisionId: latestRevisionId });
+          const response = await QuestionsService.deleteQuestionsRevisionsByQuestionRevisionId({ questionRevisionId: latestRevisionId });
+          return { success: true, response };
         },
         async () => {
           // This function is called by interceptMutation to save data locally
@@ -263,7 +271,7 @@ export function useOfflineCategories() {
       setIsLoading(true);
       setError(null);
 
-      const result = await interceptGet(
+      const result = await apiInterceptor.interceptGet(
         () => CategoriesService.getCategories(),
         () => offlineDB.getAllCategories().then(cats => ({ categories: cats })),
         'categories'
@@ -314,7 +322,7 @@ export function useOfflineCategoriesMutation() {
       // Save the temporary category locally first for immediate UI feedback
       await offlineDB.saveCategory(offlineCategory);
 
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => CategoriesService.postCategories({ requestBody: category }),
         async (data: Record<string, unknown>) => {
           // This function is called by interceptMutation to save data locally
@@ -374,7 +382,7 @@ export function useOfflineCategoriesMutation() {
         updated_at: new Date().toISOString(),
       };
 
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => CategoriesService.putCategoriesByCategoryId({ categoryId, requestBody: category }),
         async (data: Record<string, unknown>) => {
           // This function is called by interceptMutation to save data locally
@@ -413,8 +421,8 @@ export function useOfflineCategoriesMutation() {
       // Delete from local storage first for immediate UI feedback
       await offlineDB.deleteCategory(categoryId);
 
-      const result = await interceptMutation(
-        () => CategoriesService.deleteCategoriesByCategoryId({ categoryId }),
+      const result = await apiInterceptor.interceptMutation(
+        () => CategoriesService.deleteCategoriesByCategoryId({ categoryId }).then(() => ({ success: true })),
         async () => {
           // This function is called by interceptMutation to save data locally
           // For delete operations, we DON'T save anything since we already deleted above
@@ -451,7 +459,7 @@ export function useOfflineAssessments() {
       setIsLoading(true);
       setError(null);
 
-      const result = await interceptGet(
+      const result = await apiInterceptor.interceptGet(
         () => AssessmentsService.getAssessments(),
         async () => {
           // For offline fallback, get all assessments and filter by organization
@@ -494,7 +502,7 @@ export function useOfflineAssessment(assessmentId: string) {
       setIsLoading(true);
       setError(null);
       
-      const result = await interceptGet(
+      const result = await apiInterceptor.interceptGet(
         () => {
           return AssessmentsService.getAssessmentsByAssessmentId({ assessmentId });
         },
@@ -558,7 +566,7 @@ export function useOfflineAssessment(assessmentId: string) {
           setData(result as AssessmentDetailResponse);
         } else if ('assessment' in result) {
           // This is just an Assessment object, wrap it in AssessmentDetailResponse
-          const assessment = result.assessment as Assessment;
+          const assessment = (result as Record<string, unknown>).assessment as Assessment;
           setData({
             assessment,
             questions: [],
@@ -633,7 +641,7 @@ export function useOfflineAssessmentsMutation() {
 
       await offlineDB.saveAssessment(offlineAssessment);
 
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => AssessmentsService.postAssessments({ requestBody: assessment }),
         async (apiResponse: Record<string, unknown>) => {
           
@@ -692,7 +700,7 @@ export function useOfflineAssessmentsMutation() {
     try {
       setIsPending(true);
 
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => AssessmentsService.putAssessmentsByAssessmentId({ assessmentId, requestBody: assessment }),
         async (data: Record<string, unknown>) => {
           // Check if this is a valid API response or request data
@@ -734,8 +742,8 @@ export function useOfflineAssessmentsMutation() {
     try {
       setIsPending(true);
 
-      const result = await interceptMutation(
-        () => AssessmentsService.deleteAssessmentsByAssessmentId({ assessmentId }),
+      const result = await apiInterceptor.interceptMutation(
+        () => AssessmentsService.deleteAssessmentsByAssessmentId({ assessmentId }).then(() => ({ success: true })),
         async () => {
           await offlineDB.deleteAssessment(assessmentId);
         },
@@ -780,13 +788,14 @@ export function useOfflineAssessmentsMutation() {
 
       // Always store in IndexedDB first for offline support
       try {
-        await offlineDB.saveSubmission(tempSubmissionForTransform);
+        const offlineSubmission = DataTransformationService.transformSubmission(tempSubmissionForTransform);
+        await offlineDB.saveSubmission(offlineSubmission);
       } catch (storageError) {
         console.error('❌ Failed to store submission in IndexedDB:', storageError);
         throw new Error(`Failed to store submission: ${storageError}`);
       }
 
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId }),
         async (apiResponse: Record<string, unknown>) => {
           
@@ -819,10 +828,12 @@ export function useOfflineAssessmentsMutation() {
         options?.onSuccess?.(result);
       } else if (!isOnline) {
         // Offline submission - stored in IndexedDB, will sync later
-        options?.onSuccess?.({ submission: tempSubmissionForTransform });
+        const offlineSubmission = DataTransformationService.transformSubmission(tempSubmissionForTransform);
+        options?.onSuccess?.({ submission: offlineSubmission });
       } else {
         // Online but API failed - still stored in IndexedDB for retry
-        options?.onSuccess?.({ submission: tempSubmissionForTransform });
+        const offlineSubmission = DataTransformationService.transformSubmission(tempSubmissionForTransform);
+        options?.onSuccess?.({ submission: offlineSubmission });
       }
       
       return result;
@@ -857,7 +868,7 @@ export function useOfflineResponses(assessmentId: string) {
       setIsLoading(true);
       setError(null);
 
-      const result = await interceptGet(
+      const result = await apiInterceptor.interceptGet(
         () => ResponsesService.getAssessmentsByAssessmentIdResponses({ assessmentId }),
         () => offlineDB.getResponsesByAssessment(assessmentId).then(responses => ({ responses })),
         'responses',
@@ -913,7 +924,7 @@ export function useOfflineResponsesMutation() {
       // Verify responses were saved
       const savedResponses = await offlineDB.getResponsesByAssessment(assessmentId);
 
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => ResponsesService.postAssessmentsByAssessmentIdResponses({ assessmentId, requestBody: responses }),
         async (data: Record<string, unknown>) => {
           const responsesData = data.responses as unknown[];
@@ -953,7 +964,7 @@ export function useOfflineResponsesMutation() {
     try {
       setIsPending(true);
 
-      const result = await interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         () => ResponsesService.putAssessmentsByAssessmentIdResponsesByResponseId({ assessmentId, responseId, requestBody: response }),
         async (data: Record<string, unknown>) => {
           // Ensure the response object has all required fields for IndexedDB
@@ -994,8 +1005,8 @@ export function useOfflineResponsesMutation() {
     try {
       setIsPending(true);
 
-      const result = await interceptMutation(
-        () => ResponsesService.deleteAssessmentsByAssessmentIdResponsesByResponseId({ assessmentId, responseId }),
+      const result = await apiInterceptor.interceptMutation(
+        () => ResponsesService.deleteAssessmentsByAssessmentIdResponsesByResponseId({ assessmentId, responseId }).then(() => ({ success: true })),
         async () => {
           await offlineDB.deleteResponse(responseId);
         },
@@ -1022,50 +1033,72 @@ export function useOfflineResponsesMutation() {
 
 export function useOfflineSubmissions() {
   const [data, setData] = useState<{ submissions: Submission[] }>({ submissions: [] });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchSubmissions = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      const result = await interceptGet(
-        () => SubmissionsService.getSubmissions(),
-        async () => {
-          // For offline fallback, get all submissions and transform them to Submission format
-          const allSubmissions = await offlineDB.getAllSubmissions();
-          
-          // Transform OfflineSubmission to Submission format
-          const submissions: Submission[] = allSubmissions.map(submission => ({
-            submission_id: submission.submission_id,
-            assessment_id: submission.assessment_id,
-            user_id: submission.user_id || 'unknown',
-            content: submission.content || { assessment: { assessment_id: submission.assessment_id } },
-            review_status: submission.review_status,
-            submitted_at: submission.submitted_at,
-            reviewed_at: submission.reviewed_at
-          }));
-          
-          return { submissions };
-        },
-        'submissions'
-      );
-
-      setData(result);
+      const submissions = await offlineDB.getAllSubmissions();
+      setData({ submissions });
     } catch (err) {
-      console.error('❌ useOfflineSubmissions: Error fetching submissions:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch submissions'));
+      const error = err instanceof Error ? err : new Error('Failed to fetch submissions');
+      setError(error);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchSubmissions();
+  }, [fetchSubmissions]);
 
-  return { data, isLoading, error, refetch: fetchData };
+  return { data, isLoading, error, refetch: fetchSubmissions };
+}
+
+export function useOfflineSubmissionsMutation() {
+  const [isPending, setIsPending] = useState(false);
+
+  const deleteSubmission = useCallback(async (
+    submissionId: string,
+    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
+  ) => {
+    try {
+      setIsPending(true);
+
+      // Delete from local storage first for immediate UI feedback
+      await offlineDB.deleteSubmission(submissionId);
+
+      const result = await apiInterceptor.interceptMutation(
+        async () => {
+          // Use the generated SubmissionsService method
+          const { SubmissionsService } = await import('@/openapi-rq/requests/services.gen');
+          const response = await SubmissionsService.deleteSubmissionsBySubmissionId({ submissionId });
+          return { success: true, response };
+        },
+        async () => {
+          // This function is called by interceptMutation to save data locally
+          // For delete operations, we DON'T save anything since we already deleted above
+        },
+        { submissionId } as Record<string, unknown>,
+        'submissions',
+        'delete'
+      );
+
+      options?.onSuccess?.(result);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to delete submission');
+      console.error('❌ deleteSubmission error:', error);
+      options?.onError?.(error);
+      throw error;
+    } finally {
+      setIsPending(false);
+    }
+  }, []);
+
+  return { deleteSubmission, isPending };
 }
 
 // ===== ADMIN SUBMISSIONS =====
@@ -1080,7 +1113,7 @@ export function useOfflineAdminSubmissions() {
       setIsLoading(true);
       setError(null);
 
-      const result = await interceptGet(
+      const result = await apiInterceptor.interceptGet(
         () => {
           return AdminService.getAdminSubmissions({});
         },
@@ -1137,7 +1170,7 @@ export function useOfflineReports() {
       setIsLoading(true);
       setError(null);
 
-      const result = await interceptGet(
+      const result = await apiInterceptor.interceptGet(
         () => ReportsService.getUserReports(),
         () => offlineDB.getAllReports().then(reports => ({ reports })),
         'reports'
@@ -1170,13 +1203,13 @@ export function useOfflineOrganizations() {
       setIsLoading(true);
       setError(null);
 
-      const result = await interceptGet(
-        () => OrganizationsService.getAdminOrganizations(),
+      const result = await apiInterceptor.interceptGet(
+        () => OrganizationsService.getAdminOrganizations().then(response => ({ organizations: response })),
         () => offlineDB.getAllOrganizations().then(organizations => ({ organizations })),
         'organizations'
       );
 
-      setData(result);
+      setData(result as { organizations: Organization[] });
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch organizations'));
     } finally {
@@ -1210,15 +1243,16 @@ export function useOfflineUsers(organizationId?: string) {
       setError(null);
 
       // Use the org-admin specific endpoint for fetching users
-      const result = await interceptGet(
-        () => OrganizationMembersService.getOrganizationsByIdOrgAdminMembers({ id: organizationId }),
-        () => offlineDB.getUsersByOrganization(organizationId),
+      const result = await apiInterceptor.interceptGet(
+        () => OrganizationMembersService.getOrganizationsByIdOrgAdminMembers({ id: organizationId }).then(response => ({ members: response })),
+        () => offlineDB.getUsersByOrganization(organizationId).then(users => ({ members: users })),
         'users',
         organizationId
       );
 
       // Filter out temporary users (those with IDs starting with "temp_")
-      const filteredResult = Array.isArray(result) ? result : result.members || [];
+      const resultData = result as { members: OrganizationMember[] } | OrganizationMember[];
+      const filteredResult = Array.isArray(resultData) ? resultData : resultData.members || [];
       const filteredUsers = filteredResult.filter((user: OrganizationMember) => !user.id?.startsWith('temp_'));
       
       setData(filteredUsers);
@@ -1241,6 +1275,7 @@ export function useOfflineUsers(organizationId?: string) {
 export function useOfflineSyncStatus() {
   const [isOnline, setIsOnline] = useState(apiInterceptor.getNetworkStatus());
   const [queueCount, setQueueCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const updateStatus = () => {
@@ -1252,16 +1287,24 @@ export function useOfflineSyncStatus() {
       setQueueCount(queue.length);
     };
 
+    const updateSyncStatus = () => {
+      setIsSyncing(syncService.isCurrentlySyncing());
+    };
+
     // Update immediately
     updateStatus();
     updateQueueCount();
+    updateSyncStatus();
 
     // Set up listeners
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
 
-    // Update queue count periodically
-    const interval = setInterval(updateQueueCount, 5000);
+    // Update queue count and sync status periodically
+    const interval = setInterval(() => {
+      updateQueueCount();
+      updateSyncStatus();
+    }, 5000);
 
     return () => {
       window.removeEventListener('online', updateStatus);
@@ -1270,7 +1313,7 @@ export function useOfflineSyncStatus() {
     };
   }, []);
 
-  return { isOnline, queueCount };
+  return { isOnline, queueCount, isSyncing };
 }
 
 export function useOfflineSync() {
@@ -1279,7 +1322,9 @@ export function useOfflineSync() {
   const sync = useCallback(async () => {
     try {
       setIsSyncing(true);
+      // Perform both queue processing and full sync
       await apiInterceptor.processQueue();
+      await syncService.performFullSync();
     } catch (error) {
       console.error('Sync failed:', error);
       throw error;

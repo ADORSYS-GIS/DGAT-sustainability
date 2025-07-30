@@ -2,15 +2,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSubmissions } from "@/hooks/useOfflineApi";
+import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
 import { offlineDB } from "@/services/indexeddb";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
-import type { Submission } from "../../openapi-rq/requests/types.gen";
-import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
+import type { Submission } from "@/openapi-rq/requests/types.gen";
+import { Calendar, Download, Eye, FileText, Star, Trash2, RefreshCw } from "lucide-react";
 import * as React from "react";
 import { useNavigate, NavigateFunction } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import type { Submission as OfflineSubmission } from "@/types/offline";
+import { syncService } from "@/services/syncService";
 
 type AuthUser = {
   sub?: string;
@@ -34,8 +37,9 @@ export const Assessments: React.FC = () => {
   const navigate = useNavigate();
 
   // Fetch all submissions for the current user/org
-  const { data, isLoading: remoteLoading } = useOfflineSubmissions();
+  const { data, isLoading: remoteLoading, refetch } = useOfflineSubmissions();
   const submissions = data?.submissions || [];
+  const { deleteSubmission, isPending } = useOfflineSubmissionsMutation();
 
   useEffect(() => {
     setIsLoading(remoteLoading);
@@ -50,6 +54,19 @@ export const Assessments: React.FC = () => {
     // For now, just return completed as total (placeholder)
     const total = completed;
     return { completed, total };
+  };
+
+  // Manual sync function
+  const handleManualSync = async () => {
+    try {
+      toast.info("Syncing data with server...");
+      await syncService.performFullSync();
+      await refetch(); // Refresh the submissions list
+      toast.success("Sync completed successfully");
+    } catch (error) {
+      console.error("Manual sync failed:", error);
+      toast.error("Sync failed. Please try again.");
+    }
   };
 
   if (isLoading) {
@@ -68,8 +85,16 @@ export const Assessments: React.FC = () => {
     user: AuthUser | null;
     navigate: NavigateFunction;
     index: number;
-  }> = ({ submission, user, navigate, index }) => {
+    onDelete: (submissionId: string) => void;
+    isDeleting: boolean;
+  }> = ({ submission, user, navigate, index, onDelete, isDeleting }) => {
     const { completed, total } = useCategoryCounts(submission);
+    
+    // Check if user is an organization admin
+    const isOrgAdmin = (user?.roles || user?.realm_access?.roles || []).some(role => 
+      role.toLowerCase() === 'org_admin' || role.toLowerCase() === 'organization_admin'
+    );
+    
     return (
       <Card
         key={submission.submission_id}
@@ -130,11 +155,41 @@ export const Assessments: React.FC = () => {
                 <Eye className="w-4 h-4 mr-1" />
                 {t("viewSubmission")}
               </Button>
+              {isOrgAdmin && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => onDelete(submission.submission_id)}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  {t("delete")}
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
     );
+  };
+
+  const handleDeleteSubmission = async (submissionId: string) => {
+    try {
+      await deleteSubmission(submissionId, {
+        onSuccess: () => {
+          toast.success(t("submissionDeleted"));
+          // Refetch submissions to update the list
+          refetch();
+        },
+        onError: (error) => {
+          toast.error(t("failedToDeleteSubmission"));
+          console.error("Failed to delete submission:", error);
+        }
+      });
+    } catch (error) {
+      toast.error(t("failedToDeleteSubmission"));
+      console.error("Failed to delete submission:", error);
+    }
   };
 
   return (
@@ -154,6 +209,10 @@ export const Assessments: React.FC = () => {
               {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
             </p>
           </div>
+          <Button onClick={handleManualSync} className="flex items-center space-x-2">
+            <RefreshCw className="w-4 h-4" />
+            {t("syncData")}
+          </Button>
         </div>
 
         <div className="grid gap-6">
@@ -164,6 +223,8 @@ export const Assessments: React.FC = () => {
               user={user}
               navigate={navigate}
               index={index}
+              onDelete={handleDeleteSubmission}
+              isDeleting={isPending}
             />
           ))}
 

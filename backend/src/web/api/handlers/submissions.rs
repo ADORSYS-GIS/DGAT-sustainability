@@ -4,6 +4,7 @@ use crate::web::api::error::ApiError;
 use crate::web::api::models::{AssessmentSubmission, Submission, SubmissionDetailResponse, SubmissionListResponse};
 use axum::{
     extract::{Extension, Path, State},
+    http::StatusCode,
     Json,
 };
 use uuid::Uuid;
@@ -210,4 +211,51 @@ pub async fn get_submission(
     };
 
     Ok(Json(SubmissionDetailResponse { submission }))
+}
+
+pub async fn delete_submission(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(submission_id): Path<Uuid>,
+) -> Result<StatusCode, ApiError> {
+    // Check if user is an organization admin
+    if !claims.is_org_admin() && !claims.is_application_admin() {
+        return Err(ApiError::BadRequest(
+            "Only organization admins can delete submissions".to_string(),
+        ));
+    }
+
+    // Get the organization ID from claims
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
+
+    // Fetch the submission to verify ownership
+    let submission_model = app_state
+        .database
+        .assessments_submission
+        .get_submission_by_assessment_id(submission_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?;
+
+    let submission_model = match submission_model {
+        Some(s) => s,
+        None => return Err(ApiError::NotFound("Submission not found".to_string())),
+    };
+
+    // Verify that the current organization is the owner of the submission
+    if submission_model.org_id != org_id {
+        return Err(ApiError::BadRequest(
+            "You don't have permission to delete this submission".to_string(),
+        ));
+    }
+
+    // Delete the submission from the database
+    app_state
+        .database
+        .assessments_submission
+        .delete_submission(submission_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete submission: {e}")))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

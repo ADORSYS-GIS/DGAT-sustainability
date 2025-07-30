@@ -21,7 +21,7 @@ use crate::web::api::handlers::{
     questions::{create_question, delete_question_revision_by_id, get_question, list_questions, update_question},
     reports::{delete_report, generate_report, get_report, list_reports, list_user_reports},
     responses::{create_response, delete_response, get_response, list_responses, update_response},
-    submissions::{get_submission, list_user_submissions},
+    submissions::{delete_submission, get_submission, list_user_submissions},
 };
 
 use axum::{
@@ -117,6 +117,7 @@ pub fn create_router(app_state: AppState) -> Router {
         // User submission endpoints
         .route("/api/submissions", get(list_user_submissions))
         .route("/api/submissions/:submission_id", get(get_submission))
+        .route("/api/submissions/:submission_id", delete(delete_submission))
         // User report endpoints
         .route("/api/user/reports", get(list_user_reports))
         // Report endpoints
