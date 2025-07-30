@@ -60,6 +60,7 @@ export const Navbar = () => {
       return "/admin/dashboard";
     }
     
+    
     // For org_user, org_admin, or any other authenticated user
     return "/dashboard";
   };
