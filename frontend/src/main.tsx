@@ -3,30 +3,27 @@ import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OpenAPI } from "@/openapi-rq/requests";
-import { getOidc, OidcProvider } from "@/services/shared/oidc";
+import { initializeAuth, getAccessToken, setupTokenRefresh } from "@/services/shared/authService";
 import './i18n';
 
 // Register OpenAPI request middleware to add Bearer token
 OpenAPI.interceptors.request.use(async (request) => {
   try {
-    const oidc = await getOidc();
-    if (oidc && oidc.isUserLoggedIn) {
-      const { accessToken } = await oidc.getTokens();
-      if (accessToken) {
-        if (!request.headers) request.headers = {};
-        // If headers is a Headers object, convert to plain object
-        if (
-          typeof Headers !== "undefined" &&
-          request.headers instanceof Headers
-        ) {
-          request.headers.set("Authorization", `Bearer ${accessToken}`);
-        } else {
-          request.headers["Authorization"] = `Bearer ${accessToken}`;
-        }
+    const token = await getAccessToken();
+    if (token) {
+      if (!request.headers) request.headers = {};
+      // If headers is a Headers object, convert to plain object
+      if (
+        typeof Headers !== "undefined" &&
+        request.headers instanceof Headers
+      ) {
+        request.headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        request.headers["Authorization"] = `Bearer ${token}`;
       }
     }
   } catch (error) {
-    console.warn("Failed to get OIDC token for request:", error);
+    console.warn("Failed to get Keycloak token for request:", error);
   }
   return request;
 });
@@ -88,27 +85,37 @@ if ('serviceWorker' in navigator) {
   // Service worker not supported
 }
 
-// Initialize offline services
-try {
-  // Initialize IndexedDB and other offline services
-  // This ensures the database is ready when the app loads
-  // await offlineDB.initialize();
-  
-  // Initialize sync service
-  // const syncService = new SyncService();
-  // syncService.listenForOnlineStatus();
-  
-  // Initialize API interceptor
-  // apiInterceptor.setupNetworkListeners();
-  // apiInterceptor.setupPeriodicSync();
-} catch (error) {
-  // Silently handle initialization errors
-}
+// Initialize authentication and other services
+const initializeApp = async () => {
+  try {
+    // Initialize Keycloak authentication
+    const authenticated = await initializeAuth();
+    console.log("Authentication initialized:", authenticated);
+    
+    // Setup token refresh
+    setupTokenRefresh();
+    
+    // Initialize IndexedDB and other offline services
+    // This ensures the database is ready when the app loads
+    // await offlineDB.initialize();
+    
+    // Initialize sync service
+    // const syncService = new SyncService();
+    // syncService.listenForOnlineStatus();
+    
+    // Initialize API interceptor
+    // apiInterceptor.setupNetworkListeners();
+    // apiInterceptor.setupPeriodicSync();
+  } catch (error) {
+    console.error("Failed to initialize app:", error);
+  }
+};
 
-createRoot(document.getElementById("root")!).render(
-  <OidcProvider>
+// Initialize app and render
+initializeApp().then(() => {
+  createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </OidcProvider>
-);
+  );
+});

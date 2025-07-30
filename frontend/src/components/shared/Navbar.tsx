@@ -43,6 +43,27 @@ export const Navbar = () => {
     );
   };
 
+  // Helper to determine the appropriate home route based on user role
+  const getHomeRoute = () => {
+    if (!isAuthenticated || !user) {
+      return "/";
+    }
+    
+    // Check if user has drgv_admin role
+    const hasDgrvAdminRole = user.roles?.some(role => 
+      role.toLowerCase() === 'drgv_admin'
+    ) || user.realm_access?.roles?.some(role => 
+      role.toLowerCase() === 'drgv_admin'
+    );
+    
+    if (hasDgrvAdminRole) {
+      return "/admin/dashboard";
+    }
+    
+    // For org_user, org_admin, or any other authenticated user
+    return "/dashboard";
+  };
+
   const handleLanguageChange = (langCode: string) => {
     setCurrentLanguage(langCode);
     i18n.changeLanguage(langCode);
@@ -78,7 +99,7 @@ export const Navbar = () => {
               variant="ghost"
               size="sm"
               className="ml-4 flex items-center space-x-2"
-              onClick={() => (window.location.href = "/")}
+              onClick={() => (window.location.href = getHomeRoute())}
               aria-label={t("home")}
             >
               <Home className="w-5 h-5" />

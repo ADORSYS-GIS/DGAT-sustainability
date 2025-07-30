@@ -47,9 +47,22 @@ export const AdminDashboard: React.FC = () => {
   // All admins load the same data to their local storage
   const submissions = submissionsData?.submissions || [];
   
+  // Debug logging to understand submission statuses
+  React.useEffect(() => {
+    if (submissions.length > 0) {
+      console.log('📊 Submission Status Breakdown:');
+      const statusCounts = submissions.reduce((acc, submission) => {
+        acc[submission.review_status] = (acc[submission.review_status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('Status counts:', statusCounts);
+      console.log('Total submissions:', submissions.length);
+    }
+  }, [submissions]);
+  
   // Filter submissions by status for different views
   const pendingSubmissions = submissions.filter(
-    submission => submission.review_status === 'under_review'
+    submission => submission.review_status === 'under_review' || submission.review_status === 'pending_review'
   );
   
   const approvedSubmissions = submissions.filter(
@@ -58,6 +71,10 @@ export const AdminDashboard: React.FC = () => {
   
   const rejectedSubmissions = submissions.filter(
     submission => submission.review_status === 'rejected'
+  );
+  
+  const reviewedSubmissions = submissions.filter(
+    submission => submission.review_status === 'reviewed'
   );
   
   const totalSubmissions = submissions.length;
@@ -102,11 +119,11 @@ export const AdminDashboard: React.FC = () => {
     [pendingSubmissions],
   );
   const completedCount = React.useMemo(
-    () => approvedSubmissions.length + rejectedSubmissions.length,
-    [approvedSubmissions, rejectedSubmissions],
+    () =>
+      approvedSubmissions.length + rejectedSubmissions.length + reviewedSubmissions.length,
+    [approvedSubmissions, rejectedSubmissions, reviewedSubmissions],
   );
 
-  const navigate = useNavigate();
   const keycloakAdminUrl = import.meta.env.VITE_KEYCLOAK_ADMIN_URL;
   const adminActions = [
     {

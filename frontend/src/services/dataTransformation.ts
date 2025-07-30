@@ -222,6 +222,7 @@ export class DataTransformationService {
     
     return {
       ...organization,
+      organization_id: organization.id, // Map API 'id' to IndexedDB 'organization_id'
       member_count: 0, // Will be calculated when members are loaded
       assessment_count: 0, // Will be calculated when assessments are loaded
       submission_count: 0, // Will be calculated when submissions are loaded

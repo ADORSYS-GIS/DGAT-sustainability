@@ -321,6 +321,9 @@ export class ApiInterceptor {
     }
 
     try {
+      let successCount = 0;
+      let failureCount = 0;
+
       // Scan questions table for pending items
       const allQuestions = await offlineDB.getAllQuestions();
       const pendingQuestions = allQuestions.filter(q => q.sync_status === 'pending');
@@ -330,6 +333,7 @@ export class ApiInterceptor {
           
           // Skip if this is a temporary question that might have already been processed
           if (question.question_id.startsWith('temp_')) {
+            continue;
           }
           
           // Create the request data from the offline question
@@ -361,9 +365,11 @@ export class ApiInterceptor {
               await offlineDB.deleteQuestion(duplicateQuestion.question_id);
             }
             
+            successCount++;
           }
         } catch (error) {
           console.error(`❌ Failed to sync question ${question.question_id}:`, error);
+          failureCount++;
         }
       }
 
@@ -376,6 +382,7 @@ export class ApiInterceptor {
           
           // Skip if this is a temporary category that might have already been processed
           if (category.category_id.startsWith('temp_')) {
+            continue;
           }
           
           // Create the request data from the offline category
@@ -406,9 +413,11 @@ export class ApiInterceptor {
               await offlineDB.deleteCategory(duplicateCategory.category_id);
             }
             
+            successCount++;
           }
         } catch (error) {
           console.error(`❌ Failed to sync category ${category.category_id}:`, error);
+          failureCount++;
         }
       }
 
@@ -421,6 +430,7 @@ export class ApiInterceptor {
           
           // Skip if this is a temporary user that might have already been processed
           if (user.id.startsWith('temp_')) {
+            continue;
           }
           
           // Create the request data from the offline user
@@ -449,6 +459,7 @@ export class ApiInterceptor {
               // Try to delete again
               await offlineDB.deleteUser(user.id);
             } else {
+              console.log('✅ Successfully deleted temporary user:', user.id);
             }
             
             // Check if a user with the same email already exists (to prevent duplicates)
@@ -476,9 +487,11 @@ export class ApiInterceptor {
             };
             await offlineDB.saveUser(realUser);
             
+            successCount++;
           }
         } catch (error) {
           console.error(`❌ Failed to sync user ${user.id}:`, error);
+          failureCount++;
         }
       }
 
@@ -518,9 +531,11 @@ export class ApiInterceptor {
               await offlineDB.deleteResponse(tempResponse.response_id);
             }
             
+            successCount++;
           }
         } catch (error) {
           console.error(`❌ Failed to sync responses for assessment ${assessmentId}:`, error);
+          failureCount++;
         }
       }
 
@@ -533,6 +548,7 @@ export class ApiInterceptor {
           
           // Skip if this is a temporary submission that might have already been processed
           if (submission.submission_id.startsWith('temp_')) {
+            continue;
           }
           
           const { AssessmentsService } = await import('@/openapi-rq/requests/services.gen');
@@ -557,9 +573,11 @@ export class ApiInterceptor {
               await offlineDB.deleteSubmission(duplicateSubmission.submission_id);
             }
             
+            successCount++;
           }
         } catch (error) {
           console.error(`❌ Failed to sync submission ${submission.submission_id}:`, error);
+          failureCount++;
         }
       }
 
@@ -572,6 +590,7 @@ export class ApiInterceptor {
           toast.error(`Failed to sync ${failureCount} items`);
         }
       } else {
+        console.log('No items to sync');
       }
     } catch (error) {
       console.error('Failed to process sync:', error);

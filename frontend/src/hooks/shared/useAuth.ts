@@ -1,76 +1,105 @@
-import { useOidc } from "../../services/shared/oidc";
 import React from "react";
+import { keycloak } from "../../services/shared/keycloakConfig";
+import { 
+  getAuthState, 
+  login as authLogin, 
+  logout as authLogout,
+  UserProfile,
+  AuthState 
+} from "../../services/shared/authService";
 
-interface AuthState {
-  isAuthenticated: boolean;
-  user: {
-    sub: string;
-    preferred_username?: string;
-    name?: string;
-    email?: string;
-    roles?: string[];
-    realm_access?: { roles: string[] };
-    organisations?: Record<string, unknown>;
-    organization_name?: string;
-    organization?: string;
-    organizations?: Record<string, {
-      id: string;
-      categories: string[];
-    }>;
-    categories?: string[]; // Personal categories from ID token for Org_User
-  } | null;
-  roles: string[];
+interface AuthHookState extends AuthState {
   login: () => void;
   logout: () => void;
-  loading: boolean;
 }
 
 /**
- * React hook for OIDC authentication state using oidc-spa.
+ * React hook for Keycloak authentication state.
  * Returns: { isAuthenticated, user, roles, login, logout, loading }
  */
-export const useAuth = (): AuthState => {
-  const oidc = useOidc();
-  const decodedToken = oidc.decodedIdToken;
-
-  const user = React.useMemo(() => {
-    if (!decodedToken) return null;
-
-    // Extract user information from the decoded token
-    const userInfo = {
-      sub: decodedToken.sub,
-      email: decodedToken.email,
-      name: decodedToken.name,
-      preferred_username: decodedToken.preferred_username,
-      organizations: decodedToken.organizations,
-      categories: decodedToken.categories,
-      roles: decodedToken.realm_access?.roles || [],
-      realm_access: decodedToken.realm_access,
-    };
-
-    return userInfo;
-  }, [decodedToken]);
-
-  if (oidc.isUserLoggedIn) {
-    
-    const roles = user?.roles || user?.realm_access?.roles || [];
-    
-    return {
-      isAuthenticated: true,
-      user,
-      roles,
-      login: () => console.warn("Already logged in"),
-      logout: () => oidc.logout({ redirectTo: "home" }),
-      loading: false,
-    };
-  }
-
-  return {
+export const useAuth = (): AuthHookState => {
+  const [authState, setAuthState] = React.useState<AuthState>({
     isAuthenticated: false,
     user: null,
     roles: [],
-    login: () => oidc.login({ doesCurrentHrefRequiresAuth: false }),
-    logout: () => console.warn("Not logged in"),
-    loading: false,
+    loading: true,
+  });
+
+  // Update auth state when Keycloak state changes
+  React.useEffect(() => {
+    const updateAuthState = () => {
+      const state = getAuthState();
+      setAuthState(state);
+    };
+
+    // Initial state
+    updateAuthState();
+
+    // Listen for Keycloak events
+    const onTokenExpired = () => {
+      console.log("Token expired, attempting refresh...");
+      updateAuthState();
+    };
+
+    const onAuthSuccess = () => {
+      console.log("Authentication successful");
+      updateAuthState();
+    };
+
+    const onAuthLogout = () => {
+      console.log("User logged out");
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        roles: [],
+        loading: false,
+      });
+    };
+
+    const onAuthError = () => {
+      console.error("Authentication error");
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        roles: [],
+        loading: false,
+      });
+    };
+
+    // Add event listeners
+    keycloak.onTokenExpired = onTokenExpired;
+    keycloak.onAuthSuccess = onAuthSuccess;
+    keycloak.onAuthLogout = onAuthLogout;
+    keycloak.onAuthError = onAuthError;
+
+    // Cleanup function
+    return () => {
+      keycloak.onTokenExpired = undefined;
+      keycloak.onAuthSuccess = undefined;
+      keycloak.onAuthLogout = undefined;
+      keycloak.onAuthError = undefined;
+    };
+  }, []);
+
+  const login = React.useCallback(async () => {
+    try {
+      await authLogin();
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  }, []);
+
+  const logout = React.useCallback(async () => {
+    try {
+      await authLogout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  }, []);
+
+  return {
+    ...authState,
+    login,
+    logout,
   };
 };
