@@ -15,7 +15,10 @@ pub struct KeycloakService {
 
 impl KeycloakService {
     pub fn new(config: KeycloakConfigs) -> Self {
-        let client = Client::new();
+        let client = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build().expect("Failed to create reqwest client");
+
         Self { client, config }
     }
 
