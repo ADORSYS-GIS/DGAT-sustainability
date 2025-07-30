@@ -1040,6 +1040,7 @@
         "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/*"
       ],
       "webOrigins": [
+        "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com",
         "+"
       ],
       "notBefore": 0,
