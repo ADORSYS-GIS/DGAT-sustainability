@@ -14,7 +14,7 @@
     "test:unit": "vitest",
     "coverage": "vitest run --coverage",
     "preview": "vite preview",
-    "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch",
+    "codegen": "openapi-rq -i ../docs/openapi.json -o ./src/openapi-rq -c fetch",
     "postinstall": "npm run codegen"
   },
   "dependencies": {
