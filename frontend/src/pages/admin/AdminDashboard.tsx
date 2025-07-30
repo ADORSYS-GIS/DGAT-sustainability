@@ -104,7 +104,7 @@ export const AdminDashboard: React.FC = () => {
   }, [users, submissions, orgs.length]);
 
   const navigate = useNavigate();
-
+  const keycloakAdminUrl = import.meta.env.VITE_KEYCLOAK_ADMIN_URL;
   const adminActions = [
     {
       title: "Manage Organizations",
@@ -112,7 +112,7 @@ export const AdminDashboard: React.FC = () => {
         "Add, edit, and manage cooperative organizations in the system.",
       icon: Users,
       color: "blue" as const,
-      onClick: () => navigate("/admin/organizations"),
+      onClick: () => window.location.href = keycloakAdminUrl,
     },
     {
       title: "Manage Users",

@@ -53,6 +53,7 @@ export const Assessment: React.FC = () => {
   >({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [showPercentInfo, setShowPercentInfo] = useState(false);
+  const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
 
   const templateId = "sustainability_template";
   const toolName = "Sustainability Assessment";
@@ -67,18 +68,25 @@ export const Assessment: React.FC = () => {
   const updateResponseMutation =
     useResponsesServicePutAssessmentsByAssessmentIdResponsesByResponseId();
 
-  // Fix assessment creation mutation call
+  // Only call create assessment once if no assessmentId
   useEffect(() => {
-    if (!assessmentId) {
-      createAssessmentMutation.mutate(undefined, {
-        onSuccess: (data) => {
-          const newId = data.assessment.assessment_id;
-          navigate(`/user/assessment/${newId}`);
-        },
-        onError: () => toast("Failed to create assessment"),
-      });
+    if (!assessmentId && !hasCreatedAssessment && !createAssessmentMutation.isPending) {
+      setHasCreatedAssessment(true);
+      createAssessmentMutation.mutate(
+        { requestBody: { language: "en" } },
+        {
+          onSuccess: (data) => {
+            const newId = data.assessment.assessment_id;
+            navigate(`/user/assessment/${newId}`);
+          },
+          onError: () => {
+            toast("Failed to create assessment");
+            setHasCreatedAssessment(false);
+          },
+        }
+      );
     }
-  }, [assessmentId, createAssessmentMutation, navigate]);
+  }, [assessmentId, hasCreatedAssessment, createAssessmentMutation, navigate]);
 
   // Fetch assessment detail if assessmentId exists
   const { data: assessmentDetail, isLoading: assessmentLoading } =
@@ -207,12 +215,12 @@ export const Assessment: React.FC = () => {
   };
 
   const renderQuestionInput = (question: QuestionRevision) => {
-    const yesNoValue = answers[question.question_revision_id]?.yesNo;
-    const percentageValue = answers[question.question_revision_id]?.percentage;
-    const textValue = answers[question.question_revision_id]?.text || "";
-    const comment = comments[question.question_revision_id] || "";
-    const files: FileData[] =
-      answers[question.question_revision_id]?.files || [];
+    const key = question.latest_revision;
+    const yesNoValue = answers[key]?.yesNo;
+    const percentageValue = answers[key]?.percentage;
+    const textValue = answers[key]?.text || "";
+    const comment = comments[key] || "";
+    const files: FileData[] = answers[key]?.files || [];
     return (
       <div className="space-y-4">
         {/* Yes/No */}
@@ -226,8 +234,8 @@ export const Assessment: React.FC = () => {
                 yesNoValue === true ? "bg-dgrv-green hover:bg-green-700" : ""
               }
               onClick={() =>
-                handleAnswerChange(question.question_revision_id, {
-                  ...answers[question.question_revision_id],
+                handleAnswerChange(key, {
+                  ...answers[key],
                   yesNo: true,
                 })
               }
@@ -241,8 +249,8 @@ export const Assessment: React.FC = () => {
                 yesNoValue === false ? "bg-red-500 hover:bg-red-600" : ""
               }
               onClick={() =>
-                handleAnswerChange(question.question_revision_id, {
-                  ...answers[question.question_revision_id],
+                handleAnswerChange(key, {
+                  ...answers[key],
                   yesNo: false,
                 })
               }
@@ -295,8 +303,8 @@ export const Assessment: React.FC = () => {
                     : "bg-white text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue/10"
                 }
                 onClick={() =>
-                  handleAnswerChange(question.question_revision_id, {
-                    ...answers[question.question_revision_id],
+                  handleAnswerChange(key, {
+                    ...answers[key],
                     percentage: val,
                   })
                 }
@@ -308,15 +316,15 @@ export const Assessment: React.FC = () => {
         </div>
         {/* Text Input */}
         <div>
-          <Label htmlFor={`input-text-${question.question_revision_id}`}>
+          <Label htmlFor={`input-text-${key}`}>
             Your Response
           </Label>
           <Textarea
-            id={`input-text-${question.question_revision_id}`}
+            id={`input-text-${key}`}
             value={textValue}
             onChange={(e) =>
-              handleAnswerChange(question.question_revision_id, {
-                ...answers[question.question_revision_id],
+              handleAnswerChange(key, {
+                ...answers[key],
                 text: e.target.value,
               })
             }
@@ -334,7 +342,7 @@ export const Assessment: React.FC = () => {
                 className="hidden"
                 onChange={(e) =>
                   handleFileUpload(
-                    question.question_revision_id,
+                    key,
                     e.target.files,
                   )
                 }

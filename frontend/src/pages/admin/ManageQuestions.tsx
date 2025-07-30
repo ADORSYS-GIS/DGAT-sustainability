@@ -34,15 +34,28 @@ import {
   useQuestionsServicePostQuestions,
   useQuestionsServicePutQuestionsByQuestionId,
   useQuestionsServiceDeleteQuestionsByQuestionId,
-  useQuestionsServiceGetQuestionsByQuestionId,
 } from "../../openapi-rq/queries/queries";
 import type {
   Question,
-  QuestionRevision,
   CreateQuestionRequest,
   UpdateQuestionRequest,
-  QuestionWithRevisionsResponse,
 } from "../../openapi-rq/requests/types.gen";
+
+// Extended types to match actual API response
+interface QuestionRevision {
+  question_revision_id: string;
+  question_id: string;
+  text: Record<string, string>;
+  weight: number;
+  created_at: string;
+}
+
+interface QuestionWithLatestRevision {
+  question_id: string;
+  category: string;
+  created_at: string;
+  latest_revision: QuestionRevision;
+}
 
 const CATEGORIES_KEY = "sustainability_categories";
 
@@ -68,7 +81,7 @@ const QuestionForm: React.FC<{
   setFormData: React.Dispatch<React.SetStateAction<QuestionFormData>>;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
-  editingQuestion: Question | null;
+  editingQuestion: QuestionWithLatestRevision | null;
 }> = ({
   categories,
   formData,
@@ -184,7 +197,7 @@ const QuestionForm: React.FC<{
 export const ManageQuestions: React.FC = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<QuestionWithLatestRevision | null>(null);
   const [formData, setFormData] = useState<QuestionFormData>({
     text_en: "",
     text_zu: "",
@@ -209,9 +222,16 @@ export const ManageQuestions: React.FC = () => {
     data: questionsData,
     isLoading: questionsLoading,
     refetch: refetchQuestions,
-  } = useQuestionsServiceGetQuestions({ category: undefined });
-  const questions: Question[] = useMemo(
-    () => questionsData?.questions || [],
+  } = useQuestionsServiceGetQuestions();
+  
+  // Cast the response to match the actual API structure
+  const questions = useMemo(
+    () => {
+      // Access the questions array directly from the response
+      const response = questionsData as Record<string, unknown>;
+      const questionsArray = response?.questions as QuestionWithLatestRevision[] | undefined;
+      return questionsArray || [];
+    },
     [questionsData],
   );
 
@@ -269,20 +289,23 @@ export const ManageQuestions: React.FC = () => {
         toast.error("Weight must be between 1 and 10.");
         return;
       }
-      const text = { en: formData.text_en };
+      const text: Record<string, string> = { en: formData.text_en };
       if (formData.text_zu) text["zu"] = formData.text_zu;
       if (editingQuestion) {
-        const updateBody: UpdateQuestionRequest = {
-          text: formData.text_en,
+        const updateBody = {
+          category: formData.categoryId,
+          text,
+          weight: formData.weight,
         };
         updateMutation.mutate({
           questionId: editingQuestion.question_id,
-          requestBody: updateBody,
+          requestBody: updateBody as unknown as UpdateQuestionRequest,
         });
       } else {
         const createBody: CreateQuestionRequest = {
           category: formData.categoryId,
           text,
+          weight: formData.weight,
         };
         createMutation.mutate({ requestBody: createBody });
       }
@@ -290,12 +313,24 @@ export const ManageQuestions: React.FC = () => {
     [formData, editingQuestion, createMutation, updateMutation],
   );
 
-  const handleEdit = useCallback((question: Question) => {
+  const handleEdit = useCallback((question: QuestionWithLatestRevision) => {
     setEditingQuestion(question);
+
+    let text_en = "";
+    let text_zu = "";
+    const weight = question.latest_revision?.weight || 5;
+
+    // Extract data from latest_revision
+    const latestRevision = question.latest_revision;
+    if (latestRevision && latestRevision.text) {
+      text_en = latestRevision.text.en || "";
+      text_zu = latestRevision.text.zu || "";
+    }
+
     setFormData({
-      text_en: "",
-      text_zu: "",
-      weight: 5,
+      text_en,
+      text_zu,
+      weight,
       categoryId: question.category,
       order: 1,
     });
@@ -314,7 +349,7 @@ export const ManageQuestions: React.FC = () => {
   const getQuestionsByCategory = useCallback(
     (categoryId: string) => {
       return questions
-        .filter((q) => q.category === categoryId)
+        .filter((q: QuestionWithLatestRevision) => q.category === categoryId)
         .sort((a, b) => 0);
     },
     [questions],
@@ -326,6 +361,23 @@ export const ManageQuestions: React.FC = () => {
         <Navbar />
         <div className="pt-20 pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Safety check for questions data
+  if (!questions || !Array.isArray(questions)) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="pt-20 pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center py-8 text-gray-500">
+              <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No questions data available.</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -419,22 +471,15 @@ export const ManageQuestions: React.FC = () => {
                             >
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
-                                  <h4 className="font-medium">
-                                    ID: {question.question_id}
-                                  </h4>
-                                  <div className="flex space-x-4 mt-2 text-sm text-gray-500">
-                                    <span>
-                                      Created:{" "}
-                                      {new Date(
-                                        question.created_at,
-                                      ).toLocaleDateString()}
-                                    </span>
+                                  <div className="mb-2">
+                                    <QuestionText question={question} />
                                   </div>
-                                  <div className="mt-2 text-gray-800">
-                                    <strong>Text:</strong>{" "}
-                                    <QuestionRevisionText
-                                      questionId={question.question_id}
-                                    />
+                                  <div className="flex space-x-4 text-sm text-gray-600">
+                                    {question.latest_revision && (
+                                      <span>
+                                        <strong>Weight:</strong> {question.latest_revision.weight}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="flex space-x-2 ml-4">
@@ -487,15 +532,35 @@ export const ManageQuestions: React.FC = () => {
   );
 };
 
-const QuestionRevisionText: React.FC<{ questionId: string }> = ({
-  questionId,
+const QuestionText: React.FC<{ question: QuestionWithLatestRevision }> = ({
+  question,
 }) => {
-  const { data } = useQuestionsServiceGetQuestionsByQuestionId({ questionId });
-  if (!data || !data.revisions || data.revisions.length === 0)
+  if (!question.latest_revision || !question.latest_revision.text) {
     return <em>No text</em>;
-  const latest = data.revisions.reduce((a, b) =>
-    a.version > b.version ? a : b,
+  }
+
+  const text = question.latest_revision.text;
+  const languages = Object.keys(text);
+  
+  if (languages.length === 0) {
+    return <em>No text</em>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {languages.map((lang) => {
+        const langText = text[lang];
+        if (!langText) return null;
+        
+        return (
+          <div key={lang} className="text-sm">
+            <span className="font-medium text-gray-600 uppercase">
+              {lang === 'en' ? 'English' : lang === 'zu' ? 'Zulu' : lang}:
+            </span>{' '}
+            <span className="text-gray-800">{langText}</span>
+          </div>
+        );
+      })}
+    </div>
   );
-  if (latest.language === "en") return <>{latest.text}</>;
-  return <>{latest.text}</>;
 };
