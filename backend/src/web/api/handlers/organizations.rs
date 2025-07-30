@@ -281,7 +281,8 @@ pub async fn get_members(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
+    // Get organization members filtered by org_admin role
+    match app_state.keycloak_service.get_organization_members_by_role(&token, &org_id, "org_admin").await {
         Ok(mut members) => {
             // Apply search filtering if provided
             if let Some(search_term) = &params.search {
@@ -638,7 +639,8 @@ pub async fn get_members_count(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
+    // Get organization members filtered by org_admin role
+    match app_state.keycloak_service.get_organization_members_by_role(&token, &org_id, "org_admin").await {
         Ok(members) => {
             let count = members.len() as i64;
             Ok((StatusCode::OK, Json(count)))
@@ -708,13 +710,14 @@ pub async fn get_member(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
+    // Get organization members filtered by org_admin role
+    match app_state.keycloak_service.get_organization_members_by_role(&token, &org_id, "org_admin").await {
         Ok(members) => {
             // Find the specific member by ID
             if let Some(member) = members.iter().find(|m| m.id == member_id) {
                 Ok((StatusCode::OK, Json(member.clone())))
             } else {
-                Err(ApiError::BadRequest("Member not found in organization".to_string()))
+                Err(ApiError::BadRequest("Member not found in organization or does not have org_admin role".to_string()))
             }
         },
         Err(e) => {
@@ -802,14 +805,19 @@ pub async fn remove_member(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
+    tracing::info!("Attempting to remove member {} from organization {}", membership_id, org_id);
+
     match app_state.keycloak_service
         .remove_user_from_organization(&token, &org_id, &membership_id)
         .await
     {
-        Ok(()) => Ok(StatusCode::NO_CONTENT),
+        Ok(()) => {
+            tracing::info!("Successfully removed member {} from organization {}", membership_id, org_id);
+            Ok(StatusCode::NO_CONTENT)
+        },
         Err(e) => {
-            tracing::error!("Failed to remove member from organization: {}", e);
-            Err(ApiError::InternalServerError("Failed to remove member from organization".to_string()))
+            tracing::error!("Failed to remove member {} from organization {}: {}", membership_id, org_id, e);
+            Err(ApiError::InternalServerError(format!("Failed to remove member from organization: {}", e)))
         }
     }
 }

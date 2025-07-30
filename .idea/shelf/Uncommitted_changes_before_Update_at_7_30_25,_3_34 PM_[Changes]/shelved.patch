@@ -1,0 +1,83 @@
+Index: frontend/src/main.lazy.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { createRoot } from \"react-dom/client\";\nimport App from \"./App\";\nimport \"./index.css\";\nimport { QueryClient, QueryClientProvider } from \"@tanstack/react-query\";\n\nconst queryClient = new QueryClient();\n\ncreateRoot(document.getElementById(\"root\")!).render(\n  <QueryClientProvider client={queryClient}>\n    <App />\n  </QueryClientProvider>,\n);\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/main.lazy.tsx b/frontend/src/main.lazy.tsx
+--- a/frontend/src/main.lazy.tsx	(revision 545d8f4e1cb60f1e483d861d0fdef6eb26a2670d)
++++ b/frontend/src/main.lazy.tsx	(date 1753879681059)
+@@ -10,3 +10,4 @@
+     <App />
+   </QueryClientProvider>,
+ );
++
+Index: ssl/nginx.key
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ssl/nginx.key b/ssl/nginx.key
+new file mode 100644
+--- /dev/null	(date 1753366986710)
++++ b/ssl/nginx.key	(date 1753366986710)
+@@ -0,0 +1,28 @@
++-----BEGIN PRIVATE KEY-----
++MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC2ulyCtIIic9m/
++jNE1jksgfp9Gu2eqvmWrCFTD3Jlv9VjwxwJuHbnmAsQk724qgF2dUacPNEvvUhhz
++fwuuvPTSYmhDnKxvIHHpdJUe7HiSjCD9f0Snrw3bbdHd4V3P88T36XIWvsmC9+cj
++H+7JL7U7nPJcmltIha7uzX8mxbQdfiNu8f5Y7+0/C7vx/OVpRqj4+UmMY+SWfXr3
++mW3AUovY60hv+ierwXMRxuSRrKQp0inWibria1p8kb3z6u1sE2FIh4wuCxZX1vA6
++upYY5T7DEQffa76tzubKLvnI73D9Z3COUqZ+AhpxTQR+FD0hFgiM6EzlV3kvaQEU
++dc1pMfpjAgMBAAECggEASEnr5U2SGh0o7M3BymUztXRCgNINDhBq2kHefunbzd4L
++RJ4GiRe7fpJjlJUgSTIlVuKBq9Mto00gHTkKnyNj24NQ6kamNQRp7EjR4bz9akSD
++nKXnvErVuZR1rUjGO0meB9HT78mkoOqAB3ZPmkoEccQCYb4zFLrGXPTxM56NRgkA
++JIrcgbb9UP7jSoJnxuml9Qhe4i1tiICyIUIiu6LSvnbBrFEOFA61+9KUrpVXmPrr
++4jrzfAOinKBrKeWvjSm4Uf5pzRrHpxs036Un1yUkjf4W9g1XlzJiJuhG8IlSh1rk
++YbTT8IBr7yOP0zvhjNeTyv27o0evrUEbcZLzT2KV8QKBgQDsEPdwNX98Rn57RWmb
++U5U2Q7QgT0IUatR29L28iaTdMvNQzftZZfmHKfMtPL5wLt+i4vtnTZMj/FD3Xd6E
++4M72B92KYIJ1Hovl4My0Nn7t1JozUN0/EL1sjSV55XOydnalHyJrNkfKyHGm/hxl
++xM3KA5mwrt0v/VMqhKcz8XEgKQKBgQDGKGIfMJsnxqg0mrTlsaMQKPqYKpiCiG7S
++mk0S9RSuyKGAG9n99lkCAgbWjSRoqgGOeUoUwRkeGZ0gz3x+AF5m+Fw+DtqBoOau
++u6kbI9gJWrwYk5vrrYS2Sdliu560/fxcDRRZ6mLu1LEnnsH9w0FvVlpI6CKYsNko
++AS9TO0lnqwKBgQDTRvAeZlMeR/1lmJ9HHEx8T6YEEMukeGSFvs+d0VdTfglUtbYS
++sfjdJwd04lvTDbCsGRhGwaBCYc2ZR1MjfAzfF/UIpw27gsZUzJiJZgi+FTyZVvNd
++QT83yy/SZDDjdbEEYdQtPlyMuk811VJXJwfDmOtRvX9LNx/a+vSmwZ2s2QKBgQCz
++BXjgRMFnxgngvIQBn+J5jwwWvSTbiPbWPaC0J8ZvwcJmQsNGtXDkZ4BWBV2HUU/m
++r51F8s4Ga42RPuJx01N2I5ryVekCg6Lk6ZV1d4SNrvOQIIsU+MaVCVLj6C0RxwRf
++BVIFicOnkXAbI0qPP/+13oXiqBXZbKxDgA6JW16N0QKBgQDgFxboi/hX0WfyVo3r
++qzUyq3O2F59DiHZwZrJVHC67e/fTWPnXjqqSPzW4ppKZeu8LMea2siYH32OPStEO
++u03D1faEamV5aJ2vfbMagrcEnjTMsPeAnqyjVQoSozOpwnI4n6XvkQvbhLXzg6X8
++9OE1Aiyg7aQPkvlsLxNOBfd90Q==
++-----END PRIVATE KEY-----
+Index: ssl/nginx.crt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/ssl/nginx.crt b/ssl/nginx.crt
+new file mode 100644
+--- /dev/null	(date 1753366986720)
++++ b/ssl/nginx.crt	(date 1753366986720)
+@@ -0,0 +1,20 @@
++-----BEGIN CERTIFICATE-----
++MIIDSTCCAjGgAwIBAgIUZrbZ75fKKfJGc4qPh7oH0kVz0I8wDQYJKoZIhvcNAQEL
++BQAwFDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI1MDcyNDE0MjMwNloXDTI2MDcy
++NDE0MjMwNlowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIBIjANBgkqhkiG9w0BAQEF
++AAOCAQ8AMIIBCgKCAQEAtrpcgrSCInPZv4zRNY5LIH6fRrtnqr5lqwhUw9yZb/VY
++8McCbh255gLEJO9uKoBdnVGnDzRL71IYc38Lrrz00mJoQ5ysbyBx6XSVHux4kowg
++/X9Ep68N223R3eFdz/PE9+lyFr7JgvfnIx/uyS+1O5zyXJpbSIWu7s1/JsW0HX4j
++bvH+WO/tPwu78fzlaUao+PlJjGPkln1695ltwFKL2OtIb/onq8FzEcbkkaykKdIp
++1om64mtafJG98+rtbBNhSIeMLgsWV9bwOrqWGOU+wxEH32u+rc7myi75yO9w/Wdw
++jlKmfgIacU0EfhQ9IRYIjOhM5Vd5L2kBFHXNaTH6YwIDAQABo4GSMIGPMB0GA1Ud
++DgQWBBQId8XduiXq8qV6273agjf40mEXlDAfBgNVHSMEGDAWgBQId8XduiXq8qV6
++273agjf40mEXlDAPBgNVHRMBAf8EBTADAQH/MBoGA1UdEQQTMBGCCWxvY2FsaG9z
++dIcEfwAAATALBgNVHQ8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDQYJKoZI
++hvcNAQELBQADggEBABN2WeuWh2vP56eonjRAPanx60XoD/bWfJePPMRlg+fZpAql
+++DXiuFvhdGDGZ1S/Ne6CJVYSJPr8FQgvlIf1moek6IjVTy0m6GVhrEMnvQrNs2A8
++qYJHi4XzaeTZaKxSpK8dfqCliev/FVL/Toi2t1T9Mcrwkp8XemGRWT2BCzYkC3Mt
++0tKk42FRE/ZZJZodYzxNrq6Jc643GchlMWsXjpL+NL7c0UfVhv1EC86XeRTy35nA
++Td9nHSvPNI1PSJGD1DJkNQ9C8gOgkr3RqNj3LRgM25nTnfRJcqjLRZNLyBNW5S++
++qanNKi8AxrD08EQclT1sZdsgLhnsWUSj2/RwKCQ=
++-----END CERTIFICATE-----

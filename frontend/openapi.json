@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3001/api",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Production server"
     },
     {
-      "url": "http://localhost:3001/api",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Staging server"
     },
     {
-      "url": "http://localhost:3001/api",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Development server"
     }
   ],

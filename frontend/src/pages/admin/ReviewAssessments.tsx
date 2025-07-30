@@ -17,6 +17,13 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -26,7 +33,13 @@ import {
   ArrowLeft,
   Send,
   Wifi,
-  WifiOff
+  WifiOff,
+  Plus,
+  Trash2,
+  MessageSquare,
+  Award,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/shared/useAuth';
@@ -37,17 +50,13 @@ import {
 import { ReportsService } from '@/openapi-rq/requests/services.gen';
 import { AdminSubmissionDetail } from '@/openapi-rq/requests/types.gen';
 import { offlineDB } from '@/services/indexeddb';
-
-interface ReviewComment {
-  questionId: string;
-  comment: string;
-  reviewer: string;
-  timestamp: Date;
-}
+import { apiInterceptor } from "@/services/apiInterceptor";
 
 interface CategoryRecommendation {
+  id: string;
   category: string;
   recommendation: string;
+  timestamp: Date;
 }
 
 interface PendingReviewSubmission {
@@ -59,15 +68,29 @@ interface PendingReviewSubmission {
   syncStatus: 'pending' | 'synced';
 }
 
+interface SyncQueueItem {
+  id: string;
+  operation: 'create' | 'update' | 'delete';
+  entity_type: 'report' | 'submission' | 'user';
+  entity_id: string;
+  data: Record<string, unknown>;
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  retry_count: number;
+  max_retries: number;
+  priority: 'low' | 'normal' | 'high';
+  created_at: string;
+}
+
 const ReviewAssessments: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedSubmission, setSelectedSubmission] = useState<AdminSubmissionDetail | null>(null);
-  const [reviewComments, setReviewComments] = useState<ReviewComment[]>([]);
   const [categoryRecommendations, setCategoryRecommendations] = useState<CategoryRecommendation[]>([]);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [currentComment, setCurrentComment] = useState('');
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string>('');
+  const [isAddingRecommendation, setIsAddingRecommendation] = useState<string>('');
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingReviews, setPendingReviews] = useState<PendingReviewSubmission[]>([]);
 
@@ -99,14 +122,11 @@ const ReviewAssessments: React.FC = () => {
     for (const pendingReview of pendingReviews) {
       if (pendingReview.syncStatus === 'pending') {
         try {
-          console.log('🔄 Syncing pending review:', pendingReview.id);
-          
+          // Make the actual API call
           const result = await ReportsService.postSubmissionsBySubmissionIdReports({
             submissionId: pendingReview.submissionId,
             requestBody: pendingReview.categoryRecommendations
           });
-
-          console.log('✅ Review synced successfully:', result);
           
           // Mark as synced in IndexedDB
           await offlineDB.updatePendingReviewSubmission(pendingReview.id, 'synced');
@@ -116,7 +136,6 @@ const ReviewAssessments: React.FC = () => {
           
           toast.success(`Review for submission ${pendingReview.submissionId} synced successfully`);
         } catch (error) {
-          console.error('❌ Failed to sync review:', error);
           toast.error(`Failed to sync review for submission ${pendingReview.submissionId}`);
         }
       }
@@ -131,18 +150,31 @@ const ReviewAssessments: React.FC = () => {
   // Get responses from the selected submission (they're already included in the submission data)
   const submissionResponses = selectedSubmission?.content?.responses || [];
 
-  // Add debugging
+  // Listen for sync completion and update pending reviews
   React.useEffect(() => {
-    console.log('🔍 ReviewAssessments: All submissions data:', submissionsData);
-    console.log('🔍 ReviewAssessments: All submissions:', submissionsData?.submissions);
-    console.log('🔍 ReviewAssessments: Submissions for review:', submissionsForReview);
-    console.log('🔍 ReviewAssessments: Submission statuses:', submissionsData?.submissions?.map(s => ({ 
-      id: s.submission_id, 
-      status: s.review_status,
-      user_id: s.user_id,
-      submitted_at: s.submitted_at
-    })));
-  }, [submissionsData, submissionsForReview]);
+    const handleSyncComplete = async () => {
+      // Check if any pending reviews should be marked as synced
+      const allPendingReviews = await offlineDB.getAllPendingReviewSubmissions();
+      const pendingReviews = allPendingReviews.filter(r => r.syncStatus === 'pending');
+      
+      if (pendingReviews.length > 0) {
+        // Mark them as synced since the sync queue has been processed
+        for (const review of pendingReviews) {
+          await offlineDB.updatePendingReviewSubmission(review.id, 'synced');
+        }
+        
+        // Update the local state
+        setPendingReviews(prev => prev.map(r => ({ ...r, syncStatus: 'synced' as const })));
+      }
+    };
+
+    // Listen for online events which trigger sync
+    window.addEventListener('online', handleSyncComplete);
+    
+    return () => {
+      window.removeEventListener('online', handleSyncComplete);
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedSubmission) {
@@ -152,45 +184,26 @@ const ReviewAssessments: React.FC = () => {
 
   const handleReviewSubmission = (submission: AdminSubmissionDetail) => {
     setSelectedSubmission(submission);
-    setReviewComments([]);
     setCategoryRecommendations([]);
     setIsReviewDialogOpen(true);
-  };
-
-  const addReviewComment = () => {
-    if (!currentComment.trim() || !selectedQuestionId) return;
-
-    const newComment: ReviewComment = {
-      questionId: selectedQuestionId,
-      comment: currentComment,
-      reviewer: user?.email || 'Unknown',
-      timestamp: new Date()
-    };
-
-    setReviewComments([...reviewComments, newComment]);
-    setCurrentComment('');
-    setSelectedQuestionId('');
-  };
-
-  const removeReviewComment = (index: number) => {
-    setReviewComments(reviewComments.filter((_, i) => i !== index));
   };
 
   const addCategoryRecommendation = (category: string, recommendation: string) => {
     if (!recommendation.trim()) return;
 
     const newRecommendation: CategoryRecommendation = {
+      id: `rec_${Date.now()}_${Math.random()}`,
       category,
-      recommendation
+      recommendation,
+      timestamp: new Date()
     };
 
-    // Remove existing recommendation for this category if it exists
-    const filtered = categoryRecommendations.filter(r => r.category !== category);
-    setCategoryRecommendations([...filtered, newRecommendation]);
+    // Add the new recommendation to the existing list (don't filter out existing ones)
+    setCategoryRecommendations([...categoryRecommendations, newRecommendation]);
   };
 
-  const removeCategoryRecommendation = (category: string) => {
-    setCategoryRecommendations(categoryRecommendations.filter(r => r.category !== category));
+  const removeCategoryRecommendation = (id: string) => {
+    setCategoryRecommendations(categoryRecommendations.filter(r => r.id !== id));
   };
 
   const handleSubmitReview = async () => {
@@ -199,32 +212,59 @@ const ReviewAssessments: React.FC = () => {
     try {
       setIsSubmitting(true);
 
-      console.log('🔍 Submitting review for submission:', selectedSubmission.submission_id);
-      console.log('🔍 Category recommendations:', categoryRecommendations);
+      // Create the pending review data
+      const pendingReview: PendingReviewSubmission = {
+        id: `pending_${Date.now()}_${Math.random()}`,
+        submissionId: selectedSubmission.submission_id,
+        categoryRecommendations,
+        reviewer: user?.email || 'Unknown',
+        timestamp: new Date(),
+        syncStatus: 'pending'
+      };
 
-      if (isOnline) {
-        // Online: Submit directly to server
-        const result = await ReportsService.postSubmissionsBySubmissionIdReports({
-          submissionId: selectedSubmission.submission_id,
-          requestBody: categoryRecommendations
-        });
+      // Store in the pending reviews table for UI display
+      await offlineDB.savePendingReviewSubmission(pendingReview);
+      setPendingReviews(prev => [...prev, pendingReview]);
 
-        console.log('🔍 Review submission result:', result);
-        toast.success('Review submitted successfully');
-      } else {
-        // Offline: Store locally for later sync
-        const pendingReview: PendingReviewSubmission = {
-          id: `pending_${Date.now()}_${Math.random()}`,
+      // Add to sync queue for offline sync
+      const syncItem: SyncQueueItem = {
+        id: crypto.randomUUID(),
+        operation: 'create',
+        entity_type: 'report',
+        entity_id: pendingReview.id,
+        data: {
           submissionId: selectedSubmission.submission_id,
           categoryRecommendations,
           reviewer: user?.email || 'Unknown',
-          timestamp: new Date(),
-          syncStatus: 'pending'
-        };
+          timestamp: new Date().toISOString()
+        },
+        url: `/api/submissions/${selectedSubmission.submission_id}/reports`,
+        method: 'POST',
+        retry_count: 0,
+        max_retries: 3,
+        priority: 'normal',
+        created_at: new Date().toISOString(),
+      };
 
-        await offlineDB.savePendingReviewSubmission(pendingReview);
-        setPendingReviews(prev => [...prev, pendingReview]);
-        
+      await offlineDB.addToSyncQueue(syncItem);
+
+      // Try to sync immediately if online
+      if (isOnline) {
+        try {
+          const result = await ReportsService.postSubmissionsBySubmissionIdReports({
+            submissionId: selectedSubmission.submission_id,
+            requestBody: categoryRecommendations
+          });
+          
+          // Mark as synced
+          await offlineDB.updatePendingReviewSubmission(pendingReview.id, 'synced');
+          setPendingReviews(prev => prev.filter(r => r.id !== pendingReview.id));
+          
+          toast.success('Review submitted successfully');
+        } catch (error) {
+          toast.success('Review saved locally. Will sync when online.');
+        }
+      } else {
         toast.success('Review saved locally. Will sync when online.');
       }
 
@@ -233,7 +273,6 @@ const ReviewAssessments: React.FC = () => {
       setCategoryRecommendations([]);
       refetchSubmissions();
     } catch (error) {
-      console.error('❌ Failed to submit review:', error);
       toast.error('Failed to submit review');
     } finally {
       setIsSubmitting(false);
@@ -349,7 +388,7 @@ const ReviewAssessments: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium text-gray-900">Submission {submission.submission_id}</h3>
-                      <p className="text-sm text-gray-600">User: {submission.user_id}</p>
+                      <p className="text-sm text-gray-600">Organization: {submission.org_name || "Unknown"}</p>
                       <p className="text-sm text-gray-600">
                         Submitted: {submission.submitted_at 
                           ? new Date(submission.submitted_at).toLocaleDateString()
@@ -378,42 +417,54 @@ const ReviewAssessments: React.FC = () => {
 
       {/* Review Dialog */}
       <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Eye className="w-5 h-5" />
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="flex items-center space-x-3 text-2xl font-bold text-gray-900">
+              <Award className="w-6 h-6 text-blue-600" />
               <span>Review Assessment</span>
             </DialogTitle>
+            <p className="text-gray-600 mt-2">Review and provide recommendations for this sustainability assessment</p>
           </DialogHeader>
 
           {selectedSubmission && (
             <div className="space-y-6">
               {/* Submission Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Submission Details</CardTitle>
+              <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    <span>Submission Details</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Submission ID</label>
-                      <p className="text-gray-900">{selectedSubmission.submission_id}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-3 rounded-lg border">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Submission ID</label>
+                      <p className="text-sm font-mono text-gray-900 mt-1">{selectedSubmission.submission_id}</p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">User ID</label>
-                      <p className="text-gray-900">{selectedSubmission.user_id}</p>
+                    <div className="bg-white p-3 rounded-lg border">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Organization</label>
+                      <p className="text-sm font-medium text-gray-900 mt-1">{selectedSubmission.org_name || "Unknown"}</p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Submission Date</label>
-                      <p className="text-gray-900">
+                    <div className="bg-white p-3 rounded-lg border">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Submission Date</label>
+                      <p className="text-sm text-gray-900 mt-1">
                         {selectedSubmission.submitted_at 
-                          ? new Date(selectedSubmission.submitted_at).toLocaleString()
+                          ? new Date(selectedSubmission.submitted_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
                           : 'Unknown'
                         }
                       </p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Status</label>
+                  </div>
+                  <div className="mt-4">
+                    <div className="bg-white p-3 rounded-lg border">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</label>
                       <div className="mt-1">{getStatusBadge(selectedSubmission.review_status)}</div>
                     </div>
                   </div>
@@ -421,13 +472,17 @@ const ReviewAssessments: React.FC = () => {
               </Card>
 
               {/* Responses */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Assessment Responses</CardTitle>
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <MessageSquare className="w-5 h-5 text-green-600" />
+                    <span>Assessment Responses</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {submissionResponses.length === 0 ? (
-                    <div className="text-center py-4">
+                    <div className="text-center py-8">
+                      <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600">No responses found</p>
                     </div>
                   ) : (
@@ -437,87 +492,203 @@ const ReviewAssessments: React.FC = () => {
                         const categories = [...new Set(submissionResponses.map(r => r.question_category))];
                         return categories.map(category => {
                           const categoryResponses = submissionResponses.filter(r => r.question_category === category);
-                          const categoryRecommendation = categoryRecommendations.find(r => r.category === category);
+                          const recsForCategory = categoryRecommendations.filter(r => r.category === category);
                           
                           return (
-                            <div key={category} className="border rounded-lg p-4 bg-gray-50">
-                              <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900 capitalize">
-                                  {category} Category
-                                </h3>
-                                <div className="flex items-center space-x-2">
-                                  {categoryRecommendation && (
-                                    <Badge variant="default" className="bg-green-100 text-green-800">
-                                      ✓ Recommendation Added
+                            <div key={category} className="border rounded-xl p-6 bg-gradient-to-r from-gray-50 to-white shadow-sm">
+                              <div className="flex justify-between items-center mb-6">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-bold text-blue-600">
+                                      {category.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <h3 className="text-xl font-semibold text-gray-900 capitalize">
+                                    {category} Category
+                                  </h3>
+                                  <span className="text-sm text-gray-500">
+                                    ({categoryResponses.length} questions)
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  {recsForCategory.length > 0 && (
+                                    <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      {recsForCategory.length} Recommendation{recsForCategory.length > 1 ? 's' : ''}
                                     </Badge>
                                   )}
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => setSelectedQuestionId(category)}
-                                    className="flex items-center space-x-1"
+                                    onClick={() => {
+                                      setIsAddingRecommendation(category);
+                                      setCurrentComment('');
+                                    }}
+                                    className="flex items-center space-x-2 border-blue-200 text-blue-700 hover:bg-blue-50"
                                   >
-                                    <Send className="w-3 h-3" />
+                                    <Plus className="w-4 h-4" />
                                     <span>Add Recommendation</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const newExpanded = new Set(expandedCategories);
+                                      if (newExpanded.has(category)) {
+                                        newExpanded.delete(category);
+                                      } else {
+                                        newExpanded.add(category);
+                                      }
+                                      setExpandedCategories(newExpanded);
+                                    }}
+                                    className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
+                                  >
+                                    {expandedCategories.has(category) ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4" />
+                                    )}
+                                    <span className="text-sm">
+                                      {expandedCategories.has(category) ? 'Collapse' : 'Expand'}
+                                    </span>
                                   </Button>
                                 </div>
                               </div>
                               
                               {/* Category recommendation display */}
-                              {categoryRecommendation && (
-                                <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
-                                  <p className="text-sm font-medium text-gray-900 mb-1">Your Recommendation:</p>
-                                  <p className="text-sm text-gray-700">{categoryRecommendation.recommendation}</p>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => removeCategoryRecommendation(category)}
-                                    className="mt-2 text-red-600 hover:text-red-800"
-                                  >
-                                    Remove
-                                  </Button>
+                              {recsForCategory.length > 0 && (
+                                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-400 rounded-lg">
+                                  <div className="flex items-center space-x-2 mb-3">
+                                    <Award className="w-4 h-4 text-blue-600" />
+                                    <p className="text-sm font-medium text-gray-900">Your Recommendations:</p>
+                                  </div>
+                                  <div className="space-y-3">
+                                    {recsForCategory.map(rec => (
+                                      <div key={rec.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
+                                        <div className="flex-1">
+                                          <p className="text-sm text-gray-700">{rec.recommendation}</p>
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            Added {rec.timestamp.toLocaleTimeString()}
+                                          </p>
+                                        </div>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => removeCategoryRecommendation(rec.id)}
+                                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
-                              
-                              {/* Questions in this category */}
-                              <div className="space-y-3">
-                                {categoryResponses.map((response, index) => {
-                                  // Parse the response JSON to get the actual response data
-                                  let responseData;
-                                  try {
-                                    responseData = JSON.parse(response.response);
-                                  } catch (e) {
-                                    responseData = { text: response.response };
-                                  }
-                                  
-                                  return (
-                                    <div key={index} className="bg-white p-3 rounded border">
-                                      <h4 className="font-medium text-gray-900 mb-2">
-                                        {response.question_text}
-                                      </h4>
-                                      
-                                      {/* Display response data */}
-                                      <div className="bg-gray-50 p-3 rounded">
-                                        {responseData.yesNo !== undefined && (
-                                          <p className="text-sm text-gray-700 mb-1">
-                                            <span className="font-medium">Yes/No:</span> {responseData.yesNo ? 'Yes' : 'No'}
-                                          </p>
-                                        )}
-                                        {responseData.percentage !== undefined && (
-                                          <p className="text-sm text-gray-700 mb-1">
-                                            <span className="font-medium">Percentage:</span> {responseData.percentage}%
-                                          </p>
-                                        )}
-                                        {responseData.text && (
-                                          <p className="text-sm text-gray-700">
-                                            <span className="font-medium">Response:</span> {responseData.text}
-                                          </p>
-                                        )}
-                                      </div>
+
+                              {/* Add Recommendation Form for this category */}
+                              {isAddingRecommendation === category && (
+                                <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 rounded-lg">
+                                  <div className="flex items-center space-x-2 mb-3">
+                                    <Plus className="w-4 h-4 text-green-600" />
+                                    <p className="text-sm font-medium text-gray-900">Add Recommendation for {category}</p>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <div>
+                                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                        Recommendation
+                                      </label>
+                                      <Textarea
+                                        value={currentComment}
+                                        onChange={(e) => setCurrentComment(e.target.value)}
+                                        placeholder={`Enter your recommendation for ${category} category...`}
+                                        className="min-h-[100px] resize-none border-gray-300 focus:border-green-500 focus:ring-green-500"
+                                        rows={3}
+                                      />
                                     </div>
-                                  );
-                                })}
-                              </div>
+                                    <div className="flex space-x-3">
+                                      <Button
+                                        onClick={() => {
+                                          if (currentComment.trim()) {
+                                            addCategoryRecommendation(category, currentComment);
+                                            setCurrentComment('');
+                                            setIsAddingRecommendation('');
+                                          }
+                                        }}
+                                        disabled={!currentComment.trim()}
+                                        className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                        <span>Add Recommendation</span>
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                          setCurrentComment('');
+                                          setIsAddingRecommendation('');
+                                        }}
+                                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Questions in this category - Collapsible */}
+                              {expandedCategories.has(category) ? (
+                                <div className="space-y-4">
+                                  {categoryResponses.map((response, index) => {
+                                    // Parse the response JSON to get the actual response data
+                                    let responseData;
+                                    try {
+                                      responseData = JSON.parse(response.response);
+                                    } catch (e) {
+                                      responseData = { text: response.response };
+                                    }
+                                    
+                                    return (
+                                      <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                                        <h4 className="font-medium text-gray-900 mb-3 text-lg">
+                                          {response.question_text}
+                                        </h4>
+                                        
+                                        {/* Display response data */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                          {responseData.yesNo !== undefined && (
+                                            <div className="flex items-center space-x-2 mb-2">
+                                              <span className="text-sm font-medium text-gray-700">Yes/No:</span>
+                                              <Badge variant={responseData.yesNo ? "default" : "secondary"} className={responseData.yesNo ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                                                {responseData.yesNo ? 'Yes' : 'No'}
+                                              </Badge>
+                                            </div>
+                                          )}
+                                          {responseData.percentage !== undefined && (
+                                            <div className="flex items-center space-x-2 mb-2">
+                                              <span className="text-sm font-medium text-gray-700">Percentage:</span>
+                                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                {responseData.percentage}%
+                                              </Badge>
+                                            </div>
+                                          )}
+                                          {responseData.text && (
+                                            <div className="mt-3">
+                                              <span className="text-sm font-medium text-gray-700">Response:</span>
+                                              <p className="text-sm text-gray-700 mt-1 bg-white p-2 rounded border">
+                                                {responseData.text}
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="text-center py-4 text-gray-500">
+                                  <p className="text-sm">Click "Expand" to view {categoryResponses.length} question{categoryResponses.length !== 1 ? 's' : ''}</p>
+                                </div>
+                              )}
                             </div>
                           );
                         });
@@ -527,63 +698,20 @@ const ReviewAssessments: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Add Recommendation Section */}
-              {selectedQuestionId && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Add Recommendation for {selectedQuestionId} Category</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">
-                          Recommendation
-                        </label>
-                        <Textarea
-                          value={currentComment}
-                          onChange={(e) => setCurrentComment(e.target.value)}
-                          placeholder="Enter your recommendation for this category..."
-                          className="mt-1"
-                          rows={4}
-                        />
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          onClick={() => addCategoryRecommendation(selectedQuestionId, currentComment)}
-                          disabled={!currentComment.trim()}
-                          className="flex items-center space-x-2"
-                        >
-                          <Send className="w-4 h-4" />
-                          <span>Add Recommendation</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedQuestionId('');
-                            setCurrentComment('');
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-4 pt-4 border-t">
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
                 <Button
                   variant="outline"
                   onClick={() => setIsReviewDialogOpen(false)}
                   disabled={isSubmitting}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSubmitReview}
                   disabled={isSubmitting || categoryRecommendations.length === 0}
-                  className="flex items-center space-x-2"
+                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Send className="w-4 h-4" />
                   <span>Submit Review</span>

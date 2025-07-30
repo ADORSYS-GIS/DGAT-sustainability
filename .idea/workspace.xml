@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="CargoProjects">
+    <cargoProject FILE="$PROJECT_DIR$/backend/Cargo.toml">
+      <package file="$PROJECT_DIR$/backend">
+        <enabledFeature name="default" />
+      </package>
+    </cargoProject>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="8fc9224e-a643-40bb-99c9-dd650d1ed858" name="Changes" comment="chore(infrastructure): add Keycloak setup script for user and role management">
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/.docker/app/nginx/init-scripts/100-init-project-env-variables.sh" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <favorite-branches>
+      <branch-storage>
+        <map>
+          <entry type="REMOTE">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$" source="origin/test2" />
+                <branch-info repo="$PROJECT_DIR$" source="origin/tests3" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </favorite-branches>
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Christiantyemele&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/ADORSYS-GIS/DGAT-sustainability.git&quot;,
+    &quot;accountId&quot;: &quot;ab7c4a7d-7ffe-4d73-bb0a-cefbf5943eb0&quot;
+  }
+}</component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="1Atg3XEV" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="30V3VfI8zr2IPoRpNTrqWB8cFEO" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.rust.reset.selective.auto.import": "true",
+    "SHELLCHECK.PATH": "/home/christian/.local/share/JetBrains/RustRover2025.1/Shell Script/shellcheck",
+    "git-widget-placeholder": "test2",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/home/christian/RustroverProjects/Sustainability-Tool/infrastructure/themes",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
+    "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
+    "ts.external.directory.path": "/snap/rustrover/108/plugins/javascript-plugin/jsLanguageServicesImpl/external",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/infrastructure/themes" />
+      <recent name="$PROJECT_DIR$/scripts" />
+      <recent name="$PROJECT_DIR$/frontend" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/infrastructure" />
+      <recent name="$PROJECT_DIR$/infrastructure/keycloak" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="run" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="RustProjectSettings">
+    <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8fc9224e-a643-40bb-99c9-dd650d1ed858" name="Changes" comment="" />
+      <created>1753698937440</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1753698937440</updated>
+      <workItem from="1753698938487" duration="93000" />
+      <workItem from="1753699081308" duration="35850000" />
+    </task>
+    <task id="LOCAL-00001" summary="**chore: replace development Nginx configuration with Keycloak realm export**&#10;&#10;- Removed obsolete Nginx configuration files (`default.conf`, `gzip.conf`, `nginx.conf`) and entrypoint script from the frontend `.docker` folder.&#10;- Added `sustainability-realm` Keycloak export configuration for streamlined realm setup.">
+      <option name="closed" value="true" />
+      <created>1753703795211</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1753703795211</updated>
+    </task>
+    <task id="LOCAL-00002" summary="chore(docker-compose): add `API_BASE_URL` environment variable for frontend configuration">
+      <option name="closed" value="true" />
+      <created>1753706417086</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1753706417086</updated>
+    </task>
+    <task id="LOCAL-00003" summary="chore(docker-compose): fix `API_BASE_URL` syntax for frontend configuration">
+      <option name="closed" value="true" />
+      <created>1753706717053</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1753706717053</updated>
+    </task>
+    <task id="LOCAL-00004" summary="chore(frontend): replace `${API_BASE_URL}` with hardcoded server URLs in openapi.json">
+      <option name="closed" value="true" />
+      <created>1753714634439</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1753714634439</updated>
+    </task>
+    <task id="LOCAL-00005" summary="chore(docker-compose): update `KEYCLOAK_URL` to use HTTPS and include `/keycloak` path">
+      <option name="closed" value="true" />
+      <created>1753717780101</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1753717780101</updated>
+    </task>
+    <task id="LOCAL-00006" summary="chore(docker-compose): enable HTTP for Keycloak and update `KEYCLOAK_URL` protocol to HTTP">
+      <option name="closed" value="true" />
+      <created>1753717928200</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1753717928200</updated>
+    </task>
+    <task id="LOCAL-00007" summary="chore(docker-compose): add `KC_HOSTNAME_URL` for Keycloak configuration">
+      <option name="closed" value="true" />
+      <created>1753719163223</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1753719163223</updated>
+    </task>
+    <task id="LOCAL-00008" summary="chore(docker-compose): disable HTTP for Keycloak by setting `KC_HTTP_ENABLED` to false">
+      <option name="closed" value="true" />
+      <created>1753720544946</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1753720544946</updated>
+    </task>
+    <task id="LOCAL-00009" summary="chore(docker-compose): update `KEYCLOAK_URL` to use HTTPS protocol">
+      <option name="closed" value="true" />
+      <created>1753721222573</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1753721222573</updated>
+    </task>
+    <task id="LOCAL-00010" summary="chore(docker-compose): update `KEYCLOAK_URL` to AWS hostname for production use">
+      <option name="closed" value="true" />
+      <created>1753721930535</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1753721930535</updated>
+    </task>
+    <task id="LOCAL-00011" summary="chore(jwt-validator): allow self-signed certificates for Keycloak">
+      <option name="closed" value="true" />
+      <created>1753722409055</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1753722409055</updated>
+    </task>
+    <task id="LOCAL-00012" summary="chore(docker-compose): add `KC_PROXY` environment variable for Keycloak configuration">
+      <option name="closed" value="true" />
+      <created>1753723498282</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1753723498282</updated>
+    </task>
+    <task id="LOCAL-00013" summary="chore(docker-compose): update Keycloak hostname config to v2 and enable HTTP">
+      <option name="closed" value="true" />
+      <created>1753724101482</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1753724101482</updated>
+    </task>
+    <task id="LOCAL-00014" summary="chore(docker-compose, jwt-validator): update Keycloak hostname and issuer URL to include `/keycloak` path">
+      <option name="closed" value="true" />
+      <created>1753725829160</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1753725829160</updated>
+    </task>
+    <task id="LOCAL-00015" summary="chore(docker-compose): update `KEYCLOAK_URL` to internal Docker hostname and use HTTP protocol">
+      <option name="closed" value="true" />
+      <created>1753728041960</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1753728041960</updated>
+    </task>
+    <task id="LOCAL-00016" summary="chore(keycloak-service): add debug log for token in `get_organization` method">
+      <option name="closed" value="true" />
+      <created>1753729968504</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1753729968504</updated>
+    </task>
+    <task id="LOCAL-00017" summary="chore(keycloak-service): add debug log for token in `get_organizations` method and remove redundant log in `get_organization` method">
+      <option name="closed" value="true" />
+      <created>1753730582887</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1753730582887</updated>
+    </task>
+    <task id="LOCAL-00018" summary="chore(keycloak, docker-compose): update Keycloak URLs and themes, add debug log in `get_organizations`, enable dark mode">
+      <option name="closed" value="true" />
+      <created>1753731461950</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1753731461950</updated>
+    </task>
+    <task id="LOCAL-00019" summary="chore(infrastructure): add Keycloak setup script for user and role management">
+      <option name="closed" value="true" />
+      <created>1753732969936</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1753732969936</updated>
+    </task>
+    <task id="LOCAL-00020" summary="chore(infrastructure): add Keycloak setup script for user and role management">
+      <option name="closed" value="true" />
+      <created>1753732987836</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1753732987836</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="**chore: replace development Nginx configuration with Keycloak realm export**&#10;&#10;- Removed obsolete Nginx configuration files (`default.conf`, `gzip.conf`, `nginx.conf`) and entrypoint script from the frontend `.docker` folder.&#10;- Added `sustainability-realm` Keycloak export configuration for streamlined realm setup." />
+    <MESSAGE value="chore(docker-compose): add `API_BASE_URL` environment variable for frontend configuration" />
+    <MESSAGE value="chore(docker-compose): fix `API_BASE_URL` syntax for frontend configuration" />
+    <MESSAGE value="chore(frontend): replace `${API_BASE_URL}` with hardcoded server URLs in openapi.json" />
+    <MESSAGE value="chore(docker-compose): update `KEYCLOAK_URL` to use HTTPS and include `/keycloak` path" />
+    <MESSAGE value="chore(docker-compose): enable HTTP for Keycloak and update `KEYCLOAK_URL` protocol to HTTP" />
+    <MESSAGE value="chore(docker-compose): add `KC_HOSTNAME_URL` for Keycloak configuration" />
+    <MESSAGE value="chore(docker-compose): disable HTTP for Keycloak by setting `KC_HTTP_ENABLED` to false" />
+    <MESSAGE value="chore(docker-compose): update `KEYCLOAK_URL` to use HTTPS protocol" />
+    <MESSAGE value="chore(docker-compose): update `KEYCLOAK_URL` to AWS hostname for production use" />
+    <MESSAGE value="chore(jwt-validator): allow self-signed certificates for Keycloak" />
+    <MESSAGE value="chore(docker-compose): add `KC_PROXY` environment variable for Keycloak configuration" />
+    <MESSAGE value="chore(docker-compose): update Keycloak hostname config to v2 and enable HTTP" />
+    <MESSAGE value="chore(docker-compose, jwt-validator): update Keycloak hostname and issuer URL to include `/keycloak` path" />
+    <MESSAGE value="chore(docker-compose): update `KEYCLOAK_URL` to internal Docker hostname and use HTTP protocol" />
+    <MESSAGE value="chore(keycloak-service): add debug log for token in `get_organization` method" />
+    <MESSAGE value="chore(keycloak-service): add debug log for token in `get_organizations` method and remove redundant log in `get_organization` method" />
+    <MESSAGE value="chore(keycloak, docker-compose): update Keycloak URLs to production hostname, configure themes, and enable dark mode" />
+    <MESSAGE value="chore(keycloak, docker-compose): update Keycloak URLs and themes, add debug log in `get_organizations`, enable dark mode" />
+    <MESSAGE value="chore(infrastructure): add Keycloak setup script for user and role management" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore(infrastructure): add Keycloak setup script for user and role management" />
+  </component>
+</project>

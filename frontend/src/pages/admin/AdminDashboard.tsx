@@ -27,12 +27,10 @@ import {
 import { useAuth } from "@/hooks/shared/useAuth";
 
 type Organization = { organizationId: string; name: string };
-type User = { userId: string; firstName?: string; lastName?: string };
 
 interface PendingReview {
   id: string;
   organization: string;
-  user: string;
   type: string;
   submittedAt: string;
 }
@@ -40,40 +38,46 @@ interface PendingReview {
 export const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
-  console.log('🔍 AdminDashboard: User context:', user);
-  console.log('🔍 AdminDashboard: User roles:', user?.roles);
-  console.log('🔍 AdminDashboard: User realm_access roles:', user?.realm_access?.roles);
+  // Always call both hooks to avoid React hooks violation
+  const { data: submissionsData, isLoading: submissionsLoading, error: error } = useOfflineAdminSubmissions();
   
-  const [orgs] = React.useState<Organization[]>([
-    { organizationId: "org1", name: "Mock Cooperative 1" },
-    { organizationId: "org2", name: "Mock Cooperative 2" },
-  ]);
-  const [users] = React.useState<User[]>([
-    { userId: "user1", firstName: "Alice", lastName: "Smith" },
-    { userId: "user2", firstName: "Bob", lastName: "Jones" },
-  ]);
-  const orgsLoading = false;
-  const usersLoading = false;
-
-  // Use offline hooks for all data fetching
-  const {
-    data: submissionsData,
-    isLoading: submissionsLoading,
-    error,
-  } = useOfflineAdminSubmissions();
+  // Both org_admin and DGRV_admin use the same data source - no differentiation
+  // All admins load the same data to their local storage
+  const submissions = submissionsData?.submissions || [];
   
-  console.log('🔍 AdminDashboard: useOfflineAdminSubmissions hook called');
-  console.log('🔍 AdminDashboard: submissionsData:', submissionsData);
-  console.log('🔍 AdminDashboard: submissionsLoading:', submissionsLoading);
-  console.log('🔍 AdminDashboard: error:', error);
+  // Debug logging to understand submission statuses
+  React.useEffect(() => {
+    if (submissions.length > 0) {
+      console.log('📊 Submission Status Breakdown:');
+      const statusCounts = submissions.reduce((acc, submission) => {
+        acc[submission.review_status] = (acc[submission.review_status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log('Status counts:', statusCounts);
+      console.log('Total submissions:', submissions.length);
+    }
+  }, [submissions]);
   
-  const submissions: AdminSubmissionDetail[] = React.useMemo(
-    () => submissionsData?.submissions ?? [],
-    [submissionsData],
+  // Filter submissions by status for different views
+  const pendingSubmissions = submissions.filter(
+    submission => submission.review_status === 'under_review' || submission.review_status === 'pending_review'
   );
   
-  console.log('🔍 AdminDashboard: submissions array:', submissions);
+  const approvedSubmissions = submissions.filter(
+    submission => submission.review_status === 'approved'
+  );
+  
+  const rejectedSubmissions = submissions.filter(
+    submission => submission.review_status === 'rejected'
+  );
+  
+  const reviewedSubmissions = submissions.filter(
+    submission => submission.review_status === 'reviewed'
+  );
+  
+  const totalSubmissions = submissions.length;
 
   const { isOnline } = useOfflineSyncStatus();
 
@@ -87,76 +91,39 @@ export const AdminDashboard: React.FC = () => {
         description: "Fetching latest submission data.",
       });
     } else if (submissionsData && submissions.length > 0) {
-      console.log('🔍 AdminDashboard: Loaded submissions data:', submissionsData);
-      console.log('🔍 AdminDashboard: Submissions array:', submissions);
-      console.log('🔍 AdminDashboard: Submission statuses:', submissions.map(s => ({ 
-        id: s.submission_id, 
-        status: s.review_status,
-        user_id: s.user_id,
-        submitted_at: s.submitted_at
-      })));
       toast.success(`Loaded ${submissions.length} submissions successfully!`, {
         className: "bg-dgrv-green text-white",
       });
     } else {
-      console.log('🔍 AdminDashboard: No submissions data or empty array');
-      console.log('🔍 AdminDashboard: submissionsData:', submissionsData);
-      console.log('🔍 AdminDashboard: submissions array:', submissions);
     }
   }, [error, submissionsLoading, submissionsData, submissions.length]);
 
   const pendingReviews = useMemo(() => {
-    if (orgsLoading || usersLoading || submissionsLoading) return [];
-
-    console.log('🔍 All submissions loaded:', submissions);
-    console.log('🔍 Submission statuses:', submissions.map(s => ({ id: s.submission_id, status: s.review_status })));
-
-    // Include both 'pending_review' and 'under_review' statuses
-    const pendingSubmissions = submissions.filter(
-      (s) =>
-        s.review_status === "pending_review" ||
-        s.review_status === "under_review",
-    );
-
-    console.log('🔍 Pending submissions after filter:', pendingSubmissions);
-
-    const userMap = new Map(
-      users.map((u) => [u.userId, `${u.firstName ?? ""} ${u.lastName ?? ""}`]),
-    );
+    if (submissionsLoading) return [];
 
     return pendingSubmissions.map((submission) => ({
       id: submission.submission_id,
-      organization: "Unknown Organization",
-      user: userMap.get(submission.user_id) || "Unknown User",
+      organization: submission.org_name || "Unknown Organization",
       type: "Sustainability",
       submittedAt: new Date(submission.submitted_at).toLocaleDateString(
         "en-CA",
       ),
       reviewStatus: submission.review_status,
     }));
-  }, [users, submissions, orgsLoading, usersLoading, submissionsLoading]);
+  }, [submissionsLoading, pendingSubmissions]);
 
   // Dynamic pending reviews count (pending_review or under_review)
   const pendingReviewsCount = React.useMemo(
     () =>
-      submissions.filter(
-        (s) =>
-          s.review_status === "pending_review" ||
-          s.review_status === "under_review",
-      ).length,
-    [submissions],
+      pendingSubmissions.length,
+    [pendingSubmissions],
   );
   const completedCount = React.useMemo(
-    () => submissions.filter((s) => 
-      (s.review_status as string) === "reviewed" ||
-      s.review_status === "approved" ||
-      s.review_status === "rejected" ||
-      s.review_status === "revision_requested"
-    ).length,
-    [submissions],
+    () =>
+      approvedSubmissions.length + rejectedSubmissions.length + reviewedSubmissions.length,
+    [approvedSubmissions, rejectedSubmissions, reviewedSubmissions],
   );
 
-  const navigate = useNavigate();
   const keycloakAdminUrl = import.meta.env.VITE_KEYCLOAK_ADMIN_URL;
   const adminActions = [
     {
@@ -332,9 +299,6 @@ export const AdminDashboard: React.FC = () => {
                           </h3>
                           <p className="text-sm text-gray-600">
                             {review.organization}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            by {review.user}
                           </p>
                         </div>
                       </div>

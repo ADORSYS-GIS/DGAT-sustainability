@@ -228,6 +228,7 @@ pub struct AdminSubmissionDetail {
     pub submission_id: Uuid,
     pub assessment_id: Uuid,
     pub org_id: String,
+    pub org_name: String, // Add organization name
     pub content: AdminSubmissionContent,
     pub review_status: String,
     pub submitted_at: String,

@@ -72,41 +72,45 @@ function extractKanbanTasks(reports) {
   return tasks;
 }
 
-// Helper: Extract radar chart data from actual report data
+// Helper: Extract radar chart data (dummy axes for now)
 function extractRadarData(reports) {
-  const categoryStats = {};
-  
-  for (const report of reports) {
-    if (!Array.isArray(report.data)) continue;
-    for (const catObj of report.data) {
-      if (catObj && typeof catObj === "object") {
-        for (const [category, value] of Object.entries(catObj)) {
-          if (!categoryStats[category]) {
-            categoryStats[category] = { total: 0, count: 0 };
-          }
-          
-          if (value && typeof value === "object" && "questions" in value) {
-            const questions = Array.isArray(value.questions) ? value.questions : [];
-            for (const question of questions) {
-              if (question.answer && typeof question.answer.percentage === "number") {
-                categoryStats[category].total += question.answer.percentage;
-                categoryStats[category].count++;
-              }
+  // Example axes
+  const axes = [
+    "Environmental",
+    "Governmental",
+    "Social",
+    "Webank Analytics",
+    "dummy",
+    "security",
+  ];
+  // For each axis, average all 'percentage' values found in that category
+  const values = axes.map((axis) => {
+    let sum = 0,
+      count = 0;
+    for (const report of reports) {
+      if (!Array.isArray(report.data)) continue;
+      for (const catObj of report.data) {
+        if (catObj && typeof catObj === "object" && axis in catObj) {
+          const arrOrObj = catObj[axis];
+          const items = Array.isArray(arrOrObj) ? arrOrObj : [arrOrObj];
+          for (const item of items) {
+            if (
+              item &&
+              typeof item === "object" &&
+              item.answer &&
+              typeof item.answer.percentage === "number"
+            ) {
+              sum += item.answer.percentage;
+              count++;
             }
           }
         }
       }
     }
-  }
-  
-  // Calculate averages and prepare radar data
-  const axes = Object.keys(categoryStats);
-  const values = axes.map(category => {
-    const stats = categoryStats[category];
-    return stats.count > 0 ? Math.round(stats.total / stats.count) : 0;
+    return count > 0 ? Math.round(sum / count) : 0;
   });
+  // For max, just use 100 for all
   const maxValues = axes.map(() => 100);
-  
   return { axes, values, maxValues };
 }
 
@@ -472,303 +476,160 @@ function drawLineChart(doc, x, y, width, height, data, label) {
 
 // Main export function
 export async function exportAllAssessmentsPDF(reports) {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  
-  // Page 1: Cover Page with Sustainability Image
-  drawGradientBackground(doc, 0, 0, pageWidth, pageHeight, [240, 248, 255], [255, 240, 245]);
-  
-  // Add sustainability image
-  try {
-    const img = new Image();
-    img.src = '/sustainability.png';
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
-    });
-    doc.addImage(img, 'PNG', 20, 20, pageWidth - 40, 60);
-  } catch (error) {
-    console.warn('Could not load sustainability image:', error);
-  }
-  
-  // Title
-  doc.setFontSize(32);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("SUSTAINABILITY REPORT 2024", pageWidth/2, 100, { align: "center" });
-  
-  // Subtitle
-  doc.setFontSize(16);
-  doc.setFont(undefined, "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text("DGRV Cooperative Assessment Platform", pageWidth/2, 115, { align: "center" });
-  
-  // Decorative circle
-  doc.setDrawColor(30, 58, 138);
-  doc.setLineWidth(2);
-  doc.circle(pageWidth/2, 160, 40, "S");
-  
-  // Icons in circle (simplified as text)
-  doc.setFontSize(20);
-  doc.setTextColor(30, 58, 138);
-  doc.text("🌱", pageWidth/2 - 15, 155, { align: "center" });
-  doc.text("👥", pageWidth/2 + 15, 155, { align: "center" });
-  doc.text("🏢", pageWidth/2, 170, { align: "center" });
-  
-  // Footer
-  doc.setFontSize(12);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Generated on: " + new Date().toLocaleDateString(), pageWidth/2, pageHeight - 20, { align: "center" });
-  
-  // Page 2: Executive Summary (like the image)
-  doc.addPage();
+  const doc = new jsPDF({ orientation: "landscape" });
   let y = 20;
-  
-  // Header
-  doc.setFontSize(24);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("SUSTAINABILITY REPORT 2024", 20, y);
-  y += 15;
-  
-  // Introduction
-  doc.setFontSize(12);
-  doc.setFont(undefined, "normal");
-  doc.setTextColor(0, 0, 0);
-  const introText = "This report provides an overview of our sustainability initiatives across three pillars: environmental protection, social responsibility, and economic development. We aim for transparency as we track progress and set future goals:";
-  const introLines = doc.splitTextToSize(introText, pageWidth - 40);
-  doc.text(introLines, 20, y);
-  y += introLines.length * 6 + 20;
-  
-  // Calculate overall progress
-  const overallProgress = calculateOverallProgress(reports);
-  const categoryStats = extractCategoryStats(reports);
-  const categories = Object.keys(categoryStats);
-  
-  // Overall Progress Section
+
+  // 1. Submissions, Questions, Responses, Recommendations (Tabular, Grouped)
   doc.setFontSize(18);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("Overall Progress", 20, y);
-  y += 15;
-  
-  // Progress circle
-  drawCircularProgress(doc, 20, y, 25, overallProgress, [30, 58, 138]);
-  y += 60;
-  
-  // Three Pillars Section (like the image)
-  if (categories.length > 0) {
-    // ENVIRONMENT Section
-    const envCategory = categories.find(cat => cat.toLowerCase().includes('environment')) || categories[0];
-    const envStats = categoryStats[envCategory] || { average: 0, yesCount: 0, noCount: 0 };
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(30, 58, 138);
-    doc.text("ENVIRONMENT", 20, y);
-    y += 10;
-    
-    // Environment metrics
-    doc.setFontSize(10);
-    doc.setFont(undefined, "normal");
-    doc.text(`• ${envStats.average}% average sustainability score`, 25, y);
-    y += 6;
-    doc.text(`• ${envStats.yesCount} positive responses`, 25, y);
-    y += 6;
-    doc.text(`• ${envStats.noCount} areas for improvement`, 25, y);
-    y += 15;
-    
-    // Environment progress indicator
-    drawCProgressIndicator(doc, pageWidth - 80, y - 30, 30, envStats.average, [30, 58, 138], "REDUCTION IN WATER USAGE");
-    y += 50;
-    
-    // SOCIAL Section
-    const socialCategory = categories.find(cat => cat.toLowerCase().includes('social')) || categories[1] || categories[0];
-    const socialStats = categoryStats[socialCategory] || { average: 0, yesCount: 0, noCount: 0 };
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(30, 58, 138);
-    doc.text("SOCIAL", 20, y);
-    y += 10;
-    
-    // Social metrics
-    doc.setFontSize(10);
-    doc.setFont(undefined, "normal");
-    doc.text(`• ${socialStats.average}% average sustainability score`, 25, y);
-    y += 6;
-    doc.text(`• ${socialStats.yesCount} positive responses`, 25, y);
-    y += 6;
-    doc.text(`• ${socialStats.noCount} areas for improvement`, 25, y);
-    y += 15;
-    
-    // Social bar chart
-    const socialData = [socialStats.average, 85, 92, 78, 88];
-    drawBarChart(doc, pageWidth - 80, y - 30, 60, 40, socialData, ["Score", "Goal", "Target", "Current", "Future"]);
-    doc.setTextColor(30, 58, 138);
-    doc.setFontSize(10);
-    doc.setFont(undefined, "bold");
-    doc.text("92% EMPLOYEE SATISFACTION", pageWidth - 80, y - 35);
-    y += 50;
-    
-    // ECONOMIC Section
-    const economicCategory = categories.find(cat => cat.toLowerCase().includes('economic')) || categories[2] || categories[0];
-    const economicStats = categoryStats[economicCategory] || { average: 0, yesCount: 0, noCount: 0 };
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(30, 58, 138);
-    doc.text("ECONOMIC", 20, y);
-    y += 10;
-    
-    // Economic metrics
-    doc.setFontSize(10);
-    doc.setFont(undefined, "normal");
-    doc.text(`• ${economicStats.average}% average sustainability score`, 25, y);
-    y += 6;
-    doc.text(`• ${economicStats.yesCount} positive responses`, 25, y);
-    y += 6;
-    doc.text(`• ${economicStats.noCount} areas for improvement`, 25, y);
-    y += 15;
-    
-    // Economic line chart
-    const economicData = [60, 65, 70, 75, 80, 85, 90];
-    drawLineChart(doc, pageWidth - 80, y - 30, 60, 40, economicData, "$120M NET PROFIT");
-    y += 50;
-  }
-  
-  // Goal Progress sidebar
-  doc.setFillColor(50, 50, 50);
-  doc.rect(pageWidth - 20, 20, 20, pageHeight - 40, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.setFont(undefined, "bold");
-  doc.text("GOAL", pageWidth - 15, 40, { angle: 90 });
-  doc.text("PROGRESS", pageWidth - 15, 60, { angle: 90 });
-  doc.setFontSize(16);
-  doc.text(`${overallProgress}%`, pageWidth - 15, pageHeight/2, { angle: 90, align: "center" });
-  
-  // Page 3: Detailed Assessment Results (Structured Table)
-  doc.addPage();
-  y = 20;
-  
-  // Header
-  doc.setFontSize(24);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("Detailed Assessment Results", 20, y);
-  y += 15;
-  
-  // Process each report
+  doc.text("Submissions, Questions, Responses, Recommendations", 10, y);
+  y += 10;
+  doc.setFontSize(12);
   for (const report of reports) {
-    if (y > pageHeight - 40) {
-      doc.addPage();
-      y = 20;
-    }
-    
-    // Report header
-    doc.setFontSize(16);
     doc.setFont(undefined, "bold");
-    doc.setTextColor(30, 58, 138);
-    doc.text(`Report ID: ${report.report_id}`, 20, y);
-    y += 10;
-    
+    doc.text(`Report ID: ${report.report_id}`, 10, y);
+    doc.setFont(undefined, "normal");
+    y += 7;
     const grouped = extractCategoryTables(report);
-    
     for (const [category, rowsUnknown] of Object.entries(grouped)) {
       const rows = Array.isArray(rowsUnknown) ? rowsUnknown : [];
-      
-      if (y > pageHeight - 60) {
+      if (y > 170) {
         doc.addPage();
         y = 20;
       }
-      
-      // Category header with background
-      doc.setFillColor(30, 58, 138);
+      // Category header
+      doc.setFillColor(30, 58, 138); // blue
       doc.setTextColor(255, 255, 255);
       doc.setFont(undefined, "bold");
-      doc.rect(20, y - 5, pageWidth - 40, 10, "F");
-      doc.text(category, 25, y + 2);
+      doc.rect(10, y - 4, 277, 8, "F");
+      doc.text(`${category}`, 12, y + 2);
       doc.setFont(undefined, "normal");
       doc.setTextColor(0, 0, 0);
-      y += 15;
-      
-      // Table header
-      doc.setFillColor(240, 240, 240);
-      doc.rect(20, y - 5, pageWidth - 40, 10, "F");
+      y += 8;
+      // Table header with outer border and vertical lines only
+      doc.setFillColor(226, 232, 240); // light gray
+      const colX = [10, 70, 100, 130, 190, 287];
+      doc.rect(colX[0], y - 4, colX[colX.length - 1] - colX[0], 10, "F"); // header bg
       doc.setFont(undefined, "bold");
-      doc.text("Question", 25, y + 2);
-      doc.text("Yes/No", 80, y + 2);
-      doc.text("%", 110, y + 2);
-      doc.text("Text Response", 130, y + 2);
-      doc.text("Recommendation", 200, y + 2);
+      doc.text("Question", colX[0] + 2, y + 2);
+      doc.text("Yes/No", colX[1] + 2, y + 2);
+      doc.text("%", colX[2] + 2, y + 2);
+      doc.text("Text Response", colX[3] + 2, y + 2);
+      doc.text("Recommendation", colX[4] + 2, y + 2);
+      // Draw outer border and vertical lines
+      doc.rect(
+        colX[0],
+        y - 4,
+        colX[colX.length - 1] - colX[0],
+        10 + rows.length * 10,
+      ); // outer border
+      for (let i = 1; i < colX.length - 1; i++) {
+        doc.line(colX[i], y - 4, colX[i], y - 4 + 10 + rows.length * 10);
+      }
       doc.setFont(undefined, "normal");
       y += 10;
-      
       // Table rows
       for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
         const row = rows[rowIdx];
-        
-        if (y > pageHeight - 40) {
+        if (y > 180) {
           doc.addPage();
           y = 20;
         }
-        
-        // Question
-        doc.setFontSize(10);
-        const questionText = row.question ? String(row.question).substring(0, 50) + "..." : "Question";
-        doc.text(questionText, 25, y + 2);
-        
-        // Yes/No
-        let yesNo = "-";
-        if (typeof row.response === "object" && row.response !== null && typeof row.response.yesNo === "boolean") {
-          yesNo = row.response.yesNo ? "Yes" : "No";
-        }
-        doc.text(yesNo, 80, y + 2);
-        
-        // Percentage
-        let percentage = "-";
-        if (typeof row.response === "object" && row.response !== null && typeof row.response.percentage === "number") {
-          percentage = `${row.response.percentage}%`;
-        }
-        doc.text(percentage, 110, y + 2);
-        
-        // Text Response
-        let textResponse = "-";
-        if (typeof row.response === "object" && row.response !== null && row.response.text) {
-          textResponse = String(row.response.text).substring(0, 60) + "...";
+        let yesNo = "-",
+          percent = "-",
+          text = "-";
+        if (typeof row.response === "object" && row.response !== null) {
+          yesNo =
+            typeof row.response.yesNo === "boolean"
+              ? row.response.yesNo
+                ? "Yes"
+                : "No"
+              : "-";
+          percent =
+            typeof row.response.percentage === "number"
+              ? String(row.response.percentage)
+              : "-";
+          text = row.response.text ? String(row.response.text) : "-";
         } else if (typeof row.response === "string") {
-          textResponse = row.response.substring(0, 60) + "...";
+          text = row.response;
         }
-        doc.text(textResponse, 130, y + 2);
-        
-        // Recommendation (only for first row)
+        // Wrap text for each cell
+        const qLines = doc.splitTextToSize(
+          row.question ? String(row.question) : "-",
+          colX[1] - colX[0] - 4,
+        );
+        const yesNoLines = doc.splitTextToSize(yesNo, colX[2] - colX[1] - 4);
+        const percentLines = doc.splitTextToSize(
+          percent,
+          colX[3] - colX[2] - 4,
+        );
+        const textLines = doc.splitTextToSize(text, colX[4] - colX[3] - 4);
+        // Only show recommendation for the first row in the category
+        const recLines =
+          rowIdx === 0 && row.recommendation
+            ? doc.splitTextToSize(
+                row.recommendation ? String(row.recommendation) : "-",
+                colX[5] - colX[4] - 4,
+              )
+            : [""];
+        // Find max number of lines for this row
+        const maxLines = Math.max(
+          qLines.length,
+          yesNoLines.length,
+          percentLines.length,
+          textLines.length,
+          recLines.length,
+        );
+        const rowHeight = maxLines * 6 + 2;
+        // Draw row border (rectangle)
+        doc.rect(
+          colX[0],
+          y - 4,
+          colX[colX.length - 1] - colX[0],
+          rowHeight,
+          "S",
+        );
+        // Draw vertical column lines
+        for (let i = 1; i < colX.length - 1; i++) {
+          doc.line(colX[i], y - 4, colX[i], y - 4 + rowHeight);
+        }
+        // Write text in each cell, vertically centered
+        doc.text(qLines, colX[0] + 2, y + 2, {
+          maxWidth: colX[1] - colX[0] - 4,
+        });
+        doc.text(yesNoLines, colX[1] + 2, y + 2, {
+          maxWidth: colX[2] - colX[1] - 4,
+        });
+        doc.text(percentLines, colX[2] + 2, y + 2, {
+          maxWidth: colX[3] - colX[2] - 4,
+        });
+        doc.text(textLines, colX[3] + 2, y + 2, {
+          maxWidth: colX[4] - colX[3] - 4,
+        });
         if (rowIdx === 0 && row.recommendation) {
-          const recText = String(row.recommendation).substring(0, 60) + "...";
-          doc.text(recText, 200, y + 2);
+          doc.text(recLines, colX[4] + 2, y + 2, {
+            maxWidth: colX[5] - colX[4] - 4,
+          });
         }
-        
-        y += 8;
+        y += rowHeight;
       }
-      
-      y += 10;
+      y += 4;
     }
-    
-    y += 10;
+    y += 4;
+    if (y > 180) {
+      doc.addPage();
+      y = 20;
+    }
   }
-  
-  // Page 4: Action Plan (Kanban Board)
-  doc.addPage();
-  y = 20;
-  
-  // Header
-  doc.setFontSize(24);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("Action Plan & Recommendations", 20, y);
-  y += 15;
-  
+
+  // 2. Kanban Board Section (Tabular, Card-like, Colored Columns, one card per category)
+  if (y > 140) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setFontSize(18);
+  doc.text("Kanban Board (Recommendations)", 10, y);
+  y += 10;
+  doc.setFontSize(12);
   const kanbanTasks = extractKanbanTasksOnePerCategory(reports);
   const statuses = ["todo", "in_progress", "done", "approved"];
   const statusLabels = {
@@ -778,91 +639,98 @@ export async function exportAllAssessmentsPDF(reports) {
     approved: "Approved",
   };
   const statusColors = {
-    todo: [59, 130, 246] as [number, number, number],
-    in_progress: [37, 99, 235] as [number, number, number],
-    done: [16, 185, 129] as [number, number, number],
-    approved: [34, 197, 94] as [number, number, number],
+    todo: [59, 130, 246] as [number, number, number], // blue
+    in_progress: [37, 99, 235] as [number, number, number], // darker blue
+    done: [16, 185, 129] as [number, number, number], // green
+    approved: [34, 197, 94] as [number, number, number], // emerald
   };
-  
-  const colWidth = (pageWidth - 40) / statuses.length;
-  const boardX = 20;
-  
-  // Draw Kanban headers
+  const colWidth = 70;
+  const boardX = 10;
+  // Draw Kanban headers with colored bg
   statuses.forEach((status, i) => {
     doc.setFillColor(...(statusColors[status] as [number, number, number]));
     doc.setTextColor(255, 255, 255);
     doc.setFont(undefined, "bold");
-    doc.rect(boardX + i * colWidth, y, colWidth - 2, 12, "F");
-    doc.text(statusLabels[status], boardX + 4 + i * colWidth, y + 8);
+    doc.rect(boardX + i * colWidth, y - 4, colWidth - 2, 12, "F");
+    doc.text(statusLabels[status], boardX + 4 + i * colWidth, y + 4);
     doc.setFont(undefined, "normal");
   });
   doc.setTextColor(0, 0, 0);
-  y += 15;
-  
-  // Group tasks by status
+  // Draw outer border for the board
+  doc.rect(boardX, y - 4, colWidth * statuses.length - 2, 100, "S");
+  // Draw vertical column lines
+  for (let i = 1; i < statuses.length; i++) {
+    doc.line(boardX + i * colWidth, y - 4, boardX + i * colWidth, y - 4 + 100);
+  }
+  y += 12;
+  // Group tasks by status, only one per category
   const groupedTasks = {};
-  statuses.forEach(s => groupedTasks[s] = kanbanTasks.filter(t => t.status === s));
-  const maxRows = Math.max(...statuses.map(s => groupedTasks[s].length));
-  
+  statuses.forEach(
+    (s) => (groupedTasks[s] = kanbanTasks.filter((t) => t.status === s)),
+  );
+  const maxRows = Math.max(...statuses.map((s) => groupedTasks[s].length));
+  const cardHeight = 20;
   for (let row = 0; row < maxRows; row++) {
     statuses.forEach((status, i) => {
       const task = groupedTasks[status][row];
       if (task) {
-        // Draw card
-        doc.setFillColor(245, 245, 245);
+        // Draw card-like cell
+        doc.setFillColor(245, 245, 245); // light card bg
         doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.5);
-        doc.roundedRect(boardX + i * colWidth + 2, y, colWidth - 6, 25, 3, 3, "FD");
-        
-        // Category name
-        doc.setFontSize(10);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(
+          boardX + i * colWidth + 2,
+          y,
+          colWidth - 6,
+          cardHeight - 4,
+          2,
+          2,
+          "FD",
+        );
         doc.setFont(undefined, "bold");
-        doc.setTextColor(30, 58, 138);
-        doc.text(task.category, boardX + i * colWidth + 6, y + 8, { maxWidth: colWidth - 12 });
-        
-        // Recommendation
-        doc.setFontSize(8);
+        doc.text(task.category, boardX + i * colWidth + 6, y + 8, {
+          maxWidth: colWidth - 12,
+        });
         doc.setFont(undefined, "normal");
+        doc.text(task.recommendation, boardX + i * colWidth + 6, y + 15, {
+          maxWidth: colWidth - 12,
+        });
+      } else {
+        // Empty column: show placeholder
+        doc.setTextColor(180, 180, 180);
+        doc.setFontSize(10);
+        doc.text(
+          "No tasks in " + statusLabels[status].toLowerCase(),
+          boardX + i * colWidth + 6,
+          y + 12,
+          { maxWidth: colWidth - 12 },
+        );
+        doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
-        const recLines = doc.splitTextToSize(task.recommendation.substring(0, 80) + "...", colWidth - 12);
-        doc.text(recLines, boardX + i * colWidth + 6, y + 15, { maxWidth: colWidth - 12 });
       }
     });
-    y += 30;
-    
-    if (y > pageHeight - 40) {
+    y += cardHeight;
+    if (y > 180) {
       doc.addPage();
       y = 20;
     }
   }
-  
-  // Page 5: Radar Chart
-  doc.addPage();
-  y = 20;
-  
-  // Header
-  doc.setFontSize(24);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("Sustainability Performance Overview", 20, y);
-  y += 15;
-  
-  // Description
-  doc.setFontSize(12);
-  doc.setFont(undefined, "normal");
-  doc.setTextColor(0, 0, 0);
-  const descText = "The radar chart below shows the sustainability performance across different categories. Each axis represents a different aspect of sustainability, with scores ranging from 0 to 100.";
-  const descLines = doc.splitTextToSize(descText, pageWidth - 40);
-  doc.text(descLines, 20, y);
-  y += descLines.length * 6 + 15;
-  
-  // Radar chart
+  y += 10;
+
+  // 3. Radar Chart Section (unchanged)
+  if (y > 140) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setFontSize(18);
+  doc.text("Radar Chart (Sustainability Scores)", 10, y);
+  y += 10;
   const radarData = extractRadarData(reports);
   const radarImg = await renderRadarChartToImage(radarData);
-  doc.addImage(radarImg, "PNG", 20, y, pageWidth - 40, (pageWidth - 40) * 0.75);
-  
+  doc.addImage(radarImg, "PNG", 10, y, 120, 90);
+
   // Save the PDF
-  doc.save("sustainability-report-2024.pdf");
+  doc.save("assessment-report.pdf");
 }
 
 // NOTE: You must have a <canvas id="radar-canvas" width="500" height="400" style={{display:'none'}} /> in your DOM for this to work!

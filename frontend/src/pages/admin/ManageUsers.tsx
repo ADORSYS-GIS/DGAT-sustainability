@@ -35,6 +35,7 @@ import type {
   RoleAssignment,
 } from "@/openapi-rq/requests/types.gen";
 import { toast } from "sonner";
+import { offlineDB } from "@/services/indexeddb";
 
 // Helper to extract domain names
 function getDomainNames(domains: unknown): string[] {
@@ -61,12 +62,14 @@ export const ManageUsers: React.FC = () => {
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
   );
-  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   // Set the default role to 'org_admin' and make it the only selectable option
   const [formData, setFormData] = useState({
     email: "",
     roles: ["org_admin"],
   });
+  
+  // Add local loading state for offline user creation
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
   
   // Use direct React Query hooks for data fetching
   const { data: organizations, isLoading: orgsLoading } = useOrganizationsServiceGetAdminOrganizations();
@@ -125,19 +128,86 @@ export const ManageUsers: React.FC = () => {
     }
   });
 
-  useEffect(() => {
-    if (!selectedOrgId && organizations && organizations.length > 0) {
-      setSelectedOrgId(organizations[0].id || "");
+  // Offline-first user creation logic
+  const createUserOffline = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
+    try {
+      // Generate a temporary ID for optimistic updates
+      const tempId = `temp_${crypto.randomUUID()}`;
+      const now = new Date().toISOString();
+      
+      // Create a temporary user object for local storage
+      const tempUser = {
+        id: tempId,
+        email: data.requestBody.email,
+        username: data.requestBody.email.split('@')[0], // Use email prefix as username
+        firstName: '',
+        lastName: '',
+        emailVerified: false,
+        roles: data.requestBody.roles,
+        organization_id: data.id,
+        updated_at: now,
+        sync_status: 'pending' as const,
+        local_changes: true,
+        last_synced: undefined
+      };
+      
+      // Save to IndexedDB immediately for optimistic UI updates
+      await offlineDB.saveUser(tempUser);
+      
+      // Try to sync with backend if online
+      try {
+        const result = await createUserMutation.mutateAsync({
+          id: data.id,
+          requestBody: data.requestBody
+        });
+        
+        // If successful, replace the temporary user with the real one
+        if (result && typeof result === 'object' && 'id' in result) {
+          const realUserId = (result as { id: string }).id;
+          // Delete the temporary user
+          await offlineDB.deleteUser(tempId);
+          
+          // Save the real user with proper ID
+          const realUser = {
+            id: realUserId,
+            email: data.requestBody.email,
+            username: data.requestBody.email.split('@')[0],
+            firstName: '', // Default empty since not provided in response
+            lastName: '', // Default empty since not provided in response
+            emailVerified: false, // Default false since not provided in response
+            roles: data.requestBody.roles,
+            organization_id: data.id,
+            updated_at: new Date().toISOString(),
+            sync_status: 'synced' as const,
+            local_changes: false,
+            last_synced: new Date().toISOString()
+          };
+          
+          await offlineDB.saveUser(realUser);
+          toast.success("User created successfully");
+        }
+      } catch (apiError) {
+        console.warn('API call failed, user saved locally for sync:', apiError);
+        toast.success("User created locally (will sync when online)");
+      }
+      
+      return { success: true };
+    } catch (error) {
+      toast.error("Failed to create user");
+      throw error;
     }
-  }, [organizations, selectedOrgId]);
+  };
 
-  // Update handleSubmit to use the mutation hooks
-  const handleSubmit = () => {
+  // Remove the useEffect that auto-selects the first organization
+  // Users should manually select an organization from the grid
+
+  // Update handleSubmit to use the offline user creation
+  const handleSubmit = async () => {
     if (!formData.email.trim()) {
       toast.error(t('manageUsers.emailRequired'));
       return;
     }
-    if (!selectedOrgId) {
+    if (!selectedOrg?.id) {
       toast.error(t('manageUsers.selectOrgRequired'));
       return;
     }
@@ -149,22 +219,32 @@ export const ManageUsers: React.FC = () => {
       };
       
       updateUserMutation.mutate({
-        id: selectedOrgId,
+        id: selectedOrg.id,
         membershipId: editingUser.id,
         requestBody: roleAssignment
       });
     } else {
-      // For creating, use OrgAdminMemberRequest
+      // For creating, use offline-first approach
       const memberReq: OrgAdminMemberRequest = {
         email: formData.email,
         roles: formData.roles,
         categories: [], // Empty categories array for now
       };
       
-      createUserMutation.mutate({
-        id: selectedOrgId,
-        requestBody: memberReq
-      });
+      setIsCreatingUser(true);
+      try {
+        await createUserOffline({
+          id: selectedOrg.id,
+          requestBody: memberReq
+        });
+        refetch();
+        setShowAddDialog(false);
+        resetForm();
+      } catch (error) {
+        // Error already handled in createUserOffline
+      } finally {
+        setIsCreatingUser(false);
+      }
     }
   };
 
@@ -183,10 +263,10 @@ export const ManageUsers: React.FC = () => {
       t('manageUsers.confirmDelete'),
     );
     if (!confirmed) return;
-    if (!selectedOrgId) return;
+    if (!selectedOrg?.id) return;
     
     deleteUserMutation.mutate({
-      id: selectedOrgId,
+      id: selectedOrg.id,
       membershipId: userId
     });
   };
@@ -357,29 +437,23 @@ export const ManageUsers: React.FC = () => {
                 </div>
                 <div>
                   <Label htmlFor="organization">{t('manageUsers.organization')}</Label>
-                  <Select
-                    value={selectedOrgId}
-                    onValueChange={(value) => setSelectedOrgId(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('manageUsers.selectOrganizationPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(organizations || []).map((org) => (
-                        <SelectItem key={org.id} value={org.id || ""}>
-                          {org.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {/* Organization field - read-only since we're already in a specific org context */}
+                  <Input
+                    id="organization"
+                    value={selectedOrg?.name || ''}
+                    readOnly
+                    disabled
+                    className="bg-gray-100 cursor-not-allowed"
+                    placeholder="Current organization"
+                  />
                 </div>
                 <div className="flex space-x-2 pt-4">
                   <Button
                     onClick={handleSubmit}
                     className="bg-dgrv-green hover:bg-green-700"
-                    disabled={createUserMutation.isPending || updateUserMutation.isPending}
+                    disabled={createUserMutation.isPending || updateUserMutation.isPending || isCreatingUser}
                   >
-                    {createUserMutation.isPending || updateUserMutation.isPending 
+                    {createUserMutation.isPending || updateUserMutation.isPending || isCreatingUser
                       ? t('manageUsers.processing', { defaultValue: 'Processing...' })
                       : editingUser ? t('manageUsers.update') : t('manageUsers.create')} {t('manageUsers.user')}
                   </Button>
@@ -414,9 +488,7 @@ export const ManageUsers: React.FC = () => {
                         </p>
                         <p className="text-xs text-gray-500">
                           {t('manageUsers.orgLabel')}{" "}
-                          {(organizations || []).find(
-                            (org) => org.id === selectedOrgId,
-                          )?.name || t('manageUsers.unknown')}
+                          {selectedOrg?.name || t('manageUsers.unknown')}
                         </p>
                       </div>
                     </div>

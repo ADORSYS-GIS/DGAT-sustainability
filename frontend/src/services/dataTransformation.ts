@@ -33,33 +33,22 @@ export class DataTransformationService {
   /**
    * Transform API Question to OfflineQuestion
    */
-  static transformQuestion(question: Question, userOrganizationId?: string): OfflineQuestion {
-    const now = new Date().toISOString();
-    
-    // Debug logging
-    console.log('🔍 Transforming question:', {
+  static transformQuestion(question: Question): OfflineQuestion {
+    return {
       question_id: question.question_id,
       category: question.category,
-      has_latest_revision: !!question.latest_revision,
-      question_type: typeof question,
-      question_keys: Object.keys(question)
-    });
-    
-    // Validate required fields
-    if (!question.category) {
-      console.error('❌ Question missing category:', question);
-      throw new Error(`Question ${question.question_id} is missing category property`);
-    }
-    
-    return {
-      ...question,
-      category_id: question.category,
-      revisions: question.latest_revision ? [question.latest_revision] : [],
-      search_text: this.generateSearchText(question),
-      updated_at: now,
-      sync_status: 'synced' as const,
+      latest_revision: {
+        question_revision_id: question.latest_revision.question_revision_id,
+        question_id: question.question_id,
+        text: question.latest_revision.text,
+        weight: question.latest_revision.weight,
+        created_at: question.latest_revision.created_at,
+      },
+      created_at: question.created_at,
+      updated_at: question.created_at,
+      sync_status: 'synced',
       local_changes: false,
-      last_synced: now
+      last_synced: question.created_at,
     };
   }
 
@@ -121,6 +110,10 @@ export class DataTransformationService {
     const version = 'version' in response ? response.version : 1;
     const updatedAt = 'updated_at' in response ? response.updated_at : now;
     
+    // Determine sync status based on whether this is a new response or from API
+    const isNewResponse = !('response_id' in response) || (typeof responseId === 'string' && responseId.startsWith('temp_'));
+    const syncStatus = isNewResponse ? 'pending' as const : 'synced' as const;
+    
     return {
       response_id: responseId,
       assessment_id: assessmentIdValue || '',
@@ -128,13 +121,13 @@ export class DataTransformationService {
       response: typeof response.response === 'string' ? response.response : '',
       version: version,
       updated_at: updatedAt,
-      question_text: questionText,
-      question_category: questionCategory,
+      question_text: questionText || '',
+      question_category: questionCategory || '',
       files: [],
       is_draft: false,
-      sync_status: 'synced' as const,
-      local_changes: false,
-      last_synced: now
+      sync_status: syncStatus,
+      local_changes: isNewResponse,
+      last_synced: isNewResponse ? undefined : now
     };
   }
 
@@ -185,7 +178,8 @@ export class DataTransformationService {
     
     return {
       ...submission,
-      organization_id: userOrganizationId,
+      organization_id: userOrganizationId || (adminSubmission.org_id || 'unknown'),
+      org_name: (adminSubmission.org_name as string) || 'Unknown Organization', // Store organization name
       reviewer_id: adminSubmission.reviewed_at ? adminSubmission.submission_id : undefined,
       reviewer_email: reviewerEmail,
       review_comments: '',
@@ -228,6 +222,7 @@ export class DataTransformationService {
     
     return {
       ...organization,
+      organization_id: organization.id, // Map API 'id' to IndexedDB 'organization_id'
       member_count: 0, // Will be calculated when members are loaded
       assessment_count: 0, // Will be calculated when assessments are loaded
       submission_count: 0, // Will be calculated when submissions are loaded
@@ -295,7 +290,7 @@ export class DataTransformationService {
     
     return questions.map(question => {
       const category = categoryMap.get(question.category);
-      const transformed = this.transformQuestion(question, userOrganizationId);
+      const transformed = this.transformQuestion(question);
       
       // Add category-specific information if available
       if (category) {
@@ -337,9 +332,9 @@ export class DataTransformationService {
     return responses.map(response => {
       const question = questionRevisionMap.get(response.question_revision_id);
       const questionText = question?.latest_revision?.text?.en || '';
-      const questionCategory = typeof question?.category === 'string' ? question.category : '';
+      const questionCategory = question?.category && typeof question.category === 'string' ? question.category as string : '';
       
-      return this.transformResponse(response, questionText, questionCategory || '');
+      return this.transformResponse(response, questionText, questionCategory);
     });
   }
 

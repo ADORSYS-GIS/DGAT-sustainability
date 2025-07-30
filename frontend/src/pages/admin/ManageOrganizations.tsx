@@ -89,7 +89,7 @@ function useOrganizationMutations() {
         id: tempId,
         name: data.requestBody.name,
         enabled: data.requestBody.enabled === "true",
-        redirectUrl: data.requestBody.redirectUrl,
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
         domains: data.requestBody.domains || [],
         attributes: data.requestBody.attributes || {},
         created_at: now,
@@ -106,22 +106,34 @@ function useOrganizationMutations() {
       try {
         // Import the service dynamically to avoid circular dependencies
         const { OrganizationsService } = await import('@/openapi-rq/requests/services.gen');
-        const result = await OrganizationsService.postAdminOrganizations({ requestBody: data.requestBody });
+        // Use environment variable for redirectUrl in the request
+        const requestBodyWithEnvRedirect = {
+          ...data.requestBody,
+          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173"
+        };
+        const result = await OrganizationsService.postAdminOrganizations({ requestBody: requestBodyWithEnvRedirect });
         
         // If successful, replace the temporary organization with the real one
         if (result && result.id) {
+          // Delete the temporary organization first
+          await offlineDB.deleteOrganization(tempId);
+          
+          // Create the real organization object
           const realOrg = {
-            id: result.id, // result.id is guaranteed to exist here due to the if condition
-            name: result.name || '',
-            description: null, // Not provided in OrganizationResponse
-            country: null, // Not provided in OrganizationResponse
-            attributes: result.attributes || {},
+            id: result.id,
+            name: result.name || data.requestBody.name,
+            enabled: data.requestBody.enabled === "true", // Use the original request data
+            redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173", // Use environment variable
+            domains: result.domains || data.requestBody.domains || [],
+            attributes: result.attributes || data.requestBody.attributes || {},
+            created_at: now,
             updated_at: new Date().toISOString(),
             sync_status: 'synced' as const,
             local_changes: false,
             last_synced: new Date().toISOString()
           };
-          await offlineDB.deleteOrganization(tempId);
+          
+          // Save the real organization
           await offlineDB.saveOrganization(realOrg);
           toast.success("Organization created successfully");
         }
@@ -149,7 +161,7 @@ function useOrganizationMutations() {
           ...existingOrg,
           name: data.requestBody.name,
           enabled: data.requestBody.enabled === "true",
-          redirectUrl: data.requestBody.redirectUrl,
+          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
           domains: data.requestBody.domains || [],
           attributes: data.requestBody.attributes || {},
           updated_at: new Date().toISOString(),
@@ -162,7 +174,12 @@ function useOrganizationMutations() {
       // Try to sync with backend if online
       try {
         const { OrganizationsService } = await import('@/openapi-rq/requests/services.gen');
-        await OrganizationsService.putAdminOrganizationsById({ id: data.id, requestBody: data.requestBody });
+        // Use environment variable for redirectUrl in the request
+        const requestBodyWithEnvRedirect = {
+          ...data.requestBody,
+          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173"
+        };
+        await OrganizationsService.putAdminOrganizationsById({ id: data.id, requestBody: requestBodyWithEnvRedirect });
         
         // Update the local organization to synced status
         if (existingOrg) {
@@ -229,7 +246,7 @@ export const ManageOrganizations: React.FC = () => {
   const [formData, setFormData] = useState<OrganizationCreateRequest>({
     name: "",
     domains: [{ name: "" }],
-    redirectUrl: "",
+    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
     enabled: "true",
     attributes: { categories: [] },
   });
@@ -282,12 +299,18 @@ export const ManageOrganizations: React.FC = () => {
       toast.error("At least one domain is required");
       return;
     }
+    // Check if at least one category is selected
+    const selectedCategories = (formData.attributes?.categories as string[]) || [];
+    if (selectedCategories.length === 0) {
+      toast.error("At least one category is required");
+      return;
+    }
     const requestBody: OrganizationCreateRequest = {
       ...formData,
       domains: cleanDomains,
       enabled: "true",
       attributes: {
-        categories: (formData.attributes?.categories as string[]) || [],
+        categories: selectedCategories,
       },
     };
     
@@ -299,7 +322,7 @@ export const ManageOrganizations: React.FC = () => {
         setFormData({
           name: "",
           domains: [{ name: "" }],
-          redirectUrl: "",
+          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
           enabled: "true",
           attributes: { categories: [] },
         });
@@ -313,7 +336,7 @@ export const ManageOrganizations: React.FC = () => {
         setFormData({
           name: "",
           domains: [{ name: "" }],
-          redirectUrl: "",
+          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
           enabled: "true",
           attributes: { categories: [] },
         });
@@ -328,7 +351,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({
       name: org.name || "",
       domains: (org.domains || []).map((d) => ({ name: d.name })),
-      redirectUrl: org.redirectUrl || "",
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
       enabled: org.enabled ? "true" : "false",
       attributes: {
         categories: (org.attributes?.categories as string[]) || [],
@@ -351,7 +374,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({
       name: "",
       domains: [{ name: "" }],
-      redirectUrl: "",
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
       enabled: "true",
       attributes: { categories: [] },
     });
@@ -522,30 +545,10 @@ export const ManageOrganizations: React.FC = () => {
                     </div>
                     <div>
                       <Label
-                        htmlFor="redirectUrl"
-                        className="font-semibold text-dgrv-blue"
-                      >
-                        Redirect URL
-                      </Label>
-                      <Input
-                        id="redirectUrl"
-                        value={formData.redirectUrl}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            redirectUrl: e.target.value,
-                          }))
-                        }
-                        placeholder="Enter redirect URL (e.g. https://adorsys.com/callback)"
-                        className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label
                         htmlFor="categories"
                         className="font-semibold text-dgrv-blue"
                       >
-                        Categories
+                        Categories <span className="text-red-500">*</span>
                       </Label>
                       <Select
                         id="categories"

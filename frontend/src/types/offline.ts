@@ -57,6 +57,7 @@ export interface OfflineCategory extends Category, OfflineEntity {
 // Enhanced Submission with offline fields
 export interface OfflineSubmission extends Submission, OfflineEntity {
   organization_id?: string;
+  org_name?: string; // Add organization name for offline display
   reviewer_id?: string;
   reviewer_email?: string;
   review_comments?: string;
@@ -73,6 +74,7 @@ export interface OfflineReport extends Report, OfflineEntity {
 
 // Enhanced Organization with offline fields (fixing the created_at conflict)
 export interface OfflineOrganization extends Omit<Organization, 'created_at' | 'updated_at'>, OfflineEntity {
+  organization_id: string; // Map from API 'id' field
   member_count?: number;
   assessment_count?: number;
   submission_count?: number;

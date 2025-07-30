@@ -3,30 +3,27 @@ import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OpenAPI } from "@/openapi-rq/requests";
-import { getOidc, OidcProvider } from "@/services/shared/oidc";
+import { initializeAuth, getAccessToken, setupTokenRefresh } from "@/services/shared/authService";
 import './i18n';
 
 // Register OpenAPI request middleware to add Bearer token
 OpenAPI.interceptors.request.use(async (request) => {
   try {
-    const oidc = await getOidc();
-    if (oidc && oidc.isUserLoggedIn) {
-      const { accessToken } = await oidc.getTokens();
-      if (accessToken) {
-        if (!request.headers) request.headers = {};
-        // If headers is a Headers object, convert to plain object
-        if (
-          typeof Headers !== "undefined" &&
-          request.headers instanceof Headers
-        ) {
-          request.headers.set("Authorization", `Bearer ${accessToken}`);
-        } else {
-          request.headers["Authorization"] = `Bearer ${accessToken}`;
-        }
+    const token = await getAccessToken();
+    if (token) {
+      if (!request.headers) request.headers = {};
+      // If headers is a Headers object, convert to plain object
+      if (
+        typeof Headers !== "undefined" &&
+        request.headers instanceof Headers
+      ) {
+        request.headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        request.headers["Authorization"] = `Bearer ${token}`;
       }
     }
   } catch (error) {
-    console.warn("Failed to get OIDC token for request:", error);
+    console.warn("Failed to get Keycloak token for request:", error);
   }
   return request;
 });
@@ -62,54 +59,63 @@ const queryClient = new QueryClient({
   },
 });
 
-// Initialize offline services
-async function initializeOfflineServices() {
-  try {
-    // Temporarily disable service worker registration to fix React hooks error
-    console.log("Service worker registration temporarily disabled");
-    
-    // TODO: Re-enable when service worker is properly configured
-    /*
-    // Register service worker
-    if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.register("/sw.js", {
-        scope: "/",
-      });
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  // Temporarily disable service worker registration for development
+  // Uncomment the following lines when ready to enable PWA features
+  
+  // window.addEventListener('load', () => {
+  //   navigator.serviceWorker.register('/sw.js')
+  //     .then((registration) => {
+  //       console.log('Service Worker registered successfully:', registration);
+  //     })
+  //     .catch((error) => {
+  //       console.error('Service Worker registration failed:', error);
+  //     });
+  // });
 
-      console.log("Service Worker registered successfully:", registration);
-
-      // Listen for service worker updates
-      registration.addEventListener("updatefound", () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener("statechange", () => {
-            if (
-              newWorker.state === "installed" &&
-              navigator.serviceWorker.controller
-            ) {
-              // New service worker is available
-              console.log("New service worker available");
-              // You could show a notification to the user here
-            }
-          });
-        }
-      });
-    }
-    */
-
-    console.log("Offline services initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize offline services:", error);
-  }
+  // Listen for service worker updates
+  // navigator.serviceWorker.addEventListener('message', (event) => {
+  //   if (event.data && event.data.type === 'SKIP_WAITING') {
+  //     console.log('New service worker available');
+  //     window.location.reload();
+  //   }
+  // });
+} else {
+  // Service worker not supported
 }
 
-// Initialize offline services
-initializeOfflineServices();
+// Initialize authentication and other services
+const initializeApp = async () => {
+  try {
+    // Initialize Keycloak authentication
+    const authenticated = await initializeAuth();
+    console.log("Authentication initialized:", authenticated);
+    
+    // Setup token refresh
+    setupTokenRefresh();
+    
+    // Initialize IndexedDB and other offline services
+    // This ensures the database is ready when the app loads
+    // await offlineDB.initialize();
+    
+    // Initialize sync service
+    // const syncService = new SyncService();
+    // syncService.listenForOnlineStatus();
+    
+    // Initialize API interceptor
+    // apiInterceptor.setupNetworkListeners();
+    // apiInterceptor.setupPeriodicSync();
+  } catch (error) {
+    console.error("Failed to initialize app:", error);
+  }
+};
 
-createRoot(document.getElementById("root")!).render(
-  <OidcProvider>
+// Initialize app and render
+initializeApp().then(() => {
+  createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </OidcProvider>
-);
+  );
+});

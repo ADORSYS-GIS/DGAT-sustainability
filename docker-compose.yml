@@ -13,15 +13,17 @@ services:
     environment:
       RUST_LOG: "debug,hyper=info,sea_orm=info"
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
-      KEYCLOAK_URL: "http://keycloak:8080"
+      KEYCLOAK_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
       SERVER_PORT: "3001"
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}
+
     depends_on:
       db:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "curl http://localhost:3001/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -40,8 +42,6 @@ services:
       POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
       POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
       interval: 10s
@@ -55,31 +55,65 @@ services:
   # ────────────────────────────── KEYCLOAK ──────────────────────────────
   #
   keycloak:
-    image: quay.io/keycloak/keycloak:26.1.0
+    image: quay.io/keycloak/keycloak:26.3.1
     container_name: sustainability-keycloak
     environment:
-      KC_DB:                   "postgres"
-      KC_DB_URL_HOST:          db
-      KC_DB_URL_PORT:          5432
-      KC_DB_URL_DATABASE:      "${POSTGRES_DB:-sustainability}"
-      KC_DB_USERNAME:          "${POSTGRES_USER:-postgres}"
-      KC_DB_PASSWORD:          "${POSTGRES_PASSWORD:-postgres}"
-      KEYCLOAK_ADMIN:          "${KEYCLOAK_ADMIN:-admin}"
+      KC_DB: "postgres"
+      KC_DB_URL_HOST: db
+      KC_DB_URL_PORT: 5432
+      KC_DB_URL_DATABASE: "${POSTGRES_DB:-sustainability}"
+      KC_DB_USERNAME: "${POSTGRES_USER:-postgres}"
+      KC_DB_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
-      KEYCLOAK_REALM:          "sustainability-realm"
-      KC_FEATURES:             "preview,organization"
-    command: ["start-dev", "--import-realm", "--spi-import-ignore-unknown=true"]
+      KEYCLOAK_REALM: "sustainability-realm"
+      KEYCLOAK_FRONTEND_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
+      KC_PROXY_HEADERS: "forwarded"
+      KC_PROXY: "edge"
+      KC_FEATURES: "preview,organization"
+      # Hostname v2 configuration (replaces deprecated v1 options)
+      KC_HOSTNAME: "ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"
+      KC_HOSTNAME_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
+      KC_HOSTNAME_PATH: "/keycloak"
+      KC_HOSTNAME_STRICT: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HTTPS_PORT: 8443
+      # if you also want to allow HTTP, for debugging only
+      # Fernando user password
+      FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
+      KC_URL: "${KC_URL:-ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+      # Use the nginx certificate paths
+      SSL_CERT_PATH: "/etc/x509/https/nginx.crt"
+      SSL_KEY_PATH: "/etc/x509/https/nginx.key"
+      KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
+      KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
+      # email config
+      KC_EMAIL_HOST: "${EMAIL_HOST:-smtp.mailtrap.io}"
+      KC_EMAIL_PORT: 2525
+      KC_EMAIL_FROM: "${EMAIL_FROM:-noreply@dgrv.coop}"
+      KC_EMAIL_USER: "${EMAIL_USER:-d006ed6ea804b3}"
+      KC_EMAIL_PASSWORD: "${EMAIL_PASSWORD:-25553583d3558b}"
+      KC_EMAIL_SSL: "${EMAIL_SSL:-false}"
+      KC_EMAIL_STARTTLS: "${EMAIL_STARTTLS:-true}"
+      KC_EMAIL_AUTH: "${EMAIL_AUTH:-true}"
+      KC_EMAIL_FROM_DISPLAY_NAME: "${DISPLAY_NAME:-DGRV COOPERATION}"
+    #    entrypoint: ["/opt/keycloak/setup-scripts/startup.sh"]
+    command: ["start-dev", "--log-level=debug", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
+      - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
+      # Mount the same SSL certificates used by the frontend container
+      - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
+      - ./ssl/nginx.key:/etc/x509/https/nginx.key:ro
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 0"]
+      test: [ "CMD-SHELL", "exit 0" ]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 90s
+      retries: 1
+      start_period: 240s
     ports:
       - "8080:8080"
     networks: [tool-net]
@@ -92,34 +126,41 @@ services:
       context: .
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
-        # These are the URLs that will be embedded in the built code and used by the browser
-        VITE_KEYCLOAK_ISSUER_URI: "http://localhost:8080/realms/sustainability-realm"
-        VITE_KEYCLOAK_CLIENT_ID: "sustainability-tool"
-        VITE_KEYCLOAK_SCOPES: "openid profile email"
-        VITE_KEYCLOAK_HOME_URL: "http://localhost:5173/"
-        VITE_API_URL: "http://localhost:3001"
+        FE_HOST: "${FE_HOST:-localhost}"
+        API_BASE_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"
+        VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak/realms/sustainability-realm}"
+        VITE_KEYCLOAK_CLIENT_ID: "${VITE_KEYCLOAK_CLIENT_ID:-sustainability-tool}"
+        VITE_KEYCLOAK_SCOPES: "${VITE_KEYCLOAK_SCOPES:-openid profile email}"
+        VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+        VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/callback}"
+
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
-    environment:
-      # Runtime environment variables (note: Vite vars are embedded at build time)
-      # These won't affect the built code but are kept for potential server-side code
-      NODE_ENV: "production"
     depends_on:
       backend:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5173/health || exit 1"]
+      test: ["CMD-SHELL", "sh -c 'curl -k https://$$FE_HOST/health || exit 1'"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 15s
     ports:
-      - "5173:5173"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./infrastructure/frontend-entrypoint.sh:/docker-entrypoint.d/40-check-network.sh:ro
     networks: [tool-net]
+
 
 # ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
   postgres-data:
+  ssl-certs:
+    driver: local
 
 networks:
   tool-net:

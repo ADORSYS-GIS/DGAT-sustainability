@@ -1,10 +1,10 @@
 # Authentication System
 
-This application uses **oidc-spa** for OpenID Connect authentication with Keycloak.
+This application uses **keycloak-js** for OpenID Connect authentication with Keycloak.
 
 ## Overview
 
-The authentication system is built on top of the [oidc-spa](https://docs.oidc-spa.dev/usage) library, which provides a modern, type-safe way to handle OIDC authentication in React applications.
+The authentication system is built on top of the [keycloak-js](https://www.keycloak.org/docs/latest/securing_apps/#_javascript_adapter) library, which provides a modern, type-safe way to handle OIDC authentication in React applications.
 
 ## Key Features
 
@@ -13,31 +13,27 @@ The authentication system is built on top of the [oidc-spa](https://docs.oidc-sp
 - **Automatic token management**: Handles token refresh and storage automatically
 - **Protected routes**: Built-in support for route protection
 - **Role-based access control**: Support for user roles and permissions
+- **Offline support**: Tokens stored in IndexedDB for offline access
 
 ## Configuration
 
-The authentication is configured in `src/services/shared/oidc.ts`:
+The authentication is configured in `src/services/shared/keycloakConfig.ts`:
 
 ```typescript
-export const { OidcProvider, useOidc, getOidc, withLoginEnforced, enforceLogin } =
-  createReactOidc(async () => ({
-    issuerUri: import.meta.env.VITE_KEYCLOAK_ISSUER_URI,
-    clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
-    homeUrl: import.meta.env.VITE_KEYCLOAK_HOME_URL,
-    extraQueryParams: () => ({
-      ui_locales: "en"
-    }),
-    decodedIdTokenSchema
-  }));
+export const keycloakConfig = {
+  url: import.meta.env.VITE_KEYCLOAK_URL || "http://localhost:8080",
+  realm: import.meta.env.VITE_KEYCLOAK_REALM || "sustainability-realm",
+  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || "sustainability-tool",
+};
 ```
 
 ### Environment Variables
 
 Required environment variables (defined in `docker-compose.yml`):
 
-- `VITE_KEYCLOAK_ISSUER_URI`: Keycloak realm URL (e.g., `http://localhost:8080/realms/sustainability-realm`)
+- `VITE_KEYCLOAK_URL`: Keycloak server URL (e.g., `http://localhost:8080`)
+- `VITE_KEYCLOAK_REALM`: Keycloak realm name (e.g., `sustainability-realm`)
 - `VITE_KEYCLOAK_CLIENT_ID`: Keycloak client ID (e.g., `sustainability-tool`)
-- `VITE_KEYCLOAK_HOME_URL`: Application home URL (e.g., `http://localhost:5173/`)
 
 ## Usage
 
@@ -67,33 +63,50 @@ function MyComponent() {
 
 ### 2. Protected Components
 
-Use `withLoginEnforced` to create components that require authentication:
+Use `ProtectedRoute` to create components that require authentication:
 
 ```typescript
-import { withLoginEnforced } from "@/services/shared/oidc";
+import { ProtectedRoute } from "@/router/ProtectedRoute";
 
-const ProtectedComponent = withLoginEnforced(() => {
+const ProtectedComponent = () => {
   const { user } = useAuth();
   
   return <div>Hello, {user?.name}!</div>;
-});
+};
+
+// In your routes
+<Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute roles={["drgv_admin", "org_admin"]}>
+      <ProtectedComponent />
+    </ProtectedRoute>
+  } 
+/>
 ```
 
-### 3. Direct OIDC Access
+### 3. Direct Keycloak Access
 
-For advanced use cases, use the `useOidc` hook directly:
+For advanced use cases, use the auth service directly:
 
 ```typescript
-import { useOidc } from "@/services/shared/oidc";
+import { getAccessToken, login, logout } from "@/services/shared/authService";
 
 function AdvancedComponent() {
-  const oidc = useOidc({ assert: "user logged in" });
-  
-  const handleLogout = () => {
-    oidc.logout({ redirectTo: "home" });
+  const handleLogin = async () => {
+    await login();
   };
   
-  return <button onClick={handleLogout}>Logout</button>;
+  const handleLogout = async () => {
+    await logout();
+  };
+  
+  return (
+    <div>
+      <button onClick={handleLogin}>Login</button>
+      <button onClick={handleLogout}>Logout</button>
+    </div>
+  );
 }
 ```
 
@@ -102,7 +115,7 @@ function AdvancedComponent() {
 Use the `fetchWithAuth` helper for API calls that require authentication:
 
 ```typescript
-import { fetchWithAuth } from "@/services/shared/oidc";
+import { fetchWithAuth } from "@/services/shared/authService";
 
 async function fetchUserData() {
   const response = await fetchWithAuth("/api/user/profile");
@@ -137,75 +150,35 @@ The system supports the following roles:
 The user object contains:
 
 ```typescript
-interface User {
+interface UserProfile {
   sub: string;                    // User ID
-  preferred_username?: string;    // Username
+  preferred_username?: string;     // Username
   name?: string;                  // Full name
   email?: string;                 // Email address
   roles?: string[];               // User roles
-  realm_access?: {                // Keycloak realm roles
-    roles: string[]
-  };
-  organisations?: Record<string, any>; // Organization data
-  organisation_name?: string;     // Organization name
-  organisation?: string;          // Organization identifier
+  realm_access?: { roles: string[] }; // Realm roles
+  organizations?: Record<string, {  // Organization data
+    id: string;
+    categories: string[];
+  }>;
+  categories?: string[];          // Personal categories
 }
 ```
 
-## Error Handling
+## Token Management
 
-The authentication system handles various error scenarios:
+The system automatically handles:
 
-- **Network errors**: Automatic retry with exponential backoff
-- **Token expiration**: Automatic token refresh
-- **Invalid tokens**: Redirect to login
-- **Access denied**: Redirect to unauthorized page
+- **Token Storage**: Tokens are stored securely in IndexedDB
+- **Token Refresh**: Automatic refresh 30 seconds before expiry
+- **Offline Access**: Tokens persist across browser sessions
+- **Security**: Tokens are cleared on logout
 
-## Security Features
+## Migration from oidc-spa
 
-- **Token storage**: Tokens are stored securely in memory
-- **Automatic logout**: Logout on token expiration
-- **CSRF protection**: Built-in CSRF protection
-- **Secure redirects**: Validated redirect URLs
+This application was migrated from `oidc-spa` to `keycloak-js` for better:
 
-## Troubleshooting
-
-### Common Issues
-
-1. **"Missing <canvas id='radar-canvas'> in DOM"**
-   - This is related to the PDF export functionality, not authentication
-   - Ensure the canvas element exists in your component
-
-2. **Authentication not working**
-   - Check environment variables are correctly set
-   - Verify Keycloak is running and accessible
-   - Check browser console for errors
-
-3. **Role-based access not working**
-   - Verify user has correct roles assigned in Keycloak
-   - Check role names match exactly (case-sensitive)
-
-### Debug Mode
-
-Enable debug logging by setting the environment variable:
-
-```bash
-VITE_DEBUG=true
-```
-
-## Migration from Previous Auth System
-
-If migrating from a previous authentication system:
-
-1. Replace `useAuth()` calls with the new implementation
-2. Update protected routes to use `ProtectedRoute`
-3. Replace direct API calls with `fetchWithAuth`
-4. Update user object access patterns
-
-## Examples
-
-See `src/components/shared/AuthDemo.tsx` for complete examples of:
-- Basic authentication usage
-- Protected components
-- Role-based rendering
-- Login/logout functionality 
+- **Compatibility**: Native Keycloak integration
+- **Performance**: Optimized token handling
+- **Features**: Better SSO and silent refresh support
+- **Maintenance**: Official Keycloak library 

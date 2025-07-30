@@ -22,13 +22,25 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 // Skip waiting and claim clients immediately
 self.addEventListener('install', (event) => {
-  console.log('🔄 Service Worker installing...');
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(urlsToCache);
+    })
+  );
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('✅ Service Worker activating...');
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
 });
 
 // Navigation fallback for SPA
@@ -234,6 +246,4 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: '1.0.0' });
   }
-});
-
-console.log('🚀 Service Worker loaded successfully'); 
+}); 

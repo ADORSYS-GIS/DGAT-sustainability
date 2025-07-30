@@ -20,17 +20,11 @@ export const Welcome: React.FC = () => {
     const isOrgAdmin = roles.includes("org_admin");
     const isOrgUser = roles.includes("Org_User");
     if (isDrgvAdmin && window.location.pathname !== "/admin/") {
-      console.log(
-        "[Welcome] drgv_admin detected, redirecting to /admin/dashboard",
-      );
       navigate("/admin/dashboard", { replace: true });
     } else if (
       (isOrgAdmin || isOrgUser) &&
       window.location.pathname !== "/dashboard"
     ) {
-      console.log(
-        "[Welcome] Org user/admin detected, redirecting to /dashboard",
-      );
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, loading, user, navigate]);
@@ -69,13 +63,23 @@ export const Welcome: React.FC = () => {
   ];
 
   const handleStartAssessment = () => {
-    if (!user?.organizations || Object.keys(user.organizations).length === 0) {
+    if (user?.organizations && Object.keys(user.organizations).length > 0) {
+      navigate("/assessment/sustainability");
+    } else {
       toast.error(
         "You need to be part of an organisation to start an assessment.",
       );
-      return;
     }
-    navigate("/dashboard");
+  };
+
+  const handleViewAssessments = () => {
+    if (user?.organizations && Object.keys(user.organizations).length > 0) {
+      navigate("/assessments");
+    } else {
+      toast.error(
+        "You need to be part of an organisation to view assessments.",
+      );
+    }
   };
 
   return (

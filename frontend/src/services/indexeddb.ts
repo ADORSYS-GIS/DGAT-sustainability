@@ -32,51 +32,60 @@ class OfflineDB {
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
       upgrade: (db, oldVersion, newVersion) => {
-        console.log(`Upgrading database from version ${oldVersion} to ${newVersion}...`);
         
         try {
           // Create all object stores with proper indexing
           this.createObjectStores(db);
-          console.log('✅ Database upgrade completed successfully');
         } catch (error) {
-          console.error('❌ Database upgrade failed:', error);
           throw error;
         }
       },
       blocked: () => {
-        console.warn("Database upgrade was blocked");
       },
       blocking: () => {
-        console.warn("Database is blocking another connection");
       },
       terminated: () => {
-        console.error("Database connection was terminated");
       }
     });
+  }
+
+  private async upgradeDatabase(db: IDBPDatabase<OfflineDatabaseSchema>, oldVersion: number, newVersion: number) {
+    try {
+      // Handle database upgrades here
+      // For now, we'll just log the upgrade
+    } catch (error) {
+      throw new Error(`Database upgrade failed: ${error}`);
+    }
   }
 
   private createObjectStores(db: IDBPDatabase<OfflineDatabaseSchema>) {
     // Check if object stores already exist before creating them
     const existingStores = Array.from(db.objectStoreNames);
-    console.log('Existing object stores:', existingStores);
 
     // Questions store with indexes
     if (!existingStores.includes("questions")) {
       const questionsStore = db.createObjectStore("questions", { keyPath: "question_id" });
-      questionsStore.createIndex("category_id", "category_id", { unique: false });
-      questionsStore.createIndex("search_text", "search_text", { unique: false });
+      questionsStore.createIndex("category", "category", { unique: false });
       questionsStore.createIndex("sync_status", "sync_status", { unique: false });
       questionsStore.createIndex("updated_at", "updated_at", { unique: false });
+    }
+
+    // Categories store with indexes
+    if (!existingStores.includes("categories")) {
+      const categoriesStore = db.createObjectStore("categories", { keyPath: "category_id" });
+      categoriesStore.createIndex("template_id", "template_id", { unique: false });
+      categoriesStore.createIndex("sync_status", "sync_status", { unique: false });
+      categoriesStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
     // Assessments store with indexes
     if (!existingStores.includes("assessments")) {
       const assessmentsStore = db.createObjectStore("assessments", { keyPath: "assessment_id" });
-      assessmentsStore.createIndex("user_id", "user_id", { unique: false });
       assessmentsStore.createIndex("organization_id", "organization_id", { unique: false });
+      assessmentsStore.createIndex("user_id", "user_id", { unique: false });
       assessmentsStore.createIndex("status", "status", { unique: false });
       assessmentsStore.createIndex("sync_status", "sync_status", { unique: false });
-      assessmentsStore.createIndex("created_at", "created_at", { unique: false });
+      assessmentsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
     // Responses store with indexes
@@ -84,18 +93,8 @@ class OfflineDB {
       const responsesStore = db.createObjectStore("responses", { keyPath: "response_id" });
       responsesStore.createIndex("assessment_id", "assessment_id", { unique: false });
       responsesStore.createIndex("question_revision_id", "question_revision_id", { unique: false });
-      responsesStore.createIndex("question_category", "question_category", { unique: false });
       responsesStore.createIndex("sync_status", "sync_status", { unique: false });
       responsesStore.createIndex("updated_at", "updated_at", { unique: false });
-    }
-
-    // Categories store with indexes
-    if (!existingStores.includes("categories")) {
-      const categoriesStore = db.createObjectStore("categories", { keyPath: "category_id" });
-      categoriesStore.createIndex("template_id", "template_id", { unique: false });
-      categoriesStore.createIndex("is_active", "is_active", { unique: false });
-      categoriesStore.createIndex("sync_status", "sync_status", { unique: false });
-      categoriesStore.createIndex("order", "order", { unique: false });
     }
 
     // Submissions store with indexes
@@ -106,34 +105,30 @@ class OfflineDB {
       submissionsStore.createIndex("organization_id", "organization_id", { unique: false });
       submissionsStore.createIndex("review_status", "review_status", { unique: false });
       submissionsStore.createIndex("sync_status", "sync_status", { unique: false });
-      submissionsStore.createIndex("submitted_at", "submitted_at", { unique: false });
-    }
-
-    // Reports store with indexes
-    if (!existingStores.includes("reports")) {
-      const reportsStore = db.createObjectStore("reports", { keyPath: "report_id" });
-      reportsStore.createIndex("submission_id", "submission_id", { unique: false });
-      reportsStore.createIndex("report_type", "report_type", { unique: false });
-      reportsStore.createIndex("status", "status", { unique: false });
-      reportsStore.createIndex("organization_id", "organization_id", { unique: false });
-      reportsStore.createIndex("sync_status", "sync_status", { unique: false });
+      submissionsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
     // Organizations store with indexes
     if (!existingStores.includes("organizations")) {
-      const organizationsStore = db.createObjectStore("organizations", { keyPath: "id" });
-      organizationsStore.createIndex("name", "name", { unique: false });
-      organizationsStore.createIndex("is_active", "is_active", { unique: false });
+      const organizationsStore = db.createObjectStore("organizations", { keyPath: "organization_id" });
       organizationsStore.createIndex("sync_status", "sync_status", { unique: false });
+      organizationsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
     // Users store with indexes
     if (!existingStores.includes("users")) {
       const usersStore = db.createObjectStore("users", { keyPath: "id" });
-      usersStore.createIndex("email", "email", { unique: false });
       usersStore.createIndex("organization_id", "organization_id", { unique: false });
-      usersStore.createIndex("roles", "roles", { unique: false });
       usersStore.createIndex("sync_status", "sync_status", { unique: false });
+      usersStore.createIndex("updated_at", "updated_at", { unique: false });
+    }
+
+    // Reports store with indexes
+    if (!existingStores.includes("reports")) {
+      const reportsStore = db.createObjectStore("reports", { keyPath: "report_id" });
+      reportsStore.createIndex("assessment_id", "assessment_id", { unique: false });
+      reportsStore.createIndex("sync_status", "sync_status", { unique: false });
+      reportsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
     // Invitations store with indexes
@@ -141,19 +136,17 @@ class OfflineDB {
       const invitationsStore = db.createObjectStore("invitations", { keyPath: "invitation_id" });
       invitationsStore.createIndex("organization_id", "organization_id", { unique: false });
       invitationsStore.createIndex("email", "email", { unique: false });
-      invitationsStore.createIndex("status", "status", { unique: false });
       invitationsStore.createIndex("sync_status", "sync_status", { unique: false });
+      invitationsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
-    // Pending review submissions store with indexes (NEW in version 3)
+    // Pending review submissions store with indexes
     if (!existingStores.includes("pending_review_submissions")) {
-      console.log('Creating pending_review_submissions object store...');
       const pendingReviewsStore = db.createObjectStore("pending_review_submissions", { keyPath: "id" });
       pendingReviewsStore.createIndex("submission_id", "submission_id", { unique: false });
       pendingReviewsStore.createIndex("reviewer", "reviewer", { unique: false });
       pendingReviewsStore.createIndex("sync_status", "sync_status", { unique: false });
       pendingReviewsStore.createIndex("timestamp", "timestamp", { unique: false });
-      console.log('✅ pending_review_submissions object store created');
     }
 
     // Sync Queue store with indexes
@@ -181,10 +174,10 @@ class OfflineDB {
 
     // Conflicts store with indexes
     if (!existingStores.includes("conflicts")) {
-      const conflictsStore = db.createObjectStore("conflicts", { keyPath: "id", autoIncrement: true });
+      const conflictsStore = db.createObjectStore("conflicts", { keyPath: "id" });
       conflictsStore.createIndex("entity_type", "entity_type", { unique: false });
       conflictsStore.createIndex("entity_id", "entity_id", { unique: false });
-      conflictsStore.createIndex("resolved", "resolved", { unique: false });
+      conflictsStore.createIndex("created_at", "created_at", { unique: false });
     }
   }
 
@@ -357,9 +350,14 @@ class OfflineDB {
 
   // ===== SUBMISSIONS =====
   async saveSubmission(submission: OfflineSubmission): Promise<string> {
-    const db = await this.dbPromise;
-    const result = await db.put("submissions", submission);
-    return result as string;
+    try {
+      const db = await this.dbPromise;
+      
+      const result = await db.put("submissions", submission);
+      return result as string;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async saveSubmissions(submissions: OfflineSubmission[]): Promise<void> {
@@ -707,14 +705,29 @@ class OfflineDB {
 
   // ===== UTILITY METHODS =====
   async clearAllData(): Promise<void> {
-    const db = await this.dbPromise;
-    const stores = [
-      "questions", "assessments", "responses", "categories", 
-      "submissions", "reports", "organizations", "users", 
-      "invitations", "sync_queue", "conflicts", "pending_review_submissions"
-    ];
-    
-    await Promise.all(stores.map(store => db.clear(store)));
+    try {
+      const db = await this.dbPromise;
+      
+      // Delete all object stores
+      const objectStoreNames = Array.from(db.objectStoreNames);
+      for (const storeName of objectStoreNames) {
+        const tx = db.transaction(storeName, "readwrite");
+        const store = tx.objectStore(storeName);
+        await store.clear();
+        await tx.done;
+      }
+      
+      // Close the database connection
+      db.close();
+      
+      // Delete the database completely
+      await deleteDB(this.DB_NAME);
+      
+      // Recreate the database
+      await this.initialize();
+    } catch (error) {
+      throw new Error(`Failed to clear all data: ${error}`);
+    }
   }
 
   async deleteDatabase(): Promise<void> {
@@ -723,12 +736,10 @@ class OfflineDB {
     
     // Delete the database completely
     await deleteDB(this.DB_NAME);
-    console.log('🗑️ Database deleted completely');
     
     // Recreate the database
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
       upgrade: (db, oldVersion, newVersion) => {
-        console.log(`Creating new database version ${newVersion}...`);
         this.createObjectStores(db);
       }
     });
@@ -892,7 +903,6 @@ class OfflineDB {
     await store.put(pendingReview);
     await tx.done;
     
-    console.log('✅ Pending review submission saved:', pendingReview.id);
     return pendingReview.id;
   }
 

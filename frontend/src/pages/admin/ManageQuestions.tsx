@@ -40,6 +40,7 @@ import type {
   UpdateQuestionRequest,
 } from "../../openapi-rq/requests/types.gen";
 import { useState as useLocalState } from "react";
+import { offlineDB } from "../../services/indexeddb";
 
 // Extended types to match actual API response
 interface QuestionRevision {
@@ -243,6 +244,34 @@ export const ManageQuestions = () => {
     categoryName: "",
     order: 1,
   });
+
+  // Clean up temporary items on component mount
+  useEffect(() => {
+    const cleanupTemporaryItems = async () => {
+      try {
+        // Clean up temporary questions
+        const allQuestions = await offlineDB.getAllQuestions();
+        const tempQuestions = allQuestions.filter(q => q.question_id.startsWith('temp_'));
+        
+        for (const tempQuestion of tempQuestions) {
+          await offlineDB.deleteQuestion(tempQuestion.question_id);
+        }
+        
+        // Clean up temporary categories
+        const allCategories = await offlineDB.getAllCategories();
+        const tempCategories = allCategories.filter(c => c.category_id.startsWith('temp_'));
+        
+        for (const tempCategory of tempCategories) {
+          await offlineDB.deleteCategory(tempCategory.category_id);
+        }
+        
+      } catch (error) {
+        // Silently handle cleanup errors
+      }
+    };
+
+    cleanupTemporaryItems();
+  }, []);
 
   // Use offline hooks for all data fetching
   const { 

@@ -91,9 +91,6 @@ export class InitialDataLoader {
     await offlineDB.saveLoadingProgress(this.progress);
 
     try {
-      console.log('🚀 Starting role-based data loading for user:', userContext.userId);
-      console.log('📋 Loading config:', config);
-
       // Load data in dependency order
       await this.loadQuestionsAndCategories();
       
@@ -135,8 +132,6 @@ export class InitialDataLoader {
 
       await offlineDB.saveLoadingProgress(this.progress);
       
-      console.log('✅ Initial data loading completed successfully');
-      
     } catch (error) {
       console.error('❌ Initial data loading failed:', error);
       
@@ -168,7 +163,6 @@ export class InitialDataLoader {
         
         if (DataTransformationService.validateTransformedData(transformedCategories, 'categories')) {
           await offlineDB.saveCategories(transformedCategories);
-          console.log(`✅ Loaded ${transformedCategories.length} categories`);
         }
       }
 
@@ -177,7 +171,6 @@ export class InitialDataLoader {
       // Load questions
       const questionsData = await QuestionsService.getQuestions();
       if (questionsData?.questions) {
-        console.log('📋 Raw questions data:', questionsData.questions);
         
         // The API actually returns Question objects directly, not QuestionWithRevisionsResponse
         // This is a mismatch between the OpenAPI spec and actual implementation
@@ -202,7 +195,6 @@ export class InitialDataLoader {
         
         if (DataTransformationService.validateTransformedData(transformedQuestions, 'questions')) {
           await offlineDB.saveQuestions(transformedQuestions);
-          console.log(`✅ Loaded ${transformedQuestions.length} questions`);
         }
       } else {
         console.warn('⚠️ No questions data received from API');
@@ -229,7 +221,6 @@ export class InitialDataLoader {
         
         if (DataTransformationService.validateTransformedData(transformedOrganizations, 'organizations')) {
           await offlineDB.saveOrganizations(transformedOrganizations);
-          console.log(`✅ Loaded ${transformedOrganizations.length} organizations`);
         }
       }
 
@@ -261,7 +252,6 @@ export class InitialDataLoader {
               
               if (DataTransformationService.validateTransformedData(transformedUsers, 'users')) {
                 await offlineDB.saveUsers(transformedUsers);
-                console.log(`✅ Loaded ${transformedUsers.length} users for organization ${org.name}`);
               }
             }
           } catch (error) {
@@ -282,7 +272,6 @@ export class InitialDataLoader {
           
           if (DataTransformationService.validateTransformedData(transformedUsers, 'users')) {
             await offlineDB.saveUsers(transformedUsers);
-            console.log(`✅ Loaded ${transformedUsers.length} users for organization`);
           }
         }
       }
@@ -300,55 +289,19 @@ export class InitialDataLoader {
     try {
       this.updateProgress('Loading assessments...', 1);
       
-      console.log('🔍 InitialDataLoader: Loading assessments for user context:', userContext);
-      console.log('🔍 InitialDataLoader: User organization ID:', userContext.organizationId);
-      
       const assessmentsData = await AssessmentsService.getAssessments();
-      console.log('🔍 InitialDataLoader: API response for assessments:', assessmentsData);
       
       if (assessmentsData?.assessments) {
-        console.log('🔍 InitialDataLoader: Found assessments in API response:', assessmentsData.assessments.length);
-        
-        // Log the raw assessments to see their structure
-        assessmentsData.assessments.forEach((assessment, index) => {
-          console.log(`🔍 InitialDataLoader: Assessment ${index}:`, {
-            assessment_id: assessment.assessment_id,
-            user_id: assessment.user_id,
-            org_id: (assessment as Record<string, unknown>).org_id,
-            organization_id: (assessment as Record<string, unknown>).organization_id,
-            status: (assessment as Record<string, unknown>).status
-          });
-        });
-        
         const transformedAssessments = DataTransformationService.transformAssessmentsWithContext(
           assessmentsData.assessments,
           userContext.organizationId,
           userContext.userEmail
         );
         
-        console.log('🔍 InitialDataLoader: Transformed assessments:', transformedAssessments);
-        console.log('🔍 InitialDataLoader: Organization ID used for transformation:', userContext.organizationId);
-        
-        // Log the transformed assessments to verify organization assignment
-        transformedAssessments.forEach((assessment, index) => {
-          console.log(`🔍 InitialDataLoader: Transformed Assessment ${index}:`, {
-            assessment_id: assessment.assessment_id,
-            user_id: assessment.user_id,
-            organization_id: assessment.organization_id,
-            status: assessment.status
-          });
-        });
-        
         if (DataTransformationService.validateTransformedData(transformedAssessments, 'assessments')) {
           await offlineDB.saveAssessments(transformedAssessments);
-          console.log(`✅ Loaded ${transformedAssessments.length} assessments for organization ${userContext.organizationId}`);
-        } else {
-          console.error('❌ InitialDataLoader: Failed to validate transformed assessments');
         }
-      } else {
-        console.log('🔍 InitialDataLoader: No assessments found in API response');
       }
-
     } catch (error) {
       console.error('Failed to load assessments:', error);
       throw error;
@@ -380,7 +333,6 @@ export class InitialDataLoader {
             
             if (DataTransformationService.validateTransformedData(transformedResponses, 'responses')) {
               await offlineDB.saveResponses(transformedResponses);
-              console.log(`✅ Loaded ${transformedResponses.length} responses for assessment ${assessment.assessment_id}`);
             }
           }
         } catch (error) {
@@ -401,43 +353,31 @@ export class InitialDataLoader {
     try {
       this.updateProgress('Loading submissions...', 1);
       
-      console.log('🔍 InitialDataLoader: Loading submissions for user context:', userContext);
-      console.log('🔍 InitialDataLoader: User roles:', userContext.roles);
-      
       if (userContext.roles.includes('drgv_admin')) {
-        console.log('🔍 InitialDataLoader: Loading admin submissions...');
         // DGRV Admin: Load all submissions using admin endpoint
-        const submissionsData = await AdminService.getAdminSubmissions();
-        console.log('🔍 InitialDataLoader: Admin submissions API response:', submissionsData);
+        const submissionsData = await AdminService.getAdminSubmissions({});
         
         if (submissionsData?.submissions) {
-          console.log('🔍 InitialDataLoader: Found submissions in API response:', submissionsData.submissions.length);
           const transformedSubmissions = DataTransformationService.transformAdminSubmissionsWithContext(
             submissionsData.submissions,
             userContext.organizationId,
             userContext.userEmail
           );
           
-          console.log('🔍 InitialDataLoader: Transformed submissions:', transformedSubmissions);
-          
           if (DataTransformationService.validateTransformedData(transformedSubmissions, 'submissions')) {
             await offlineDB.saveSubmissions(transformedSubmissions);
-            console.log(`✅ Loaded ${transformedSubmissions.length} submissions (admin view)`);
           } else {
             console.error('❌ InitialDataLoader: Failed to validate transformed submissions');
           }
         } else {
-          console.log('🔍 InitialDataLoader: No submissions found in API response');
+          // No submissions found in API response
         }
       } else {
-        console.log('🔍 InitialDataLoader: Loading organization submissions...');
         
         // SubmissionsService.getSubmissions() returns submissions for the organization
         const submissionsData = await SubmissionsService.getSubmissions();
-        console.log('🔍 InitialDataLoader: Submissions API response:', submissionsData);
         
         if (submissionsData?.submissions) {
-          console.log('🔍 InitialDataLoader: Found submissions in API response:', submissionsData.submissions.length);
           const transformedSubmissions = DataTransformationService.transformSubmissionsWithContext(
             submissionsData.submissions,
             userContext.organizationId,
@@ -446,12 +386,11 @@ export class InitialDataLoader {
           
           if (DataTransformationService.validateTransformedData(transformedSubmissions, 'submissions')) {
             await offlineDB.saveSubmissions(transformedSubmissions);
-            console.log(`✅ Loaded ${transformedSubmissions.length} organization submissions`);
           } else {
             console.error('❌ InitialDataLoader: Failed to validate transformed submissions');
           }
         } else {
-          console.log('🔍 InitialDataLoader: No submissions found in API response');
+          // No submissions found in API response
         }
       }
 
@@ -485,7 +424,6 @@ export class InitialDataLoader {
         
         if (DataTransformationService.validateTransformedData(transformedReports, 'reports')) {
           await offlineDB.saveReports(transformedReports);
-          console.log(`✅ Loaded ${transformedReports.length} reports`);
         }
       }
 
@@ -541,8 +479,6 @@ export class InitialDataLoader {
         );
         await offlineDB.saveCategory(updatedCategory);
       }
-
-      console.log('✅ Derived statistics calculated');
 
     } catch (error) {
       console.error('Failed to calculate derived statistics:', error);
@@ -607,30 +543,30 @@ export class InitialDataLoader {
    * Check if data loading is required
    */
   async isDataLoadingRequired(userContext?: UserContext): Promise<boolean> {
+    // Always load for DGRV admin to ensure /api/admin/submissions is called and stored
+    if (userContext?.roles?.includes('drgv_admin')) {
+      return true;
+    }
     const stats = await offlineDB.getDatabaseStats();
     
     // Always load if no stats exist
     if (!stats) {
-      console.log('🔍 No database stats found, data loading required');
       return true;
     }
     
     // Check if questions exist (basic requirement)
     if (stats.questions_count === 0) {
-      console.log('🔍 No questions found, data loading required');
       return true;
     }
     
     // If we have user context, check organization-specific data
     if (userContext?.organizationId) {
-      console.log('🔍 Checking organization-specific data for:', userContext.organizationId);
       
       // Check if assessments exist for this organization
       const assessments = await offlineDB.getAllAssessments();
       const orgAssessments = assessments.filter(a => a.organization_id === userContext.organizationId);
       
       if (orgAssessments.length === 0) {
-        console.log('🔍 No assessments found for organization, data loading required');
         return true;
       }
       
@@ -639,11 +575,9 @@ export class InitialDataLoader {
       const orgSubmissions = submissions.filter(s => s.organization_id === userContext.organizationId);
       
       if (orgSubmissions.length === 0) {
-        console.log('🔍 No submissions found for organization, data loading required');
         return true;
       }
       
-      console.log('🔍 Organization-specific data exists, no loading required');
       return false;
     }
     
@@ -652,11 +586,9 @@ export class InitialDataLoader {
     const submissions = await offlineDB.getAllSubmissions();
     
     if (assessments.length === 0 || submissions.length === 0) {
-      console.log('🔍 Missing global data, data loading required');
       return true;
     }
     
-    console.log('🔍 All required data exists, no loading required');
     return false;
   }
 
@@ -664,8 +596,10 @@ export class InitialDataLoader {
    * Clear all offline data (for testing or reset)
    */
   async clearAllData(): Promise<void> {
-    await offlineDB.clearAllData();
-    await this.clearProgress();
-    console.log('🗑️ All offline data cleared');
+    try {
+      await offlineDB.clearAllData();
+    } catch (error) {
+      console.error('Failed to clear all data:', error);
+    }
   }
 } 

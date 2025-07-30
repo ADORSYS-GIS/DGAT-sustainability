@@ -16,7 +16,7 @@ import {
   useOfflineSyncStatus
 } from "../../hooks/useOfflineApi";
 import { toast } from "sonner";
-import { Info, Paperclip, ChevronLeft, ChevronRight, Save, Send } from "lucide-react";
+import { Info, Paperclip, ChevronLeft, ChevronRight, Save, Send, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import type { Question, QuestionRevision, Assessment as AssessmentType, Response as ResponseType, AssessmentDetailResponse } from "@/openapi-rq/requests/types.gen";
 import { offlineDB } from "../../services/indexeddb";
@@ -38,8 +38,6 @@ export const Assessment: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  console.log('🔍 Assessment component loaded with assessmentId:', assessmentId);
-
   // Network status from hook
   const { isOnline } = useOfflineSyncStatus();
 
@@ -50,9 +48,17 @@ export const Assessment: React.FC = () => {
         const submissions = await offlineDB.getAllSubmissions();
         const pending = submissions.filter(sub => sub.sync_status === 'pending');
         setPendingSubmissions(pending);
-        console.log('🔍 Pending submissions:', pending);
+        
+        // Debug: Check sync queue
+        const syncQueue = await offlineDB.getSyncQueue();
+        
+        // Debug: Check all submissions
+        
+        // Debug: Check all responses
+        const allResponses = await offlineDB.getResponsesWithFilters({});
+        const pendingResponses = allResponses.filter(r => r.sync_status === 'pending');
       } catch (error) {
-        console.error('Failed to check pending submissions:', error);
+        // Silently handle debug data loading errors
       }
     };
 
@@ -75,14 +81,6 @@ export const Assessment: React.FC = () => {
     // Get user's personal categories from ID token (not organization categories)
     // For Org_User, this comes from the root level 'categories' field in the ID token
     const userCategories = user.categories || [];
-    
-    // Debug logging
-    console.log('🔍 Assessment - Full user object:', user);
-    console.log('🔍 Assessment - User organizations:', user.organizations);
-    console.log('🔍 Assessment - User personal categories:', userCategories);
-    console.log('🔍 Assessment - Organization ID:', orgId);
-    console.log('🔍 Assessment - User roles:', user.roles);
-    console.log('🔍 Assessment - User realm_access roles:', user.realm_access?.roles);
     
     return {
       orgId: orgId,
@@ -137,14 +135,10 @@ export const Assessment: React.FC = () => {
       try {
         createAssessment(newAssessment, {
           onSuccess: (result) => {
-            console.log('🔍 Assessment creation success result:', result);
-            // The result should contain the API response with the real assessment ID
             if (result && typeof result === 'object' && 'assessment' in result) {
               const apiResponse = result as { assessment: AssessmentType };
-              console.log('🔍 API response assessment:', apiResponse.assessment);
               if (apiResponse.assessment && apiResponse.assessment.assessment_id) {
                 const realAssessmentId = apiResponse.assessment.assessment_id;
-                console.log('🔍 Assessment created with ID:', realAssessmentId);
                 
                 // Only navigate if we have a real assessment ID (not a temp one)
                 if (!realAssessmentId.startsWith('temp_')) {
@@ -158,40 +152,33 @@ export const Assessment: React.FC = () => {
                     while (attempts < maxAttempts) {
                       const savedAssessment = await offlineDB.getAssessment(realAssessmentId);
                       if (savedAssessment) {
-                        console.log('🔍 Assessment found in IndexedDB, navigating...');
                         navigate(`/user/assessment/${realAssessmentId}`);
                         return;
                       }
                       
-                      console.log(`🔍 Assessment not found in IndexedDB yet, waiting... (attempt ${attempts + 1}/${maxAttempts})`);
                       await new Promise(resolve => setTimeout(resolve, 500));
                       attempts++;
                     }
                     
-                    console.warn('🔍 Assessment not found in IndexedDB after maximum attempts, navigating anyway...');
                     navigate(`/user/assessment/${realAssessmentId}`);
                   };
                   
                   waitForAssessment();
                 } else {
-                  console.warn('Received temporary assessment ID, waiting for real ID');
                   // Don't navigate yet, wait for the real assessment ID
                   // The mutation will retry and eventually provide the real ID
                   setHasCreatedAssessment(false); // Allow retry
                 }
               } else {
-                console.error('API response missing assessment ID:', result);
                 toast.error(t('assessment.failedToCreate'));
                 setHasCreatedAssessment(false);
               }
             } else {
-              console.error('Unexpected API response format:', result);
               toast.error(t('assessment.failedToCreate'));
               setHasCreatedAssessment(false);
             }
           },
           onError: (err) => {
-            console.error('❌ Assessment creation error:', err);
             toast.error(t('assessment.failedToCreate'));
             setHasCreatedAssessment(false);
           },
@@ -212,7 +199,6 @@ export const Assessment: React.FC = () => {
   useEffect(() => {
     if (hasCreatedAssessment && !assessmentId) {
       const timeout = setTimeout(() => {
-        console.warn('Assessment creation timeout - redirecting to dashboard');
         toast.error(t('assessment.creationTimeout', { defaultValue: 'Assessment creation timed out. Please try again.' }));
         setHasCreatedAssessment(false);
         navigate("/dashboard");
@@ -224,13 +210,7 @@ export const Assessment: React.FC = () => {
   
     // --- Final submit: send all answers for current category, then submit assessment ---
   const submitAssessment = async () => {
-    console.log('🔍 submitAssessment called');
-    console.log('🔍 assessmentId from params:', assessmentId);
-    console.log('🔍 assessmentDetail:', assessmentDetail);
-    console.log('🔍 assessmentLoading:', assessmentLoading);
-    
     if (!assessmentDetail) {
-      console.error('❌ assessmentDetail is null or undefined');
       toast.error(t('assessment.failedToSubmit', { defaultValue: 'Assessment details not loaded. Please try again.' }));
       return;
     }
@@ -244,145 +224,139 @@ export const Assessment: React.FC = () => {
       // Properly cast to AssessmentType with type assertion
       actualAssessment = assessmentDetail as unknown as AssessmentType;
     } else {
-      console.error('❌ Invalid assessment detail format:', assessmentDetail);
       toast.error(t('assessment.failedToSubmit', { defaultValue: 'Invalid assessment format. Please try again.' }));
       return;
     }
     
     if (!actualAssessment.assessment_id) {
-      console.error('❌ assessment.assessment_id is missing:', actualAssessment);
       toast.error(t('assessment.failedToSubmit', { defaultValue: 'Assessment ID is missing. Please try again.' }));
       return;
     }
     
     try {
-      // First save all current responses
-      const currentCategoryQuestions = getCurrentCategoryQuestions();
-      const responsesToSave: CreateResponseRequest[] = [];
+      // Save ALL responses from ALL categories, not just the current one
+      const allResponsesToSave: CreateResponseRequest[] = [];
       
-      for (const { revision } of currentCategoryQuestions) {
-        const key = getRevisionKey(revision);
-        const answer = answers[key];
-        if (answer && isAnswerComplete(answer)) {
-          responsesToSave.push(createResponseToSave(key, answer));
+      // Iterate through all categories and their questions
+      for (const categoryName of categories) {
+        const categoryQuestions = groupedQuestions[categoryName] || [];
+        
+        for (const { revision } of categoryQuestions) {
+          const key = getRevisionKey(revision);
+          
+          // Validate that we have a valid question_revision_id
+          if (!key || key.trim() === '') {
+            continue; // Skip this question
+          }
+          
+          const answer = answers[key];
+          if (answer && isAnswerComplete(answer)) {
+            const responseToSave = createResponseToSave(key, answer);
+            allResponsesToSave.push(responseToSave);
+          }
         }
       }
       
-      if (responsesToSave.length > 0) {
-        await createResponses(actualAssessment.assessment_id, responsesToSave);
-      }
-      
-      // Then submit the assessment
-      console.log('🔍 Submitting assessment with ID:', actualAssessment.assessment_id);
-      
-      // Check if we're online
-      const isOnline = navigator.onLine;
-      console.log('🔍 Network status:', isOnline ? 'Online' : 'Offline');
-      
-      if (!isOnline) {
-        toast.info(t('assessment.offlineSubmission', { defaultValue: 'You are offline. Assessment will be submitted when you come back online.' }));
-      }
-      
-      await submitAssessmentHook(actualAssessment.assessment_id, {
-        onSuccess: (result) => {
-          console.log('🔍 Submission success result:', result);
-          if (isOnline) {
-            toast.success(t('assessment.submittedSuccessfully', { defaultValue: 'Assessment submitted successfully!' }));
-          } else {
-            toast.success(t('assessment.queuedForSync', { defaultValue: 'Assessment saved offline and will be submitted when online.' }));
+      if (allResponsesToSave.length > 0) {
+        await createResponses(actualAssessment.assessment_id, allResponsesToSave, {
+          onSuccess: async () => {
+            // Verify all responses were saved
+            const savedResponses = await offlineDB.getResponsesByAssessment(actualAssessment.assessment_id);
+          },
+          onError: (error) => {
+            toast.error(t('assessment.failedToSaveResponses', { defaultValue: 'Failed to save responses. Please try again.' }));
           }
-          console.log('🔍 Redirecting to dashboard after submission');
-          navigate("/dashboard");
-        },
-        onError: (err) => {
-          console.log('🔍 Submission error:', err);
-          if (!isOnline) {
-            toast.success(t('assessment.offlineSaved', { defaultValue: 'Assessment saved offline. Will sync when you come back online.' }));
-            console.log('🔍 Redirecting to dashboard after offline error');
+        });
+        
+        // Then submit the assessment
+        if (!isOnline) {
+          toast.info(t('assessment.offlineSubmission', { defaultValue: 'You are offline. Assessment will be submitted when you come back online.' }));
+        }
+        
+        await submitAssessmentHook(actualAssessment.assessment_id, {
+          onSuccess: (result) => {
+            if (isOnline) {
+              toast.success(t('assessment.submittedSuccessfully', { defaultValue: 'Assessment submitted successfully!' }));
+            } else {
+              toast.success(t('assessment.queuedForSync', { defaultValue: 'Assessment saved offline and will be submitted when online.' }));
+            }
             navigate("/dashboard");
-          } else {
-            toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
-            console.error(err);
+          },
+          onError: (err) => {
+            if (!isOnline) {
+              toast.success(t('assessment.offlineSaved', { defaultValue: 'Assessment saved offline. Will sync when you come back online.' }));
+              navigate("/dashboard");
+            } else {
+              toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
+            }
           }
-        }
-      });
+        });
+      } else {
+        toast.error(t('assessment.noResponsesToSubmit', { defaultValue: 'No responses to submit for the current category.' }));
+      }
     } catch (error) {
       if (!navigator.onLine) {
         toast.success(t('assessment.offlineSaved', { defaultValue: 'Assessment saved offline. Will sync when you come back online.' }));
         navigate("/dashboard");
       } else {
         toast.error(t('assessment.failedToSubmit', { defaultValue: 'Failed to submit assessment.' }));
-        console.error('Submit assessment error:', error);
       }
     }
   };
 
   // Group questions by category (support both old and new formats)
   const groupedQuestions = React.useMemo(() => {
-    console.log('🔍 Assessment - Questions data:', questionsData);
-    console.log('🔍 Assessment - Org info categories:', orgInfo.categories);
-    console.log('🔍 Assessment - User categories for filtering:', orgInfo.categories);
-    
     if (!questionsData?.questions) return {};
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
-    (questionsData.questions as unknown[]).forEach((q) => {
-      let category: string | undefined;
-      let question: Question | undefined;
-      let revision: QuestionRevision | undefined;
-      if (typeof q === 'object' && q !== null && 'latest_revision' in q && 'category' in q) {
-        // New format
-        category = (q as { category: string }).category;
-        question = q as unknown as Question;
-        revision = (q as { latest_revision: unknown }).latest_revision as unknown as QuestionRevision;
-      } else if (typeof q === 'object' && q !== null && 'question' in q && 'revisions' in q) {
-        // Old format
-        category = (q as { question: { category: string } }).question.category;
-        question = (q as { question: unknown }).question as unknown as Question;
-        const revisions = (q as { revisions: unknown[] }).revisions as unknown as QuestionRevision[];
-        revision = revisions[revisions.length - 1];
-      }
-      if (category && question && revision) {
-        if (!groups[category]) groups[category] = [];
-        groups[category].push({ question, revision });
-      }
-    });
     
-    console.log('🔍 Assessment - All available categories in questions:', Object.keys(groups));
-    console.log('🔍 Assessment - All grouped questions:', groups);
+    questionsData.questions.forEach((question) => {
+      const category = question.category;
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push({ question, revision: question.latest_revision });
+    });
     
     // Filter to only categories assigned to the user (Org_User)
     const filtered: typeof groups = {};
-    console.log('🔍 Assessment - Starting filtering process...');
-    console.log('🔍 Assessment - User categories to filter by:', orgInfo.categories);
-    
-    // Create a case-insensitive map of available categories
-    const availableCategoriesMap = new Map<string, string>();
-    Object.keys(groups).forEach(cat => {
-      availableCategoriesMap.set(cat.toLowerCase(), cat);
-    });
     
     for (const userCat of orgInfo.categories) {
-      console.log(`🔍 Assessment - Checking if category "${userCat}" exists in questions...`);
       const normalizedUserCat = userCat.toLowerCase();
-      const matchingCategory = availableCategoriesMap.get(normalizedUserCat);
+      const matchingCategory = Object.keys(groups).find(cat => cat.toLowerCase() === normalizedUserCat);
       
       if (matchingCategory && groups[matchingCategory]) {
-        console.log(`🔍 Assessment - Category "${userCat}" found as "${matchingCategory}", adding to filtered questions`);
         filtered[matchingCategory] = groups[matchingCategory];
-      } else {
-        console.log(`🔍 Assessment - Category "${userCat}" NOT found in questions`);
-        console.log(`🔍 Assessment - Available categories:`, Object.keys(groups));
-        console.log(`🔍 Assessment - Normalized user category: "${normalizedUserCat}"`);
       }
     }
     
-    console.log('🔍 Assessment - Filtered questions for user categories:', filtered);
-    console.log('🔍 Assessment - Available categories after filtering:', Object.keys(filtered));
-    
     return filtered;
-  }, [questionsData, orgInfo.categories]);
+  }, [questionsData?.questions, orgInfo.categories]);
 
+  // Get categories from filtered questions
   const categories = Object.keys(groupedQuestions);
+
+  // Check if we have any categories
+  if (categories.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            {t('assessment.noCategoriesTitle', { defaultValue: 'No Categories Available' })}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {t('assessment.noCategoriesDescription', { 
+              defaultValue: 'No assessment categories have been assigned to your account. Please contact your organization administrator.' 
+            })}
+          </p>
+          <Button onClick={() => navigate("/dashboard")}>
+            {t('assessment.backToDashboard', { defaultValue: 'Back to Dashboard' })}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const getCurrentCategoryQuestions = () =>
     groupedQuestions[categories[currentCategoryIndex]] || [];
 
@@ -408,15 +382,19 @@ export const Assessment: React.FC = () => {
 
   // Helper to get the question revision id key
   const getRevisionKey = (revision: QuestionRevision): string => {
+    
     if (hasQuestionRevisionId(revision)) {
-      return revision.question_revision_id;
+      const key = revision.question_revision_id;
+      return key;
     } else if (
       "latest_revision" in revision &&
       typeof (revision as { latest_revision?: unknown }).latest_revision ===
         "string"
     ) {
-      return (revision as { latest_revision: string }).latest_revision;
+      const key = (revision as { latest_revision: string }).latest_revision;
+      return key;
     }
+    
     return "";
   };
 
@@ -498,8 +476,16 @@ export const Assessment: React.FC = () => {
     const responsesToSend = currentQuestions
       .map((question) => {
         const key = getRevisionKey(question.revision);
+        
+        // Validate that we have a valid question_revision_id
+        if (!key || key.trim() === '') {
+          return null;
+        }
+        
         const answer = answers[key];
-        if (!answer) return null;
+        if (!answer) {
+          return null;
+        }
 
         return {
           question_revision_id: key,
@@ -509,16 +495,37 @@ export const Assessment: React.FC = () => {
       })
       .filter((r): r is CreateResponseRequest => r !== null);
 
-    // Save all responses as a batch
+    // Save responses for current category only
     if (assessmentId && responsesToSend.length > 0) {
-      await createResponses(assessmentId, responsesToSend, {
-        onSuccess: () => {
-          console.log('Responses saved successfully');
-        },
-        onError: (error) => {
-          console.error('Failed to save responses:', error);
-        }
-      });
+      
+      try {
+        await createResponses(assessmentId, responsesToSend, {
+          onSuccess: () => {
+            toast.success(t('assessment.responsesSaved', { defaultValue: 'Responses saved successfully!' }));
+            
+            // Check if we're offline and show appropriate message
+            if (!navigator.onLine) {
+              toast.info(t('assessment.responsesQueuedForSync', { defaultValue: 'Responses saved offline. Will sync when you come back online.' }));
+            }
+          },
+          onError: (error) => {
+            toast.error(t('assessment.failedToSaveResponses', { defaultValue: 'Failed to save responses. Please try again.' }));
+          }
+        });
+        
+        // Verify responses were saved by checking IndexedDB
+        const savedResponses = await offlineDB.getResponsesByAssessment(assessmentId);
+        
+        // Check for pending responses
+        const pendingResponses = savedResponses.filter(r => r.sync_status === 'pending');
+        
+      } catch (error) {
+        toast.error(t('assessment.failedToSaveResponses', { defaultValue: 'Failed to save responses. Please try again.' }));
+      }
+    } else {
+      if (responsesToSend.length === 0) {
+        console.warn('⚠️ No valid responses to send - this might indicate data issues');
+      }
     }
 
     if (currentCategoryIndex < categories.length - 1) {
@@ -733,88 +740,6 @@ export const Assessment: React.FC = () => {
     );
   }
 
-  if (categories.length === 0) {
-    console.log('🔍 Assessment - NO CATEGORIES FOUND!');
-    console.log('🔍 Assessment - Questions data available:', !!questionsData);
-    console.log('🔍 Assessment - Questions count:', questionsData?.questions?.length || 0);
-    console.log('🔍 Assessment - User categories from ID token:', user?.categories);
-    console.log('🔍 Assessment - Org info categories:', orgInfo.categories);
-    
-    // Let's see what categories are actually available in the questions
-    if (questionsData?.questions) {
-      const availableCategories = new Set<string>();
-      const allQuestions = [];
-      (questionsData.questions as unknown[]).forEach((q, index) => {
-        let category: string | undefined;
-        let questionText = '';
-        
-        if (typeof q === 'object' && q !== null && 'category' in q) {
-          category = (q as { category: string }).category;
-          questionText = (q as { latest_revision?: { text?: { en?: string } } }).latest_revision?.text?.en || 'No text';
-        } else if (typeof q === 'object' && q !== null && 'question' in q) {
-          category = (q as { question: { category: string } }).question.category;
-          questionText = (q as { question?: { latest_revision?: { text?: { en?: string } } } }).question?.latest_revision?.text?.en || 'No text';
-        }
-        
-        if (category) {
-          availableCategories.add(category);
-          allQuestions.push({ index, category, questionText: questionText.substring(0, 50) + '...' });
-        }
-      });
-      console.log('🔍 Assessment - Available categories in questions:', Array.from(availableCategories));
-      console.log('🔍 Assessment - All questions with categories:', allQuestions);
-    }
-    
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="pt-20 pb-8">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Card>
-              <CardContent className="p-8 text-center">
-                <h2 className="text-2xl font-bold text-dgrv-blue mb-4">
-                  {t("assessment")} {t("notAvailable", { defaultValue: "Not Available" })}
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  {toolName.toLowerCase()} {t("notConfigured", { defaultValue: "is not yet configured. Please contact your administrator." })}
-                </p>
-                <div className="text-sm text-gray-500 mb-4 text-left">
-                  <p><strong>Debug Info:</strong></p>
-                  <p>User Categories: {user?.categories?.join(', ') || 'None'}</p>
-                  <p>Questions Available: {questionsData?.questions?.length || 0}</p>
-                  <p>User Roles: {user?.roles?.join(', ') || 'None'}</p>
-                  <p>Is Org User: {user?.roles?.includes('Org_User') ? 'Yes' : 'No'}</p>
-                  {questionsData?.questions && (
-                    <div className="mt-4">
-                      <p><strong>Available Categories in Questions:</strong></p>
-                      <ul className="list-disc pl-4">
-                        {Array.from(new Set((questionsData.questions as unknown[]).map((q: unknown) => {
-                          if (typeof q === 'object' && q !== null && 'category' in q) {
-                            return (q as { category: string }).category;
-                          } else if (typeof q === 'object' && q !== null && 'question' in q) {
-                            return (q as { question: { category: string } }).question.category;
-                          }
-                          return null;
-                        }).filter(Boolean))).map((cat, i) => (
-                          <li key={i}>{cat}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-                <Button
-                  onClick={() => navigate("/dashboard")}
-                  className="bg-dgrv-blue hover:bg-blue-700"
-                >
-                  {t("home")}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const currentCategory = categories[currentCategoryIndex];
   const currentQuestions = getCurrentCategoryQuestions();
   const progress = ((currentCategoryIndex + 1) / categories.length) * 100;
@@ -838,17 +763,56 @@ export const Assessment: React.FC = () => {
           {!isOnline && (
             <Card className="mb-6 border-orange-200 bg-orange-50">
               <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-orange-800">
-                    {t('assessment.offlineMode', { defaultValue: 'You are offline. Your responses will be saved locally and synced when you come back online.' })}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-orange-800">
+                      {t('assessment.offlineMode', { defaultValue: 'You are offline. Your responses will be saved locally and synced when you come back online.' })}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const syncQueue = await offlineDB.getSyncQueue();
+                        // Trigger sync
+                        window.dispatchEvent(new Event('online'));
+                        toast.success(t('assessment.syncTriggered', { defaultValue: 'Sync triggered. Please wait...' }));
+                      } catch (error) {
+                        console.error('Manual sync failed:', error);
+                        toast.error(t('assessment.syncFailed', { defaultValue: 'Sync failed. Please try again.' }));
+                      }
+                    }}
+                    className="text-xs"
+                  >
+                    Sync Now
+                  </Button>
                 </div>
                 {pendingSubmissions.length > 0 && (
                   <div className="mt-2 text-xs text-orange-700">
                     {t('assessment.pendingSubmissions', { defaultValue: 'Pending submissions:' })} {pendingSubmissions.length}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Online Status with Pending Items */}
+          {isOnline && pendingSubmissions.length > 0 && (
+            <Card className="mb-6 border-green-200 bg-green-50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-green-800">
+                      {t('assessment.onlineWithPending', { defaultValue: 'You are online. Syncing pending submissions...' })}
+                    </span>
+                  </div>
+                  <div className="text-xs text-green-700">
+                    {t('assessment.pendingSubmissions', { defaultValue: 'Pending submissions:' })} {pendingSubmissions.length}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

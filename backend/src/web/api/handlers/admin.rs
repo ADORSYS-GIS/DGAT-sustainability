@@ -4,8 +4,10 @@ use crate::web::api::models::{
     AdminAssessmentInfo, AdminResponseDetail, AdminSubmissionContent, AdminSubmissionDetail,
     AdminSubmissionListResponse,
 };
+use crate::common::models::claims::Claims;
+use crate::common::models::keycloak::KeycloakOrganization;
 use axum::{
-    extract::{Query, State},
+    extract::{Query, State, Extension},
     Json,
 };
 use serde::Deserialize;
@@ -18,6 +20,8 @@ pub struct ListSubmissionsQuery {
 
 pub async fn list_all_submissions(
     State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
     Query(params): Query<ListSubmissionsQuery>,
 ) -> Result<Json<AdminSubmissionListResponse>, ApiError> {
     // Fetch all submissions from the database
@@ -27,6 +31,22 @@ pub async fn list_all_submissions(
         .get_all_submissions()
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions: {e}")))?;
+
+    // Get all organizations from Keycloak to map org_id to org_name
+    let organizations = match app_state.keycloak_service.get_organizations(&token).await {
+        Ok(orgs) => orgs,
+        Err(e) => {
+            tracing::error!("Failed to fetch organizations: {}", e);
+            // Continue without organization names if Keycloak is unavailable
+            Vec::new()
+        }
+    };
+
+    // Create a map of org_id to org_name for quick lookup
+    let org_map: std::collections::HashMap<String, String> = organizations
+        .into_iter()
+        .map(|org| (org.id, org.name))
+        .collect();
 
     // Convert database models to API models
     let mut submissions = Vec::new();
@@ -170,10 +190,16 @@ pub async fn list_all_submissions(
             }
         }
 
+        // Get organization name from the map, fallback to org_id if not found
+        let org_name = org_map.get(&model.org_id)
+            .cloned()
+            .unwrap_or_else(|| format!("Unknown Organization ({})", model.org_id));
+
         let submission = AdminSubmissionDetail {
             submission_id: model.submission_id,
             assessment_id: model.submission_id,
             org_id: model.org_id,
+            org_name, // Include organization name
             content: AdminSubmissionContent {
                 assessment: assessment_info,
                 responses,
