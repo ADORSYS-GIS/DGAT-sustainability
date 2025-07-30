@@ -6,7 +6,6 @@ use serde_json::json;
 use std::sync::Arc;
 use tracing::{debug, error, info};
 use serde::Deserialize;
-use tracing::log::warn;
 
 #[derive(Debug, Clone)]
 pub struct KeycloakService {
@@ -16,9 +15,7 @@ pub struct KeycloakService {
 
 impl KeycloakService {
     pub fn new(config: KeycloakConfigs) -> Self {
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .build().expect("failed to build keycloak client");
+        let client = Client::new();
         Self { client, config }
     }
 
@@ -44,14 +41,14 @@ impl KeycloakService {
     }
 
     /// Create a new organization
-    pub async fn create_organization(&self, 
-                                    admin_token: &str, 
-                                    name: &str, 
-                                    domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
-                                    redirect_url: String,
-                                    enabled: String,
-                                    attributes: Option<std::collections::HashMap<String, Vec<String>>>
-                                    ) -> Result<KeycloakOrganization> {
+    pub async fn create_organization(&self,
+                                     admin_token: &str,
+                                     name: &str,
+                                     domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
+                                     redirect_url: String,
+                                     enabled: String,
+                                     attributes: Option<std::collections::HashMap<String, Vec<String>>>
+    ) -> Result<KeycloakOrganization> {
         let url = format!("{}/admin/realms/{}/organizations", self.config.url, self.config.realm);
 
         let mut payload = json!({
@@ -101,7 +98,7 @@ impl KeycloakService {
     /// Get all organizations
     pub async fn get_organizations(&self, token: &str) -> Result<Vec<KeycloakOrganization>> {
         let url = format!("{}/admin/realms/{}/organizations", self.config.url, self.config.realm);
-        warn!("GET ORG: {}", token);
+
         let response = self.client.get(&url)
             .bearer_auth(token)
             .send()
@@ -127,13 +124,13 @@ impl KeycloakService {
     }
 
     /// Update an organization
-    pub async fn update_organization(&self, 
-                                    token: &str, 
-                                    org_id: &str, 
-                                    name: &str,
-                                    domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
-                                    attributes: Option<std::collections::HashMap<String, Vec<String>>>
-                                    ) -> Result<()> {
+    pub async fn update_organization(&self,
+                                     token: &str,
+                                     org_id: &str,
+                                     name: &str,
+                                     domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
+                                     attributes: Option<std::collections::HashMap<String, Vec<String>>>
+    ) -> Result<()> {
         let url = format!("{}/admin/realms/{}/organizations/{}", self.config.url, self.config.realm, org_id);
 
         let mut payload = json!({
@@ -237,6 +234,35 @@ impl KeycloakService {
         }
     }
 
+    /// Assign a client role to a user by role name
+    pub async fn assign_client_role_to_user(&self, token: &str, user_id: &str, client_id: &str, role_name: &str) -> Result<()> {
+        // Get the client role object by name
+        let url = format!("{}/admin/realms/{}/clients/{}/roles/{}", self.config.url, self.config.realm, client_id, role_name);
+        let role: serde_json::Value = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        // Assign the client role to the user
+        let assign_url = format!("{}/admin/realms/{}/users/{}/role-mappings/clients/{}", self.config.url, self.config.realm, user_id, client_id);
+        let roles_payload = serde_json::json!([role]);
+        let response = self.client.post(&assign_url)
+            .bearer_auth(token)
+            .json(&roles_payload)
+            .send()
+            .await?;
+        match response.status() {
+            StatusCode::NO_CONTENT | StatusCode::OK | StatusCode::CREATED => Ok(()),
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to assign client role to user: {}", error_text);
+                Err(anyhow!("Failed to assign client role to user: {}", error_text))
+            }
+        }
+    }
+
     /// Add user to organization
     pub async fn add_user_to_organization(&self, token: &str, org_id: &str, email: &str, roles: Vec<String>) -> Result<()> {
         // Always look up the user by email
@@ -248,6 +274,29 @@ impl KeycloakService {
         // Assign the first role in the roles array (default: org_admin)
         if let Some(role_name) = roles.get(0) {
             self.assign_realm_role_to_user(token, &user_uuid, role_name).await?;
+            // If the user is an org_admin, automatically assign client roles for realm-management
+            if role_name == "org_admin" {
+                // Define the client roles that org_admin users should have
+                let client_roles = vec![
+                    "view-users",
+                    "query-users",
+                    "manage-users",
+                    "manage-organizations",
+                    "manage-clients",
+                    "manage-realm"
+                ];
+                // Use the correct UUID for the realm-management client
+                let client_id = "4c6be2d1-547f-4ecc-912d-facf2f52935a";
+                for client_role in client_roles {
+                    match self.assign_client_role_to_user(token, &user_uuid, client_id, client_role).await {
+                        Ok(_) => info!("Successfully assigned client role '{}' to user {}", client_role, email),
+                        Err(e) => {
+                            // Log the error but don't fail the entire operation
+                            error!("Failed to assign client role '{}' to user {}: {}", client_role, email, e);
+                        }
+                    }
+                }
+            }
         }
         let url = format!("{}/admin/realms/{}/organizations/{}/members", self.config.url, self.config.realm, org_id);
         let payload = user_uuid;
@@ -269,8 +318,8 @@ impl KeycloakService {
 
     /// Remove user from organization
     pub async fn remove_user_from_organization(&self, token: &str, org_id: &str, membership_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}", 
-            self.config.url, self.config.realm, org_id, membership_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}",
+                          self.config.url, self.config.realm, org_id, membership_id);
 
         let response = self.client.delete(&url)
             .bearer_auth(token)
@@ -278,7 +327,15 @@ impl KeycloakService {
             .await?;
 
         match response.status() {
-            StatusCode::NO_CONTENT => Ok(()),
+            StatusCode::NO_CONTENT => {
+                info!("Successfully removed user {} from organization {}", membership_id, org_id);
+                Ok(())
+            },
+            StatusCode::NOT_FOUND => {
+                // Member doesn't exist or was already removed - consider this a success (idempotent)
+                info!("User {} was not found in organization {} (may have been already removed)", membership_id, org_id);
+                Ok(())
+            },
             _ => {
                 let error_text = response.text().await?;
                 error!("Failed to remove user from organization: {}", error_text);
@@ -289,8 +346,8 @@ impl KeycloakService {
 
     /// Update user roles in organization
     pub async fn update_user_roles(&self, token: &str, org_id: &str, membership_id: &str, roles: Vec<String>) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}", 
-            self.config.url, self.config.realm, org_id, membership_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}",
+                          self.config.url, self.config.realm, org_id, membership_id);
 
         let payload = json!({
             "roles": roles
@@ -314,8 +371,8 @@ impl KeycloakService {
 
     /// Create an invitation to an organization
     pub async fn create_invitation(&self, token: &str, org_id: &str, email: &str, roles: Vec<String>, expiration: Option<String>) -> Result<KeycloakInvitation> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations", 
-            self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations",
+                          self.config.url, self.config.realm, org_id);
 
         let mut payload = json!({
             "email": email,
@@ -347,8 +404,8 @@ impl KeycloakService {
 
     /// Get all invitations for an organization
     pub async fn get_invitations(&self, token: &str, org_id: &str) -> Result<Vec<KeycloakInvitation>> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations", 
-            self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations",
+                          self.config.url, self.config.realm, org_id);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
@@ -362,8 +419,8 @@ impl KeycloakService {
 
     /// Delete an invitation
     pub async fn delete_invitation(&self, token: &str, org_id: &str, invitation_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations/{}", 
-            self.config.url, self.config.realm, org_id, invitation_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations/{}",
+                          self.config.url, self.config.realm, org_id, invitation_id);
 
         let response = self.client.delete(&url)
             .bearer_auth(token)
@@ -450,6 +507,60 @@ impl KeycloakService {
                 Err(anyhow!("Failed to set user categories by id: {}", error_text))
             }
         }
+    }
+
+    /// Get user realm roles by user ID
+    pub async fn get_user_realm_roles(&self, token: &str, user_id: &str) -> Result<Vec<String>> {
+        let url = format!("{}/admin/realms/{}/users/{}/role-mappings/realm", self.config.url, self.config.realm, user_id);
+
+        let response = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let roles: Vec<serde_json::Value> = response.json().await?;
+                let role_names: Vec<String> = roles.into_iter()
+                    .filter_map(|role| role.get("name").and_then(|n| n.as_str()).map(|s| s.to_string()))
+                    .collect();
+                Ok(role_names)
+            },
+            StatusCode::NOT_FOUND => {
+                // User has no realm roles assigned
+                Ok(vec![])
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to get user realm roles: {}", error_text);
+                Err(anyhow!("Failed to get user realm roles: {}", error_text))
+            }
+        }
+    }
+
+    /// Get organization members filtered by realm role
+    pub async fn get_organization_members_by_role(&self, token: &str, org_id: &str, role_name: &str) -> Result<Vec<KeycloakOrganizationMember>> {
+        // First get all organization members
+        let all_members = self.get_organization_members(token, org_id).await?;
+
+        // Filter members who have the specified realm role
+        let mut filtered_members = Vec::new();
+
+        for member in all_members {
+            match self.get_user_realm_roles(token, &member.id).await {
+                Ok(roles) => {
+                    if roles.contains(&role_name.to_string()) {
+                        filtered_members.push(member);
+                    }
+                },
+                Err(e) => {
+                    // Log error but continue processing other members
+                    error!("Failed to get roles for user {}: {}", member.id, e);
+                }
+            }
+        }
+
+        Ok(filtered_members)
     }
 }
 
