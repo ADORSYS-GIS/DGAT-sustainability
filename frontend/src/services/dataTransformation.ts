@@ -33,33 +33,22 @@ export class DataTransformationService {
   /**
    * Transform API Question to OfflineQuestion
    */
-  static transformQuestion(question: Question, userOrganizationId?: string): OfflineQuestion {
-    const now = new Date().toISOString();
-    
-    // Debug logging
-    console.log('🔍 Transforming question:', {
+  static transformQuestion(question: Question): OfflineQuestion {
+    return {
       question_id: question.question_id,
       category: question.category,
-      has_latest_revision: !!question.latest_revision,
-      question_type: typeof question,
-      question_keys: Object.keys(question)
-    });
-    
-    // Validate required fields
-    if (!question.category) {
-      console.error('❌ Question missing category:', question);
-      throw new Error(`Question ${question.question_id} is missing category property`);
-    }
-    
-    return {
-      ...question,
-      category_id: question.category,
-      revisions: question.latest_revision ? [question.latest_revision] : [],
-      search_text: this.generateSearchText(question),
-      updated_at: now,
-      sync_status: 'synced' as const,
+      latest_revision: {
+        question_revision_id: question.latest_revision.question_revision_id,
+        question_id: question.question_id,
+        text: question.latest_revision.text,
+        weight: question.latest_revision.weight,
+        created_at: question.latest_revision.created_at,
+      },
+      created_at: question.created_at,
+      updated_at: question.created_at,
+      sync_status: 'synced',
       local_changes: false,
-      last_synced: now
+      last_synced: question.created_at,
     };
   }
 
@@ -300,7 +289,7 @@ export class DataTransformationService {
     
     return questions.map(question => {
       const category = categoryMap.get(question.category);
-      const transformed = this.transformQuestion(question, userOrganizationId);
+      const transformed = this.transformQuestion(question);
       
       // Add category-specific information if available
       if (category) {

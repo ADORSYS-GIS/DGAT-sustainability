@@ -62,49 +62,48 @@ const queryClient = new QueryClient({
   },
 });
 
-// Initialize offline services
-async function initializeOfflineServices() {
-  try {
-    // Temporarily disable service worker registration to fix React hooks error
-    console.log("Service worker registration temporarily disabled");
-    
-    // TODO: Re-enable when service worker is properly configured
-    /*
-    // Register service worker
-    if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.register("/sw.js", {
-        scope: "/",
-      });
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  // Temporarily disable service worker registration for development
+  // Uncomment the following lines when ready to enable PWA features
+  
+  // window.addEventListener('load', () => {
+  //   navigator.serviceWorker.register('/sw.js')
+  //     .then((registration) => {
+  //       console.log('Service Worker registered successfully:', registration);
+  //     })
+  //     .catch((error) => {
+  //       console.error('Service Worker registration failed:', error);
+  //     });
+  // });
 
-      console.log("Service Worker registered successfully:", registration);
-
-      // Listen for service worker updates
-      registration.addEventListener("updatefound", () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener("statechange", () => {
-            if (
-              newWorker.state === "installed" &&
-              navigator.serviceWorker.controller
-            ) {
-              // New service worker is available
-              console.log("New service worker available");
-              // You could show a notification to the user here
-            }
-          });
-        }
-      });
-    }
-    */
-
-    console.log("Offline services initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize offline services:", error);
-  }
+  // Listen for service worker updates
+  // navigator.serviceWorker.addEventListener('message', (event) => {
+  //   if (event.data && event.data.type === 'SKIP_WAITING') {
+  //     console.log('New service worker available');
+  //     window.location.reload();
+  //   }
+  // });
+} else {
+  // Service worker not supported
 }
 
 // Initialize offline services
-initializeOfflineServices();
+try {
+  // Initialize IndexedDB and other offline services
+  // This ensures the database is ready when the app loads
+  // await offlineDB.initialize();
+  
+  // Initialize sync service
+  // const syncService = new SyncService();
+  // syncService.listenForOnlineStatus();
+  
+  // Initialize API interceptor
+  // apiInterceptor.setupNetworkListeners();
+  // apiInterceptor.setupPeriodicSync();
+} catch (error) {
+  // Silently handle initialization errors
+}
 
 createRoot(document.getElementById("root")!).render(
   <OidcProvider>

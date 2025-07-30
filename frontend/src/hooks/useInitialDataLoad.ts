@@ -53,52 +53,34 @@ export function useInitialDataLoad() {
 
   // Load initial data
   const loadInitialData = useCallback(async () => {
-    console.log('🔍 loadInitialData called');
-    console.log('🔍 isAuthenticated:', isAuthenticated);
-    console.log('🔍 user:', user);
-    console.log('🔍 isOnline:', isOnline);
-    
     if (!isAuthenticated || !user) {
-      console.log('❌ User not authenticated, skipping data loading');
       return;
     }
 
     const userContext = createUserContext();
     if (!userContext) {
-      console.log('❌ Could not create user context, skipping data loading');
       return;
     }
 
-    console.log('🔍 useInitialDataLoad: User context created:', userContext);
-    console.log('🔍 useInitialDataLoad: User roles:', userContext.roles);
-    console.log('🔍 useInitialDataLoad: Organization ID:', userContext.organizationId);
-
     // Check if we need to load data
-    console.log('🔍 Checking if data loading is required...');
     const needsLoading = await checkDataLoadingRequired(userContext);
-    console.log('🔍 useInitialDataLoad: Data loading required:', needsLoading);
-    console.log('🔍 useInitialDataLoad: hasLoadedData:', hasLoadedData);
     
     // Both org_admin and Org_User load the same data - no differentiation
     // Always load if needed, regardless of hasLoadedData state
     if (!needsLoading) {
-      console.log('🔍 Data loading not required, skipping');
       return;
     }
 
     // Only load data if online
     if (!isOnline) {
-      console.log('❌ Offline mode, skipping initial data load');
       toast.info("You are offline. Using local data.");
       return;
     }
 
-    console.log('🔍 useInitialDataLoad: Starting data loading...');
     setIsLoading(true);
     const loader = new InitialDataLoader();
 
     try {
-      console.log('🚀 Starting initial data loading for user:', userContext.userId);
       toast.info("Loading your data for offline access...");
 
       // Start loading
@@ -111,13 +93,12 @@ export function useInitialDataLoad() {
       if (finalProgress?.status === 'completed') {
         setHasLoadedData(true);
         toast.success("Data loaded successfully! You can now work offline.");
-        console.log('✅ Initial data loading completed successfully');
       } else if (finalProgress?.status === 'failed') {
         throw new Error(finalProgress.error_message || 'Data loading failed');
       }
 
     } catch (error) {
-      console.error('❌ Initial data loading failed:', error);
+      console.error('Initial data loading failed:', error);
       toast.error("Failed to load data. Some features may not work offline.");
       
       // Update progress to failed state
@@ -150,16 +131,8 @@ export function useInitialDataLoad() {
 
   // Effect to load data when user authenticates
   useEffect(() => {
-    console.log('🔍 useEffect triggered for data loading');
-    console.log('🔍 isAuthenticated:', isAuthenticated);
-    console.log('🔍 user exists:', !!user);
-    console.log('🔍 isOnline:', isOnline);
-    
     if (isAuthenticated && user && isOnline) {
-      console.log('🔍 All conditions met, calling loadInitialData');
       loadInitialData();
-    } else {
-      console.log('🔍 Conditions not met, skipping loadInitialData');
     }
   }, [isAuthenticated, user, isOnline, loadInitialData]);
 

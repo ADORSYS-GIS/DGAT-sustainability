@@ -60,8 +60,6 @@ function useUserMutations() {
       const tempId = `temp_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
       
-      console.log('🔍 Creating temporary user with ID:', tempId);
-      
       // Create a temporary user object for local storage
       const tempUser: OfflineUser = {
         id: tempId,
@@ -78,26 +76,20 @@ function useUserMutations() {
       
       // Save to IndexedDB immediately for optimistic UI updates
       await offlineDB.saveUser(tempUser);
-      console.log('💾 Saved temporary user to IndexedDB:', tempId);
       
       // Try to sync with backend if online
       try {
-        console.log('🌐 Attempting API call to create user...');
         const result = await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
           id: data.id,
           requestBody: data.requestBody
         });
         
-        console.log('✅ API call successful, result:', result);
-        
         // If successful, replace the temporary user with the real one
         if (result && typeof result === 'object' && 'id' in result) {
           const realUserId = (result as { id: string }).id;
-          console.log('🔄 Replacing temporary user', tempId, 'with real user', realUserId);
           
           // Delete the temporary user first
           await offlineDB.deleteUser(tempId);
-          console.log('🗑️ Deleted temporary user:', tempId);
           
           // Verify deletion by checking if user still exists
           const deletedUser = await offlineDB.getUser(tempId);
@@ -105,8 +97,6 @@ function useUserMutations() {
             console.error('❌ Failed to delete temporary user:', tempId);
             // Try to delete again
             await offlineDB.deleteUser(tempId);
-          } else {
-            console.log('✅ Temporary user successfully deleted');
           }
           
           // Save the real user with proper ID
@@ -126,7 +116,6 @@ function useUserMutations() {
           };
           
           await offlineDB.saveUser(realUser);
-          console.log('💾 Saved real user to IndexedDB:', realUserId);
           toast.success("User created successfully");
         }
       } catch (apiError) {
@@ -268,13 +257,8 @@ export const OrgUserManageUsers: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Debug: Log the decoded ID token
-  console.log('OrgUserManageUsers - Decoded ID Token:', user);
-  console.log('OrgUserManageUsers - User organizations:', user?.organizations);
-  
   const { orgName, orgId, categories } = getOrgAndCategoriesAndId(user);
   
-  console.log('OrgUserManageUsers - Extracted data:', { orgName, orgId, categories });
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
@@ -292,11 +276,8 @@ export const OrgUserManageUsers: React.FC = () => {
       const tempUsers = allUsers.filter(u => u.id.startsWith('temp_'));
       
       if (tempUsers.length > 0) {
-        console.log('🧹 Cleaning up temporary users:', tempUsers.map(u => u.id));
-        
         for (const tempUser of tempUsers) {
           await offlineDB.deleteUser(tempUser.id);
-          console.log('🗑️ Cleaned up temporary user:', tempUser.id);
         }
       }
     } catch (error) {
@@ -316,12 +297,6 @@ export const OrgUserManageUsers: React.FC = () => {
     error,
     refetch,
   } = useOfflineUsers(orgId);
-  
-  // Debug logging for users
-  console.log('OrgUserManageUsers - orgId:', orgId);
-  console.log('OrgUserManageUsers - users data:', users);
-  console.log('OrgUserManageUsers - users loading:', usersLoading);
-  console.log('OrgUserManageUsers - users error:', error);
   
   const { createUser, updateUser, deleteUser } = useUserMutations();
   // Remove useOfflineSyncStatus, useOfflineSync, sync, isSyncing

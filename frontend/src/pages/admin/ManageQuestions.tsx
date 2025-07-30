@@ -245,35 +245,28 @@ export const ManageQuestions = () => {
     order: 1,
   });
 
-  // Cleanup function to remove any stuck temporary items
+  // Clean up temporary items on component mount
   useEffect(() => {
     const cleanupTemporaryItems = async () => {
       try {
-        console.log('🔍 Cleaning up temporary items...');
-        
         // Clean up temporary questions
         const allQuestions = await offlineDB.getAllQuestions();
         const tempQuestions = allQuestions.filter(q => q.question_id.startsWith('temp_'));
-        console.log('🔍 Found temporary questions:', tempQuestions.length);
         
         for (const tempQuestion of tempQuestions) {
-          console.log('🔍 Deleting temporary question:', tempQuestion.question_id);
           await offlineDB.deleteQuestion(tempQuestion.question_id);
         }
         
         // Clean up temporary categories
         const allCategories = await offlineDB.getAllCategories();
         const tempCategories = allCategories.filter(c => c.category_id.startsWith('temp_'));
-        console.log('🔍 Found temporary categories:', tempCategories.length);
         
         for (const tempCategory of tempCategories) {
-          console.log('🔍 Deleting temporary category:', tempCategory.category_id);
           await offlineDB.deleteCategory(tempCategory.category_id);
         }
         
-        console.log('🔍 Cleanup completed');
       } catch (error) {
-        console.error('❌ Cleanup failed:', error);
+        // Silently handle cleanup errors
       }
     };
 

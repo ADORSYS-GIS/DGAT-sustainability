@@ -38,35 +38,29 @@ interface PendingReview {
 export const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
-  console.log('🔍 AdminDashboard: User context:', user);
-  console.log('🔍 AdminDashboard: User roles:', user?.roles);
-  console.log('🔍 AdminDashboard: User realm_access roles:', user?.realm_access?.roles);
+  // Always call both hooks to avoid React hooks violation
+  const { data: submissionsData, isLoading: submissionsLoading, error: error } = useOfflineAdminSubmissions();
   
-  const [orgs] = React.useState<Organization[]>([
-    { organizationId: "org1", name: "Mock Cooperative 1" },
-    { organizationId: "org2", name: "Mock Cooperative 2" },
-  ]);
-  const orgsLoading = false;
-
-  // Use offline hooks for all data fetching
-  const {
-    data: submissionsData,
-    isLoading: submissionsLoading,
-    error,
-  } = useOfflineAdminSubmissions();
+  // Both org_admin and DGRV_admin use the same data source - no differentiation
+  // All admins load the same data to their local storage
+  const submissions = submissionsData?.submissions || [];
   
-  console.log('🔍 AdminDashboard: useOfflineAdminSubmissions hook called');
-  console.log('🔍 AdminDashboard: submissionsData:', submissionsData);
-  console.log('🔍 AdminDashboard: submissionsLoading:', submissionsLoading);
-  console.log('🔍 AdminDashboard: error:', error);
-  
-  const submissions: AdminSubmissionDetail[] = React.useMemo(
-    () => submissionsData?.submissions ?? [],
-    [submissionsData],
+  // Filter submissions by status for different views
+  const pendingSubmissions = submissions.filter(
+    submission => submission.review_status === 'under_review'
   );
   
-  console.log('🔍 AdminDashboard: submissions array:', submissions);
+  const approvedSubmissions = submissions.filter(
+    submission => submission.review_status === 'approved'
+  );
+  
+  const rejectedSubmissions = submissions.filter(
+    submission => submission.review_status === 'rejected'
+  );
+  
+  const totalSubmissions = submissions.length;
 
   const { isOnline } = useOfflineSyncStatus();
 
@@ -80,37 +74,15 @@ export const AdminDashboard: React.FC = () => {
         description: "Fetching latest submission data.",
       });
     } else if (submissionsData && submissions.length > 0) {
-      console.log('🔍 AdminDashboard: Loaded submissions data:', submissionsData);
-      console.log('🔍 AdminDashboard: Submissions array:', submissions);
-      console.log('🔍 AdminDashboard: Submission statuses:', submissions.map(s => ({ 
-        id: s.submission_id, 
-        status: s.review_status,
-        submitted_at: s.submitted_at
-      })));
       toast.success(`Loaded ${submissions.length} submissions successfully!`, {
         className: "bg-dgrv-green text-white",
       });
     } else {
-      console.log('🔍 AdminDashboard: No submissions data or empty array');
-      console.log('🔍 AdminDashboard: submissionsData:', submissionsData);
-      console.log('🔍 AdminDashboard: submissions array:', submissions);
     }
   }, [error, submissionsLoading, submissionsData, submissions.length]);
 
   const pendingReviews = useMemo(() => {
-    if (orgsLoading || submissionsLoading) return [];
-
-    console.log('🔍 All submissions loaded:', submissions);
-    console.log('🔍 Submission statuses:', submissions.map(s => ({ id: s.submission_id, status: s.review_status })));
-
-    // Include both 'pending_review' and 'under_review' statuses
-    const pendingSubmissions = submissions.filter(
-      (s) =>
-        s.review_status === "pending_review" ||
-        s.review_status === "under_review",
-    );
-
-    console.log('🔍 Pending submissions after filter:', pendingSubmissions);
+    if (submissionsLoading) return [];
 
     return pendingSubmissions.map((submission) => ({
       id: submission.submission_id,
@@ -121,26 +93,17 @@ export const AdminDashboard: React.FC = () => {
       ),
       reviewStatus: submission.review_status,
     }));
-  }, [orgsLoading, submissions, submissionsLoading]);
+  }, [submissionsLoading, pendingSubmissions]);
 
   // Dynamic pending reviews count (pending_review or under_review)
   const pendingReviewsCount = React.useMemo(
     () =>
-      submissions.filter(
-        (s) =>
-          s.review_status === "pending_review" ||
-          s.review_status === "under_review",
-      ).length,
-    [submissions],
+      pendingSubmissions.length,
+    [pendingSubmissions],
   );
   const completedCount = React.useMemo(
-    () => submissions.filter((s) => 
-      (s.review_status as string) === "reviewed" ||
-      s.review_status === "approved" ||
-      s.review_status === "rejected" ||
-      s.review_status === "revision_requested"
-    ).length,
-    [submissions],
+    () => approvedSubmissions.length + rejectedSubmissions.length,
+    [approvedSubmissions, rejectedSubmissions],
   );
 
   const navigate = useNavigate();

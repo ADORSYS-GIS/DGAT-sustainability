@@ -66,9 +66,6 @@ export const Dashboard: React.FC = () => {
       return [];
     }
     
-    console.log('🔍 Filtering assessments for organization:', organizationId);
-    console.log('🔍 Total assessments available:', assessmentsData.assessments.length);
-    
     // Filter by organization and status
     const filtered = assessmentsData.assessments.filter((assessment) => {
       const assessmentData = assessment as unknown as { 
@@ -79,12 +76,9 @@ export const Dashboard: React.FC = () => {
       const isDraft = assessmentData.status === "draft";
       const isInOrganization = assessmentData.organization_id === organizationId;
       
-      console.log('🔍 Assessment:', assessment.assessment_id, 'status:', assessmentData.status, 'org:', assessmentData.organization_id, 'isDraft:', isDraft, 'isInOrg:', isInOrganization);
-      
       return isDraft && isInOrganization;
     });
     
-    console.log('🔍 Filtered assessments for org user:', filtered.length);
     return filtered;
   }, [assessmentsData?.assessments, user?.organizations]);
   
@@ -226,23 +220,11 @@ export const Dashboard: React.FC = () => {
   let orgId = "";
   let categories: string[] = [];
   
-  // Debug: Log the decoded ID token
-  console.log('Decoded ID Token:', user);
-  console.log('🔍 Dashboard - User organizations:', user?.organizations);
-  console.log('🔍 Dashboard - Assessments data:', assessmentsData);
-  console.log('🔍 Dashboard - User submissions data:', userSubmissionsData);
-  console.log('🔍 Dashboard - Admin submissions data:', adminSubmissionsData);
-  console.log('🔍 Dashboard - Is org user:', user?.roles?.includes('Org_User') || user?.realm_access?.roles?.includes('Org_User'));
-  console.log('🔍 Dashboard - Selected submissions data:', submissionsData);
-  console.log('🔍 Dashboard - Filtered assessments:', filteredAssessments);
-  
   if (user?.organizations && typeof user.organizations === "object") {
     const orgKeys = Object.keys(user.organizations);
-    console.log('Organization keys:', orgKeys);
     if (orgKeys.length > 0) {
       orgName = orgKeys[0]; // First organization name
       const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgName];
-      console.log('Organization data for', orgName, ':', orgData);
       if (orgData) {
         orgId = orgData.id || "";
         categories = orgData.categories || [];

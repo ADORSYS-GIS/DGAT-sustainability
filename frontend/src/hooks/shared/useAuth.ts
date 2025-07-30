@@ -1,4 +1,5 @@
 import { useOidc } from "../../services/shared/oidc";
+import React from "react";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -30,15 +31,27 @@ interface AuthState {
  */
 export const useAuth = (): AuthState => {
   const oidc = useOidc();
+  const decodedToken = oidc.decodedIdToken;
+
+  const user = React.useMemo(() => {
+    if (!decodedToken) return null;
+
+    // Extract user information from the decoded token
+    const userInfo = {
+      sub: decodedToken.sub,
+      email: decodedToken.email,
+      name: decodedToken.name,
+      preferred_username: decodedToken.preferred_username,
+      organizations: decodedToken.organizations,
+      categories: decodedToken.categories,
+      roles: decodedToken.realm_access?.roles || [],
+      realm_access: decodedToken.realm_access,
+    };
+
+    return userInfo;
+  }, [decodedToken]);
 
   if (oidc.isUserLoggedIn) {
-    const user = oidc.decodedIdToken;
-    
-    // Debug: Log the raw decoded ID token
-    console.log('useAuth - Raw decoded ID token:', user);
-    console.log('useAuth - User organizations:', user?.organizations);
-    console.log('useAuth - User categories:', user?.categories);
-    console.log('useAuth - All user properties:', Object.keys(user || {}));
     
     const roles = user?.roles || user?.realm_access?.roles || [];
     

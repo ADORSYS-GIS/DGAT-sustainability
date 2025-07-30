@@ -114,7 +114,7 @@ export const ManageCategories: React.FC = () => {
           order: cat.order,
         }, {
           onSuccess: () => {
-            console.log(`Updated category ${cat.name} with weight ${cat.weight}`);
+            // Category updated successfully
           },
           onError: (error) => {
             console.error(`Failed to update category ${cat.name}:`, error);
