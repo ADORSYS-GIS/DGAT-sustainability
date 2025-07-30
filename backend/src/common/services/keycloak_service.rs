@@ -545,6 +545,7 @@ impl KeycloakService {
         
         // Filter members who have the specified realm role
         let mut filtered_members = Vec::new();
+
         for member in all_members {
             match self.get_user_realm_roles(token, &member.id).await {
                 Ok(roles) => {
