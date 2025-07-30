@@ -11,7 +11,6 @@ import {
   Leaf,
   Star,
   Users,
-  RefreshCw,
 } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -47,37 +46,6 @@ export const Dashboard: React.FC = () => {
   const submissionsData = userSubmissionsData;
   const submissionsLoading = userSubmissionsLoading;
   const submissionsError = userSubmissionsError;
-  
-  // Manual refresh function
-  const handleManualRefresh = async () => {
-    try {
-      await refreshData();
-      toast.success('Data refreshed successfully!');
-    } catch (error) {
-      toast.error('Failed to refresh data');
-      console.error('Manual refresh failed:', error);
-    }
-  };
-
-  // Force clear and reload function
-  const handleForceReload = async () => {
-    try {
-      console.log('🔍 Force reload triggered');
-      const { InitialDataLoader } = await import('@/services/initialDataLoader');
-      const loader = new InitialDataLoader();
-      
-      // Clear all data
-      await loader.clearAllData();
-      console.log('🔍 All data cleared');
-      
-      // Force reload
-      await refreshData();
-      toast.success('Data force reloaded successfully!');
-    } catch (error) {
-      toast.error('Failed to force reload data');
-      console.error('Force reload failed:', error);
-    }
-  };
   
   // Filter assessments by organization and status
   const filteredAssessments = React.useMemo(() => {
@@ -221,6 +189,8 @@ export const Dashboard: React.FC = () => {
         return "bg-red-500 text-white";
       case "revision_requested":
         return "bg-yellow-500 text-white";
+      case "reviewed":
+        return "bg-green-600 text-white";
       default:
         return "bg-gray-500 text-white";
     }
@@ -238,6 +208,8 @@ export const Dashboard: React.FC = () => {
         return t('user.dashboard.status.rejected');
       case "revision_requested":
         return t('user.dashboard.status.revisionRequested');
+      case "reviewed":
+        return t('user.dashboard.status.reviewed', { defaultValue: 'Reviewed' });
       default:
         return t('user.dashboard.status.unknown');
     }
@@ -294,26 +266,6 @@ export const Dashboard: React.FC = () => {
                 <h1 className="text-3xl font-bold text-dgrv-blue">
                   {t('user.dashboard.welcome', { user: userName, org: orgName })}
                 </h1>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleManualRefresh}
-                  className="flex items-center space-x-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Refresh Data</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleForceReload}
-                  className="flex items-center space-x-2 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Force Reload</span>
-                </Button>
               </div>
             </div>
             <p className="text-lg text-gray-600">

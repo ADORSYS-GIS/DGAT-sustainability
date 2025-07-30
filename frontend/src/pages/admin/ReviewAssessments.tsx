@@ -68,6 +68,20 @@ interface PendingReviewSubmission {
   syncStatus: 'pending' | 'synced';
 }
 
+interface SyncQueueItem {
+  id: string;
+  operation: 'create' | 'update' | 'delete';
+  entity_type: 'report' | 'submission' | 'user';
+  entity_id: string;
+  data: Record<string, unknown>;
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  retry_count: number;
+  max_retries: number;
+  priority: 'low' | 'normal' | 'high';
+  created_at: string;
+}
+
 const ReviewAssessments: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -112,10 +126,13 @@ const ReviewAssessments: React.FC = () => {
         try {
           console.log('🔄 Syncing pending review:', pendingReview.id);
           
-          // The sync will be handled by the sync service automatically
-          // We just need to mark it as synced when the sync queue is processed
-          console.log(`📊 Pending review data:`, pendingReview);
-          console.log(`✅ Review queued for sync - will be processed by sync service`);
+          // Make the actual API call
+          const result = await ReportsService.postSubmissionsBySubmissionIdReports({
+            submissionId: pendingReview.submissionId,
+            requestBody: pendingReview.categoryRecommendations
+          });
+          
+          console.log('✅ Report synced successfully:', result);
           
           // Mark as synced in IndexedDB
           await offlineDB.updatePendingReviewSubmission(pendingReview.id, 'synced');
@@ -123,7 +140,7 @@ const ReviewAssessments: React.FC = () => {
           // Remove from pending list
           setPendingReviews(prev => prev.filter(r => r.id !== pendingReview.id));
           
-          toast.success(`Review for submission ${pendingReview.submissionId} queued for sync`);
+          toast.success(`Review for submission ${pendingReview.submissionId} synced successfully`);
         } catch (error) {
           console.error('❌ Failed to sync review:', error);
           toast.error(`Failed to sync review for submission ${pendingReview.submissionId}`);
@@ -224,49 +241,63 @@ const ReviewAssessments: React.FC = () => {
       console.log('🔍 Submitting review for submission:', selectedSubmission.submission_id);
       console.log('🔍 Category recommendations:', categoryRecommendations);
 
-      // Use the offline infrastructure for both online and offline scenarios
-      const result = await apiInterceptor.interceptMutation(
-        () => ReportsService.postSubmissionsBySubmissionIdReports({
-          submissionId: selectedSubmission.submission_id,
-          requestBody: categoryRecommendations
-        }),
-        async (data: Record<string, unknown>) => {
-          // Store the review data locally for offline access
-          const reviewData = {
-            submissionId: selectedSubmission.submission_id,
-            categoryRecommendations,
-            reviewer: user?.email || 'Unknown',
-            timestamp: new Date().toISOString(),
-            ...data
-          };
-          
-          // Store in the pending reviews table for UI display
-          const pendingReview: PendingReviewSubmission = {
-            id: `pending_${Date.now()}_${Math.random()}`,
-            submissionId: selectedSubmission.submission_id,
-            categoryRecommendations,
-            reviewer: user?.email || 'Unknown',
-            timestamp: new Date(),
-            syncStatus: 'pending'
-          };
+      // Create the pending review data
+      const pendingReview: PendingReviewSubmission = {
+        id: `pending_${Date.now()}_${Math.random()}`,
+        submissionId: selectedSubmission.submission_id,
+        categoryRecommendations,
+        reviewer: user?.email || 'Unknown',
+        timestamp: new Date(),
+        syncStatus: 'pending'
+      };
 
-          await offlineDB.savePendingReviewSubmission(pendingReview);
-          setPendingReviews(prev => [...prev, pendingReview]);
-        },
-        {
+      // Store in the pending reviews table for UI display
+      await offlineDB.savePendingReviewSubmission(pendingReview);
+      setPendingReviews(prev => [...prev, pendingReview]);
+
+      // Add to sync queue for offline sync
+      const syncItem: SyncQueueItem = {
+        id: crypto.randomUUID(),
+        operation: 'create',
+        entity_type: 'report',
+        entity_id: pendingReview.id,
+        data: {
           submissionId: selectedSubmission.submission_id,
           categoryRecommendations,
           reviewer: user?.email || 'Unknown',
           timestamp: new Date().toISOString()
         },
-        'report',
-        'create'
-      );
+        url: `/api/submissions/${selectedSubmission.submission_id}/reports`,
+        method: 'POST',
+        retry_count: 0,
+        max_retries: 3,
+        priority: 'normal',
+        created_at: new Date().toISOString(),
+      };
 
-      console.log('🔍 Review submission result:', result);
-      
+      await offlineDB.addToSyncQueue(syncItem);
+      console.log('✅ Added report to sync queue:', syncItem);
+
+      // Try to sync immediately if online
       if (isOnline) {
-        toast.success('Review submitted successfully');
+        try {
+          console.log('🌐 Attempting immediate sync...');
+          const result = await ReportsService.postSubmissionsBySubmissionIdReports({
+            submissionId: selectedSubmission.submission_id,
+            requestBody: categoryRecommendations
+          });
+          
+          console.log('✅ Report submitted successfully:', result);
+          
+          // Mark as synced
+          await offlineDB.updatePendingReviewSubmission(pendingReview.id, 'synced');
+          setPendingReviews(prev => prev.filter(r => r.id !== pendingReview.id));
+          
+          toast.success('Review submitted successfully');
+        } catch (error) {
+          console.error('❌ Immediate sync failed:', error);
+          toast.success('Review saved locally. Will sync when online.');
+        }
       } else {
         toast.success('Review saved locally. Will sync when online.');
       }

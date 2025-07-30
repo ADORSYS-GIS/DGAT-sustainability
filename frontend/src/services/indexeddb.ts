@@ -357,9 +357,19 @@ class OfflineDB {
 
   // ===== SUBMISSIONS =====
   async saveSubmission(submission: OfflineSubmission): Promise<string> {
-    const db = await this.dbPromise;
-    const result = await db.put("submissions", submission);
-    return result as string;
+    try {
+      console.log('🔍 saveSubmission called with:', submission);
+      const db = await this.dbPromise;
+      console.log('🔍 Database connection established');
+      
+      const result = await db.put("submissions", submission);
+      console.log('✅ Submission saved successfully with result:', result);
+      return result as string;
+    } catch (error) {
+      console.error('❌ Error saving submission:', error);
+      console.error('❌ Submission data:', submission);
+      throw error;
+    }
   }
 
   async saveSubmissions(submissions: OfflineSubmission[]): Promise<void> {

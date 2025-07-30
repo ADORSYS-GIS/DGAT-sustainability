@@ -58,6 +58,12 @@ export const Assessment: React.FC = () => {
         
         // Debug: Check all submissions
         console.log('🔍 All submissions in IndexedDB:', submissions);
+        
+        // Debug: Check all responses
+        const allResponses = await offlineDB.getResponsesWithFilters({});
+        const pendingResponses = allResponses.filter(r => r.sync_status === 'pending');
+        console.log('🔍 All responses in IndexedDB:', allResponses);
+        console.log('🔍 Pending responses:', pendingResponses);
       } catch (error) {
         console.error('Failed to check pending submissions:', error);
       }
@@ -263,20 +269,54 @@ export const Assessment: React.FC = () => {
     }
     
     try {
-      // First save all current responses
-      const currentCategoryQuestions = getCurrentCategoryQuestions();
-      const responsesToSave: CreateResponseRequest[] = [];
+      // Save ALL responses from ALL categories, not just the current one
+      console.log('🔍 Saving all responses from all categories...');
+      const allResponsesToSave: CreateResponseRequest[] = [];
       
-      for (const { revision } of currentCategoryQuestions) {
-        const key = getRevisionKey(revision);
-        const answer = answers[key];
-        if (answer && isAnswerComplete(answer)) {
-          responsesToSave.push(createResponseToSave(key, answer));
+      // Iterate through all categories and their questions
+      for (const categoryName of categories) {
+        const categoryQuestions = groupedQuestions[categoryName] || [];
+        console.log(`🔍 Processing category "${categoryName}" with ${categoryQuestions.length} questions`);
+        
+        for (const { revision } of categoryQuestions) {
+          const key = getRevisionKey(revision);
+          
+          // Validate that we have a valid question_revision_id
+          if (!key || key.trim() === '') {
+            console.error('❌ Invalid question_revision_id for question revision:', revision);
+            continue; // Skip this question
+          }
+          
+          const answer = answers[key];
+          if (answer && isAnswerComplete(answer)) {
+            const responseToSave = createResponseToSave(key, answer);
+            allResponsesToSave.push(responseToSave);
+            console.log(`🔍 Added response for question ${key}:`, responseToSave);
+          } else {
+            console.log(`🔍 Skipping incomplete answer for question ${key}:`, answer);
+          }
         }
       }
       
-      if (responsesToSave.length > 0) {
-        await createResponses(actualAssessment.assessment_id, responsesToSave);
+      console.log(`🔍 Total responses to save: ${allResponsesToSave.length}`);
+      
+      if (allResponsesToSave.length > 0) {
+        console.log('🔍 Saving all responses to IndexedDB...');
+        await createResponses(actualAssessment.assessment_id, allResponsesToSave, {
+          onSuccess: () => {
+            console.log('✅ All responses saved successfully to IndexedDB');
+          },
+          onError: (error) => {
+            console.error('❌ Failed to save responses:', error);
+            toast.error(t('assessment.failedToSaveResponses', { defaultValue: 'Failed to save responses. Please try again.' }));
+          }
+        });
+        
+        // Verify all responses were saved
+        const savedResponses = await offlineDB.getResponsesByAssessment(actualAssessment.assessment_id);
+        console.log('🔍 All responses in IndexedDB after save:', savedResponses);
+      } else {
+        console.log('🔍 No responses to save');
       }
       
       // Then submit the assessment
@@ -290,9 +330,54 @@ export const Assessment: React.FC = () => {
         toast.info(t('assessment.offlineSubmission', { defaultValue: 'You are offline. Assessment will be submitted when you come back online.' }));
       }
       
+      // Debug: Check what's in IndexedDB before submission
+      const allSubmissionsBefore = await offlineDB.getAllSubmissions();
+      console.log('📊 All submissions in IndexedDB BEFORE submission:', allSubmissionsBefore);
+      
+      // Test IndexedDB functionality
+      try {
+        const testSubmission = {
+          submission_id: 'test_submission',
+          assessment_id: 'test_assessment',
+          user_id: 'test_user',
+          content: { assessment: { assessment_id: 'test_assessment' }, responses: [] },
+          review_status: 'under_review' as const,
+          submitted_at: new Date().toISOString(),
+          organization_id: 'test_org',
+          reviewer_id: undefined,
+          reviewer_email: undefined,
+          review_comments: '',
+          files: [],
+          updated_at: new Date().toISOString(),
+          sync_status: 'pending' as const,
+          local_changes: true,
+          last_synced: undefined
+        };
+        
+        await offlineDB.saveSubmission(testSubmission);
+        console.log('✅ Test submission saved successfully');
+        await offlineDB.deleteSubmission('test_submission');
+        console.log('✅ Test submission deleted successfully');
+      } catch (testError) {
+        console.error('❌ IndexedDB test failed:', testError);
+      }
+      
       await submitAssessmentHook(actualAssessment.assessment_id, {
         onSuccess: (result) => {
           console.log('🔍 Submission success result:', result);
+          
+          // Debug: Check what's in IndexedDB after submission
+          const checkSubmissions = async () => {
+            const allSubmissionsAfter = await offlineDB.getAllSubmissions();
+            console.log('📊 All submissions in IndexedDB AFTER submission:', allSubmissionsAfter);
+            
+            // Check for pending submissions
+            const pendingSubmissions = allSubmissionsAfter.filter(s => s.sync_status === 'pending');
+            console.log('📊 Pending submissions:', pendingSubmissions);
+          };
+          
+          checkSubmissions();
+          
           if (isOnline) {
             toast.success(t('assessment.submittedSuccessfully', { defaultValue: 'Assessment submitted successfully!' }));
           } else {
@@ -303,6 +388,15 @@ export const Assessment: React.FC = () => {
         },
         onError: (err) => {
           console.log('🔍 Submission error:', err);
+          
+          // Debug: Check what's in IndexedDB after error
+          const checkSubmissions = async () => {
+            const allSubmissionsAfter = await offlineDB.getAllSubmissions();
+            console.log('📊 All submissions in IndexedDB AFTER error:', allSubmissionsAfter);
+          };
+          
+          checkSubmissions();
+          
           if (!isOnline) {
             toast.success(t('assessment.offlineSaved', { defaultValue: 'Assessment saved offline. Will sync when you come back online.' }));
             console.log('🔍 Redirecting to dashboard after offline error');
@@ -314,6 +408,7 @@ export const Assessment: React.FC = () => {
         }
       });
     } catch (error) {
+      console.error('❌ Error in submitAssessment:', error);
       if (!navigator.onLine) {
         toast.success(t('assessment.offlineSaved', { defaultValue: 'Assessment saved offline. Will sync when you come back online.' }));
         navigate("/dashboard");
@@ -415,15 +510,24 @@ export const Assessment: React.FC = () => {
 
   // Helper to get the question revision id key
   const getRevisionKey = (revision: QuestionRevision): string => {
+    console.log('🔍 getRevisionKey called with revision:', revision);
+    
     if (hasQuestionRevisionId(revision)) {
-      return revision.question_revision_id;
+      const key = revision.question_revision_id;
+      console.log('🔍 Found question_revision_id:', key);
+      return key;
     } else if (
       "latest_revision" in revision &&
       typeof (revision as { latest_revision?: unknown }).latest_revision ===
         "string"
     ) {
-      return (revision as { latest_revision: string }).latest_revision;
+      const key = (revision as { latest_revision: string }).latest_revision;
+      console.log('🔍 Found latest_revision:', key);
+      return key;
     }
+    
+    console.error('❌ No valid revision key found in:', revision);
+    console.error('❌ Revision keys available:', Object.keys(revision));
     return "";
   };
 
@@ -505,9 +609,22 @@ export const Assessment: React.FC = () => {
     const responsesToSend = currentQuestions
       .map((question) => {
         const key = getRevisionKey(question.revision);
+        
+        // Validate that we have a valid question_revision_id
+        if (!key || key.trim() === '') {
+          console.error('❌ Invalid question_revision_id for question:', question);
+          console.error('❌ Question revision:', question.revision);
+          return null;
+        }
+        
         const answer = answers[key];
-        if (!answer) return null;
+        if (!answer) {
+          console.warn('⚠️ No answer found for question with key:', key);
+          return null;
+        }
 
+        console.log('🔍 Creating response for question_revision_id:', key);
+        
         return {
           question_revision_id: key,
           response: JSON.stringify(answer),
@@ -516,16 +633,50 @@ export const Assessment: React.FC = () => {
       })
       .filter((r): r is CreateResponseRequest => r !== null);
 
-    // Save all responses as a batch
+    console.log('🔍 nextCategory - Responses to send for current category:', responsesToSend);
+    console.log('🔍 nextCategory - Assessment ID:', assessmentId);
+    console.log('🔍 nextCategory - Current category:', categories[currentCategoryIndex]);
+
+    // Save responses for current category only
     if (assessmentId && responsesToSend.length > 0) {
-      await createResponses(assessmentId, responsesToSend, {
-        onSuccess: () => {
-          console.log('Responses saved successfully');
-        },
-        onError: (error) => {
-          console.error('Failed to save responses:', error);
+      console.log('🔍 nextCategory - Saving responses for current category to IndexedDB...');
+      
+      try {
+        await createResponses(assessmentId, responsesToSend, {
+          onSuccess: () => {
+            console.log('✅ Responses for current category saved successfully to IndexedDB');
+            toast.success(t('assessment.responsesSaved', { defaultValue: 'Responses saved successfully!' }));
+            
+            // Check if we're offline and show appropriate message
+            if (!navigator.onLine) {
+              toast.info(t('assessment.responsesQueuedForSync', { defaultValue: 'Responses saved offline. Will sync when you come back online.' }));
+            }
+          },
+          onError: (error) => {
+            console.error('❌ Failed to save responses:', error);
+            toast.error(t('assessment.failedToSaveResponses', { defaultValue: 'Failed to save responses. Please try again.' }));
+          }
+        });
+        
+        // Verify responses were saved by checking IndexedDB
+        const savedResponses = await offlineDB.getResponsesByAssessment(assessmentId);
+        console.log('🔍 nextCategory - All responses in IndexedDB after save:', savedResponses);
+        
+        // Check for pending responses
+        const pendingResponses = savedResponses.filter(r => r.sync_status === 'pending');
+        if (pendingResponses.length > 0) {
+          console.log('🔍 nextCategory - Found pending responses:', pendingResponses.length);
         }
-      });
+        
+      } catch (error) {
+        console.error('❌ Error in nextCategory:', error);
+        toast.error(t('assessment.failedToSaveResponses', { defaultValue: 'Failed to save responses. Please try again.' }));
+      }
+    } else {
+      console.log('🔍 nextCategory - No responses to save or no assessment ID');
+      if (responsesToSend.length === 0) {
+        console.warn('⚠️ No valid responses to send - this might indicate data issues');
+      }
     }
 
     if (currentCategoryIndex < categories.length - 1) {
@@ -861,8 +1012,10 @@ export const Assessment: React.FC = () => {
                         console.log('Manual sync - Queue items:', syncQueue);
                         // Trigger sync
                         window.dispatchEvent(new Event('online'));
+                        toast.success(t('assessment.syncTriggered', { defaultValue: 'Sync triggered. Please wait...' }));
                       } catch (error) {
                         console.error('Manual sync failed:', error);
+                        toast.error(t('assessment.syncFailed', { defaultValue: 'Sync failed. Please try again.' }));
                       }
                     }}
                     className="text-xs"
@@ -875,6 +1028,25 @@ export const Assessment: React.FC = () => {
                     {t('assessment.pendingSubmissions', { defaultValue: 'Pending submissions:' })} {pendingSubmissions.length}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Online Status with Pending Items */}
+          {isOnline && pendingSubmissions.length > 0 && (
+            <Card className="mb-6 border-green-200 bg-green-50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-green-800">
+                      {t('assessment.onlineWithPending', { defaultValue: 'You are online. Syncing pending submissions...' })}
+                    </span>
+                  </div>
+                  <div className="text-xs text-green-700">
+                    {t('assessment.pendingSubmissions', { defaultValue: 'Pending submissions:' })} {pendingSubmissions.length}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

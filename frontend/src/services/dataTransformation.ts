@@ -121,6 +121,10 @@ export class DataTransformationService {
     const version = 'version' in response ? response.version : 1;
     const updatedAt = 'updated_at' in response ? response.updated_at : now;
     
+    // Determine sync status based on whether this is a new response or from API
+    const isNewResponse = !('response_id' in response) || (typeof responseId === 'string' && responseId.startsWith('temp_'));
+    const syncStatus = isNewResponse ? 'pending' as const : 'synced' as const;
+    
     return {
       response_id: responseId,
       assessment_id: assessmentIdValue || '',
@@ -128,13 +132,13 @@ export class DataTransformationService {
       response: typeof response.response === 'string' ? response.response : '',
       version: version,
       updated_at: updatedAt,
-      question_text: questionText,
-      question_category: questionCategory,
+      question_text: questionText || '',
+      question_category: questionCategory || '',
       files: [],
       is_draft: false,
-      sync_status: 'synced' as const,
-      local_changes: false,
-      last_synced: now
+      sync_status: syncStatus,
+      local_changes: isNewResponse,
+      last_synced: isNewResponse ? undefined : now
     };
   }
 
@@ -338,9 +342,9 @@ export class DataTransformationService {
     return responses.map(response => {
       const question = questionRevisionMap.get(response.question_revision_id);
       const questionText = question?.latest_revision?.text?.en || '';
-      const questionCategory = typeof question?.category === 'string' ? question.category : '';
+      const questionCategory = question?.category && typeof question.category === 'string' ? question.category as string : '';
       
-      return this.transformResponse(response, questionText, questionCategory || '');
+      return this.transformResponse(response, questionText, questionCategory);
     });
   }
 

@@ -407,7 +407,7 @@ export class InitialDataLoader {
       if (userContext.roles.includes('drgv_admin')) {
         console.log('🔍 InitialDataLoader: Loading admin submissions...');
         // DGRV Admin: Load all submissions using admin endpoint
-        const submissionsData = await AdminService.getAdminSubmissions();
+        const submissionsData = await AdminService.getAdminSubmissions({});
         console.log('🔍 InitialDataLoader: Admin submissions API response:', submissionsData);
         
         if (submissionsData?.submissions) {
@@ -607,6 +607,12 @@ export class InitialDataLoader {
    * Check if data loading is required
    */
   async isDataLoadingRequired(userContext?: UserContext): Promise<boolean> {
+    console.log('DEBUG isDataLoadingRequired userContext:', userContext);
+    // Always load for DGRV admin to ensure /api/admin/submissions is called and stored
+    if (userContext?.roles?.includes('drgv_admin')) {
+      console.log('🔍 DGRV admin detected, always require data loading');
+      return true;
+    }
     const stats = await offlineDB.getDatabaseStats();
     
     // Always load if no stats exist

@@ -27,7 +27,8 @@ import type {
   CreateResponseRequest,
   UpdateResponseRequest,
   OrgAdminMemberRequest,
-  OrgAdminMemberCategoryUpdateRequest
+  OrgAdminMemberCategoryUpdateRequest,
+  OrganizationCreateRequest
 } from "@/openapi-rq/requests/types.gen";
 
 export interface InterceptorConfig {
@@ -100,9 +101,13 @@ export class ApiInterceptor {
         // Check if there are any pending items in the tables
         const allQuestions = await offlineDB.getAllQuestions();
         const allCategories = await offlineDB.getAllCategories();
+        const allOrganizations = await offlineDB.getAllOrganizations();
+        const allUsers = await offlineDB.getAllUsers();
         const pendingQuestions = allQuestions.filter(q => q.sync_status === 'pending');
         const pendingCategories = allCategories.filter(c => c.sync_status === 'pending');
-        const totalPending = pendingQuestions.length + pendingCategories.length;
+        const pendingOrganizations = allOrganizations.filter(o => o.sync_status === 'pending');
+        const pendingUsers = allUsers.filter(u => u.sync_status === 'pending');
+        const totalPending = pendingQuestions.length + pendingCategories.length + pendingOrganizations.length + pendingUsers.length;
         
         if (totalPending > 0) {
           console.log(`🔄 Periodic sync check found ${totalPending} pending items`);
@@ -320,26 +325,16 @@ export class ApiInterceptor {
    * Process the sync queue when online
    */
   async processQueue(): Promise<void> {
-    console.log('🔄 processQueue called - isOnline:', this.isOnline, 'enableQueueing:', this.config.enableQueueing);
-    
-    if (!this.isOnline || !this.config.enableQueueing) {
-      console.log('🔄 Sync skipped - offline or queueing disabled');
+    if (!this.isOnline) {
+      console.log('🔄 Skipping sync - offline');
       return;
     }
 
-    // Import the necessary service methods dynamically to avoid circular dependencies
-    const { 
-      QuestionsService,
-      CategoriesService
-    } = await import('@/openapi-rq/requests/services.gen');
+    console.log('🔄 Starting sync process...');
+    let successCount = 0;
+    let failureCount = 0;
 
     try {
-      // Instead of using a separate sync queue, scan all tables for pending items
-      console.log('🔄 Scanning tables for pending items...');
-      
-      let successCount = 0;
-      let failureCount = 0;
-
       // Scan questions table for pending items
       const allQuestions = await offlineDB.getAllQuestions();
       const pendingQuestions = allQuestions.filter(q => q.sync_status === 'pending');
@@ -349,28 +344,41 @@ export class ApiInterceptor {
         try {
           console.log(`🔄 Syncing pending question: ${question.question_id}`);
           
+          // Skip if this is a temporary question that might have already been processed
+          if (question.question_id.startsWith('temp_')) {
+            console.log(`🔄 Processing temporary question: ${question.question_id}`);
+          }
+          
           // Create the request data from the offline question
-          const questionData: CreateQuestionRequest = {
+          const questionData = {
             category: question.category,
             text: question.latest_revision.text,
             weight: question.latest_revision.weight
           };
 
+          const { QuestionsService } = await import('@/openapi-rq/requests/services.gen');
           const response = await QuestionsService.postQuestions({ requestBody: questionData });
           console.log('✅ Question created via API:', response);
           
-          if (response && response.question) {
-            const realQuestion = response.question as Question;
+          if (response && typeof response === 'object' && 'question' in response) {
+            const realQuestion = (response as { question: { question_id: string } }).question;
+            const realQuestionId = realQuestion.question_id;
             
-            // Delete the temporary question
+            // Delete the temporary question first
             await offlineDB.deleteQuestion(question.question_id);
             console.log('🗑️ Deleted temporary question:', question.question_id);
             
-            // Save the real question with proper ID
-            const offlineQuestion = DataTransformationService.transformQuestion(realQuestion);
-            offlineQuestion.sync_status = 'synced';
-            await offlineDB.saveQuestion(offlineQuestion);
-            console.log('✅ Updated local question with real ID:', realQuestion.question_id);
+            // Check if a question with the same category and text already exists (to prevent duplicates)
+            const existingQuestions = await offlineDB.getAllQuestions();
+            const duplicateQuestion = existingQuestions.find(q => 
+              q.category === question.category && 
+              q.latest_revision.text.en === question.latest_revision.text.en &&
+              q.question_id !== question.question_id
+            );
+            if (duplicateQuestion) {
+              console.warn('⚠️ Found duplicate question, deleting:', duplicateQuestion.question_id);
+              await offlineDB.deleteQuestion(duplicateQuestion.question_id);
+            }
             
             successCount++;
           }
@@ -389,34 +397,218 @@ export class ApiInterceptor {
         try {
           console.log(`🔄 Syncing pending category: ${category.category_id}`);
           
+          // Skip if this is a temporary category that might have already been processed
+          if (category.category_id.startsWith('temp_')) {
+            console.log(`🔄 Processing temporary category: ${category.category_id}`);
+          }
+          
           // Create the request data from the offline category
-          const categoryData: CreateCategoryRequest = {
+          const categoryData = {
             name: category.name,
             weight: category.weight,
             order: category.order,
             template_id: category.template_id
           };
 
+          const { CategoriesService } = await import('@/openapi-rq/requests/services.gen');
           const response = await CategoriesService.postCategories({ requestBody: categoryData });
           console.log('✅ Category created via API:', response);
           
-          if (response && response.category) {
-            const realCategory = response.category as Category;
+          if (response && typeof response === 'object' && 'category' in response) {
+            const realCategory = (response as { category: { category_id: string } }).category;
+            const realCategoryId = realCategory.category_id;
             
-            // Delete the temporary category
+            // Delete the temporary category first
             await offlineDB.deleteCategory(category.category_id);
             console.log('🗑️ Deleted temporary category:', category.category_id);
             
-            // Save the real category with proper ID
-            const offlineCategory = DataTransformationService.transformCategory(realCategory);
-            offlineCategory.sync_status = 'synced';
-            await offlineDB.saveCategory(offlineCategory);
-            console.log('✅ Updated local category with real ID:', realCategory.category_id);
+            // Check if a category with the same name already exists (to prevent duplicates)
+            const existingCategories = await offlineDB.getAllCategories();
+            const duplicateCategory = existingCategories.find(c => 
+              c.name === category.name && c.category_id !== category.category_id
+            );
+            if (duplicateCategory) {
+              console.warn('⚠️ Found duplicate category, deleting:', duplicateCategory.category_id);
+              await offlineDB.deleteCategory(duplicateCategory.category_id);
+            }
             
             successCount++;
           }
         } catch (error) {
           console.error(`❌ Failed to sync category ${category.category_id}:`, error);
+          failureCount++;
+        }
+      }
+
+      // Scan users table for pending items
+      const allUsers = await offlineDB.getAllUsers();
+      const pendingUsers = allUsers.filter(u => u.sync_status === 'pending');
+      console.log(`🔄 Found ${pendingUsers.length} pending users:`, pendingUsers.map(u => u.id));
+
+      for (const user of pendingUsers) {
+        try {
+          console.log(`🔄 Syncing pending user: ${user.id}`);
+          
+          // Skip if this is a temporary user that might have already been processed
+          if (user.id.startsWith('temp_')) {
+            console.log(`🔄 Processing temporary user: ${user.id}`);
+          }
+          
+          // Create the request data from the offline user
+          const userData: OrgAdminMemberRequest = {
+            email: user.email,
+            roles: user.roles || ['Org_User'],
+            categories: [] // Default empty categories
+          };
+
+          const { OrganizationMembersService } = await import('@/openapi-rq/requests/services.gen');
+          const response = await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
+            id: user.organization_id,
+            requestBody: userData
+          });
+          console.log('✅ User created via API:', response);
+          
+          if (response && typeof response === 'object' && 'id' in response) {
+            const realUserId = (response as { id: string }).id;
+            
+            // Delete the temporary user first
+            await offlineDB.deleteUser(user.id);
+            console.log('🗑️ Deleted temporary user:', user.id);
+            
+            // Verify deletion by checking if user still exists
+            const deletedUser = await offlineDB.getUser(user.id);
+            if (deletedUser) {
+              console.error('❌ Failed to delete temporary user:', user.id);
+              // Try to delete again
+              await offlineDB.deleteUser(user.id);
+            } else {
+              console.log('✅ Temporary user successfully deleted');
+            }
+            
+            // Check if a user with the same email already exists (to prevent duplicates)
+            const existingUsers = await offlineDB.getAllUsers();
+            const duplicateUser = existingUsers.find(u => u.email === user.email && u.id !== user.id);
+            if (duplicateUser) {
+              console.warn('⚠️ Found duplicate user with same email, deleting:', duplicateUser.id);
+              await offlineDB.deleteUser(duplicateUser.id);
+            }
+            
+            // Save the real user with proper ID
+            const realUser = {
+              id: realUserId,
+              email: user.email,
+              username: user.username,
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
+              emailVerified: user.emailVerified || false,
+              roles: user.roles || ['Org_User'],
+              organization_id: user.organization_id,
+              updated_at: new Date().toISOString(),
+              sync_status: 'synced' as const,
+              local_changes: false,
+              last_synced: new Date().toISOString()
+            };
+            await offlineDB.saveUser(realUser);
+            console.log('✅ Updated local user with real ID:', realUserId);
+            
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`❌ Failed to sync user ${user.id}:`, error);
+          failureCount++;
+        }
+      }
+
+      // Scan responses table for pending items
+      const allResponses = await offlineDB.getResponsesWithFilters({});
+      const pendingResponses = allResponses.filter(r => r.sync_status === 'pending');
+      console.log(`🔄 Found ${pendingResponses.length} pending responses:`, pendingResponses.map(r => r.response_id));
+
+      // Group responses by assessment for batch processing
+      const responsesByAssessment = new Map<string, typeof pendingResponses>();
+      for (const response of pendingResponses) {
+        const assessmentId = response.assessment_id;
+        if (!responsesByAssessment.has(assessmentId)) {
+          responsesByAssessment.set(assessmentId, []);
+        }
+        responsesByAssessment.get(assessmentId)!.push(response);
+      }
+
+      for (const [assessmentId, responses] of responsesByAssessment) {
+        try {
+          console.log(`🔄 Syncing ${responses.length} pending responses for assessment: ${assessmentId}`);
+          
+          // Convert offline responses to API format
+          const apiResponses = responses.map(response => ({
+            question_revision_id: response.question_revision_id,
+            response: response.response,
+            version: response.version
+          }));
+
+          const { ResponsesService } = await import('@/openapi-rq/requests/services.gen');
+          const response = await ResponsesService.postAssessmentsByAssessmentIdResponses({ 
+            assessmentId, 
+            requestBody: apiResponses 
+          });
+          console.log('✅ Responses created via API:', response);
+          
+          if (response && typeof response === 'object' && 'responses' in response) {
+            // Delete the temporary responses
+            for (const tempResponse of responses) {
+              await offlineDB.deleteResponse(tempResponse.response_id);
+            }
+            console.log('🗑️ Deleted temporary responses');
+            
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`❌ Failed to sync responses for assessment ${assessmentId}:`, error);
+          failureCount++;
+        }
+      }
+
+      // Scan submissions table for pending items
+      const allSubmissions = await offlineDB.getAllSubmissions();
+      const pendingSubmissions = allSubmissions.filter(s => s.sync_status === 'pending');
+      console.log(`🔄 Found ${pendingSubmissions.length} pending submissions:`, pendingSubmissions.map(s => s.submission_id));
+
+      for (const submission of pendingSubmissions) {
+        try {
+          console.log(`🔄 Syncing pending submission: ${submission.submission_id}`);
+          
+          // Skip if this is a temporary submission that might have already been processed
+          if (submission.submission_id.startsWith('temp_')) {
+            console.log(`🔄 Processing temporary submission: ${submission.submission_id}`);
+          }
+          
+          const { AssessmentsService } = await import('@/openapi-rq/requests/services.gen');
+          const response = await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ 
+            assessmentId: submission.assessment_id 
+          });
+          console.log('✅ Submission created via API:', response);
+          
+          if (response && typeof response === 'object' && 'submission' in response) {
+            const realSubmission = (response as { submission: { submission_id: string } }).submission;
+            const realSubmissionId = realSubmission.submission_id;
+            
+            // Delete the temporary submission first
+            await offlineDB.deleteSubmission(submission.submission_id);
+            console.log('🗑️ Deleted temporary submission:', submission.submission_id);
+            
+            // Check if a submission with the same assessment already exists (to prevent duplicates)
+            const existingSubmissions = await offlineDB.getAllSubmissions();
+            const duplicateSubmission = existingSubmissions.find(s => 
+              s.assessment_id === submission.assessment_id && s.submission_id !== submission.submission_id
+            );
+            if (duplicateSubmission) {
+              console.warn('⚠️ Found duplicate submission, deleting:', duplicateSubmission.submission_id);
+              await offlineDB.deleteSubmission(duplicateSubmission.submission_id);
+            }
+            
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`❌ Failed to sync submission ${submission.submission_id}:`, error);
           failureCount++;
         }
       }
@@ -475,9 +667,13 @@ export class ApiInterceptor {
     // Instead of checking sync queue, check pending items in tables
     const allQuestions = await offlineDB.getAllQuestions();
     const allCategories = await offlineDB.getAllCategories();
+    const allOrganizations = await offlineDB.getAllOrganizations();
+    const allUsers = await offlineDB.getAllUsers();
     const pendingQuestions = allQuestions.filter(q => q.sync_status === 'pending');
     const pendingCategories = allCategories.filter(c => c.sync_status === 'pending');
-    const totalPending = pendingQuestions.length + pendingCategories.length;
+    const pendingOrganizations = allOrganizations.filter(o => o.sync_status === 'pending');
+    const pendingUsers = allUsers.filter(u => u.sync_status === 'pending');
+    const totalPending = pendingQuestions.length + pendingCategories.length + pendingOrganizations.length + pendingUsers.length;
     
     return {
       queueLength: totalPending,

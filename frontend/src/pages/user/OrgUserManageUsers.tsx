@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,53 +56,87 @@ function useUserMutations() {
   const createUser = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
     setIsPending(true);
     try {
+      // Generate a temporary ID for optimistic updates
+      const tempId = `temp_${crypto.randomUUID()}`;
+      const now = new Date().toISOString();
+      
+      console.log('🔍 Creating temporary user with ID:', tempId);
+      
+      // Create a temporary user object for local storage
+      const tempUser: OfflineUser = {
+        id: tempId,
+        email: data.requestBody.email,
+        username: data.requestBody.email.split('@')[0], // Use email prefix as username
+        firstName: '',
+        lastName: '',
+        emailVerified: false,
+        roles: data.requestBody.roles,
+        updated_at: now,
+        sync_status: 'pending',
+        organization_id: data.id,
+      };
+      
+      // Save to IndexedDB immediately for optimistic UI updates
+      await offlineDB.saveUser(tempUser);
+      console.log('💾 Saved temporary user to IndexedDB:', tempId);
+      
+      // Try to sync with backend if online
       try {
+        console.log('🌐 Attempting API call to create user...');
         const result = await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
           id: data.id,
           requestBody: data.requestBody
         });
         
-        // If API call succeeds, the user will be fetched in the next data refresh
-        toast.success("User created successfully");
-        return { success: true };
+        console.log('✅ API call successful, result:', result);
+        
+        // If successful, replace the temporary user with the real one
+        if (result && typeof result === 'object' && 'id' in result) {
+          const realUserId = (result as { id: string }).id;
+          console.log('🔄 Replacing temporary user', tempId, 'with real user', realUserId);
+          
+          // Delete the temporary user first
+          await offlineDB.deleteUser(tempId);
+          console.log('🗑️ Deleted temporary user:', tempId);
+          
+          // Verify deletion by checking if user still exists
+          const deletedUser = await offlineDB.getUser(tempId);
+          if (deletedUser) {
+            console.error('❌ Failed to delete temporary user:', tempId);
+            // Try to delete again
+            await offlineDB.deleteUser(tempId);
+          } else {
+            console.log('✅ Temporary user successfully deleted');
+          }
+          
+          // Save the real user with proper ID
+          const realUser: OfflineUser = {
+            id: realUserId,
+            email: data.requestBody.email,
+            username: data.requestBody.email.split('@')[0],
+            firstName: '', // Default empty since not provided in response
+            lastName: '', // Default empty since not provided in response
+            emailVerified: false, // Default false since not provided in response
+            roles: data.requestBody.roles,
+            organization_id: data.id,
+            updated_at: new Date().toISOString(),
+            sync_status: 'synced',
+            local_changes: false,
+            last_synced: new Date().toISOString()
+          };
+          
+          await offlineDB.saveUser(realUser);
+          console.log('💾 Saved real user to IndexedDB:', realUserId);
+          toast.success("User created successfully");
+        }
       } catch (apiError) {
-        // API call failed, create a temporary user and queue for sync
-        const tempId = `temp_${crypto.randomUUID()}`;
-        const now = new Date().toISOString();
-        
-        const tempUser: OfflineUser = {
-          id: tempId,
-          email: data.requestBody.email,
-          username: data.requestBody.email.split('@')[0], // Use email prefix as username
-          firstName: '',
-          lastName: '',
-          emailVerified: false,
-          roles: data.requestBody.roles,
-          updated_at: now,
-          sync_status: 'pending',
-          organization_id: data.id,
-        };
-        
-        // Save to IndexedDB for offline mode
-        await offlineDB.saveUser(tempUser);
-        
-        // Queue for sync
-        await offlineDB.addToSyncQueue({
-          id: crypto.randomUUID(),
-          operation: 'create',
-          entity_type: 'user',
-          entity_id: tempId,
-          data: { organizationId: data.id, userData: data.requestBody },
-          retry_count: 0,
-          max_retries: 3,
-          priority: 'normal',
-          created_at: new Date().toISOString()
-        });
-        
-        toast.success("User created (offline mode)");
-        return { success: true };
+        console.warn('API call failed, user saved locally for sync:', apiError);
+        toast.success("User created locally (will sync when online)");
       }
+      
+      return { success: true };
     } catch (error) {
+      console.error('❌ Error in createUser:', error);
       toast.error("Failed to create user");
       throw error;
     } finally {
@@ -250,6 +284,30 @@ export const OrgUserManageUsers: React.FC = () => {
     roles: ["Org_User"],
     categories: [] as string[],
   });
+
+  // Cleanup function to remove any stuck temporary users
+  const cleanupTemporaryUsers = useCallback(async () => {
+    try {
+      const allUsers = await offlineDB.getAllUsers();
+      const tempUsers = allUsers.filter(u => u.id.startsWith('temp_'));
+      
+      if (tempUsers.length > 0) {
+        console.log('🧹 Cleaning up temporary users:', tempUsers.map(u => u.id));
+        
+        for (const tempUser of tempUsers) {
+          await offlineDB.deleteUser(tempUser.id);
+          console.log('🗑️ Cleaned up temporary user:', tempUser.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up temporary users:', error);
+    }
+  }, []);
+
+  // Cleanup temporary users on component mount
+  useEffect(() => {
+    cleanupTemporaryUsers();
+  }, [cleanupTemporaryUsers]);
 
   // Responsive layout: use a card grid and modern header
   const {
