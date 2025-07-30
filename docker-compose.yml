@@ -100,7 +100,7 @@ services:
     #    entrypoint: ["/opt/keycloak/setup-scripts/startup.sh"]
     command: ["start-dev", "--log-level=debug", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
     volumes:
-      - ./infrastructure/keycloak:/opt/keycloak/data/import:ro
+      - ./infrastructure/keycloak:/opt/keycloak/data/import:rw
       - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
       # Mount the same SSL certificates used by the frontend container
       - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
