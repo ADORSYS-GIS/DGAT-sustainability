@@ -22,7 +22,7 @@ pub enum Relation {
     #[sea_orm(
         belongs_to = "super::file::Entity",
         from = "Column::FileId",
-        to = "super::file::Column::FileId"
+        to = "super::file::Column::Id"
     )]
     File,
 }
@@ -71,11 +71,17 @@ impl AssessmentsResponseFileService {
         response_id: Uuid,
     ) -> Result<Vec<super::file::Model>, DbErr> {
         // Find all files linked to a response
-        super::file::Entity::find()
-            .join(JoinType::InnerJoin, Relation::File.def().rev())
+        Entity::find()
             .filter(Column::ResponseId.eq(response_id))
+            .find_also_related(super::file::Entity)
             .all(self.db.as_ref())
             .await
+            .map(|results| {
+                results
+                    .into_iter()
+                    .filter_map(|(_, file)| file)
+                    .collect()
+            })
     }
 
     pub async fn get_responses_for_file(
@@ -131,7 +137,7 @@ mod tests {
         };
 
         let mock_file = file::Model {
-            file_id: mock_response_file.file_id,
+            id: mock_response_file.file_id,
             content: vec![1, 2, 3, 4],
             metadata: serde_json::json!({"filename": "test.pdf"}),
         };
@@ -176,7 +182,7 @@ mod tests {
             .get_files_for_response(mock_response_file.response_id)
             .await?;
         assert_eq!(files.len(), 1);
-        assert_eq!(files[0].file_id, mock_response_file.file_id);
+        assert_eq!(files[0].id, mock_response_file.file_id);
 
         // Test get responses for file
         let responses = service

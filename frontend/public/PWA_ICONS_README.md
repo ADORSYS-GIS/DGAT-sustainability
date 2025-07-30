@@ -32,6 +32,7 @@ The following PWA icons need to be created for the application to work properly 
 ## Alternative
 
 You can use online PWA icon generators:
+
 - https://www.pwabuilder.com/imageGenerator
 - https://maskable.app/editor
 - https://favicon.io/favicon-generator/

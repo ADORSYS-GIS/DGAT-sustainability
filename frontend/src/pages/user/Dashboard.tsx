@@ -1,5 +1,4 @@
 import { FeatureCard } from "@/components/shared/FeatureCard";
-import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,61 +10,116 @@ import {
   History,
   Leaf,
   Star,
+  Users,
 } from "lucide-react";
-import React from "react";
+import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { useSubmissionsServiceGetSubmissions } from "../..//openapi-rq//queries/queries";
 import type { Submission } from "../../openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/shared/useAuth";
+import { useReportsServiceGetUserReports } from "../../openapi-rq/queries/queries";
+import { OrgUserManageUsers } from "./OrgUserManageUsers";
+import { useAssessmentsServiceGetAssessments } from "@/openapi-rq/queries/queries";
 
 export const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { data, isLoading, isError, error, isSuccess } =
     useSubmissionsServiceGetSubmissions();
-  const submissions: Submission[] = data?.submissions?.slice(0, 3) || [];
+  const submissions: Submission[] = data?.submissions?.slice(0, 5) || [];
+  const { data: reportsData, isLoading: reportsLoading } =
+      useReportsServiceGetUserReports();
+  const reports = reportsData?.reports || [];
+  const [showManageUsers, setShowManageUsers] = React.useState(false);
+
+  // Get all org assessments for Answer Assessment action
+  const { data: assessmentsData } = useAssessmentsServiceGetAssessments();
 
   React.useEffect(() => {
     if (isError) {
-      toast.error("Error loading submissions", {
+      toast.error(t('user.dashboard.errorLoadingSubmissions'), {
         description: error instanceof Error ? error.message : String(error),
       });
     } else if (isLoading) {
-      toast.info("Loading submissions...", {
-        description: "Fetching your recent submissions.",
+      toast.info(t('user.dashboard.loadingSubmissions'), {
+        description: t('user.dashboard.fetchingRecentSubmissions'),
       });
     } else if (isSuccess) {
-      toast.success("Submissions loaded", {
-        description: `Loaded ${submissions.length} submissions successfully!`,
+      toast.success(t('user.dashboard.submissionsLoaded'), {
+        description: t('user.dashboard.loadedSubmissions', { count: submissions.length }),
         className: "bg-dgrv-green text-white",
       });
     }
   }, [isError, error, isLoading, isSuccess, submissions.length]);
 
   const dashboardActions = [
+    // Only org_admin can start new assessment
+    ...(user?.roles?.includes("org_admin")
+      ? [
+          {
+            title: t('user.dashboard.startAssessment.title'),
+            description: t('user.dashboard.startAssessment.description'),
+            icon: Leaf,
+            color: "green" as const,
+            onClick: () => navigate("/assessment/sustainability"),
+          },
+        ]
+      : []),
+    // Only Org_User sees 'Answer Assessment' card
+    ...(!user?.roles?.includes("org_admin")
+      ? [
+          {
+            title: t('user.dashboard.answerAssessment.title'),
+            description: t('user.dashboard.answerAssessment.description'),
+            icon: FileText,
+            color: "blue" as const,
+            onClick: () => {
+              // Find the latest draft assessment (by created_at descending) and navigate to its answer page
+              const drafts = (assessmentsData?.assessments || []).filter(
+                (assessment) => (assessment as unknown as { status: string }).status === "draft"
+              );
+              if (drafts.length > 0) {
+                const latestDraft = drafts.reduce((latest, current) => {
+                  return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
+                }, drafts[0]);
+                navigate(`/user/assessment/${latestDraft.assessment_id}`);
+              } else {
+                toast.info(t('user.dashboard.noDraftAssessment'));
+              }
+            },
+          },
+        ]
+      : []),
     {
-      title: "Start Sustainability Assessment",
-      description:
-        "Assess environmental, social, and governance practices for sustainable growth.",
-      icon: Leaf,
-      color: "green" as const,
-      onClick: () => navigate("/assessment/sustainability"),
-    },
-    {
-      title: "View Assessments",
-      description:
-        "View all your assessments, drafts, and completed submissions with recommendations.",
+      title: t('user.dashboard.viewAssessments.title'),
+      description: t('user.dashboard.viewAssessments.description'),
       icon: FileText,
       color: "blue" as const,
       onClick: () => navigate("/assessments"),
     },
     {
-      title: "Action Plan",
-      description:
-        "Track your progress with interactive tasks and recommendations using our Kanban board.",
+      title: t('user.dashboard.actionPlan.title'),
+      description: t('user.dashboard.actionPlan.description'),
       icon: CheckSquare,
       color: "blue" as const,
       onClick: () => navigate("/action-plan"),
     },
+    // Conditionally add Manage Users card for org admins
+    ...(user?.roles?.includes("org_admin") ||
+    user?.realm_access?.roles?.includes("org_admin")
+      ? [
+          {
+            title: t('user.dashboard.manageUsers.title'),
+            description: t('user.dashboard.manageUsers.description'),
+            icon: Users,
+            color: "blue" as const,
+            onClick: () => navigate("/user/manage-users"),
+          },
+        ]
+      : []),
   ];
 
   const getStatusColor = (status: string) => {
@@ -88,37 +142,57 @@ export const Dashboard: React.FC = () => {
   const formatStatus = (status: string) => {
     switch (status) {
       case "approved":
-        return "Approved";
+        return t('user.dashboard.status.approved');
       case "pending_review":
-        return "Pending Review";
+        return t('user.dashboard.status.pendingReview');
       case "under_review":
-        return "Under Review";
+        return t('user.dashboard.status.underReview');
       case "rejected":
-        return "Rejected";
+        return t('user.dashboard.status.rejected');
       case "revision_requested":
-        return "Revision Requested";
+        return t('user.dashboard.status.revisionRequested');
       default:
-        return "Unknown";
+        return t('user.dashboard.status.unknown');
     }
   };
 
   const handleExportAllPDF = async () => {
-    await exportAllAssessmentsPDF(submissions, undefined, formatStatus);
+    await exportAllAssessmentsPDF(reports);
   };
+
+  // Get user name and organization name from user object (ID token)
+  const userName =
+    user?.name || user?.preferred_username || user?.email || t('user.dashboard.user');
+  let orgName = t('user.dashboard.org');
+  if (user?.organizations && typeof user.organizations === "object") {
+    const orgKeys = Object.keys(user.organizations);
+    if (orgKeys.length > 0) {
+      orgName = orgKeys[0];
+    }
+  } else if (user?.organisation_name) {
+    orgName = user.organisation_name;
+  } else if (user?.organisation) {
+    orgName = user.organisation;
+  }
+
+  // Check if user has Org_admin role
+  const isOrgAdmin = (user?.roles || user?.realm_access?.roles || []).includes(
+    "Org_admin",
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center space-x-3 mb-4">
               <Star className="w-8 h-8 text-dgrv-green" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">Welcome!</h1>
+              <h1 className="text-3xl font-bold text-dgrv-blue">
+                {t('user.dashboard.welcome', { user: userName, org: orgName })}
+              </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Ready to continue your cooperative's sustainability journey?
+              {t('user.dashboard.readyToContinue')}
             </p>
           </div>
 
@@ -139,14 +213,14 @@ export const Dashboard: React.FC = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <History className="w-5 h-5 text-dgrv-blue" />
-                  <span>Recent Submissions</span>
+                  <span>{t('user.dashboard.recentSubmissions')}</span>
                 </CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/assessments")}
                 >
-                  View All
+                  {t('user.dashboard.viewAll')}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -154,7 +228,7 @@ export const Dashboard: React.FC = () => {
                   {isLoading ? (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Loading submissions...</p>
+                      <p>{t('user.dashboard.loadingSubmissionsInline')}</p>
                     </div>
                   ) : (
                     submissions.map((submission) => (
@@ -168,7 +242,7 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <h3 className="font-medium">
-                              Sustainability Assessment
+                              {t('user.dashboard.sustainabilityAssessment')}
                             </h3>
                             <p className="text-sm text-gray-600">
                               {new Date(
@@ -191,7 +265,7 @@ export const Dashboard: React.FC = () => {
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>
-                        No submissions yet. Start your first assessment above!
+                        {t('user.dashboard.noSubmissions')}
                       </p>
                     </div>
                   )}
@@ -207,12 +281,12 @@ export const Dashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Download className="w-5 h-5 text-dgrv-blue" />
-                    <span>Export Reports</span>
+                    <span>{t('user.dashboard.exportReports')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600 mb-4">
-                    Download your assessment reports in various formats.
+                    {t('user.dashboard.downloadReportsDescription')}
                   </p>
                   <div className="space-y-2">
                     <Button
@@ -220,22 +294,23 @@ export const Dashboard: React.FC = () => {
                       size="sm"
                       className="w-full justify-start"
                       onClick={handleExportAllPDF}
+                      disabled={reportsLoading || reports.length === 0}
                     >
-                      Export as PDF
+                      {t('user.dashboard.exportAsPDF')}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
                     >
-                      Export as Word
+                      {t('user.dashboard.exportAsWord')}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
                     >
-                      Export as CSV
+                      {t('user.dashboard.exportAsCSV')}
                     </Button>
                   </div>
                 </CardContent>
@@ -246,15 +321,19 @@ export const Dashboard: React.FC = () => {
                 style={{ animationDelay: "300ms" }}
               >
                 <CardHeader>
-                  <CardTitle className="text-dgrv-green">Need Help?</CardTitle>
+                  <CardTitle className="text-dgrv-green">{t('user.dashboard.needHelp')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600 mb-4">
-                    Get support and training materials to make the most of your
-                    assessments.
+                    {t('user.dashboard.getSupport')}
                   </p>
-                  <Button variant="outline" size="sm" className="w-full">
-                    View User Guide
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full bg-dgrv-green text-white hover:bg-green-700"
+                    onClick={() => navigate("/user/guide")}
+                  >
+                    {t('user.dashboard.viewUserGuide')}
                   </Button>
                 </CardContent>
               </Card>
@@ -262,6 +341,14 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Remove modal logic for Manage Users */}
+      {/* Hidden canvas for PDF radar chart export */}
+      <canvas
+        id="radar-canvas"
+        width={500}
+        height={400}
+        style={{ display: "none" }}
+      />
     </div>
   );
 };

@@ -1,11 +1,5 @@
 # Sustainability Assessment Tool
 
-The Sustainability Assessment Tool is a digital platform designed to help cooperatives in Southern Africa evaluate their sustainability performance. Built as a Progressive Web App (PWA), it allows users to conduct assessments offline and sync data when connected. This tool is part of a broader initiative by DGRV to support cooperative development through digital transformation, empowering cooperatives to assess their sustainability across environmental, financial, and governance dimensions.
-
-## Development Status
-
-This project is currently in **active development**. Core features such as assessment creation, offline synchronization, and user management are being implemented. The tool is not yet ready for production use. For updates, please refer to the issue tracker in the repository.
-
 ## Features
 
 - **Offline Capability**: Conduct assessments without an internet connection; data syncs automatically when online.
@@ -13,7 +7,7 @@ This project is currently in **active development**. Core features such as asses
 - **Role-Based Access Control**: Secure access for different user types, including cooperative users and DGRV administrators.
 - **Assessment Management**: Create, save, and submit sustainability assessments with dynamic question sets.
 - **Reporting**: Generate detailed reports with scores, visualizations, and recommendations.
-- **Secure Architecture**: Built with security in mind, using encryption and compliant with data protection standards.
+- **Secure Architecture**: Built with security in mind, using data protection standards.
 
 ## Technology Stack
 
@@ -42,8 +36,6 @@ The project is organized as follows:
 └── docker-compose.yml      # Local development environment setup
 ```
 
-For a detailed breakdown, see the [project structure documentation](link-to-project-structure-artifact).
-
 ## Installation and Setup
 
 ### Prerequisites
@@ -58,7 +50,7 @@ For a detailed breakdown, see the [project structure documentation](link-to-proj
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/your-org/sustainability-tool.git
+   git clone https://github.com/ADORSYS-GIS/DGAT-sustainability.git
    cd sustainability-tool
    ```
 
@@ -119,19 +111,19 @@ For a detailed breakdown, see the [project structure documentation](link-to-proj
      ```
    - This will connect to the database and apply all migrations if they haven't been applied yet.
 
-For production deployment, refer to the [deployment documentation](link-to-deployment-docs).
+For production deployment, refer to the [deployment documentation](docs/deployment.md).
 
 ## Usage
 
 ### Accessing the PWA
 
-- Open `http://localhost:3000` in your browser.
+- Open `http://localhost:5173` in your browser.
 - Register or log in with provided credentials.
 - Start a new sustainability assessment or continue a draft.
 
 ### Accessing the Admin Interface
 
-- Navigate to `http://localhost:3001`.
+- Navigate to `http://localhost:5173`.
 - Log in with DGRV admin credentials.
 - Manage users, configure assessment questions, and generate reports.
 
@@ -170,7 +162,12 @@ For major updates, please open an issue first to discuss your ideas.
 ## Documentation
 
 - **Technical Documentation**: See the `/docs` directory for architecture and API details.
-- **User Manuals & Training**: Refer to `/docs/user-guides` and `/docs/training`.
+- **Deployment Guide**: [Deployment Documentation](docs/deployment.md)
+- **User Manuals**:
+  - [Cooperative User Guide](docs/user-guides/cooperative-user-guide.md)
+  - [Administrator User Guide](docs/user-guides/admin-user-guide.md)
+- **Training Resources**:
+  - [Sustainability Tool Training Guide](docs/training/sustainability-tool-training-guide.md)
 
 ## Support
 

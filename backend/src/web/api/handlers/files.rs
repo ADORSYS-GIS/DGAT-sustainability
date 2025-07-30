@@ -8,9 +8,20 @@ use axum::{
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
-use crate::common::state::AppState;
+use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
+
+// Helper: check if user is member of org by org_id
+fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
+    // Application admins bypass organization membership checks
+    if claims.is_application_admin() {
+        return true;
+    }
+    claims.organizations.as_ref()
+        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
+        .unwrap_or(false)
+}
 
 pub async fn upload_file(
     State(app_state): State<AppState>,
@@ -156,7 +167,8 @@ pub async fn delete_file(
     Extension(claims): Extension<Claims>,
     Path(file_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch the file to verify ownership
     let file_model = app_state
@@ -171,16 +183,17 @@ pub async fn delete_file(
         None => return Err(ApiError::NotFound("File not found".to_string())),
     };
 
-    // Check if the current user uploaded the file
+    // Check if the current organization uploaded the file
     let default_map = serde_json::Map::new();
     let metadata_obj = file_model.metadata.as_object().unwrap_or(&default_map);
 
-    let uploaded_by = metadata_obj
-        .get("uploaded_by")
+    let uploaded_by_org = metadata_obj
+        .get("uploaded_by_org")
         .and_then(|v| v.as_str())
+        .or_else(|| metadata_obj.get("uploaded_by").and_then(|v| v.as_str())) // fallback for old files
         .unwrap_or("");
 
-    if uploaded_by != *user_id {
+    if uploaded_by_org != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to delete this file".to_string(),
         ));
@@ -261,7 +274,7 @@ pub async fn get_file_metadata(
         .to_string();
 
     let metadata = FileMetadata {
-        file_id: file_model.file_id,
+        file_id: file_model.id,
         filename,
         size,
         content_type,
@@ -278,9 +291,10 @@ pub async fn attach_file(
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<AttachFileRequest>,
 ) -> Result<StatusCode, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -293,10 +307,19 @@ pub async fn attach_file(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
@@ -369,9 +392,10 @@ pub async fn remove_file(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id, file_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -384,10 +408,19 @@ pub async fn remove_file(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)

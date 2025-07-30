@@ -132,6 +132,27 @@ impl AssessmentsResponseService {
         Ok(latest_map.into_values().collect())
     }
 
+    pub async fn get_responses_by_question_revision(
+        &self,
+        question_revision_id: Uuid,
+    ) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .filter(Column::QuestionRevisionId.eq(question_revision_id))
+            .all(self.db_service.get_connection())
+            .await
+    }
+
+    pub async fn has_responses_for_question_revision(
+        &self,
+        question_revision_id: Uuid,
+    ) -> Result<bool, DbErr> {
+        let count = Entity::find()
+            .filter(Column::QuestionRevisionId.eq(question_revision_id))
+            .count(self.db_service.get_connection())
+            .await?;
+        Ok(count > 0)
+    }
+
     pub async fn update_response(
         &self,
         assessment_id: Uuid,

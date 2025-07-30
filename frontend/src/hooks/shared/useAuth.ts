@@ -1,86 +1,51 @@
-import { useEffect, useState } from "react";
-import { oidcPromise } from "../../services/shared/oidc";
+import { useKeycloak } from "../../services/shared/keycloakProvider";
+
+interface AuthState {
+  isAuthenticated: boolean;
+  user: {
+    sub: string;
+    preferred_username?: string;
+    name?: string;
+    email?: string;
+    roles?: string[];
+    realm_access?: { roles: string[] };
+    organizations?: Record<string, { id: string; categories: string[] }>;
+    organisation_name?: string;
+    organisation?: string;
+  } | null;
+  roles: string[];
+  login: () => void;
+  logout: () => void;
+  loading: boolean;
+  // Organization-related properties
+  primaryOrganization: { name: string; details: { id: string; categories: string[] } } | null;
+  userCategories: string[];
+}
 
 /**
- * React hook for OIDC authentication state using oidc-spa.
- * Waits for the OIDC instance to be ready, then polls every 500ms.
- * Returns: { isAuthenticated, user, roles, login, logout, loading }
+ * React hook for Keycloak authentication state.
+ * Returns: { isAuthenticated, user, roles, login, logout, loading, primaryOrganization, userCategories }
  */
-export const useAuth = () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [oidc, setOidc] = useState<any>(null);
-  const [snapshot, setSnapshot] = useState({
-    isAuthenticated: false,
-    user: null,
-    roles: [],
-    login: () => {},
-    logout: () => {},
-    loading: true,
-  });
+export const useAuth = (): AuthState => {
+  const { 
+    isAuthenticated, 
+    user, 
+    roles, 
+    loading, 
+    login, 
+    logout, 
+    primaryOrganization, 
+    userCategories 
+  } = useKeycloak();
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    let cancelled = false;
-    oidcPromise.then((resolvedOidc) => {
-      if (cancelled) return;
-      setOidc(resolvedOidc);
-      setSnapshot(getSnapshot(resolvedOidc));
-      interval = setInterval(() => {
-        setSnapshot(getSnapshot(resolvedOidc));
-      }, 500);
-    });
-    return () => {
-      cancelled = true;
-      if (interval) clearInterval(interval);
-    };
-  }, []);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function getSnapshot(oidcInstance: any) {
-    if (!oidcInstance) {
-      return {
-        isAuthenticated: false,
-        user: null,
-        roles: [],
-        login: () => {},
-        logout: () => {},
-        loading: true,
-      };
-    }
-    if (oidcInstance.isUserLoggedIn) {
-      const tokens = oidcInstance.getTokens();
-      const user = tokens.decodedIdToken;
-      // Debug: log the full decodedIdToken and raw roles claims
-      // console.log("[useAuth] decodedIdToken:", user);
-      // console.log("[useAuth] user.roles:", user?.roles);
-      // console.log("[useAuth] user.realm_access.roles:", user?.realm_access?.roles);
-
-      const roles = user?.roles || user?.realm_access?.roles || [];
-      return {
-        isAuthenticated: true,
-        user,
-        roles,
-        login: () => {},
-        logout:
-          typeof oidcInstance.logout === "function"
-            ? oidcInstance.logout
-            : () => {},
-        loading: false,
-      };
-    } else {
-      return {
-        isAuthenticated: false,
-        user: null,
-        roles: [],
-        login:
-          typeof oidcInstance.login === "function"
-            ? () => oidcInstance.login({ doesCurrentHrefRequiresAuth: true })
-            : () => {},
-        logout: () => {},
-        loading: false,
-      };
-    }
-  }
-
-  return snapshot;
+  return {
+    isAuthenticated,
+    user,
+    roles,
+    login: () => login(),
+    logout: () => logout(),
+    loading,
+    primaryOrganization,
+    userCategories,
+  };
 };

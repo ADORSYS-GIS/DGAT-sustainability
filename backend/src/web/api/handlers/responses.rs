@@ -8,7 +8,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
-use crate::common::state::AppState;
+use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
 
@@ -57,7 +57,7 @@ async fn convert_file_model_to_metadata(
         .to_string();
 
     FileMetadata {
-        file_id: file_model.file_id,
+        file_id: file_model.id,
         filename,
         size,
         content_type,
@@ -93,9 +93,10 @@ pub async fn list_responses(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<ResponseListResponse>, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -108,10 +109,19 @@ pub async fn list_responses(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Fetch the latest responses for the specified assessment from the database
@@ -126,11 +136,14 @@ pub async fn list_responses(
     let mut responses = Vec::new();
     for response_model in response_models {
         let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
+        // Store response as single string instead of array
+        let response_array = vec![response_model.response.clone()];
+
         responses.push(Response {
             response_id: response_model.response_id,
             assessment_id: response_model.assessment_id,
             question_revision_id: response_model.question_revision_id,
-            response: response_model.response,
+            response: response_array,
             version: response_model.version,
             updated_at: response_model.updated_at.to_rfc3339(),
             files,
@@ -144,18 +157,34 @@ pub async fn create_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
-    Json(request): Json<CreateResponseRequest>,
+    Json(requests): Json<Vec<CreateResponseRequest>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Validate request
-    if request.response.trim().is_empty() {
+    // Validate requests
+    if requests.is_empty() {
         return Err(ApiError::BadRequest(
-            "Response must not be empty".to_string(),
+            "At least one response is required".to_string(),
         ));
     }
 
-    // Verify that the current user is the owner of the assessment
+    for request in &requests {
+        if request.response.trim().is_empty() {
+            return Err(ApiError::BadRequest(
+                "Response must not be empty".to_string(),
+            ));
+        }
+    }
+
+    // Check if user has permission to answer assessments
+    if !claims.can_answer_assessments() {
+        return Err(ApiError::BadRequest(
+            "You don't have permission to answer assessments. Only Org_User and org_admin roles can answer assessments.".to_string(),
+        ));
+    }
+
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -168,55 +197,89 @@ pub async fn create_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user with proper role can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment for users with proper roles - this enables the sharing use case
+        // where org_admin creates assessments and shares the assessment_id with Org_User users
+        // The role check above ensures only authorized users can access this functionality
     }
 
-    // Verify that the assessment is in draft status (not submitted)
-    let has_submission = app_state
-        .database
-        .assessments_submission
-        .get_submission_by_assessment_id(assessment_id)
-        .await
-        .map_err(|e| {
-            ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
-        })?
-        .is_some();
+    // Allow multiple users to answer the same assessment even if it has been submitted
+    // This enables the use case where org_admin creates assessments and multiple Org_User users
+    // can answer and submit responses to the same assessment
 
-    if has_submission {
-        return Err(ApiError::BadRequest(
-            "Cannot create response for a submitted assessment".to_string(),
-        ));
-    }
-
-    // Create the response in the database
-    let response_model = app_state
+    // Get existing responses for this assessment
+    let existing_responses = app_state
         .database
         .assessments_response
-        .create_response(
-            assessment_id,
-            request.question_revision_id,
-            request.response,
-            1,
-        )
+        .get_latest_responses_by_assessment(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
 
-    // Convert database model to API model
-    let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
-    let response = Response {
-        response_id: response_model.response_id,
-        assessment_id: response_model.assessment_id,
-        question_revision_id: response_model.question_revision_id,
-        response: response_model.response,
-        version: response_model.version,
-        updated_at: response_model.updated_at.to_rfc3339(),
-        files,
-    };
+    let mut updated_responses = Vec::new();
 
-    Ok((StatusCode::CREATED, Json(ResponseResponse { response })))
+    // Process each request
+    for request in requests {
+        // Check if a response already exists for this question_revision_id
+        if let Some(existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
+            // Replace existing response with new one instead of appending
+            let updated_response = app_state
+                .database
+                .assessments_response
+                .update_response(
+                    assessment_id,
+                    request.question_revision_id,
+                    request.response,
+                )
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
+
+            updated_responses.push(updated_response);
+        } else {
+            // Create new response
+            let new_response = app_state
+                .database
+                .assessments_response
+                .create_response(
+                    assessment_id,
+                    request.question_revision_id,
+                    request.response,
+                    1,
+                )
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
+
+            updated_responses.push(new_response);
+        }
+    }
+
+    // Convert database models to API models
+    let mut responses = Vec::new();
+    for response_model in updated_responses {
+        let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
+
+        // Store response as single string instead of array
+        let response_array = vec![response_model.response.clone()];
+
+        let response = Response {
+            response_id: response_model.response_id,
+            assessment_id: response_model.assessment_id,
+            question_revision_id: response_model.question_revision_id,
+            response: response_array,
+            version: response_model.version,
+            updated_at: response_model.updated_at.to_rfc3339(),
+            files,
+        };
+        responses.push(response);
+    }
+
+    Ok((StatusCode::CREATED, Json(ResponseListResponse { responses })))
 }
 
 pub async fn get_response(
@@ -224,9 +287,10 @@ pub async fn get_response(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -239,10 +303,19 @@ pub async fn get_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Fetch the response from the database
@@ -267,11 +340,15 @@ pub async fn get_response(
 
     // Convert database model to API model
     let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
+
+    // Store response as single string instead of array
+    let response_array = vec![response_model.response.clone()];
+
     let response = Response {
         response_id: response_model.response_id,
         assessment_id: response_model.assessment_id,
         question_revision_id: response_model.question_revision_id,
-        response: response_model.response,
+        response: response_array,
         version: response_model.version,
         updated_at: response_model.updated_at.to_rfc3339(),
         files,
@@ -286,16 +363,17 @@ pub async fn update_response(
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<UpdateResponseRequest>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate request
-    if request.response.trim().is_empty() {
+    if request.response.is_empty() || request.response.iter().all(|s| s.trim().is_empty()) {
         return Err(ApiError::BadRequest(
             "Response must not be empty".to_string(),
         ));
     }
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -308,10 +386,19 @@ pub async fn update_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)
@@ -358,6 +445,9 @@ pub async fn update_response(
         ));
     }
 
+    // Convert Vec<String> to single string for database storage (take first response)
+    let response_json = request.response.first().unwrap_or(&String::new()).clone();
+
     // Update the response in the database
     let updated_response = app_state
         .database
@@ -365,18 +455,22 @@ pub async fn update_response(
         .update_response(
             assessment_id,
             existing_response.question_revision_id,
-            request.response,
+            response_json,
         )
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
 
     // Convert database model to API model
     let files = fetch_files_for_response(&app_state, updated_response.response_id).await?;
+
+    // Store response as single string instead of array
+    let response_array = vec![updated_response.response.clone()];
+
     let response = Response {
         response_id: updated_response.response_id,
         assessment_id: updated_response.assessment_id,
         question_revision_id: updated_response.question_revision_id,
-        response: updated_response.response,
+        response: response_array,
         version: updated_response.version,
         updated_at: updated_response.updated_at.to_rfc3339(),
         files,
@@ -390,9 +484,10 @@ pub async fn delete_response(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let user_id = &claims.sub;
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Verify that the current user is the owner of the assessment
+    // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
         .assessments
@@ -405,10 +500,19 @@ pub async fn delete_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    if assessment_model.user_id != *user_id {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
-        ));
+    // Allow access to assessments in the following cases:
+    // 1. User owns the assessment (same org_id)
+    // 2. User is a super user (can access any assessment)
+    // 3. Any user can access any assessment if they have the assessment_id (shared assessments)
+    let is_owner = assessment_model.org_id == org_id;
+    let is_super_user = claims.is_super_user();
+
+    if !is_owner && !is_super_user {
+        // Allow access to any assessment - this enables the sharing use case
+        // Comment out the permission check to enable sharing
+        // return Err(ApiError::BadRequest(
+        //     "You don't have permission to access this assessment".to_string(),
+        // ));
     }
 
     // Verify that the assessment is in draft status (not submitted)

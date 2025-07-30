@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Globe, User, LogOut, Home } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 
 const languages = [
   { code: "en", name: "English", flag: "🇺🇸" },
@@ -19,7 +21,8 @@ const languages = [
 ];
 
 export const Navbar = () => {
-  const [currentLanguage, setCurrentLanguage] = useState("en");
+  const { t } = useTranslation();
+  const [currentLanguage, setCurrentLanguage] = useState(i18n.language || "en");
   const { isAuthenticated, user, login, logout } = useAuth();
 
   const currentLang =
@@ -27,13 +30,18 @@ export const Navbar = () => {
 
   // Helper to get user display name
   const getUserDisplay = () => {
-    if (!user) return "Profile";
+    if (!user) return t("profile");
     return (
       user.name ||
+      user.preferred_username ||
       user.email ||
-      user.sub ||
-      "Profile"
+      t("profile")
     );
+  };
+
+  const handleLanguageChange = (langCode: string) => {
+    setCurrentLanguage(langCode);
+    i18n.changeLanguage(langCode);
   };
 
   return (
@@ -47,19 +55,17 @@ export const Navbar = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-dgrv-blue">DGRV</h1>
-              <p className="text-xs text-gray-600">
-                Digital Gap & Sustainability
-              </p>
+              <p className="text-xs text-gray-600">{t("sustainability")}</p>
             </div>
             <Button
               variant="ghost"
               size="sm"
               className="ml-4 flex items-center space-x-2"
               onClick={() => (window.location.href = "/")}
-              aria-label="Home"
+              aria-label={t("home")}
             >
               <Home className="w-5 h-5" />
-              <span className="hidden sm:inline">Home</span>
+              <span className="hidden sm:inline">{t("home")}</span>
             </Button>
           </div>
 
@@ -82,7 +88,7 @@ export const Navbar = () => {
                 {languages.map((lang) => (
                   <DropdownMenuItem
                     key={lang.code}
-                    onClick={() => setCurrentLanguage(lang.code)}
+                    onClick={() => handleLanguageChange(lang.code)}
                     className="flex items-center space-x-2"
                   >
                     <span>{lang.flag}</span>
@@ -96,14 +102,10 @@ export const Navbar = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  console.log("[Navbar] Login button clicked");
-                  console.log("[Navbar] login function:", login);
-                  login();
-                }}
+                onClick={login}
                 className="ml-2"
               >
-                Login
+                {t("login")}
               </Button>
             ) : (
               <DropdownMenu>
@@ -122,19 +124,22 @@ export const Navbar = () => {
                     disabled
                     className="flex flex-col items-start"
                   >
-                    <span className="font-semibold">{getUserDisplay()}</span>
-                    {user?.email && (
-                      <span className="text-xs text-gray-500">
-                        {user.email}
-                      </span>
-                    )}
+                    <span className="font-semibold">
+                      {user?.name ||
+                        user?.preferred_username ||
+                        user?.email ||
+                        t("profile")}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {user?.email || t("noData")}
+                    </span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={logout}
                     className="flex items-center space-x-2 text-red-600"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
+                    <span>{t("logout")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

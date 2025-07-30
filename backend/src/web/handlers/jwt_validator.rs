@@ -27,8 +27,15 @@ pub struct JwtValidator {
 
 impl JwtValidator {
     pub fn new(keycloak_url: String, realm: String) -> Self {
+        // Create a client that can handle self-signed certificates
+        // This is necessary when Keycloak is running with self-signed SSL certificates
+        let client = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .expect("Failed to create HTTP client");
+
         Self {
-            client: Client::new(),
+            client,
             keycloak_url,
             realm,
             keys_cache: HashMap::new(),
@@ -49,7 +56,7 @@ impl JwtValidator {
         // Set up validation
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_audience(&["sustainability", "account"]);
-        validation.set_issuer(&[&format!("{}/realms/{}", self.keycloak_url, self.realm)]);
+        validation.set_issuer(&[&format!("{}/realms/{}", "http://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com/keycloak", self.realm)]);
         // Decode and validate token
         let token_data =
             decode::<Claims>(token, &decoding_key, &validation).map_err(JwtError::DecodeError)?;

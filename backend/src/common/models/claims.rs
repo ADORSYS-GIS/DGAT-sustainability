@@ -4,7 +4,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,                       // Keycloak user ID
-    pub organizations: Organizations,      // Organizations with roles and metadata
+    pub organizations: Option<Organizations>, // Organizations with roles and metadata (optional for application_admin)
     pub realm_access: Option<RealmAccess>, // Realm roles
     pub preferred_username: String,        // Username
     pub email: Option<String>,             // Email
@@ -19,14 +19,13 @@ pub struct Claims {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Organizations {
     #[serde(flatten)]
-    pub orgs: HashMap<String, OrganizationInfo>, // Organization UUID -> Organization Info
-    pub name: String,            // Organization name
-    pub categories: Vec<String>, // Organization categories
+    pub orgs: HashMap<String, OrganizationInfo>, // Organization name -> Organization Info
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrganizationInfo {
-    pub roles: Vec<String>, // Organization-specific roles
+    pub id: Option<String>,
+    pub categories: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,37 +46,64 @@ impl Claims {
     }
 
     pub fn is_organization_admin(&self) -> bool {
-        self.has_role("organization_admin")
+        self.has_role("organization_admin") || self.has_role("org_admin")
     }
 
     pub fn can_manage_organization(&self, organization_id: &str) -> bool {
         self.is_application_admin()
             || (self.is_organization_admin()
-                && self.organizations.orgs.contains_key(organization_id))
+                && self.organizations.as_ref().map(|orgs| orgs.orgs.contains_key(organization_id)).unwrap_or(false))
     }
 
     /// Get the first organization ID (for backward compatibility)
     pub fn get_primary_organization_id(&self) -> Option<String> {
-        self.organizations.orgs.keys().next().cloned()
+        self.organizations.as_ref().and_then(|orgs| orgs.orgs.keys().next().cloned())
     }
 
     /// Get the organization name (for backward compatibility)
     pub fn get_organization_name(&self) -> Option<String> {
-        Some(self.organizations.name.clone())
+        self.organizations.as_ref().and_then(|orgs| orgs.orgs.keys().next().cloned())
     }
 
     /// Get all organization IDs
     pub fn get_organization_ids(&self) -> Vec<String> {
-        self.organizations.orgs.keys().cloned().collect()
+        self.organizations.as_ref().map(|orgs| orgs.orgs.keys().cloned().collect()).unwrap_or_default()
+    }
+
+    /// Get the organization ID from the first organization (for database operations)
+    pub fn get_org_id(&self) -> Option<String> {
+        self.organizations.as_ref()?.orgs.values().next()?.id.clone()
+    }
+
+    /// Check if user is a super user (application admin)
+    pub fn is_super_user(&self) -> bool {
+        self.is_application_admin()
+    }
+
+    /// Check if user has org_admin role
+    pub fn is_org_admin(&self) -> bool {
+        self.has_role("org_admin")
+    }
+
+    /// Check if user has Org_User role
+    pub fn is_Org_User(&self) -> bool {
+        self.has_role("Org_User")
+    }
+
+    /// Check if user can create assessments (only org_admin)
+    pub fn can_create_assessments(&self) -> bool {
+        self.is_org_admin() || self.is_application_admin()
+    }
+
+    /// Check if user can answer assessments (Org_User or org_admin)
+    pub fn can_answer_assessments(&self) -> bool {
+        self.is_Org_User() || self.is_org_admin() || self.is_application_admin()
     }
 
     /// Check if user has a specific role in a specific organization
-    pub fn has_organization_role(&self, organization_id: &str, role: &str) -> bool {
-        self.organizations
-            .orgs
-            .get(organization_id)
-            .map(|org_info| org_info.roles.contains(&role.to_string()))
-            .unwrap_or(false)
+    /// Note: Organization roles are no longer supported in the current JWT format
+    pub fn has_organization_role(&self, _organization_id: &str, _role: &str) -> bool {
+        false
     }
 }
 
@@ -92,22 +118,12 @@ mod tests {
         let test_json = json!({
             "sub": "user-123",
             "organizations": {
-                "65c3d2dd-1624-49f1-a41f-692282481826": {
-                    "roles": [
-                        "manage-invitations",
-                        "view-members",
-                        "manage-members",
-                        "view-identity-providers",
-                        "manage-organization",
-                        "view-invitations",
-                        "manage-roles",
-                        "manage-identity-providers",
-                        "view-roles",
-                        "view-organization"
+                "adorsys": {
+                    "categories": [
+                        "environment",
+                        "social"
                     ]
-                },
-                "name": "acme",
-                "categories": ["social", "environment"]
+                }
             },
             "preferred_username": "testuser",
             "exp": 1234567890_u64,
@@ -122,18 +138,51 @@ mod tests {
 
         // Test helper methods
         assert!(claims.get_primary_organization_id().is_some());
-        assert_eq!(claims.get_organization_name(), Some("acme".to_string()));
+        assert_eq!(claims.get_organization_name(), Some("adorsys".to_string()));
         assert_eq!(claims.get_organization_ids().len(), 1);
 
-        // Test organization role checking
-        let org_id = claims.get_primary_organization_id().unwrap();
-        assert!(claims.has_organization_role(&org_id, "manage-organization"));
-        assert!(!claims.has_organization_role(&org_id, "invalid-role"));
+        // Test organization role checking (should always return false in new format)
+        let org_name = claims.get_primary_organization_id().unwrap();
+        assert!(!claims.has_organization_role(&org_name, "any-role"));
 
         // Test serialization
         let serialized = serde_json::to_string(&claims).expect("Should serialize successfully");
         assert!(serialized.contains("organizations"));
-        assert!(serialized.contains("acme"));
-        assert!(serialized.contains("manage-organization"));
+        assert!(serialized.contains("adorsys"));
+        assert!(serialized.contains("environment"));
+        assert!(serialized.contains("social"));
+    }
+
+    #[test]
+    fn test_application_admin_without_organizations() {
+        // Test data for application_admin without organizations field
+        let test_json = json!({
+            "sub": "admin-123",
+            "realm_access": {
+                "roles": ["application_admin", "drgv_admin"]
+            },
+            "preferred_username": "admin@example.com",
+            "exp": 1234567890_u64,
+            "iat": 1234567890_u64,
+            "aud": "test-audience",
+            "iss": "test-issuer"
+        });
+
+        // Test deserialization
+        let claims: Claims =
+            serde_json::from_value(test_json).expect("Should deserialize successfully");
+
+        // Test that application admin methods work
+        assert!(claims.is_application_admin());
+        assert!(claims.is_super_user());
+
+        // Test that organization methods return None/empty for admin without organizations
+        assert!(claims.get_primary_organization_id().is_none());
+        assert!(claims.get_organization_name().is_none());
+        assert_eq!(claims.get_organization_ids().len(), 0);
+        assert!(claims.get_org_id().is_none());
+
+        // Test that admin can still manage any organization
+        assert!(claims.can_manage_organization("any-org"));
     }
 }

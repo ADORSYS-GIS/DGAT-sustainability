@@ -117,7 +117,7 @@ pub struct QuestionRevisionListResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {
     pub assessment_id: Uuid,
-    pub user_id: String,
+    pub org_id: String,
     pub language: String,
     pub status: String,
     pub created_at: String,
@@ -157,7 +157,7 @@ pub struct Response {
     pub response_id: Uuid,
     pub assessment_id: Uuid,
     pub question_revision_id: Uuid,
-    pub response: String,
+    pub response: Vec<String>,
     pub version: i32,
     pub updated_at: String,
     pub files: Vec<FileMetadata>,
@@ -171,7 +171,7 @@ pub struct CreateResponseRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateResponseRequest {
-    pub response: String,
+    pub response: Vec<String>,
     pub version: i32,
 }
 
@@ -190,7 +190,16 @@ pub struct ResponseListResponse {
 #[derive(Debug, Serialize)]
 pub struct AssessmentSubmission {
     pub assessment_id: Uuid,
-    pub user_id: String,
+    pub org_id: String,
+    pub content: serde_json::Value,
+    pub submitted_at: String,
+    pub review_status: String,
+    pub reviewed_at: Option<String>,
+}
+#[derive(Debug, Serialize)]
+pub struct Submission {
+    pub submission_id: Uuid,
+    pub org_id: String,
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,
@@ -204,7 +213,7 @@ pub struct AssessmentSubmissionResponse {
 
 #[derive(Debug, Serialize)]
 pub struct SubmissionListResponse {
-    pub submissions: Vec<AssessmentSubmission>,
+    pub submissions: Vec<Submission>,
 }
 
 #[derive(Debug, Serialize)]
@@ -218,7 +227,7 @@ pub struct SubmissionDetailResponse {
 pub struct AdminSubmissionDetail {
     pub submission_id: Uuid,
     pub assessment_id: Uuid,
-    pub user_id: String,
+    pub org_id: String,
     pub content: AdminSubmissionContent,
     pub review_status: String,
     pub submitted_at: String,
@@ -242,6 +251,7 @@ pub struct AdminResponseDetail {
     pub question_text: String,
     pub question_category: String,
     pub response: String,
+    pub version: i32,
     pub files: Vec<FileMetadata>,
 }
 
@@ -357,8 +367,7 @@ pub struct AttachFileRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Report {
     pub report_id: Uuid,
-    pub assessment_id: Uuid,
-    pub report_type: String,
+    pub submission_id: Uuid,
     pub status: String,
     pub generated_at: String,
     pub data: Option<serde_json::Value>,
@@ -366,8 +375,8 @@ pub struct Report {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateReportRequest {
-    pub report_type: String,
-    pub options: Option<serde_json::Value>,
+    pub category: String,
+    pub recommendation: String
 }
 
 #[derive(Debug, Serialize)]
@@ -384,4 +393,72 @@ pub struct ReportResponse {
 #[derive(Debug, Serialize)]
 pub struct ReportListResponse {
     pub reports: Vec<Report>,
+}
+
+// =============== Organization Models ===============
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OrganizationDomainRequest {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OrganizationCreateRequest {
+    pub name: String,
+    pub domains: Vec<OrganizationDomainRequest>,
+    #[serde(rename = "redirectUrl")]
+    pub redirect_url: String,
+    pub enabled: String, // Note: This comes as string in the payload sample
+    pub attributes: Option<HashMap<String, Vec<String>>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MemberRequest {
+    pub user_id: String,
+    pub roles: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InvitationRequest {
+    pub email: String,
+    pub roles: Vec<String>,
+    pub expiration: Option<String>,
+}
+
+// =============== Category Models ===============
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Category {
+    pub category_id: Uuid,
+    pub name: String,
+    pub weight: i32,
+    pub order: i32,
+    pub template_id: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateCategoryRequest {
+    pub name: String,
+    pub weight: i32,
+    pub order: i32,
+    pub template_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateCategoryRequest {
+    pub name: Option<String>,
+    pub weight: Option<i32>,
+    pub order: Option<i32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CategoryResponse {
+    pub category: Category,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CategoryListResponse {
+    pub categories: Vec<Category>,
 }
