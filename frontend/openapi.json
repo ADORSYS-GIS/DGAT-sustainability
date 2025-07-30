@@ -2677,7 +2677,9 @@
           "review_status",
           "submission_id",
           "submitted_at",
-          "user_id"
+          "user_id",
+          "org_id",
+          "org_name"
         ],
         "type": "object",
         "properties": {
@@ -2694,6 +2696,14 @@
           "user_id": {
             "type": "string",
             "description": "User who submitted the assessment"
+          },
+          "org_id": {
+            "type": "string",
+            "description": "Organization ID that submitted the assessment"
+          },
+          "org_name": {
+            "type": "string",
+            "description": "Organization name that submitted the assessment"
           },
           "content": {
             "$ref": "#/components/schemas/AdminSubmissionDetail_content"

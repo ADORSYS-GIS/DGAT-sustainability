@@ -542,10 +542,9 @@ impl KeycloakService {
     pub async fn get_organization_members_by_role(&self, token: &str, org_id: &str, role_name: &str) -> Result<Vec<KeycloakOrganizationMember>> {
         // First get all organization members
         let all_members = self.get_organization_members(token, org_id).await?;
-
+        
         // Filter members who have the specified realm role
         let mut filtered_members = Vec::new();
-
         for member in all_members {
             match self.get_user_realm_roles(token, &member.id).await {
                 Ok(roles) => {
