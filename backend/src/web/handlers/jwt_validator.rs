@@ -54,7 +54,7 @@ impl JwtValidator {
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_audience(&["sustainability", "account"]);
         error!("this is keycloak_url {}", self.keycloak_url);
-        validation.set_issuer(&[&format!("{}/realms/{}", "http://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak", self.realm)]);
+        validation.set_issuer(&[&format!("{}/realms/{}", "http://localhost:8080", self.realm)]);
         // Decode and validate token
         let token_data =
             decode::<Claims>(token, &decoding_key, &validation).map_err(JwtError::DecodeError)?;

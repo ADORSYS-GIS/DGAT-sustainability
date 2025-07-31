@@ -14,10 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Building2, Plus, Edit, Trash2, MapPin, Mail } from "lucide-react";
-import { 
-  useOfflineOrganizations,
-  useOfflineSyncStatus 
-} from "@/hooks/useOfflineApi";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
 import type {
   OrganizationResponse,
   OrganizationCreateRequest,
@@ -25,7 +22,12 @@ import type {
 import Select from "react-select";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { offlineDB } from "@/services/indexeddb";
+import {
+  useOrganizationsServiceGetAdminOrganizations,
+  useOrganizationsServicePostAdminOrganizations,
+  useOrganizationsServicePutAdminOrganizationsById,
+  useOrganizationsServiceDeleteAdminOrganizationsById
+} from "@/openapi-rq/queries/queries";
 
 interface Category {
   categoryId: string;
@@ -73,171 +75,6 @@ function toFixedOrg(org: unknown): OrganizationResponseFixed {
   };
 }
 
-// Placeholder mutation hooks for organization management
-function useOrganizationMutations() {
-  const [isPending, setIsPending] = useState(false);
-  
-  const createOrganization = async (data: { requestBody: OrganizationCreateRequest }) => {
-    setIsPending(true);
-    try {
-      // Generate a temporary ID for optimistic updates
-      const tempId = `temp_${crypto.randomUUID()}`;
-      const now = new Date().toISOString();
-      
-      // Create a temporary organization object for local storage
-      const tempOrg = {
-        id: tempId,
-        name: data.requestBody.name,
-        enabled: data.requestBody.enabled === "true",
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
-        domains: data.requestBody.domains || [],
-        attributes: data.requestBody.attributes || {},
-        created_at: now,
-        updated_at: now,
-        sync_status: 'pending' as const,
-        local_changes: true,
-        last_synced: undefined
-      };
-      
-      // Save to IndexedDB immediately for optimistic UI updates
-      await offlineDB.saveOrganization(tempOrg);
-      
-      // Try to sync with backend if online
-      try {
-        // Import the service dynamically to avoid circular dependencies
-        const { OrganizationsService } = await import('@/openapi-rq/requests/services.gen');
-        // Use environment variable for redirectUrl in the request
-        const requestBodyWithEnvRedirect = {
-          ...data.requestBody,
-          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173"
-        };
-        const result = await OrganizationsService.postAdminOrganizations({ requestBody: requestBodyWithEnvRedirect });
-        
-        // If successful, replace the temporary organization with the real one
-        if (result && result.id) {
-          // Delete the temporary organization first
-          await offlineDB.deleteOrganization(tempId);
-          
-          // Create the real organization object
-          const realOrg = {
-            id: result.id,
-            name: result.name || data.requestBody.name,
-            enabled: data.requestBody.enabled === "true", // Use the original request data
-            redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173", // Use environment variable
-            domains: result.domains || data.requestBody.domains || [],
-            attributes: result.attributes || data.requestBody.attributes || {},
-            created_at: now,
-            updated_at: new Date().toISOString(),
-            sync_status: 'synced' as const,
-            local_changes: false,
-            last_synced: new Date().toISOString()
-          };
-          
-          // Save the real organization
-          await offlineDB.saveOrganization(realOrg);
-          toast.success("Organization created successfully");
-        }
-      } catch (apiError) {
-        console.warn('API call failed, organization saved locally for sync:', apiError);
-        toast.success("Organization created locally (will sync when online)");
-      }
-      
-      return { success: true };
-    } catch (error) {
-      toast.error("Failed to create organization");
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  };
-  
-  const updateOrganization = async (data: { id: string; requestBody: OrganizationCreateRequest }) => {
-    setIsPending(true);
-    try {
-      // Update locally first
-      const existingOrg = await offlineDB.getOrganization(data.id);
-      if (existingOrg) {
-        const updatedOrg = {
-          ...existingOrg,
-          name: data.requestBody.name,
-          enabled: data.requestBody.enabled === "true",
-          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
-          domains: data.requestBody.domains || [],
-          attributes: data.requestBody.attributes || {},
-          updated_at: new Date().toISOString(),
-          sync_status: 'pending' as const,
-          local_changes: true
-        };
-        await offlineDB.saveOrganization(updatedOrg);
-      }
-      
-      // Try to sync with backend if online
-      try {
-        const { OrganizationsService } = await import('@/openapi-rq/requests/services.gen');
-        // Use environment variable for redirectUrl in the request
-        const requestBodyWithEnvRedirect = {
-          ...data.requestBody,
-          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173"
-        };
-        await OrganizationsService.putAdminOrganizationsById({ id: data.id, requestBody: requestBodyWithEnvRedirect });
-        
-        // Update the local organization to synced status
-        if (existingOrg) {
-          const syncedOrg = {
-            ...existingOrg,
-            sync_status: 'synced' as const,
-            local_changes: false,
-            last_synced: new Date().toISOString()
-          };
-          await offlineDB.saveOrganization(syncedOrg);
-        }
-        toast.success("Organization updated successfully");
-      } catch (apiError) {
-        console.warn('API call failed, organization updated locally for sync:', apiError);
-        toast.success("Organization updated locally (will sync when online)");
-      }
-      
-      return { success: true };
-    } catch (error) {
-      toast.error("Failed to update organization");
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  };
-  
-  const deleteOrganization = async (data: { id: string }) => {
-    setIsPending(true);
-    try {
-      // Delete locally first
-      await offlineDB.deleteOrganization(data.id);
-      
-      // Try to sync with backend if online
-      try {
-        const { OrganizationsService } = await import('@/openapi-rq/requests/services.gen');
-        await OrganizationsService.deleteAdminOrganizationsById({ id: data.id });
-        toast.success("Organization deleted successfully");
-      } catch (apiError) {
-        console.warn('API call failed, organization deleted locally for sync:', apiError);
-        toast.success("Organization deleted locally (will sync when online)");
-      }
-      
-      return { success: true };
-    } catch (error) {
-      toast.error("Failed to delete organization");
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  };
-  
-  return {
-    createOrganization: { mutate: createOrganization, isPending },
-    updateOrganization: { mutate: updateOrganization, isPending },
-    deleteOrganization: { mutate: deleteOrganization, isPending }
-  };
-}
-
 export const ManageOrganizations: React.FC = () => {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -253,14 +90,65 @@ export const ManageOrganizations: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   
-  // Use offline hooks for all data fetching
+  // Use direct API query method from queries.ts instead of offline hook
   const {
     data: organizations,
     isLoading,
     refetch,
-  } = useOfflineOrganizations();
+  } = useOrganizationsServiceGetAdminOrganizations();
   
-  const { createOrganization, updateOrganization, deleteOrganization } = useOrganizationMutations();
+  // Use the actual mutation methods from queries.ts for direct API calls
+  const createOrganizationMutation = useOrganizationsServicePostAdminOrganizations({
+    onSuccess: (result) => {
+      toast.success("Organization created successfully");
+      refetch();
+      setShowAddDialog(false);
+      setEditingOrg(null);
+      setFormData({
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to create organization:', error);
+      toast.error("Failed to create organization");
+    }
+  });
+
+  const updateOrganizationMutation = useOrganizationsServicePutAdminOrganizationsById({
+    onSuccess: () => {
+      toast.success("Organization updated successfully");
+      refetch();
+      setShowAddDialog(false);
+      setEditingOrg(null);
+      setFormData({
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to update organization:', error);
+      toast.error("Failed to update organization");
+    }
+  });
+
+  const deleteOrganizationMutation = useOrganizationsServiceDeleteAdminOrganizationsById({
+    onSuccess: () => {
+      toast.success("Organization deleted successfully");
+      refetch();
+    },
+    onError: (error) => {
+      console.error('Failed to delete organization:', error);
+      toast.error("Failed to delete organization");
+    }
+  });
+
   const { isOnline } = useOfflineSyncStatus();
 
   // Load categories from IndexedDB on mount
@@ -268,6 +156,7 @@ export const ManageOrganizations: React.FC = () => {
     const loadCategories = async () => {
       setCategoriesLoading(true);
       try {
+        const { offlineDB } = await import('@/services/indexeddb');
         const stored = await offlineDB.getAllCategories();
         // Map the IndexedDB category structure to the expected format
         const mappedCategories = stored.map(cat => ({
@@ -315,34 +204,12 @@ export const ManageOrganizations: React.FC = () => {
     };
     
     if (editingOrg) {
-      updateOrganization.mutate({ id: editingOrg.id, requestBody }).then(() => {
-        refetch();
-        setShowAddDialog(false);
-        setEditingOrg(null);
-        setFormData({
-          name: "",
-          domains: [{ name: "" }],
-          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
-          enabled: "true",
-          attributes: { categories: [] },
-        });
-      }).catch(() => {
-        // Error already handled in mutation
+      updateOrganizationMutation.mutate({ 
+        id: editingOrg.id, 
+        requestBody 
       });
     } else {
-      createOrganization.mutate({ requestBody }).then(() => {
-        refetch();
-        setShowAddDialog(false);
-        setFormData({
-          name: "",
-          domains: [{ name: "" }],
-          redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
-          enabled: "true",
-          attributes: { categories: [] },
-        });
-      }).catch(() => {
-        // Error already handled in mutation
-      });
+      createOrganizationMutation.mutate({ requestBody });
     }
   };
 
@@ -363,11 +230,7 @@ export const ManageOrganizations: React.FC = () => {
   const handleDelete = (orgId: string) => {
     if (!confirm("Are you sure you want to delete this organization?")) return;
     
-    deleteOrganization.mutate({ id: orgId }).then(() => {
-      refetch();
-    }).catch(() => {
-      // Error already handled in mutation
-    });
+    deleteOrganizationMutation.mutate({ id: orgId });
   };
 
   const resetForm = () => {
@@ -418,8 +281,9 @@ export const ManageOrganizations: React.FC = () => {
     );
   }
 
-  const fixedOrgs = Array.isArray(organizations?.organizations)
-    ? (organizations.organizations as unknown[]).map(toFixedOrg)
+  // Transform the organizations data from the direct API call
+  const fixedOrgs = organizations ? 
+    (Array.isArray(organizations) ? organizations : [organizations]).map(toFixedOrg) 
     : [];
 
   return (
@@ -604,9 +468,9 @@ export const ManageOrganizations: React.FC = () => {
                       <Button
                         onClick={handleSubmit}
                         className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow"
-                        disabled={createOrganization.isPending || updateOrganization.isPending}
+                        disabled={createOrganizationMutation.isPending || updateOrganizationMutation.isPending}
                       >
-                        {createOrganization.isPending || updateOrganization.isPending
+                        {createOrganizationMutation.isPending || updateOrganizationMutation.isPending
                           ? t('manageOrganizations.saving', { defaultValue: 'Saving...' })
                           : editingOrg 
                             ? t('manageOrganizations.update', { defaultValue: 'Update' }) 
@@ -671,7 +535,7 @@ export const ManageOrganizations: React.FC = () => {
                         variant="outline"
                         onClick={() => handleDelete(org.id)}
                         className="text-red-600 hover:bg-red-50"
-                        disabled={deleteOrganization.isPending}
+                        disabled={deleteOrganizationMutation.isPending}
                       >
                         <Trash2 className="w-4 h-4" />
                         {t('manageOrganizations.delete', { defaultValue: 'Delete' })}
