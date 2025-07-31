@@ -15,40 +15,22 @@ pub struct KeycloakService {
 
 impl KeycloakService {
     pub fn new(config: KeycloakConfigs) -> Self {
-        let client = Client::new();
+        let client = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build().expect("Failed to create reqwest client");
+
         Self { client, config }
     }
 
-    /// Get admin token for interacting with Keycloak admin APIs
-    async fn get_admin_token(&self, username: &str, password: &str) -> Result<KeycloakToken> {
-        let token_url = format!("{}/realms/master/protocol/openid-connect/token", self.config.url);
-
-        let form = [
-            ("client_id", "admin-cli"),
-            ("grant_type", "password"),
-            ("username", username),
-            ("password", password),
-        ];
-
-        let response = self.client.post(&token_url)
-            .form(&form)
-            .send()
-            .await?
-            .error_for_status()?;
-
-        let token: KeycloakToken = response.json().await?;
-        Ok(token)
-    }
-
     /// Create a new organization
-    pub async fn create_organization(&self, 
-                                    admin_token: &str, 
-                                    name: &str, 
-                                    domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
-                                    redirect_url: String,
-                                    enabled: String,
-                                    attributes: Option<std::collections::HashMap<String, Vec<String>>>
-                                    ) -> Result<KeycloakOrganization> {
+    pub async fn create_organization(&self,
+                                     admin_token: &str,
+                                     name: &str,
+                                     domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
+                                     redirect_url: String,
+                                     enabled: String,
+                                     attributes: Option<std::collections::HashMap<String, Vec<String>>>
+    ) -> Result<KeycloakOrganization> {
         let url = format!("{}/admin/realms/{}/organizations", self.config.url, self.config.realm);
 
         let mut payload = json!({
@@ -60,7 +42,7 @@ impl KeycloakService {
         if let Some(attrs) = attributes {
             payload["attributes"] = json!(attrs);
         }
-        tracing::info!(payload = %payload, "Sending organization create payload to Keycloak");
+        info!(payload = %payload, "Sending organization create payload to Keycloak");
 
         let response = self.client.post(&url)
             .bearer_auth(admin_token)
@@ -124,13 +106,13 @@ impl KeycloakService {
     }
 
     /// Update an organization
-    pub async fn update_organization(&self, 
-                                    token: &str, 
-                                    org_id: &str, 
-                                    name: &str,
-                                    domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
-                                    attributes: Option<std::collections::HashMap<String, Vec<String>>>
-                                    ) -> Result<()> {
+    pub async fn update_organization(&self,
+                                     token: &str,
+                                     org_id: &str,
+                                     name: &str,
+                                     domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
+                                     attributes: Option<std::collections::HashMap<String, Vec<String>>>
+    ) -> Result<()> {
         let url = format!("{}/admin/realms/{}/organizations/{}", self.config.url, self.config.realm, org_id);
 
         let mut payload = json!({
@@ -247,7 +229,7 @@ impl KeycloakService {
             .await?;
         // Assign the client role to the user
         let assign_url = format!("{}/admin/realms/{}/users/{}/role-mappings/clients/{}", self.config.url, self.config.realm, user_id, client_id);
-        let roles_payload = serde_json::json!([role]);
+        let roles_payload = json!([role]);
         let response = self.client.post(&assign_url)
             .bearer_auth(token)
             .json(&roles_payload)
@@ -318,8 +300,8 @@ impl KeycloakService {
 
     /// Remove user from organization
     pub async fn remove_user_from_organization(&self, token: &str, org_id: &str, membership_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}", 
-            self.config.url, self.config.realm, org_id, membership_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}",
+                          self.config.url, self.config.realm, org_id, membership_id);
 
         let response = self.client.delete(&url)
             .bearer_auth(token)
@@ -346,8 +328,8 @@ impl KeycloakService {
 
     /// Update user roles in organization
     pub async fn update_user_roles(&self, token: &str, org_id: &str, membership_id: &str, roles: Vec<String>) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}", 
-            self.config.url, self.config.realm, org_id, membership_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/{}",
+                          self.config.url, self.config.realm, org_id, membership_id);
 
         let payload = json!({
             "roles": roles
@@ -371,8 +353,8 @@ impl KeycloakService {
 
     /// Create an invitation to an organization
     pub async fn create_invitation(&self, token: &str, org_id: &str, email: &str, roles: Vec<String>, expiration: Option<String>) -> Result<KeycloakInvitation> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations", 
-            self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations",
+                          self.config.url, self.config.realm, org_id);
 
         let mut payload = json!({
             "email": email,
@@ -404,8 +386,8 @@ impl KeycloakService {
 
     /// Get all invitations for an organization
     pub async fn get_invitations(&self, token: &str, org_id: &str) -> Result<Vec<KeycloakInvitation>> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations", 
-            self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations",
+                          self.config.url, self.config.realm, org_id);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
@@ -419,8 +401,8 @@ impl KeycloakService {
 
     /// Delete an invitation
     pub async fn delete_invitation(&self, token: &str, org_id: &str, invitation_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations/{}", 
-            self.config.url, self.config.realm, org_id, invitation_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}/invitations/{}",
+                          self.config.url, self.config.realm, org_id, invitation_id);
 
         let response = self.client.delete(&url)
             .bearer_auth(token)
@@ -442,7 +424,7 @@ impl KeycloakService {
         let user_id = user.id;
         let user_email = user.email.clone().unwrap_or_default();
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
-        let payload = serde_json::json!({
+        let payload = json!({
             "email": user_email,
             "attributes": { "categories": categories }
         });
@@ -512,7 +494,7 @@ impl KeycloakService {
     /// Get user realm roles by user ID
     pub async fn get_user_realm_roles(&self, token: &str, user_id: &str) -> Result<Vec<String>> {
         let url = format!("{}/admin/realms/{}/users/{}/role-mappings/realm", self.config.url, self.config.realm, user_id);
-        
+
         let response = self.client.get(&url)
             .bearer_auth(token)
             .send()
@@ -545,7 +527,7 @@ impl KeycloakService {
         
         // Filter members who have the specified realm role
         let mut filtered_members = Vec::new();
-        
+
         for member in all_members {
             match self.get_user_realm_roles(token, &member.id).await {
                 Ok(roles) => {
@@ -559,7 +541,7 @@ impl KeycloakService {
                 }
             }
         }
-        
+
         Ok(filtered_members)
     }
 }

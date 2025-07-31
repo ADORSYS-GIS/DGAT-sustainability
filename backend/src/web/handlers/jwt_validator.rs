@@ -4,6 +4,7 @@ use reqwest::Client;
 use serde_json::Value;
 use std::collections::HashMap;
 use thiserror::Error;
+use tracing::{error, info};
 
 #[derive(Error, Debug)]
 pub enum JwtError {
@@ -28,7 +29,10 @@ pub struct JwtValidator {
 impl JwtValidator {
     pub fn new(keycloak_url: String, realm: String) -> Self {
         Self {
-            client: Client::new(),
+            client: Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .expect("Client"),
             keycloak_url,
             realm,
             keys_cache: HashMap::new(),
@@ -49,7 +53,8 @@ impl JwtValidator {
         // Set up validation
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_audience(&["sustainability", "account"]);
-        validation.set_issuer(&[&format!("{}/realms/{}", self.keycloak_url, self.realm)]);
+        let keycloak_url = self.keycloak_url.replace("https", "http");
+        validation.set_issuer(&[&format!("{}/realms/{}", keycloak_url, self.realm)]);
         // Decode and validate token
         let token_data =
             decode::<Claims>(token, &decoding_key, &validation).map_err(JwtError::DecodeError)?;
