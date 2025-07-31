@@ -368,8 +368,11 @@
     "deleteSuccess": "Kategorie erfolgreich gelöscht!",
     "weightExceedsError": "Die Gesamtgewichtung würde 100% überschreiten. Bitte anpassen oder neu verteilen.",
     "redistributeWeights": "Gewichtungen gleichmäßig verteilen",
-    "totalWeightExceeds": "Die Gesamtgewichtung überschreitet 100%. Bitte anpassen oder neu verteilen.",
-    "totalWeightNot100": "Die Gesamtgewichtung beträgt {{total}}%. Sie sollte genau 100% betragen, um eine gültige Bewertung zu gewährleisten.",
+    "totalWeightExceeds": "Gesamtgewicht übersteigt 100%. Bitte Gewichte neu verteilen.",
+    "totalWeightNot100": "Gesamtgewicht ist {{total}}%. Es sollte 100% betragen.",
+    "totalWeightMustBe100": "Gesamtgewicht muss 100% betragen. Bitte passen Sie die Gewichte an oder verwenden Sie die Neuverteilung-Schaltfläche.",
+    "totalWeightNot100ForNew": "Gesamtgewicht wird {{total}}% betragen. Muss 100% betragen.",
+    "currentTotal": "Aktuelles Gesamtgewicht: {{current}}% | Neues Gesamtgewicht: {{new}}%",
     "noCategoriesYet": "Noch keine Kategorien. Fügen Sie Ihre erste Kategorie hinzu, um zu beginnen!",
     "weightLabel": "Gewichtung: {{weight}}% | Reihenfolge: {{order}}"
   },

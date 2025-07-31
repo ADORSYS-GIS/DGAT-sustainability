@@ -119,6 +119,7 @@ pub struct Assessment {
     pub assessment_id: Uuid,
     pub org_id: String,
     pub language: String,
+    pub name: String,
     pub status: String,
     pub created_at: String,
     pub updated_at: String,
@@ -127,6 +128,7 @@ pub struct Assessment {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateAssessmentRequest {
     pub language: String,
+    pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

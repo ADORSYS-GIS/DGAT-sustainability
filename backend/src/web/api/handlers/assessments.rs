@@ -120,6 +120,7 @@ pub async fn list_assessments(
             assessment_id: model.assessment_id,
             org_id: model.org_id,
             language: model.language,
+            name: model.name,
             status,
             created_at: model.created_at.to_rfc3339(),
             updated_at: model.created_at.to_rfc3339(),
@@ -160,6 +161,12 @@ pub async fn create_assessment(
     if request.language.trim().is_empty() {
         return Err(ApiError::BadRequest(
             "Language must not be empty".to_string(),
+        ));
+    }
+
+    if request.name.trim().is_empty() {
+        return Err(ApiError::BadRequest(
+            "Assessment name must not be empty".to_string(),
         ));
     }
 
@@ -211,7 +218,7 @@ pub async fn create_assessment(
     let assessment_model = app_state
         .database
         .assessments
-        .create_assessment(org_id, request.language)
+        .create_assessment(org_id, request.language, request.name)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create assessment: {e}")))?;
 
@@ -220,6 +227,7 @@ pub async fn create_assessment(
         assessment_id: assessment_model.assessment_id,
         org_id: assessment_model.org_id,
         language: assessment_model.language,
+        name: assessment_model.name,
         status: "draft".to_string(),
         created_at: assessment_model.created_at.to_rfc3339(),
         updated_at: assessment_model.created_at.to_rfc3339(),
@@ -291,6 +299,7 @@ pub async fn get_assessment(
         assessment_id: assessment_model.assessment_id,
         org_id: assessment_model.org_id,
         language: assessment_model.language,
+        name: assessment_model.name,
         status,
         created_at: assessment_model.created_at.to_rfc3339(),
         updated_at: assessment_model.created_at.to_rfc3339(),
@@ -403,6 +412,7 @@ pub async fn update_assessment(
         assessment_id: assessment_model.assessment_id,
         org_id: assessment_model.org_id,
         language: assessment_model.language,
+        name: assessment_model.name,
         status: "draft".to_string(),
         created_at: assessment_model.created_at.to_rfc3339(),
         updated_at: assessment_model.created_at.to_rfc3339(),

@@ -79,6 +79,13 @@ export const ManageCategories: React.FC = () => {
   const weightExceeds = totalWeight > 100;
   const weightNot100 = totalWeight !== 100;
 
+  // Calculate default weight for new category to make total 100%
+  const calculateDefaultWeight = () => {
+    if (sortedCategories.length === 0) return 100;
+    const remainingWeight = 100 - totalWeight;
+    return Math.max(1, Math.floor(remainingWeight / (sortedCategories.length + 1)));
+  };
+
   // Evenly redistribute weights, optionally including a new category
   const redistributeWeights = async (includeNewCategory = false) => {
     let cats = sortedCategories;
@@ -143,6 +150,14 @@ export const ManageCategories: React.FC = () => {
     const newTotalWeight = totalWeight + formData.weight - (editingCategory?.weight || 0);
     if (newTotalWeight > 100) {
       setShowDialogWeightError(true);
+      return;
+    }
+
+    // Check if total weight is exactly 100% (only for new categories, not edits)
+    if (!editingCategory && newTotalWeight !== 100) {
+      toast.error(t('manageCategories.totalWeightMustBe100', { 
+        defaultValue: 'Total weight must equal 100%. Please adjust the weights or use the redistribute button.' 
+      }));
       return;
     }
 
@@ -281,11 +296,13 @@ export const ManageCategories: React.FC = () => {
                     className="bg-dgrv-blue hover:bg-blue-700"
                     onClick={() => {
                       setEditingCategory(null);
+                      const defaultWeight = calculateDefaultWeight();
                       setFormData({
                         name: "",
-                        weight: 25,
+                        weight: defaultWeight,
                         order: categories.length + 1,
                       });
+                      setShowDialogWeightError(false);
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -330,6 +347,15 @@ export const ManageCategories: React.FC = () => {
                         }
                         required
                       />
+                      {!editingCategory && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {t('manageCategories.currentTotal', { 
+                            current: totalWeight, 
+                            new: totalWeight + formData.weight,
+                            defaultValue: `Current total: ${totalWeight}% | New total: ${totalWeight + formData.weight}%`
+                          })}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="order">{t('manageCategories.displayOrder')}</Label>
@@ -365,10 +391,30 @@ export const ManageCategories: React.FC = () => {
                         </Button>
                       </div>
                     )}
+                    {!showDialogWeightError && !editingCategory && totalWeight + formData.weight !== 100 && (
+                      <div className="text-yellow-600 text-center space-y-2">
+                        <p>
+                          {t('manageCategories.totalWeightNot100ForNew', { 
+                            total: totalWeight + formData.weight,
+                            defaultValue: `Total weight will be ${totalWeight + formData.weight}%. Must equal 100%.`
+                          })}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-dgrv-blue text-white hover:bg-blue-700"
+                          onClick={() => {
+                            redistributeWeights(true); // include new category
+                          }}
+                        >
+                          {t('manageCategories.redistributeWeights')}
+                        </Button>
+                      </div>
+                    )}
                     <Button
                       type="submit"
                       className="w-full bg-dgrv-blue hover:bg-blue-700"
-                      disabled={showDialogWeightError || isPending}
+                      disabled={showDialogWeightError || isPending || (!editingCategory && totalWeight + formData.weight !== 100)}
                     >
                       {isPending
                         ? t('manageCategories.saving', { defaultValue: 'Saving...' })

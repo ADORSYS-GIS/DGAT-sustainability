@@ -368,8 +368,11 @@
     "deleteSuccess": "Isigaba sisuswe ngempumelelo!",
     "weightExceedsError": "Isisindo esiphelele singadlula u-100%. Sicela ulungise noma uhlele kabusha.",
     "redistributeWeights": "Hlela kabusha izisindo ngokulinganayo",
-    "totalWeightExceeds": "Isisindo esiphelele sidlula u-100%. Sicela ulungise noma uhlele kabusha.",
-    "totalWeightNot100": "Isisindo esiphelele singu-{{total}}%. Kufanele sibe ngu-100% ukuze kube nokuhlola okusemthethweni.",
+    "totalWeightExceeds": "Isisindo esiphelele sidlula u-100%. Sicela uhlukanise kabusha amasisindo.",
+    "totalWeightNot100": "Isisindo esiphelele ngu-{{total}}%. Kufanele sibe ngu-100%.",
+    "totalWeightMustBe100": "Isisindo esiphelele kufanele sibe ngu-100%. Sicela ulungise amasisindo noma usebenzise inkinobho yokuhlukanisa kabusha.",
+    "totalWeightNot100ForNew": "Isisindo esiphelele sizoba ngu-{{total}}%. Kufanele sibe ngu-100%.",
+    "currentTotal": "Isisindo samanje: {{current}}% | Isisindo esisha: {{new}}%",
     "noCategoriesYet": "Azikho izigaba okwamanje. Engeza isigaba sakho sokuqala ukuze uqale!",
     "weightLabel": "Isisindo: {{weight}}% | Ukulandelana: {{order}}"
   },

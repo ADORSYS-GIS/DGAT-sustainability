@@ -131,17 +131,8 @@ export const Dashboard: React.FC = () => {
             icon: FileText,
             color: "blue" as const,
             onClick: () => {
-              // Use the filtered assessments (already filtered by organization and status)
-              if (filteredAssessments.length > 0) {
-                const latestDraft = filteredAssessments.reduce((latest, current) => {
-                  return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
-                }, filteredAssessments[0]);
-                navigate(`/user/assessment/${latestDraft.assessment_id}`);
-              } else {
-                toast.info(t('user.dashboard.noDraftAssessment', { 
-                  defaultValue: 'No draft assessment available. Please contact your organization administrator to create an assessment.' 
-                }));
-              }
+              // Navigate to assessment list page instead of directly to an assessment
+              navigate("/user/assessment-list");
             },
           },
         ]

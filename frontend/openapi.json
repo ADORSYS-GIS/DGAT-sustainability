@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Production server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Staging server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Development server"
     }
   ],
@@ -3539,9 +3539,13 @@
           "language": {
             "type": "string",
             "description": "Language for the assessment"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the assessment"
           }
         },
-        "required": ["language"]
+        "required": ["language", "name"]
       },
       "Category": {
         "required": ["category_id", "name", "weight", "order", "template_id", "created_at", "updated_at"],

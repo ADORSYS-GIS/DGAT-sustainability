@@ -13,6 +13,7 @@ pub struct Model {
     pub assessment_id: Uuid,
     pub org_id: String,
     pub language: String,
+    pub name: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -71,11 +72,13 @@ impl AssessmentsService {
         &self,
         org_id: String,
         language: String,
+        name: String,
     ) -> Result<Model, DbErr> {
         let assessment = ActiveModel {
             assessment_id: Set(Uuid::new_v4()),
             org_id: Set(org_id),
             language: Set(language),
+            name: Set(name),
             created_at: Set(Utc::now()),
         };
 
@@ -144,6 +147,7 @@ mod tests {
             assessment_id: Uuid::new_v4(),
             org_id: "test_org".to_string(),
             language: "en".to_string(),
+            name: "Test Assessment".to_string(),
             created_at: Utc::now(),
         };
 
@@ -190,7 +194,7 @@ mod tests {
 
         // Test create
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
             .await?;
 
         assert_eq!(assessment.org_id, "test_org");
@@ -261,6 +265,7 @@ mod tests {
             assessment_id,
             org_id: "test_org".to_string(),
             language: "en".to_string(),
+            name: "Test Assessment".to_string(),
             created_at: Utc::now(),
         };
 
@@ -335,7 +340,7 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
             .await?;
 
         // Create some responses for this assessment
@@ -389,6 +394,7 @@ mod tests {
             assessment_id,
             org_id: "test_org".to_string(),
             language: "en".to_string(),
+            name: "Test Assessment".to_string(),
             created_at: Utc::now(),
         };
 
@@ -412,7 +418,7 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
             .await?;
 
         // Try to delete the assessment without creating a submission - this should fail

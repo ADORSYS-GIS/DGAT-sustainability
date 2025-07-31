@@ -4,6 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { Navbar } from "@/components/shared/Navbar";
 import { AssessmentSuccessModal } from "@/components/shared/AssessmentSuccessModal";
+import { CreateAssessmentModal } from "@/components/shared/CreateAssessmentModal";
+import { AssessmentList } from "@/components/shared/AssessmentList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -15,6 +17,7 @@ import {
   useOfflineAssessmentsMutation,
   useOfflineResponsesMutation,
   useOfflineSyncStatus,
+  useOfflineAssessments,
 } from "../../hooks/useOfflineApi";
 import { toast } from "sonner";
 import { Info, Paperclip, ChevronLeft, ChevronRight, Send, FileText } from "lucide-react";
@@ -73,10 +76,13 @@ export const Assessment: React.FC = () => {
   const [creationAttempts, setCreationAttempts] = useState(0);
   const [pendingSubmissions, setPendingSubmissions] = useState<OfflineSubmission[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreatingAssessment, setIsCreatingAssessment] = useState(false);
   const toolName = t("sustainability") + " " + t("assessment");
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
+  const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineAssessments();
   const { createAssessment, submitAssessment: submitAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
   const { createResponses, isPending: responseMutationPending } = useOfflineResponsesMutation();
 
@@ -118,48 +124,70 @@ export const Assessment: React.FC = () => {
       navigate("/dashboard");
       return;
     }
+  }, [assessmentId, user, navigate, t]);
 
-    if (!assessmentId && !hasCreatedAssessment && !assessmentMutationPending && canCreate && creationAttempts < 3) {
-      setHasCreatedAssessment(true);
-      setCreationAttempts((prev) => prev + 1);
-      const newAssessment: CreateAssessmentRequest = { language: currentLanguage };
-      createAssessment(newAssessment, {
-        onSuccess: (result) => {
-          if (result && isAssessmentResult(result) && result.assessment?.assessment_id) {
-            const realAssessmentId = result.assessment.assessment_id;
-            if (!realAssessmentId.startsWith("temp_")) {
-              setShowSuccessModal(true);
-              const waitForAssessment = async () => {
-                let attempts = 0;
-                const maxAttempts = 10;
-                while (attempts < maxAttempts) {
-                  const savedAssessment = await offlineDB.getAssessment(realAssessmentId);
-                  if (savedAssessment) return;
-                  await new Promise((resolve) => setTimeout(resolve, 500));
-                  attempts++;
-                }
-              };
-              waitForAssessment();
-            } else {
-              setHasCreatedAssessment(false);
-            }
+  // Handle assessment selection
+  const handleSelectAssessment = (selectedAssessmentId: string) => {
+    navigate(`/assessment/${selectedAssessmentId}`);
+  };
+
+  // Handle assessment creation from modal
+  const handleCreateAssessment = async (assessmentName: string) => {
+    if (creationAttempts >= 3) {
+      toast.error(t("assessment.maxRetriesExceeded", { defaultValue: "Failed to create assessment after multiple attempts. Please try again later." }));
+      setShowCreateModal(false);
+      navigate("/dashboard");
+      return;
+    }
+
+    setIsCreatingAssessment(true);
+    setHasCreatedAssessment(true);
+    setCreationAttempts((prev) => prev + 1);
+    
+    const newAssessment: CreateAssessmentRequest = { 
+      language: currentLanguage,
+      name: assessmentName,
+    };
+    
+    createAssessment(newAssessment, {
+      onSuccess: (result) => {
+        if (result && isAssessmentResult(result) && result.assessment?.assessment_id) {
+          const realAssessmentId = result.assessment.assessment_id;
+          if (!realAssessmentId.startsWith("temp_")) {
+            setShowSuccessModal(true);
+            // Refresh the assessments list
+            refetchAssessments();
+            const waitForAssessment = async () => {
+              let attempts = 0;
+              const maxAttempts = 10;
+              while (attempts < maxAttempts) {
+                const savedAssessment = await offlineDB.getAssessment(realAssessmentId);
+                if (savedAssessment) return;
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                attempts++;
+              }
+            };
+            waitForAssessment();
           } else {
-            toast.error(t("assessment.failedToCreate"));
             setHasCreatedAssessment(false);
           }
-        },
-        onError: () => {
+        } else {
           toast.error(t("assessment.failedToCreate"));
           setHasCreatedAssessment(false);
-        },
-        organizationId: orgInfo.orgId,
-        userEmail: user.email,
-      });
-    } else if (creationAttempts >= 3) {
-      toast.error(t("assessment.maxRetriesExceeded", { defaultValue: "Failed to create assessment after multiple attempts. Please try again later." }));
-      navigate("/dashboard");
-    }
-  }, [assessmentId, hasCreatedAssessment, user, createAssessment, navigate, t, assessmentMutationPending, orgInfo.orgId, currentLanguage, creationAttempts]);
+        }
+        setShowCreateModal(false);
+        setIsCreatingAssessment(false);
+      },
+      onError: () => {
+        toast.error(t("assessment.failedToCreate"));
+        setHasCreatedAssessment(false);
+        setShowCreateModal(false);
+        setIsCreatingAssessment(false);
+      },
+      organizationId: orgInfo.orgId,
+      userEmail: user.email,
+    });
+  };
 
   // Timeout for assessment creation
   useEffect(() => {
@@ -291,6 +319,55 @@ export const Assessment: React.FC = () => {
             })}
           </p>
           <Button onClick={() => navigate("/dashboard")}>{t("assessment.backToDashboard", { defaultValue: "Back to Dashboard" })}</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show assessment list if no specific assessment is selected
+  if (!assessmentId) {
+    const allRoles = [...(user?.roles || []), ...(user?.realm_access?.roles || [])].map((r) => r.toLowerCase());
+    const canCreate = allRoles.includes("org_admin");
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="pt-20 pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
+                {t('assessment.selectAssessment', { defaultValue: 'Select Assessment' })}
+              </h1>
+              <p className="text-lg text-gray-600">
+                {t('assessment.selectAssessmentDescription', { defaultValue: 'Choose an assessment to continue or create a new one.' })}
+              </p>
+            </div>
+
+            {canCreate && (
+              <div className="mb-6">
+                <Button
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-dgrv-blue hover:bg-blue-700"
+                >
+                  {t('assessment.createNewAssessment', { defaultValue: 'Create New Assessment' })}
+                </Button>
+              </div>
+            )}
+
+            <AssessmentList
+              assessments={assessmentsData?.assessments || []}
+              onSelectAssessment={handleSelectAssessment}
+              isLoading={assessmentsLoading}
+            />
+
+            {/* Create Assessment Modal */}
+            <CreateAssessmentModal
+              isOpen={showCreateModal}
+              onClose={() => setShowCreateModal(false)}
+              onSubmit={handleCreateAssessment}
+              isLoading={isCreatingAssessment}
+            />
+          </div>
         </div>
       </div>
     );
@@ -702,6 +779,13 @@ export const Assessment: React.FC = () => {
           setShowSuccessModal(false);
           navigate("/dashboard");
         }}
+      />
+
+      <CreateAssessmentModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateAssessment}
+        isLoading={isCreatingAssessment}
       />
     </div>
   );

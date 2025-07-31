@@ -11,6 +11,7 @@ import { ManageQuestions } from "../pages/admin/ManageQuestions";
 import  ReviewAssessments  from "../pages/admin/ReviewAssessments";
 import { StandardRecommendations } from "../pages/admin/StandardRecommendations";
 import { Assessment } from "../pages/user/Assesment";
+import { AssessmentList } from "../pages/user/AssessmentList";
 import { Assessments } from "../pages/user/Assessments";
 import { ActionPlan } from "../pages/user/ActionPlan";
 import { SubmissionView } from "../pages/user/SubmissionView";
@@ -33,6 +34,7 @@ const routes = [
   { path: "/admin/guide", element: AdminGuide },
   { path: "/assessment/sustainability", element: Assessment },
   { path: "/user/assessment/:assessmentId", element: Assessment },
+  { path: "/user/assessment-list", element: AssessmentList },
   { path: "/assessments", element: Assessments },
   { path: "/action-plan", element: ActionPlan },
   { path: "/action-plan/:reportId", element: ActionPlan },
