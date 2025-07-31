@@ -24,119 +24,63 @@ export const UserGuide: React.FC = () => {
   const guideSection = [
     {
       id: "getting-started",
-      title: "Getting Started",
+      title: t('userGuide.sections.gettingStarted.title'),
       icon: BookOpen,
-      content: [
-        "Welcome to the DGRV Sustainability Assessment Platform! This tool helps your cooperative measure and improve its sustainability practices.",
-        "Your dashboard provides access to assessments, action plans, and progress tracking tools.",
-        "If you're an organization administrator, you can create new assessments and manage team members. Organization users can answer assessments and track progress."
-      ]
+      content: t('userGuide.sections.gettingStarted.content', { returnObjects: true }) as string[]
     },
     {
       id: "roles",
-      title: "Understanding User Roles",
+      title: t('userGuide.sections.roles.title'),
       icon: Users,
-      content: [
-        "Organization Administrator (org_admin): Can create new assessments, manage users, and view all organization data.",
-        "Organization User (Org_User): Can answer assigned assessments, view results, and manage action plans.",
-        "Both roles can access the dashboard, view submissions, and export reports for their organization."
-      ]
+      content: t('userGuide.sections.roles.content', { returnObjects: true }) as string[]
     },
     {
       id: "assessments",
-      title: "Taking Assessments",
+      title: t('userGuide.sections.assessments.title'),
       icon: FileText,
-      content: [
-        "Assessments are organized into categories (e.g., Environmental, Social, Governance) with questions in each category.",
-        "For each question, provide: Yes/No response, percentage completion (0%, 25%, 50%, 75%, 100%), and detailed text explanation.",
-        "You can attach files to support your answers (max 1MB per file). Use the paperclip icon to add documents.",
-        "Save your progress anytime using 'Save Draft'. Complete all questions in a category before moving to the next one.",
-        "Once submitted, assessments go through a review process before final approval."
-      ]
+      content: t('userGuide.sections.assessments.content', { returnObjects: true }) as string[]
     },
     {
       id: "action-plans",
-      title: "Managing Action Plans",
+      title: t('userGuide.sections.actionPlans.title'),
       icon: CheckSquare,
-      content: [
-        "Action plans help you track improvement tasks based on assessment recommendations.",
-        "Use the Kanban board to move tasks through stages: To Do → In Progress → Done → Approved.",
-        "Add new tasks, set deadlines, and assign team members to track progress effectively.",
-        "Regular updates to your action plan demonstrate continuous improvement efforts.",
-        "Export action plans to share progress with stakeholders and management."
-      ]
+      content: t('userGuide.sections.actionPlans.content', { returnObjects: true }) as string[]
     },
     {
       id: "viewing-results",
-      title: "Viewing Assessment Results",
+      title: t('userGuide.sections.viewingResults.title'),
       icon: Eye,
-      content: [
-        "Access all your submissions through 'View Assessments' on the dashboard.",
-        "Track submission status: Pending Review → Under Review → Approved/Rejected/Revision Requested.",
-        "View detailed feedback and recommendations from reviewers to understand improvement areas.",
-        "Compare results across different assessment periods to track your cooperative's progress.",
-        "Use the submission view to review your answers and supporting documents."
-      ]
+      content: t('userGuide.sections.viewingResults.content', { returnObjects: true }) as string[]
     },
     {
       id: "creating-assessments",
-      title: "Creating Assessments (Admins Only)",
+      title: t('userGuide.sections.creatingAssessments.title'),
       icon: Play,
-      content: [
-        "Organization administrators can start new assessment cycles for their cooperative.",
-        "Click 'Start Sustainability Assessment' to create a new assessment draft.",
-        "Share the assessment ID with team members so they can contribute to different sections.",
-        "Monitor progress and ensure all categories are completed before final submission.",
-        "Only submit assessments when all required sections are thoroughly completed."
-      ]
+      content: t('userGuide.sections.creatingAssessments.content', { returnObjects: true }) as string[]
     },
     {
       id: "user-management",
-      title: "Managing Team Members (Admins Only)",
+      title: t('userGuide.sections.userManagement.title'),
       icon: Users,
-      content: [
-        "Organization administrators can add and manage team members through 'Manage Users'.",
-        "Invite new users by email and assign appropriate roles based on their responsibilities.",
-        "Assign category access to users so they can contribute to specific assessment areas.",
-        "Remove users who no longer need access to maintain security and data integrity.",
-        "Regularly review user permissions to ensure appropriate access levels."
-      ]
+      content: t('userGuide.sections.userManagement.content', { returnObjects: true }) as string[]
     },
     {
       id: "reports-exports",
-      title: "Reports and Exports",
+      title: t('userGuide.sections.reportsExports.title'),
       icon: Download,
-      content: [
-        "Export assessment reports in PDF format for sharing with stakeholders and boards.",
-        "Use CSV exports for data analysis and tracking trends over time.",
-        "Download Word documents for detailed documentation and reporting purposes.",
-        "Regular report generation helps demonstrate continuous improvement efforts.",
-        "Share reports with members and stakeholders to maintain transparency."
-      ]
+      content: t('userGuide.sections.reportsExports.content', { returnObjects: true }) as string[]
     },
     {
       id: "best-practices",
-      title: "Best Practices for Cooperatives",
+      title: t('userGuide.sections.bestPractices.title'),
       icon: Star,
-      content: [
-        "Involve diverse team members in assessments to get comprehensive perspectives on sustainability practices.",
-        "Provide detailed, honest answers with specific examples and supporting documentation.",
-        "Use assessment results to create realistic, achievable action plans for improvement.",
-        "Regular assessment cycles (annually or bi-annually) help track progress and maintain momentum.",
-        "Celebrate improvements and share successes with your cooperative members and community."
-      ]
+      content: t('userGuide.sections.bestPractices.content', { returnObjects: true }) as string[]
     },
     {
       id: "troubleshooting",
-      title: "Common Issues and Solutions",
+      title: t('userGuide.sections.troubleshooting.title'),
       icon: HelpCircle,
-      content: [
-        "Can't access assessments: Check with your organization administrator about role assignments and category access.",
-        "Assessment not saving: Ensure you're completing all required fields (Yes/No, percentage, and text explanation).",
-        "File upload issues: Files must be under 1MB. Try reducing file size or using different formats.",
-        "Can't see other team submissions: Only organization administrators can view all submissions.",
-        "Missing assessment categories: Contact your administrator to verify category assignments for your organization."
-      ]
+      content: t('userGuide.sections.troubleshooting.content', { returnObjects: true }) as string[]
     }
   ];
 
@@ -153,17 +97,17 @@ export const UserGuide: React.FC = () => {
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Back to Dashboard</span>
+                <span>{t('userGuide.backToDashboard')}</span>
               </Button>
             </div>
             <div className="flex items-center space-x-3 mb-4">
               <BookOpen className="w-8 h-8 text-dgrv-green" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                User Guide for Cooperatives
+                {t('userGuide.title')}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Complete guide for using the DGRV sustainability assessment platform
+              {t('userGuide.subtitle')}
             </p>
           </div>
 
@@ -172,16 +116,16 @@ export const UserGuide: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-3">
                 <Play className="w-6 h-6" />
-                <span>Quick Start</span>
+                <span>{t('userGuide.quickStart.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p>1. 📋 Start or answer an assessment from your dashboard</p>
-                <p>2. ✏️ Complete all questions with detailed explanations</p>
-                <p>3. 📎 Attach supporting documents where relevant</p>
-                <p>4. ✅ Submit for review when complete</p>
-                <p>5. 📊 Use results to create action plans and track progress</p>
+                <p>{t('userGuide.quickStart.step1')}</p>
+                <p>{t('userGuide.quickStart.step2')}</p>
+                <p>{t('userGuide.quickStart.step3')}</p>
+                <p>{t('userGuide.quickStart.step4')}</p>
+                <p>{t('userGuide.quickStart.step5')}</p>
               </div>
             </CardContent>
           </Card>
@@ -218,27 +162,25 @@ export const UserGuide: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-3">
                 <Star className="w-6 h-6" />
-                <span>Tips for Successful Sustainability Assessments</span>
+                <span>{t('userGuide.tipsForSuccess.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-semibold mb-2">Before Starting:</h4>
+                  <h4 className="font-semibold mb-2">{t('userGuide.tipsForSuccess.beforeStarting.title')}</h4>
                   <ul className="space-y-1 text-sm">
-                    <li>• Gather relevant documents and data</li>
-                    <li>• Involve team members from different areas</li>
-                    <li>• Review previous assessments if available</li>
-                    <li>• Set aside adequate time for completion</li>
+                    {t('userGuide.tipsForSuccess.beforeStarting.items', { returnObjects: true }).map((item: string, index: number) => (
+                      <li key={index}>{item}</li>
+                    ))}
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2">During Assessment:</h4>
+                  <h4 className="font-semibold mb-2">{t('userGuide.tipsForSuccess.duringAssessment.title')}</h4>
                   <ul className="space-y-1 text-sm">
-                    <li>• Be honest and specific in responses</li>
-                    <li>• Provide concrete examples</li>
-                    <li>• Upload supporting evidence</li>
-                    <li>• Save drafts regularly</li>
+                    {t('userGuide.tipsForSuccess.duringAssessment.items', { returnObjects: true }).map((item: string, index: number) => (
+                      <li key={index}>{item}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -250,18 +192,18 @@ export const UserGuide: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-3 text-dgrv-green">
                 <HelpCircle className="w-6 h-6" />
-                <span>Need Help?</span>
+                <span>{t('userGuide.needHelp.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="mb-4">
-                If you need assistance or have questions about using the platform:
+                {t('userGuide.needHelp.description')}
               </p>
               <div className="space-y-2">
-                <p>📧 Email: support@dgrv.org</p>
-                <p>📞 Phone: +27 (0) 11 000 0000</p>
-                <p>🌐 Website: www.dgrv.org/support</p>
-                <p>💬 Contact your organization administrator for role-specific questions</p>
+                <p>{t('userGuide.needHelp.email')}</p>
+                <p>{t('userGuide.needHelp.phone')}</p>
+                <p>{t('userGuide.needHelp.website')}</p>
+                <p>{t('userGuide.needHelp.contactAdmin')}</p>
               </div>
             </CardContent>
           </Card>

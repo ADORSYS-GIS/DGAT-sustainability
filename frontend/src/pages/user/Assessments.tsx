@@ -2,18 +2,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
+import { useOfflineSubmissions } from "@/hooks/useOfflineApi";
 import { offlineDB } from "@/services/indexeddb";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
 import type { Submission } from "@/openapi-rq/requests/types.gen";
-import { Calendar, Download, Eye, FileText, Star, Trash2, RefreshCw } from "lucide-react";
+import { Calendar, Eye, FileText, RefreshCw } from "lucide-react";
 import * as React from "react";
 import { useNavigate, NavigateFunction } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import type { Submission as OfflineSubmission } from "@/types/offline";
 import { syncService } from "@/services/syncService";
+import { Navbar } from "@/components/shared/Navbar";
 
 type AuthUser = {
   sub?: string;
@@ -39,21 +39,27 @@ export const Assessments: React.FC = () => {
   // Fetch all submissions for the current user/org
   const { data, isLoading: remoteLoading, refetch } = useOfflineSubmissions();
   const submissions = data?.submissions || [];
-  const { deleteSubmission, isPending } = useOfflineSubmissionsMutation();
 
   useEffect(() => {
     setIsLoading(remoteLoading);
   }, [remoteLoading]);
 
-  // Helper to count unique categories completed and total for a submission
-  // (You may want to update this logic based on your actual submission structure)
-  const useCategoryCounts = (submission: Submission) => {
-    // If your submission includes responses, you can count them here
-    const completed = submission?.content?.responses?.length || 0;
-    // For total, you may need to fetch questions for the assessment
-    // For now, just return completed as total (placeholder)
-    const total = completed;
-    return { completed, total };
+  // Helper function to count unique categories completed and total for a submission
+  const getCategoryCounts = (submission: Submission) => {
+    try {
+      // Extract responses from submission content
+      const responses = submission?.content?.responses || [];
+      const completed = responses.length;
+      
+      // For total categories, we need to get the assessment details
+      // For now, we'll use a reasonable estimate or fetch from assessment
+      const total = completed > 0 ? Math.max(completed, 3) : 0; // Default to at least 3 categories
+      
+      return { completed, total };
+    } catch (error) {
+      console.warn('Error calculating category counts:', error);
+      return { completed: 0, total: 0 };
+    }
   };
 
   // Manual sync function
@@ -85,15 +91,8 @@ export const Assessments: React.FC = () => {
     user: AuthUser | null;
     navigate: NavigateFunction;
     index: number;
-    onDelete: (submissionId: string) => void;
-    isDeleting: boolean;
-  }> = ({ submission, user, navigate, index, onDelete, isDeleting }) => {
-    const { completed, total } = useCategoryCounts(submission);
-    
-    // Check if user is an organization admin
-    const isOrgAdmin = (user?.roles || user?.realm_access?.roles || []).some(role => 
-      role.toLowerCase() === 'org_admin' || role.toLowerCase() === 'organization_admin'
-    );
+  }> = ({ submission, user, navigate, index }) => {
+    const { completed, total } = getCategoryCounts(submission);
     
     return (
       <Card
@@ -126,12 +125,16 @@ export const Assessments: React.FC = () => {
                 className={
                   submission.review_status === "approved"
                     ? "bg-dgrv-green text-white"
+                    : submission.review_status === "rejected"
+                    ? "bg-red-500 text-white"
+                    : submission.review_status === "under_review"
+                    ? "bg-yellow-500 text-white"
                     : "bg-gray-500 text-white"
                 }
               >
                 {submission.review_status
                   ? submission.review_status.charAt(0).toUpperCase() +
-                    submission.review_status.slice(1)
+                    submission.review_status.slice(1).replace('_', ' ')
                   : "-"}
               </Badge>
             </div>
@@ -155,17 +158,6 @@ export const Assessments: React.FC = () => {
                 <Eye className="w-4 h-4 mr-1" />
                 {t("viewSubmission")}
               </Button>
-              {isOrgAdmin && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => onDelete(submission.submission_id)}
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  {t("delete")}
-                </Button>
-              )}
             </div>
           </div>
         </CardContent>
@@ -173,36 +165,16 @@ export const Assessments: React.FC = () => {
     );
   };
 
-  const handleDeleteSubmission = async (submissionId: string) => {
-    try {
-      await deleteSubmission(submissionId, {
-        onSuccess: () => {
-          toast.success(t("submissionDeleted"));
-          // Refetch submissions to update the list
-          refetch();
-        },
-        onError: (error) => {
-          toast.error(t("failedToDeleteSubmission"));
-          console.error("Failed to delete submission:", error);
-        }
-      });
-    } catch (error) {
-      toast.error(t("failedToDeleteSubmission"));
-      console.error("Failed to delete submission:", error);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Remove online status indicator */}
-        
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center space-x-3 mb-4">
               <FileText className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                {t("yourSubmissions")}
+                {t("yourSubmissions", { defaultValue: "Your Submissions" })}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
@@ -211,7 +183,7 @@ export const Assessments: React.FC = () => {
           </div>
           <Button onClick={handleManualSync} className="flex items-center space-x-2">
             <RefreshCw className="w-4 h-4" />
-            {t("syncData")}
+            {t("syncData", { defaultValue: "Sync Data" })}
           </Button>
         </div>
 
@@ -223,8 +195,6 @@ export const Assessments: React.FC = () => {
               user={user}
               navigate={navigate}
               index={index}
-              onDelete={handleDeleteSubmission}
-              isDeleting={isPending}
             />
           ))}
 
@@ -233,7 +203,7 @@ export const Assessments: React.FC = () => {
               <CardContent>
                 <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t("noSubmissions")}
+                  {t("noSubmissions", { defaultValue: "No Submissions" })}
                 </h3>
                 <p className="text-gray-600 mb-6">
                   {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}

@@ -559,5 +559,269 @@
     "assessment.fileTooLarge": "Ifayela kufanele lingangeni ku-1MB.",
     "assessment.completeAllQuestionsNext": "Sicela uphendvule tonkhe timibuto kulelikhathi ngaphambi kwekucinisekisa.",
   "manageQuestions.noCategories": "Atekho tigaba letitfolakalako. Sicela wakhe tigaba kwekucala!",
-  "manageQuestions.noText": "Awukho umbhalo lotfolakalako."
+  "manageQuestions.noText": "Akukho sibhalo lesifumanekako.",
+  "userGuide": {
+    "title": "Umhlahlandlela Womsebenzisi Wetinkampani Letibambisene",
+    "subtitle": "Umhlahlandlela lophelele wokusebentisa ipulatifomu yekuhlola kusimama ye-DGRV",
+    "backToDashboard": "Buyela ku-Dashboard",
+    "quickStart": {
+      "title": "Kucala Lokusheshako",
+      "step1": "1. 📋 Cala noma uphendvule kuhlolo kusuka ku-dashboard yakho",
+      "step2": "2. ✏️ Gcwalisa yonkhe imibuto ngekuchazela lokuningiliziwe",
+      "step3": "3. 📎 Namathela emadokhumenti lasekelako lapho kufanele",
+      "step4": "4. ✅ Thumela ukuze kubuyekezwe uma sekuphelile",
+      "step5": "5. 📊 Sebenzisa imiphumela kudala emacebo wesenzo futsi ulandzele inqubekela"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Kucala",
+        "content": [
+          "Siyakwamukela ku-Pulatifomu Yekuhlola Kusimama ye-DGRV! Le thuluzi iyasita inkampani yakho lebambisene kutsi ilinganise futsi ithuthukise imikhuba yayo yokusimama.",
+          "I-dashboard yakho inikeza kufinyelela ekuhloleni, emacebo wesenzo, kanye nemathuluzi ekulandzelela inqubekela.",
+          "Uma ungumphatsi wenhlangano, ungadala kuhlolo lokusha futsi uphate emalunga eqembu. Basebentisi benhlangano bangaphendvula kuhlolo futsi balandzele inqubekela."
+        ]
+      },
+      "roles": {
+        "title": "Kukuqonda Tindima Tabasebentisi",
+        "content": [
+          "Umphatsi Wenhlangano (org_admin): Angadala kuhlolo lokusha, aphate basebentisi, futsi abone yonkhe idatha yenhlangano.",
+          "Umsebentisi Wenhlangano (Org_User): Angaphendvula kuhlolo lokuniketwe, abone imiphumela, futsi aphate emacebo wesenzo.",
+          "Bobabili tindima bangafinyelela ku-dashboard, babone lokuthunyelwe, futsi bakhiphe imibiko yenhlangano yabo."
+        ]
+      },
+      "assessments": {
+        "title": "Kwenta Kuhlolo",
+        "content": [
+          "Kuhlolo kuhlelwe ngetigaba (sib. Imvelo, Umphakatsi, Kukuphatsa) nemibuto esigabeni ngasinye.",
+          "Kumbuto ngamunye, nikeza: impendvulo Yebo/Cha, iphesenti lekugcwalisa (0%, 25%, 50%, 75%, 100%), kanye nekuchazela kwesibhalo lokuningiliziwe.",
+          "Unganamathisela emafayela ukuze usekele timpendvulo takho (max 1MB ngefayela ngalinye). Sebenzisa i-ayikhon yekunamathisela ukuze engeze emadokhumenti.",
+          "Londoloza inqubekela yakho noma nini usebentisa 'Londoloza Isiqeshana'. Gcwalisa yonkhe imibuto esigabeni ngaphambi kokuya esilandzelako.",
+          "Uma sekuthunyelwe, kuhlolo kudlula inkhubo yekubuyekezwa ngaphambi kwekuvunywa kokugcina."
+        ]
+      },
+      "actionPlans": {
+        "title": "Kukuphatsa Emacebo Wesenzo",
+        "content": [
+          "Emacebo wesenzo akusita kutsi ulandzele imisebenti yekuthuthukisa lesekelwe ezindvululweni zekuhlolo.",
+          "Sebentisa ibhodi ye-Kanban ukuze uhambise imisebenti ngemazinga: Lokwenziwayo → Kwenziwayo → Kwenziwe → Kuvunyiwe.",
+          "Engeza imisebenti lemisha, bheka tizikhathi, futsi unikeze emalunga eqembu ukuze ulandzele inqubekela ngempumelelo.",
+          "Kuvuselelwa lokuvamile kwecebo lakho lesenzo kubonisa imizamo yekuthuthukisa lokuqhubekako.",
+          "Khipha emacebo wesenzo ukuze wabelane ngenqubekela nababambiqhaza kanye nekuphatsa."
+        ]
+      },
+      "viewingResults": {
+        "title": "Kubona Imiphumela Yekuhlolo",
+        "content": [
+          "Finyelela konke lokuthunyelwe kwakho nge-'Bona Kuhlolo' ku-dashboard.",
+          "Landzelela simo sekuthunyelwa: Kusalindele Kukubuyekezwa → Kuyabuyekezwa → Kuvunyiwe/Kunqatshiwe/Kuceliwe Kukubuyekezwa.",
+          "Bona impendvulo lokuningiliziwe kanye nezindvululo zekubuyekezwa ukuze uqonde tindzawo tekuthuthukisa.",
+          "Qhathanisa imiphumela ngemahora lahlukene wekuhlolo ukuze ulandzele inqubekela yenkampani yakho lebambisene.",
+          "Sebentisa kukubukeka kwekuthunyelwe ukuze ubuyekezwe timpendvulo takho kanye nemadokhumenti lasekelako."
+        ]
+      },
+      "creatingAssessments": {
+        "title": "Kudala Kuhlolo (Baphatsi Kuphela)",
+        "content": [
+          "Baphatsi benhlangano bangaqala emasikeli lamasha wekuhlolo wenkampani yabo lebambisene.",
+          "Chofoza 'Cala Kuhlolo Kusimama' ukuze udale isiqeshana lesisha sekuhlolo.",
+          "Yabelana nge-ID yekuhlolo nemalunga eqembu ukuze bakwazi kufaka sandla etigabeni letihlukene.",
+          "Qapha inqubekela futsi uqinisekise kutsi zonke tigaba tigcwalisiwe ngaphambi kwekuthunyelwa kokugcina.",
+          "Ungathumeli kuhlolo kuphela lapho zonke tigaba letidingekako tigcwalisiwe ngokuphelele."
+        ]
+      },
+      "userManagement": {
+        "title": "Kukuphatsa Emalunga Eqembu (Baphatsi Kuphela)",
+        "content": [
+          "Baphatsi benhlangano bangangeza futsi baphate emalunga eqembu nge-'Phatsa Basebentisi'.",
+          "Mema basebentisi labasha nge-imeyili futsi unikeze tindima letifanele lesekelwe tizibopho tabo.",
+          "Nikeza basebentisi kufinyelela kutigaba ukuze bakwazi kufaka sandla tindzawo letithile tekuhlolo.",
+          "Susa basebentisi labangasadingi kufinyelela ukuze ugcine kukuphepha kanye nekuthembeka kwedatha.",
+          "Buyekezwa ngokuvamile tizimvume tabasebentisi ukuze uqinisekise emazinga ekufinyelela lafanele."
+        ]
+      },
+      "reportsExports": {
+        "title": "Imibiko Nekukhipha",
+        "content": [
+          "Khipha imibiko yekuhlolo ngefomethi ye-PDF ukuze wabelane nababambiqhaza kanye nemabhodi.",
+          "Sebentisa kukukhipha kwe-CSV ukuze uhlaziywe idatha futsi ulandzelele imikhuba ngokuhamba kwesikhatsi.",
+          "Landa emadokhumenti e-Word ukuze wenze sibhalo lesiningiliziwe kanye nezinjongo zemibiko.",
+          "Kukhiqizwa lokuvamile kwemibiko kusita ekuboniseni imizamo yekuthuthukisa lokuqhubekako.",
+          "Yabelana ngemibiko nemalunga kanye nababambiqhaza ukuze ugcine kukubonakala."
+        ]
+      },
+      "bestPractices": {
+        "title": "Imikhuba Lemihle Yetinkampani Letibambisene",
+        "content": [
+          "Bandzakanya emalunga lahlukene eqembu ekuhloleni ukuze uthole imibono lephelele ngemikhuba yokusimama.",
+          "Nikeza timpendvulo letiningiliziwe, letiqotho ngetibonelo letithile kanye nesibhalo lesekelako.",
+          "Sebentisa imiphumela yekuhlolo ukuze udale emacebo wesenzo laqinisekile, lafezekisekayo wekuthuthukisa.",
+          "Emasikeli avamile wekuhlolo (onyakeni noma sigamu sonyaka) asita ekulandzeleleni inqubekela nekugcina umfutho.",
+          "Gubha kuthuthukisa futsi yabelana nempumelelo nemalunga akho enkampani lebambisene kanye nemphakatsi."
+        ]
+      },
+      "troubleshooting": {
+        "title": "Tinkinga Letivamile Netixazululo",
+        "content": [
+          "Awukwazi kufinyelela ekuhloleni: Hlola nomphatsi wenhlangano yakho mayelana nekuniketwa kwetindima kanye nekufinyelela kutigaba.",
+          "Kuhlolo akugcini: Qinisekisa kutsi ugcwalisa zonke tinkambu letidingekako (Yebo/Cha, iphesenti kanye nekuchazela kwesibhalo).",
+          "Tinkinga tekulayisha emafayela: Emafayela kufanele abe ngaphansi kuka-1MB. Zama kunciphisa usayizi wefayela noma usebentise emafomethi lahlukene.",
+          "Awukwazi kubona lokuthunyelwe kwamanye emaqembu: Baphatsi benhlangano kuphela labangabona konke lokuthunyelwe.",
+          "Tigaba tekuhlolo letingekho: Xhumana nomphatsi wakho ukuze ahlole kukuniketwa kwetigaba yenhlangano yakho."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "Ematiphu Wekuhlolo Kusimama Lokuphelele",
+      "beforeStarting": {
+        "title": "Ngaphambi Kekucala:",
+        "items": [
+          "• Qoqa emadokhumenti kanye nedatha lefanele",
+          "• Bandzakanya emalunga eqembu tindzawo letihlukene",
+          "• Buyekezwa kuhlolo kwangaphambilini uma kutholakala",
+          "• Beka sikhatsi lesanele sekugcwalisa"
+        ]
+      },
+      "duringAssessment": {
+        "title": "Ngesikhatsi Sekuhlolo:",
+        "items": [
+          "• Yiba qotho futsi ube ngokucacile etimpendvulweni",
+          "• Nikeza tibonelo letiqondile",
+          "• Layisha bufakazi lobusekelako",
+          "• Londoloza emasiqeshana ngokuvamile"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "Udinga Lusito?",
+      "description": "Uma udinga lusito noma unemibuto mayelana nokusebentisa ipulatifomu:",
+      "email": "📧 I-imeyili: support@dgrv.org",
+      "phone": "📞 Ucingo: +27 (0) 11 000 0000",
+      "website": "🌐 Iwebhusayithi: www.dgrv.org/support",
+      "contactAdmin": "💬 Xhumana nomphatsi wenhlangano yakho ngemibuto lethile yendima"
+    }
+  },
+  "adminGuide": {
+    "title": "Umhlahlandlela Womphatsi We-Pulatifomu ye-DGRV",
+    "subtitle": "Umhlahlandlela lophelele wokuphatsa ipulatifomu yekuhlola kusimama ye-DGRV",
+    "backToDashboard": "Buyela ku-Dashboard",
+    "quickStart": {
+      "title": "Kucala Lokusheshako",
+      "step1": "1. 👥 Phatsa tinkampani kanye basebentisi",
+      "step2": "2. 📋 Hlela tigaba kanye imibuto",
+      "step3": "3. ✅ Buyekezwa futsi uvume kuhlolo",
+      "step4": "4. 📊 Qapha impilo kanye nekusebenta kwesistimu",
+      "step5": "5. 🎯 Sekela tinkampani letibambisene ohambweni lwazo lokusimama"
+    },
+    "sections": {
+      "overview": {
+        "title": "Kukuqonda Ipulatifomu",
+        "content": [
+          "Ipulatifomu Yekuhlola Kusimama ye-DGRV yakhelwe kusita tinkampani letibambisene kulo lonke elaseNingizimu Afrika kutsi tilinganise futsi tithuthukise imikhuba yazo yokusimama.",
+          "Njengomphatsi, unokufinyelela kumathuluzi laphelele wokuphatsa tinkampani, basebentisi, lokukukethwe kwekuhlolo, kanye nekubuyekezwa kwekuthunyelwe.",
+          "Ipulatifomu isekela tilimi letiningi futsi isebenta ngaphandle kwe-inthanethi ukuze ihambisane netinkinga letihlukene tekuxhumana esifundeni."
+        ]
+      },
+      "organizations": {
+        "title": "Kukuphatsa Tinkampani",
+        "content": [
+          "Engeza tinkampani letibambisene letintsha epulatifomu ngezaziso zazo leziyisisekelo kanye netizilungiselelo tedomaini.",
+          "Hlela tizilungiselelo letithile tenhlangano futsi uphate kufinyelela kwabasebentisi kutinkampani letibambisene ngayinye.",
+          "Qapha umsebenti wenhlangano futsi uqinisekise kukuhlukaniswa lokufanele kwedatha phakathi kwetinkampani letibambisene letihlukene.",
+          "Gcina noma susa tinkampani letingasasebenti kuyilapho ugcina idatha yazo yomlando."
+        ]
+      },
+      "users": {
+        "title": "Kukuphatsa Basebentisi",
+        "content": [
+          "Dala futsi uphate ema-akhawunti abasebentisi kuzo zonke tinkampani nekuniketwa kwetindima letifanele.",
+          "Nikeza basebentisi tinkampani letithile futsi uhlele tizimvume tabo tekufinyelela.",
+          "Qapha umsebenti womsebentisi futsi uphate simo sekukuqinisekiswa kwe-akhawunti.",
+          "Qinisekisa kukuphepha lokufanele ngokubuyekezwa ngokuvamile kwekufinyelela kwabasebentisi nekusa ema-akhawunti langasebenti."
+        ]
+      },
+      "categories": {
+        "title": "Kukuphatsa Tigaba Tekuhlolo",
+        "content": [
+          "Hlela tigaba tekuhlolo letihambisana nemikhuba lemihle yokusimama kanye nezidingo zendzawo.",
+          "Beka tizisindo letifanele kusigaba ngasinye ukuze uqinisekise emaphuzu ekuhlolo lalinganile.",
+          "Hlela tigaba ngokulandzelana lokunengqondo kwekubonisa ukuze uthole lwati lomsebentisi loluhle.",
+          "Buyekezwa futsi uvuselele tigaba ngokuvamile lesekelwe impendvulo kanye nemazinga ekuvuselelwa kusimama."
+        ]
+      },
+      "questions": {
+        "title": "Kukuphatsa Imibuto Yekuhlolo",
+        "content": [
+          "Dala imibuto lephelele ngaphakathi kusigaba ngasinye ukuze uhlole ngokuphelele imikhuba yokusimama.",
+          "Nikeza imibuto ngetilimi letiningi ukuze usekele imiphakatsi yetinkampani letibambisene lehlukene.",
+          "Beka tizisindo kanye nokulandzelana kwekubonisa lokufanele kwemibuto ngaphakathi kusigaba ngasinye.",
+          "Buyekezwa futsi uvuselele imibuto ngokuvamile lesekelwe imiphumela yekuhlolo kanye nempendvulo yababambiqhaza."
+        ]
+      },
+      "reviews": {
+        "title": "Kukubuyekezwa Kwekuhlolo",
+        "content": [
+          "Buyekezwa ngokuphelele kuhlolo lokuthunyelwe, ucabangele emaphuzu ezinga kanye netimpendvulo tekhwalithi.",
+          "Nikeza impendvulo leyakhiwe kanye nezindvululo letithile tekuthuthukisa.",
+          "Sebentisa ezindvululo ezivamile ukuze uqinisekise kuvumelana kuzo zonke tizihlolo.",
+          "Vuma, nqatsha, noma ucele kukubuyekezwa lesekelwe khwalithi kanye nekugcwalisa kwekuhlolo."
+        ]
+      },
+      "recommendations": {
+        "title": "Ezindvululo Ezivamile",
+        "content": [
+          "Dala emamodeli ezindvululo lazi sebenzisekayo lesekelwe ezimo ezivamile zekuhlolo kanye netindzawo tekuthuthukisa.",
+          "Gcina umtapo wezindvululo zekhwalithi lephezulu lezingasetshenziswa kutinkampani letibambisene letihlukene.",
+          "Vuselela ezindvululo ngokuvamile lesekelwe imikhuba lemihle kanye nemasu wekuthuthukisa laphumelelayo.",
+          "Qinisekisa kutsi ezindvululo ziyasebenta futsi zifezekisekayo kutinkampani letibambisene letihlukene ngosayizi kanye nemithombo."
+        ]
+      },
+      "systemHealth": {
+        "title": "Impilo Nekusebenta Kwesistimu",
+        "content": [
+          "Qapha ngokuvamile kusebenta kwepulatifomu, impilo yedatha, kanye netizikhathi tekuphendvula te-API.",
+          "Buyekezwa simo seqe lekuhambisana futsi uqinisekise kutsi kuhambisana kwedatha kusebenta kahle.",
+          "Khipha imibiko yesistimu kanye nemalogi ekuhlola ukuze wenze kuhambisana nekuxazulula tinkinga.",
+          "Gcina ema-backup avamile futsi uqinisekise kukuphepha kwedatha kuzo zonke izingxenye zepulatifomu."
+        ]
+      },
+      "support": {
+        "title": "Kusekela Tinkampani Letibambisene",
+        "content": [
+          "Nikeza siqondiso kutinkampani letibambisene mayelana nokusebentisa ipulatifomu ngempumelelo ngezinjongo zazo zokusimama.",
+          "Nikeza kukuqeqeshwa kanye nemithombo yekusekela kusita tinkampani kutsi zikhulise inani lekuhlolo kwazo.",
+          "Qapha imikhuba yekuhlolo futsi ubone emathuba ekuthuthukisa ipulatifomu.",
+          "Akha budlelwane nabaholi betinkampani letibambisene ukuze uqonde ezidingo kanye netinkinga tabo letihlukile."
+        ]
+      }
+    },
+    "bestPractices": {
+      "title": "Imikhuba Lemihle Yekuphatsa Ipulatifomu",
+      "regularReviews": {
+        "title": "Kukubuyekezwa Lokuvamile:",
+        "items": [
+          "• Buyekezwa kuhlolo lokusalindele lokungenani ngesonto ngalinye",
+          "• Qapha imethrikhi yempilo kanye nekusebenta kwesistimu",
+          "• Vuselela tigaba kanye imibuto lesekelwe impendvulo",
+          "• Gcina kuxhumana lokuvamile nabaholi betinkampani letibambisene"
+        ]
+      },
+      "qualityAssurance": {
+        "title": "Kukuqinisekisa Khwalithi:",
+        "items": [
+          "• Qinisekisa emazinga avumelane wokubuyekezwa kuzo zonke tizihlolo",
+          "• Nikeza impendvulo lokuningiliziwe, lesebenzisekayo kutinkampani letibambisene",
+          "• Gcina emamodeli ezindvululo avuselelwe",
+          "• Yenta ema-backup avamile wedatha kanye netizilungiselelo tesistimu"
+        ]
+      }
+    },
+    "contactInfo": {
+      "title": "Lusito Lokuphatsa",
+      "description": "Ngelusito lobuchwepheshe noma imibuto yekuphatsa ipulatifomu:",
+      "email": "📧 I-imeyili: admin@dgrv.org",
+      "phone": "📞 Ucingo: +27 (0) 11 000 0000",
+      "website": "🌐 Iwebhusayithi: www.dgrv.org/admin",
+      "documentation": "📚 Sibhalo: Lutholakala ku-portal yomphatsi"
+    }
+  }
 }

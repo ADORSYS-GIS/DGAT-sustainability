@@ -357,20 +357,6 @@ export const Dashboard: React.FC = () => {
                     >
                       {t('user.dashboard.exportAsPDF')}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start"
-                    >
-                      {t('user.dashboard.exportAsWord')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start"
-                    >
-                      {t('user.dashboard.exportAsCSV')}
-                    </Button>
                   </div>
                 </CardContent>
               </Card>

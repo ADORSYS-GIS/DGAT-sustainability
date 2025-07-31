@@ -44,6 +44,8 @@ export class DataTransformationService {
         weight: question.latest_revision.weight,
         created_at: question.latest_revision.created_at,
       },
+      revisions: [question.latest_revision], // Add the revisions array
+      category_id: question.category, // Use category as category_id
       created_at: question.created_at,
       updated_at: question.created_at,
       sync_status: 'synced',
@@ -319,7 +321,8 @@ export class DataTransformationService {
    */
   static transformResponsesWithContext(
     responses: Response[],
-    questions: Question[]
+    questions: Question[],
+    language: string = "en"
   ): OfflineResponse[] {
     // Create a map of question_revision_id to question for quick lookup
     const questionRevisionMap = new Map<string, Question>();
@@ -331,7 +334,17 @@ export class DataTransformationService {
     
     return responses.map(response => {
       const question = questionRevisionMap.get(response.question_revision_id);
-      const questionText = question?.latest_revision?.text?.en || '';
+      let questionText = '';
+      if (question?.latest_revision?.text) {
+        const text = question.latest_revision.text;
+        if (typeof text === 'object' && text !== null) {
+          questionText = (text as Record<string, unknown>)[language] as string || 
+                        (text as Record<string, unknown>).en as string || 
+                        Object.values(text).find(val => typeof val === 'string') as string || '';
+        } else if (typeof text === 'string') {
+          questionText = text;
+        }
+      }
       const questionCategory = question?.category && typeof question.category === 'string' ? question.category as string : '';
       
       return this.transformResponse(response, questionText, questionCategory);

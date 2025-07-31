@@ -90,8 +90,12 @@ export const Welcome: React.FC = () => {
           {/* Hero Content */}
           <div className="text-center mb-16 animate-fade-in">
             <div className="mb-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-dgrv-blue to-dgrv-green rounded-full flex items-center justify-center mx-auto mb-6 animate-glow">
-                <span className="text-white font-bold text-3xl">D</span>
+              <div className="w-32 h-32 flex items-center justify-center mx-auto mb-6">
+                <img 
+                  src="/dgrv-BG.png" 
+                  alt="DGRV Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-dgrv-blue mb-4 animate-scale-in">
                 {t('homePage.hero.title')}

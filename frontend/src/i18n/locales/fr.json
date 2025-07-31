@@ -559,5 +559,269 @@
   "assessment.fileTooLarge": "La taille du fichier doit être inférieure à 1 Mo.",
   "assessment.completeAllQuestionsNext": "Veuillez répondre à toutes les questions de cette catégorie avant de continuer.",
   "manageQuestions.noCategories": "Aucune catégorie disponible. Veuillez d'abord créer des catégories !",
-  "manageQuestions.noText": "Aucun texte disponible."
+  "manageQuestions.noText": "Aucun texte disponible.",
+  "userGuide": {
+    "title": "Guide utilisateur pour les coopératives",
+    "subtitle": "Guide complet pour utiliser la plateforme d'évaluation de durabilité DGRV",
+    "backToDashboard": "Retour au tableau de bord",
+    "quickStart": {
+      "title": "Démarrage rapide",
+      "step1": "1. 📋 Commencez ou répondez à une évaluation depuis votre tableau de bord",
+      "step2": "2. ✏️ Complétez toutes les questions avec des explications détaillées",
+      "step3": "3. 📎 Joignez des documents de soutien le cas échéant",
+      "step4": "4. ✅ Soumettez pour examen une fois terminé",
+      "step5": "5. 📊 Utilisez les résultats pour créer des plans d'action et suivre les progrès"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Commencer",
+        "content": [
+          "Bienvenue sur la plateforme d'évaluation de durabilité DGRV ! Cet outil aide votre coopérative à mesurer et améliorer ses pratiques de durabilité.",
+          "Votre tableau de bord vous donne accès aux évaluations, plans d'action et outils de suivi des progrès.",
+          "Si vous êtes administrateur d'organisation, vous pouvez créer de nouvelles évaluations et gérer les membres de l'équipe. Les utilisateurs d'organisation peuvent répondre aux évaluations et suivre les progrès."
+        ]
+      },
+      "roles": {
+        "title": "Comprendre les rôles utilisateur",
+        "content": [
+          "Administrateur d'organisation (org_admin) : Peut créer de nouvelles évaluations, gérer les utilisateurs et voir toutes les données de l'organisation.",
+          "Utilisateur d'organisation (Org_User) : Peut répondre aux évaluations assignées, voir les résultats et gérer les plans d'action.",
+          "Les deux rôles peuvent accéder au tableau de bord, voir les soumissions et exporter des rapports pour leur organisation."
+        ]
+      },
+      "assessments": {
+        "title": "Réaliser des évaluations",
+        "content": [
+          "Les évaluations sont organisées en catégories (ex. Environnement, Social, Gouvernance) avec des questions dans chaque catégorie.",
+          "Pour chaque question, fournissez : réponse Oui/Non, pourcentage de réalisation (0%, 25%, 50%, 75%, 100%) et explication textuelle détaillée.",
+          "Vous pouvez joindre des fichiers pour étayer vos réponses (max 1MB par fichier). Utilisez l'icône trombone pour ajouter des documents.",
+          "Sauvegardez votre progression à tout moment avec 'Sauvegarder brouillon'. Complétez toutes les questions d'une catégorie avant de passer à la suivante.",
+          "Une fois soumises, les évaluations passent par un processus d'examen avant approbation finale."
+        ]
+      },
+      "actionPlans": {
+        "title": "Gérer les plans d'action",
+        "content": [
+          "Les plans d'action vous aident à suivre les tâches d'amélioration basées sur les recommandations d'évaluation.",
+          "Utilisez le tableau Kanban pour déplacer les tâches à travers les étapes : À faire → En cours → Terminé → Approuvé.",
+          "Ajoutez de nouvelles tâches, définissez des échéances et assignez des membres d'équipe pour suivre efficacement les progrès.",
+          "Les mises à jour régulières de votre plan d'action démontrent les efforts d'amélioration continue.",
+          "Exportez les plans d'action pour partager les progrès avec les parties prenantes et la direction."
+        ]
+      },
+      "viewingResults": {
+        "title": "Voir les résultats d'évaluation",
+        "content": [
+          "Accédez à toutes vos soumissions via 'Voir les évaluations' sur le tableau de bord.",
+          "Suivez le statut de soumission : En attente d'examen → En cours d'examen → Approuvé/Rejeté/Demande de révision.",
+          "Voyez les commentaires détaillés et recommandations des examinateurs pour comprendre les domaines d'amélioration.",
+          "Comparez les résultats sur différentes périodes d'évaluation pour suivre les progrès de votre coopérative.",
+          "Utilisez la vue de soumission pour examiner vos réponses et documents de soutien."
+        ]
+      },
+      "creatingAssessments": {
+        "title": "Créer des évaluations (Admins uniquement)",
+        "content": [
+          "Les administrateurs d'organisation peuvent démarrer de nouveaux cycles d'évaluation pour leur coopérative.",
+          "Cliquez sur 'Démarrer l'évaluation de durabilité' pour créer un nouveau projet d'évaluation.",
+          "Partagez l'ID d'évaluation avec les membres de l'équipe pour qu'ils puissent contribuer à différentes sections.",
+          "Surveillez les progrès et assurez-vous que toutes les catégories sont complétées avant la soumission finale.",
+          "Ne soumettez les évaluations que lorsque toutes les sections requises sont complètement terminées."
+        ]
+      },
+      "userManagement": {
+        "title": "Gérer les membres de l'équipe (Admins uniquement)",
+        "content": [
+          "Les administrateurs d'organisation peuvent ajouter et gérer les membres de l'équipe via 'Gérer les utilisateurs'.",
+          "Invitez de nouveaux utilisateurs par email et assignez des rôles appropriés basés sur leurs responsabilités.",
+          "Assignez l'accès aux catégories aux utilisateurs pour qu'ils puissent contribuer à des domaines d'évaluation spécifiques.",
+          "Supprimez les utilisateurs qui n'ont plus besoin d'accès pour maintenir la sécurité et l'intégrité des données.",
+          "Révisez régulièrement les permissions utilisateur pour assurer des niveaux d'accès appropriés."
+        ]
+      },
+      "reportsExports": {
+        "title": "Rapports et exports",
+        "content": [
+          "Exportez les rapports d'évaluation au format PDF pour partager avec les parties prenantes et conseils.",
+          "Utilisez les exports CSV pour l'analyse de données et le suivi des tendances dans le temps.",
+          "Téléchargez des documents Word pour la documentation détaillée et les rapports.",
+          "La génération régulière de rapports aide à démontrer les efforts d'amélioration continue.",
+          "Partagez les rapports avec les membres et parties prenantes pour maintenir la transparence."
+        ]
+      },
+      "bestPractices": {
+        "title": "Meilleures pratiques pour les coopératives",
+        "content": [
+          "Impliquez divers membres de l'équipe dans les évaluations pour obtenir des perspectives complètes sur les pratiques de durabilité.",
+          "Fournissez des réponses détaillées et honnêtes avec des exemples spécifiques et une documentation de soutien.",
+          "Utilisez les résultats d'évaluation pour créer des plans d'action réalistes et réalisables pour l'amélioration.",
+          "Les cycles d'évaluation réguliers (annuels ou semestriels) aident à suivre les progrès et maintenir l'élan.",
+          "Célébrez les améliorations et partagez les succès avec vos membres coopératifs et la communauté."
+        ]
+      },
+      "troubleshooting": {
+        "title": "Problèmes courants et solutions",
+        "content": [
+          "Impossible d'accéder aux évaluations : Vérifiez avec votre administrateur d'organisation les assignations de rôles et accès aux catégories.",
+          "L'évaluation ne sauvegarde pas : Assurez-vous de compléter tous les champs requis (Oui/Non, pourcentage et explication textuelle).",
+          "Problèmes de téléchargement de fichiers : Les fichiers doivent faire moins de 1MB. Essayez de réduire la taille du fichier ou utiliser différents formats.",
+          "Impossible de voir les soumissions d'autres équipes : Seuls les administrateurs d'organisation peuvent voir toutes les soumissions.",
+          "Catégories d'évaluation manquantes : Contactez votre administrateur pour vérifier les assignations de catégories pour votre organisation."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "Conseils pour des évaluations de durabilité réussies",
+      "beforeStarting": {
+        "title": "Avant de commencer :",
+        "items": [
+          "• Rassemblez les documents et données pertinents",
+          "• Impliquez les membres de l'équipe de différents domaines",
+          "• Révisez les évaluations précédentes si disponibles",
+          "• Prévoyez du temps adéquat pour la complétion"
+        ]
+      },
+      "duringAssessment": {
+        "title": "Pendant l'évaluation :",
+        "items": [
+          "• Soyez honnête et spécifique dans les réponses",
+          "• Fournissez des exemples concrets",
+          "• Téléchargez des preuves de soutien",
+          "• Sauvegardez les brouillons régulièrement"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "Besoin d'aide ?",
+      "description": "Si vous avez besoin d'assistance ou avez des questions sur l'utilisation de la plateforme :",
+      "email": "📧 Email : support@dgrv.org",
+      "phone": "📞 Téléphone : +27 (0) 11 000 0000",
+      "website": "🌐 Site web : www.dgrv.org/support",
+      "contactAdmin": "💬 Contactez votre administrateur d'organisation pour les questions spécifiques aux rôles"
+    }
+  },
+  "adminGuide": {
+    "title": "Guide administrateur pour la plateforme DGRV",
+    "subtitle": "Guide complet pour gérer la plateforme d'évaluation de durabilité DGRV",
+    "backToDashboard": "Retour au tableau de bord",
+    "quickStart": {
+      "title": "Démarrage rapide",
+      "step1": "1. 👥 Gérer les organisations et utilisateurs",
+      "step2": "2. 📋 Configurer les catégories et questions",
+      "step3": "3. ✅ Examiner et approuver les évaluations",
+      "step4": "4. 📊 Surveiller la santé et performance du système",
+      "step5": "5. 🎯 Soutenir les coopératives dans leur parcours de durabilité"
+    },
+    "sections": {
+      "overview": {
+        "title": "Aperçu de la plateforme",
+        "content": [
+          "La plateforme d'évaluation de durabilité DGRV est conçue pour aider les coopératives à travers l'Afrique australe à mesurer et améliorer leurs pratiques de durabilité.",
+          "En tant qu'administrateur, vous avez accès à des outils complets pour gérer les organisations, utilisateurs, contenu d'évaluation et examiner les soumissions.",
+          "La plateforme supporte plusieurs langues et fonctionne hors ligne pour accommoder divers défis de connectivité dans la région."
+        ]
+      },
+      "organizations": {
+        "title": "Gérer les organisations",
+        "content": [
+          "Ajoutez de nouvelles organisations coopératives à la plateforme avec leurs informations de base et paramètres de domaine.",
+          "Configurez les paramètres spécifiques à l'organisation et gérez l'accès utilisateur pour chaque coopérative.",
+          "Surveillez l'activité de l'organisation et assurez l'isolation appropriée des données entre différentes coopératives.",
+          "Archivez ou supprimez les organisations qui ne sont plus actives tout en préservant leurs données historiques."
+        ]
+      },
+      "users": {
+        "title": "Gérer les utilisateurs",
+        "content": [
+          "Créez et gérez les comptes utilisateur dans toutes les organisations avec des assignations de rôles appropriées.",
+          "Assignez les utilisateurs à des organisations spécifiques et configurez leurs permissions d'accès.",
+          "Surveillez l'activité utilisateur et gérez le statut de vérification de compte.",
+          "Assurez la sécurité appropriée en révisant régulièrement l'accès utilisateur et en supprimant les comptes inactifs."
+        ]
+      },
+      "categories": {
+        "title": "Gérer les catégories d'évaluation",
+        "content": [
+          "Configurez les catégories d'évaluation qui s'alignent avec les meilleures pratiques de durabilité et exigences locales.",
+          "Définissez des poids appropriés pour chaque catégorie pour assurer des scores d'évaluation équilibrés.",
+          "Organisez les catégories dans un ordre d'affichage logique pour une expérience utilisateur optimale.",
+          "Révisez et mettez à jour régulièrement les catégories basées sur les retours et standards de durabilité changeants."
+        ]
+      },
+      "questions": {
+        "title": "Gérer les questions d'évaluation",
+        "content": [
+          "Créez des questions complètes dans chaque catégorie pour évaluer exhaustivement les pratiques de durabilité.",
+          "Fournissez des questions en plusieurs langues pour soutenir les communautés coopératives diverses.",
+          "Définissez des poids et ordre d'affichage appropriés pour les questions dans chaque catégorie.",
+          "Révisez et mettez à jour régulièrement les questions basées sur les résultats d'évaluation et retours des parties prenantes."
+        ]
+      },
+      "reviews": {
+        "title": "Examiner les évaluations",
+        "content": [
+          "Examinez exhaustivement les évaluations soumises, considérant à la fois les scores quantitatifs et réponses qualitatives.",
+          "Fournissez des commentaires constructifs et des recommandations spécifiques pour l'amélioration.",
+          "Utilisez des recommandations standard pour assurer la cohérence à travers plusieurs évaluations.",
+          "Approuvez, rejetez ou demandez des révisions basées sur la qualité et complétude de l'évaluation."
+        ]
+      },
+      "recommendations": {
+        "title": "Recommandations standard",
+        "content": [
+          "Créez des modèles de recommandations réutilisables pour les scénarios d'évaluation courants et domaines d'amélioration.",
+          "Maintenez une bibliothèque de recommandations de haute qualité qui peuvent être appliquées à travers différentes coopératives.",
+          "Mettez à jour régulièrement les recommandations basées sur les meilleures pratiques et stratégies d'amélioration réussies.",
+          "Assurez-vous que les recommandations sont pratiques et réalisables pour les coopératives de diverses tailles et ressources."
+        ]
+      },
+      "systemHealth": {
+        "title": "Santé et performance du système",
+        "content": [
+          "Surveillez régulièrement la performance de la plateforme, santé de la base de données et temps de réponse API.",
+          "Révisez le statut de la file de synchronisation et assurez-vous que la synchronisation des données fonctionne correctement.",
+          "Exportez les rapports système et logs d'audit pour la conformité et résolution de problèmes.",
+          "Maintenez des sauvegardes régulières et assurez la sécurité des données à travers tous les composants de la plateforme."
+        ]
+      },
+      "support": {
+        "title": "Soutenir les coopératives",
+        "content": [
+          "Fournissez des conseils aux coopératives sur l'utilisation efficace de la plateforme pour leurs objectifs de durabilité.",
+          "Offrez des formations et matériels de soutien pour aider les organisations à maximiser la valeur de leurs évaluations.",
+          "Surveillez les tendances d'évaluation et identifiez les opportunités d'amélioration de la plateforme.",
+          "Construisez des relations avec les dirigeants coopératifs pour comprendre leurs besoins et défis uniques."
+        ]
+      }
+    },
+    "bestPractices": {
+      "title": "Meilleures pratiques pour l'administration de plateforme",
+      "regularReviews": {
+        "title": "Révisions régulières :",
+        "items": [
+          "• Révisez les évaluations en attente au moins hebdomadairement",
+          "• Surveillez les métriques de santé et performance du système",
+          "• Mettez à jour les catégories et questions basées sur les retours",
+          "• Maintenez une communication active avec les dirigeants coopératifs"
+        ]
+      },
+      "qualityAssurance": {
+        "title": "Assurance qualité :",
+        "items": [
+          "• Assurez des standards d'examen cohérents à travers toutes les évaluations",
+          "• Fournissez des commentaires détaillés et actionnables aux coopératives",
+          "• Maintenez des modèles de recommandations à jour",
+          "• Sauvegardez régulièrement les données et configurations système"
+        ]
+      }
+    },
+    "contactInfo": {
+      "title": "Support administratif",
+      "description": "Pour le support technique ou questions d'administration de plateforme :",
+      "email": "📧 Email : admin@dgrv.org",
+      "phone": "📞 Téléphone : +27 (0) 11 000 0000",
+      "website": "🌐 Site web : www.dgrv.org/admin",
+      "documentation": "📚 Documentation : Disponible dans le portail administrateur"
+    }
+  }
 }

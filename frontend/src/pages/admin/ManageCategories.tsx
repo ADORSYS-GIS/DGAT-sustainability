@@ -60,7 +60,11 @@ export const ManageCategories: React.FC = () => {
   const categories = categoriesData?.categories || [];
 
   // Use enhanced offline mutation hooks
-  const { createCategory, updateCategory, deleteCategory, isPending } = useOfflineCategoriesMutation();
+  const mutationHooks = useOfflineCategoriesMutation();
+  const createCategory = mutationHooks.createCategory.mutate;
+  const updateCategory = mutationHooks.updateCategory.mutate;
+  const deleteCategory = mutationHooks.deleteCategory.mutate;
+  const isPending = mutationHooks.createCategory.isPending || mutationHooks.updateCategory.isPending || mutationHooks.deleteCategory.isPending;
 
   const { isOnline } = useOfflineSyncStatus();
 

@@ -22,6 +22,7 @@ import type { Question, QuestionRevision, Assessment as AssessmentType, Response
 import { offlineDB } from "../../services/indexeddb";
 import type { CreateResponseRequest, CreateAssessmentRequest } from "@/openapi-rq/requests/types.gen";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 
 type FileData = { name: string; url: string };
 
@@ -37,6 +38,9 @@ export const Assessment: React.FC = () => {
   const { assessmentId } = useParams<{ assessmentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Get current language from localStorage or i18n instance
+  const currentLanguage = localStorage.getItem('i18n_language') || i18n.language || "en";
 
   // Network status from hook
   const { isOnline } = useOfflineSyncStatus();
@@ -130,7 +134,7 @@ export const Assessment: React.FC = () => {
       setHasCreatedAssessment(true);
       setCreationAttempts(prev => prev + 1);
       const newAssessment: CreateAssessmentRequest = {
-        language: "en",
+        language: currentLanguage,
       };
       try {
         createAssessment(newAssessment, {
@@ -193,7 +197,7 @@ export const Assessment: React.FC = () => {
       toast.error(t('assessment.maxRetriesExceeded', { defaultValue: 'Failed to create assessment after multiple attempts. Please try again later.' }));
       navigate("/dashboard");
     }
-  }, [assessmentId, hasCreatedAssessment, user, createAssessment, navigate, t, assessmentMutationPending, orgInfo.orgId, user?.email, creationAttempts]);
+  }, [assessmentId, hasCreatedAssessment, user, createAssessment, navigate, t, assessmentMutationPending, orgInfo.orgId, user?.email, creationAttempts, currentLanguage]);
 
   // Add a timeout mechanism to prevent infinite waiting
   useEffect(() => {
@@ -851,8 +855,8 @@ export const Assessment: React.FC = () => {
                     unknown
                   >;
                   questionText =
-                    typeof textObj["en"] === "string"
-                      ? (textObj["en"] as string)
+                    typeof textObj[currentLanguage] === "string"
+                      ? (textObj[currentLanguage] as string)
                       : (Object.values(textObj).find(
                           (v) => typeof v === "string",
                         ) as string) || "";

@@ -366,11 +366,32 @@ export class ApiInterceptor {
             
             // Check if a question with the same category and text already exists (to prevent duplicates)
             const existingQuestions = await offlineDB.getAllQuestions();
-            const duplicateQuestion = existingQuestions.find(q => 
-              q.category === question.category && 
-              q.latest_revision.text.en === question.latest_revision.text.en &&
-              q.question_id !== question.question_id
-            );
+            const duplicateQuestion = existingQuestions.find(q => {
+              if (q.category !== question.category || q.question_id === question.question_id) {
+                return false;
+              }
+              
+              // Compare text in all available languages
+              const qText = q.latest_revision.text;
+              const questionText = question.latest_revision.text;
+              
+              if (typeof qText === 'object' && typeof questionText === 'object') {
+                // Compare all language keys
+                const qKeys = Object.keys(qText);
+                const questionKeys = Object.keys(questionText);
+                
+                // Check if any language has the same text
+                for (const key of qKeys) {
+                  if (questionKeys.includes(key) && qText[key] === questionText[key]) {
+                    return true;
+                  }
+                }
+              } else if (qText === questionText) {
+                return true;
+              }
+              
+              return false;
+            });
             if (duplicateQuestion) {
               console.warn('⚠️ Found duplicate question, deleting:', duplicateQuestion.question_id);
               await offlineDB.deleteQuestion(duplicateQuestion.question_id);

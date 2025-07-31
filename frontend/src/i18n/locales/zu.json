@@ -559,5 +559,269 @@
     "assessment.fileTooLarge": "Usayizi wefayela akufanele udlule ku-1MB.",
     "assessment.completeAllQuestionsNext": "Sicela uphendule yonke imibuzo kulesigaba ngaphambi kokuqhubeka.",
   "manageQuestions.noCategories": "Azikho izigaba ezitholakalayo. Sicela udale izigaba kuqala!",
-  "manageQuestions.noText": "Awukho umbhalo otholakalayo."
+  "manageQuestions.noText": "Awukho umbhalo otholakalayo.",
+  "userGuide": {
+    "title": "Umhlahlandlela Womsebenzisi Wezinkampani Ezibambisene",
+    "subtitle": "Umhlahlandlela ophelele wokusebenzisa ipulatifomu yokuhlola ukusimama ye-DGRV",
+    "backToDashboard": "Buyela ku-Dashboard",
+    "quickStart": {
+      "title": "Ukuqala Okusheshayo",
+      "step1": "1. 📋 Qala noma uphendule ukuhlolwa kusuka ku-dashboard yakho",
+      "step2": "2. ✏️ Gcwalisa yonke imibuzo ngezincazelo eziningiliziwe",
+      "step3": "3. 📎 Namathela amadokhumenti asekelayo lapho kufanele",
+      "step4": "4. ✅ Thumela ukuze kubuyekezwe uma sekuphelile",
+      "step5": "5. 📊 Sebenzisa imiphumela ukudala amacebo wesenzo futhi ulandele inqubekela"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Ukuqala",
+        "content": [
+          "Siyakwamukela ku-Pulatifomu Yokuhlola Ukusimama ye-DGRV! Le thuluzi iyasiza inkampani yakho ebambisene ukuthi ilinganise futhi ithuthukise imikhuba yayo yokusimama.",
+          "I-dashboard yakho inikeza ukufinyelela ekuhloleni, amacebo wesenzo, kanye namathuluzi okulandela inqubekela.",
+          "Uma ungumphathi wenhlangano, ungadala ukuhlolwa okusha futhi uphathe amalungu eqembu. Abasebenzisi benhlangano bangaphendula ukuhlolwa futhi balandele inqubekela."
+        ]
+      },
+      "roles": {
+        "title": "Ukuqonda Izindima Zabasebenzisi",
+        "content": [
+          "Umphathi Wenhlangano (org_admin): Angadala ukuhlolwa okusha, aphathe abasebenzisi, futhi abone yonke idatha yenhlangano.",
+          "Umsebenzisi Wenhlangano (Org_User): Angaphendula ukuhlolwa okunikezwe, abone imiphumela, futhi aphathe amacebo wesenzo.",
+          "Bobabili izindima bangafinyelela ku-dashboard, babone okuthunyelwe, futhi bakhiphe imibiko yenhlangano yabo."
+        ]
+      },
+      "assessments": {
+        "title": "Ukwenza Ukuhlolwa",
+        "content": [
+          "Ukuhlolwa kuhlelwe ngezigaba (isb. Imvelo, Umphakathi, Ukuphatha) ngezibuzo kusigaba ngasinye.",
+          "Kumbuzo ngamunye, nikeza: impendulo Yebo/Cha, iphesenti lokugcwalisa (0%, 25%, 50%, 75%, 100%), kanye nencazelo yombhalo eningiliziwe.",
+          "Unganamathisela amafayela ukuze usekele izimpendulo zakho (max 1MB ngefayela ngalinye). Sebenzisa i-ayikhon yokunamathisela ukuze engeze amadokhumenti.",
+          "Londoloza inqubekela yakho noma nini usebenzisa 'Londoloza Isiqeshana'. Gcwalisa yonke imibuzo esigabeni ngaphambi kokuya esilandelayo.",
+          "Uma sekuthunyelwe, ukuhlolwa kudlula inqubo yokubuyekezwa ngaphambi kokuvunywa kokugcina."
+        ]
+      },
+      "actionPlans": {
+        "title": "Ukuphatha Amacebo Wesenzo",
+        "content": [
+          "Amacebo wesenzo akusiza ukuthi ulandele imisebenzi yokuthuthukisa esekelwe ezindululweni zokuhlolwa.",
+          "Sebenzisa ibhodi ye-Kanban ukuze uhambise imisebenzi ngamazinga: Okwenziwayo → Kwenziwayo → Kwenziwe → Kuvunyiwe.",
+          "Engeza imisebenzi emisha, bheka izikhathi, futhi unikeze amalungu eqembu ukuze ulandele inqubekela ngempumelelo.",
+          "Ukuvuselelwa okuvamile kwecebo lakho lesenzo kubonisa imizamo yokuthuthukisa okuqhubekayo.",
+          "Khipha amacebo wesenzo ukuze wabelane ng inqubekela nababambiqhaza kanye nokuphatha."
+        ]
+      },
+      "viewingResults": {
+        "title": "Ukubona Imiphumela Yokuhlolwa",
+        "content": [
+          "Finyelela konke okuthunyelwe kwakho nge-'Bona Ukuhlolwa' ku-dashboard.",
+          "Landela isimo sokuthunyelwa: Kusalindele Ukubuyekezwa → Kuyabuyekezwa → Kuvunyiwe/Kunqatshiwe/Kuceliwe Ukubuyekezwa.",
+          "Bona impendulo eningiliziwe kanye nezindululo zokubuyekezwa ukuze uqonde izindawo zokuthuthukisa.",
+          "Qhathanisa imiphumela ngamahora ahlukene wokuhlolwa ukuze ulandele inqubekela yenkampani yakho ebambisene.",
+          "Sebenzisa ukubukeka kokuthunyelwe ukuze ubuyekezwe izimpendulo zakho kanye namadokhumenti asekelayo."
+        ]
+      },
+      "creatingAssessments": {
+        "title": "Ukudala Ukuhlolwa (Abaphathi Kuphela)",
+        "content": [
+          "Abaphathi benhlangano bangaqala amasikeli amasha wokuhlolwa wenkampani yabo ebambisene.",
+          "Chofoza 'Qala Ukuhlola Ukusimama' ukuze udale isiqeshana esisha sokuhlolwa.",
+          "Yabelana nge-ID yokuhlolwa namalungu eqembu ukuze bakwazi ukufaka isandla ezigabeni ezahlukene.",
+          "Qapha inqubekela futhi uqinisekise ukuthi zonke izigaba zigcwalisiwe ngaphambi kokuthunyelwa kokugcina.",
+          "Ungathumeli ukuhlolwa kuphela lapho zonke izigaba ezidingekayo zigcwalisiwe ngokuphelele."
+        ]
+      },
+      "userManagement": {
+        "title": "Ukuphatha Amalungu Eqembu (Abaphathi Kuphela)",
+        "content": [
+          "Abaphathi benhlangano bangangeza futhi baphathe amalungu eqembu nge-'Phatha Abasebenzisi'.",
+          "Mema abasebenzisi abasha nge-imeyili futhi unikeze izindima ezifanele esekelwe izibopho zabo.",
+          "Nikeza abasebenzisi ukufinyelela kuzigaba ukuze bakwazi ukufaka isandla ezindaweni ezithile zokuhlolwa.",
+          "Susa abasebenzisi abangasadingi ukufinyelela ukuze ugcine ukuphepha kanye nokuthembeka kwedatha.",
+          "Buyekezwa ngokuvamile izimvume zabasebenzisi ukuze uqinisekise amazinga okufinyelela afanele."
+        ]
+      },
+      "reportsExports": {
+        "title": "Imibiko Nokukhipha",
+        "content": [
+          "Khipha imibiko yokuhlolwa ngefomethi ye-PDF ukuze wabelane nababambiqhaza kanye namabhodi.",
+          "Sebenzisa ukukhipha kwe-CSV ukuze uhlaziywe idatha futhi ulandelele imikhuba ngokuhamba kwesikhathi.",
+          "Landa amadokhumenti e-Word ukuze wenze ubhalo oluningiliziwe kanye nezinjongo zemibiko.",
+          "Ukukhiqizwa okuvamile kwemibiko kusiza ekuboniseni imizamo yokuthuthukisa okuqhubekayo.",
+          "Yabelana ngemibiko namalungu kanye nababambiqhaza ukuze ugcine ukubonakala."
+        ]
+      },
+      "bestPractices": {
+        "title": "Imikhuba Emihle Yezinkampani Ezibambisene",
+        "content": [
+          "Bandakanya amalungu ahlukene eqembu ekuhloleni ukuze uthole imibono ephelele ngemikhuba yokusimama.",
+          "Nikeza izimpendulo ezininingiliziwe, eziqotho ngezibonelo ezithile kanye nobhalo olusekelayo.",
+          "Sebenzisa imiphumela yokuhlolwa ukuze udale amacebo wesenzo aqinisekile, afezekisekayo wokuthuthukisa.",
+          "Amasikeli avamile wokuhlolwa (onyakeni noma isigamu sonyaka) asiza ekulandeleni inqubekela nokugcina umfutho.",
+          "Gubha ukuthuthukisa futhi yabelana ngempumelelo namalungu akho enkampani ebambisene kanye nomphakathi."
+        ]
+      },
+      "troubleshooting": {
+        "title": "Izinkinga Ezivamile Nezixazululo",
+        "content": [
+          "Awukwazi ukufinyelela ekuhloleni: Hlola nomphathi wenhlangano yakho mayelana nokunikezwa kwezindima kanye nokufinyelela kuzigaba.",
+          "Ukuhlolwa akugcini: Qinisekisa ukuthi ugcwalisa zonke izinkambu ezidingekayo (Yebo/Cha, iphesenti kanye nencazelo yombhalo).",
+          "Izinkinga zokulayisha amafayela: Amafayela kufanele abe ngaphansi kuka-1MB. Zama ukunciphisa usayizi wefayela noma usebenzise amafomethi ahlukene.",
+          "Awukwazi ukubona okuthunyelwe kwamanye amaqembu: Abaphathi benhlangano kuphela abangabona konke okuthunyelwe.",
+          "Izigaba zokuhlolwa ezingekho: Xhumana nomphathi wakho ukuze ahlole ukunikezwa kwezigaba yenhlangano yakho."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "Amathiphu Wokuhlolwa Kokusimama Okuphelele",
+      "beforeStarting": {
+        "title": "Ngaphambi Kokuqala:",
+        "items": [
+          "• Qoqa amadokhumenti kanye nedatha efanele",
+          "• Bandakanya amalungu eqembu ezindaweni ezahlukene",
+          "• Buyekezwa ukuhlolwa kwangaphambilini uma kutholakala",
+          "• Beka isikhathi esanele sokugcwalisa"
+        ]
+      },
+      "duringAssessment": {
+        "title": "Ngesikhathi Sokuhlolwa:",
+        "items": [
+          "• Yiba qotho futhi ube ngokucacile ezimpendulweni",
+          "• Nikeza izibonelo eziqondile",
+          "• Layisha ubufakazi obusekelayo",
+          "• Londoloza amasiqeshana ngokuvamile"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "Udinga Usizo?",
+      "description": "Uma udinga usizo noma unemibuzo mayelana nokusebenzisa ipulatifomu:",
+      "email": "📧 I-imeyili: support@dgrv.org",
+      "phone": "📞 Ucingo: +27 (0) 11 000 0000",
+      "website": "🌐 Iwebhusayithi: www.dgrv.org/support",
+      "contactAdmin": "💬 Xhumana nomphathi wenhlangano yakho ngemibuzo ethile yendima"
+    }
+  },
+  "adminGuide": {
+    "title": "Umhlahlandlela Womphathi We-Pulatifomu ye-DGRV",
+    "subtitle": "Umhlahlandlela ophelele wokuphatha ipulatifomu yokuhlola ukusimama ye-DGRV",
+    "backToDashboard": "Buyela ku-Dashboard",
+    "quickStart": {
+      "title": "Ukuqala Okusheshayo",
+      "step1": "1. 👥 Phatha izinkampani kanye abasebenzisi",
+      "step2": "2. 📋 Hlela izigaba kanye imibuzo",
+      "step3": "3. ✅ Buyekezwa futhi uvume ukuhlolwa",
+      "step4": "4. 📊 Qapha impilo kanye nokusebenza kwesistimu",
+      "step5": "5. 🎯 Sekela izinkampani ezibambisene ohambweni lwazo lokusimama"
+    },
+    "sections": {
+      "overview": {
+        "title": "Ukuqonda Ipulatifomu",
+        "content": [
+          "Ipulatifomu Yokuhlola Ukusimama ye-DGRV yakhelwe ukusiza izinkampani ezibambisene kulo lonke elaseNingizimu Afrika ukuthi zilinganise futhi zithuthukise imikhuba yazo yokusimama.",
+          "Njengomphathi, unokufinyelela kumathuluzi aphelele wokuphatha izinkampani, abasebenzisi, okuqukethwe kokuhlolwa, kanye nokubuyekezwa kokuthunyelwe.",
+          "Ipulatifomu isekela izilimi eziningi futhi isebenza ngaphandle kwe-inthanethi ukuze ihambisane nezinkinga ezahlukene zokuxhumana esifundeni."
+        ]
+      },
+      "organizations": {
+        "title": "Ukuphatha Izinkampani",
+        "content": [
+          "Engeza izinkampani ezibambisene ezintsha epulatifomu ngezaziso zazo eziyisisekelo kanye nezilungiselelo zedomaini.",
+          "Hlela izilungiselelo ezithile zenhlangano futhi uphathe ukufinyelela kwabasebenzisi kuzinkampani ezibambisene ngayinye.",
+          "Qapha umsebenzi wenhlangano futhi uqinisekise ukuhlukaniswa okufanele kwedatha phakathi kwezinkampani ezibambisene ezahlukene.",
+          "Gcina noma ususe izinkampani ezingasasebenzi kuyilapho ugcina idatha yazo yomlando."
+        ]
+      },
+      "users": {
+        "title": "Ukuphatha Abasebenzisi",
+        "content": [
+          "Dala futhi uphathe ama-akhawunti abasebenzisi kuzo zonke izinkampani nokunikezwa kwezindima ezifanele.",
+          "Nikeza abasebenzisi izinkampani ezithile futhi uhlele izimvume zabo zokufinyelela.",
+          "Qapha umsebenzi womsebenzisi futhi uphathe isimo sokuqinisekiswa kwe-akhawunti.",
+          "Qinisekisa ukuphepha okufanele ngokubuyekezwa ngokuvamile kokufinyelela kwabasebenzisi nokususa ama-akhawunti angasebenzi."
+        ]
+      },
+      "categories": {
+        "title": "Ukuphatha Izigaba Zokuhlolwa",
+        "content": [
+          "Hlela izigaba zokuhlolwa ezihambisana nemikhuba emihle yokusimama kanye nezidingo zendawo.",
+          "Beka izisindo ezifanele kusigaba ngasinye ukuze uqinisekise amaphuzu okuhlolwa alinganile.",
+          "Hlela izigaba ngokulandelana okunengqondo kokubonisa ukuze uthole ulwazi lomsebenzisi oluhle.",
+          "Buyekezwa futhi uvuselele izigaba ngokuvamile esekelwe impendulo kanye namazinga okuvuselelwa yokusimama."
+        ]
+      },
+      "questions": {
+        "title": "Ukuphatha Imibuzo Yokuhlolwa",
+        "content": [
+          "Dala imibuzo ephelele ngaphakathi kusigaba ngasinye ukuze uhlole ngokuphelele imikhuba yokusimama.",
+          "Nikeza imibuzo ngezilimi eziningi ukuze usekele imiphakathi yezinkampani ezibambisene ehlukene.",
+          "Beka izisindo kanye nokulandelana kokubonisa okufanele kwemibuzo ngaphakathi kusigaba ngasinye.",
+          "Buyekezwa futhi uvuselele imibuzo ngokuvamile esekelwe imiphumela yokuhlolwa kanye nempendulo yababambiqhaza."
+        ]
+      },
+      "reviews": {
+        "title": "Ukubuyekezwa Kokuhlolwa",
+        "content": [
+          "Buyekezwa ngokuphelele ukuhlolwa okuthunyelwe, ucabangele amaphuzu ezinga kanye nezimpendulo zekhwalithi.",
+          "Nikeza impendulo eyakhiwe kanye nezindululo ezithile zokuthuthukisa.",
+          "Sebenzisa izindululo ezivamile ukuze uqinisekise ukuvumelana kuzo zonke izihlolo.",
+          "Vuma, nqatsha, noma ucele ukubuyekezwa esekelwe ikhwalithi kanye nokugcwalisa kokuhlolwa."
+        ]
+      },
+      "recommendations": {
+        "title": "Izindululo Ezivamile",
+        "content": [
+          "Dala amamodeli ezindululo azisebenzisekayo ezisekelwe ezimo ezivamile zokuhlolwa kanye nezindawo zokuthuthukisa.",
+          "Gcina umtapo wezindululo zekhwalithi ephezulu ezingasetshenziswa kuzinkampani ezibambisene ezahlukene.",
+          "Vuselela izindululo ngokuvamile esekelwe imikhuba emihle kanye namasu wokuthuthukisa aphumelelayo.",
+          "Qinisekisa ukuthi izindululo ziyasebenza futhi zifezekisekayo kuzinkampani ezibambisene ezahlukene ngosayizi kanye nemithombo."
+        ]
+      },
+      "systemHealth": {
+        "title": "Impilo Nokusebenza Kwesistimu",
+        "content": [
+          "Qapha ngokuvamile ukusebenza kwepulatifomu, impilo yedatha, kanye nezikhathi zokuphendula ze-API.",
+          "Buyekezwa isimo seqe lokuhambisana futhi uqinisekise ukuthi ukuhambisana kwedatha kusebenza kahle.",
+          "Khipha imibiko yesistimu kanye namalogi wokuhlola ukuze wenze ukuhambisana nokuxazulula izinkinga.",
+          "Gcina ama-backup avamile futhi uqinisekise ukuphepha kwedatha kuzo zonke izingxenye zepulatifomu."
+        ]
+      },
+      "support": {
+        "title": "Ukusekela Izinkampani Ezibambisene",
+        "content": [
+          "Nikeza isiqondiso kuzinkampani ezibambisene mayelana nokusebenzisa ipulatifomu ngempumelelo ngezinjongo zazo zokusimama.",
+          "Nikeza ukuqeqeshwa kanye nemithombo yokusekela ukusiza izinkampani ukuthi zikhulise inani lokuhlolwa kwazo.",
+          "Qapha imikhuba yokuhlolwa futhi ubone amathuba okuthuthukisa ipulatifomu.",
+          "Akha ubudlelwane nabaholi bezinkampani ezibambisene ukuze uqonde izidingo kanye nezinkinga zabo ezihlukile."
+        ]
+      }
+    },
+    "bestPractices": {
+      "title": "Imikhuba Emihle Yokuphatha Ipulatifomu",
+      "regularReviews": {
+        "title": "Ukubuyekezwa Okuvamile:",
+        "items": [
+          "• Buyekezwa ukuhlolwa okusalindele okungenani ngesonto ngalinye",
+          "• Qapha imethrikhi yempilo kanye nokusebenza kwesistimu",
+          "• Vuselela izigaba kanye imibuzo esekelwe impendulo",
+          "• Gcina ukuxhumana okuvamile nabaholi bezinkampani ezibambisene"
+        ]
+      },
+      "qualityAssurance": {
+        "title": "Ukuqinisekisa Ikhwalithi:",
+        "items": [
+          "• Qinisekisa amazinga avumelene wokubuyekezwa kuzo zonke izihlolo",
+          "• Nikeza impendulo eningiliziwe, esebenzisekayo kuzinkampani ezibambisene",
+          "• Gcina amamodeli ezindululo avuselelwe",
+          "• Yenza ama-backup avamile wedatha kanye nezilungiselelo zesistimu"
+        ]
+      }
+    },
+    "contactInfo": {
+      "title": "Usizo Lokuphatha",
+      "description": "Ngosizo lobuchwepheshe noma imibuzo yokuphatha ipulatifomu:",
+      "email": "📧 I-imeyili: admin@dgrv.org",
+      "phone": "📞 Ucingo: +27 (0) 11 000 0000",
+      "website": "🌐 Iwebhusayithi: www.dgrv.org/admin",
+      "documentation": "📚 Ubhalo: Lutholakala ku-portal yomphathi"
+    }
+  }
 }

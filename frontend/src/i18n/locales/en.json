@@ -580,6 +580,269 @@
   "assessment.completeAllQuestionsNext": "Please answer all questions in this category before proceeding.",
   "assessment.noPermissionToCreate": "Only organization administrators can create assessments.",
   "manageQuestions.noCategories": "No categories available. Please create categories first!",
-  "manageQuestions.noText": "No text available."
-
+  "manageQuestions.noText": "No text available.",
+  "userGuide": {
+    "title": "User Guide for Cooperatives",
+    "subtitle": "Complete guide for using the DGRV sustainability assessment platform",
+    "backToDashboard": "Back to Dashboard",
+    "quickStart": {
+      "title": "Quick Start",
+      "step1": "1. 📋 Start or answer an assessment from your dashboard",
+      "step2": "2. ✏️ Complete all questions with detailed explanations",
+      "step3": "3. 📎 Attach supporting documents where relevant",
+      "step4": "4. ✅ Submit for review when complete",
+      "step5": "5. 📊 Use results to create action plans and track progress"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Getting Started",
+        "content": [
+          "Welcome to the DGRV Sustainability Assessment Platform! This tool helps your cooperative measure and improve its sustainability practices.",
+          "Your dashboard provides access to assessments, action plans, and progress tracking tools.",
+          "If you're an organization administrator, you can create new assessments and manage team members. Organization users can answer assessments and track progress."
+        ]
+      },
+      "roles": {
+        "title": "Understanding User Roles",
+        "content": [
+          "Organization Administrator (org_admin): Can create new assessments, manage users, and view all organization data.",
+          "Organization User (Org_User): Can answer assigned assessments, view results, and manage action plans.",
+          "Both roles can access the dashboard, view submissions, and export reports for their organization."
+        ]
+      },
+      "assessments": {
+        "title": "Taking Assessments",
+        "content": [
+          "Assessments are organized into categories (e.g., Environmental, Social, Governance) with questions in each category.",
+          "For each question, provide: Yes/No response, percentage completion (0%, 25%, 50%, 75%, 100%), and detailed text explanation.",
+          "You can attach files to support your answers (max 1MB per file). Use the paperclip icon to add documents.",
+          "Save your progress anytime using 'Save Draft'. Complete all questions in a category before moving to the next one.",
+          "Once submitted, assessments go through a review process before final approval."
+        ]
+      },
+      "actionPlans": {
+        "title": "Managing Action Plans",
+        "content": [
+          "Action plans help you track improvement tasks based on assessment recommendations.",
+          "Use the Kanban board to move tasks through stages: To Do → In Progress → Done → Approved.",
+          "Add new tasks, set deadlines, and assign team members to track progress effectively.",
+          "Regular updates to your action plan demonstrate continuous improvement efforts.",
+          "Export action plans to share progress with stakeholders and management."
+        ]
+      },
+      "viewingResults": {
+        "title": "Viewing Assessment Results",
+        "content": [
+          "Access all your submissions through 'View Assessments' on the dashboard.",
+          "Track submission status: Pending Review → Under Review → Approved/Rejected/Revision Requested.",
+          "View detailed feedback and recommendations from reviewers to understand improvement areas.",
+          "Compare results across different assessment periods to track your cooperative's progress.",
+          "Use the submission view to review your answers and supporting documents."
+        ]
+      },
+      "creatingAssessments": {
+        "title": "Creating Assessments (Admins Only)",
+        "content": [
+          "Organization administrators can start new assessment cycles for their cooperative.",
+          "Click 'Start Sustainability Assessment' to create a new assessment draft.",
+          "Share the assessment ID with team members so they can contribute to different sections.",
+          "Monitor progress and ensure all categories are completed before final submission.",
+          "Only submit assessments when all required sections are thoroughly completed."
+        ]
+      },
+      "userManagement": {
+        "title": "Managing Team Members (Admins Only)",
+        "content": [
+          "Organization administrators can add and manage team members through 'Manage Users'.",
+          "Invite new users by email and assign appropriate roles based on their responsibilities.",
+          "Assign category access to users so they can contribute to specific assessment areas.",
+          "Remove users who no longer need access to maintain security and data integrity.",
+          "Regularly review user permissions to ensure appropriate access levels."
+        ]
+      },
+      "reportsExports": {
+        "title": "Reports and Exports",
+        "content": [
+          "Export assessment reports in PDF format for sharing with stakeholders and boards.",
+          "Use CSV exports for data analysis and tracking trends over time.",
+          "Download Word documents for detailed documentation and reporting purposes.",
+          "Regular report generation helps demonstrate continuous improvement efforts.",
+          "Share reports with members and stakeholders to maintain transparency."
+        ]
+      },
+      "bestPractices": {
+        "title": "Best Practices for Cooperatives",
+        "content": [
+          "Involve diverse team members in assessments to get comprehensive perspectives on sustainability practices.",
+          "Provide detailed, honest answers with specific examples and supporting documentation.",
+          "Use assessment results to create realistic, achievable action plans for improvement.",
+          "Regular assessment cycles (annually or bi-annually) help track progress and maintain momentum.",
+          "Celebrate improvements and share successes with your cooperative members and community."
+        ]
+      },
+      "troubleshooting": {
+        "title": "Common Issues and Solutions",
+        "content": [
+          "Can't access assessments: Check with your organization administrator about role assignments and category access.",
+          "Assessment not saving: Ensure you're completing all required fields (Yes/No, percentage, and text explanation).",
+          "File upload issues: Files must be under 1MB. Try reducing file size or using different formats.",
+          "Can't see other team submissions: Only organization administrators can view all submissions.",
+          "Missing assessment categories: Contact your administrator to verify category assignments for your organization."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "Tips for Successful Sustainability Assessments",
+      "beforeStarting": {
+        "title": "Before Starting:",
+        "items": [
+          "• Gather relevant documents and data",
+          "• Involve team members from different areas",
+          "• Review previous assessments if available",
+          "• Set aside adequate time for completion"
+        ]
+      },
+      "duringAssessment": {
+        "title": "During Assessment:",
+        "items": [
+          "• Be honest and specific in responses",
+          "• Provide concrete examples",
+          "• Upload supporting evidence",
+          "• Save drafts regularly"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "Need Help?",
+      "description": "If you need assistance or have questions about using the platform:",
+      "email": "📧 Email: support@dgrv.org",
+      "phone": "📞 Phone: +27 (0) 11 000 0000",
+      "website": "🌐 Website: www.dgrv.org/support",
+      "contactAdmin": "💬 Contact your organization administrator for role-specific questions"
+    }
+  },
+  "adminGuide": {
+    "title": "Admin Guide for DGRV Platform",
+    "subtitle": "Complete guide for managing the DGRV sustainability assessment platform",
+    "backToDashboard": "Back to Dashboard",
+    "quickStart": {
+      "title": "Quick Start",
+      "step1": "1. 👥 Manage organizations and users",
+      "step2": "2. 📋 Configure categories and questions",
+      "step3": "3. ✅ Review and approve assessments",
+      "step4": "4. 📊 Monitor system health and performance",
+      "step5": "5. 🎯 Support cooperatives in their sustainability journey"
+    },
+    "sections": {
+      "overview": {
+        "title": "Platform Overview",
+        "content": [
+          "The DGRV Sustainability Assessment Platform is designed to help cooperatives across Southern Africa measure and improve their sustainability practices.",
+          "As an administrator, you have access to comprehensive tools for managing organizations, users, assessment content, and reviewing submissions.",
+          "The platform supports multiple languages and works offline to accommodate various connectivity challenges in the region."
+        ]
+      },
+      "organizations": {
+        "title": "Managing Organizations",
+        "content": [
+          "Add new cooperative organizations to the platform with their basic information and domain settings.",
+          "Configure organization-specific settings and manage user access for each cooperative.",
+          "Monitor organization activity and ensure proper data isolation between different cooperatives.",
+          "Archive or remove organizations that are no longer active while preserving their historical data."
+        ]
+      },
+      "users": {
+        "title": "Managing Users",
+        "content": [
+          "Create and manage user accounts across all organizations with appropriate role assignments.",
+          "Assign users to specific organizations and configure their access permissions.",
+          "Monitor user activity and manage account verification status.",
+          "Ensure proper security by regularly reviewing user access and removing inactive accounts."
+        ]
+      },
+      "categories": {
+        "title": "Managing Assessment Categories",
+        "content": [
+          "Configure assessment categories that align with sustainability best practices and local requirements.",
+          "Set appropriate weights for each category to ensure balanced assessment scoring.",
+          "Organize categories in logical display order for optimal user experience.",
+          "Regularly review and update categories based on feedback and changing sustainability standards."
+        ]
+      },
+      "questions": {
+        "title": "Managing Assessment Questions",
+        "content": [
+          "Create comprehensive questions within each category to thoroughly assess sustainability practices.",
+          "Provide questions in multiple languages to support diverse cooperative communities.",
+          "Set appropriate weights and display order for questions within each category.",
+          "Regularly review and update questions based on assessment results and stakeholder feedback."
+        ]
+      },
+      "reviews": {
+        "title": "Reviewing Assessments",
+        "content": [
+          "Review submitted assessments thoroughly, considering both quantitative scores and qualitative responses.",
+          "Provide constructive feedback and specific recommendations for improvement.",
+          "Use standard recommendations to ensure consistency across multiple assessments.",
+          "Approve, reject, or request revisions based on assessment quality and completeness."
+        ]
+      },
+      "recommendations": {
+        "title": "Standard Recommendations",
+        "content": [
+          "Create reusable recommendation templates for common assessment scenarios and improvement areas.",
+          "Maintain a library of high-quality recommendations that can be applied across different cooperatives.",
+          "Regularly update recommendations based on best practices and successful improvement strategies.",
+          "Ensure recommendations are practical and achievable for cooperatives of various sizes and resources."
+        ]
+      },
+      "systemHealth": {
+        "title": "System Health and Performance",
+        "content": [
+          "Monitor platform performance, database health, and API response times regularly.",
+          "Review sync queue status and ensure data synchronization is working properly.",
+          "Export system reports and audit logs for compliance and troubleshooting purposes.",
+          "Maintain regular backups and ensure data security across all platform components."
+        ]
+      },
+      "support": {
+        "title": "Supporting Cooperatives",
+        "content": [
+          "Provide guidance to cooperatives on using the platform effectively for their sustainability goals.",
+          "Offer training and support materials to help organizations maximize the value of their assessments.",
+          "Monitor assessment trends and identify opportunities for platform improvements.",
+          "Build relationships with cooperative leaders to understand their unique needs and challenges."
+        ]
+      }
+    },
+    "bestPractices": {
+      "title": "Best Practices for Platform Administration",
+      "regularReviews": {
+        "title": "Regular Reviews:",
+        "items": [
+          "• Review pending assessments at least weekly",
+          "• Monitor system health and performance metrics",
+          "• Update categories and questions based on feedback",
+          "• Maintain active communication with cooperative leaders"
+        ]
+      },
+      "qualityAssurance": {
+        "title": "Quality Assurance:",
+        "items": [
+          "• Ensure consistent review standards across all assessments",
+          "• Provide detailed, actionable feedback to cooperatives",
+          "• Maintain up-to-date recommendation templates",
+          "• Regularly backup system data and configurations"
+        ]
+      }
+    },
+    "contactInfo": {
+      "title": "Administrative Support",
+      "description": "For technical support or platform administration questions:",
+      "email": "📧 Email: admin@dgrv.org",
+      "phone": "📞 Phone: +27 (0) 11 000 0000",
+      "website": "🌐 Website: www.dgrv.org/admin",
+      "documentation": "📚 Documentation: Available in the admin portal"
+    }
+  }
 }

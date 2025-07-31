@@ -326,9 +326,13 @@ export class InitialDataLoader {
           
           if (responsesData?.responses) {
             const questions = await offlineDB.getAllQuestions();
+            // Get current language from localStorage or default to "en"
+            const currentLanguage = typeof window !== 'undefined' ? 
+              localStorage.getItem('i18n_language') || "en" : "en";
             const transformedResponses = DataTransformationService.transformResponsesWithContext(
               responsesData.responses,
-              questions
+              questions,
+              currentLanguage
             );
             
             if (DataTransformationService.validateTransformedData(transformedResponses, 'responses')) {

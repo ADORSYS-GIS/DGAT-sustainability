@@ -577,5 +577,269 @@
     "assessment.completeAllQuestionsNext": "Por favor, responda todas as perguntas nesta categoria antes de prosseguir.",
     "assessment.noPermissionToCreate": "Apenas administradores da organização podem criar avaliações.",
     "manageQuestions.noCategories": "Nenhuma categoria disponível. Por favor, crie categorias primeiro!",
-    "manageQuestions.noText": "Nenhum texto disponível."
+    "manageQuestions.noText": "Nenhum texto disponível.",
+    "userGuide": {
+      "title": "Guia do Usuário para Cooperativas",
+      "subtitle": "Guia completo para usar a plataforma de avaliação de sustentabilidade DGRV",
+      "backToDashboard": "Voltar ao Painel",
+      "quickStart": {
+        "title": "Início Rápido",
+        "step1": "1. 📋 Inicie ou responda uma avaliação do seu painel",
+        "step2": "2. ✏️ Complete todas as perguntas com explicações detalhadas",
+        "step3": "3. 📎 Anexe documentos de suporte quando relevante",
+        "step4": "4. ✅ Envie para revisão quando completo",
+        "step5": "5. 📊 Use os resultados para criar planos de ação e acompanhar o progresso"
+      },
+      "sections": {
+        "gettingStarted": {
+          "title": "Começando",
+          "content": [
+            "Bem-vindo à Plataforma de Avaliação de Sustentabilidade DGRV! Esta ferramenta ajuda sua cooperativa a medir e melhorar suas práticas de sustentabilidade.",
+            "Seu painel fornece acesso a avaliações, planos de ação e ferramentas de acompanhamento de progresso.",
+            "Se você é um administrador da organização, pode criar novas avaliações e gerenciar membros da equipe. Usuários da organização podem responder avaliações e acompanhar o progresso."
+          ]
+        },
+        "roles": {
+          "title": "Entendendo os Papéis do Usuário",
+          "content": [
+            "Administrador da Organização (org_admin): Pode criar novas avaliações, gerenciar usuários e visualizar todos os dados da organização.",
+            "Usuário da Organização (Org_User): Pode responder avaliações atribuídas, visualizar resultados e gerenciar planos de ação.",
+            "Ambos os papéis podem acessar o painel, visualizar submissões e exportar relatórios para sua organização."
+          ]
+        },
+        "assessments": {
+          "title": "Realizando Avaliações",
+          "content": [
+            "As avaliações são organizadas em categorias (ex. Ambiental, Social, Governança) com perguntas em cada categoria.",
+            "Para cada pergunta, forneça: resposta Sim/Não, percentual de conclusão (0%, 25%, 50%, 75%, 100%) e explicação textual detalhada.",
+            "Você pode anexar arquivos para apoiar suas respostas (máx. 1MB por arquivo). Use o ícone de clipe para adicionar documentos.",
+            "Salve seu progresso a qualquer momento usando 'Salvar Rascunho'. Complete todas as perguntas em uma categoria antes de passar para a próxima.",
+            "Uma vez submetidas, as avaliações passam por um processo de revisão antes da aprovação final."
+          ]
+        },
+        "actionPlans": {
+          "title": "Gerenciando Planos de Ação",
+          "content": [
+            "Planos de ação ajudam você a acompanhar tarefas de melhoria baseadas nas recomendações da avaliação.",
+            "Use o quadro Kanban para mover tarefas através dos estágios: A Fazer → Em Andamento → Concluído → Aprovado.",
+            "Adicione novas tarefas, defina prazos e atribua membros da equipe para acompanhar o progresso efetivamente.",
+            "Atualizações regulares do seu plano de ação demonstram esforços de melhoria contínua.",
+            "Exporte planos de ação para compartilhar progresso com stakeholders e gestão."
+          ]
+        },
+        "viewingResults": {
+          "title": "Visualizando Resultados da Avaliação",
+          "content": [
+            "Acesse todas as suas submissões através de 'Ver Avaliações' no painel.",
+            "Acompanhe o status da submissão: Pendente de Revisão → Em Revisão → Aprovado/Rejeitado/Solicitação de Revisão.",
+            "Veja feedback detalhado e recomendações dos revisores para entender áreas de melhoria.",
+            "Compare resultados através de diferentes períodos de avaliação para acompanhar o progresso da sua cooperativa.",
+            "Use a visualização de submissão para revisar suas respostas e documentos de suporte."
+          ]
+        },
+        "creatingAssessments": {
+          "title": "Criando Avaliações (Apenas Admins)",
+          "content": [
+            "Administradores da organização podem iniciar novos ciclos de avaliação para sua cooperativa.",
+            "Clique em 'Iniciar Avaliação de Sustentabilidade' para criar um novo rascunho de avaliação.",
+            "Compartilhe o ID da avaliação com membros da equipe para que possam contribuir com diferentes seções.",
+            "Monitore o progresso e garanta que todas as categorias sejam completadas antes da submissão final.",
+            "Só submeta avaliações quando todas as seções obrigatórias estiverem completamente finalizadas."
+          ]
+        },
+        "userManagement": {
+          "title": "Gerenciando Membros da Equipe (Apenas Admins)",
+          "content": [
+            "Administradores da organização podem adicionar e gerenciar membros da equipe através de 'Gerenciar Usuários'.",
+            "Convide novos usuários por email e atribua papéis apropriados baseados em suas responsabilidades.",
+            "Atribua acesso a categorias para usuários para que possam contribuir com áreas específicas de avaliação.",
+            "Remova usuários que não precisam mais de acesso para manter segurança e integridade dos dados.",
+            "Revise regularmente as permissões dos usuários para garantir níveis de acesso apropriados."
+          ]
+        },
+        "reportsExports": {
+          "title": "Relatórios e Exportações",
+          "content": [
+            "Exporte relatórios de avaliação em formato PDF para compartilhar com stakeholders e conselhos.",
+            "Use exportações CSV para análise de dados e acompanhamento de tendências ao longo do tempo.",
+            "Baixe documentos Word para documentação detalhada e propósitos de relatório.",
+            "Geração regular de relatórios ajuda a demonstrar esforços de melhoria contínua.",
+            "Compartilhe relatórios com membros e stakeholders para manter transparência."
+          ]
+        },
+        "bestPractices": {
+          "title": "Melhores Práticas para Cooperativas",
+          "content": [
+            "Envolva diversos membros da equipe em avaliações para obter perspectivas abrangentes sobre práticas de sustentabilidade.",
+            "Forneça respostas detalhadas e honestas com exemplos específicos e documentação de suporte.",
+            "Use resultados de avaliação para criar planos de ação realistas e alcançáveis para melhoria.",
+            "Ciclos regulares de avaliação (anual ou semestral) ajudam a acompanhar progresso e manter momentum.",
+            "Celebre melhorias e compartilhe sucessos com seus membros cooperativos e comunidade."
+          ]
+        },
+        "troubleshooting": {
+          "title": "Problemas Comuns e Soluções",
+          "content": [
+            "Não consegue acessar avaliações: Verifique com seu administrador da organização sobre atribuições de papéis e acesso a categorias.",
+            "Avaliação não está salvando: Certifique-se de completar todos os campos obrigatórios (Sim/Não, percentual e explicação textual).",
+            "Problemas de upload de arquivo: Arquivos devem ter menos de 1MB. Tente reduzir o tamanho do arquivo ou usar formatos diferentes.",
+            "Não consegue ver submissões de outras equipes: Apenas administradores da organização podem ver todas as submissões.",
+            "Categorias de avaliação ausentes: Contate seu administrador para verificar atribuições de categorias para sua organização."
+          ]
+        }
+      },
+      "tipsForSuccess": {
+        "title": "Dicas para Avaliações de Sustentabilidade Bem-sucedidas",
+        "beforeStarting": {
+          "title": "Antes de Começar:",
+          "items": [
+            "• Reúna documentos e dados relevantes",
+            "• Envolva membros da equipe de diferentes áreas",
+            "• Revise avaliações anteriores se disponíveis",
+            "• Reserve tempo adequado para conclusão"
+          ]
+        },
+        "duringAssessment": {
+          "title": "Durante a Avaliação:",
+          "items": [
+            "• Seja honesto e específico nas respostas",
+            "• Forneça exemplos concretos",
+            "• Faça upload de evidências de suporte",
+            "• Salve rascunhos regularmente"
+          ]
+        }
+      },
+      "needHelp": {
+        "title": "Precisa de Ajuda?",
+        "description": "Se você precisa de assistência ou tem perguntas sobre usar a plataforma:",
+        "email": "📧 Email: support@dgrv.org",
+        "phone": "📞 Telefone: +27 (0) 11 000 0000",
+        "website": "🌐 Website: www.dgrv.org/support",
+        "contactAdmin": "💬 Contate seu administrador da organização para perguntas específicas de papel"
+      }
+    },
+    "adminGuide": {
+      "title": "Guia do Administrador para Plataforma DGRV",
+      "subtitle": "Guia completo para gerenciar a plataforma de avaliação de sustentabilidade DGRV",
+      "backToDashboard": "Voltar ao Painel",
+      "quickStart": {
+        "title": "Início Rápido",
+        "step1": "1. 👥 Gerencie organizações e usuários",
+        "step2": "2. 📋 Configure categorias e perguntas",
+        "step3": "3. ✅ Revise e aprove avaliações",
+        "step4": "4. 📊 Monitore saúde e performance do sistema",
+        "step5": "5. 🎯 Suporte cooperativas em sua jornada de sustentabilidade"
+      },
+      "sections": {
+        "overview": {
+          "title": "Visão Geral da Plataforma",
+          "content": [
+            "A Plataforma de Avaliação de Sustentabilidade DGRV é projetada para ajudar cooperativas em toda a África Austral a medir e melhorar suas práticas de sustentabilidade.",
+            "Como administrador, você tem acesso a ferramentas abrangentes para gerenciar organizações, usuários, conteúdo de avaliação e revisar submissões.",
+            "A plataforma suporta múltiplos idiomas e funciona offline para acomodar vários desafios de conectividade na região."
+          ]
+        },
+        "organizations": {
+          "title": "Gerenciando Organizações",
+          "content": [
+            "Adicione novas organizações cooperativas à plataforma com suas informações básicas e configurações de domínio.",
+            "Configure configurações específicas da organização e gerencie acesso de usuário para cada cooperativa.",
+            "Monitore atividade da organização e garanta isolamento apropriado de dados entre diferentes cooperativas.",
+            "Arquive ou remova organizações que não estão mais ativas enquanto preserva seus dados históricos."
+          ]
+        },
+        "users": {
+          "title": "Gerenciando Usuários",
+          "content": [
+            "Crie e gerencie contas de usuário em todas as organizações com atribuições de papéis apropriadas.",
+            "Atribua usuários a organizações específicas e configure suas permissões de acesso.",
+            "Monitore atividade do usuário e gerencie status de verificação de conta.",
+            "Garanta segurança apropriada revisando regularmente acesso do usuário e removendo contas inativas."
+          ]
+        },
+        "categories": {
+          "title": "Gerenciando Categorias de Avaliação",
+          "content": [
+            "Configure categorias de avaliação que se alinhem com melhores práticas de sustentabilidade e requisitos locais.",
+            "Defina pesos apropriados para cada categoria para garantir pontuações de avaliação equilibradas.",
+            "Organize categorias em ordem lógica de exibição para experiência de usuário ideal.",
+            "Revise e atualize categorias regularmente baseado em feedback e padrões de sustentabilidade em mudança."
+          ]
+        },
+        "questions": {
+          "title": "Gerenciando Perguntas de Avaliação",
+          "content": [
+            "Crie perguntas abrangentes dentro de cada categoria para avaliar completamente práticas de sustentabilidade.",
+            "Forneça perguntas em múltiplos idiomas para apoiar comunidades cooperativas diversas.",
+            "Defina pesos e ordem de exibição apropriados para perguntas dentro de cada categoria.",
+            "Revise e atualize perguntas regularmente baseado em resultados de avaliação e feedback de stakeholders."
+          ]
+        },
+        "reviews": {
+          "title": "Revisando Avaliações",
+          "content": [
+            "Revise avaliações submetidas completamente, considerando tanto pontuações quantitativas quanto respostas qualitativas.",
+            "Forneça feedback construtivo e recomendações específicas para melhoria.",
+            "Use recomendações padrão para garantir consistência através de múltiplas avaliações.",
+            "Aprove, rejeite ou solicite revisões baseado na qualidade e completude da avaliação."
+          ]
+        },
+        "recommendations": {
+          "title": "Recomendações Padrão",
+          "content": [
+            "Crie modelos de recomendações reutilizáveis para cenários de avaliação comuns e áreas de melhoria.",
+            "Mantenha uma biblioteca de recomendações de alta qualidade que podem ser aplicadas através de diferentes cooperativas.",
+            "Atualize recomendações regularmente baseado em melhores práticas e estratégias de melhoria bem-sucedidas.",
+            "Garanta que recomendações sejam práticas e alcançáveis para cooperativas de vários tamanhos e recursos."
+          ]
+        },
+        "systemHealth": {
+          "title": "Saúde e Performance do Sistema",
+          "content": [
+            "Monitore regularmente performance da plataforma, saúde do banco de dados e tempos de resposta da API.",
+            "Revise status da fila de sincronização e garanta que sincronização de dados esteja funcionando corretamente.",
+            "Exporte relatórios do sistema e logs de auditoria para conformidade e resolução de problemas.",
+            "Mantenha backups regulares e garanta segurança de dados através de todos os componentes da plataforma."
+          ]
+        },
+        "support": {
+          "title": "Apoiando Cooperativas",
+          "content": [
+            "Forneça orientação para cooperativas sobre usar a plataforma efetivamente para seus objetivos de sustentabilidade.",
+            "Ofereça treinamento e materiais de suporte para ajudar organizações a maximizar o valor de suas avaliações.",
+            "Monitore tendências de avaliação e identifique oportunidades para melhorias da plataforma.",
+            "Construa relacionamentos com líderes cooperativos para entender suas necessidades e desafios únicos."
+          ]
+        }
+      },
+      "bestPractices": {
+        "title": "Melhores Práticas para Administração da Plataforma",
+        "regularReviews": {
+          "title": "Revisões Regulares:",
+          "items": [
+            "• Revise avaliações pendentes pelo menos semanalmente",
+            "• Monitore métricas de saúde e performance do sistema",
+            "• Atualize categorias e perguntas baseado em feedback",
+            "• Mantenha comunicação ativa com líderes cooperativos"
+          ]
+        },
+        "qualityAssurance": {
+          "title": "Garantia de Qualidade:",
+          "items": [
+            "• Garanta padrões de revisão consistentes através de todas as avaliações",
+            "• Forneça feedback detalhado e acionável para cooperativas",
+            "• Mantenha modelos de recomendações atualizados",
+            "• Faça backup regularmente de dados e configurações do sistema"
+          ]
+        }
+      },
+      "contactInfo": {
+        "title": "Suporte Administrativo",
+        "description": "Para suporte técnico ou perguntas de administração da plataforma:",
+        "email": "📧 Email: admin@dgrv.org",
+        "phone": "📞 Telefone: +27 (0) 11 000 0000",
+        "website": "🌐 Website: www.dgrv.org/admin",
+        "documentation": "📚 Documentação: Disponível no portal do administrador"
+      }
+    }
   }

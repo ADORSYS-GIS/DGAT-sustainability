@@ -559,5 +559,269 @@
     "assessment.fileTooLarge": "Dateigröße muss unter 1 MB liegen.",
     "assessment.completeAllQuestionsNext": "Bitte beantworten Sie alle Fragen in dieser Kategorie, bevor Sie fortfahren.",
   "manageQuestions.noCategories": "Keine Kategorien verfügbar. Bitte erstellen Sie zuerst Kategorien!",
-  "manageQuestions.noText": "Kein Text verfügbar."
+  "manageQuestions.noText": "Kein Text verfügbar.",
+  "userGuide": {
+    "title": "Benutzerhandbuch für Genossenschaften",
+    "subtitle": "Vollständige Anleitung für die Nutzung der DGRV-Nachhaltigkeitsbewertungsplattform",
+    "backToDashboard": "Zurück zum Dashboard",
+    "quickStart": {
+      "title": "Schnellstart",
+      "step1": "1. 📋 Starten oder beantworten Sie eine Bewertung von Ihrem Dashboard",
+      "step2": "2. ✏️ Vervollständigen Sie alle Fragen mit detaillierten Erklärungen",
+      "step3": "3. 📎 Fügen Sie relevante unterstützende Dokumente hinzu",
+      "step4": "4. ✅ Reichen Sie zur Überprüfung ein, wenn vollständig",
+      "step5": "5. 📊 Nutzen Sie die Ergebnisse, um Aktionspläne zu erstellen und Fortschritte zu verfolgen"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Erste Schritte",
+        "content": [
+          "Willkommen bei der DGRV-Nachhaltigkeitsbewertungsplattform! Dieses Tool hilft Ihrer Genossenschaft dabei, ihre Nachhaltigkeitspraktiken zu messen und zu verbessern.",
+          "Ihr Dashboard bietet Zugang zu Bewertungen, Aktionsplänen und Fortschrittsverfolgungstools.",
+          "Wenn Sie Organisationsadministrator sind, können Sie neue Bewertungen erstellen und Teammitglieder verwalten. Organisationsbenutzer können Bewertungen beantworten und Fortschritte verfolgen."
+        ]
+      },
+      "roles": {
+        "title": "Benutzerrollen verstehen",
+        "content": [
+          "Organisationsadministrator (org_admin): Kann neue Bewertungen erstellen, Benutzer verwalten und alle Organisationsdaten einsehen.",
+          "Organisationsbenutzer (Org_User): Kann zugewiesene Bewertungen beantworten, Ergebnisse einsehen und Aktionspläne verwalten.",
+          "Beide Rollen können auf das Dashboard zugreifen, Einreichungen einsehen und Berichte für ihre Organisation exportieren."
+        ]
+      },
+      "assessments": {
+        "title": "Bewertungen durchführen",
+        "content": [
+          "Bewertungen sind in Kategorien organisiert (z.B. Umwelt, Soziales, Governance) mit Fragen in jeder Kategorie.",
+          "Für jede Frage geben Sie an: Ja/Nein-Antwort, Prozentsatz der Vollendung (0%, 25%, 50%, 75%, 100%) und detaillierte Texterklärung.",
+          "Sie können Dateien anhängen, um Ihre Antworten zu unterstützen (max. 1MB pro Datei). Verwenden Sie das Büroklammer-Symbol, um Dokumente hinzuzufügen.",
+          "Speichern Sie Ihren Fortschritt jederzeit mit 'Entwurf speichern'. Vervollständigen Sie alle Fragen in einer Kategorie, bevor Sie zur nächsten übergehen.",
+          "Nach der Einreichung durchlaufen Bewertungen einen Überprüfungsprozess vor der endgültigen Genehmigung."
+        ]
+      },
+      "actionPlans": {
+        "title": "Aktionspläne verwalten",
+        "content": [
+          "Aktionspläne helfen Ihnen dabei, Verbesserungsaufgaben basierend auf Bewertungsempfehlungen zu verfolgen.",
+          "Verwenden Sie das Kanban-Board, um Aufgaben durch Phasen zu bewegen: To Do → In Progress → Done → Approved.",
+          "Fügen Sie neue Aufgaben hinzu, setzen Sie Fristen und weisen Sie Teammitglieder zu, um Fortschritte effektiv zu verfolgen.",
+          "Regelmäßige Updates Ihres Aktionsplans zeigen kontinuierliche Verbesserungsbemühungen.",
+          "Exportieren Sie Aktionspläne, um Fortschritte mit Stakeholdern und der Geschäftsführung zu teilen."
+        ]
+      },
+      "viewingResults": {
+        "title": "Bewertungsergebnisse anzeigen",
+        "content": [
+          "Greifen Sie auf alle Ihre Einreichungen über 'Bewertungen anzeigen' im Dashboard zu.",
+          "Verfolgen Sie den Einreichungsstatus: Pending Review → Under Review → Approved/Rejected/Revision Requested.",
+          "Sehen Sie detailliertes Feedback und Empfehlungen von Gutachtern, um Verbesserungsbereiche zu verstehen.",
+          "Vergleichen Sie Ergebnisse über verschiedene Bewertungszeiträume, um den Fortschritt Ihrer Genossenschaft zu verfolgen.",
+          "Verwenden Sie die Einreichungsansicht, um Ihre Antworten und unterstützende Dokumente zu überprüfen."
+        ]
+      },
+      "creatingAssessments": {
+        "title": "Bewertungen erstellen (Nur Admins)",
+        "content": [
+          "Organisationsadministratoren können neue Bewertungszyklen für ihre Genossenschaft starten.",
+          "Klicken Sie auf 'Nachhaltigkeitsbewertung starten', um einen neuen Bewertungsentwurf zu erstellen.",
+          "Teilen Sie die Bewertungs-ID mit Teammitgliedern, damit sie zu verschiedenen Abschnitten beitragen können.",
+          "Überwachen Sie den Fortschritt und stellen Sie sicher, dass alle Kategorien vor der endgültigen Einreichung abgeschlossen sind.",
+          "Reichen Sie Bewertungen nur ein, wenn alle erforderlichen Abschnitte gründlich abgeschlossen sind."
+        ]
+      },
+      "userManagement": {
+        "title": "Teammitglieder verwalten (Nur Admins)",
+        "content": [
+          "Organisationsadministratoren können Teammitglieder über 'Benutzer verwalten' hinzufügen und verwalten.",
+          "Laden Sie neue Benutzer per E-Mail ein und weisen Sie angemessene Rollen basierend auf ihren Verantwortlichkeiten zu.",
+          "Weisen Sie Benutzern Kategoriezugriff zu, damit sie zu spezifischen Bewertungsbereichen beitragen können.",
+          "Entfernen Sie Benutzer, die keinen Zugriff mehr benötigen, um Sicherheit und Datenintegrität zu gewährleisten.",
+          "Überprüfen Sie regelmäßig Benutzerberechtigungen, um angemessene Zugriffsebenen sicherzustellen."
+        ]
+      },
+      "reportsExports": {
+        "title": "Berichte und Exporte",
+        "content": [
+          "Exportieren Sie Bewertungsberichte im PDF-Format für die Weitergabe an Stakeholder und Vorstände.",
+          "Verwenden Sie CSV-Exporte für Datenanalyse und Trendverfolgung über die Zeit.",
+          "Laden Sie Word-Dokumente für detaillierte Dokumentation und Berichterstattung herunter.",
+          "Regelmäßige Berichtserstellung hilft dabei, kontinuierliche Verbesserungsbemühungen zu demonstrieren.",
+          "Teilen Sie Berichte mit Mitgliedern und Stakeholdern, um Transparenz zu gewährleisten."
+        ]
+      },
+      "bestPractices": {
+        "title": "Best Practices für Genossenschaften",
+        "content": [
+          "Beziehen Sie verschiedene Teammitglieder in Bewertungen ein, um umfassende Perspektiven auf Nachhaltigkeitspraktiken zu erhalten.",
+          "Geben Sie detaillierte, ehrliche Antworten mit konkreten Beispielen und unterstützender Dokumentation.",
+          "Nutzen Sie Bewertungsergebnisse, um realistische, erreichbare Aktionspläne für Verbesserungen zu erstellen.",
+          "Regelmäßige Bewertungszyklen (jährlich oder halbjährlich) helfen dabei, Fortschritte zu verfolgen und Schwung zu halten.",
+          "Feiern Sie Verbesserungen und teilen Sie Erfolge mit Ihren Genossenschaftsmitgliedern und der Gemeinschaft."
+        ]
+      },
+      "troubleshooting": {
+        "title": "Häufige Probleme und Lösungen",
+        "content": [
+          "Kein Zugriff auf Bewertungen: Überprüfen Sie mit Ihrem Organisationsadministrator die Rollenzuweisungen und Kategoriezugriffe.",
+          "Bewertung speichert nicht: Stellen Sie sicher, dass Sie alle erforderlichen Felder ausfüllen (Ja/Nein, Prozentsatz und Texterklärung).",
+          "Datei-Upload-Probleme: Dateien müssen unter 1MB sein. Versuchen Sie, die Dateigröße zu reduzieren oder andere Formate zu verwenden.",
+          "Kann andere Team-Einreichungen nicht sehen: Nur Organisationsadministratoren können alle Einreichungen einsehen.",
+          "Fehlende Bewertungskategorien: Kontaktieren Sie Ihren Administrator, um Kategoriezuweisungen für Ihre Organisation zu überprüfen."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "Tipps für erfolgreiche Nachhaltigkeitsbewertungen",
+      "beforeStarting": {
+        "title": "Vor dem Start:",
+        "items": [
+          "• Sammeln Sie relevante Dokumente und Daten",
+          "• Beziehen Sie Teammitglieder aus verschiedenen Bereichen ein",
+          "• Überprüfen Sie vorherige Bewertungen, falls verfügbar",
+          "• Planen Sie ausreichend Zeit für die Fertigstellung ein"
+        ]
+      },
+      "duringAssessment": {
+        "title": "Während der Bewertung:",
+        "items": [
+          "• Seien Sie ehrlich und spezifisch in den Antworten",
+          "• Geben Sie konkrete Beispiele",
+          "• Laden Sie unterstützende Beweise hoch",
+          "• Speichern Sie Entwürfe regelmäßig"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "Brauchen Sie Hilfe?",
+      "description": "Wenn Sie Hilfe benötigen oder Fragen zur Nutzung der Plattform haben:",
+      "email": "📧 E-Mail: support@dgrv.org",
+      "phone": "📞 Telefon: +27 (0) 11 000 0000",
+      "website": "🌐 Website: www.dgrv.org/support",
+      "contactAdmin": "💬 Kontaktieren Sie Ihren Organisationsadministrator für rollenspezifische Fragen"
+    }
+  },
+  "adminGuide": {
+    "title": "Admin-Handbuch für DGRV-Plattform",
+    "subtitle": "Vollständige Anleitung für die Verwaltung der DGRV-Nachhaltigkeitsbewertungsplattform",
+    "backToDashboard": "Zurück zum Dashboard",
+    "quickStart": {
+      "title": "Schnellstart",
+      "step1": "1. 👥 Organisationen und Benutzer verwalten",
+      "step2": "2. 📋 Kategorien und Fragen konfigurieren",
+      "step3": "3. ✅ Bewertungen überprüfen und genehmigen",
+      "step4": "4. 📊 Systemgesundheit und Leistung überwachen",
+      "step5": "5. 🎯 Genossenschaften auf ihrem Nachhaltigkeitsweg unterstützen"
+    },
+    "sections": {
+      "overview": {
+        "title": "Plattform-Übersicht",
+        "content": [
+          "Die DGRV-Nachhaltigkeitsbewertungsplattform ist darauf ausgelegt, Genossenschaften in ganz Südafrika dabei zu helfen, ihre Nachhaltigkeitspraktiken zu messen und zu verbessern.",
+          "Als Administrator haben Sie Zugang zu umfassenden Tools für die Verwaltung von Organisationen, Benutzern, Bewertungsinhalten und die Überprüfung von Einreichungen.",
+          "Die Plattform unterstützt mehrere Sprachen und funktioniert offline, um verschiedenen Konnektivitätsherausforderungen in der Region gerecht zu werden."
+        ]
+      },
+      "organizations": {
+        "title": "Organisationen verwalten",
+        "content": [
+          "Fügen Sie neue genossenschaftliche Organisationen zur Plattform mit ihren grundlegenden Informationen und Domain-Einstellungen hinzu.",
+          "Konfigurieren Sie organisationsspezifische Einstellungen und verwalten Sie Benutzerzugriff für jede Genossenschaft.",
+          "Überwachen Sie die Organisationsaktivität und stellen Sie sicher, dass die Datenisolierung zwischen verschiedenen Genossenschaften ordnungsgemäß funktioniert.",
+          "Archivieren oder entfernen Sie Organisationen, die nicht mehr aktiv sind, während Sie ihre historischen Daten bewahren."
+        ]
+      },
+      "users": {
+        "title": "Benutzer verwalten",
+        "content": [
+          "Erstellen und verwalten Sie Benutzerkonten in allen Organisationen mit angemessenen Rollenzuweisungen.",
+          "Weisen Sie Benutzer spezifischen Organisationen zu und konfigurieren Sie ihre Zugriffsberechtigungen.",
+          "Überwachen Sie die Benutzeraktivität und verwalten Sie den Kontoverifizierungsstatus.",
+          "Stellen Sie ordnungsgemäße Sicherheit sicher, indem Sie regelmäßig den Benutzerzugriff überprüfen und inaktive Konten entfernen."
+        ]
+      },
+      "categories": {
+        "title": "Bewertungskategorien verwalten",
+        "content": [
+          "Konfigurieren Sie Bewertungskategorien, die mit Nachhaltigkeits-Best-Practices und lokalen Anforderungen übereinstimmen.",
+          "Setzen Sie angemessene Gewichtungen für jede Kategorie, um ausgewogene Bewertungsbewertungen sicherzustellen.",
+          "Organisieren Sie Kategorien in logischer Anzeigereihenfolge für optimale Benutzererfahrung.",
+          "Überprüfen und aktualisieren Sie Kategorien regelmäßig basierend auf Feedback und sich ändernden Nachhaltigkeitsstandards."
+        ]
+      },
+      "questions": {
+        "title": "Bewertungsfragen verwalten",
+        "content": [
+          "Erstellen Sie umfassende Fragen innerhalb jeder Kategorie, um Nachhaltigkeitspraktiken gründlich zu bewerten.",
+          "Stellen Sie Fragen in mehreren Sprachen bereit, um verschiedene genossenschaftliche Gemeinschaften zu unterstützen.",
+          "Setzen Sie angemessene Gewichtungen und Anzeigereihenfolge für Fragen innerhalb jeder Kategorie.",
+          "Überprüfen und aktualisieren Sie Fragen regelmäßig basierend auf Bewertungsergebnissen und Stakeholder-Feedback."
+        ]
+      },
+      "reviews": {
+        "title": "Bewertungen überprüfen",
+        "content": [
+          "Überprüfen Sie eingereichte Bewertungen gründlich und berücksichtigen Sie sowohl quantitative Bewertungen als auch qualitative Antworten.",
+          "Geben Sie konstruktives Feedback und spezifische Empfehlungen für Verbesserungen.",
+          "Verwenden Sie Standardempfehlungen, um Konsistenz über mehrere Bewertungen hinweg sicherzustellen.",
+          "Genehmigen, lehnen Sie ab oder fordern Sie Überarbeitungen basierend auf Bewertungsqualität und Vollständigkeit an."
+        ]
+      },
+      "recommendations": {
+        "title": "Standardempfehlungen",
+        "content": [
+          "Erstellen Sie wiederverwendbare Empfehlungsvorlagen für häufige Bewertungsszenarien und Verbesserungsbereiche.",
+          "Pflegen Sie eine Bibliothek hochwertiger Empfehlungen, die auf verschiedene Genossenschaften angewendet werden können.",
+          "Aktualisieren Sie Empfehlungen regelmäßig basierend auf Best Practices und erfolgreichen Verbesserungsstrategien.",
+          "Stellen Sie sicher, dass Empfehlungen praktisch und erreichbar für Genossenschaften verschiedener Größen und Ressourcen sind."
+        ]
+      },
+      "systemHealth": {
+        "title": "Systemgesundheit und Leistung",
+        "content": [
+          "Überwachen Sie regelmäßig die Plattformleistung, Datenbankgesundheit und API-Antwortzeiten.",
+          "Überprüfen Sie den Synchronisierungs-Queue-Status und stellen Sie sicher, dass die Datensynchronisierung ordnungsgemäß funktioniert.",
+          "Exportieren Sie Systemberichte und Audit-Logs für Compliance- und Troubleshooting-Zwecke.",
+          "Führen Sie regelmäßige Backups durch und stellen Sie Datensicherheit über alle Plattformkomponenten hinweg sicher."
+        ]
+      },
+      "support": {
+        "title": "Genossenschaften unterstützen",
+        "content": [
+          "Bieten Sie Genossenschaften Anleitung zur effektiven Nutzung der Plattform für ihre Nachhaltigkeitsziele.",
+          "Bieten Sie Schulungen und Support-Materialien an, um Organisationen dabei zu helfen, den Wert ihrer Bewertungen zu maximieren.",
+          "Überwachen Sie Bewertungstrends und identifizieren Sie Möglichkeiten für Plattformverbesserungen.",
+          "Bauen Sie Beziehungen zu Genossenschaftsführern auf, um ihre einzigartigen Bedürfnisse und Herausforderungen zu verstehen."
+        ]
+      }
+    },
+    "bestPractices": {
+      "title": "Best Practices für Plattform-Administration",
+      "regularReviews": {
+        "title": "Regelmäßige Überprüfungen:",
+        "items": [
+          "• Überprüfen Sie ausstehende Bewertungen mindestens wöchentlich",
+          "• Überwachen Sie Systemgesundheit und Leistungsmetriken",
+          "• Aktualisieren Sie Kategorien und Fragen basierend auf Feedback",
+          "• Pflegen Sie aktive Kommunikation mit Genossenschaftsführern"
+        ]
+      },
+      "qualityAssurance": {
+        "title": "Qualitätssicherung:",
+        "items": [
+          "• Stellen Sie konsistente Überprüfungsstandards über alle Bewertungen hinweg sicher",
+          "• Geben Sie detailliertes, umsetzbares Feedback an Genossenschaften",
+          "• Pflegen Sie aktuelle Empfehlungsvorlagen",
+          "• Führen Sie regelmäßig Backups von Systemdaten und -konfigurationen durch"
+        ]
+      }
+    },
+    "contactInfo": {
+      "title": "Administrative Unterstützung",
+      "description": "Für technischen Support oder Plattform-Administrationsfragen:",
+      "email": "📧 E-Mail: admin@dgrv.org",
+      "phone": "📞 Telefon: +27 (0) 11 000 0000",
+      "website": "🌐 Website: www.dgrv.org/admin",
+      "documentation": "📚 Dokumentation: Verfügbar im Admin-Portal"
+    }
+  }
 }
