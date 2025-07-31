@@ -69,12 +69,16 @@ export const Dashboard: React.FC = () => {
     // Filter by organization and status
     const filtered = assessmentsData.assessments.filter((assessment) => {
       const assessmentData = assessment as unknown as { 
+        assessment_id?: string;
         status: string; 
         organization_id?: string;
+        org_id?: string;
       };
       
       const isDraft = assessmentData.status === "draft";
-      const isInOrganization = assessmentData.organization_id === organizationId;
+      // Check both org_id and organization_id fields
+      const isInOrganization = assessmentData.organization_id === organizationId || 
+                              assessmentData.org_id === organizationId;
       
       return isDraft && isInOrganization;
     });

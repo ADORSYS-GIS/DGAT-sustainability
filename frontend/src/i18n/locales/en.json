@@ -579,6 +579,9 @@
   "assessment.fileTooLarge": "File size must be less than 1MB.",
   "assessment.completeAllQuestionsNext": "Please answer all questions in this category before proceeding.",
   "assessment.noPermissionToCreate": "Only organization administrators can create assessments.",
+  "assessment.successTitle": "Assessment Created Successfully!",
+  "assessment.successMessage": "Your users are going to answer the assessment assigned to them.",
+  "assessment.returnToDashboard": "Return to Dashboard",
   "manageQuestions.noCategories": "No categories available. Please create categories first!",
   "manageQuestions.noText": "No text available.",
   "userGuide": {

@@ -557,7 +557,10 @@
     "assessment.submittedLocally": "Kuhlola kutfunyelwe endzaweni bese kuyahambelana nakusese online.",
     "assessment.failedToCreate": "Kwehlulekile kwakha kuhlola endzaweni.",
     "assessment.fileTooLarge": "Ifayela kufanele lingangeni ku-1MB.",
-    "assessment.completeAllQuestionsNext": "Sicela uphendvule tonkhe timibuto kulelikhathi ngaphambi kwekucinisekisa.",
+    "assessment.completeAllQuestionsNext": "Sicela uphendvule yonkhe imibuto kulesigaba ngaphambi kokuya emuva.",
+    "assessment.successTitle": "Kuhlolwa Kwakhiwe Ngemphumelelo!",
+    "assessment.successMessage": "Basebentisi bakho batawuphendvula kuhlolwa lokwabelwe bona.",
+    "assessment.returnToDashboard": "Buyela ku-Dashboard",
   "manageQuestions.noCategories": "Atekho tigaba letitfolakalako. Sicela wakhe tigaba kwekucala!",
   "manageQuestions.noText": "Akukho sibhalo lesifumanekako.",
   "userGuide": {

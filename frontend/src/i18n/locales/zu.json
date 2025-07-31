@@ -558,6 +558,9 @@
     "assessment.failedToCreate": "Yehlulekile ukudala ukuhlolwa endaweni.",
     "assessment.fileTooLarge": "Usayizi wefayela akufanele udlule ku-1MB.",
     "assessment.completeAllQuestionsNext": "Sicela uphendule yonke imibuzo kulesigaba ngaphambi kokuqhubeka.",
+    "assessment.successTitle": "Ukuhlolwa Kudaliwe Ngempumelelo!",
+    "assessment.successMessage": "Abasebenzisi bakho bazophendula ukuhlolwa okwabelwe bona.",
+    "assessment.returnToDashboard": "Buyela ku-Dashboard",
   "manageQuestions.noCategories": "Azikho izigaba ezitholakalayo. Sicela udale izigaba kuqala!",
   "manageQuestions.noText": "Awukho umbhalo otholakalayo.",
   "userGuide": {

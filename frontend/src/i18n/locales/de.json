@@ -558,6 +558,9 @@
     "assessment.failedToCreate": "Bewertung konnte lokal nicht erstellt werden.",
     "assessment.fileTooLarge": "Dateigröße muss unter 1 MB liegen.",
     "assessment.completeAllQuestionsNext": "Bitte beantworten Sie alle Fragen in dieser Kategorie, bevor Sie fortfahren.",
+    "assessment.successTitle": "Bewertung erfolgreich erstellt!",
+    "assessment.successMessage": "Ihre Benutzer werden die ihnen zugewiesene Bewertung beantworten.",
+    "assessment.returnToDashboard": "Zurück zum Dashboard",
   "manageQuestions.noCategories": "Keine Kategorien verfügbar. Bitte erstellen Sie zuerst Kategorien!",
   "manageQuestions.noText": "Kein Text verfügbar.",
   "userGuide": {

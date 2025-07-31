@@ -558,6 +558,9 @@
   "assessment.failedToCreate": "Échec de la création de l’évaluation localement.",
   "assessment.fileTooLarge": "La taille du fichier doit être inférieure à 1 Mo.",
   "assessment.completeAllQuestionsNext": "Veuillez répondre à toutes les questions de cette catégorie avant de continuer.",
+  "assessment.successTitle": "Évaluation créée avec succès !",
+  "assessment.successMessage": "Vos utilisateurs vont répondre à l'évaluation qui leur a été assignée.",
+  "assessment.returnToDashboard": "Retour au tableau de bord",
   "manageQuestions.noCategories": "Aucune catégorie disponible. Veuillez d'abord créer des catégories !",
   "manageQuestions.noText": "Aucun texte disponible.",
   "userGuide": {
