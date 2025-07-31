@@ -22,27 +22,6 @@ impl KeycloakService {
         Self { client, config }
     }
 
-    /// Get admin token for interacting with Keycloak admin APIs
-    async fn get_admin_token(&self, username: &str, password: &str) -> Result<KeycloakToken> {
-        let token_url = format!("{}/realms/master/protocol/openid-connect/token", self.config.url);
-
-        let form = [
-            ("client_id", "admin-cli"),
-            ("grant_type", "password"),
-            ("username", username),
-            ("password", password),
-        ];
-
-        let response = self.client.post(&token_url)
-            .form(&form)
-            .send()
-            .await?
-            .error_for_status()?;
-
-        let token: KeycloakToken = response.json().await?;
-        Ok(token)
-    }
-
     /// Create a new organization
     pub async fn create_organization(&self,
                                      admin_token: &str,
@@ -63,7 +42,7 @@ impl KeycloakService {
         if let Some(attrs) = attributes {
             payload["attributes"] = json!(attrs);
         }
-        tracing::info!(payload = %payload, "Sending organization create payload to Keycloak");
+        info!(payload = %payload, "Sending organization create payload to Keycloak");
 
         let response = self.client.post(&url)
             .bearer_auth(admin_token)
@@ -250,7 +229,7 @@ impl KeycloakService {
             .await?;
         // Assign the client role to the user
         let assign_url = format!("{}/admin/realms/{}/users/{}/role-mappings/clients/{}", self.config.url, self.config.realm, user_id, client_id);
-        let roles_payload = serde_json::json!([role]);
+        let roles_payload = json!([role]);
         let response = self.client.post(&assign_url)
             .bearer_auth(token)
             .json(&roles_payload)
@@ -445,7 +424,7 @@ impl KeycloakService {
         let user_id = user.id;
         let user_email = user.email.clone().unwrap_or_default();
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
-        let payload = serde_json::json!({
+        let payload = json!({
             "email": user_email,
             "attributes": { "categories": categories }
         });
