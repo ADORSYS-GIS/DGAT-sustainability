@@ -280,7 +280,7 @@ export class SyncService {
         }
       }
 
-    } catch (error) {
+      } catch (error) {
       result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
 
@@ -405,7 +405,7 @@ export class SyncService {
           const offlineOrg = DataTransformationService.transformOrganization(serverOrg);
           await offlineDB.saveOrganization(offlineOrg);
           result.added++;
-        } else {
+    } else {
           // Update existing organization if different
           const offlineOrg = DataTransformationService.transformOrganization(serverOrg);
           await offlineDB.saveOrganization(offlineOrg);
@@ -460,4 +460,4 @@ export class SyncService {
 }
 
 // Export singleton instance
-export const syncService = new SyncService(); 
+export const syncService = new SyncService();
