@@ -17,7 +17,7 @@ import {
   useOfflineAssessmentsMutation,
   useOfflineResponsesMutation,
   useOfflineSyncStatus,
-  useOfflineAssessments,
+  useOfflineDraftAssessments,
 } from "../../hooks/useOfflineApi";
 import { toast } from "sonner";
 import { Info, Paperclip, ChevronLeft, ChevronRight, Send, FileText } from "lucide-react";
@@ -82,7 +82,7 @@ export const Assessment: React.FC = () => {
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
-  const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineAssessments();
+  const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineDraftAssessments();
   const { createAssessment, submitAssessment: submitAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
   const { createResponses, isPending: responseMutationPending } = useOfflineResponsesMutation();
 

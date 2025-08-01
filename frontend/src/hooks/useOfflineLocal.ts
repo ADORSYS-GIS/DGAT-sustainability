@@ -3,8 +3,7 @@ import { offlineDB } from "../services/indexeddb";
 import type { 
   OfflineQuestion, 
   OfflineAssessment, 
-  OfflineResponse, 
-  SyncQueueItem 
+  OfflineResponse
 } from "../types/offline";
 import type { 
   Question, 
@@ -17,6 +16,7 @@ import { DataTransformationService } from "../services/dataTransformation";
 import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
 import { AssessmentsService } from "@/openapi-rq/requests";
 import { v4 as uuidv4 } from "uuid";
+import { ResponsesService } from '@/openapi-rq/requests/services.gen';
 
 export function useOfflineQuestions() {
   const [data, setData] = useState<{ questions: Question[] }>({ questions: [] });
@@ -127,23 +127,12 @@ export function useOfflineResponseMutation() {
 
         await offlineDB.saveResponse(offlineResponse);
         
-        // Create sync queue item
-        const syncItem: SyncQueueItem = {
-          id: crypto.randomUUID(),
-          operation: 'create',
-          entity_type: 'response',
-          entity_id: offlineResponse.response_id,
-          data: response,
-          url: '/api/responses',
-          method: 'POST',
-          retry_count: 0,
-          max_retries: 3,
-          priority: 'normal',
-          created_at: new Date().toISOString(),
-        };
+        // Use OpenAPI-generated service instead of manual endpoint construction
+        const result = await ResponsesService.postResponses({
+          requestBody: [response]
+        });
         
-        await offlineDB.addToSyncQueue(syncItem);
-        options?.onSuccess?.(response);
+        options?.onSuccess?.(result);
       } catch (err) {
         options?.onError?.(err);
       }
@@ -174,23 +163,13 @@ export function useOfflineBatchResponseMutation() {
 
         await offlineDB.saveResponses(offlineResponses);
         
-        // Create sync queue item for batch responses
-        const syncItem: SyncQueueItem = {
-          id: crypto.randomUUID(),
-          operation: 'create',
-          entity_type: 'response',
-          entity_id: data.assessmentId,
-          data: { assessmentId: data.assessmentId, responses: data.responses },
-          url: `/api/assessments/${data.assessmentId}/responses`,
-          method: 'POST',
-          retry_count: 0,
-          max_retries: 3,
-          priority: 'normal',
-          created_at: new Date().toISOString(),
-        };
+        // Use OpenAPI-generated service instead of manual endpoint construction
+        const result = await ResponsesService.postAssessmentsByAssessmentIdResponses({
+          assessmentId: data.assessmentId,
+          requestBody: data.responses
+        });
         
-        await offlineDB.addToSyncQueue(syncItem);
-        options?.onSuccess?.(data);
+        options?.onSuccess?.(result);
       } catch (err) {
         options?.onError?.(err);
       }

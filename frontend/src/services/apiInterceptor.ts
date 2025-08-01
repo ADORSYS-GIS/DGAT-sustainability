@@ -46,6 +46,8 @@ export class ApiInterceptor {
   private config: InterceptorConfig;
   private isOnline: boolean = navigator.onLine;
   private syncInterval: NodeJS.Timeout | null = null;
+  private isProcessingQueue: boolean = false;
+  private processedSubmissions: Set<string> = new Set(); // Track processed submissions
 
   constructor(config: Partial<InterceptorConfig> = {}) {
     this.config = {
@@ -70,8 +72,8 @@ export class ApiInterceptor {
     window.addEventListener('online', () => {
       this.isOnline = true;
       
-      // Immediate sync attempt
-      this.processQueue();
+      // Immediate sync attempt with debounce
+      this.debouncedProcessQueue();
       
       // Also trigger full sync after a short delay to ensure all components are ready
       setTimeout(() => {
@@ -90,11 +92,24 @@ export class ApiInterceptor {
     if (this.isOnline) {
       // Small delay to ensure IndexedDB is ready
       setTimeout(() => {
-        this.processQueue();
+        this.debouncedProcessQueue();
         syncService.performFullSync();
       }, 2000);
     }
   }
+
+  /**
+   * Debounced process queue to prevent multiple rapid calls
+   */
+  private debounceTimeout: NodeJS.Timeout | null = null;
+  private debouncedProcessQueue = () => {
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+    }
+    this.debounceTimeout = setTimeout(() => {
+      this.processQueue();
+    }, 1000); // 1 second debounce
+  };
 
   /**
    * Setup periodic sync check
@@ -232,6 +247,17 @@ export class ApiInterceptor {
             await offlineDB.saveAssessment(offlineAssessment);
           }
           break;
+        case 'draft_assessments':
+          if (data.assessments && Array.isArray(data.assessments)) {
+            for (const assessment of data.assessments as Assessment[]) {
+              const offlineAssessment = DataTransformationService.transformAssessment(assessment);
+              await offlineDB.saveAssessment(offlineAssessment);
+            }
+          } else if (data.assessment) {
+            const offlineAssessment = DataTransformationService.transformAssessment(data.assessment as Assessment);
+            await offlineDB.saveAssessment(offlineAssessment);
+          }
+          break;
         case 'responses':
           if (data.responses && Array.isArray(data.responses)) {
             for (const response of data.responses as Response[]) {
@@ -330,6 +356,14 @@ export class ApiInterceptor {
     if (!this.isOnline) {
       return;
     }
+
+    // Prevent multiple simultaneous queue processing
+    if (this.isProcessingQueue) {
+      console.log('🔄 Queue processing already in progress, skipping...');
+      return;
+    }
+
+    this.isProcessingQueue = true;
 
     try {
       let successCount = 0;
@@ -604,9 +638,61 @@ export class ApiInterceptor {
         }
       }
 
+      // Process sync queue items (for report generation and other queued operations)
+      const syncQueue = await offlineDB.getSyncQueue();
+      console.log(`🔄 Processing ${syncQueue.length} sync queue items`);
+      
+      for (const queueItem of syncQueue) {
+        try {
+          console.log(`🔄 Processing sync queue item: ${queueItem.entity_type} - ${queueItem.operation} - ID: ${queueItem.id}`);
+          
+          if (queueItem.entity_type === 'report' && queueItem.operation === 'create') {
+            // Check if this submission has already been processed
+            const submissionId = queueItem.data.submissionId as string;
+            if (this.processedSubmissions.has(submissionId)) {
+              console.log(`⚠️ Submission ${submissionId} already processed, skipping...`);
+              await offlineDB.removeFromSyncQueue(queueItem.id);
+              continue;
+            }
+            
+            // Handle report generation
+            const { ReportsService } = await import('@/openapi-rq/requests/services.gen');
+            const result = await ReportsService.postSubmissionsBySubmissionIdReports({
+              submissionId: submissionId,
+              requestBody: queueItem.data.categoryRecommendations as any[]
+            });
+            
+            console.log(`✅ Report generation successful: ${result.report_id}`);
+            
+            // Mark this submission as processed
+            this.processedSubmissions.add(submissionId);
+          }
+          
+          // Remove the processed item from the queue immediately after successful processing
+          await offlineDB.removeFromSyncQueue(queueItem.id);
+          console.log(`✅ Removed sync queue item: ${queueItem.id}`);
+          successCount++;
+          
+        } catch (error) {
+          console.error(`❌ Failed to process sync queue item ${queueItem.id}:`, error);
+          
+          // Increment retry count
+          queueItem.retry_count++;
+          
+          if (queueItem.retry_count >= queueItem.max_retries) {
+            console.error(`❌ Max retries reached for sync queue item ${queueItem.id}, removing from queue`);
+            await offlineDB.removeFromSyncQueue(queueItem.id);
+          }
+          
+          failureCount++;
+        }
+      }
+
     } catch (error) {
       console.error('❌ Failed to process sync queue:', error);
       toast.error('Sync failed. Please try again.');
+    } finally {
+      this.isProcessingQueue = false;
     }
   }
 

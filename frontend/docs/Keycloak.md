@@ -24,7 +24,7 @@ The Sustainability Assessment Tool uses [Keycloak](https://www.keycloak.org/) fo
 
 - **Login/Logout**: Users authenticate via Keycloak at `http://localhost:8080/realms/sustainability-realm/protocol/openid-connect/auth`.
 - **Tokens**: Access, refresh, and ID tokens are stored in IndexedDB for offline access.
-- **RBAC**: Roles (e.g., `DGRV_Admin`, `Org_User`, `Org_Admin`, `Org_Expert`) are checked in the frontend for UI/routing and enforced in the backend for API security.
+- **RBAC**: Roles (e.g., `DGRV_Admin`, `Org_User`, `org_admin`, `Org_Expert`) are checked in the frontend for UI/routing and enforced in the backend for API security.
 - **Issue Addressed**: Clearing local data (e.g., IndexedDB `auth_user`) should force a logout and redirect to the Keycloak login page, but a persistent SSO session causes automatic re-authentication to `/dashboard`.
 
 ## Architecture Overview

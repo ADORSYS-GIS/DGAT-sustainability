@@ -479,6 +479,107 @@ export async function exportAllAssessmentsPDF(reports) {
   const doc = new jsPDF({ orientation: "landscape" });
   let y = 20;
 
+  // Add sustainability logo to the first page
+  try {
+    console.log("Loading sustainability logo...");
+    
+    // Try different possible paths for the image
+    const possiblePaths = [
+      '/sustainability.png',
+      './sustainability.png',
+      'sustainability.png',
+      '/public/sustainability.png'
+    ];
+    
+    let imageLoaded = false;
+    
+    for (const path of possiblePaths) {
+      try {
+        console.log("Trying to load image from:", path);
+        
+        // Create an image element to load the logo
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        
+        // Wait for the image to load before continuing
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            console.log("Sustainability logo loaded successfully from:", path);
+            try {
+              // Create a canvas to convert the image to base64
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx?.drawImage(img, 0, 0);
+              
+              const base64 = canvas.toDataURL('image/png');
+              console.log("Adding sustainability logo to PDF at position (10,", y, ")");
+              doc.addImage(base64, "PNG", 10, y, 50, 50);
+              y += 60; // Space after logo
+              imageLoaded = true;
+              resolve(true);
+            } catch (error) {
+              console.error("Could not add sustainability logo to PDF:", error);
+              reject(error);
+            }
+          };
+          
+          img.onerror = (error) => {
+            console.warn("Could not load sustainability logo from:", path, error);
+            resolve(false);
+          };
+          
+          // Set the source to trigger loading
+          img.src = path;
+        });
+        
+        if (imageLoaded) {
+          console.log("Logo processing completed, y position is now:", y);
+          break; // Exit the loop if image was loaded successfully
+        }
+      } catch (error) {
+        console.warn("Failed to load image from:", path, error);
+        continue; // Try next path
+      }
+    }
+    
+    if (!imageLoaded) {
+      console.error("Could not load sustainability logo from any path, trying fallback...");
+      
+      // Fallback: Create a simple placeholder logo
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 50;
+        canvas.height = 50;
+        
+        // Draw a simple placeholder logo
+        if (ctx) {
+          ctx.fillStyle = '#1e3a8a';
+          ctx.fillRect(0, 0, 50, 50);
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 12px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('DGRV', 25, 25);
+          ctx.font = '8px Arial';
+          ctx.fillText('Sustainability', 25, 40);
+        }
+        
+        const base64 = canvas.toDataURL('image/png');
+        console.log("Adding fallback logo to PDF at position (10,", y, ")");
+        doc.addImage(base64, "PNG", 10, y, 50, 50);
+        y += 60; // Space after logo
+        console.log("Fallback logo added successfully");
+      } catch (fallbackError) {
+        console.error("Could not create fallback logo:", fallbackError);
+      }
+    }
+  } catch (error) {
+    console.error("Error in logo processing:", error);
+    // Continue without logo if it fails to load
+  }
+
   // 1. Submissions, Questions, Responses, Recommendations (Tabular, Grouped)
   doc.setFontSize(18);
   doc.text("Submissions, Questions, Responses, Recommendations", 10, y);

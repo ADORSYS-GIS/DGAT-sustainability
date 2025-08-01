@@ -5,7 +5,7 @@ import { Navbar } from "@/components/shared/Navbar";
 import { AssessmentList as AssessmentListComponent } from "@/components/shared/AssessmentList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useOfflineAssessments } from "../../hooks/useOfflineApi";
+import { useOfflineDraftAssessments } from "../../hooks/useOfflineApi";
 import { toast } from "sonner";
 import { ArrowLeft, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
@@ -16,9 +16,9 @@ export const AssessmentList: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { data: assessmentsData, isLoading: assessmentsLoading } = useOfflineAssessments();
+  const { data: assessmentsData, isLoading: assessmentsLoading } = useOfflineDraftAssessments();
 
-  // Filter assessments by organization and status for Org_User
+  // Filter assessments by organization for Org_User
   const availableAssessments = React.useMemo(() => {
     if (!assessmentsData?.assessments || !user?.organizations) {
       return [];
@@ -37,21 +37,12 @@ export const AssessmentList: React.FC = () => {
       return [];
     }
     
-    // Filter by organization and status - show draft assessments for Org_User
+    // Filter by organization - assessments are already filtered by draft status from the hook
     const filtered = assessmentsData.assessments.filter((assessment) => {
-      const assessmentData = assessment as unknown as { 
-        assessment_id?: string;
-        status: string; 
-        organization_id?: string;
-        org_id?: string;
-      };
+      // Check org_id field (from API) or organization_id field (from offline storage)
+      const isInOrganization = assessment.org_id === organizationId || assessment.organization_id === organizationId;
       
-      const isDraft = assessmentData.status === "draft";
-      // Check both org_id and organization_id fields
-      const isInOrganization = assessmentData.organization_id === organizationId || 
-                              assessmentData.org_id === organizationId;
-      
-      return isDraft && isInOrganization;
+      return isInOrganization;
     });
     
     return filtered;

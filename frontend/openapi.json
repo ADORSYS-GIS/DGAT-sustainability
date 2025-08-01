@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Production server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Staging server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Development server"
     }
   ],
@@ -513,6 +513,16 @@
             "schema": {
               "type": "string",
               "default": "en"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by assessment status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["draft", "submitted"]
             }
           }
         ],
@@ -2439,21 +2449,31 @@
         }
       },
       "Assessment": {
-        "required": ["assessment_id", "created_at", "language", "user_id"],
+        "required": ["assessment_id", "created_at", "language", "org_id", "name", "status", "updated_at"],
         "type": "object",
         "properties": {
           "assessment_id": {
             "type": "string",
             "format": "uuid"
           },
-          "user_id": {
+          "org_id": {
             "type": "string"
           },
           "language": {
             "type": "string",
             "default": "en"
           },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
           "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
             "type": "string",
             "format": "date-time"
           }

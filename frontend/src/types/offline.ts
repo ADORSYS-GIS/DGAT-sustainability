@@ -272,7 +272,7 @@ export interface ResponseFilters {
 export interface SubmissionFilters {
   user_id?: string;
   organization_id?: string;
-  review_status?: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested';
+  review_status?: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'reviewed';
   submitted_after?: string;
   submitted_before?: string;
 }

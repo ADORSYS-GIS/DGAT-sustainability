@@ -525,6 +525,72 @@ export function useOfflineAssessments() {
   return { data, isLoading, error, refetch: fetchData };
 }
 
+// New hook specifically for draft assessments with backend filtering
+export function useOfflineDraftAssessments() {
+  const [data, setData] = useState<{ assessments: OfflineAssessment[] }>({ assessments: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('🔍 useOfflineDraftAssessments: Starting fetch...');
+
+      const result = await apiInterceptor.interceptGet(
+        () => {
+          console.log('🔍 useOfflineDraftAssessments: Making API call with status=draft');
+          // Add cache-busting parameter to force fresh request
+          const cacheBuster = Date.now();
+          return AssessmentsService.getAssessments({ 
+            status: 'draft',
+            language: 'en' // Add language parameter to ensure fresh request
+          });
+        },
+        async () => {
+          console.log('🔍 useOfflineDraftAssessments: Using offline fallback');
+          // For offline fallback, get only draft assessments using backend filtering
+          const draftAssessments = await offlineDB.getAssessmentsByStatus('draft');
+          console.log('🔍 useOfflineDraftAssessments: Raw assessments from IndexedDB:', draftAssessments);
+          return { assessments: draftAssessments };
+        },
+        'assessments'
+      );
+
+      console.log('🔍 useOfflineDraftAssessments: API response received:', result);
+
+      // Transform API response to match OfflineAssessment type
+      const transformedResult = {
+        assessments: result.assessments.map(assessment => {
+          console.log('🔍 useOfflineDraftAssessments: Processing assessment:', assessment);
+          return {
+            ...assessment,
+            status: 'draft' as const, // Default to draft since we're filtering for drafts
+            updated_at: new Date().toISOString(),
+            sync_status: 'synced' as const,
+          };
+        })
+      };
+
+      console.log('🔍 useOfflineDraftAssessments: Final transformed result:', transformedResult);
+
+      setData(transformedResult);
+    } catch (err) {
+      console.error('❌ useOfflineDraftAssessments: Error:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch draft assessments'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, isLoading, error, refetch: fetchData };
+}
+
 export function useOfflineAssessment(assessmentId: string) {
   const [data, setData] = useState<AssessmentDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -569,9 +635,12 @@ export function useOfflineAssessment(assessmentId: string) {
           // Convert OfflineAssessment back to Assessment format
           const assessment: Assessment = {
             assessment_id: offlineAssessment.assessment_id,
-            user_id: offlineAssessment.user_id,
+            org_id: offlineAssessment.org_id,
             language: offlineAssessment.language,
+            name: offlineAssessment.name,
+            status: offlineAssessment.status,
             created_at: offlineAssessment.created_at,
+            updated_at: offlineAssessment.updated_at,
           };
           
           // Convert OfflineResponse back to Response format
@@ -665,9 +734,12 @@ export function useOfflineAssessmentsMutation() {
 
       const tempAssessmentForTransform: Assessment = {
         assessment_id: tempId,
-        user_id: "current_user", // This will be replaced by the server's response
+        org_id: organizationId || "temp_org",
         language: assessment.language,
+        name: assessment.name,
+        status: "draft",
         created_at: now,
+        updated_at: now,
       };
 
       const offlineAssessment = DataTransformationService.transformAssessment(
@@ -1113,19 +1185,36 @@ export function useOfflineSubmissionsMutation() {
         throw error;
       }
 
-      // Delete from local storage first for immediate UI feedback
-      await offlineDB.deleteSubmission(submissionId);
+      // Try to delete from the API first
+      const result = await apiInterceptor.interceptMutation(
+        async () => {
+          console.log('🔍 deleteSubmission: Making API call to delete submission', submissionId);
+          await SubmissionsService.deleteSubmissionsBySubmissionId({ submissionId });
+          return { success: true, message: 'Submission deleted from server' };
+        },
+        async (data: Record<string, unknown>) => {
+          console.log('🔍 deleteSubmission: Using offline fallback - deleting from local storage only');
+          // For offline fallback, just delete from local storage
+          await offlineDB.deleteSubmission(submissionId);
+        },
+        { submissionId },
+        'submissions',
+        'delete'
+      );
 
-      // Since there's no delete endpoint for submissions in the API,
-      // we handle it locally and mark it for sync if needed
-      const result = { 
+      // If API call was successful, also delete from local storage
+      if (result) {
+        await offlineDB.deleteSubmission(submissionId);
+      }
+
+      const successResult = { 
         success: true, 
-        message: 'Submission deleted locally',
+        message: 'Submission deleted successfully',
         submissionId 
       };
       
-      options?.onSuccess?.(result);
-      return result;
+      options?.onSuccess?.(successResult);
+      return successResult;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to delete submission');
       console.error('❌ deleteSubmission error:', error);

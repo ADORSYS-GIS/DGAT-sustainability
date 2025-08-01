@@ -134,7 +134,11 @@ pub async fn list_assessments(
             .filter(|a| a.status == *status)
             .collect()
     } else {
+        // Default to only draft assessments when no status filter is specified
         assessments
+            .into_iter()
+            .filter(|a| a.status == "draft")
+            .collect()
     };
 
     Ok(Json(AssessmentListResponse {

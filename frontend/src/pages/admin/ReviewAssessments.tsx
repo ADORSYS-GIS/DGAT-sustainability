@@ -51,8 +51,6 @@ import {
 import { ReportsService } from '@/openapi-rq/requests/services.gen';
 import { AdminSubmissionDetail } from '@/openapi-rq/requests/types.gen';
 import { offlineDB } from '@/services/indexeddb';
-import { apiInterceptor } from "@/services/apiInterceptor";
-import { syncService } from "@/services/syncService";
 import { useTranslation } from 'react-i18next';
 
 interface CategoryRecommendation {
@@ -69,20 +67,6 @@ interface PendingReviewSubmission {
   reviewer: string;
   timestamp: Date;
   syncStatus: 'pending' | 'synced';
-}
-
-interface SyncQueueItem {
-  id: string;
-  operation: 'create' | 'update' | 'delete';
-  entity_type: 'report' | 'submission' | 'user';
-  entity_id: string;
-  data: Record<string, unknown>;
-  url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  retry_count: number;
-  max_retries: number;
-  priority: 'low' | 'normal' | 'high';
-  created_at: string;
 }
 
 const ReviewAssessments: React.FC = () => {
@@ -106,45 +90,14 @@ const ReviewAssessments: React.FC = () => {
   useEffect(() => {
     const loadPendingReviews = async () => {
       try {
-        const pending = await offlineDB.getPendingReviewSubmissions();
-        setPendingReviews(pending);
+        const pendingReviews = await offlineDB.getAllPendingReviewSubmissions();
+        setPendingReviews(pendingReviews);
       } catch (error) {
         console.error('Failed to load pending reviews:', error);
       }
     };
     loadPendingReviews();
   }, []);
-
-  // Sync pending reviews when online
-  useEffect(() => {
-    if (isOnline && pendingReviews.length > 0) {
-      syncPendingReviews();
-    }
-  }, [isOnline, pendingReviews.length]);
-
-  const syncPendingReviews = async () => {
-    for (const pendingReview of pendingReviews) {
-      if (pendingReview.syncStatus === 'pending') {
-        try {
-          // Make the actual API call
-          const result = await ReportsService.postSubmissionsBySubmissionIdReports({
-            submissionId: pendingReview.submissionId,
-            requestBody: pendingReview.categoryRecommendations
-          });
-          
-          // Mark as synced in IndexedDB
-          await offlineDB.updatePendingReviewSubmission(pendingReview.id, 'synced');
-          
-          // Remove from pending list
-          setPendingReviews(prev => prev.filter(r => r.id !== pendingReview.id));
-          
-          // Removed sync success toast
-        } catch (error) {
-          // Removed sync error toast
-        }
-      }
-    }
-  };
 
   // Filter submissions for review
   const submissionsForReview = submissionsData?.submissions?.filter(
@@ -211,14 +164,17 @@ const ReviewAssessments: React.FC = () => {
   };
 
   const handleSubmitReview = async () => {
-    if (!selectedSubmission) return;
+    if (!selectedSubmission || categoryRecommendations.length === 0) {
+      toast.error(t('reviewAssessments.pleaseAddRecommendations', { defaultValue: 'Please add at least one recommendation' }));
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      setIsSubmitting(true);
-
-      // Create the pending review data
+      // Create pending review for UI
       const pendingReview: PendingReviewSubmission = {
-        id: `pending_${Date.now()}_${Math.random()}`,
+        id: crypto.randomUUID(),
         submissionId: selectedSubmission.submission_id,
         categoryRecommendations,
         reviewer: user?.email || 'Unknown',
@@ -226,57 +182,36 @@ const ReviewAssessments: React.FC = () => {
         syncStatus: 'pending'
       };
 
-      // Store in the pending reviews table for UI display
-      await offlineDB.savePendingReviewSubmission(pendingReview);
       setPendingReviews(prev => [...prev, pendingReview]);
 
-      // Add to sync queue for offline sync
-      const syncItem: SyncQueueItem = {
-        id: crypto.randomUUID(),
-        operation: 'create',
-        entity_type: 'report',
-        entity_id: pendingReview.id,
-        data: {
-          submissionId: selectedSubmission.submission_id,
-          categoryRecommendations,
-          reviewer: user?.email || 'Unknown',
-          timestamp: new Date().toISOString()
-        },
-        url: `/api/submissions/${selectedSubmission.submission_id}/reports`,
-        method: 'POST',
-        retry_count: 0,
-        max_retries: 3,
-        priority: 'normal',
-        created_at: new Date().toISOString(),
-      };
+      // Use the OpenAPI-generated service directly
+      const result = await ReportsService.postSubmissionsBySubmissionIdReports({
+        submissionId: selectedSubmission.submission_id,
+        requestBody: categoryRecommendations.map(rec => ({
+          category: rec.category,
+          recommendation: rec.recommendation
+        }))
+      });
 
-      await offlineDB.addToSyncQueue(syncItem);
+      console.log('✅ Report generation successful:', result.report_id);
+      
+      // Update the pending review status
+      setPendingReviews(prev => 
+        prev.map(review => 
+          review.submissionId === selectedSubmission.submission_id 
+            ? { ...review, syncStatus: 'synced' as const }
+            : review
+        )
+      );
 
-      // Try to sync immediately if online
-      if (isOnline) {
-        try {
-          const result = await ReportsService.postSubmissionsBySubmissionIdReports({
-            submissionId: selectedSubmission.submission_id,
-            requestBody: categoryRecommendations
-          });
-          
-          // Mark as synced
-          await offlineDB.updatePendingReviewSubmission(pendingReview.id, 'synced');
-          setPendingReviews(prev => prev.filter(r => r.id !== pendingReview.id));
-          
-          toast.success(t('reviewAssessments.reviewSubmittedSuccessfully', { defaultValue: 'Review submitted successfully' }));
-        } catch (error) {
-          toast.success(t('reviewAssessments.reviewSavedLocally', { defaultValue: 'Review saved locally. Will sync when online.' }));
-        }
-      } else {
-        toast.success(t('reviewAssessments.reviewSavedLocally', { defaultValue: 'Review saved locally. Will sync when online.' }));
-      }
+      toast.success(t('reviewAssessments.reviewSubmitted', { defaultValue: 'Review submitted successfully' }));
 
       setIsReviewDialogOpen(false);
       setSelectedSubmission(null);
       setCategoryRecommendations([]);
       refetchSubmissions();
     } catch (error) {
+      console.error('Failed to submit review:', error);
       toast.error(t('reviewAssessments.failedToSubmitReview', { defaultValue: 'Failed to submit review' }));
     } finally {
       setIsSubmitting(false);
@@ -296,10 +231,9 @@ const ReviewAssessments: React.FC = () => {
     }
   };
 
-  // Manual sync function
+  // Manual sync function - now just refreshes data
   const handleManualSync = async () => {
     try {
-      await syncService.performFullSync();
       await refetchSubmissions(); // Refresh the submissions list
     } catch (error) {
       console.error(t('reviewAssessments.manualSyncFailed', { defaultValue: 'Manual sync failed:' }), error);

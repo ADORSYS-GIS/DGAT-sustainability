@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 import { Calendar, Clock, FileText } from "lucide-react";
-import type { Assessment as AssessmentType } from "@/openapi-rq/requests/types.gen";
+import type { OfflineAssessment } from "@/types/offline";
 
 interface AssessmentListProps {
-  assessments: AssessmentType[];
+  assessments: OfflineAssessment[];
   onSelectAssessment: (assessmentId: string) => void;
   isLoading?: boolean;
 }
@@ -32,10 +32,10 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
       <div className="text-center py-8">
         <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">
-          {t('assessment.noAssessmentsAvailable', { defaultValue: 'No assessments available' })}
+          {t('assessment.noDraftAssessmentsAvailable', { defaultValue: 'No draft assessments available' })}
         </h3>
         <p className="text-gray-600">
-          {t('assessment.noAssessmentsDescription', { defaultValue: 'No assessments have been created for your organization yet.' })}
+          {t('assessment.noDraftAssessmentsDescription', { defaultValue: 'No draft assessments have been created yet.' })}
         </p>
       </div>
     );
@@ -70,20 +70,14 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge variant={assessment.status === 'draft' ? 'secondary' : 'default'}>
-                  {assessment.status === 'draft' 
-                    ? t('assessment.status.draft', { defaultValue: 'Draft' })
-                    : t('assessment.status.submitted', { defaultValue: 'Submitted' })
-                  }
+                <Badge variant="secondary">
+                  {t('assessment.status.draft', { defaultValue: 'Draft' })}
                 </Badge>
                 <Button
                   onClick={() => onSelectAssessment(assessment.assessment_id)}
                   className="bg-dgrv-blue hover:bg-blue-700"
                 >
-                  {assessment.status === 'draft'
-                    ? t('assessment.continueAssessment', { defaultValue: 'Continue' })
-                    : t('assessment.viewAssessment', { defaultValue: 'View' })
-                  }
+                  {t('assessment.continueAssessment', { defaultValue: 'Continue' })}
                 </Button>
               </div>
             </div>

@@ -2,11 +2,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSubmissions } from "@/hooks/useOfflineApi";
+import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
 import { offlineDB } from "@/services/indexeddb";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
 import type { Submission } from "@/openapi-rq/requests/types.gen";
-import { Calendar, Eye, FileText, RefreshCw } from "lucide-react";
+import { Calendar, Eye, FileText, RefreshCw, Trash2 } from "lucide-react";
 import * as React from "react";
 import { useNavigate, NavigateFunction } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -40,6 +40,9 @@ export const Assessments: React.FC = () => {
   const { data, isLoading: remoteLoading, refetch } = useOfflineSubmissions();
   const submissions = data?.submissions || [];
 
+  // Delete submission mutation
+  const { deleteSubmission, isPending: isDeleting } = useOfflineSubmissionsMutation();
+
   useEffect(() => {
     setIsLoading(remoteLoading);
   }, [remoteLoading]);
@@ -59,6 +62,30 @@ export const Assessments: React.FC = () => {
     } catch (error) {
       console.warn('Error calculating category counts:', error);
       return { completed: 0, total: 0 };
+    }
+  };
+
+  // Helper function to check if user is org_admin
+  const isOrgAdmin = () => {
+    if (!user?.roles) return false;
+    return user.roles.includes('org_admin');
+  };
+
+  // Handle delete submission
+  const handleDeleteSubmission = async (submissionId: string) => {
+    try {
+      await deleteSubmission(submissionId, {
+        onSuccess: () => {
+          toast.success(t('submission.deleted', { defaultValue: 'Submission deleted successfully' }));
+          refetch(); // Refresh the list
+        },
+        onError: (error) => {
+          toast.error(t('submission.deleteError', { defaultValue: 'Failed to delete submission' }));
+          console.error('Delete submission error:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Delete submission error:', error);
     }
   };
 
@@ -88,7 +115,10 @@ export const Assessments: React.FC = () => {
     user: AuthUser | null;
     navigate: NavigateFunction;
     index: number;
-  }> = ({ submission, user, navigate, index }) => {
+    onDelete: (submissionId: string) => void;
+    isDeleting: boolean;
+    isOrgAdmin: boolean;
+  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin }) => {
     const { completed, total } = getCategoryCounts(submission);
     
     return (
@@ -155,6 +185,17 @@ export const Assessments: React.FC = () => {
                 <Eye className="w-4 h-4 mr-1" />
                 {t("viewSubmission")}
               </Button>
+              {isOrgAdmin && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => onDelete(submission.submission_id)}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  {isDeleting ? t("deleting", { defaultValue: "Deleting..." }) : t("delete", { defaultValue: "Delete" })}
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -192,6 +233,9 @@ export const Assessments: React.FC = () => {
               user={user}
               navigate={navigate}
               index={index}
+              onDelete={handleDeleteSubmission}
+              isDeleting={isDeleting}
+              isOrgAdmin={isOrgAdmin()}
             />
           ))}
 

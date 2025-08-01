@@ -77,6 +77,11 @@ export const AdminDashboard: React.FC = () => {
     submission => submission.review_status === 'rejected'
   );
   
+  // Add filter for reviewed submissions (new status from API)
+  const reviewedSubmissions = submissions.filter(
+    submission => submission.review_status === 'reviewed'
+  );
+  
   const totalSubmissions = submissions.length;
 
   React.useEffect(() => {
@@ -111,8 +116,8 @@ export const AdminDashboard: React.FC = () => {
   );
   const completedCount = React.useMemo(
     () =>
-      approvedSubmissions.length + rejectedSubmissions.length,
-    [approvedSubmissions, rejectedSubmissions],
+      approvedSubmissions.length + rejectedSubmissions.length + reviewedSubmissions.length,
+    [approvedSubmissions, rejectedSubmissions, reviewedSubmissions],
   );
 
   const keycloakAdminUrl = import.meta.env.VITE_KEYCLOAK_ADMIN_URL;
