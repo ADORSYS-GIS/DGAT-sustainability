@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +30,7 @@ pub struct KeycloakOrganization {
     #[serde(rename = "redirectUrl")]
     pub redirect_url: Option<String>,
     pub domains: Option<Vec<OrganizationDomain>>,
-    // You can add attributes or other fields as needed
+    pub attributes: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -39,7 +39,7 @@ impl KeycloakService {
             "redirectUrl": redirect_url,
             "enabled": enabled == "true",
         });
-        if let Some(attrs) = attributes {
+        if let Some(attrs) = &attributes {
             payload["attributes"] = json!(attrs);
         }
         info!(payload = %payload, "Sending organization create payload to Keycloak");
@@ -53,12 +53,14 @@ impl KeycloakService {
         match response.status() {
             StatusCode::CREATED | StatusCode::NO_CONTENT => {
                 let text = response.text().await?;
+                tracing::warn!("Create organization response: {}", text);
                 if !text.trim().is_empty() {
                     let org: KeycloakOrganization = serde_json::from_str(&text)?;
+                    tracing::warn!("Created organization: {:?}", org);
                     Ok(org)
                 } else {
                     // If no body, return a minimal KeycloakOrganization with only the name and domains
-                    Ok(KeycloakOrganization {
+                    let created_org = KeycloakOrganization {
                         id: String::new(),
                         name: name.to_string(),
                         alias: None,
@@ -66,7 +68,10 @@ impl KeycloakService {
                         description: None,
                         redirect_url: Some(redirect_url),
                         domains: Some(domains.into_iter().map(|d| OrganizationDomain { name: d.name, verified: None }).collect()),
-                    })
+                        attributes: attributes.map(|attrs| serde_json::to_value(attrs).unwrap_or_default()),
+                    };
+                    tracing::warn!("Created organization (no response body): {:?}", created_org);
+                    Ok(created_org)
                 }
             },
             _ => {
@@ -79,7 +84,7 @@ impl KeycloakService {
 
     /// Get all organizations
     pub async fn get_organizations(&self, token: &str) -> Result<Vec<KeycloakOrganization>> {
-        let url = format!("{}/admin/realms/{}/organizations", self.config.url, self.config.realm);
+        let url = format!("{}/admin/realms/{}/organizations?briefRepresentation=false", self.config.url, self.config.realm);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
@@ -87,13 +92,17 @@ impl KeycloakService {
             .await?
             .error_for_status()?;
 
-        let orgs: Vec<KeycloakOrganization> = response.json().await?;
+        let response_text = response.text().await?;
+        tracing::warn!("Raw Keycloak response: {}", response_text);
+        
+        let orgs: Vec<KeycloakOrganization> = serde_json::from_str(&response_text)?;
+        tracing::warn!("Deserialized organizations: {:?}", orgs);
         Ok(orgs)
     }
 
     /// Get a specific organization by ID
     pub async fn get_organization(&self, token: &str, org_id: &str) -> Result<KeycloakOrganization> {
-        let url = format!("{}/admin/realms/{}/organizations/{}", self.config.url, self.config.realm, org_id);
+        let url = format!("{}/admin/realms/{}/organizations/{}?briefRepresentation=false", self.config.url, self.config.realm, org_id);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
@@ -101,7 +110,11 @@ impl KeycloakService {
             .await?
             .error_for_status()?;
 
-        let org: KeycloakOrganization = response.json().await?;
+        let response_text = response.text().await?;
+        tracing::warn!("Raw single organization response: {}", response_text);
+        
+        let org: KeycloakOrganization = serde_json::from_str(&response_text)?;
+        tracing::warn!("Deserialized single organization: {:?}", org);
         Ok(org)
     }
 

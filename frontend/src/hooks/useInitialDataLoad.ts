@@ -3,7 +3,6 @@ import { useAuth } from "./shared/useAuth";
 import { useSyncStatus } from "./shared/useSyncStatus";
 import { InitialDataLoader, type UserContext } from "@/services/initialDataLoader";
 import { offlineDB } from "@/services/indexeddb";
-import { toast } from "sonner";
 import type { DataLoadingProgress } from "@/types/offline";
 
 export function useInitialDataLoad() {
@@ -42,6 +41,11 @@ export function useInitialDataLoad() {
 
   // Check if data loading is required
   const checkDataLoadingRequired = useCallback(async (userContext?: UserContext): Promise<boolean> => {
+    // Don't check if not authenticated
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
     try {
       const loader = new InitialDataLoader();
       return await loader.isDataLoadingRequired(userContext);
@@ -49,7 +53,7 @@ export function useInitialDataLoad() {
       console.warn('Failed to check if data loading is required:', error);
       return true; // Default to loading if check fails
     }
-  }, []);
+  }, [isAuthenticated, user]);
 
   // Load initial data
   const loadInitialData = useCallback(async () => {
@@ -73,7 +77,6 @@ export function useInitialDataLoad() {
 
     // Only load data if online
     if (!isOnline) {
-      toast.info("You are offline. Using local data.");
       return;
     }
 
@@ -81,8 +84,6 @@ export function useInitialDataLoad() {
     const loader = new InitialDataLoader();
 
     try {
-      toast.info("Loading your data for offline access...");
-
       // Start loading
       await loader.loadAllData(userContext);
 
@@ -92,14 +93,12 @@ export function useInitialDataLoad() {
 
       if (finalProgress?.status === 'completed') {
         setHasLoadedData(true);
-        toast.success("Data loaded successfully! You can now work offline.");
       } else if (finalProgress?.status === 'failed') {
         throw new Error(finalProgress.error_message || 'Data loading failed');
       }
 
     } catch (error) {
       console.error('Initial data loading failed:', error);
-      toast.error("Failed to load data. Some features may not work offline.");
       
       // Update progress to failed state
       const failedProgress = await loader.getProgress();
@@ -111,23 +110,15 @@ export function useInitialDataLoad() {
 
   // Monitor progress updates
   const monitorProgress = useCallback(async () => {
-    if (!isLoading) return;
+    if (!isLoading || !isAuthenticated) return;
 
     const loader = new InitialDataLoader();
     const currentProgress = await loader.getProgress();
     
     if (currentProgress && currentProgress.status === 'loading') {
       setProgress(currentProgress);
-      
-      // Show progress toast for long operations
-      if (currentProgress.total_items > 0) {
-        const percentage = Math.round((currentProgress.loaded_items / currentProgress.total_items) * 100);
-        if (percentage % 25 === 0 && percentage > 0) { // Show every 25%
-          toast.info(`${currentProgress.current_entity} (${percentage}%)`);
-        }
-      }
     }
-  }, [isLoading]);
+  }, [isLoading, isAuthenticated]);
 
   // Effect to load data when user authenticates
   useEffect(() => {
@@ -138,11 +129,11 @@ export function useInitialDataLoad() {
 
   // Effect to monitor progress
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading && isAuthenticated) {
       const interval = setInterval(monitorProgress, 1000); // Check every second
       return () => clearInterval(interval);
     }
-  }, [isLoading, monitorProgress]);
+  }, [isLoading, monitorProgress, isAuthenticated]);
 
   // Effect to handle online/offline transitions
   useEffect(() => {
@@ -150,9 +141,6 @@ export function useInitialDataLoad() {
       if (isOnline && !hasLoadedData) {
         // User came back online and hasn't loaded data yet
         loadInitialData();
-      } else if (!isOnline) {
-        // User went offline
-        toast.info("You are offline. Using local data.");
       }
     }
   }, [isOnline, isAuthenticated, user, hasLoadedData, loadInitialData]);
@@ -160,18 +148,15 @@ export function useInitialDataLoad() {
   // Manual refresh function
   const refreshData = useCallback(async () => {
     if (!isAuthenticated || !user) {
-      toast.error("You must be logged in to refresh data");
       return;
     }
 
     if (!isOnline) {
-      toast.error("You must be online to refresh data");
       return;
     }
 
     const userContext = createUserContext();
     if (!userContext) {
-      toast.error("Could not determine user context");
       return;
     }
 
@@ -179,8 +164,6 @@ export function useInitialDataLoad() {
     const loader = new InitialDataLoader();
 
     try {
-      toast.info("Refreshing your data...");
-      
       // Clear existing data and reload
       await loader.clearAllData();
       await loader.loadAllData(userContext);
@@ -190,14 +173,12 @@ export function useInitialDataLoad() {
 
       if (finalProgress?.status === 'completed') {
         setHasLoadedData(true);
-        toast.success("Data refreshed successfully!");
       } else {
         throw new Error(finalProgress?.error_message || 'Data refresh failed');
       }
 
     } catch (error) {
       console.error('Failed to refresh data:', error);
-      toast.error("Failed to refresh data");
     } finally {
       setIsLoading(false);
     }

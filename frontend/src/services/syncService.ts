@@ -4,7 +4,6 @@
 
 import { offlineDB } from "./indexeddb";
 import { DataTransformationService } from "./dataTransformation";
-import { toast } from "sonner";
 import {
   QuestionsService,
   CategoriesService,
@@ -27,6 +26,7 @@ import type {
   OrganizationMember,
   AdminSubmissionDetail
 } from "@/openapi-rq/requests/types.gen";
+import { getAuthState } from "./shared/authService";
 
 export interface SyncResult {
   entityType: string;
@@ -67,9 +67,23 @@ export class SyncService {
   }
 
   /**
+   * Check if user is authenticated
+   */
+  private isAuthenticated(): boolean {
+    const authState = getAuthState();
+    return authState.isAuthenticated;
+  }
+
+  /**
    * Perform a full sync of all data types
    */
   async performFullSync(): Promise<FullSyncResult> {
+    // Don't sync if not authenticated
+    if (!this.isAuthenticated()) {
+      console.log('🔄 Skipping sync - user not authenticated');
+      return this.getEmptySyncResult();
+    }
+
     if (!this.isOnline || this.isSyncing) {
       return this.getEmptySyncResult();
     }
@@ -126,19 +140,9 @@ export class SyncService {
       }
 
       console.log('✅ Full sync completed:', results);
-      
-      // Show summary toast
-      const totalChanges = Object.values(results).reduce((sum, result) => 
-        sum + result.added + result.updated + result.deleted, 0
-      );
-      
-      if (totalChanges > 0) {
-        toast.success(`Sync completed: ${totalChanges} changes applied`);
-      }
 
     } catch (error) {
       console.error('❌ Full sync failed:', error);
-      toast.error('Sync failed. Please try again.');
     } finally {
       this.isSyncing = false;
     }

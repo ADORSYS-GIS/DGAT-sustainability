@@ -136,9 +136,9 @@ const ReviewAssessments: React.FC = () => {
           // Remove from pending list
           setPendingReviews(prev => prev.filter(r => r.id !== pendingReview.id));
           
-          toast.success(`Review for submission ${pendingReview.submissionId} synced successfully`);
+          // Removed sync success toast
         } catch (error) {
-          toast.error(`Failed to sync review for submission ${pendingReview.submissionId}`);
+          // Removed sync error toast
         }
       }
     }
@@ -297,13 +297,10 @@ const ReviewAssessments: React.FC = () => {
   // Manual sync function
   const handleManualSync = async () => {
     try {
-      toast.info("Syncing data with server...");
       await syncService.performFullSync();
       await refetchSubmissions(); // Refresh the submissions list
-      toast.success("Sync completed successfully");
     } catch (error) {
       console.error("Manual sync failed:", error);
-      toast.error("Sync failed. Please try again.");
     }
   };
 

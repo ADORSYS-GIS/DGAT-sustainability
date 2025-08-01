@@ -92,18 +92,11 @@ export const Dashboard: React.FC = () => {
 
   React.useEffect(() => {
     if (submissionsError) {
-      toast.error(t('user.dashboard.errorLoadingSubmissions'), {
-        description: submissionsError.message,
-      });
+      // Removed unnecessary error toast for loading submissions
     } else if (submissionsLoading) {
-      toast.info(t('user.dashboard.loadingSubmissions'), {
-        description: t('user.dashboard.fetchingRecentSubmissions'),
-      });
+      // Removed unnecessary loading toast
     } else if (submissionsData) {
-      toast.success(t('user.dashboard.submissionsLoaded'), {
-        description: t('user.dashboard.loadedSubmissions', { count: submissions.length }),
-        className: "bg-dgrv-green text-white",
-      });
+      // Removed unnecessary success toast for loaded submissions
     }
   }, [submissionsError, submissionsLoading, submissionsData, submissions.length, t]);
 

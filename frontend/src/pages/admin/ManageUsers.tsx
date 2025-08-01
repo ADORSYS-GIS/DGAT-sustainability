@@ -92,14 +92,16 @@ export const ManageUsers: React.FC = () => {
   
   // Use the generated mutation hooks
   const createUserMutation = useOrganizationMembersServicePostOrganizationsByIdMembers({
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("User created successfully");
       refetch();
       setShowAddDialog(false);
-      resetForm();
+      setFormData({
+        email: "",
+        roles: [],
+      });
     },
-    onError: (error) => {
-      console.error("Failed to create user:", error);
+    onError: () => {
       toast.error("Failed to create user");
     }
   });

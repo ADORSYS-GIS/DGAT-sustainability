@@ -56,6 +56,21 @@ interface OrganizationResponseFixed {
 // Helper to map OrganizationResponse to OrganizationResponseFixed
 function toFixedOrg(org: unknown): OrganizationResponseFixed {
   const o = org as Record<string, unknown>;
+  
+  // Convert attributes from serde_json::Value to HashMap<string, string[]>
+  let attributes: { [key: string]: string[] } = {};
+  if (o.attributes && typeof o.attributes === 'object' && o.attributes !== null) {
+    const attrsObj = o.attributes as Record<string, unknown>;
+    for (const [key, value] of Object.entries(attrsObj)) {
+      if (Array.isArray(value)) {
+        const stringValues: string[] = value
+          .filter(v => typeof v === 'string')
+          .map(v => v as string);
+        attributes[key] = stringValues;
+      }
+    }
+  }
+  
   return {
     id: o.id as string,
     name: o.name as string,
@@ -71,7 +86,7 @@ function toFixedOrg(org: unknown): OrganizationResponseFixed {
             | undefined,
         }))
       : [],
-    attributes: (o.attributes as { [key: string]: string[] }) ?? {},
+    attributes: attributes,
   };
 }
 
@@ -177,6 +192,12 @@ export const ManageOrganizations: React.FC = () => {
     loadCategories();
   }, []);
 
+  // Debug formData changes
+  React.useEffect(() => {
+    console.log('FormData changed:', formData);
+    console.log('FormData categories:', formData.attributes?.categories);
+  }, [formData]);
+
   const handleSubmit = () => {
     if (!formData.name.trim()) {
       toast.error("Name is required");
@@ -214,6 +235,11 @@ export const ManageOrganizations: React.FC = () => {
   };
 
   const handleEdit = (org: OrganizationResponseFixed) => {
+    console.log('=== EDITING ORGANIZATION ===');
+    console.log('Original organization:', org);
+    console.log('Organization attributes:', org.attributes);
+    console.log('Organization categories:', org.attributes?.categories);
+    
     setEditingOrg(org);
     setFormData({
       name: org.name || "",
@@ -223,6 +249,10 @@ export const ManageOrganizations: React.FC = () => {
       attributes: {
         categories: (org.attributes?.categories as string[]) || [],
       },
+    });
+    console.log('Form data after setting:', {
+      name: org.name || "",
+      categories: (org.attributes?.categories as string[]) || [],
     });
     setShowAddDialog(true);
   };
@@ -285,6 +315,22 @@ export const ManageOrganizations: React.FC = () => {
   const fixedOrgs = organizations ? 
     (Array.isArray(organizations) ? organizations : [organizations]).map(toFixedOrg) 
     : [];
+
+  // Log organization details for debugging
+  React.useEffect(() => {
+    if (organizations) {
+      console.log('Raw organizations from API:', organizations);
+      console.log('Fixed organizations:', fixedOrgs);
+      fixedOrgs.forEach((org, index) => {
+        console.log(`Organization ${index + 1}:`, {
+          id: org.id,
+          name: org.name,
+          attributes: org.attributes,
+          categories: org.attributes?.categories
+        });
+      });
+    }
+  }, [organizations, fixedOrgs]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -425,6 +471,7 @@ export const ManageOrganizations: React.FC = () => {
                           (catName) => ({ value: catName, label: catName }),
                         )}
                         onChange={(selected) => {
+                          console.log('Categories selected in Select:', selected);
                           setFormData((prev) => ({
                             ...prev,
                             attributes: {

@@ -83,17 +83,11 @@ export const AdminDashboard: React.FC = () => {
 
   React.useEffect(() => {
     if (error) {
-      toast.error("Error loading submissions", {
-        description: error instanceof Error ? error.message : String(error),
-      });
+      // Removed error loading submissions toast
     } else if (submissionsLoading) {
-      toast.info("Loading submissions...", {
-        description: "Fetching latest submission data.",
-      });
+      // Removed loading submissions info toast
     } else if (submissionsData && submissions.length > 0) {
-      toast.success(`Loaded ${submissions.length} submissions successfully!`, {
-        className: "bg-dgrv-green text-white",
-      });
+      // Removed loaded submissions success toast
     } else {
     }
   }, [error, submissionsLoading, submissionsData, submissions.length]);

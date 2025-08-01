@@ -120,7 +120,7 @@ function useUserMutations() {
         }
       } catch (apiError) {
         console.warn('API call failed, user saved locally for sync:', apiError);
-        toast.success("User created locally (will sync when online)");
+        // Removed offline sync toast
       }
       
       return { success: true };
@@ -182,7 +182,7 @@ function useUserMutations() {
           created_at: new Date().toISOString()
         });
         
-        toast.success("User updated (offline mode)");
+        // Removed offline mode toast
         return { success: true };
       }
     } catch (error) {
@@ -235,7 +235,7 @@ function useUserMutations() {
           created_at: new Date().toISOString()
         });
         
-        toast.success("User deleted (offline mode)");
+        // Removed offline mode toast
         return { success: true };
       }
     } catch (error) {

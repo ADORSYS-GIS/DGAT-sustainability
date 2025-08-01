@@ -93,6 +93,12 @@ pub async fn get_organizations(
     // Get all organizations first
     match app_state.keycloak_service.get_organizations(&token).await {
         Ok(mut organizations) => {
+            // Log organization details for debugging
+            for org in &organizations {
+                tracing::warn!("Organization: id={}, name={}, attributes={:?}", 
+                    org.id, org.name, org.attributes);
+            }
+            
             // Apply search filtering if provided
             if let Some(search_term) = &params.search {
                 organizations.retain(|org| {
@@ -192,7 +198,10 @@ pub async fn get_organization(
     }
 
     match app_state.keycloak_service.get_organization(&token, &org_id).await {
-        Ok(organization) => Ok((StatusCode::OK, Json(organization))),
+        Ok(organization) => {
+            tracing::warn!("Single organization response: {:?}", organization);
+            Ok((StatusCode::OK, Json(organization)))
+        },
         Err(e) => {
             tracing::error!("Failed to get organization: {}", e);
             Err(ApiError::InternalServerError("Failed to get organization".to_string()))

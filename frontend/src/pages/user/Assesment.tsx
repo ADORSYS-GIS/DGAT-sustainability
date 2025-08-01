@@ -237,9 +237,11 @@ export const Assessment: React.FC = () => {
       if (allResponsesToSave.length > 0) {
         await createResponses(actualAssessment.assessment_id, allResponsesToSave, {
           onSuccess: async () => {
+            // Removed responses saved success toast
+            // Removed responses queued for sync info toast
             const savedResponses = await offlineDB.getResponsesByAssessment(actualAssessment.assessment_id);
             if (savedResponses.length !== allResponsesToSave.length) {
-              toast.warning(t("assessment.partialSave", { defaultValue: "Some responses may not have been saved correctly." }));
+              // Removed partial save warning toast
             }
           },
           onError: () => {
@@ -258,7 +260,7 @@ export const Assessment: React.FC = () => {
           },
           onError: () => {
             if (!isOnline) {
-              toast.success(t("assessment.offlineSaved", { defaultValue: "Assessment saved offline. Will sync when you come back online." }));
+              // Removed offline saved success toast
               navigate("/dashboard");
             } else {
               toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
@@ -270,7 +272,7 @@ export const Assessment: React.FC = () => {
       }
     } catch (error) {
       if (!navigator.onLine) {
-        toast.success(t("assessment.offlineSaved", { defaultValue: "Assessment saved offline. Will sync when you come back online." }));
+        // Removed offline saved success toast
         navigate("/dashboard");
       } else {
         toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
@@ -438,13 +440,11 @@ export const Assessment: React.FC = () => {
       try {
         await createResponses(assessmentId, responsesToSend, {
           onSuccess: async () => {
-            toast.success(t("assessment.responsesSaved", { defaultValue: "Responses saved successfully!" }));
-            if (!isOnline) {
-              toast.info(t("assessment.responsesQueuedForSync", { defaultValue: "Responses saved offline. Will sync when you come back online." }));
-            }
+            // Removed responses saved success toast
+            // Removed responses queued for sync info toast
             const savedResponses = await offlineDB.getResponsesByAssessment(assessmentId);
             if (savedResponses.length !== responsesToSend.length) {
-              toast.warning(t("assessment.partialSave", { defaultValue: "Some responses may not have been saved correctly." }));
+              // Removed partial save warning toast
             }
           },
           onError: () => {
@@ -670,9 +670,9 @@ export const Assessment: React.FC = () => {
                   onClick={async () => {
                     try {
                       window.dispatchEvent(new Event("online"));
-                      toast.success(t("assessment.syncTriggered", { defaultValue: "Sync triggered. Please wait..." }));
+                      // Removed sync triggered success toast
                     } catch (error) {
-                      toast.error(t("assessment.syncFailed", { defaultValue: "Sync failed. Please try again." }));
+                      // Removed sync failed error toast
                     }
                   }}
                   className="text-xs"

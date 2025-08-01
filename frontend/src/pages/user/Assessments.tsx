@@ -65,13 +65,10 @@ export const Assessments: React.FC = () => {
   // Manual sync function
   const handleManualSync = async () => {
     try {
-      toast.info("Syncing data with server...");
       await syncService.performFullSync();
       await refetch(); // Refresh the submissions list
-      toast.success("Sync completed successfully");
     } catch (error) {
       console.error("Manual sync failed:", error);
-      toast.error("Sync failed. Please try again.");
     }
   };
 
