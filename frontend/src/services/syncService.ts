@@ -94,49 +94,88 @@ export class SyncService {
     try {
       console.log('🔄 Starting full sync...');
 
-      // Sync all data types in parallel
-      const [
-        questionsResult,
-        categoriesResult,
-        assessmentsResult,
-        submissionsResult,
-        reportsResult,
-        organizationsResult
-      ] = await Promise.allSettled([
+      // Get user roles to determine what to sync
+      const authState = getAuthState();
+      const isDrgvAdmin = authState.roles.includes('drgv_admin');
+
+      // Define sync tasks based on user role
+      const syncTasks: Promise<SyncResult>[] = [
         this.syncQuestions(),
         this.syncCategories(),
-        this.syncAssessments(),
-        this.syncSubmissions(),
-        this.syncReports(),
-        this.syncOrganizations()
-      ]);
+      ];
+
+      // Only sync assessments, submissions, and reports for non-DGRV admin users
+      if (!isDrgvAdmin) {
+        syncTasks.push(
+          this.syncAssessments(),
+          this.syncSubmissions(),
+          this.syncReports()
+        );
+      }
+
+      // Always sync organizations for DGRV admin
+      if (isDrgvAdmin) {
+        syncTasks.push(this.syncOrganizations());
+      }
+
+      // Sync all data types in parallel
+      const syncResults = await Promise.allSettled(syncTasks);
 
       // Collect results
-      if (questionsResult.status === 'fulfilled') results.questions = questionsResult.value;
-      if (categoriesResult.status === 'fulfilled') results.categories = categoriesResult.value;
-      if (assessmentsResult.status === 'fulfilled') results.assessments = assessmentsResult.value;
-      if (submissionsResult.status === 'fulfilled') results.submissions = submissionsResult.value;
-      if (reportsResult.status === 'fulfilled') results.reports = reportsResult.value;
-      if (organizationsResult.status === 'fulfilled') results.organizations = organizationsResult.value;
-
-      // Handle rejected promises
-      if (questionsResult.status === 'rejected') {
+      let taskIndex = 0;
+      
+      // Questions and categories are always synced
+      const questionsResult = syncResults[taskIndex];
+      if (questionsResult?.status === 'fulfilled') {
+        results.questions = questionsResult.value;
+      } else if (questionsResult?.status === 'rejected') {
         results.questions.errors.push(questionsResult.reason?.toString() || 'Unknown error');
       }
-      if (categoriesResult.status === 'rejected') {
+      taskIndex++;
+
+      const categoriesResult = syncResults[taskIndex];
+      if (categoriesResult?.status === 'fulfilled') {
+        results.categories = categoriesResult.value;
+      } else if (categoriesResult?.status === 'rejected') {
         results.categories.errors.push(categoriesResult.reason?.toString() || 'Unknown error');
       }
-      if (assessmentsResult.status === 'rejected') {
-        results.assessments.errors.push(assessmentsResult.reason?.toString() || 'Unknown error');
+      taskIndex++;
+
+      // Assessments, submissions, and reports only for non-DGRV admin
+      if (!isDrgvAdmin) {
+        const assessmentsResult = syncResults[taskIndex];
+        if (assessmentsResult?.status === 'fulfilled') {
+          results.assessments = assessmentsResult.value;
+        } else if (assessmentsResult?.status === 'rejected') {
+          results.assessments.errors.push(assessmentsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+
+        const submissionsResult = syncResults[taskIndex];
+        if (submissionsResult?.status === 'fulfilled') {
+          results.submissions = submissionsResult.value;
+        } else if (submissionsResult?.status === 'rejected') {
+          results.submissions.errors.push(submissionsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+
+        const reportsResult = syncResults[taskIndex];
+        if (reportsResult?.status === 'fulfilled') {
+          results.reports = reportsResult.value;
+        } else if (reportsResult?.status === 'rejected') {
+          results.reports.errors.push(reportsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
       }
-      if (submissionsResult.status === 'rejected') {
-        results.submissions.errors.push(submissionsResult.reason?.toString() || 'Unknown error');
-      }
-      if (reportsResult.status === 'rejected') {
-        results.reports.errors.push(reportsResult.reason?.toString() || 'Unknown error');
-      }
-      if (organizationsResult.status === 'rejected') {
-        results.organizations.errors.push(organizationsResult.reason?.toString() || 'Unknown error');
+
+      // Organizations only for DGRV admin
+      if (isDrgvAdmin) {
+        const organizationsResult = syncResults[taskIndex];
+        if (organizationsResult?.status === 'fulfilled') {
+          results.organizations = organizationsResult.value;
+        } else if (organizationsResult?.status === 'rejected') {
+          results.organizations.errors.push(organizationsResult.reason?.toString() || 'Unknown error');
+        }
       }
 
       console.log('✅ Full sync completed:', results);
@@ -458,7 +497,7 @@ export class SyncService {
   /**
    * Check if online
    */
-  isOnline(): boolean {
+  getOnlineStatus(): boolean {
     return this.isOnline;
   }
 }

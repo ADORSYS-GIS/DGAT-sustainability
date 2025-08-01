@@ -61,11 +61,11 @@ export class InitialDataLoader {
       loadQuestions: true,
       loadCategories: true,
       
-      // Assessment data based on role
+      // Assessment data based on role - exclude DGRV admin
       loadAssessments: isOrgAdmin || isOrgUser,
       loadResponses: isOrgAdmin || isOrgUser,
-      loadSubmissions: isDrgvAdmin || isOrgAdmin || isOrgUser, // Include drgv_admin for submissions
-      loadReports: isOrgAdmin || isOrgUser,
+      loadSubmissions: isOrgAdmin || isOrgUser, // Remove drgv_admin from submissions
+      loadReports: isOrgAdmin || isOrgUser, // Remove drgv_admin from reports
       
       // Organization data based on role
       loadOrganizations: isDrgvAdmin,
@@ -357,45 +357,23 @@ export class InitialDataLoader {
     try {
       this.updateProgress('Loading submissions...', 1);
       
-      if (userContext.roles.includes('drgv_admin')) {
-        // DGRV Admin: Load all submissions using admin endpoint
-        const submissionsData = await AdminService.getAdminSubmissions({});
+      // SubmissionsService.getSubmissions() returns submissions for the organization
+      const submissionsData = await SubmissionsService.getSubmissions();
+      
+      if (submissionsData?.submissions) {
+        const transformedSubmissions = DataTransformationService.transformSubmissionsWithContext(
+          submissionsData.submissions,
+          userContext.organizationId,
+          userContext.userEmail
+        );
         
-        if (submissionsData?.submissions) {
-          const transformedSubmissions = DataTransformationService.transformAdminSubmissionsWithContext(
-            submissionsData.submissions,
-            userContext.organizationId,
-            userContext.userEmail
-          );
-          
-          if (DataTransformationService.validateTransformedData(transformedSubmissions, 'submissions')) {
-            await offlineDB.saveSubmissions(transformedSubmissions);
-          } else {
-            console.error('❌ InitialDataLoader: Failed to validate transformed submissions');
-          }
+        if (DataTransformationService.validateTransformedData(transformedSubmissions, 'submissions')) {
+          await offlineDB.saveSubmissions(transformedSubmissions);
         } else {
-          // No submissions found in API response
+          console.error('❌ InitialDataLoader: Failed to validate transformed submissions');
         }
       } else {
-        
-        // SubmissionsService.getSubmissions() returns submissions for the organization
-        const submissionsData = await SubmissionsService.getSubmissions();
-        
-        if (submissionsData?.submissions) {
-          const transformedSubmissions = DataTransformationService.transformSubmissionsWithContext(
-            submissionsData.submissions,
-            userContext.organizationId,
-            userContext.userEmail
-          );
-          
-          if (DataTransformationService.validateTransformedData(transformedSubmissions, 'submissions')) {
-            await offlineDB.saveSubmissions(transformedSubmissions);
-          } else {
-            console.error('❌ InitialDataLoader: Failed to validate transformed submissions');
-          }
-        } else {
-          // No submissions found in API response
-        }
+        // No submissions found in API response
       }
 
     } catch (error) {

@@ -21,8 +21,7 @@ import { Button } from "@/components/ui/button";
 import { 
   useOfflineAdminSubmissions, 
   useOfflineQuestions, 
-  useOfflineCategories,
-  useOfflineSyncStatus 
+  useOfflineCategories
 } from "@/hooks/useOfflineApi";
 import { useAuth } from "@/hooks/shared/useAuth";
 
@@ -79,8 +78,6 @@ export const AdminDashboard: React.FC = () => {
   );
   
   const totalSubmissions = submissions.length;
-
-  const { isOnline } = useOfflineSyncStatus();
 
   React.useEffect(() => {
     if (error) {
@@ -205,20 +202,6 @@ export const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Offline Status Indicator */}
-          <div className="mb-4 flex items-center justify-end">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-              isOnline 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
-              <span>{isOnline ? 'Online' : 'Offline'}</span>
-            </div>
-          </div>
-
           {/* Welcome Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
