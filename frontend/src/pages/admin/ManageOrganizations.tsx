@@ -166,6 +166,27 @@ export const ManageOrganizations: React.FC = () => {
 
   const { isOnline } = useOfflineSyncStatus();
 
+  // Transform the organizations data from the direct API call
+  const fixedOrgs = organizations ? 
+    (Array.isArray(organizations) ? organizations : [organizations]).map(toFixedOrg) 
+    : [];
+
+  // Log organization details for debugging
+  React.useEffect(() => {
+    if (organizations) {
+      console.log('Raw organizations from API:', organizations);
+      console.log('Fixed organizations:', fixedOrgs);
+      fixedOrgs.forEach((org, index) => {
+        console.log(`Organization ${index + 1}:`, {
+          id: org.id,
+          name: org.name,
+          attributes: org.attributes,
+          categories: org.attributes?.categories
+        });
+      });
+    }
+  }, [organizations, fixedOrgs]);
+
   // Load categories from IndexedDB on mount
   React.useEffect(() => {
     const loadCategories = async () => {
@@ -310,27 +331,6 @@ export const ManageOrganizations: React.FC = () => {
       </div>
     );
   }
-
-  // Transform the organizations data from the direct API call
-  const fixedOrgs = organizations ? 
-    (Array.isArray(organizations) ? organizations : [organizations]).map(toFixedOrg) 
-    : [];
-
-  // Log organization details for debugging
-  React.useEffect(() => {
-    if (organizations) {
-      console.log('Raw organizations from API:', organizations);
-      console.log('Fixed organizations:', fixedOrgs);
-      fixedOrgs.forEach((org, index) => {
-        console.log(`Organization ${index + 1}:`, {
-          id: org.id,
-          name: org.name,
-          attributes: org.attributes,
-          categories: org.attributes?.categories
-        });
-      });
-    }
-  }, [organizations, fixedOrgs]);
 
   return (
     <div className="min-h-screen bg-gray-50">
