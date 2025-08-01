@@ -23,7 +23,7 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "curl https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com//health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -134,6 +134,7 @@ services:
         VITE_KEYCLOAK_SCOPES: "${VITE_KEYCLOAK_SCOPES:-openid profile email}"
         VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
         VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/callback}"
+        VITE_ORGANIZATION_REDIRECT_URL: "${VITE_ORGANIZATION_REDIRECT_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
 
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
