@@ -1,5 +1,5 @@
 {
-  "home": "Home",
+  "home": "Dashboard",
   "homePage": {
     "hero": {
       "title": "Empower Your Cooperative",
@@ -99,7 +99,8 @@
     "guideReview": "Review and approve assessments in the Review Assessments section.",
     "guideCategoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
     "guideDocs": "For detailed documentation, visit the Admin Documentation.",
-    "guideSupport": "If you need help, contact support@dgrv.org."
+    "guideSupport": "If you need help, contact support@dgrv.org.",
+    "loadingSubmissions": "Loading submissions..."
   },
   "standardRecommendations": {
     "title": "Standard Recommendations",
@@ -865,5 +866,54 @@
       "website": "🌐 Website: www.dgrv.org/admin",
       "documentation": "📚 Documentation: Available in the admin portal"
     }
+  },
+  "reviewAssessments": {
+    "title": "Review Assessments",
+    "subtitle": "Review and approve submitted assessments",
+    "syncData": "Sync Data",
+    "pendingSync": "Pending Sync",
+    "submissionsUnderReview": "Submissions Under Review",
+    "noSubmissionsUnderReview": "No submissions under review",
+    "unknownOrganization": "Unknown Organization",
+    "organization": "Organization",
+    "submitted": "Submitted",
+    "unknown": "Unknown",
+    "review": "Review",
+    "underReview": "Under Review",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "reviewAssessment": "Review Assessment",
+    "reviewDescription": "Review and provide recommendations for this sustainability assessment",
+    "submissionDetails": "Submission Details",
+    "submissionDate": "Submission Date",
+    "status": "Status",
+    "assessmentResponses": "Assessment Responses",
+    "noResponsesFound": "No responses found",
+    "addRecommendation": "Add Recommendation",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "yourRecommendations": "Your Recommendations:",
+    "addedAt": "Added at",
+    "addRecommendationFor": "Add Recommendation for",
+    "recommendation": "Recommendation",
+    "enterRecommendationFor": "Enter your recommendation for",
+    "category": "category",
+    "cancel": "Cancel",
+    "yesNo": "Yes/No:",
+    "yes": "Yes",
+    "no": "No",
+    "percentage": "Percentage:",
+    "response": "Response:",
+    "clickExpandToView": "Click \"Expand\" to view",
+    "question": "question",
+    "submitReview": "Submit Review",
+    "loadingSubmissions": "Loading submissions...",
+    "errorLoadingSubmissions": "Error loading submissions",
+    "retry": "Retry",
+    "backToDashboard": "Back to Dashboard",
+    "reviewSubmittedSuccessfully": "Review submitted successfully",
+    "reviewSavedLocally": "Review saved locally. Will sync when online.",
+    "failedToSubmitReview": "Failed to submit review",
+    "manualSyncFailed": "Manual sync failed"
   }
 }

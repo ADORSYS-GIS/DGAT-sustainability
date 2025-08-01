@@ -41,11 +41,16 @@ export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   
   // Always call both hooks to avoid React hooks violation
-  const { data: submissionsData, isLoading: submissionsLoading, error: error } = useOfflineAdminSubmissions();
+  const { data: submissionsData, isLoading: submissionsLoading, error: error, refetch: refetchSubmissions } = useOfflineAdminSubmissions();
   
   // Both org_admin and DGRV_admin use the same data source - no differentiation
   // All admins load the same data to their local storage
   const submissions = submissionsData?.submissions || [];
+  
+  // Refetch data when component mounts to ensure fresh data
+  React.useEffect(() => {
+    refetchSubmissions();
+  }, [refetchSubmissions]);
   
   // Debug logging to understand submission statuses
   React.useEffect(() => {
@@ -73,10 +78,6 @@ export const AdminDashboard: React.FC = () => {
     submission => submission.review_status === 'rejected'
   );
   
-  const reviewedSubmissions = submissions.filter(
-    submission => submission.review_status === 'reviewed'
-  );
-  
   const totalSubmissions = submissions.length;
 
   const { isOnline } = useOfflineSyncStatus();
@@ -88,7 +89,6 @@ export const AdminDashboard: React.FC = () => {
       // Removed loading submissions info toast
     } else if (submissionsData && submissions.length > 0) {
       // Removed loaded submissions success toast
-    } else {
     }
   }, [error, submissionsLoading, submissionsData, submissions.length]);
 
@@ -114,8 +114,8 @@ export const AdminDashboard: React.FC = () => {
   );
   const completedCount = React.useMemo(
     () =>
-      approvedSubmissions.length + rejectedSubmissions.length + reviewedSubmissions.length,
-    [approvedSubmissions, rejectedSubmissions, reviewedSubmissions],
+      approvedSubmissions.length + rejectedSubmissions.length,
+    [approvedSubmissions, rejectedSubmissions],
   );
 
   const keycloakAdminUrl = import.meta.env.VITE_KEYCLOAK_ADMIN_URL;
@@ -168,11 +168,11 @@ export const AdminDashboard: React.FC = () => {
   const [questionCount, setQuestionCount] = useState<number>(0);
 
   // Fetch categories count from offline data
-  const { data: categoriesData } = useOfflineCategories();
+  const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategories();
   const categoryCount = categoriesData?.categories?.length || 0;
 
   // Fetch questions count from offline data
-  const { data: questionsData } = useOfflineQuestions();
+  const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   function isQuestionsResponse(obj: unknown): obj is { questions: unknown[] } {
     return (
       typeof obj === "object" &&
@@ -186,14 +186,18 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [questionsData]);
 
+  // Check if any data is still loading
+  const isDataLoading = submissionsLoading || categoriesLoading || questionsLoading;
+
   const systemStats = [
-    { label: t('adminDashboard.numCategories'), value: categoryCount, color: "blue" },
-    { label: t('adminDashboard.numQuestions'), value: questionCount, color: "green" },
-    { label: t('adminDashboard.pendingReviews'), value: pendingReviewsCount, color: "yellow" },
+    { label: t('adminDashboard.numCategories'), value: categoryCount, color: "blue", loading: categoriesLoading },
+    { label: t('adminDashboard.numQuestions'), value: questionCount, color: "green", loading: questionsLoading },
+    { label: t('adminDashboard.pendingReviews'), value: pendingReviewsCount, color: "yellow", loading: submissionsLoading },
     {
       label: t('adminDashboard.completedAssessments'),
       value: completedCount,
       color: "blue",
+      loading: submissionsLoading,
     },
   ];
 
@@ -240,7 +244,13 @@ export const AdminDashboard: React.FC = () => {
               >
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-dgrv-blue mb-1">
-                    {stat.value}
+                    {stat.loading ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-dgrv-blue"></div>
+                      </div>
+                    ) : (
+                      stat.value
+                    )}
                   </div>
                   <div className="text-sm text-gray-600">{stat.label}</div>
                 </CardContent>
@@ -271,48 +281,64 @@ export const AdminDashboard: React.FC = () => {
                   <span>{t('adminDashboard.pendingReviewsCard')}</span>
                 </CardTitle>
                 <Badge className="bg-orange-500 text-white">
-                  {pendingReviewsCount} {t('adminDashboard.pendingCount', { count: pendingReviewsCount })}
+                  {submissionsLoading ? (
+                    <div className="flex items-center space-x-1">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-white"></div>
+                      <span>...</span>
+                    </div>
+                  ) : (
+                    `${pendingReviewsCount} ${t('adminDashboard.pendingCount', { count: pendingReviewsCount })}`
+                  )}
                 </Badge>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {pendingReviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                      onClick={() => navigate(`/admin/reviews/${review.id}`)}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="p-2 rounded-full bg-gray-100">
-                          {/* Assuming type is derived from submission or can be inferred */}
-                          <Star className="w-5 h-5 text-dgrv-green" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">
-                            Sustainability Assessment
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {review.organization}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">
-                          {review.submittedAt}
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {review.reviewStatus === "under_review"
-                            ? t('adminDashboard.underReview')
-                            : t('adminDashboard.reviewRequired')}
-                        </Badge>
-                      </div>
+                  {submissionsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
+                      <p className="text-gray-600">{t('adminDashboard.loadingSubmissions', { defaultValue: 'Loading submissions...' })}</p>
                     </div>
-                  ))}
-                  {pendingReviews.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>{t('adminDashboard.allUpToDate')}</p>
-                    </div>
+                  ) : (
+                    <>
+                      {pendingReviews.map((review) => (
+                        <div
+                          key={review.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                          onClick={() => navigate(`/admin/reviews`)}
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="p-2 rounded-full bg-gray-100">
+                              {/* Assuming type is derived from submission or can be inferred */}
+                              <Star className="w-5 h-5 text-dgrv-green" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">
+                                Sustainability Assessment
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                {review.organization}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600">
+                              {review.submittedAt}
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              {review.reviewStatus === "under_review"
+                                ? t('adminDashboard.underReview')
+                                : t('adminDashboard.reviewRequired')}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                      {pendingReviews.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>{t('adminDashboard.allUpToDate')}</p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </CardContent>

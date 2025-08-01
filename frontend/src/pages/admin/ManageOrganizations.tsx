@@ -58,7 +58,7 @@ function toFixedOrg(org: unknown): OrganizationResponseFixed {
   const o = org as Record<string, unknown>;
   
   // Convert attributes from serde_json::Value to HashMap<string, string[]>
-  let attributes: { [key: string]: string[] } = {};
+  const attributes: { [key: string]: string[] } = {};
   if (o.attributes && typeof o.attributes === 'object' && o.attributes !== null) {
     const attrsObj = o.attributes as Record<string, unknown>;
     for (const [key, value] of Object.entries(attrsObj)) {

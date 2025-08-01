@@ -1,5 +1,5 @@
 {
-  "home": "Startseite",
+  "home": "Dashboard",
   "homePage": {
     "hero": {
       "title": "Stärken Sie Ihre Genossenschaft",
@@ -96,7 +96,8 @@
     "guideReview": "Überprüfen und genehmigen Sie Bewertungen im Abschnitt Bewertungen überprüfen.",
     "guideCategoriesQuestions": "Konfigurieren Sie Kategorien und Fragen, um den Bewertungsprozess an Ihre Bedürfnisse anzupassen.",
     "guideDocs": "Für detaillierte Dokumentation besuchen Sie die Admin-Dokumentation.",
-    "guideSupport": "Wenn Sie Hilfe benötigen, kontaktieren Sie support@dgrv.org."
+    "guideSupport": "Wenn Sie Hilfe benötigen, kontaktieren Sie support@dgrv.org.",
+    "loadingSubmissions": "Lade Einreichungen..."
   },
   "standardRecommendations": {
     "title": "Standardempfehlungen",
@@ -829,5 +830,54 @@
       "website": "🌐 Website: www.dgrv.org/admin",
       "documentation": "📚 Dokumentation: Verfügbar im Admin-Portal"
     }
+  },
+  "reviewAssessments": {
+    "title": "Bewertungen überprüfen",
+    "subtitle": "Überprüfen und genehmigen Sie eingereichte Bewertungen",
+    "syncData": "Daten synchronisieren",
+    "pendingSync": "Synchronisierung ausstehend",
+    "submissionsUnderReview": "Einreichungen in Überprüfung",
+    "noSubmissionsUnderReview": "Keine Einreichungen in Überprüfung",
+    "unknownOrganization": "Unbekannte Organisation",
+    "organization": "Organisation",
+    "submitted": "Eingereicht",
+    "unknown": "Unbekannt",
+    "review": "Überprüfen",
+    "underReview": "In Überprüfung",
+    "approved": "Genehmigt",
+    "rejected": "Abgelehnt",
+    "reviewAssessment": "Bewertung überprüfen",
+    "reviewDescription": "Überprüfen Sie diese Nachhaltigkeitsbewertung und geben Sie Empfehlungen",
+    "submissionDetails": "Einreichungsdetails",
+    "submissionDate": "Einreichungsdatum",
+    "status": "Status",
+    "assessmentResponses": "Bewertungsantworten",
+    "noResponsesFound": "Keine Antworten gefunden",
+    "addRecommendation": "Empfehlung hinzufügen",
+    "collapse": "Einklappen",
+    "expand": "Erweitern",
+    "yourRecommendations": "Ihre Empfehlungen:",
+    "addedAt": "Hinzugefügt um",
+    "addRecommendationFor": "Empfehlung hinzufügen für",
+    "recommendation": "Empfehlung",
+    "enterRecommendationFor": "Geben Sie Ihre Empfehlung ein für",
+    "category": "Kategorie",
+    "cancel": "Abbrechen",
+    "yesNo": "Ja/Nein:",
+    "yes": "Ja",
+    "no": "Nein",
+    "percentage": "Prozentsatz:",
+    "response": "Antwort:",
+    "clickExpandToView": "Klicken Sie auf \"Erweitern\", um anzuzeigen",
+    "question": "Frage",
+    "submitReview": "Überprüfung absenden",
+    "loadingSubmissions": "Lade Einreichungen...",
+    "errorLoadingSubmissions": "Fehler beim Laden der Einreichungen",
+    "retry": "Wiederholen",
+    "backToDashboard": "Zurück zum Dashboard",
+    "reviewSubmittedSuccessfully": "Überprüfung erfolgreich abgesendet",
+    "reviewSavedLocally": "Überprüfung lokal gespeichert. Wird synchronisiert, wenn online.",
+    "failedToSubmitReview": "Überprüfung konnte nicht abgesendet werden",
+    "manualSyncFailed": "Manuelle Synchronisierung fehlgeschlagen"
   }
 }

@@ -53,6 +53,7 @@ import { AdminSubmissionDetail } from '@/openapi-rq/requests/types.gen';
 import { offlineDB } from '@/services/indexeddb';
 import { apiInterceptor } from "@/services/apiInterceptor";
 import { syncService } from "@/services/syncService";
+import { useTranslation } from 'react-i18next';
 
 interface CategoryRecommendation {
   id: string;
@@ -85,6 +86,7 @@ interface SyncQueueItem {
 }
 
 const ReviewAssessments: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedSubmission, setSelectedSubmission] = useState<AdminSubmissionDetail | null>(null);
@@ -262,12 +264,12 @@ const ReviewAssessments: React.FC = () => {
           await offlineDB.updatePendingReviewSubmission(pendingReview.id, 'synced');
           setPendingReviews(prev => prev.filter(r => r.id !== pendingReview.id));
           
-          toast.success('Review submitted successfully');
+          toast.success(t('reviewAssessments.reviewSubmittedSuccessfully', { defaultValue: 'Review submitted successfully' }));
         } catch (error) {
-          toast.success('Review saved locally. Will sync when online.');
+          toast.success(t('reviewAssessments.reviewSavedLocally', { defaultValue: 'Review saved locally. Will sync when online.' }));
         }
       } else {
-        toast.success('Review saved locally. Will sync when online.');
+        toast.success(t('reviewAssessments.reviewSavedLocally', { defaultValue: 'Review saved locally. Will sync when online.' }));
       }
 
       setIsReviewDialogOpen(false);
@@ -275,7 +277,7 @@ const ReviewAssessments: React.FC = () => {
       setCategoryRecommendations([]);
       refetchSubmissions();
     } catch (error) {
-      toast.error('Failed to submit review');
+      toast.error(t('reviewAssessments.failedToSubmitReview', { defaultValue: 'Failed to submit review' }));
     } finally {
       setIsSubmitting(false);
     }
@@ -284,11 +286,11 @@ const ReviewAssessments: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'under_review':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Under Review</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />{t('reviewAssessments.underReview', { defaultValue: 'Under Review' })}</Badge>;
       case 'approved':
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{t('reviewAssessments.approved', { defaultValue: 'Approved' })}</Badge>;
       case 'rejected':
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />{t('reviewAssessments.rejected', { defaultValue: 'Rejected' })}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -300,7 +302,7 @@ const ReviewAssessments: React.FC = () => {
       await syncService.performFullSync();
       await refetchSubmissions(); // Refresh the submissions list
     } catch (error) {
-      console.error("Manual sync failed:", error);
+      console.error(t('reviewAssessments.manualSyncFailed', { defaultValue: 'Manual sync failed:' }), error);
     }
   };
 
@@ -310,7 +312,7 @@ const ReviewAssessments: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading submissions...</p>
+            <p className="mt-2 text-gray-600">{t('reviewAssessments.loadingSubmissions', { defaultValue: 'Loading submissions...' })}</p>
           </div>
         </div>
       </div>
@@ -323,9 +325,9 @@ const ReviewAssessments: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-            <p className="text-red-600">Error loading submissions</p>
+            <p className="text-red-600">{t('reviewAssessments.errorLoadingSubmissions', { defaultValue: 'Error loading submissions' })}</p>
             <Button onClick={() => refetchSubmissions()} className="mt-2">
-              Retry
+              {t('reviewAssessments.retry', { defaultValue: 'Retry' })}
             </Button>
           </div>
         </div>
@@ -345,11 +347,11 @@ const ReviewAssessments: React.FC = () => {
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Dashboard</span>
+            <span>{t('reviewAssessments.backToDashboard', { defaultValue: 'Back to Dashboard' })}</span>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Review Assessments</h1>
-            <p className="text-gray-600">Review and approve submitted assessments</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('reviewAssessments.title', { defaultValue: 'Review Assessments' })}</h1>
+            <p className="text-gray-600">{t('reviewAssessments.subtitle', { defaultValue: 'Review and approve submitted assessments' })}</p>
           </div>
         </div>
 
@@ -363,7 +365,7 @@ const ReviewAssessments: React.FC = () => {
             className="flex items-center space-x-2"
           >
             <RefreshCw className="w-4 h-4" />
-            <span>Sync Data</span>
+            <span>{t('reviewAssessments.syncData', { defaultValue: 'Sync Data' })}</span>
           </Button>
 
           {/* Offline/Online Status */}
@@ -377,14 +379,14 @@ const ReviewAssessments: React.FC = () => {
             ) : (
               <WifiOff className="w-4 h-4" />
             )}
-            <span>{isOnline ? 'Online' : 'Offline'}</span>
+            <span>{isOnline ? t('common.online', { defaultValue: 'Online' }) : t('common.offline', { defaultValue: 'Offline' })}</span>
           </div>
 
           {/* Pending Reviews Indicator */}
           {pendingReviews.length > 0 && (
             <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
               <Clock className="w-4 h-4" />
-              <span>{pendingReviews.length} Pending Sync</span>
+              <span>{pendingReviews.length} {t('reviewAssessments.pendingSync', { defaultValue: 'Pending Sync' })}</span>
             </div>
           )}
         </div>
@@ -395,14 +397,14 @@ const ReviewAssessments: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FileText className="w-5 h-5" />
-            <span>Submissions Under Review ({submissionsForReview.length})</span>
+            <span>{t('reviewAssessments.submissionsUnderReview', { defaultValue: 'Submissions Under Review' })} ({submissionsForReview.length})</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {submissionsForReview.length === 0 ? (
             <div className="text-center py-8">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No submissions under review</p>
+              <p className="text-gray-600">{t('reviewAssessments.noSubmissionsUnderReview', { defaultValue: 'No submissions under review' })}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -410,12 +412,12 @@ const ReviewAssessments: React.FC = () => {
                 <div key={submission.submission_id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-medium text-gray-900">Submission {submission.submission_id}</h3>
-                      <p className="text-sm text-gray-600">Organization: {submission.org_name || "Unknown"}</p>
+                      <h3 className="font-medium text-gray-900">{submission.org_name || t('reviewAssessments.unknownOrganization', { defaultValue: 'Unknown Organization' })}</h3>
+                      <p className="text-sm text-gray-600">{t('reviewAssessments.organization', { defaultValue: 'Organization' })}: {submission.org_name || t('reviewAssessments.unknown', { defaultValue: 'Unknown' })}</p>
                       <p className="text-sm text-gray-600">
-                        Submitted: {submission.submitted_at 
+                        {t('reviewAssessments.submitted', { defaultValue: 'Submitted' })}: {submission.submitted_at 
                           ? new Date(submission.submitted_at).toLocaleDateString()
-                          : 'Unknown'
+                          : t('reviewAssessments.unknown', { defaultValue: 'Unknown' })
                         }
                       </p>
                     </div>
@@ -427,7 +429,7 @@ const ReviewAssessments: React.FC = () => {
                         className="flex items-center space-x-1"
                       >
                         <Eye className="w-4 h-4" />
-                        <span>Review</span>
+                        <span>{t('reviewAssessments.review', { defaultValue: 'Review' })}</span>
                       </Button>
                     </div>
                   </div>
@@ -444,9 +446,9 @@ const ReviewAssessments: React.FC = () => {
           <DialogHeader className="border-b pb-4">
             <DialogTitle className="flex items-center space-x-3 text-2xl font-bold text-gray-900">
               <Award className="w-6 h-6 text-blue-600" />
-              <span>Review Assessment</span>
+              <span>{t('reviewAssessments.reviewAssessment', { defaultValue: 'Review Assessment' })}</span>
             </DialogTitle>
-            <p className="text-gray-600 mt-2">Review and provide recommendations for this sustainability assessment</p>
+            <p className="text-gray-600 mt-2">{t('reviewAssessments.reviewDescription', { defaultValue: 'Review and provide recommendations for this sustainability assessment' })}</p>
           </DialogHeader>
 
           {selectedSubmission && (
@@ -456,21 +458,21 @@ const ReviewAssessments: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <FileText className="w-5 h-5 text-blue-600" />
-                    <span>Submission Details</span>
+                    <span>{t('reviewAssessments.submissionDetails', { defaultValue: 'Submission Details' })}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white p-3 rounded-lg border">
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Submission ID</label>
-                      <p className="text-sm font-mono text-gray-900 mt-1">{selectedSubmission.submission_id}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('reviewAssessments.organization', { defaultValue: 'Organization' })}</label>
+                      <p className="text-sm font-mono text-gray-900 mt-1">{selectedSubmission.org_name || selectedSubmission.submission_id}</p>
                     </div>
                     <div className="bg-white p-3 rounded-lg border">
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Organization</label>
-                      <p className="text-sm font-medium text-gray-900 mt-1">{selectedSubmission.org_name || "Unknown"}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('reviewAssessments.organization', { defaultValue: 'Organization' })}</label>
+                      <p className="text-sm font-medium text-gray-900 mt-1">{selectedSubmission.org_name || t('reviewAssessments.unknown', { defaultValue: 'Unknown' })}</p>
                     </div>
                     <div className="bg-white p-3 rounded-lg border">
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Submission Date</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('reviewAssessments.submissionDate', { defaultValue: 'Submission Date' })}</label>
                       <p className="text-sm text-gray-900 mt-1">
                         {selectedSubmission.submitted_at 
                           ? new Date(selectedSubmission.submitted_at).toLocaleDateString('en-US', {
@@ -480,14 +482,14 @@ const ReviewAssessments: React.FC = () => {
                               hour: '2-digit',
                               minute: '2-digit'
                             })
-                          : 'Unknown'
+                          : t('reviewAssessments.unknown', { defaultValue: 'Unknown' })
                         }
                       </p>
                     </div>
                   </div>
                   <div className="mt-4">
                     <div className="bg-white p-3 rounded-lg border">
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('reviewAssessments.status', { defaultValue: 'Status' })}</label>
                       <div className="mt-1">{getStatusBadge(selectedSubmission.review_status)}</div>
                     </div>
                   </div>
@@ -499,14 +501,14 @@ const ReviewAssessments: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <MessageSquare className="w-5 h-5 text-green-600" />
-                    <span>Assessment Responses</span>
+                    <span>{t('reviewAssessments.assessmentResponses', { defaultValue: 'Assessment Responses' })}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {submissionResponses.length === 0 ? (
                     <div className="text-center py-8">
                       <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No responses found</p>
+                      <p className="text-gray-600">{t('reviewAssessments.noResponsesFound', { defaultValue: 'No responses found' })}</p>
                     </div>
                   ) : (
                     <div className="space-y-6">
@@ -550,7 +552,7 @@ const ReviewAssessments: React.FC = () => {
                                     className="flex items-center space-x-2 border-blue-200 text-blue-700 hover:bg-blue-50"
                                   >
                                     <Plus className="w-4 h-4" />
-                                    <span>Add Recommendation</span>
+                                    <span>{t('reviewAssessments.addRecommendation', { defaultValue: 'Add Recommendation' })}</span>
                                   </Button>
                                   <Button
                                     size="sm"
@@ -572,7 +574,7 @@ const ReviewAssessments: React.FC = () => {
                                       <ChevronRight className="w-4 h-4" />
                                     )}
                                     <span className="text-sm">
-                                      {expandedCategories.has(category) ? 'Collapse' : 'Expand'}
+                                      {expandedCategories.has(category) ? t('reviewAssessments.collapse', { defaultValue: 'Collapse' }) : t('reviewAssessments.expand', { defaultValue: 'Expand' })}
                                     </span>
                                   </Button>
                                 </div>
@@ -583,7 +585,7 @@ const ReviewAssessments: React.FC = () => {
                                 <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-400 rounded-lg">
                                   <div className="flex items-center space-x-2 mb-3">
                                     <Award className="w-4 h-4 text-blue-600" />
-                                    <p className="text-sm font-medium text-gray-900">Your Recommendations:</p>
+                                    <p className="text-sm font-medium text-gray-900">{t('reviewAssessments.yourRecommendations', { defaultValue: 'Your Recommendations:' })}</p>
                                   </div>
                                   <div className="space-y-3">
                                     {recsForCategory.map(rec => (
@@ -591,7 +593,7 @@ const ReviewAssessments: React.FC = () => {
                                         <div className="flex-1">
                                           <p className="text-sm text-gray-700">{rec.recommendation}</p>
                                           <p className="text-xs text-gray-500 mt-1">
-                                            Added {rec.timestamp.toLocaleTimeString()}
+                                            {t('reviewAssessments.addedAt', { defaultValue: 'Added at' })} {rec.timestamp.toLocaleTimeString()}
                                           </p>
                                         </div>
                                         <Button
@@ -613,17 +615,17 @@ const ReviewAssessments: React.FC = () => {
                                 <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-400 rounded-lg">
                                   <div className="flex items-center space-x-2 mb-3">
                                     <Plus className="w-4 h-4 text-green-600" />
-                                    <p className="text-sm font-medium text-gray-900">Add Recommendation for {category}</p>
+                                    <p className="text-sm font-medium text-gray-900">{t('reviewAssessments.addRecommendationFor', { defaultValue: 'Add Recommendation for' })} {category}</p>
                                   </div>
                                   <div className="space-y-3">
                                     <div>
                                       <label className="text-sm font-medium text-gray-700 mb-2 block">
-                                        Recommendation
+                                        {t('reviewAssessments.recommendation', { defaultValue: 'Recommendation' })}
                                       </label>
                                       <Textarea
                                         value={currentComment}
                                         onChange={(e) => setCurrentComment(e.target.value)}
-                                        placeholder={`Enter your recommendation for ${category} category...`}
+                                        placeholder={`${t('reviewAssessments.enterRecommendationFor', { defaultValue: 'Enter your recommendation for' })} ${category} ${t('reviewAssessments.category', { defaultValue: 'category' })}...`}
                                         className="min-h-[100px] resize-none border-gray-300 focus:border-green-500 focus:ring-green-500"
                                         rows={3}
                                       />
@@ -641,7 +643,7 @@ const ReviewAssessments: React.FC = () => {
                                         className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white"
                                       >
                                         <Plus className="w-4 h-4" />
-                                        <span>Add Recommendation</span>
+                                        <span>{t('reviewAssessments.addRecommendation', { defaultValue: 'Add Recommendation' })}</span>
                                       </Button>
                                       <Button
                                         variant="outline"
@@ -651,7 +653,7 @@ const ReviewAssessments: React.FC = () => {
                                         }}
                                         className="border-gray-300 text-gray-700 hover:bg-gray-50"
                                       >
-                                        Cancel
+                                        {t('reviewAssessments.cancel', { defaultValue: 'Cancel' })}
                                       </Button>
                                     </div>
                                   </div>
@@ -680,15 +682,15 @@ const ReviewAssessments: React.FC = () => {
                                         <div className="bg-gray-50 p-4 rounded-lg">
                                           {responseData.yesNo !== undefined && (
                                             <div className="flex items-center space-x-2 mb-2">
-                                              <span className="text-sm font-medium text-gray-700">Yes/No:</span>
+                                              <span className="text-sm font-medium text-gray-700">{t('reviewAssessments.yesNo', { defaultValue: 'Yes/No:' })}</span>
                                               <Badge variant={responseData.yesNo ? "default" : "secondary"} className={responseData.yesNo ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-                                                {responseData.yesNo ? 'Yes' : 'No'}
+                                                {responseData.yesNo ? t('reviewAssessments.yes', { defaultValue: 'Yes' }) : t('reviewAssessments.no', { defaultValue: 'No' })}
                                               </Badge>
                                             </div>
                                           )}
                                           {responseData.percentage !== undefined && (
                                             <div className="flex items-center space-x-2 mb-2">
-                                              <span className="text-sm font-medium text-gray-700">Percentage:</span>
+                                              <span className="text-sm font-medium text-gray-700">{t('reviewAssessments.percentage', { defaultValue: 'Percentage:' })}</span>
                                               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                                 {responseData.percentage}%
                                               </Badge>
@@ -696,7 +698,7 @@ const ReviewAssessments: React.FC = () => {
                                           )}
                                           {responseData.text && (
                                             <div className="mt-3">
-                                              <span className="text-sm font-medium text-gray-700">Response:</span>
+                                              <span className="text-sm font-medium text-gray-700">{t('reviewAssessments.response', { defaultValue: 'Response:' })}</span>
                                               <p className="text-sm text-gray-700 mt-1 bg-white p-2 rounded border">
                                                 {responseData.text}
                                               </p>
@@ -709,7 +711,7 @@ const ReviewAssessments: React.FC = () => {
                                 </div>
                               ) : (
                                 <div className="text-center py-4 text-gray-500">
-                                  <p className="text-sm">Click "Expand" to view {categoryResponses.length} question{categoryResponses.length !== 1 ? 's' : ''}</p>
+                                  <p className="text-sm">{t('reviewAssessments.clickExpandToView', { defaultValue: 'Click "Expand" to view' })} {categoryResponses.length} {t('reviewAssessments.question', { defaultValue: 'question' })}{categoryResponses.length !== 1 ? 's' : ''}</p>
                                 </div>
                               )}
                             </div>
@@ -729,7 +731,7 @@ const ReviewAssessments: React.FC = () => {
                   disabled={isSubmitting}
                   className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  {t('reviewAssessments.cancel', { defaultValue: 'Cancel' })}
                 </Button>
                 <Button
                   onClick={handleSubmitReview}
@@ -737,7 +739,7 @@ const ReviewAssessments: React.FC = () => {
                   className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Submit Review</span>
+                  <span>{t('reviewAssessments.submitReview', { defaultValue: 'Submit Review' })}</span>
                 </Button>
               </div>
             </div>

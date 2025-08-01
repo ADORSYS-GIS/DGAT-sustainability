@@ -9,6 +9,7 @@ import {
 import { Globe, User, LogOut, Home, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import i18n from "@/i18n";
 import React from "react";
 
@@ -29,6 +30,7 @@ export const Navbar = () => {
     return localStorage.getItem('i18n_language') || i18n.language || "en";
   });
   const { isAuthenticated, user, login, logout } = useAuth();
+  const navigate = useNavigate();
 
   const currentLang =
     languages.find((lang) => lang.code === currentLanguage) || languages[0];
@@ -112,7 +114,7 @@ export const Navbar = () => {
                 variant="ghost"
                 size="sm"
                 className="ml-4 hidden md:flex items-center space-x-2"
-                onClick={() => (window.location.href = getHomeRoute())}
+                onClick={() => navigate(getHomeRoute())}
                 aria-label={t("home")}
               >
                 <Home className="w-5 h-5" />
@@ -267,7 +269,7 @@ export const Navbar = () => {
                 size="lg"
                 className="w-full justify-start items-center space-x-4 h-12 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg"
                 onClick={() => {
-                  window.location.href = getHomeRoute();
+                  navigate(getHomeRoute());
                   closeSidebar();
                 }}
               >
