@@ -28,6 +28,7 @@ import {
   useOrganizationsServicePutAdminOrganizationsById,
   useOrganizationsServiceDeleteAdminOrganizationsById
 } from "@/openapi-rq/queries/queries";
+import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
 
 interface Category {
   categoryId: string;
@@ -104,6 +105,18 @@ export const ManageOrganizations: React.FC = () => {
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // Category creation state
+  const [showCategoryCreation, setShowCategoryCreation] = useState(false);
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: "",
+    weight: 25,
+    order: 1,
+  });
+  
+  // Category mutation hooks
+  const categoryMutations = useOfflineCategoriesMutation();
+  const createCategory = categoryMutations.createCategory.mutate;
   
   // Use direct API query method from queries.ts instead of offline hook
   const {
@@ -188,28 +201,29 @@ export const ManageOrganizations: React.FC = () => {
   }, [organizations, fixedOrgs]);
 
   // Load categories from IndexedDB on mount
+  const loadCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const { offlineDB } = await import('@/services/indexeddb');
+      const stored = await offlineDB.getAllCategories();
+      // Map the IndexedDB category structure to the expected format
+      const mappedCategories = stored.map(cat => ({
+        categoryId: cat.category_id,
+        name: cat.name,
+        weight: cat.weight,
+        order: cat.order,
+        templateId: cat.template_id
+      }));
+      setCategories(mappedCategories);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
   React.useEffect(() => {
-    const loadCategories = async () => {
-      setCategoriesLoading(true);
-      try {
-        const { offlineDB } = await import('@/services/indexeddb');
-        const stored = await offlineDB.getAllCategories();
-        // Map the IndexedDB category structure to the expected format
-        const mappedCategories = stored.map(cat => ({
-          categoryId: cat.category_id,
-          name: cat.name,
-          weight: cat.weight,
-          order: cat.order,
-          templateId: cat.template_id
-        }));
-        setCategories(mappedCategories);
-      } catch (error) {
-        console.error('Failed to load categories:', error);
-        setCategories([]);
-      } finally {
-        setCategoriesLoading(false);
-      }
-    };
     loadCategories();
   }, []);
 
@@ -256,26 +270,21 @@ export const ManageOrganizations: React.FC = () => {
   };
 
   const handleEdit = (org: OrganizationResponseFixed) => {
-    console.log('=== EDITING ORGANIZATION ===');
-    console.log('Original organization:', org);
-    console.log('Organization attributes:', org.attributes);
-    console.log('Organization categories:', org.attributes?.categories);
-    
     setEditingOrg(org);
     setFormData({
-      name: org.name || "",
-      domains: (org.domains || []).map((d) => ({ name: d.name })),
-      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+      name: org.name,
+      domains: org.domains || [{ name: "" }],
+      redirectUrl: org.redirectUrl || import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
       enabled: org.enabled ? "true" : "false",
-      attributes: {
-        categories: (org.attributes?.categories as string[]) || [],
-      },
-    });
-    console.log('Form data after setting:', {
-      name: org.name || "",
-      categories: (org.attributes?.categories as string[]) || [],
+      attributes: org.attributes || { categories: [] },
     });
     setShowAddDialog(true);
+    setShowCategoryCreation(false);
+    setCategoryFormData({
+      name: "",
+      weight: 25,
+      order: 1,
+    });
   };
 
   const handleDelete = (orgId: string) => {
@@ -294,6 +303,12 @@ export const ManageOrganizations: React.FC = () => {
     });
     setEditingOrg(null);
     setShowAddDialog(false);
+    setShowCategoryCreation(false);
+    setCategoryFormData({
+      name: "",
+      weight: 25,
+      order: 1,
+    });
   };
 
   // --- Domains UI helpers ---
@@ -318,6 +333,57 @@ export const ManageOrganizations: React.FC = () => {
         ...prev,
         domains: newDomains.length ? newDomains : [{ name: "" }],
       };
+    });
+  };
+
+  const handleCreateCategory = async () => {
+    if (!categoryFormData.name.trim()) {
+      toast.error(t('manageCategories.textRequired', { defaultValue: 'Category name is required' }));
+      return;
+    }
+
+    if (categoryFormData.weight <= 0 || categoryFormData.weight > 100) {
+      toast.error(t('manageCategories.weightRangeError', { defaultValue: 'Weight must be between 1 and 100' }));
+      return;
+    }
+
+    await createCategory({
+      name: categoryFormData.name,
+      weight: categoryFormData.weight,
+      order: categoryFormData.order,
+      template_id: "sustainability_template_1", // Match the template ID used in ManageCategories
+    }, {
+      onSuccess: (result) => {
+        console.log('✅ Category creation onSuccess called with result:', result);
+        toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
+        
+        // Add the new category to the form data
+        const newCategoryName = categoryFormData.name;
+        setFormData((prev) => ({
+          ...prev,
+          attributes: {
+            ...prev.attributes,
+            categories: [...(prev.attributes?.categories || []), newCategoryName],
+          },
+        }));
+        
+        // Reset category form
+        setCategoryFormData({
+          name: "",
+          weight: 25,
+          order: categories.length + 1,
+        });
+        
+        // Hide category creation section
+        setShowCategoryCreation(false);
+        
+        // Reload categories
+        loadCategories();
+      },
+      onError: (error) => {
+        console.error('❌ Category creation onError called with error:', error);
+        toast.error(t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
+      }
     });
   };
 
@@ -387,7 +453,7 @@ export const ManageOrganizations: React.FC = () => {
                   <DialogHeader>
                     <DialogTitle>
                       {editingOrg
-                        ? "Edit Organization"
+                        ? t('manageOrganizations.editOrganization')
                         : "Add New Organization"}
                     </DialogTitle>
                   </DialogHeader>
@@ -511,6 +577,111 @@ export const ManageOrganizations: React.FC = () => {
                         }}
                       />
                     </div>
+                    
+                    {/* Category Creation Section */}
+                    {!editingOrg && (
+                      <div className="border-t pt-4 mt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold text-dgrv-blue">
+                              {t('manageOrganizations.createCategoryWithOrg')}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {t('manageOrganizations.createCategoryWithOrgDesc')}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setShowCategoryCreation(!showCategoryCreation)}
+                            className="text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue hover:text-white"
+                          >
+                            {showCategoryCreation ? t('manageOrganizations.skipCategoryCreation') : t('manageOrganizations.createCategory')}
+                          </Button>
+                        </div>
+                        
+                        {showCategoryCreation && (
+                          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                            <div>
+                              <Label className="font-semibold text-dgrv-blue">
+                                {t('manageOrganizations.newCategoryName')} <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                value={categoryFormData.name}
+                                onChange={(e) =>
+                                  setCategoryFormData((prev) => ({
+                                    ...prev,
+                                    name: e.target.value,
+                                  }))
+                                }
+                                placeholder={t('manageOrganizations.newCategoryNamePlaceholder')}
+                                className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <Label className="font-semibold text-dgrv-blue">
+                                  {t('manageOrganizations.categoryWeight')} <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max="100"
+                                  value={categoryFormData.weight}
+                                  onChange={(e) =>
+                                    setCategoryFormData((prev) => ({
+                                      ...prev,
+                                      weight: parseInt(e.target.value) || 25,
+                                    }))
+                                  }
+                                  className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="font-semibold text-dgrv-blue">
+                                  {t('manageOrganizations.categoryDisplayOrder')}
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={categoryFormData.order}
+                                  onChange={(e) =>
+                                    setCategoryFormData((prev) => ({
+                                      ...prev,
+                                      order: parseInt(e.target.value) || 1,
+                                    }))
+                                  }
+                                  className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex space-x-2 pt-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleCreateCategory}
+                                className="bg-dgrv-green hover:bg-green-700 text-white"
+                                disabled={categoryMutations.createCategory.isPending}
+                              >
+                                {categoryMutations.createCategory.isPending 
+                                  ? t('common.processing') 
+                                  : t('manageOrganizations.createCategory')}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setShowCategoryCreation(false)}
+                              >
+                                {t('manageOrganizations.skipCategoryCreation')}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="flex space-x-2 pt-4">
                       <Button
                         onClick={handleSubmit}

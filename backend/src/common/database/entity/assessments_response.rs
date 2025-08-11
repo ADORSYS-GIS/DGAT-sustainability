@@ -228,6 +228,13 @@ impl AssessmentsResponseService {
     pub async fn delete_response(&self, id: Uuid) -> Result<DeleteResult, DbErr> {
         self.db_service.delete(id).await
     }
+
+    pub async fn delete_responses_by_question_revision_id(&self, question_revision_id: Uuid) -> Result<DeleteResult, DbErr> {
+        Entity::delete_many()
+            .filter(Column::QuestionRevisionId.eq(question_revision_id))
+            .exec(self.db_service.get_connection())
+            .await
+    }
 }
 
 #[cfg(test)]

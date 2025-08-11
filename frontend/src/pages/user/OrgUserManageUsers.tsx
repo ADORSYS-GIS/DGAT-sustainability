@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
 import { OrganizationMembersService } from "@/openapi-rq/requests/services.gen";
 import type { OfflineUser } from "@/types/offline";
+import { useTranslation } from "react-i18next";
 
 // Helper to get org and categories from ID token
 function getOrgAndCategoriesAndId(user: Record<string, unknown>) {
@@ -256,6 +257,7 @@ function useUserMutations() {
 export const OrgUserManageUsers: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const { orgName, orgId, categories } = getOrgAndCategoriesAndId(user);
   
@@ -431,7 +433,7 @@ export const OrgUserManageUsers: React.FC = () => {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingUser ? "Edit User" : "Add New User"}
+                {editingUser ? t('manageUsers.editUser') : t('manageUsers.addNewUser')}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
@@ -473,7 +475,7 @@ export const OrgUserManageUsers: React.FC = () => {
                 <Label htmlFor="role">Role</Label>
                 <Input
                   id="role"
-                  value="Organization User"
+                  value={t('manageUsers.orgUser')}
                   readOnly
                   className="bg-gray-100 cursor-not-allowed"
                 />
@@ -485,11 +487,11 @@ export const OrgUserManageUsers: React.FC = () => {
                   disabled={createUser.isPending || updateUser.isPending}
                 >
                   {createUser.isPending || updateUser.isPending 
-                    ? "Processing..." 
-                    : editingUser ? "Update" : "Create"} User
+                    ? t('common.processing') 
+                    : editingUser ? t('common.update') : t('common.create')} {t('manageUsers.user')}
                 </Button>
                 <Button variant="outline" onClick={resetForm}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>
@@ -530,7 +532,7 @@ export const OrgUserManageUsers: React.FC = () => {
                           : "bg-red-500 text-white"
                       }
                     >
-                      {user.emailVerified ? "Verified" : "Not Verified"}
+                      {user.emailVerified ? t('manageUsers.verified') : t('manageUsers.notVerified')}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -561,7 +563,7 @@ export const OrgUserManageUsers: React.FC = () => {
                         disabled={false}
                       >
                         <Edit className="w-4 h-4 mr-1" />
-                        Edit
+                        {t('common.edit')}
                       </Button>
                       <Button
                         size="sm"
@@ -583,16 +585,16 @@ export const OrgUserManageUsers: React.FC = () => {
               <CardContent>
                 <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No users yet
+                  {t('manageUsers.noUsersYet')}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Add your first user to get started.
+                  {t('manageUsers.addFirstUserDesc')}
                 </p>
                 <Button
                   onClick={() => setShowAddDialog(true)}
                   className="bg-dgrv-green hover:bg-green-700"
                 >
-                  Add First User
+                  {t('manageUsers.addFirstUser')}
                 </Button>
               </CardContent>
             </Card>

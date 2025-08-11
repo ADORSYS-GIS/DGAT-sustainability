@@ -92,7 +92,7 @@ export const Welcome: React.FC = () => {
             <div className="mb-8">
               <div className="w-32 h-32 flex items-center justify-center mx-auto mb-6">
                 <img 
-                  src="/frontend/public/dgrv-logo.png" 
+                  src="/dgrv-logo.png" 
                   alt="DGRV Logo" 
                   className="w-full h-full object-contain"
                 />

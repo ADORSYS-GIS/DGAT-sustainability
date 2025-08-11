@@ -376,7 +376,7 @@ export function useOfflineCategoriesMutation() {
       const error = err instanceof Error ? err : new Error('Failed to create category');
       console.error('❌ createCategory error:', error);
       options?.onError?.(error);
-      throw error;
+      // Don't throw the error since we've already called onError callback
     } finally {
       setIsPending(false);
     }
@@ -438,7 +438,7 @@ export function useOfflineCategoriesMutation() {
       const error = err instanceof Error ? err : new Error('Failed to update category');
       console.error('❌ updateCategory error:', error);
       options?.onError?.(error);
-      throw error;
+      // Don't throw the error since we've already called onError callback
     } finally {
       setIsPending(false);
     }
@@ -451,9 +451,27 @@ export function useOfflineCategoriesMutation() {
     try {
       setIsPending(true);
 
+      // Get the category name before deleting it
+      const categories = await offlineDB.getAllCategories();
+      const categoryToDelete = categories.find(cat => cat.category_id === categoryId);
+      
+      if (!categoryToDelete) {
+        throw new Error('Category not found');
+      }
+
+      // Get all questions in this category
+      const questions = await offlineDB.getAllQuestions();
+      const questionsInCategory = questions.filter(q => q.category === categoryToDelete.name);
+
       const result = await apiInterceptor.interceptMutation(
         () => CategoriesService.deleteCategoriesByCategoryId({ categoryId }).then(() => ({ success: true })),
         async (data: Record<string, unknown>) => {
+          // Delete all questions in this category first
+          for (const question of questionsInCategory) {
+            // Delete the question (revisions are stored as part of the question object)
+            await offlineDB.deleteQuestion(question.question_id);
+          }
+
           // Delete the category locally
           await offlineDB.deleteCategory(categoryId);
         },
@@ -472,7 +490,7 @@ export function useOfflineCategoriesMutation() {
       const error = err instanceof Error ? err : new Error('Failed to delete category');
       console.error('❌ deleteCategory error:', error);
       options?.onError?.(error);
-      throw error;
+      // Don't throw the error since we've already called onError callback
     } finally {
       setIsPending(false);
     }

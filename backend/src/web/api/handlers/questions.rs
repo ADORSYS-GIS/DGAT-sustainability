@@ -227,18 +227,19 @@ pub async fn update_question(
         ));
     }
 
-    // Fetch the existing question to ensure it exists
-    let question_model = app_state
+    // Update the question category in the database
+    let updated_question_model = app_state
         .database
         .questions
-        .get_question_by_id(question_id)
+        .update_question(question_id, Some(request.category.clone()))
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question: {e}")))?;
-
-    let question_model = match question_model {
-        Some(q) => q,
-        None => return Err(ApiError::NotFound("Question not found".to_string())),
-    };
+        .map_err(|e| {
+            if e.to_string().contains("Question not found") {
+                ApiError::NotFound("Question not found".to_string())
+            } else {
+                ApiError::InternalServerError(format!("Failed to update question: {e}"))
+            }
+        })?;
 
     // Create a new revision for the question update
     let text_json = serde_json::to_value(&request.text)
@@ -254,9 +255,9 @@ pub async fn update_question(
 
     // Build the response
     let question = Question {
-        question_id: question_model.question_id,
-        category: question_model.category,
-        created_at: question_model.created_at.to_rfc3339(),
+        question_id: updated_question_model.question_id,
+        category: updated_question_model.category,
+        created_at: updated_question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
             question_id: revision_model.question_id,

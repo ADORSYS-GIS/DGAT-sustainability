@@ -63,7 +63,16 @@
     "viewAll": "Ver Tudo",
     "welcome": "Bem-vindo, {{user}} de {{org}}!",
     "loading": "Carregando...",
-    "noData": "Nenhum dado disponível",
+    "noData": "Nenhuns dados disponíveis",
+    "common": {
+      "processing": "A processar...",
+      "edit": "Editar",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "delete": "Eliminar",
+      "update": "Atualizar",
+      "create": "Criar"
+    },
     "adminDashboard": {
       "welcome": "Bem-vindo, Admin! Impulsione o Impacto Cooperativo!",
       "intro": "Gerencie a plataforma de avaliação DGRV e apoie cooperativas em toda a África Austral.",
@@ -96,7 +105,7 @@
       "guideReview": "Revise e aprove avaliações na seção Revisar Avaliações.",
       "guideCategoriesQuestions": "Configure categorias e perguntas para personalizar o processo de avaliação às suas necessidades.",
       "guideDocs": "Para documentação detalhada, visite a Documentação do Administrador.",
-      "guideSupport": "Se precisar de ajuda, entre em contato com support@dgrv.org."
+      "guideSupport": "Se precisar de ajuda, contacte support@dgrv.org."
     },
     "standardRecommendations": {
       "title": "Recomendações Padrão",
@@ -225,7 +234,7 @@
         "add": "Adicionar Nova Categoria",
         "edit": "Editar Categoria",
         "delete": "Excluir Categoria",
-        "confirmDelete": "Tem certeza de que deseja excluir esta categoria?",
+        "confirmDelete": "Tem certeza de que deseja excluir esta categoria? Isto também excluirá todas as perguntas nesta categoria. Nota: As submissões existentes contendo respostas a estas perguntas serão preservadas, mas os registros de resposta individuais serão removidos.",
         "success": "Categoria excluída com sucesso!",
         "error": "Erro ao excluir categoria."
       },
@@ -373,8 +382,9 @@
       "totalWeightMustBe100": "O peso total deve ser igual a 100%. Por favor, ajuste os pesos ou use o botão de redistribuição.",
       "totalWeightNot100ForNew": "O peso total será {{total}}%. Deve ser igual a 100%.",
       "currentTotal": "Total atual: {{current}}% | Novo total: {{new}}%",
-      "noCategoriesYet": "Ainda não foram criadas categorias.",
+      "noCategoriesYet": "Ainda não há categorias criadas.",
       "weightLabel": "Peso: {{weight}}% | Ordem: {{order}}",
+      "newCategory": "Nova Categoria",
       "categoryCreated": "Categoria criada com sucesso!",
       "categoryUpdated": "Categoria atualizada com sucesso!",
       "categoryDeleted": "Categoria excluída com sucesso!",
@@ -400,7 +410,16 @@
       "addFirstOrganization": "Adicionar Primeira Organização",
       "update": "Atualizar Organização",
       "create": "Criar Organização",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "editOrganization": "Editar Organização",
+      "createCategoryWithOrg": "Criar Categoria com Organização",
+      "createCategoryWithOrgDesc": "Opcionalmente criar uma nova categoria e atribuí-la a esta organização",
+      "newCategoryName": "Nome da Nova Categoria",
+      "newCategoryNamePlaceholder": "Introduzir nome da categoria...",
+      "categoryWeight": "Peso da Categoria (%)",
+      "categoryDisplayOrder": "Ordem de Exibição",
+      "createCategory": "Criar Categoria",
+      "skipCategoryCreation": "Saltar Criação de Categoria"
     },
     "user": {
       "dashboard": {
@@ -888,7 +907,7 @@
         "clickExpandToView": "Clique em \"Expandir\" para visualizar",
         "question": "Pergunta",
         "submitReview": "Enviar Revisão",
-        "loadingSubmissions": "Carregando Submissões...",
+        "loadingSubmissions": "A carregar submissões...",
         "errorLoadingSubmissions": "Erro ao Carregar Submissões",
         "retry": "Tentar Novamente",
         "backToDashboard": "Voltar ao Painel",

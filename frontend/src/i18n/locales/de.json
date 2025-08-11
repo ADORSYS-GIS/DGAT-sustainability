@@ -64,6 +64,15 @@
   "welcome": "Willkommen, {{user}} von {{org}}!",
   "loading": "Lade...",
   "noData": "Keine Daten verfügbar",
+  "common": {
+    "processing": "Verarbeitung...",
+    "edit": "Bearbeiten",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "update": "Aktualisieren",
+    "create": "Erstellen"
+  },
   "adminDashboard": {
     "welcome": "Willkommen, Admin! Fördern Sie den Einfluss von Genossenschaften!",
     "intro": "Verwalten Sie die DGRV-Bewertungsplattform und unterstützen Sie Genossenschaften in ganz Südafrika.",
@@ -97,7 +106,8 @@
     "guideCategoriesQuestions": "Konfigurieren Sie Kategorien und Fragen, um den Bewertungsprozess an Ihre Bedürfnisse anzupassen.",
     "guideDocs": "Für detaillierte Dokumentation besuchen Sie die Admin-Dokumentation.",
     "guideSupport": "Wenn Sie Hilfe benötigen, kontaktieren Sie support@dgrv.org.",
-    "loadingSubmissions": "Lade Einreichungen..."
+    "loadingSubmissions": "Lade Einreichungen...",
+    "viewCompleteGuide": "Vollständige Anleitung anzeigen"
   },
   "standardRecommendations": {
     "title": "Standardempfehlungen",
@@ -226,7 +236,7 @@
       "add": "Neue Kategorie hinzufügen",
       "edit": "Kategorie bearbeiten",
       "delete": "Kategorie löschen",
-      "confirmDelete": "Sind Sie sicher, dass Sie diese Kategorie löschen möchten?",
+      "confirmDelete": "Sind Sie sicher, dass Sie diese Kategorie löschen möchten? Dies wird auch alle Fragen in dieser Kategorie löschen. Hinweis: Bestehende Einreichungen mit Antworten auf diese Fragen werden beibehalten, aber die einzelnen Antwortdatensätze werden entfernt.",
       "success": "Kategorie erfolgreich gelöscht!",
       "error": "Fehler beim Löschen der Kategorie."
     },
@@ -375,7 +385,8 @@
     "totalWeightNot100ForNew": "Gesamtgewicht wird {{total}}% betragen. Muss 100% betragen.",
     "currentTotal": "Aktuelles Gesamtgewicht: {{current}}% | Neues Gesamtgewicht: {{new}}%",
     "noCategoriesYet": "Noch keine Kategorien. Fügen Sie Ihre erste Kategorie hinzu, um zu beginnen!",
-    "weightLabel": "Gewichtung: {{weight}}% | Reihenfolge: {{order}}"
+    "weightLabel": "Gewichtung: {{weight}}% | Reihenfolge: {{order}}",
+    "newCategory": "Neue Kategorie"
   },
   "manageOrganizations": {
     "title": "Organisationen verwalten",
@@ -390,7 +401,16 @@
     "addFirstOrganization": "Erste Organisation hinzufügen",
     "update": "Organisation aktualisieren",
     "create": "Organisation erstellen",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "editOrganization": "Organisation bearbeiten",
+    "createCategoryWithOrg": "Kategorie mit Organisation erstellen",
+    "createCategoryWithOrgDesc": "Optional eine neue Kategorie erstellen und dieser Organisation zuweisen",
+    "newCategoryName": "Neuer Kategoriename",
+    "newCategoryNamePlaceholder": "Kategoriename eingeben...",
+    "categoryWeight": "Kategoriegewichtung (%)",
+    "categoryDisplayOrder": "Anzeigereihenfolge",
+    "createCategory": "Kategorie erstellen",
+    "skipCategoryCreation": "Kategorieerstellung überspringen"
   },
   "user": {
     "dashboard": {

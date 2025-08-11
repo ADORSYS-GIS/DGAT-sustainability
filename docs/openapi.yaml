@@ -1154,11 +1154,20 @@ components:
 
     UpdateQuestionRequest:
       type: object
+      required:
+      - category
+      - text
+      - weight
       properties:
         category:
           type: string
         text:
-          type: string
+          type: object
+          additionalProperties:
+            type: string
+        weight:
+          type: number
+          format: double
 
     QuestionListResponse:
       type: object

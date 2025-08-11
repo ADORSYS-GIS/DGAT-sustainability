@@ -99,7 +99,7 @@ export const AdminDashboard: React.FC = () => {
 
     return pendingSubmissions.map((submission) => ({
       id: submission.submission_id,
-      organization: submission.org_name || "Unknown Organization",
+      organization: submission.org_name || t('unknownOrganization'),
       type: "Sustainability",
       submittedAt: new Date(submission.submitted_at).toLocaleDateString(
         "en-CA",
@@ -365,7 +365,7 @@ export const AdminDashboard: React.FC = () => {
                           navigate("/admin/guide");
                         }}
                       >
-                        View Complete Guide
+                        {t('adminDashboard.viewCompleteGuide')}
                       </Button>
                     </div>
                   </div>

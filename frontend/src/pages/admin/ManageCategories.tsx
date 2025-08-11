@@ -95,7 +95,7 @@ export const ManageCategories: React.FC = () => {
       // but don't actually create the category yet
       const tempCat = {
         category_id: "temp",
-        name: formData.name || "New Category",
+        name: formData.name || t('manageCategories.newCategory'),
         weight: 0,
         order: formData.order || cats.length + 1,
         template_id: SUSTAINABILITY_TEMPLATE_ID,
@@ -211,7 +211,9 @@ export const ManageCategories: React.FC = () => {
   };
 
   const handleDelete = async (categoryId: string) => {
-    if (!window.confirm(t('manageCategories.confirmDelete', { defaultValue: 'Are you sure you want to delete this category?' })))
+    if (!window.confirm(t('manageCategories.confirmDelete', { 
+      defaultValue: 'Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.' 
+    })))
       return;
     
     await deleteCategory(categoryId, {

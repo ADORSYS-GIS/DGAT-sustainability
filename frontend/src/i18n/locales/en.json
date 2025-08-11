@@ -67,6 +67,15 @@
   "welcome": "Welcome, {{user}} from {{org}}!",
   "loading": "Loading...",
   "noData": "No data available",
+  "common": {
+    "processing": "Processing...",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "update": "Update",
+    "create": "Create"
+  },
   "adminDashboard": {
     "welcome": "Welcome, Admin! Drive Cooperative Impact!",
     "intro": "Manage the DGRV assessment platform and support cooperatives across Southern Africa.",
@@ -100,7 +109,8 @@
     "guideCategoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
     "guideDocs": "For detailed documentation, visit the Admin Documentation.",
     "guideSupport": "If you need help, contact support@dgrv.org.",
-    "loadingSubmissions": "Loading submissions..."
+    "loadingSubmissions": "Loading submissions...",
+    "viewCompleteGuide": "View Complete Guide"
   },
   "standardRecommendations": {
     "title": "Standard Recommendations",
@@ -229,7 +239,7 @@
       "add": "Add New Category",
       "edit": "Edit Category",
       "delete": "Delete Category",
-      "confirmDelete": "Are you sure you want to delete this category?",
+      "confirmDelete": "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
       "success": "Category deleted successfully!",
       "error": "Error deleting category."
     },
@@ -389,7 +399,8 @@
     "redistributeError": "Failed to redistribute weights",
     "loadError": "Error Loading Categories",
     "unknownError": "An unknown error occurred",
-    "retry": "Retry"
+    "retry": "Retry",
+    "newCategory": "New Category"
   },
   "manageOrganizations": {
     "title": "Manage Organizations",
@@ -404,7 +415,16 @@
     "addFirstOrganization": "Add First Organization",
     "update": "Update Organization",
     "create": "Create Organization",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "editOrganization": "Edit Organization",
+    "createCategoryWithOrg": "Create Category with Organization",
+    "createCategoryWithOrgDesc": "Optionally create a new category and assign it to this organization",
+    "newCategoryName": "New Category Name",
+    "newCategoryNamePlaceholder": "Enter category name...",
+    "categoryWeight": "Category Weight (%)",
+    "categoryDisplayOrder": "Display Order",
+    "createCategory": "Create Category",
+    "skipCategoryCreation": "Skip Category Creation"
   },
   "user": {
     "dashboard": {

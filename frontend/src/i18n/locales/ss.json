@@ -63,7 +63,16 @@
   "viewAll": "Buka konkhe",
   "welcome": "Siyakwemukela, {{user}} kuto {{org}}!",
   "loading": "Iyalayisha...",
-  "noData": "Akukho datha letfolakalako",
+  "noData": "Ayikho idatha letholakalako",
+  "common": {
+    "processing": "Iyacubungula...",
+    "edit": "Hlela",
+    "cancel": "Khansela",
+    "save": "Gcina",
+    "delete": "Cisha",
+    "update": "Buyeketa",
+    "create": "Yakha"
+  },
   "adminDashboard": {
     "welcome": "Siyakwemukela, Mphatsi! Shukumisa umthelela wekoparetivu!",
     "intro": "Phatsa indawo yekuhlola ye-DGRV futhi usekele tikoparetivu kulo lonkhe laseNingizimu Afrika.",
@@ -95,8 +104,10 @@
     "guideOrgsUsers": "Sebentisa tigatja tekuPhatsa tinhlangano kanye nekuPhatsa basebenti kutsi ulawule kungenela kanye nebumenyi.",
     "guideReview": "Buketa futhi uvumele kuhlolwa esigatjeni sekubuketa kuhlolwa.",
     "guideCategoriesQuestions": "Lungisa tigaba nemibuto kutsi ulungiselele inchubo yekulungisa kute tifuneko takho.",
-    "guideDocs": "Kute tincijileko letinemininingwane, vakashela tincijileko temphatsi.",
-    "guideSupport": "Nawudinga lusito, xhumana ne support@dgrv.org."
+    "guideDocs": "Ngemininingwane lephelele, vakashela imibhalo yomphatsi.",
+    "guideSupport": "Uma udzinga lusito, xhumana na-support@dgrv.org.",
+    "loadingSubmissions": "Ilayisha lokuthunyelwe...",
+    "viewCompleteGuide": "Buka Umhlahlandlela Lophelele"
   },
   "standardRecommendations": {
     "title": "Tincomo letivamile",
@@ -225,7 +236,7 @@
       "add": "Ngezelela sigaba lesisha",
       "edit": "Hlela sigaba",
       "delete": "Cisha sigaba",
-      "confirmDelete": "Ucinisekile yini kutsi ufuna kucisha lesigaba?",
+      "confirmDelete": "Ucinisekile yini kutsi ufuna kucisha lesigaba? Lokhu kuzocisha nato tonkhe timibuto kulesigaba. Kucaphela: Tifakelo letikhona letinato timibuto talokhu tizogcinwa, kodvwa emarekhodi etimibuto ngayinye atacishwa.",
       "success": "Sigaba sicishiwe ngempumelelo!",
       "error": "Liphutsa ekucisheni sigaba."
     },
@@ -374,7 +385,8 @@
     "totalWeightNot100ForNew": "Sisindvo lesiphelele sizoba ngu-{{total}}%. Kufanele sibe ngu-100%.",
     "currentTotal": "Sisindvo samanje: {{current}}% | Sisindvo lesisha: {{new}}%",
     "noCategoriesYet": "Atekho tigaba okwamanje. Ngezelela sigaba sakho sekucala kutsi uqale!",
-    "weightLabel": "Sisindo: {{weight}}% | Luhlelo: {{order}}"
+    "weightLabel": "Sisindo: {{weight}}% | Luhlelo: {{order}}",
+    "newCategory": "Sigaba Lesisha"
   },
   "manageOrganizations": {
     "title": "Phatsa tinhlangano",
@@ -389,7 +401,16 @@
     "addFirstOrganization": "Ngezelela inhlangano yekucala",
     "update": "Buyeketa inhlangano",
     "create": "Yakha inhlangano",
-    "cancel": "Khansela"
+    "cancel": "Khansela",
+    "editOrganization": "Hlela inhlangano",
+    "createCategoryWithOrg": "Yakha Sigaba Ngenhlangano",
+    "createCategoryWithOrgDesc": "Ngokuzithandela yakha sigaba lesisha bese usinikeza le nhlangano",
+    "newCategoryName": "Libito Lesigaba Lesisha",
+    "newCategoryNamePlaceholder": "Faka libito lesigaba...",
+    "categoryWeight": "Sisindo Sesigaba (%)",
+    "categoryDisplayOrder": "Luhlelo Lokubonisa",
+    "createCategory": "Yakha Sigaba",
+    "skipCategoryCreation": "Yeqa Kuyakha Sigaba"
   },
   "user": {
     "dashboard": {

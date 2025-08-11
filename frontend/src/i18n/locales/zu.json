@@ -64,6 +64,15 @@
   "welcome": "Wamukelekile, {{user}} ovela ku-{{org}}!",
   "loading": "Iyalayisha...",
   "noData": "Ayikho idatha etholakalayo",
+  "common": {
+    "processing": "Iyacubungula...",
+    "edit": "Hlela",
+    "cancel": "Khansela",
+    "save": "Gcina",
+    "delete": "Susa",
+    "update": "Buyekeza",
+    "create": "Dala"
+  },
   "adminDashboard": {
     "welcome": "Wamukelekile, Mphathi! Shintsha umthelela wamaKoparetivu!",
     "intro": "Phatha indawo yokuhlola ye-DGRV futhi usekele amakoparetivu kuyo yonke iNingizimu Afrika.",
@@ -96,7 +105,9 @@
     "guideReview": "Buyekeza futhi uvume ukuhlola esigabeni sokubuyekezwa kokuhlola.",
     "guideCategoriesQuestions": "Lungisa izigaba nemibuzo ukuze ulungiselele inqubo yokuhlola ezidingweni zakho.",
     "guideDocs": "Ngemininingwane ephelele, vakashela imibhalo yomphathi.",
-    "guideSupport": "Uma udinga usizo, xhumana ne support@dgrv.org."
+    "guideSupport": "Uma udinga usizo, xhumana ne support@dgrv.org.",
+    "loadingSubmissions": "Ilayisha okuthunyelwe...",
+    "viewCompleteGuide": "Buka Umhlahlandlela Ophelele"
   },
   "standardRecommendations": {
     "title": "Izincomo ezijwayelekile",
@@ -225,7 +236,7 @@
       "add": "Engeza isigaba esisha",
       "edit": "Hlela isigaba",
       "delete": "Susa isigaba",
-      "confirmDelete": "Uqinisekile ukuthi ufuna ukususa lesi sigaba?",
+      "confirmDelete": "Uqinisekile ukuthi ufuna ukususa lesi sigaba? Lokhu kuzosusa nazo zonke imibuzo kulesi sigaba. Qaphela: Izithumelo ezikhona ezinemibuzo yalokhu kuzogcinwa, kodwa amarekhodi emibuzo ngayinye azosuswa.",
       "success": "Isigaba sisuswe ngempumelelo!",
       "error": "Iphutha ekususeni isigaba."
     },
@@ -374,12 +385,13 @@
     "totalWeightNot100ForNew": "Isisindo esiphelele sizoba ngu-{{total}}%. Kufanele sibe ngu-100%.",
     "currentTotal": "Isisindo samanje: {{current}}% | Isisindo esisha: {{new}}%",
     "noCategoriesYet": "Azikho izigaba okwamanje. Engeza isigaba sakho sokuqala ukuze uqale!",
-    "weightLabel": "Isisindo: {{weight}}% | Ukulandelana: {{order}}"
+    "weightLabel": "Isisindo: {{weight}}% | Ukulandelana: {{order}}",
+    "newCategory": "Isigaba Elisha"
   },
   "manageOrganizations": {
     "title": "Phatha izinhlangano",
     "subtitle": "Engeza futhi uphathe izinhlangano zamakoparetivu",
-    "addOrganization": "Engeza inhlangano",
+    "addOrganization": "Engeza inhlangano entsha",
     "domains": "Izizinda",
     "description": "Incazelo",
     "edit": "Hlela",
@@ -389,7 +401,16 @@
     "addFirstOrganization": "Engeza inhlangano yokuqala",
     "update": "Buyekeza inhlangano",
     "create": "Dala inhlangano",
-    "cancel": "Khansela"
+    "cancel": "Khansela",
+    "editOrganization": "Hlela inhlangano",
+    "createCategoryWithOrg": "Dala Isigaba Ngenhlangano",
+    "createCategoryWithOrgDesc": "Ngokuzithandela dala isigaba esisha bese usinikeza le nhlangano",
+    "newCategoryName": "Igama Lesigaba Elisha",
+    "newCategoryNamePlaceholder": "Faka igama lesigaba...",
+    "categoryWeight": "Isisindo Sesigaba (%)",
+    "categoryDisplayOrder": "Ukulandelana Kokubonisa",
+    "createCategory": "Dala Isigaba",
+    "skipCategoryCreation": "Yeqa Ukudala Isigaba"
   },
   "user": {
     "dashboard": {

@@ -210,7 +210,7 @@ pub async fn delete_category(
         ));
     }
 
-    // Check if the category exists
+    // Check if the category exists and get its name
     let category = app_state
         .database
         .categories
@@ -218,8 +218,89 @@ pub async fn delete_category(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?;
 
-    if category.is_none() {
-        return Err(ApiError::NotFound("Category not found".to_string()));
+    let category = match category {
+        Some(c) => c,
+        None => return Err(ApiError::NotFound("Category not found".to_string())),
+    };
+
+    // Get all questions in this category
+    let questions = app_state
+        .database
+        .questions
+        .get_questions_by_category(&category.name)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch questions: {e}")))?;
+
+    // Check if any of these questions have responses in submitted assessments
+    let mut has_submitted_responses = false;
+    for question in &questions {
+        let question_revisions = app_state
+            .database
+            .questions_revisions
+            .get_revisions_by_question(question.question_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revisions: {e}")))?;
+
+        for revision in question_revisions {
+            let has_responses = app_state
+                .database
+                .assessments_response
+                .has_responses_for_question_revision(revision.question_revision_id)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to check responses: {e}")))?;
+
+            if has_responses {
+                has_submitted_responses = true;
+                break;
+            }
+        }
+        if has_submitted_responses {
+            break;
+        }
+    }
+
+    // If there are submitted responses, we should warn but still allow deletion
+    // because the submission data is preserved in the submissions table
+    if has_submitted_responses {
+        // Log a warning but continue with deletion
+        println!("Warning: Category '{}' has questions with submitted responses. The responses will be preserved in submissions but individual response records will be deleted.", category.name);
+    }
+
+    // Delete all questions in this category
+    for question in questions {
+        // Get all question revisions for this question
+        let question_revisions = app_state
+            .database
+            .questions_revisions
+            .get_revisions_by_question(question.question_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revisions: {e}")))?;
+
+        // Delete assessment responses that reference these question revisions
+        for revision in question_revisions {
+            app_state
+                .database
+                .assessments_response
+                .delete_responses_by_question_revision_id(revision.question_revision_id)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to delete assessment responses: {e}")))?;
+        }
+
+        // Delete question revisions first (due to foreign key constraint)
+        app_state
+            .database
+            .questions_revisions
+            .delete_revisions_by_question_id(question.question_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question revisions: {e}")))?;
+
+        // Delete the question
+        app_state
+            .database
+            .questions
+            .delete_question(question.question_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question: {e}")))?;
     }
 
     // Delete the category from the database
