@@ -97,14 +97,18 @@ services:
       KC_EMAIL_STARTTLS: "${EMAIL_STARTTLS:-true}"
       KC_EMAIL_AUTH: "${EMAIL_AUTH:-true}"
       KC_EMAIL_FROM_DISPLAY_NAME: "${DISPLAY_NAME:-DGRV COOPERATION}"
-    #    entrypoint: ["/opt/keycloak/setup-scripts/startup.sh"]
-    command: ["start-dev", "--log-level=debug", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
+      # Startup command to be executed by wrapper
+      KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start-dev --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak"
+    entrypoint: ["/bin/bash", "/keycloak-startup.sh"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:rw
       - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
       # Mount the same SSL certificates used by the frontend container
       - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
       - ./ssl/nginx.key:/etc/x509/https/nginx.key:ro
+      # Mount startup scripts
+      - ./a.sh:/a.sh:ro
+      - ./keycloak-startup.sh:/keycloak-startup.sh:ro
     depends_on:
       db:
         condition: service_healthy
