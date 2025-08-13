@@ -6,18 +6,19 @@ import React from "react";
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
+  children?: React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  roles,
+  allowedRoles,
   children,
 }) => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
 
   // Check if user has required roles
   const hasRequiredRole = React.useMemo(() => {
-    if (!roles || roles.length === 0) return true;
+    if (!allowedRoles || allowedRoles.length === 0) return true;
     if (!user) return false;
 
     const allRoles = [
@@ -25,20 +26,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       ...(user.realm_access?.roles || []),
     ].map((r) => r.toLowerCase());
 
-    return roles.some((role) => allRoles.includes(role.toLowerCase()));
-  }, [user, roles]);
+    return allowedRoles.some((role) => allRoles.includes(role.toLowerCase()));
+  }, [user, allowedRoles]);
 
-  if (isLoading) {
+  // Show loading spinner while authentication state is being determined
+  if (loading) {
     return <LoadingSpinner />;
   }
 
+  // Redirect to home if not authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    toast.error("Please log in to access this page.");
+    return <Navigate to="/" replace state={{ from: location }} />;
   }
 
-  if (roles && roles.length > 0 && !hasRequiredRole) {
+  // Redirect to unauthorized page if user doesn't have required roles
+  if (allowedRoles && allowedRoles.length > 0 && !hasRequiredRole) {
+    toast.error("You don't have permission to access this page.");
     return <Navigate to="/unauthorized" replace />;
   }
 
-  return <Outlet />;
+  // Render the protected content
+  return children ? <>{children}</> : <Outlet />;
 };

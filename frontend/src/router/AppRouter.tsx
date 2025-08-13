@@ -27,22 +27,29 @@ const queryClient = new QueryClient({
   },
 });
 
+// Helper function to render routes recursively
+const renderRoutes = (routes: any[]) => {
+  return routes.map(({ path, element, children }, idx) => (
+    <Route
+      key={idx}
+      path={path}
+      element={
+        React.isValidElement(element)
+          ? element
+          : React.createElement(element)
+      }
+    >
+      {children && renderRoutes(children)}
+    </Route>
+  ));
+};
+
 const AppRouter = () => (
   <QueryClientProvider client={queryClient}>
     <Router>
       <MainLayout>
         <Routes>
-          {routes.map(({ path, element }, idx) => (
-            <Route
-              key={idx}
-              path={path}
-              element={
-                React.isValidElement(element)
-                  ? element
-                  : React.createElement(element)
-              }
-            />
-          ))}
+          {renderRoutes(routes)}
         </Routes>
       </MainLayout>
     </Router>

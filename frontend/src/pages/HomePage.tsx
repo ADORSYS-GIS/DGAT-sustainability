@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 export const Welcome: React.FC = () => {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, loading, user, login } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -62,7 +62,21 @@ export const Welcome: React.FC = () => {
     },
   ];
 
-  const handleStartAssessment = () => {
+  const handleStartAssessment = async () => {
+    // Check if user is authenticated first
+    if (!isAuthenticated) {
+      try {
+        await login();
+      } catch (error) {
+        console.error("Failed to redirect to authentication:", error);
+        toast.error(
+          "Failed to redirect to authentication. Please try again.",
+        );
+      }
+      return;
+    }
+
+    // Check if user has organizations
     if (user?.organizations && Object.keys(user.organizations).length > 0) {
       navigate("/assessment/sustainability");
     } else {
@@ -72,7 +86,21 @@ export const Welcome: React.FC = () => {
     }
   };
 
-  const handleViewAssessments = () => {
+  const handleViewAssessments = async () => {
+    // Check if user is authenticated first
+    if (!isAuthenticated) {
+      try {
+        await login();
+      } catch (error) {
+        console.error("Failed to redirect to authentication:", error);
+        toast.error(
+          "Failed to redirect to authentication. Please try again.",
+        );
+      }
+      return;
+    }
+
+    // Check if user has organizations
     if (user?.organizations && Object.keys(user.organizations).length > 0) {
       navigate("/assessments");
     } else {

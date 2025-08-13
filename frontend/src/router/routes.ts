@@ -8,7 +8,7 @@ import { Welcome } from "../pages/HomePage";
 import { ROLES } from "@/constants/roles";
 import { ManageCategories } from "../pages/admin/ManageCategories";
 import { ManageQuestions } from "../pages/admin/ManageQuestions";
-import  ReviewAssessments  from "../pages/admin/ReviewAssessments";
+import ReviewAssessments from "../pages/admin/ReviewAssessments";
 import { StandardRecommendations } from "../pages/admin/StandardRecommendations";
 import { Assessment } from "../pages/user/Assesment";
 import { AssessmentList } from "../pages/user/AssessmentList";
@@ -22,38 +22,93 @@ import { AdminGuide } from "../pages/admin/AdminGuide";
 import { UserGuide } from "../pages/user/UserGuide";
 
 const routes = [
-  { path: "/", element: Welcome },
-  { path: "/admin/dashboard", element: AdminDashboard },
-  { path: "/dashboard", element: Dashboard },
-  { path: "/admin/categories", element: ManageCategories },
-  { path: "/admin/organizations", element: ManageOrganizations },
-  { path: "/admin/users", element: ManageUsers },
-  { path: "/admin/questions", element: ManageQuestions },
-  { path: "/admin/reviews", element: ReviewAssessments },
-  { path: "/admin/recommendations", element: StandardRecommendations },
-  { path: "/admin/guide", element: AdminGuide },
-  { path: "/assessment/sustainability", element: Assessment },
-  { path: "/user/assessment/:assessmentId", element: Assessment },
-  { path: "/user/assessment-list", element: AssessmentList },
-  { path: "/assessments", element: Assessments },
-  { path: "/action-plan", element: ActionPlan },
-  { path: "/action-plan/:reportId", element: ActionPlan },
-  { path: "/submission-view/:submissionId", element: SubmissionView },
-  { path: "/user/manage-users", element: OrgUserManageUsers },
-  { path: "/user/guide", element: UserGuide },
-  { path: "*", element: NotFound },
-  { path: "/unauthorized", element: React.createElement(Unauthorized) },
+  // Public routes
   { path: "/", element: React.createElement(Welcome) },
+  { path: "/unauthorized", element: React.createElement(Unauthorized) },
+  
+  // Admin routes - require DGRV_Admin role
+  {
+    path: "/admin",
+    element: React.createElement(ProtectedRoute, { allowedRoles: [ROLES.ADMIN] }),
+    children: [
+      { path: "dashboard", element: React.createElement(AdminDashboard) },
+      { path: "categories", element: React.createElement(ManageCategories) },
+      { path: "organizations", element: React.createElement(ManageOrganizations) },
+      { path: "users", element: React.createElement(ManageUsers) },
+      { path: "questions", element: React.createElement(ManageQuestions) },
+      { path: "reviews", element: React.createElement(ReviewAssessments) },
+      { path: "recommendations", element: React.createElement(StandardRecommendations) },
+      { path: "guide", element: React.createElement(AdminGuide) },
+    ],
+  },
+
+  // User routes - require org_admin or Org_User role
   {
     path: "/dashboard",
-    element: React.createElement(ProtectedRoute, {}),
+    element: React.createElement(ProtectedRoute, { 
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    }),
     children: [{ path: "", element: React.createElement(Dashboard) }],
   },
+
+  // Assessment routes - require org_admin or Org_User role
   {
-    path: "/admin/dashboard",
-    element: React.createElement(ProtectedRoute, {}),
-    children: [{ path: "", element: React.createElement(AdminDashboard) }],
+    path: "/assessment",
+    element: React.createElement(ProtectedRoute, { 
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    }),
+    children: [
+      { path: "sustainability", element: React.createElement(Assessment) },
+    ],
   },
+
+  // User assessment routes - require org_admin or Org_User role
+  {
+    path: "/user",
+    element: React.createElement(ProtectedRoute, { 
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    }),
+    children: [
+      { path: "assessment/:assessmentId", element: React.createElement(Assessment) },
+      { path: "assessment-list", element: React.createElement(AssessmentList) },
+      { path: "manage-users", element: React.createElement(OrgUserManageUsers) },
+      { path: "guide", element: React.createElement(UserGuide) },
+    ],
+  },
+
+  // Assessment management routes - require org_admin or Org_User role
+  {
+    path: "/assessments",
+    element: React.createElement(ProtectedRoute, { 
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    }),
+    children: [{ path: "", element: React.createElement(Assessments) }],
+  },
+
+  // Action plan routes - require org_admin or Org_User role
+  {
+    path: "/action-plan",
+    element: React.createElement(ProtectedRoute, { 
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    }),
+    children: [
+      { path: "", element: React.createElement(ActionPlan) },
+      { path: ":reportId", element: React.createElement(ActionPlan) },
+    ],
+  },
+
+  // Submission view routes - require org_admin or Org_User role
+  {
+    path: "/submission-view",
+    element: React.createElement(ProtectedRoute, { 
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    }),
+    children: [
+      { path: ":submissionId", element: React.createElement(SubmissionView) },
+    ],
+  },
+
+  // Catch-all route for 404
   { path: "*", element: React.createElement(NotFound) },
 ];
 
