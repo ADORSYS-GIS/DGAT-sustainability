@@ -19,12 +19,16 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-- url: https://api.assessment-system.com/api/v1
-  description: Production server
-- url: https://staging-api.assessment-system.com/api/v1
-  description: Staging server
-- url: http://localhost:8080/api/v1
-  description: Development server
+- url: "{baseUrl}/api/v1"
+  description: Select environment at runtime
+  variables:
+    baseUrl:
+      description: Base URL of the API
+      default: http://localhost:8080
+      enum:
+      - https://api.assessment-system.com
+      - https://staging-api.assessment-system.com
+      - http://localhost:8080
 
 paths:
   # Health Endpoints

@@ -23,7 +23,7 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com//health || exit 1"]
+      test: ["CMD-SHELL", "curl http://localhost:3001/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -88,23 +88,27 @@ services:
       KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
       KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
       # email config
-      KC_EMAIL_HOST: "${EMAIL_HOST:-smtp.mailtrap.io}"
+      KC_EMAIL_HOST: "${EMAIL_HOST:-live.smtp.mailtrap.io}"
       KC_EMAIL_PORT: 2525
       KC_EMAIL_FROM: "${EMAIL_FROM:-noreply@dgrv.coop}"
-      KC_EMAIL_USER: "${EMAIL_USER:-d006ed6ea804b3}"
-      KC_EMAIL_PASSWORD: "${EMAIL_PASSWORD:-25553583d3558b}"
+      KC_EMAIL_USER: "${EMAIL_USER:-api}"
+      KC_EMAIL_PASSWORD: "${EMAIL_PASSWORD}"
       KC_EMAIL_SSL: "${EMAIL_SSL:-false}"
       KC_EMAIL_STARTTLS: "${EMAIL_STARTTLS:-true}"
       KC_EMAIL_AUTH: "${EMAIL_AUTH:-true}"
       KC_EMAIL_FROM_DISPLAY_NAME: "${DISPLAY_NAME:-DGRV COOPERATION}"
-    #    entrypoint: ["/opt/keycloak/setup-scripts/startup.sh"]
-    command: ["start-dev", "--log-level=debug", "--import-realm", "--spi-import-ignore-unknown=true", "--http-relative-path=/keycloak"]
+      # Startup command to be executed by wrapper
+      KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start-dev --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak"
+    entrypoint: ["/bin/bash", "/keycloak-startup.sh"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:rw
       - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
       # Mount the same SSL certificates used by the frontend container
       - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
       - ./ssl/nginx.key:/etc/x509/https/nginx.key:ro
+      # Mount startup scripts
+      - ./a.sh:/a.sh:ro
+      - ./keycloak-startup.sh:/keycloak-startup.sh:ro
     depends_on:
       db:
         condition: service_healthy
