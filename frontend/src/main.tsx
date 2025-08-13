@@ -1,3 +1,8 @@
+/*
+ * Main entry point for the React application
+ * Sets up providers, authentication, and renders the App component
+ */
+
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";

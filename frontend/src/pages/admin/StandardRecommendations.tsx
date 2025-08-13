@@ -1,3 +1,8 @@
+/*
+ * Admin page for managing standard recommendations used in assessment reviews
+ * Provides CRUD operations for recommendation templates with offline storage
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Navbar } from "@/components/shared/Navbar";

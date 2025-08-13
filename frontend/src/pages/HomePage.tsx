@@ -1,3 +1,8 @@
+/*
+ * Main landing page that welcomes users and provides navigation to key features
+ * Shows system overview, benefits, and directs users to appropriate dashboards based on role
+ */
+
 import { useEffect } from "react";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";

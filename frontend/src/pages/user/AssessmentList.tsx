@@ -1,3 +1,8 @@
+/*
+ * Assessment list page that shows available assessments for users
+ * Provides assessment selection and creation interface
+ */
+
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";

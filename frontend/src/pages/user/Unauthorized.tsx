@@ -1,3 +1,8 @@
+
+/*
+ * Unauthorized access page that displays when users lack required permissions
+ * Shows error message and navigation options for unauthorized users
+ */
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 

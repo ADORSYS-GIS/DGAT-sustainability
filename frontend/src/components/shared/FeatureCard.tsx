@@ -1,3 +1,8 @@
+/*
+ * Reusable feature card component for displaying action items
+ * Shows icons, titles, descriptions, and handles click events
+ */
+
 import React from "react";
 import { LucideIcon } from "lucide-react";
 

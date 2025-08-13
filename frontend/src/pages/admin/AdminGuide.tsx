@@ -1,3 +1,8 @@
+/*
+ * Admin guide page that provides comprehensive documentation for administrators
+ * Shows system overview, management procedures, and best practices for admin users
+ */
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

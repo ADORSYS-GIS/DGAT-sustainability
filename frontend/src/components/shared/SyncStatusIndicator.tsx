@@ -1,3 +1,8 @@
+/*
+ * Sync status indicator component for showing online/offline status
+ * Displays connection status and sync information
+ */
+
 import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
 import React from "react";
 

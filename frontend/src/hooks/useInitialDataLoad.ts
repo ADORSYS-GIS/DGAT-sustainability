@@ -1,3 +1,8 @@
+/*
+ * Hook for initial data loading and synchronization
+ * Handles startup data fetching, offline sync, and initial app state
+ */
+
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "./shared/useAuth";
 import { useSyncStatus } from "./shared/useSyncStatus";

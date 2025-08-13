@@ -1164,7 +1164,7 @@ components:
         text:
           type: object
           additionalProperties:
-            type: string
+          type: string
         weight:
           type: number
           format: double

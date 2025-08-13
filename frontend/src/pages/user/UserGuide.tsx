@@ -1,3 +1,8 @@
+/*
+ * User guide page that provides comprehensive documentation for regular users
+ * Shows getting started information, role explanations, and usage instructions
+ */
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

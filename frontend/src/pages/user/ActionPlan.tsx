@@ -1,3 +1,8 @@
+/*
+ * User action plan page that displays recommendations in a Kanban board format
+ * Provides task management interface for tracking recommendation implementation status
+ */
+
 import { Navbar } from "@/components/shared/Navbar";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
