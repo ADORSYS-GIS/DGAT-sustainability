@@ -21,7 +21,9 @@ interface AssessmentSelectionViewProps {
   onSubmitCreate: (assessmentName: string) => void;
 }
 
-export const AssessmentSelectionView: React.FC<AssessmentSelectionViewProps> = ({
+export const AssessmentSelectionView: React.FC<
+  AssessmentSelectionViewProps
+> = ({
   assessments,
   assessmentsLoading,
   canCreate,
@@ -40,10 +42,15 @@ export const AssessmentSelectionView: React.FC<AssessmentSelectionViewProps> = (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
-              {t('assessment.selectAssessment', { defaultValue: 'Select Assessment' })}
+              {t("assessment.selectAssessment", {
+                defaultValue: "Select Assessment",
+              })}
             </h1>
             <p className="text-lg text-gray-600">
-              {t('assessment.selectAssessmentDescription', { defaultValue: 'Choose an assessment to continue or create a new one.' })}
+              {t("assessment.selectAssessmentDescription", {
+                defaultValue:
+                  "Choose an assessment to continue or create a new one.",
+              })}
             </p>
           </div>
 
@@ -53,7 +60,9 @@ export const AssessmentSelectionView: React.FC<AssessmentSelectionViewProps> = (
                 onClick={onCreateClick}
                 className="bg-dgrv-blue hover:bg-blue-700"
               >
-                {t('assessment.createNewAssessment', { defaultValue: 'Create New Assessment' })}
+                {t("assessment.createNewAssessment", {
+                  defaultValue: "Create New Assessment",
+                })}
               </Button>
             </div>
           )}
@@ -74,4 +83,4 @@ export const AssessmentSelectionView: React.FC<AssessmentSelectionViewProps> = (
       </div>
     </div>
   );
-}; 
+};

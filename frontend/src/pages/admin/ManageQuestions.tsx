@@ -4,14 +4,13 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  QuestionHeader, 
-  QuestionForm, 
-  QuestionList, 
-  LoadingState 
+import {
+  QuestionHeader,
+  QuestionForm,
+  QuestionList,
 } from "@/components/admin/ManageQuestions";
+import { LoadingState } from "@/components/shared";
 import { useManageQuestions } from "@/hooks/admin/useManageQuestions";
-import { OfflineStatusIndicator } from "@/components/admin/ManageCategories";
 
 export const ManageQuestions: React.FC = () => {
   const {
@@ -20,29 +19,29 @@ export const ManageQuestions: React.FC = () => {
     setIsDialogOpen,
     editingQuestion,
     setEditingQuestion,
-  formData,
-  setFormData,
-    
+    formData,
+    setFormData,
+
     // Data
     categories,
     questions,
     isLoading,
     error,
-  isOnline,
-    
+    isOnline,
+
     // Functions
     handleSubmit,
     handleEdit,
     handleDelete,
     resetForm,
     refetchQuestions,
-    
+
     // Computed
     isPending,
   } = useManageQuestions();
 
   if (isLoading) {
-    return <LoadingState />;
+    return <LoadingState message="Loading questions..." />;
   }
 
   if (error) {
@@ -54,7 +53,9 @@ export const ManageQuestions: React.FC = () => {
               Error Loading Questions
             </h2>
             <p className="text-gray-600 mb-4">
-              {error instanceof Error ? error.message : 'An unknown error occurred'}
+              {error instanceof Error
+                ? error.message
+                : "An unknown error occurred"}
             </p>
           </div>
         </div>
@@ -66,28 +67,26 @@ export const ManageQuestions: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <OfflineStatusIndicator isOnline={isOnline} />
           <QuestionHeader />
-          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Questions</CardTitle>
-                  <QuestionForm
-                    categories={categories}
-                    formData={formData}
-                    setFormData={setFormData}
-                    onSubmit={handleSubmit}
-                    isPending={isPending}
-                    editingQuestion={editingQuestion}
-                isOnline={isOnline}
+              <QuestionForm
+                categories={categories}
+                formData={formData}
+                setFormData={setFormData}
+                onSubmit={handleSubmit}
+                isPending={isPending}
+                editingQuestion={editingQuestion}
                 isDialogOpen={isDialogOpen}
                 setIsDialogOpen={setIsDialogOpen}
                 resetForm={resetForm}
-                  />
+              />
             </CardHeader>
             <CardContent>
               <QuestionList
                 questions={questions}
+                categories={categories}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 isPending={isPending}

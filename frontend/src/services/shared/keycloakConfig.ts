@@ -27,4 +27,4 @@ export const keycloakInitOptions = {
   pkceMethod: "S256",
   checkLoginIframe: false,
   enableLogging: import.meta.env.DEV,
-}; 
+};

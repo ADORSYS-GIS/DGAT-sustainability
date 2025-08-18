@@ -49,8 +49,8 @@ export const UserList: React.FC<UserListProps> = ({
                     @{user.username}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {t('manageUsers.orgLabel')}{" "}
-                    {selectedOrgName || t('manageUsers.unknown')}
+                    {t("manageUsers.orgLabel")}{" "}
+                    {selectedOrgName || t("manageUsers.unknown")}
                   </p>
                 </div>
               </div>
@@ -61,7 +61,9 @@ export const UserList: React.FC<UserListProps> = ({
                     : "bg-red-500 text-white"
                 }
               >
-                {user.emailVerified ? t('manageUsers.verified') : t('manageUsers.notVerified')}
+                {user.emailVerified
+                  ? t("manageUsers.verified")
+                  : t("manageUsers.notVerified")}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -102,14 +104,14 @@ export const UserList: React.FC<UserListProps> = ({
           <CardContent>
             <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {t('manageUsers.noUsersYet')}
+              {t("manageUsers.noUsersYet")}
             </h3>
             <p className="text-gray-600">
-              {t('manageUsers.noUsersDescription')}
+              {t("manageUsers.noUsersDescription")}
             </p>
           </CardContent>
         </Card>
       )}
     </div>
   );
-}; 
+};

@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
+import {
+  useOfflineSubmissions,
+  useOfflineSubmissionsMutation,
+} from "@/hooks/useOfflineApi";
 import { syncService } from "@/services/syncService";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -30,7 +33,8 @@ export const useAssessments = () => {
   const submissions = data?.submissions || [];
 
   // Delete submission mutation
-  const { deleteSubmission, isPending: isDeleting } = useOfflineSubmissionsMutation();
+  const { deleteSubmission, isPending: isDeleting } =
+    useOfflineSubmissionsMutation();
 
   useEffect(() => {
     setIsLoading(remoteLoading);
@@ -42,14 +46,14 @@ export const useAssessments = () => {
       // Extract responses from submission content
       const responses = submission?.content?.responses || [];
       const completed = responses.length;
-      
+
       // For total categories, we need to get the assessment details
       // For now, we'll use a reasonable estimate or fetch from assessment
       const total = completed > 0 ? Math.max(completed, 3) : 0; // Default to at least 3 categories
-      
+
       return { completed, total };
     } catch (error) {
-      console.warn('Error calculating category counts:', error);
+      console.warn("Error calculating category counts:", error);
       return { completed: 0, total: 0 };
     }
   };
@@ -57,7 +61,7 @@ export const useAssessments = () => {
   // Helper function to check if user is org_admin
   const isOrgAdmin = () => {
     if (!user?.roles) return false;
-    return user.roles.includes('org_admin');
+    return user.roles.includes("org_admin");
   };
 
   // Handle delete submission
@@ -65,16 +69,24 @@ export const useAssessments = () => {
     try {
       await deleteSubmission(submissionId, {
         onSuccess: () => {
-          toast.success(t('submission.deleted', { defaultValue: 'Submission deleted successfully' }));
+          toast.success(
+            t("submission.deleted", {
+              defaultValue: "Submission deleted successfully",
+            }),
+          );
           refetch(); // Refresh the list
         },
         onError: (error) => {
-          toast.error(t('submission.deleteError', { defaultValue: 'Failed to delete submission' }));
-          console.error('Delete submission error:', error);
-        }
+          toast.error(
+            t("submission.deleteError", {
+              defaultValue: "Failed to delete submission",
+            }),
+          );
+          console.error("Delete submission error:", error);
+        },
       });
     } catch (error) {
-      console.error('Delete submission error:', error);
+      console.error("Delete submission error:", error);
     }
   };
 
@@ -109,4 +121,4 @@ export const useAssessments = () => {
     handleManualSync,
     handleViewSubmission,
   };
-}; 
+};

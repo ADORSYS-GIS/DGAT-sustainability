@@ -4,14 +4,14 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  CategoryHeader, 
-  OfflineStatusIndicator, 
-  CategoryForm, 
-  CategoryList, 
-  LoadingState, 
-  ErrorState 
+import {
+  CategoryHeader,
+  OfflineStatusIndicator,
+  CategoryForm,
+  CategoryList,
+  ErrorState,
 } from "@/components/admin/ManageCategories";
+import { LoadingState } from "@/components/shared";
 import { useManageCategories } from "@/hooks/admin/useManageCategories";
 
 export const ManageCategories: React.FC = () => {
@@ -25,19 +25,19 @@ export const ManageCategories: React.FC = () => {
     setFormData,
     showDialogWeightError,
     setShowDialogWeightError,
-    
+
     // Data
     categories,
     isLoading,
     error,
     isPending,
     isOnline,
-    
+
     // Computed values
     totalWeight,
     weightExceeds,
     weightNot100,
-    
+
     // Functions
     calculateDefaultWeight,
     redistributeWeights,
@@ -48,7 +48,7 @@ export const ManageCategories: React.FC = () => {
   } = useManageCategories();
 
   if (isLoading) {
-    return <LoadingState />;
+    return <LoadingState message="Loading categories..." />;
   }
 
   if (error) {
@@ -61,7 +61,7 @@ export const ManageCategories: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <OfflineStatusIndicator isOnline={isOnline} />
           <CategoryHeader />
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Categories</CardTitle>

@@ -236,16 +236,21 @@ function extractKanbanTasksOnePerCategory(reports) {
 function calculateOverallProgress(reports) {
   let totalPercentage = 0;
   let count = 0;
-  
+
   for (const report of reports) {
     if (!Array.isArray(report.data)) continue;
     for (const catObj of report.data) {
       if (catObj && typeof catObj === "object") {
         for (const [category, value] of Object.entries(catObj)) {
           if (value && typeof value === "object" && "questions" in value) {
-            const questions = Array.isArray(value.questions) ? value.questions : [];
+            const questions = Array.isArray(value.questions)
+              ? value.questions
+              : [];
             for (const question of questions) {
-              if (question.answer && typeof question.answer.percentage === "number") {
+              if (
+                question.answer &&
+                typeof question.answer.percentage === "number"
+              ) {
                 totalPercentage += question.answer.percentage;
                 count++;
               }
@@ -255,14 +260,14 @@ function calculateOverallProgress(reports) {
       }
     }
   }
-  
+
   return count > 0 ? Math.round(totalPercentage / count) : 0;
 }
 
 // Helper: Extract category statistics from actual report data
 function extractCategoryStats(reports) {
   const stats = {};
-  
+
   for (const report of reports) {
     if (!Array.isArray(report.data)) continue;
     for (const catObj of report.data) {
@@ -271,9 +276,11 @@ function extractCategoryStats(reports) {
           if (!stats[category]) {
             stats[category] = { total: 0, count: 0, yesCount: 0, noCount: 0 };
           }
-          
+
           if (value && typeof value === "object" && "questions" in value) {
-            const questions = Array.isArray(value.questions) ? value.questions : [];
+            const questions = Array.isArray(value.questions)
+              ? value.questions
+              : [];
             for (const question of questions) {
               if (question.answer) {
                 stats[category].count++;
@@ -294,16 +301,18 @@ function extractCategoryStats(reports) {
       }
     }
   }
-  
+
   // Calculate averages
   for (const category in stats) {
     if (stats[category].count > 0) {
-      stats[category].average = Math.round(stats[category].total / stats[category].count);
+      stats[category].average = Math.round(
+        stats[category].total / stats[category].count,
+      );
     } else {
       stats[category].average = 0;
     }
   }
-  
+
   return stats;
 }
 
@@ -311,13 +320,13 @@ function extractCategoryStats(reports) {
 function drawGradientBackground(doc, x, y, width, height, color1, color2) {
   const steps = 20;
   const stepHeight = height / steps;
-  
+
   for (let i = 0; i < steps; i++) {
     const ratio = i / (steps - 1);
     const r = Math.round(color1[0] + (color2[0] - color1[0]) * ratio);
     const g = Math.round(color1[1] + (color2[1] - color1[1]) * ratio);
     const b = Math.round(color1[2] + (color2[2] - color1[2]) * ratio);
-    
+
     doc.setFillColor(r, g, b);
     doc.rect(x, y + i * stepHeight, width, stepHeight, "F");
   }
@@ -327,33 +336,36 @@ function drawGradientBackground(doc, x, y, width, height, color1, color2) {
 function drawCircularProgress(doc, x, y, radius, percentage, color) {
   const centerX = x + radius;
   const centerY = y + radius;
-  
+
   // Draw background circle
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(3);
   doc.circle(centerX, centerY, radius, "S");
-  
+
   // Draw progress arc
   const angle = (percentage / 100) * 360;
   const startAngle = -90; // Start from top
-  
+
   doc.setDrawColor(...color);
   doc.setLineWidth(3);
-  
+
   // Draw arc segments
   const segmentAngle = 5;
   for (let i = 0; i < angle; i += segmentAngle) {
     const currentAngle = startAngle + i;
-    const nextAngle = Math.min(startAngle + i + segmentAngle, startAngle + angle);
-    
-    const x1 = centerX + radius * Math.cos(currentAngle * Math.PI / 180);
-    const y1 = centerY + radius * Math.sin(currentAngle * Math.PI / 180);
-    const x2 = centerX + radius * Math.cos(nextAngle * Math.PI / 180);
-    const y2 = centerY + radius * Math.sin(nextAngle * Math.PI / 180);
-    
+    const nextAngle = Math.min(
+      startAngle + i + segmentAngle,
+      startAngle + angle,
+    );
+
+    const x1 = centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
+    const y1 = centerY + radius * Math.sin((currentAngle * Math.PI) / 180);
+    const x2 = centerX + radius * Math.cos((nextAngle * Math.PI) / 180);
+    const y2 = centerY + radius * Math.sin((nextAngle * Math.PI) / 180);
+
     doc.line(x1, y1, x2, y2);
   }
-  
+
   // Draw percentage text
   doc.setTextColor(...color);
   doc.setFontSize(14);
@@ -365,30 +377,34 @@ function drawCircularProgress(doc, x, y, radius, percentage, color) {
 
 // Helper: Draw bar chart
 function drawBarChart(doc, x, y, width, height, data, labels) {
-  const barWidth = width / data.length * 0.8;
-  const barSpacing = width / data.length * 0.2;
+  const barWidth = (width / data.length) * 0.8;
+  const barSpacing = (width / data.length) * 0.2;
   const maxValue = Math.max(...data);
-  
+
   // Draw bars
   data.forEach((value, index) => {
     const barHeight = (value / maxValue) * height * 0.8;
     const barX = x + index * (barWidth + barSpacing);
     const barY = y + height - barHeight;
-    
+
     // Gradient fill for bars
     const color = [30, 58, 138]; // Blue
     doc.setFillColor(...color);
     doc.rect(barX, barY, barWidth, barHeight, "F");
-    
+
     // Value text
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
-    doc.text(value.toString(), barX + barWidth/2, barY - 5, { align: "center" });
-    
+    doc.text(value.toString(), barX + barWidth / 2, barY - 5, {
+      align: "center",
+    });
+
     // Label
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(8);
-    doc.text(labels[index], barX + barWidth/2, y + height - 5, { align: "center" });
+    doc.text(labels[index], barX + barWidth / 2, y + height - 5, {
+      align: "center",
+    });
   });
 }
 
@@ -396,43 +412,51 @@ function drawBarChart(doc, x, y, width, height, data, labels) {
 function drawCProgressIndicator(doc, x, y, radius, percentage, color, label) {
   const centerX = x + radius;
   const centerY = y + radius;
-  
+
   // Draw C-shaped background
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(8);
-  
+
   // Draw C shape (270 degrees, starting from top)
   const startAngle = -90;
   const endAngle = 180;
   const angleStep = 5;
-  
+
   for (let angle = startAngle; angle <= endAngle; angle += angleStep) {
-    const x1 = centerX + radius * Math.cos(angle * Math.PI / 180);
-    const y1 = centerY + radius * Math.sin(angle * Math.PI / 180);
-    const x2 = centerX + radius * Math.cos((angle + angleStep) * Math.PI / 180);
-    const y2 = centerY + radius * Math.sin((angle + angleStep) * Math.PI / 180);
+    const x1 = centerX + radius * Math.cos((angle * Math.PI) / 180);
+    const y1 = centerY + radius * Math.sin((angle * Math.PI) / 180);
+    const x2 =
+      centerX + radius * Math.cos(((angle + angleStep) * Math.PI) / 180);
+    const y2 =
+      centerY + radius * Math.sin(((angle + angleStep) * Math.PI) / 180);
     doc.line(x1, y1, x2, y2);
   }
-  
+
   // Draw progress arc
   const progressAngle = (percentage / 100) * 270; // 270 degrees total
   doc.setDrawColor(...color);
   doc.setLineWidth(8);
-  
-  for (let angle = startAngle; angle <= startAngle + progressAngle; angle += angleStep) {
-    const x1 = centerX + radius * Math.cos(angle * Math.PI / 180);
-    const y1 = centerY + radius * Math.sin(angle * Math.PI / 180);
-    const x2 = centerX + radius * Math.cos((angle + angleStep) * Math.PI / 180);
-    const y2 = centerY + radius * Math.sin((angle + angleStep) * Math.PI / 180);
+
+  for (
+    let angle = startAngle;
+    angle <= startAngle + progressAngle;
+    angle += angleStep
+  ) {
+    const x1 = centerX + radius * Math.cos((angle * Math.PI) / 180);
+    const y1 = centerY + radius * Math.sin((angle * Math.PI) / 180);
+    const x2 =
+      centerX + radius * Math.cos(((angle + angleStep) * Math.PI) / 180);
+    const y2 =
+      centerY + radius * Math.sin(((angle + angleStep) * Math.PI) / 180);
     doc.line(x1, y1, x2, y2);
   }
-  
+
   // Draw percentage text
   doc.setTextColor(...color);
   doc.setFontSize(16);
   doc.setFont(undefined, "bold");
   doc.text(`${percentage}%`, centerX, centerY + 5, { align: "center" });
-  
+
   // Draw label
   doc.setFontSize(8);
   doc.setFont(undefined, "normal");
@@ -445,11 +469,11 @@ function drawCProgressIndicator(doc, x, y, radius, percentage, color, label) {
 function drawLineChart(doc, x, y, width, height, data, label) {
   const pointCount = data.length;
   const stepX = width / (pointCount - 1);
-  
+
   // Draw line
   doc.setDrawColor(30, 58, 138);
   doc.setLineWidth(2);
-  
+
   for (let i = 0; i < pointCount - 1; i++) {
     const x1 = x + i * stepX;
     const y1 = y + height - (data[i] / 100) * height;
@@ -457,7 +481,7 @@ function drawLineChart(doc, x, y, width, height, data, label) {
     const y2 = y + height - (data[i + 1] / 100) * height;
     doc.line(x1, y1, x2, y2);
   }
-  
+
   // Draw points
   doc.setFillColor(30, 58, 138);
   for (let i = 0; i < pointCount; i++) {
@@ -465,12 +489,12 @@ function drawLineChart(doc, x, y, width, height, data, label) {
     const pointY = y + height - (data[i] / 100) * height;
     doc.circle(pointX, pointY, 2, "F");
   }
-  
+
   // Draw label
   doc.setTextColor(30, 58, 138);
   doc.setFontSize(10);
   doc.setFont(undefined, "bold");
-  doc.text(label, x + width/2, y - 10, { align: "center" });
+  doc.text(label, x + width / 2, y - 10, { align: "center" });
   doc.setTextColor(0, 0, 0);
 }
 
@@ -482,39 +506,43 @@ export async function exportAllAssessmentsPDF(reports) {
   // Add sustainability logo to the first page
   try {
     console.log("Loading sustainability logo...");
-    
+
     // Try different possible paths for the image
     const possiblePaths = [
-      '/sustainability.png',
-      './sustainability.png',
-      'sustainability.png',
-      '/public/sustainability.png'
+      "/sustainability.png",
+      "./sustainability.png",
+      "sustainability.png",
+      "/public/sustainability.png",
     ];
-    
+
     let imageLoaded = false;
-    
+
     for (const path of possiblePaths) {
       try {
         console.log("Trying to load image from:", path);
-        
+
         // Create an image element to load the logo
         const img = new Image();
         img.crossOrigin = "anonymous";
-        
+
         // Wait for the image to load before continuing
         await new Promise((resolve, reject) => {
           img.onload = () => {
             console.log("Sustainability logo loaded successfully from:", path);
             try {
               // Create a canvas to convert the image to base64
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
               canvas.width = img.width;
               canvas.height = img.height;
               ctx?.drawImage(img, 0, 0);
-              
-              const base64 = canvas.toDataURL('image/png');
-              console.log("Adding sustainability logo to PDF at position (10,", y, ")");
+
+              const base64 = canvas.toDataURL("image/png");
+              console.log(
+                "Adding sustainability logo to PDF at position (10,",
+                y,
+                ")",
+              );
               doc.addImage(base64, "PNG", 10, y, 50, 50);
               y += 60; // Space after logo
               imageLoaded = true;
@@ -524,16 +552,20 @@ export async function exportAllAssessmentsPDF(reports) {
               reject(error);
             }
           };
-          
+
           img.onerror = (error) => {
-            console.warn("Could not load sustainability logo from:", path, error);
+            console.warn(
+              "Could not load sustainability logo from:",
+              path,
+              error,
+            );
             resolve(false);
           };
-          
+
           // Set the source to trigger loading
           img.src = path;
         });
-        
+
         if (imageLoaded) {
           console.log("Logo processing completed, y position is now:", y);
           break; // Exit the loop if image was loaded successfully
@@ -543,30 +575,32 @@ export async function exportAllAssessmentsPDF(reports) {
         continue; // Try next path
       }
     }
-    
+
     if (!imageLoaded) {
-      console.error("Could not load sustainability logo from any path, trying fallback...");
-      
+      console.error(
+        "Could not load sustainability logo from any path, trying fallback...",
+      );
+
       // Fallback: Create a simple placeholder logo
       try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         canvas.width = 50;
         canvas.height = 50;
-        
+
         // Draw a simple placeholder logo
         if (ctx) {
-          ctx.fillStyle = '#1e3a8a';
+          ctx.fillStyle = "#1e3a8a";
           ctx.fillRect(0, 0, 50, 50);
-          ctx.fillStyle = 'white';
-          ctx.font = 'bold 12px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText('DGRV', 25, 25);
-          ctx.font = '8px Arial';
-          ctx.fillText('Sustainability', 25, 40);
+          ctx.fillStyle = "white";
+          ctx.font = "bold 12px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText("DGRV", 25, 25);
+          ctx.font = "8px Arial";
+          ctx.fillText("Sustainability", 25, 40);
         }
-        
-        const base64 = canvas.toDataURL('image/png');
+
+        const base64 = canvas.toDataURL("image/png");
         console.log("Adding fallback logo to PDF at position (10,", y, ")");
         doc.addImage(base64, "PNG", 10, y, 50, 50);
         y += 60; // Space after logo

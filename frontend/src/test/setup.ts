@@ -1,12 +1,12 @@
-import '@testing-library/jest-dom';
-import { vi } from 'vitest';
-import React from 'react';
+import "@testing-library/jest-dom";
+import { vi } from "vitest";
+import React from "react";
 
 // Global mocks
 const mockNavigate = vi.fn();
 
 // Mock i18next
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, options?: any) => {
       if (options?.defaultValue) return options.defaultValue;
@@ -14,30 +14,49 @@ vi.mock('react-i18next', () => ({
     },
     i18n: {
       changeLanguage: vi.fn(),
-      language: 'en',
+      language: "en",
     },
   }),
   initReactI18next: {
-    type: '3rdParty',
+    type: "3rdParty",
     init: vi.fn(),
   },
 }));
 
+// Mock useAuth
+vi.mock("@/hooks/shared/useAuth", () => ({
+  useAuth: () => ({
+    user: {
+      email: "test@example.com",
+      name: "Test User",
+      roles: ["Org_User", "Org_admin"],
+      categories: ["Category 1", "Category 2"],
+      organizations: {
+        "Test Organization": {
+          id: "test-org-1",
+          categories: ["Category 1", "Category 2"],
+        },
+      },
+    },
+  }),
+}));
+
 // Mock react-router-dom
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }),
-    Link: ({ children, to }: { children: React.ReactNode; to: string }) => 
-      React.createElement('a', { href: to }, children),
-    Navigate: ({ to }: { to: string }) => React.createElement('div', { 'data-testid': 'navigate', 'data-to': to }),
+    useLocation: () => ({ pathname: "/", search: "", hash: "", state: null }),
+    Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
+      React.createElement("a", { href: to }, children),
+    Navigate: ({ to }: { to: string }) =>
+      React.createElement("div", { "data-testid": "navigate", "data-to": to }),
   };
 });
 
 // Mock zustand stores
-vi.mock('@/stores/offlineStore', () => ({
+vi.mock("@/stores/offlineStore", () => ({
   useOfflineStore: () => ({
     isOnline: true,
     pendingSubmissions: [],
@@ -51,7 +70,7 @@ vi.mock('@/stores/offlineStore', () => ({
 }));
 
 // Mock useOfflineApi hooks
-vi.mock('@/hooks/useOfflineApi', () => ({
+vi.mock("@/hooks/useOfflineApi", () => ({
   useOfflineQuestions: () => ({
     data: { questions: [] },
     isLoading: false,
@@ -65,10 +84,18 @@ vi.mock('@/hooks/useOfflineApi', () => ({
     refetch: vi.fn(),
   }),
   useOfflineCategoriesMutation: () => ({
-    isPending: false,
-    createCategory: vi.fn(),
-    updateCategory: vi.fn(),
-    deleteCategory: vi.fn(),
+    createCategory: {
+      mutate: vi.fn(),
+      isPending: false,
+    },
+    updateCategory: {
+      mutate: vi.fn(),
+      isPending: false,
+    },
+    deleteCategory: {
+      mutate: vi.fn(),
+      isPending: false,
+    },
   }),
   useOfflineAssessments: () => ({
     data: { assessments: [] },
@@ -77,10 +104,15 @@ vi.mock('@/hooks/useOfflineApi', () => ({
     refetch: vi.fn(),
   }),
   useOfflineAssessmentsMutation: () => ({
+    createAssessment: {
+      mutate: vi.fn(),
+      isPending: false,
+    },
+    submitAssessment: {
+      mutate: vi.fn(),
+      isPending: false,
+    },
     isPending: false,
-    createAssessment: vi.fn(),
-    updateAssessment: vi.fn(),
-    deleteAssessment: vi.fn(),
   }),
   useOfflineResponses: () => ({
     data: { responses: [] },
@@ -89,10 +121,11 @@ vi.mock('@/hooks/useOfflineApi', () => ({
     refetch: vi.fn(),
   }),
   useOfflineResponsesMutation: () => ({
+    createResponses: {
+      mutate: vi.fn(),
+      isPending: false,
+    },
     isPending: false,
-    createResponse: vi.fn(),
-    updateResponse: vi.fn(),
-    deleteResponse: vi.fn(),
   }),
   useOfflineSubmissions: () => ({
     data: { submissions: [] },
@@ -118,18 +151,149 @@ vi.mock('@/hooks/useOfflineApi', () => ({
     updateOrganization: vi.fn(),
     deleteOrganization: vi.fn(),
   }),
+  useOfflineAdminSubmissions: () => ({
+    data: { submissions: [] },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useOfflineAssessment: () => ({
+    data: null,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useOfflineDraftAssessments: () => ({
+    data: { assessments: [] },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useOfflineSyncStatus: () => ({
+    isOnline: true,
+  }),
+  useOfflineReports: () => ({
+    data: { reports: [] },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useOfflineUsers: () => ({
+    data: { users: [] },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
 }));
 
-// Mock IndexedDB
-const mockIndexedDB = {
-  open: vi.fn(),
-  deleteDatabase: vi.fn(),
-};
+// Mock idb library
+vi.mock("idb", () => ({
+  openDB: vi.fn(() =>
+    Promise.resolve({
+      createObjectStore: vi.fn(),
+      deleteObjectStore: vi.fn(),
+      transaction: vi.fn(),
+      close: vi.fn(),
+      name: "test-db",
+      version: 1,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }),
+  ),
+  deleteDB: vi.fn(() => Promise.resolve()),
+}));
 
-Object.defineProperty(window, 'indexedDB', {
-  value: mockIndexedDB,
-  writable: true,
-});
+// Mock IndexedDB classes
+global.IDBRequest = class IDBRequest {
+  constructor() {
+    return {
+      result: null,
+      error: null,
+      source: null,
+      transaction: null,
+      readyState: "done",
+      onsuccess: null,
+      onerror: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+  }
+} as any;
+
+global.IDBTransaction = class IDBTransaction {
+  constructor() {
+    return {
+      objectStore: vi.fn(),
+      commit: vi.fn(),
+      abort: vi.fn(),
+      mode: "readonly",
+      db: null,
+      error: null,
+      oncomplete: null,
+      onerror: null,
+      onabort: null,
+    };
+  }
+} as any;
+
+global.IDBObjectStore = class IDBObjectStore {
+  constructor() {
+    return {
+      add: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      get: vi.fn(),
+      getAll: vi.fn(),
+      openCursor: vi.fn(),
+      createIndex: vi.fn(),
+      index: vi.fn(),
+    };
+  }
+} as any;
+
+global.IDBDatabase = class IDBDatabase {
+  constructor() {
+    return {
+      createObjectStore: vi.fn(),
+      deleteObjectStore: vi.fn(),
+      transaction: vi.fn(),
+      close: vi.fn(),
+      name: "test-db",
+      version: 1,
+    };
+  }
+} as any;
+
+global.IDBIndex = class IDBIndex {
+  constructor() {
+    return {
+      get: vi.fn(),
+      getAll: vi.fn(),
+      openCursor: vi.fn(),
+      name: "test-index",
+      objectStore: null,
+      keyPath: null,
+      multiEntry: false,
+      unique: false,
+    };
+  }
+} as any;
+
+global.IDBCursor = class IDBCursor {
+  constructor() {
+    return {
+      continue: vi.fn(),
+      continuePrimaryKey: vi.fn(),
+      advance: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      key: null,
+      primaryKey: null,
+      source: null,
+      direction: "next",
+    };
+  }
+} as any;
 
 // Mock localStorage
 const localStorageMock = {
@@ -139,7 +303,7 @@ const localStorageMock = {
   clear: vi.fn(),
 };
 
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
   writable: true,
 });
@@ -162,9 +326,9 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Mock matchMedia
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -177,72 +341,75 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock window.URL.createObjectURL
-Object.defineProperty(window.URL, 'createObjectURL', {
-  value: vi.fn(() => 'mock-url'),
+Object.defineProperty(window.URL, "createObjectURL", {
+  value: vi.fn(() => "mock-url"),
   writable: true,
 });
 
 // Mock window.URL.revokeObjectURL
-Object.defineProperty(window.URL, 'revokeObjectURL', {
+Object.defineProperty(window.URL, "revokeObjectURL", {
   value: vi.fn(),
   writable: true,
 });
 
 // Test utilities
 export const createMockSubmission = (overrides = {}) => ({
-  submission_id: 'test-submission-1',
-  org_name: 'Test Organization',
-  submitted_at: '2024-01-01T00:00:00Z',
-  review_status: 'under_review',
+  submission_id: "test-submission-1",
+  assessment_id: "test-assessment-1",
+  user_id: "test-user-1",
+  org_id: "test-org-1",
+  org_name: "Test Organization",
+  submitted_at: "2024-01-01T00:00:00Z",
+  review_status: "under_review",
   content: {
-    responses: []
+    responses: [],
   },
   ...overrides,
 });
 
 export const createMockCategory = (overrides = {}) => ({
-  category_id: 'test-category-1',
-  name: 'Test Category',
+  category_id: "test-category-1",
+  name: "Test Category",
   weight: 25,
   order: 1,
-  template_id: 'test-template-1',
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
+  template_id: "test-template-1",
+  created_at: "2024-01-01T00:00:00Z",
+  updated_at: "2024-01-01T00:00:00Z",
   ...overrides,
 });
 
 export const createMockQuestion = (overrides = {}) => ({
-  question_id: 'test-question-1',
-  category: 'Test Category',
-  created_at: '2024-01-01T00:00:00Z',
+  question_id: "test-question-1",
+  category: "Test Category",
+  created_at: "2024-01-01T00:00:00Z",
   latest_revision: {
-    question_revision_id: 'test-revision-1',
-    question_id: 'test-question-1',
-    text: { en: 'Test question text' },
+    question_revision_id: "test-revision-1",
+    question_id: "test-question-1",
+    text: { en: "Test question text" },
     weight: 5,
-    created_at: '2024-01-01T00:00:00Z',
+    created_at: "2024-01-01T00:00:00Z",
   },
   ...overrides,
 });
 
 export const createMockOrganization = (overrides = {}) => ({
-  id: 'test-org-1',
-  name: 'Test Organization',
-  alias: 'test-org',
+  id: "test-org-1",
+  name: "Test Organization",
+  alias: "test-org",
   enabled: true,
-  description: 'Test organization description',
+  description: "Test organization description",
   redirectUrl: null,
-  domains: [{ name: 'test.com' }],
-  attributes: { categories: ['Test Category'] },
+  domains: [{ name: "test.com" }],
+  attributes: { categories: ["Test Category"] },
   ...overrides,
 });
 
 export const createMockUser = (overrides = {}) => ({
-  id: 'test-user-1',
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john.doe@test.com',
-  username: 'johndoe',
+  id: "test-user-1",
+  firstName: "John",
+  lastName: "Doe",
+  email: "john.doe@test.com",
+  username: "johndoe",
   emailVerified: true,
   ...overrides,
 });
@@ -250,17 +417,19 @@ export const createMockUser = (overrides = {}) => ({
 // Custom matchers
 expect.extend({
   toHaveBeenCalledWithMatch(received, ...expected) {
-    const pass = received.mock.calls.some(call => 
-      expected.every((arg, index) => 
-        call[index] && typeof call[index] === 'object' && 
-        Object.keys(arg).every(key => call[index][key] === arg[key])
-      )
+    const pass = received.mock.calls.some((call) =>
+      expected.every(
+        (arg, index) =>
+          call[index] &&
+          typeof call[index] === "object" &&
+          Object.keys(arg).every((key) => call[index][key] === arg[key]),
+      ),
     );
-    
+
     return {
       pass,
-      message: () => 
+      message: () =>
         `expected ${received.getMockName()} to have been called with arguments matching ${JSON.stringify(expected)}`,
     };
   },
-}); 
+});

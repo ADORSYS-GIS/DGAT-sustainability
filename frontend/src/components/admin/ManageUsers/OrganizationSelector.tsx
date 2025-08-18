@@ -28,8 +28,13 @@ function getDomainNames(domains: unknown): string[] {
 
 function getOrgDescription(org: OrganizationResponse): string | undefined {
   // Use type assertion to access description which might be in attributes
-  const orgAny = org as any;
-  return orgAny.description ?? orgAny.attributes?.description?.[0];
+  const maybeAttributes = (
+    org as unknown as { attributes?: { description?: string[] } }
+  ).attributes;
+  return (
+    (org as unknown as { description?: string }).description ??
+    maybeAttributes?.description?.[0]
+  );
 }
 
 export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
@@ -46,11 +51,11 @@ export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
             <div className="flex items-center space-x-3 mb-4">
               <Building2 className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                {t('manageUsers.selectOrganization')}
+                {t("manageUsers.selectOrganization")}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              {t('manageUsers.clickOrgToManage')}
+              {t("manageUsers.clickOrgToManage")}
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -64,9 +69,7 @@ export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-3">
                     <Building2 className="w-5 h-5 text-dgrv-blue" />
-                    <span className="text-lg font-semibold">
-                      {org.name}
-                    </span>
+                    <span className="text-lg font-semibold">{org.name}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -86,4 +89,4 @@ export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
       </div>
     </div>
   );
-}; 
+};

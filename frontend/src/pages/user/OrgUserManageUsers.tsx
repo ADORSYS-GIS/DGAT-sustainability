@@ -11,8 +11,8 @@ import {
   UserForm,
   UserCard,
   EmptyState,
-  LoadingState,
 } from "@/components/user/OrgUserManageUsers";
+import { LoadingState } from "@/components/shared";
 import { useOrgUserManageUsers } from "@/hooks/user/useOrgUserManageUsers";
 import type { OrganizationMember } from "@/openapi-rq/requests/types.gen";
 
@@ -47,7 +47,7 @@ export const OrgUserManageUsers: React.FC = () => {
   } = useOrgUserManageUsers();
 
   if (usersLoading) {
-    return <LoadingState />;
+    return <LoadingState message="Loading users..." showNavbar={true} />;
   }
 
   return (

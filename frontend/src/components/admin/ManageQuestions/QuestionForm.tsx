@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useState as useLocalState } from "react";
 
 interface QuestionRevision {
   question_revision_id: string;
@@ -72,7 +73,6 @@ interface QuestionFormProps {
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
   editingQuestion: QuestionWithLatestRevision | null;
-  isOnline: boolean;
   isDialogOpen: boolean;
   setIsDialogOpen: (open: boolean) => void;
   resetForm: () => void;
@@ -85,11 +85,12 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
   onSubmit,
   isPending,
   editingQuestion,
-  isOnline,
   isDialogOpen,
   setIsDialogOpen,
   resetForm,
 }) => {
+  // Track which language dropdown is open (only one at a time)
+  const [openLang, setOpenLang] = useLocalState<string | null>(null);
   const { t } = useTranslation();
 
   return (
@@ -106,28 +107,87 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
           onClick={() => setIsDialogOpen(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
-          {t('manageQuestions.addQuestion')}
+          {t("manageQuestions.addQuestion")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editingQuestion
-              ? t('manageQuestions.editQuestion')
-              : t('manageQuestions.addQuestion')}
+              ? t("manageQuestions.editQuestion")
+              : t("manageQuestions.addQuestion")}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
+          {/* English always visible */}
           <div>
-            <Label htmlFor="category">{t('manageQuestions.category')}</Label>
+            <Label htmlFor="text_en">🇺🇸 English (Required)</Label>
+            <Textarea
+              id="text_en"
+              value={formData.text["en"] || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  text: { ...prev.text, en: e.target.value },
+                }))
+              }
+              placeholder={t("manageQuestions.questionEnPlaceholder")}
+              required
+            />
+          </div>
+          {/* Other languages as dropdowns */}
+          <div className="space-y-2">
+            {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
+              <Select
+                key={lang.code}
+                open={openLang === lang.code}
+                onOpenChange={(isOpen) =>
+                  setOpenLang(isOpen ? lang.code : null)
+                }
+                value={openLang === lang.code ? lang.code : ""}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={lang.name}>{lang.name}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="p-2">
+                    <Label htmlFor={`text_${lang.code}`}>{lang.name}</Label>
+                    <Textarea
+                      id={`text_${lang.code}`}
+                      value={formData.text[lang.code] || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          text: { ...prev.text, [lang.code]: e.target.value },
+                        }))
+                      }
+                      placeholder={t(
+                        "manageQuestions.questionLangPlaceholder",
+                        { lang: lang.name },
+                      )}
+                    />
+                  </div>
+                </SelectContent>
+              </Select>
+            ))}
+          </div>
+          <div>
+            <Label htmlFor="categoryName">
+              {t("manageQuestions.category")}
+            </Label>
             <Select
               value={formData.categoryName}
               onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, categoryName: value }))
+                setFormData((prev) => ({
+                  ...prev,
+                  categoryName: value,
+                }))
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder={t('manageQuestions.selectCategory')} />
+                <SelectValue
+                  placeholder={t("manageQuestions.selectCategoryPlaceholder")}
+                />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
@@ -138,38 +198,9 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
               </SelectContent>
             </Select>
           </div>
-
-          <div>
-            <Label>{t('manageQuestions.questionText')}</Label>
-            <div className="space-y-2">
-              {LANGUAGES.map((lang) => (
-                <div key={lang.code}>
-                  <Label htmlFor={`text-${lang.code}`} className="text-sm">
-                    {lang.flag} {lang.name}
-                  </Label>
-                  <Textarea
-                    id={`text-${lang.code}`}
-                    value={formData.text[lang.code] || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        text: {
-                          ...prev.text,
-                          [lang.code]: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder={`${t('manageQuestions.enterQuestion')} ${lang.name}`}
-                    className="min-h-[80px]"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="weight">{t('manageQuestions.weight')}</Label>
+              <Label htmlFor="weight">{t("manageQuestions.weightLabel")}</Label>
               <Input
                 id="weight"
                 type="number"
@@ -179,14 +210,14 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    weight: parseInt(e.target.value) || 5,
+                    weight: parseInt(e.target.value) || 1,
                   }))
                 }
                 required
               />
             </div>
             <div>
-              <Label htmlFor="order">{t('manageQuestions.displayOrder')}</Label>
+              <Label htmlFor="order">{t("manageQuestions.displayOrder")}</Label>
               <Input
                 id="order"
                 type="number"
@@ -208,13 +239,13 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
             disabled={isPending}
           >
             {isPending
-              ? t('manageQuestions.saving')
+              ? t("manageQuestions.saving")
               : editingQuestion
-                ? t('manageQuestions.updateQuestion')
-                : t('manageQuestions.createQuestion')}
+                ? t("manageQuestions.updateQuestion")
+                : t("manageQuestions.createQuestion")}
           </Button>
         </form>
       </DialogContent>
     </Dialog>
   );
-}; 
+};

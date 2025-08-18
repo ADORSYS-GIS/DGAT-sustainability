@@ -19,7 +19,7 @@ import type {
 // Base interface for all offline entities
 export interface OfflineEntity {
   updated_at: string;
-  sync_status: 'synced' | 'pending' | 'failed';
+  sync_status: "synced" | "pending" | "failed";
   local_changes?: boolean;
   last_synced?: string;
 }
@@ -35,7 +35,7 @@ export interface OfflineQuestion extends Question, OfflineEntity {
 export interface OfflineAssessment extends Assessment, OfflineEntity {
   organization_id?: string;
   user_email?: string;
-  status: 'draft' | 'in_progress' | 'completed' | 'submitted';
+  status: "draft" | "in_progress" | "completed" | "submitted";
   progress_percentage?: number;
   last_activity?: string;
 }
@@ -73,7 +73,9 @@ export interface OfflineReport extends Report, OfflineEntity {
 }
 
 // Enhanced Organization with offline fields (fixing the created_at conflict)
-export interface OfflineOrganization extends Omit<Organization, 'created_at' | 'updated_at'>, OfflineEntity {
+export interface OfflineOrganization
+  extends Omit<Organization, "created_at" | "updated_at">,
+    OfflineEntity {
   organization_id: string; // Map from API 'id' field
   member_count?: number;
   assessment_count?: number;
@@ -91,7 +93,9 @@ export interface OfflineUser extends OrganizationMember, OfflineEntity {
 }
 
 // Enhanced Organization Invitation with offline fields
-export interface OfflineInvitation extends OrganizationInvitation, OfflineEntity {
+export interface OfflineInvitation
+  extends OrganizationInvitation,
+    OfflineEntity {
   inviter_email?: string;
   organization_name?: string;
 }
@@ -127,15 +131,15 @@ export interface SyncStatus {
   failed_items_count: number;
   sync_in_progress: boolean;
   sync_progress_percentage: number;
-  network_quality: 'excellent' | 'good' | 'poor' | 'offline';
-  connection_type?: 'wifi' | 'cellular' | 'ethernet' | 'unknown';
+  network_quality: "excellent" | "good" | "poor" | "offline";
+  connection_type?: "wifi" | "cellular" | "ethernet" | "unknown";
 }
 
 // Network Status for tracking connectivity
 export interface NetworkStatus {
   is_online: boolean;
-  connection_type?: 'wifi' | 'cellular' | 'ethernet' | 'unknown';
-  connection_quality: 'excellent' | 'good' | 'poor' | 'offline';
+  connection_type?: "wifi" | "cellular" | "ethernet" | "unknown";
+  connection_quality: "excellent" | "good" | "poor" | "offline";
   last_online?: string;
   last_offline?: string;
   uptime_percentage: number;
@@ -149,9 +153,9 @@ export interface ConflictData {
   entity_id: string;
   local_version: Record<string, unknown>; // Replacing 'any' with proper type
   server_version: Record<string, unknown>; // Replacing 'any' with proper type
-  conflict_type: 'timestamp' | 'version' | 'content';
+  conflict_type: "timestamp" | "version" | "content";
   resolved: boolean;
-  resolution_strategy: 'local_wins' | 'server_wins' | 'manual' | 'merge';
+  resolution_strategy: "local_wins" | "server_wins" | "manual" | "merge";
   created_at: string;
   resolved_at?: string;
 }
@@ -161,7 +165,7 @@ export interface DataLoadingProgress {
   total_items: number;
   loaded_items: number;
   current_entity: string;
-  status: 'idle' | 'loading' | 'completed' | 'failed';
+  status: "idle" | "loading" | "completed" | "failed";
   error_message?: string;
   started_at: string;
   completed_at?: string;
@@ -257,7 +261,7 @@ export interface QuestionFilters {
 export interface AssessmentFilters {
   user_id?: string;
   organization_id?: string;
-  status?: 'draft' | 'in_progress' | 'completed' | 'submitted';
+  status?: "draft" | "in_progress" | "completed" | "submitted";
   created_after?: string;
   created_before?: string;
 }
@@ -272,7 +276,13 @@ export interface ResponseFilters {
 export interface SubmissionFilters {
   user_id?: string;
   organization_id?: string;
-  review_status?: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'reviewed';
+  review_status?:
+    | "pending_review"
+    | "under_review"
+    | "approved"
+    | "rejected"
+    | "revision_requested"
+    | "reviewed";
   submitted_after?: string;
   submitted_before?: string;
 }
@@ -281,4 +291,4 @@ export interface UserFilters {
   organization_id?: string;
   roles?: string[];
   is_active?: boolean;
-} 
+}

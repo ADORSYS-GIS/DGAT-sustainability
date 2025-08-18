@@ -20,159 +20,178 @@ import type {
 import type { OfflineUser } from "@/types/offline";
 
 // Helper to get org and categories from ID token
-function getOrgAndCategoriesAndId(user: any) {
+function getOrgAndCategoriesAndId(user: unknown) {
   if (!user || !user.organizations)
     return { orgName: "", orgId: "", categories: [] };
-  
-  const organizations = user.organizations as Record<string, { id: string; categories: string[] }>;
+
+  const organizations = (
+    user as {
+      organizations: Record<string, { id: string; categories: string[] }>;
+    }
+  ).organizations as Record<string, { id: string; categories: string[] }>;
   const orgKeys = Object.keys(organizations);
-  
-  if (orgKeys.length === 0) 
-    return { orgName: "", orgId: "", categories: [] };
-  
+
+  if (orgKeys.length === 0) return { orgName: "", orgId: "", categories: [] };
+
   const orgName = orgKeys[0]; // First organization
   const orgData = organizations[orgName];
-  
-  return { 
-    orgName, 
-    orgId: orgData?.id || "", 
-    categories: orgData?.categories || [] 
+
+  return {
+    orgName,
+    orgId: orgData?.id || "",
+    categories: orgData?.categories || [],
   };
 }
 
 // Offline-first user mutation hooks
 function useUserMutations() {
   const [isPending, setIsPending] = useState(false);
-  
-  const createUser = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
+
+  const createUser = async (data: {
+    id: string;
+    requestBody: OrgAdminMemberRequest;
+  }) => {
     setIsPending(true);
     try {
       // Generate a temporary ID for optimistic updates
       const tempId = `temp_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
-      
+
       // Create a temporary user object for local storage
       const tempUser: OfflineUser = {
         id: tempId,
         email: data.requestBody.email,
-        username: data.requestBody.email.split('@')[0], // Use email prefix as username
-        firstName: '',
-        lastName: '',
+        username: data.requestBody.email.split("@")[0], // Use email prefix as username
+        firstName: "",
+        lastName: "",
         emailVerified: false,
         roles: data.requestBody.roles,
         updated_at: now,
-        sync_status: 'pending',
+        sync_status: "pending",
         organization_id: data.id,
       };
-      
+
       // Save to IndexedDB immediately for optimistic UI updates
       await offlineDB.saveUser(tempUser);
-      
+
       // Try to sync with backend if online
       try {
-        const result = await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
-          id: data.id,
-          requestBody: data.requestBody
-        });
-        
+        const result =
+          await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers(
+            {
+              id: data.id,
+              requestBody: data.requestBody,
+            },
+          );
+
         // If successful, replace the temporary user with the real one
-        if (result && typeof result === 'object' && 'id' in result) {
+        if (result && typeof result === "object" && "id" in result) {
           const realUserId = (result as { id: string }).id;
-          
+
           // Delete the temporary user first
           await offlineDB.deleteUser(tempId);
-          
+
           // Verify deletion by checking if user still exists
           const deletedUser = await offlineDB.getUser(tempId);
           if (deletedUser) {
-            console.error('❌ Failed to delete temporary user:', tempId);
+            console.error("❌ Failed to delete temporary user:", tempId);
             // Try to delete again
             await offlineDB.deleteUser(tempId);
           }
-          
+
           // Save the real user with proper ID
           const realUser: OfflineUser = {
             id: realUserId,
             email: data.requestBody.email,
-            username: data.requestBody.email.split('@')[0],
-            firstName: '', // Default empty since not provided in response
-            lastName: '', // Default empty since not provided in response
+            username: data.requestBody.email.split("@")[0],
+            firstName: "", // Default empty since not provided in response
+            lastName: "", // Default empty since not provided in response
             emailVerified: false, // Default false since not provided in response
             roles: data.requestBody.roles,
             organization_id: data.id,
             updated_at: new Date().toISOString(),
-            sync_status: 'synced',
+            sync_status: "synced",
             local_changes: false,
-            last_synced: new Date().toISOString()
+            last_synced: new Date().toISOString(),
           };
-          
+
           await offlineDB.saveUser(realUser);
           toast.success("User created successfully");
         }
       } catch (apiError) {
-        console.warn('API call failed, user saved locally for sync:', apiError);
+        console.warn("API call failed, user saved locally for sync:", apiError);
         // Removed offline sync toast
       }
-      
+
       return { success: true };
     } catch (error) {
-      console.error('❌ Error in createUser:', error);
+      console.error("❌ Error in createUser:", error);
       toast.error("Failed to create user");
       throw error;
     } finally {
       setIsPending(false);
     }
   };
-  
-  const updateUser = async (data: { id: string; memberId: string; requestBody: OrgAdminMemberCategoryUpdateRequest }) => {
+
+  const updateUser = async (data: {
+    id: string;
+    memberId: string;
+    requestBody: OrgAdminMemberCategoryUpdateRequest;
+  }) => {
     setIsPending(true);
     try {
       // Get existing user from IndexedDB
       const existingUser = await offlineDB.getUser(data.memberId);
       if (!existingUser) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
-      
+
       // Update user locally - categories are stored separately in the API response
       const updatedUser: OfflineUser = {
         ...existingUser,
-        sync_status: 'pending',
-        updated_at: new Date().toISOString()
+        sync_status: "pending",
+        updated_at: new Date().toISOString(),
       };
-      
+
       await offlineDB.saveUser(updatedUser);
-      
+
       // Attempt API call
       try {
-        await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories({
-          id: data.id,
-          memberId: data.memberId,
-          requestBody: data.requestBody
-        });
-        
+        await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories(
+          {
+            id: data.id,
+            memberId: data.memberId,
+            requestBody: data.requestBody,
+          },
+        );
+
         // API call succeeded, mark as synced
         await offlineDB.saveUser({
           ...updatedUser,
-          sync_status: 'synced',
-          updated_at: new Date().toISOString()
+          sync_status: "synced",
+          updated_at: new Date().toISOString(),
         });
-        
+
         toast.success("User updated successfully");
         return { success: true };
       } catch (apiError) {
         // API call failed, queue for sync
         await offlineDB.addToSyncQueue({
           id: crypto.randomUUID(),
-          operation: 'update',
-          entity_type: 'user',
+          operation: "update",
+          entity_type: "user",
           entity_id: data.memberId,
-          data: { organizationId: data.id, memberId: data.memberId, userData: data.requestBody },
+          data: {
+            organizationId: data.id,
+            memberId: data.memberId,
+            userData: data.requestBody,
+          },
           retry_count: 0,
           max_retries: 3,
-          priority: 'normal',
-          created_at: new Date().toISOString()
+          priority: "normal",
+          created_at: new Date().toISOString(),
         });
-        
+
         // Removed offline mode toast
         return { success: true };
       }
@@ -183,49 +202,51 @@ function useUserMutations() {
       setIsPending(false);
     }
   };
-  
+
   const deleteUser = async (data: { id: string; memberId: string }) => {
     setIsPending(true);
     try {
       // Get existing user from IndexedDB
       const existingUser = await offlineDB.getUser(data.memberId);
       if (!existingUser) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
-      
+
       // Mark as deleted locally
       await offlineDB.saveUser({
         ...existingUser,
-        sync_status: 'pending',
-        updated_at: new Date().toISOString()
+        sync_status: "pending",
+        updated_at: new Date().toISOString(),
       });
-      
+
       // Attempt API call
       try {
-        await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId({
-          id: data.id,
-          memberId: data.memberId
-        });
-        
+        await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId(
+          {
+            id: data.id,
+            memberId: data.memberId,
+          },
+        );
+
         // API call succeeded, actually delete from IndexedDB
         await offlineDB.deleteUser(data.memberId);
-        
+
         toast.success("User deleted successfully");
         return { success: true };
       } catch (apiError) {
         // API call failed, queue for sync
         await offlineDB.addToSyncQueue({
           id: crypto.randomUUID(),
-          operation: 'delete',
-          entity_type: 'user',
+          operation: "delete",
+          entity_type: "user",
           entity_id: data.memberId,
           data: { organizationId: data.id, memberId: data.memberId },
           retry_count: 0,
           max_retries: 3,
-          priority: 'normal',
-          created_at: new Date().toISOString()
+          priority: "normal",
+          created_at: new Date().toISOString(),
         });
-        
+
         // Removed offline mode toast
         return { success: true };
       }
@@ -236,11 +257,11 @@ function useUserMutations() {
       setIsPending(false);
     }
   };
-  
+
   return {
     createUser: { mutate: createUser, isPending },
     updateUser: { mutate: updateUser, isPending },
-    deleteUser: { mutate: deleteUser, isPending }
+    deleteUser: { mutate: deleteUser, isPending },
   };
 }
 
@@ -248,9 +269,9 @@ export const useOrgUserManageUsers = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+
   const { orgName, orgId, categories } = getOrgAndCategoriesAndId(user);
-  
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
@@ -265,15 +286,15 @@ export const useOrgUserManageUsers = () => {
   const cleanupTemporaryUsers = useCallback(async () => {
     try {
       const allUsers = await offlineDB.getAllUsers();
-      const tempUsers = allUsers.filter(u => u.id.startsWith('temp_'));
-      
+      const tempUsers = allUsers.filter((u) => u.id.startsWith("temp_"));
+
       if (tempUsers.length > 0) {
         for (const tempUser of tempUsers) {
           await offlineDB.deleteUser(tempUser.id);
         }
       }
     } catch (error) {
-      console.error('Error cleaning up temporary users:', error);
+      console.error("Error cleaning up temporary users:", error);
     }
   }, []);
 
@@ -289,7 +310,7 @@ export const useOrgUserManageUsers = () => {
     error,
     refetch,
   } = useOfflineUsers(orgId);
-  
+
   const { createUser, updateUser, deleteUser } = useUserMutations();
 
   const handleSubmit = () => {
@@ -301,36 +322,42 @@ export const useOrgUserManageUsers = () => {
       toast.error("Organization not found");
       return;
     }
-    
+
     if (editingUser) {
       // Only update categories for existing user
       const req: OrgAdminMemberCategoryUpdateRequest = {
         categories: formData.categories,
       };
-      updateUser.mutate({
-        id: orgId,
-        memberId: editingUser.id,
-        requestBody: req,
-      }).then(() => {
-        refetch();
-        setShowAddDialog(false);
-        resetForm();
-      }).catch(() => {
-        // Error already handled in mutation
-      });
+      updateUser
+        .mutate({
+          id: orgId,
+          memberId: editingUser.id,
+          requestBody: req,
+        })
+        .then(() => {
+          refetch();
+          setShowAddDialog(false);
+          resetForm();
+        })
+        .catch(() => {
+          // Error already handled in mutation
+        });
     } else {
       const memberReq: OrgAdminMemberRequest = {
         email: formData.email,
         roles: ["Org_User"],
         categories: formData.categories,
       };
-      createUser.mutate({ id: orgId, requestBody: memberReq }).then(() => {
-        refetch();
-        setShowAddDialog(false);
-        resetForm();
-      }).catch(() => {
-        // Error already handled in mutation
-      });
+      createUser
+        .mutate({ id: orgId, requestBody: memberReq })
+        .then(() => {
+          refetch();
+          setShowAddDialog(false);
+          resetForm();
+        })
+        .catch(() => {
+          // Error already handled in mutation
+        });
     }
   };
 
@@ -352,12 +379,15 @@ export const useOrgUserManageUsers = () => {
     )
       return;
     if (!orgId) return;
-    
-    deleteUser.mutate({ id: orgId, memberId: userId }).then(() => {
-      refetch();
-    }).catch(() => {
-      // Error already handled in mutation
-    });
+
+    deleteUser
+      .mutate({ id: orgId, memberId: userId })
+      .then(() => {
+        refetch();
+      })
+      .catch(() => {
+        // Error already handled in mutation
+      });
   };
 
   const resetForm = () => {
@@ -402,4 +432,4 @@ export const useOrgUserManageUsers = () => {
     updateUser,
     deleteUser,
   };
-}; 
+};

@@ -18,7 +18,9 @@ interface DashboardActionsProps {
   actions: DashboardAction[];
 }
 
-export const DashboardActions: React.FC<DashboardActionsProps> = ({ actions }) => {
+export const DashboardActions: React.FC<DashboardActionsProps> = ({
+  actions,
+}) => {
   return (
     <div className="grid md:grid-cols-3 gap-6 mb-12">
       {actions.map((action, index) => (
@@ -32,4 +34,4 @@ export const DashboardActions: React.FC<DashboardActionsProps> = ({ actions }) =
       ))}
     </div>
   );
-}; 
+};

@@ -22,19 +22,16 @@ export const ExportReports: React.FC<ExportReportsProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Card
-      className="animate-fade-in"
-      style={{ animationDelay: "200ms" }}
-    >
+    <Card className="animate-fade-in" style={{ animationDelay: "200ms" }}>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Download className="w-5 h-5 text-dgrv-blue" />
-          <span>{t('user.dashboard.exportReports')}</span>
+          <span>{t("user.dashboard.exportReports")}</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-gray-600 mb-4">
-          {t('user.dashboard.downloadReportsDescription')}
+          {t("user.dashboard.downloadReportsDescription")}
         </p>
         <div className="space-y-2">
           <Button
@@ -44,10 +41,10 @@ export const ExportReports: React.FC<ExportReportsProps> = ({
             onClick={onExportPDF}
             disabled={isLoading || !hasReports}
           >
-            {t('user.dashboard.exportAsPDF')}
+            {t("user.dashboard.exportAsPDF")}
           </Button>
         </div>
       </CardContent>
     </Card>
   );
-}; 
+};

@@ -8,11 +8,11 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { 
-  useOfflineSubmissions, 
-  useOfflineReports, 
+import {
+  useOfflineSubmissions,
+  useOfflineReports,
   useOfflineAssessments,
-  useOfflineAdminSubmissions
+  useOfflineAdminSubmissions,
 } from "@/hooks/useOfflineApi";
 import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
 import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
@@ -35,62 +35,74 @@ export const useDashboard = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   // Always call both hooks to avoid React hooks violation
-  const { data: userSubmissionsData, isLoading: userSubmissionsLoading, error: userSubmissionsError } = useOfflineSubmissions();
-  const { data: adminSubmissionsData, isLoading: adminSubmissionsLoading, error: adminSubmissionsError } = useOfflineAdminSubmissions();
+  const {
+    data: userSubmissionsData,
+    isLoading: userSubmissionsLoading,
+    error: userSubmissionsError,
+  } = useOfflineSubmissions();
+  const {
+    data: adminSubmissionsData,
+    isLoading: adminSubmissionsLoading,
+    error: adminSubmissionsError,
+  } = useOfflineAdminSubmissions();
   const { data: reportsData, isLoading: reportsLoading } = useOfflineReports();
   const { data: assessmentsData } = useOfflineAssessments();
-  
+
   // Add initial data loading hook
   const { refreshData } = useInitialDataLoad();
-  
+
   // Both org_admin and Org_User use the same data source - no differentiation
   // All users load the same data to their local storage
   const submissionsData = userSubmissionsData;
   const submissionsLoading = userSubmissionsLoading;
   const submissionsError = userSubmissionsError;
-  
+
   // Filter assessments by organization and status
   const filteredAssessments = React.useMemo(() => {
     if (!assessmentsData?.assessments || !user?.organizations) {
       return [];
     }
-    
+
     // Get the user's organization ID
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length === 0) {
       return [];
     }
-    
-    const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+
+    const orgData = (
+      user.organizations as Record<string, { id: string; categories: string[] }>
+    )[orgKeys[0]];
     const organizationId = orgData?.id;
-    
+
     if (!organizationId) {
       return [];
     }
-    
+
     // Filter by organization and status
     const filtered = assessmentsData.assessments.filter((assessment) => {
-      const assessmentData = assessment as unknown as { 
+      const assessmentData = assessment as unknown as {
         assessment_id?: string;
-        status: string; 
+        status: string;
         organization_id?: string;
         org_id?: string;
       };
-      
+
       const isDraft = assessmentData.status === "draft";
       // Check both org_id and organization_id fields
-      const isInOrganization = assessmentData.organization_id === organizationId || 
-                              assessmentData.org_id === organizationId;
-      
+      const isInOrganization =
+        assessmentData.organization_id === organizationId ||
+        assessmentData.org_id === organizationId;
+
       return isDraft && isInOrganization;
     });
-    
+
     return filtered;
   }, [assessmentsData?.assessments, user?.organizations]);
-  
-  const submissions: Submission[] = submissionsData?.submissions?.slice(0, 5) || [];
+
+  const submissions: Submission[] =
+    submissionsData?.submissions?.slice(0, 5) || [];
   const reports = reportsData?.reports || [];
 
   useEffect(() => {
@@ -101,15 +113,22 @@ export const useDashboard = () => {
     } else if (submissionsData) {
       // Removed unnecessary success toast for loaded submissions
     }
-  }, [submissionsError, submissionsLoading, submissionsData, submissions.length, t]);
+  }, [
+    submissionsError,
+    submissionsLoading,
+    submissionsData,
+    submissions.length,
+    t,
+  ]);
 
   const dashboardActions = [
     // Only org_admin can start new assessment
-    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
+    ...(user?.roles?.includes("org_admin") ||
+    user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
-            title: t('user.dashboard.startAssessment.title'),
-            description: t('user.dashboard.startAssessment.description'),
+            title: t("user.dashboard.startAssessment.title"),
+            description: t("user.dashboard.startAssessment.description"),
             icon: Leaf,
             color: "green" as const,
             onClick: () => navigate("/assessment/sustainability"),
@@ -117,11 +136,12 @@ export const useDashboard = () => {
         ]
       : []),
     // Only Org_User sees 'Answer Assessment' card
-    ...(!user?.roles?.includes("org_admin") && !user?.realm_access?.roles?.includes("org_admin")
+    ...(!user?.roles?.includes("org_admin") &&
+    !user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
-            title: t('user.dashboard.answerAssessment.title'),
-            description: t('user.dashboard.answerAssessment.description'),
+            title: t("user.dashboard.answerAssessment.title"),
+            description: t("user.dashboard.answerAssessment.description"),
             icon: FileText,
             color: "blue" as const,
             onClick: () => {
@@ -132,15 +152,15 @@ export const useDashboard = () => {
         ]
       : []),
     {
-      title: t('user.dashboard.viewAssessments.title'),
-      description: t('user.dashboard.viewAssessments.description'),
+      title: t("user.dashboard.viewAssessments.title"),
+      description: t("user.dashboard.viewAssessments.description"),
       icon: FileText,
       color: "blue" as const,
       onClick: () => navigate("/assessments"),
     },
     {
-      title: t('user.dashboard.actionPlan.title'),
-      description: t('user.dashboard.actionPlan.description'),
+      title: t("user.dashboard.actionPlan.title"),
+      description: t("user.dashboard.actionPlan.description"),
       icon: CheckSquare,
       color: "blue" as const,
       onClick: () => navigate("/action-plan"),
@@ -150,8 +170,8 @@ export const useDashboard = () => {
     user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
-            title: t('user.dashboard.manageUsers.title'),
-            description: t('user.dashboard.manageUsers.description'),
+            title: t("user.dashboard.manageUsers.title"),
+            description: t("user.dashboard.manageUsers.description"),
             icon: Users,
             color: "blue" as const,
             onClick: () => navigate("/user/manage-users"),
@@ -182,19 +202,21 @@ export const useDashboard = () => {
   const formatStatus = (status: string) => {
     switch (status) {
       case "approved":
-        return t('user.dashboard.status.approved');
+        return t("user.dashboard.status.approved");
       case "pending_review":
-        return t('user.dashboard.status.pendingReview');
+        return t("user.dashboard.status.pendingReview");
       case "under_review":
-        return t('user.dashboard.status.underReview');
+        return t("user.dashboard.status.underReview");
       case "rejected":
-        return t('user.dashboard.status.rejected');
+        return t("user.dashboard.status.rejected");
       case "revision_requested":
-        return t('user.dashboard.status.revisionRequested');
+        return t("user.dashboard.status.revisionRequested");
       case "reviewed":
-        return t('user.dashboard.status.reviewed', { defaultValue: 'Reviewed' });
+        return t("user.dashboard.status.reviewed", {
+          defaultValue: "Reviewed",
+        });
       default:
-        return t('user.dashboard.status.unknown');
+        return t("user.dashboard.status.unknown");
     }
   };
 
@@ -204,16 +226,24 @@ export const useDashboard = () => {
 
   // Get user name and organization name from user object (ID token)
   const userName =
-    user?.name || user?.preferred_username || user?.email || t('user.dashboard.user');
-  let orgName = t('user.dashboard.org');
+    user?.name ||
+    user?.preferred_username ||
+    user?.email ||
+    t("user.dashboard.user");
+  let orgName = t("user.dashboard.org");
   let orgId = "";
   let categories: string[] = [];
-  
+
   if (user?.organizations && typeof user.organizations === "object") {
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length > 0) {
       orgName = orgKeys[0]; // First organization name
-      const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgName];
+      const orgData = (
+        user.organizations as Record<
+          string,
+          { id: string; categories: string[] }
+        >
+      )[orgName];
       if (orgData) {
         orgId = orgData.id || "";
         categories = orgData.categories || [];
@@ -255,4 +285,4 @@ export const useDashboard = () => {
     handleViewAll,
     handleViewGuide,
   };
-}; 
+};

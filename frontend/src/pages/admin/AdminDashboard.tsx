@@ -3,22 +3,22 @@
  * Shows statistics, pending reviews, and navigation to admin functions
  */
 
-import { 
-  AdminDashboardHeader, 
-  SystemStats, 
-  AdminActions, 
-  PendingReviews, 
-  AdminGuide 
+import {
+  AdminDashboardHeader,
+  SystemStats,
+  AdminActions,
+  PendingReviews,
+  AdminGuide,
 } from "@/components/admin/AdminDashboard";
 import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
 
 export const AdminDashboard: React.FC = () => {
-  const { 
-    pendingReviews, 
-    pendingReviewsCount, 
-    systemStats, 
-    adminActions, 
-    isLoading 
+  const {
+    pendingReviews,
+    pendingReviewsCount,
+    systemStats,
+    adminActions,
+    isLoading,
   } = useAdminDashboard();
 
   return (
@@ -28,9 +28,9 @@ export const AdminDashboard: React.FC = () => {
           <AdminDashboardHeader />
           <SystemStats stats={systemStats} />
           <AdminActions actions={adminActions} />
-          
+
           <div className="grid lg:grid-cols-3 gap-8">
-            <PendingReviews 
+            <PendingReviews
               reviews={pendingReviews}
               count={pendingReviewsCount}
               isLoading={isLoading}

@@ -22,22 +22,22 @@ export const AdminGuide: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <BookOpen className="w-5 h-5 text-dgrv-blue" />
-          <span>{t('adminDashboard.adminGuide')}</span>
+          <span>{t("adminDashboard.adminGuide")}</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3 text-sm text-gray-700">
-          <p>{t('adminDashboard.guideIntro')}</p>
+          <p>{t("adminDashboard.guideIntro")}</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>{t('adminDashboard.guideOrgsUsers')}</li>
-            <li>{t('adminDashboard.guideReview')}</li>
-            <li>{t('adminDashboard.guideCategoriesQuestions')}</li>
-            <li>{t('adminDashboard.guideDocs')}</li>
-            <li>{t('adminDashboard.guideSupport')}</li>
+            <li>{t("adminDashboard.guideOrgsUsers")}</li>
+            <li>{t("adminDashboard.guideReview")}</li>
+            <li>{t("adminDashboard.guideCategoriesQuestions")}</li>
+            <li>{t("adminDashboard.guideDocs")}</li>
+            <li>{t("adminDashboard.guideSupport")}</li>
           </ul>
           <div className="pt-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="w-full bg-dgrv-blue text-white hover:bg-blue-700"
               onClick={(e) => {
@@ -45,11 +45,11 @@ export const AdminGuide: React.FC = () => {
                 navigate("/admin/guide");
               }}
             >
-              {t('adminDashboard.viewCompleteGuide')}
+              {t("adminDashboard.viewCompleteGuide")}
             </Button>
           </div>
         </div>
       </CardContent>
     </Card>
   );
-}; 
+};

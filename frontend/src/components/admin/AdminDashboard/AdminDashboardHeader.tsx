@@ -15,13 +15,11 @@ export const AdminDashboardHeader: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Settings className="w-8 h-8 text-dgrv-blue" />
           <h1 className="text-3xl font-bold text-dgrv-blue">
-            {t('adminDashboard.welcome')}
+            {t("adminDashboard.welcome")}
           </h1>
         </div>
       </div>
-      <p className="text-lg text-gray-600">
-        {t('adminDashboard.intro')}
-      </p>
+      <p className="text-lg text-gray-600">{t("adminDashboard.intro")}</p>
     </div>
   );
-}; 
+};

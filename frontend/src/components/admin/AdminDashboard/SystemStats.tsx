@@ -41,4 +41,4 @@ export const SystemStats: React.FC<SystemStatsProps> = ({ stats }) => {
       ))}
     </div>
   );
-}; 
+};

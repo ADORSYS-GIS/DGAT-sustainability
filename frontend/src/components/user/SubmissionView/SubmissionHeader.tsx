@@ -11,7 +11,9 @@ interface SubmissionHeaderProps {
   submission: Submission;
 }
 
-export const SubmissionHeader: React.FC<SubmissionHeaderProps> = ({ submission }) => {
+export const SubmissionHeader: React.FC<SubmissionHeaderProps> = ({
+  submission,
+}) => {
   const { t } = useTranslation();
 
   return (
@@ -55,4 +57,4 @@ export const SubmissionHeader: React.FC<SubmissionHeaderProps> = ({ submission }
       </CardContent>
     </Card>
   );
-}; 
+};

@@ -17,7 +17,9 @@ interface ResponseDisplayProps {
   response: SubmissionResponseWithCategory;
 }
 
-export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
+export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({
+  response,
+}) => {
   // Helper to parse and display the answer
   const renderReadOnlyAnswer = (response: SubmissionResponseWithCategory) => {
     let answer: Record<string, unknown> | string | undefined = undefined;
@@ -47,7 +49,9 @@ export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) =>
         }
         if (
           typeof parsed === "string" ||
-          (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed))
+          (typeof parsed === "object" &&
+            parsed !== null &&
+            !Array.isArray(parsed))
         ) {
           answer = parsed as string | Record<string, unknown>;
         } else {
@@ -74,7 +78,9 @@ export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) =>
     const files: { name?: string; url?: string }[] =
       typeof answer === "object" &&
       answer !== null &&
-      Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
+      Array.isArray(
+        (answer as { files?: { name?: string; url?: string }[] }).files,
+      )
         ? (answer as { files: { name?: string; url?: string }[] }).files
         : [];
     return (
@@ -175,4 +181,4 @@ export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) =>
   };
 
   return renderReadOnlyAnswer(response);
-}; 
+};

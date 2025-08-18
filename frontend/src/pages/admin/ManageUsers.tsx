@@ -4,13 +4,13 @@
  */
 
 import { Button } from "@/components/ui/button";
-import { 
-  UserHeader, 
-  OrganizationSelector, 
-  UserForm, 
-  UserList, 
-  LoadingState 
+import {
+  UserHeader,
+  OrganizationSelector,
+  UserForm,
+  UserList,
 } from "@/components/admin/ManageUsers";
+import { LoadingState } from "@/components/shared";
 import { useManageUsers } from "@/hooks/admin/useManageUsers";
 import { useTranslation } from "react-i18next";
 
@@ -27,17 +27,17 @@ export const ManageUsers: React.FC = () => {
     isCreatingUser,
     selectedOrg,
     setSelectedOrg,
-    
+
     // Data
     organizations,
     users,
     isLoading,
-    
+
     // Mutations
     createUserMutation,
     updateUserMutation,
     deleteUserMutation,
-    
+
     // Functions
     handleSubmit,
     handleEdit,
@@ -48,8 +48,8 @@ export const ManageUsers: React.FC = () => {
   } = useManageUsers();
 
   if (isLoading) {
-    return <LoadingState />;
-    }
+    return <LoadingState message="Loading users..." />;
+  }
 
   // Show organization selector if no organization is selected
   if (!selectedOrg) {
@@ -66,7 +66,7 @@ export const ManageUsers: React.FC = () => {
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <UserHeader />
-          
+
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <Button
@@ -74,17 +74,18 @@ export const ManageUsers: React.FC = () => {
               onClick={handleBackToOrganizations}
               className="px-4 py-2 text-base font-semibold rounded shadow border-2 border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 transition"
             >
-              <span className="mr-2">&larr;</span> {t('manageUsers.backToOrganizations')}
+              <span className="mr-2">&larr;</span>{" "}
+              {t("manageUsers.backToOrganizations")}
             </Button>
             <Button
               className="bg-dgrv-green hover:bg-green-700"
               onClick={() => setShowAddDialog(true)}
             >
-              {t('manageUsers.addUser')}
+              {t("manageUsers.addUser")}
             </Button>
           </div>
           <p className="text-lg text-gray-600 mb-6">
-            {t('manageUsers.manageUsersForOrg', { org: selectedOrg.name })}
+            {t("manageUsers.manageUsersForOrg", { org: selectedOrg.name })}
           </p>
 
           <UserForm
@@ -96,7 +97,11 @@ export const ManageUsers: React.FC = () => {
             onSubmit={handleSubmit}
             resetForm={resetForm}
             selectedOrg={selectedOrg}
-            isPending={createUserMutation.isPending || updateUserMutation.isPending || deleteUserMutation.isPending}
+            isPending={
+              createUserMutation.isPending ||
+              updateUserMutation.isPending ||
+              deleteUserMutation.isPending
+            }
             isCreatingUser={isCreatingUser}
           />
 
@@ -104,7 +109,11 @@ export const ManageUsers: React.FC = () => {
             users={users}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            isPending={createUserMutation.isPending || updateUserMutation.isPending || deleteUserMutation.isPending}
+            isPending={
+              createUserMutation.isPending ||
+              updateUserMutation.isPending ||
+              deleteUserMutation.isPending
+            }
             selectedOrgName={selectedOrg.name}
           />
         </div>

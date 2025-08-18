@@ -42,4 +42,4 @@ export const ManageUsersHeader: React.FC<ManageUsersHeaderProps> = ({
       </p>
     </>
   );
-}; 
+};

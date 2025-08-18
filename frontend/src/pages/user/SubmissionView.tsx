@@ -9,9 +9,9 @@ import { Navbar } from "@/components/shared/Navbar";
 import {
   SubmissionHeader,
   CategoryAccordion,
-  LoadingState,
   ErrorState,
 } from "@/components/user/SubmissionView";
+import { LoadingState } from "@/components/shared";
 import { useSubmissionView } from "@/hooks/user/useSubmissionView";
 
 export const SubmissionView: React.FC = () => {
@@ -27,7 +27,7 @@ export const SubmissionView: React.FC = () => {
   } = useSubmissionView();
 
   if (submissionLoading) {
-    return <LoadingState />;
+    return <LoadingState message="Loading submission..." showNavbar={true} />;
   }
 
   if (submissionError || !submission) {
@@ -40,7 +40,7 @@ export const SubmissionView: React.FC = () => {
       <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <SubmissionHeader submission={submission} />
-          
+
           <CategoryAccordion
             groupedByCategory={groupedByCategory}
             categories={categories}

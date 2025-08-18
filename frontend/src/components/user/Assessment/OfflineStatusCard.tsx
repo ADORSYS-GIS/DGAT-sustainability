@@ -27,7 +27,10 @@ export const OfflineStatusCard: React.FC<OfflineStatusCardProps> = ({
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-orange-800">
-                {t("assessment.offlineMode", { defaultValue: "You are offline. Your responses will be saved locally and synced when you come back online." })}
+                {t("assessment.offlineMode", {
+                  defaultValue:
+                    "You are offline. Your responses will be saved locally and synced when you come back online.",
+                })}
               </span>
             </div>
             <Button
@@ -47,7 +50,10 @@ export const OfflineStatusCard: React.FC<OfflineStatusCardProps> = ({
           </div>
           {pendingSubmissions.length > 0 && (
             <div className="mt-2 text-xs text-orange-700">
-              {t("assessment.pendingSubmissions", { defaultValue: "Pending submissions:" })} {pendingSubmissions.length}
+              {t("assessment.pendingSubmissions", {
+                defaultValue: "Pending submissions:",
+              })}{" "}
+              {pendingSubmissions.length}
             </div>
           )}
         </CardContent>
@@ -63,11 +69,17 @@ export const OfflineStatusCard: React.FC<OfflineStatusCardProps> = ({
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-sm font-medium text-green-800">
-                {t("assessment.onlineWithPending", { defaultValue: "You are online. Syncing pending submissions..." })}
+                {t("assessment.onlineWithPending", {
+                  defaultValue:
+                    "You are online. Syncing pending submissions...",
+                })}
               </span>
             </div>
             <div className="text-xs text-green-700">
-              {t("assessment.pendingSubmissions", { defaultValue: "Pending submissions:" })} {pendingSubmissions.length}
+              {t("assessment.pendingSubmissions", {
+                defaultValue: "Pending submissions:",
+              })}{" "}
+              {pendingSubmissions.length}
             </div>
           </div>
         </CardContent>
@@ -76,4 +88,4 @@ export const OfflineStatusCard: React.FC<OfflineStatusCardProps> = ({
   }
 
   return null;
-}; 
+};

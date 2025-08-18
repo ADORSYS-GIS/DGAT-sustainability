@@ -28,10 +28,10 @@ export const AssessmentNavigation: React.FC<AssessmentNavigationProps> = ({
 
   return (
     <div className="flex justify-between items-center">
-      <Button 
-        variant="outline" 
-        onClick={onPrevious} 
-        disabled={currentCategoryIndex === 0} 
+      <Button
+        variant="outline"
+        onClick={onPrevious}
+        disabled={currentCategoryIndex === 0}
         className="flex items-center space-x-2"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -60,4 +60,4 @@ export const AssessmentNavigation: React.FC<AssessmentNavigationProps> = ({
       </div>
     </div>
   );
-}; 
+};

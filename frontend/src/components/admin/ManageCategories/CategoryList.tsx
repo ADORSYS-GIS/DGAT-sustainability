@@ -50,7 +50,10 @@ export const CategoryList: React.FC<CategoryListProps> = ({
           <div>
             <h3 className="font-medium text-lg">{category.name}</h3>
             <p className="text-sm text-gray-600">
-              {t('manageCategories.weightLabel', { weight: category.weight, order: category.order })}
+              {t("manageCategories.weightLabel", {
+                weight: category.weight,
+                order: category.order,
+              })}
             </p>
           </div>
           <div className="flex space-x-2">
@@ -74,39 +77,35 @@ export const CategoryList: React.FC<CategoryListProps> = ({
           </div>
         </div>
       ))}
-      
+
       {weightExceeds && (
         <div className="text-center py-4 text-red-600">
-          <p className="mb-2">
-            {t('manageCategories.totalWeightExceeds')}
-          </p>
+          <p className="mb-2">{t("manageCategories.totalWeightExceeds")}</p>
           <Button
             variant="outline"
             onClick={onRedistributeWeights}
             className="bg-dgrv-blue text-white hover:bg-blue-700"
             disabled={isPending}
           >
-            {t('manageCategories.redistributeWeights')}
+            {t("manageCategories.redistributeWeights")}
           </Button>
         </div>
       )}
-      
+
       {!weightExceeds && weightNot100 && categories.length > 0 && (
         <div className="text-center py-4 text-yellow-600">
           <p>
-            {t('manageCategories.totalWeightNot100', { total: totalWeight })}
+            {t("manageCategories.totalWeightNot100", { total: totalWeight })}
           </p>
         </div>
       )}
-      
+
       {categories.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           <List className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>
-            {t('manageCategories.noCategoriesYet')}
-          </p>
+          <p>{t("manageCategories.noCategoriesYet")}</p>
         </div>
       )}
     </div>
   );
-}; 
+};

@@ -26,7 +26,9 @@ export const AssessmentsHeader: React.FC<AssessmentsHeaderProps> = ({
           </h1>
         </div>
         <p className="text-lg text-gray-600">
-          {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
+          {t("dashboard.assessments.subtitle", {
+            defaultValue: "View and manage all your sustainability submissions",
+          })}
         </p>
       </div>
       <Button onClick={onManualSync} className="flex items-center space-x-2">
@@ -35,4 +37,4 @@ export const AssessmentsHeader: React.FC<AssessmentsHeaderProps> = ({
       </Button>
     </div>
   );
-}; 
+};

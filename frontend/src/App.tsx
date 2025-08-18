@@ -11,7 +11,7 @@ const AuthenticatedUserApp = () => {
 
   if (dataLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-gray-50">
         <LoadingSpinner text="Loading your data..." />
       </div>
     );
@@ -32,8 +32,8 @@ const AuthenticatedApp = () => {
   // Show loading spinner while authentication is being determined
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <LoadingSpinner text="Checking authentication..." />
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <LoadingSpinner text="Initializing application..." />
       </div>
     );
   }

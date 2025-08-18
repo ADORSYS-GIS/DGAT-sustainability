@@ -1,4 +1,3 @@
-
 /*
  * Unauthorized access page that displays when users lack required permissions
  * Shows error message and navigation options for unauthorized users

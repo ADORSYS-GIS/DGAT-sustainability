@@ -59,13 +59,24 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
             <div className="space-y-3">
               {org.domains && org.domains.length > 0 && (
                 <div className="text-sm text-gray-600">
-                  <b>{t('manageOrganizations.domains', { defaultValue: 'Domains' })}:</b>{" "}
+                  <b>
+                    {t("manageOrganizations.domains", {
+                      defaultValue: "Domains",
+                    })}
+                    :
+                  </b>{" "}
                   {org.domains.map((d) => d.name).join(", ")}
                 </div>
               )}
               {org.description && (
                 <div className="text-sm text-gray-600">
-                  <b>{t('manageOrganizations.description', { defaultValue: 'Description' })}:</b> {org.description}
+                  <b>
+                    {t("manageOrganizations.description", {
+                      defaultValue: "Description",
+                    })}
+                    :
+                  </b>{" "}
+                  {org.description}
                 </div>
               )}
               <div className="flex space-x-2 pt-4">
@@ -77,7 +88,7 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
                   disabled={isPending}
                 >
                   <Edit className="w-4 h-4 mr-1" />
-                  {t('manageOrganizations.edit', { defaultValue: 'Edit' })}
+                  {t("manageOrganizations.edit", { defaultValue: "Edit" })}
                 </Button>
                 <Button
                   size="sm"
@@ -87,7 +98,7 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
                   disabled={isPending}
                 >
                   <Trash2 className="w-4 h-4" />
-                  {t('manageOrganizations.delete', { defaultValue: 'Delete' })}
+                  {t("manageOrganizations.delete", { defaultValue: "Delete" })}
                 </Button>
               </div>
             </div>
@@ -100,14 +111,18 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
           <CardContent>
             <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {t('manageOrganizations.noOrganizations', { defaultValue: 'No organizations yet' })}
+              {t("manageOrganizations.noOrganizations", {
+                defaultValue: "No organizations yet",
+              })}
             </h3>
             <p className="text-gray-600 mb-6">
-              {t('manageOrganizations.getStarted', { defaultValue: 'Create your first organization to get started.' })}
+              {t("manageOrganizations.getStarted", {
+                defaultValue: "Create your first organization to get started.",
+              })}
             </p>
           </CardContent>
         </Card>
       )}
     </div>
   );
-}; 
+};

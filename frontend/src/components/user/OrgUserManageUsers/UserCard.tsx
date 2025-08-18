@@ -58,7 +58,9 @@ export const UserCard: React.FC<UserCardProps> = ({
                 : "bg-red-500 text-white"
             }
           >
-            {user.emailVerified ? t('manageUsers.verified') : t('manageUsers.notVerified')}
+            {user.emailVerified
+              ? t("manageUsers.verified")
+              : t("manageUsers.notVerified")}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -72,10 +74,7 @@ export const UserCard: React.FC<UserCardProps> = ({
             {user.categories &&
               user.categories.length > 0 &&
               user.categories.map((cat: string) => (
-                <Badge
-                  key={cat}
-                  className="bg-blue-100 text-blue-700"
-                >
+                <Badge key={cat} className="bg-blue-100 text-blue-700">
                   {cat}
                 </Badge>
               ))}
@@ -89,7 +88,7 @@ export const UserCard: React.FC<UserCardProps> = ({
               disabled={false}
             >
               <Edit className="w-4 h-4 mr-1" />
-              {t('common.edit')}
+              {t("common.edit")}
             </Button>
             <Button
               size="sm"
@@ -105,4 +104,4 @@ export const UserCard: React.FC<UserCardProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};

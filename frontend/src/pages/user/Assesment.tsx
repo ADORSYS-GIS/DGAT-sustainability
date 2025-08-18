@@ -77,12 +77,12 @@ export const Assessment: React.FC = () => {
   if (!assessmentDetail) {
     return (
       <AssessmentSelectionView
-              assessments={assessmentsData?.assessments || []}
+        assessments={assessmentsData?.assessments || []}
         assessmentsLoading={assessmentsLoading}
         canCreate={canCreate}
         showCreateModal={showCreateModal}
         isCreatingAssessment={isCreatingAssessment}
-              onSelectAssessment={handleSelectAssessment}
+        onSelectAssessment={handleSelectAssessment}
         onCreateClick={() => setShowCreateModal(true)}
         onCloseCreateModal={() => setShowCreateModal(false)}
         onSubmitCreate={handleCreateAssessment}

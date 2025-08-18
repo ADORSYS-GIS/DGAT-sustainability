@@ -31,4 +31,4 @@ export const AdminActions: React.FC<AdminActionsProps> = ({ actions }) => {
       ))}
     </div>
   );
-}; 
+};

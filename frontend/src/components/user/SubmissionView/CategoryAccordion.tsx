@@ -35,7 +35,11 @@ export const CategoryAccordion: React.FC<CategoryAccordionProps> = ({
       <Accordion type="multiple" className="w-full divide-y divide-gray-100">
         {categories.length > 0 ? (
           categories.map((category) => (
-            <AccordionItem key={category} value={category} className="bg-white/80">
+            <AccordionItem
+              key={category}
+              value={category}
+              className="bg-white/80"
+            >
               <AccordionTrigger className="text-left text-lg font-semibold text-dgrv-blue px-6 py-4 hover:bg-dgrv-blue/5 focus:bg-dgrv-blue/10 rounded-md justify-start items-start">
                 {category}
               </AccordionTrigger>
@@ -52,4 +56,4 @@ export const CategoryAccordion: React.FC<CategoryAccordionProps> = ({
       </Accordion>
     </div>
   );
-}; 
+};

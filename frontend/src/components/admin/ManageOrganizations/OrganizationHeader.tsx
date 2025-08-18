@@ -11,7 +11,9 @@ interface OrganizationHeaderProps {
   onCreateClick: () => void;
 }
 
-export const OrganizationHeader: React.FC<OrganizationHeaderProps> = ({ onCreateClick }) => {
+export const OrganizationHeader: React.FC<OrganizationHeaderProps> = ({
+  onCreateClick,
+}) => {
   const { t } = useTranslation();
 
   return (
@@ -21,11 +23,16 @@ export const OrganizationHeader: React.FC<OrganizationHeaderProps> = ({ onCreate
           <div className="flex items-center space-x-3 mb-4">
             <Building2 className="w-8 h-8 text-dgrv-blue" />
             <h1 className="text-3xl font-bold text-dgrv-blue">
-              {t('manageOrganizations.title', { defaultValue: 'Manage Organizations' })}
+              {t("manageOrganizations.title", {
+                defaultValue: "Manage Organizations",
+              })}
             </h1>
           </div>
           <p className="text-lg text-gray-600">
-            {t('manageOrganizations.subtitle', { defaultValue: 'Create and manage organizations for sustainability assessments' })}
+            {t("manageOrganizations.subtitle", {
+              defaultValue:
+                "Create and manage organizations for sustainability assessments",
+            })}
           </p>
         </div>
         <Button
@@ -33,9 +40,11 @@ export const OrganizationHeader: React.FC<OrganizationHeaderProps> = ({ onCreate
           className="bg-dgrv-green hover:bg-green-700"
         >
           <Plus className="w-4 h-4 mr-2" />
-          {t('manageOrganizations.createOrganization', { defaultValue: 'Create Organization' })}
+          {t("manageOrganizations.createOrganization", {
+            defaultValue: "Create Organization",
+          })}
         </Button>
       </div>
     </div>
   );
-}; 
+};

@@ -5,11 +5,11 @@
 
 import { Navbar } from "@/components/shared/Navbar";
 import {
-  OrganizationHeader, 
-  OrganizationList, 
-  LoadingState,
-  OrganizationForm
+  OrganizationHeader,
+  OrganizationList,
+  OrganizationForm,
 } from "@/components/admin/ManageOrganizations";
+import { LoadingState } from "@/components/shared";
 import { useManageOrganizations } from "@/hooks/admin/useManageOrganizations";
 import { OfflineStatusIndicator } from "@/components/admin/ManageCategories";
 
@@ -28,17 +28,17 @@ export const ManageOrganizations: React.FC = () => {
     setShowCategoryCreation,
     categoryFormData,
     setCategoryFormData,
-    
+
     // Data
     organizations,
     isLoading,
     isOnline,
-    
+
     // Mutations
     createOrganizationMutation,
     updateOrganizationMutation,
     deleteOrganizationMutation,
-    
+
     // Functions
     handleSubmit,
     handleEdit,
@@ -51,7 +51,7 @@ export const ManageOrganizations: React.FC = () => {
   } = useManageOrganizations();
 
   if (isLoading) {
-    return <LoadingState />;
+    return <LoadingState message="Loading organizations..." />;
   }
 
   return (
@@ -61,19 +61,26 @@ export const ManageOrganizations: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <OfflineStatusIndicator isOnline={isOnline} />
           <OrganizationHeader onCreateClick={() => setShowAddDialog(true)} />
-          
+
           <OrganizationList
             organizations={organizations}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            isPending={createOrganizationMutation.isPending || updateOrganizationMutation.isPending || deleteOrganizationMutation.isPending}
+            isPending={
+              createOrganizationMutation.isPending ||
+              updateOrganizationMutation.isPending ||
+              deleteOrganizationMutation.isPending
+            }
           />
 
           <OrganizationForm
             isOpen={showAddDialog}
             onClose={() => setShowAddDialog(false)}
             onSubmit={handleSubmit}
-            isPending={createOrganizationMutation.isPending || updateOrganizationMutation.isPending}
+            isPending={
+              createOrganizationMutation.isPending ||
+              updateOrganizationMutation.isPending
+            }
             editingOrg={editingOrg}
             formData={formData}
             setFormData={setFormData}

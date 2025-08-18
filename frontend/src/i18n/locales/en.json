@@ -173,34 +173,34 @@
       "subtitle": "View and manage all your sustainability submissions",
       "emptyState": "Start your first sustainability assessment to track your cooperative's progress."
     },
-      "numCategories": "Number of Categories",
-      "numQuestions": "Number of Questions",
-      "pendingReviews": "Pending Reviews",
-      "completedAssessments": "Completed Assessments"
-    },
-    "actions": {
-      "manageOrganizations": "Manage Organizations",
-      "manageOrganizationsDesc": "Add, edit, and manage cooperative organizations in the system.",
-      "manageUsers": "Manage Users",
-      "manageUsersDesc": "Control user access and roles across all organizations.",
-      "manageCategories": "Manage Categories",
-      "manageCategoriesDesc": "Configure assessment categories for sustainability tools.",
-      "manageQuestions": "Manage Questions",
-      "manageQuestionsDesc": "Create and edit questions within each assessment category.",
-      "reviewAssessments": "Review Assessments",
-      "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
-      "standardRecommendations": "Standard Recommendations",
-      "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios."
-    },
-    "guide": {
-      "title": "Admin Guide",
-      "intro": "Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:",
-      "orgsUsers": "Use the Manage Organizations and Manage Users sections to control access and membership.",
-      "review": "Review and approve assessments in the Review Assessments section.",
-      "categoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
-      "docs": "For detailed documentation, visit the Admin Documentation.",
-      "support": "If you need help, contact support@dgrv.org."
-    },
+    "numCategories": "Number of Categories",
+    "numQuestions": "Number of Questions",
+    "pendingReviews": "Pending Reviews",
+    "completedAssessments": "Completed Assessments"
+  },
+  "actions": {
+    "manageOrganizations": "Manage Organizations",
+    "manageOrganizationsDesc": "Add, edit, and manage cooperative organizations in the system.",
+    "manageUsers": "Manage Users",
+    "manageUsersDesc": "Control user access and roles across all organizations.",
+    "manageCategories": "Manage Categories",
+    "manageCategoriesDesc": "Configure assessment categories for sustainability tools.",
+    "manageQuestions": "Manage Questions",
+    "manageQuestionsDesc": "Create and edit questions within each assessment category.",
+    "reviewAssessments": "Review Assessments",
+    "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
+    "standardRecommendations": "Standard Recommendations",
+    "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios."
+  },
+  "guide": {
+    "title": "Admin Guide",
+    "intro": "Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:",
+    "orgsUsers": "Use the Manage Organizations and Manage Users sections to control access and membership.",
+    "review": "Review and approve assessments in the Review Assessments section.",
+    "categoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
+    "docs": "For detailed documentation, visit the Admin Documentation.",
+    "support": "If you need help, contact support@dgrv.org."
+  },
   "questions": {
     "manage": {
       "title": "Manage Questions",
@@ -454,18 +454,18 @@
         "subtitle": "Track and manage your cooperative's sustainability improvement tasks."
       },
       "actionPlan": {
-  "kanban": {
-    "todo": "To Do",
-    "inProgress": "In Progress",
-    "done": "Done",
-    "approved": "Approved",
-    "approve": "Approve",
-    "moveToInProgress": "Move to In Progress",
-    "backToTodo": "Back to To Do",
-    "moveToDone": "Move to Done",
-    "backToInProgress": "Back to In Progress",
-    "backToDone": "Back to Done"
-  },
+        "kanban": {
+          "todo": "To Do",
+          "inProgress": "In Progress",
+          "done": "Done",
+          "approved": "Approved",
+          "approve": "Approve",
+          "moveToInProgress": "Move to In Progress",
+          "backToTodo": "Back to To Do",
+          "moveToDone": "Move to Done",
+          "backToInProgress": "Back to In Progress",
+          "backToDone": "Back to Done"
+        },
         "title": "Action Plan",
         "description": "Track and manage your cooperative's sustainability improvement tasks.",
         "recentSubmissions": "Recent Submissions",

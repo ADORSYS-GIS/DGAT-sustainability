@@ -4,7 +4,10 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Question, QuestionRevision } from "@/openapi-rq/requests/types.gen";
+import type {
+  Question,
+  QuestionRevision,
+} from "@/openapi-rq/requests/types.gen";
 import { QuestionInput } from "./QuestionInput";
 
 type FileData = { name: string; url: string };
@@ -42,14 +45,24 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   return (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle className="text-xl text-dgrv-blue">{currentCategory}</CardTitle>
+        <CardTitle className="text-xl text-dgrv-blue">
+          {currentCategory}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-8">
         {currentQuestions.map((question, index) => {
           let questionText = "";
-          if (typeof question.revision.text === "object" && question.revision.text !== null) {
+          if (
+            typeof question.revision.text === "object" &&
+            question.revision.text !== null
+          ) {
             const textObj = question.revision.text as Record<string, unknown>;
-            questionText = typeof textObj[currentLanguage] === "string" ? textObj[currentLanguage] : (Object.values(textObj).find((v) => typeof v === "string") as string) || "";
+            questionText =
+              typeof textObj[currentLanguage] === "string"
+                ? textObj[currentLanguage]
+                : (Object.values(textObj).find(
+                    (v) => typeof v === "string",
+                  ) as string) || "";
           } else if (typeof question.revision.text === "string") {
             questionText = question.revision.text;
           }
@@ -65,7 +78,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 </h3>
               </div>
               <QuestionInput
-                key={key}
+                questionId={key}
                 answer={answer}
                 onAnswerChange={onAnswerChange}
                 onFileUpload={onFileUpload}
@@ -78,4 +91,4 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};

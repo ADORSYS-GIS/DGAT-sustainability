@@ -6,7 +6,7 @@ import {
   useOrganizationsServiceGetAdminOrganizations,
   useOrganizationsServicePostAdminOrganizations,
   useOrganizationsServicePutAdminOrganizationsById,
-  useOrganizationsServiceDeleteAdminOrganizationsById
+  useOrganizationsServiceDeleteAdminOrganizationsById,
 } from "@/openapi-rq/queries/queries";
 import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
 import type { OrganizationResponse } from "@/openapi-rq/requests/types.gen";
@@ -37,28 +37,37 @@ interface OrganizationResponseFixed {
 
 function toFixedOrg(org: OrganizationResponse): OrganizationResponseFixed {
   const attributes: { [key: string]: string[] } = {};
-  if (org.attributes && typeof org.attributes === 'object' && org.attributes !== null) {
+  if (
+    org.attributes &&
+    typeof org.attributes === "object" &&
+    org.attributes !== null
+  ) {
     const attrsObj = org.attributes as Record<string, unknown>;
     for (const [key, value] of Object.entries(attrsObj)) {
       if (Array.isArray(value)) {
         const stringValues: string[] = value
-          .filter(v => typeof v === 'string')
-          .map(v => v as string);
+          .filter((v) => typeof v === "string")
+          .map((v) => v as string);
         attributes[key] = stringValues;
       }
     }
   }
-  
+
   // Use type assertion to access properties that might not be in the type definition
-  const orgAny = org as any;
-  
+  const orgUnknown = org as unknown as {
+    alias?: string;
+    enabled?: boolean;
+    description?: string | null;
+    redirectUrl?: string | null;
+  };
+
   return {
-    id: org.id || '',
-    name: org.name || '',
-    alias: orgAny.alias,
-    enabled: orgAny.enabled ?? false,
-    description: orgAny.description,
-    redirectUrl: orgAny.redirectUrl,
+    id: org.id || "",
+    name: org.name || "",
+    alias: orgUnknown.alias,
+    enabled: orgUnknown.enabled ?? false,
+    description: orgUnknown.description ?? undefined,
+    redirectUrl: orgUnknown.redirectUrl ?? undefined,
     domains: Array.isArray(org.domains)
       ? (org.domains as unknown[]).map((d) => ({
           name: (d as Record<string, unknown>).name as string,
@@ -74,105 +83,116 @@ function toFixedOrg(org: OrganizationResponse): OrganizationResponseFixed {
 export const useManageOrganizations = () => {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingOrg, setEditingOrg] = useState<OrganizationResponseFixed | null>(null);
+  const [editingOrg, setEditingOrg] =
+    useState<OrganizationResponseFixed | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     domains: [{ name: "" }],
-    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+    redirectUrl:
+      import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
     enabled: "true",
     attributes: { categories: [] },
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  
+
   const [showCategoryCreation, setShowCategoryCreation] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState({
     name: "",
     weight: 25,
     order: 1,
   });
-  
+
   const categoryMutations = useOfflineCategoriesMutation();
   const createCategory = categoryMutations.createCategory.mutate;
-  
+
   const {
     data: organizations,
     isLoading,
     refetch,
   } = useOrganizationsServiceGetAdminOrganizations();
-  
-  const createOrganizationMutation = useOrganizationsServicePostAdminOrganizations({
-    onSuccess: (result) => {
-      toast.success("Organization created successfully");
-      refetch();
-      setShowAddDialog(false);
-      setEditingOrg(null);
-      setFormData({
-        name: "",
-        domains: [{ name: "" }],
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
-        enabled: "true",
-        attributes: { categories: [] },
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to create organization:', error);
-      toast.error("Failed to create organization");
-    }
-  });
 
-  const updateOrganizationMutation = useOrganizationsServicePutAdminOrganizationsById({
-    onSuccess: () => {
-      toast.success("Organization updated successfully");
-      refetch();
-      setShowAddDialog(false);
-      setEditingOrg(null);
-      setFormData({
-        name: "",
-        domains: [{ name: "" }],
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
-        enabled: "true",
-        attributes: { categories: [] },
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to update organization:', error);
-      toast.error("Failed to update organization");
-    }
-  });
+  const createOrganizationMutation =
+    useOrganizationsServicePostAdminOrganizations({
+      onSuccess: (result) => {
+        toast.success("Organization created successfully");
+        refetch();
+        setShowAddDialog(false);
+        setEditingOrg(null);
+        setFormData({
+          name: "",
+          domains: [{ name: "" }],
+          redirectUrl:
+            import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
+            "http://localhost:5173",
+          enabled: "true",
+          attributes: { categories: [] },
+        });
+      },
+      onError: (error) => {
+        console.error("Failed to create organization:", error);
+        toast.error("Failed to create organization");
+      },
+    });
 
-  const deleteOrganizationMutation = useOrganizationsServiceDeleteAdminOrganizationsById({
-    onSuccess: () => {
-      toast.success("Organization deleted successfully");
-      refetch();
-    },
-    onError: (error) => {
-      console.error('Failed to delete organization:', error);
-      toast.error("Failed to delete organization");
-    }
-  });
+  const updateOrganizationMutation =
+    useOrganizationsServicePutAdminOrganizationsById({
+      onSuccess: () => {
+        toast.success("Organization updated successfully");
+        refetch();
+        setShowAddDialog(false);
+        setEditingOrg(null);
+        setFormData({
+          name: "",
+          domains: [{ name: "" }],
+          redirectUrl:
+            import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
+            "http://localhost:5173",
+          enabled: "true",
+          attributes: { categories: [] },
+        });
+      },
+      onError: (error) => {
+        console.error("Failed to update organization:", error);
+        toast.error("Failed to update organization");
+      },
+    });
+
+  const deleteOrganizationMutation =
+    useOrganizationsServiceDeleteAdminOrganizationsById({
+      onSuccess: () => {
+        toast.success("Organization deleted successfully");
+        refetch();
+      },
+      onError: (error) => {
+        console.error("Failed to delete organization:", error);
+        toast.error("Failed to delete organization");
+      },
+    });
 
   const { isOnline } = useOfflineSyncStatus();
 
-  const fixedOrgs = organizations ? 
-    (Array.isArray(organizations) ? organizations : [organizations]).map(toFixedOrg) 
+  const fixedOrgs = organizations
+    ? (Array.isArray(organizations) ? organizations : [organizations]).map(
+        toFixedOrg,
+      )
     : [];
 
   const loadCategories = async () => {
     setCategoriesLoading(true);
     try {
-      const { offlineDB } = await import('@/services/indexeddb');
+      const { offlineDB } = await import("@/services/indexeddb");
       const stored = await offlineDB.getAllCategories();
-      const mappedCategories = stored.map(cat => ({
+      const mappedCategories = stored.map((cat) => ({
         categoryId: cat.category_id,
         name: cat.name,
         weight: cat.weight,
         order: cat.order,
-        templateId: cat.template_id
+        templateId: cat.template_id,
       }));
       setCategories(mappedCategories);
     } catch (error) {
-      console.error('Failed to load categories:', error);
+      console.error("Failed to load categories:", error);
       setCategories([]);
     } finally {
       setCategoriesLoading(false);
@@ -193,7 +213,8 @@ export const useManageOrganizations = () => {
       toast.error("At least one domain is required");
       return;
     }
-    const selectedCategories = (formData.attributes?.categories as string[]) || [];
+    const selectedCategories =
+      (formData.attributes?.categories as string[]) || [];
     if (selectedCategories.length === 0) {
       toast.error("At least one category is required");
       return;
@@ -204,14 +225,14 @@ export const useManageOrganizations = () => {
       redirectUrl: formData.redirectUrl,
       enabled: "true" as const,
       attributes: {
-        categories: selectedCategories as any[],
+        categories: selectedCategories as string[],
       },
     };
-    
+
     if (editingOrg) {
-      updateOrganizationMutation.mutate({ 
-        id: editingOrg.id, 
-        requestBody 
+      updateOrganizationMutation.mutate({
+        id: editingOrg.id,
+        requestBody,
       });
     } else {
       createOrganizationMutation.mutate({ requestBody });
@@ -223,10 +244,13 @@ export const useManageOrganizations = () => {
     setFormData({
       name: org.name,
       domains: org.domains || [{ name: "" }],
-      redirectUrl: org.redirectUrl || import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+      redirectUrl:
+        org.redirectUrl ||
+        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
+        "http://localhost:5173",
       enabled: org.enabled ? "true" : "false",
       attributes: {
-        categories: (org.attributes?.categories as any[]) || [],
+        categories: (org.attributes?.categories as unknown as string[]) || [],
       },
     });
     setShowAddDialog(true);
@@ -240,7 +264,7 @@ export const useManageOrganizations = () => {
 
   const handleDelete = (orgId: string) => {
     if (!confirm("Are you sure you want to delete this organization?")) return;
-    
+
     deleteOrganizationMutation.mutate({ id: orgId });
   };
 
@@ -248,7 +272,9 @@ export const useManageOrganizations = () => {
     setFormData({
       name: "",
       domains: [{ name: "" }],
-      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+      redirectUrl:
+        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
+        "http://localhost:5173",
       enabled: "true",
       attributes: { categories: [] },
     });
@@ -290,41 +316,73 @@ export const useManageOrganizations = () => {
 
   const handleCreateCategory = async () => {
     if (!categoryFormData.name.trim()) {
-      toast.error(t('manageCategories.textRequired', { defaultValue: 'Category name is required' }));
+      toast.error(
+        t("manageCategories.textRequired", {
+          defaultValue: "Category name is required",
+        }),
+      );
       return;
     }
 
     if (categoryFormData.weight <= 0 || categoryFormData.weight > 100) {
-      toast.error(t('manageCategories.weightRangeError', { defaultValue: 'Weight must be between 1 and 100' }));
+      toast.error(
+        t("manageCategories.weightRangeError", {
+          defaultValue: "Weight must be between 1 and 100",
+        }),
+      );
       return;
     }
 
-    await createCategory({
-      name: categoryFormData.name,
-      weight: categoryFormData.weight,
-      order: categoryFormData.order,
-      template_id: "sustainability_template_1",
-    }, {
-      onSuccess: (result) => {
-        console.log('✅ Category creation onSuccess called with result:', result);
-        toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
-        const newCategoryName = categoryFormData.name;
-        setFormData((prev) => ({
-          ...prev,
-          attributes: {
-            ...prev.attributes,
-            categories: [...(prev.attributes?.categories || []), newCategoryName],
-          },
-        }));
-        setCategoryFormData({ name: "", weight: 25, order: categories.length + 1 });
-        setShowCategoryCreation(false);
-        loadCategories();
+    await createCategory(
+      {
+        name: categoryFormData.name,
+        weight: categoryFormData.weight,
+        order: categoryFormData.order,
+        template_id: "sustainability_template_1",
       },
-      onError: (error) => {
-        console.error('❌ Category creation onError called with error:', error);
-        toast.error(t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
-      }
-    });
+      {
+        onSuccess: (result) => {
+          console.log(
+            "✅ Category creation onSuccess called with result:",
+            result,
+          );
+          toast.success(
+            t("manageCategories.createSuccess", {
+              defaultValue: "Category created successfully",
+            }),
+          );
+          const newCategoryName = categoryFormData.name;
+          setFormData((prev) => ({
+            ...prev,
+            attributes: {
+              ...prev.attributes,
+              categories: [
+                ...(prev.attributes?.categories || []),
+                newCategoryName,
+              ],
+            },
+          }));
+          setCategoryFormData({
+            name: "",
+            weight: 25,
+            order: categories.length + 1,
+          });
+          setShowCategoryCreation(false);
+          loadCategories();
+        },
+        onError: (error) => {
+          console.error(
+            "❌ Category creation onError called with error:",
+            error,
+          );
+          toast.error(
+            t("manageCategories.createError", {
+              defaultValue: "Failed to create category",
+            }),
+          );
+        },
+      },
+    );
   };
 
   return {
@@ -341,18 +399,18 @@ export const useManageOrganizations = () => {
     setShowCategoryCreation,
     categoryFormData,
     setCategoryFormData,
-    
+
     // Data
     organizations: fixedOrgs,
     isLoading: isLoading || categoriesLoading,
     isOnline,
-    
+
     // Mutations
     categoryMutations,
     createOrganizationMutation,
     updateOrganizationMutation,
     deleteOrganizationMutation,
-    
+
     // Functions
     handleSubmit,
     handleEdit,
@@ -365,4 +423,4 @@ export const useManageOrganizations = () => {
     loadCategories,
     refetch,
   };
-}; 
+};

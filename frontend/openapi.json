@@ -2297,7 +2297,12 @@
   "components": {
     "schemas": {
       "Question": {
-        "required": ["question_id", "category", "created_at", "latest_revision"],
+        "required": [
+          "question_id",
+          "category",
+          "created_at",
+          "latest_revision"
+        ],
         "type": "object",
         "properties": {
           "question_id": {
@@ -2449,7 +2454,15 @@
         }
       },
       "Assessment": {
-        "required": ["assessment_id", "created_at", "language", "org_id", "name", "status", "updated_at"],
+        "required": [
+          "assessment_id",
+          "created_at",
+          "language",
+          "org_id",
+          "name",
+          "status",
+          "updated_at"
+        ],
         "type": "object",
         "properties": {
           "assessment_id": {
@@ -3568,7 +3581,15 @@
         "required": ["language", "name"]
       },
       "Category": {
-        "required": ["category_id", "name", "weight", "order", "template_id", "created_at", "updated_at"],
+        "required": [
+          "category_id",
+          "name",
+          "weight",
+          "order",
+          "template_id",
+          "created_at",
+          "updated_at"
+        ],
         "type": "object",
         "properties": {
           "category_id": {

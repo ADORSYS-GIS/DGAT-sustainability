@@ -19,12 +19,19 @@ import type { OrganizationResponse } from "@/openapi-rq/requests/types.gen";
 interface UserFormProps {
   showAddDialog: boolean;
   setShowAddDialog: (show: boolean) => void;
-  editingUser: any | null;
+  editingUser: { id: string; email: string } | null;
   formData: {
     email: string;
     roles: string[];
   };
-  setFormData: (data: any) => void;
+  setFormData: (data: { email: string; roles: string[] }) =>
+    | void
+    | ((
+        updater: (prev: { email: string; roles: string[] }) => {
+          email: string;
+          roles: string[];
+        },
+      ) => void);
   onSubmit: () => void;
   resetForm: () => void;
   selectedOrg: OrganizationResponse | null;
@@ -58,39 +65,50 @@ export const UserForm: React.FC<UserFormProps> = ({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {editingUser ? t('manageUsers.editUser') : t('manageUsers.addNewUser')}
+            {editingUser
+              ? t("manageUsers.editUser")
+              : t("manageUsers.addNewUser")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="email">{t('manageUsers.email')}</Label>
+            <Label htmlFor="email">{t("manageUsers.email")}</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) =>
-                setFormData((prev: any) => ({
+                (typeof setFormData === "function"
+                  ? (setFormData as (
+                      updater: (prev: { email: string; roles: string[] }) => {
+                        email: string;
+                        roles: string[];
+                      },
+                    ) => void)
+                  : setFormData)((prev) => ({
                   ...prev,
                   email: e.target.value,
                 }))
               }
-              placeholder={t('manageUsers.emailPlaceholder')}
+              placeholder={t("manageUsers.emailPlaceholder")}
             />
           </div>
           <div>
-            <Label htmlFor="role">{t('manageUsers.role')}</Label>
+            <Label htmlFor="role">{t("manageUsers.role")}</Label>
             <Input
               id="role"
-              value={t('manageUsers.organizationAdmin')}
+              value={t("manageUsers.organizationAdmin")}
               readOnly
               className="bg-gray-100 cursor-not-allowed"
             />
           </div>
           <div>
-            <Label htmlFor="organization">{t('manageUsers.organization')}</Label>
+            <Label htmlFor="organization">
+              {t("manageUsers.organization")}
+            </Label>
             <Input
               id="organization"
-              value={selectedOrg?.name || ''}
+              value={selectedOrg?.name || ""}
               readOnly
               disabled
               className="bg-gray-100 cursor-not-allowed"
@@ -104,15 +122,18 @@ export const UserForm: React.FC<UserFormProps> = ({
               disabled={isPending || isCreatingUser}
             >
               {isPending || isCreatingUser
-                ? t('manageUsers.processing', { defaultValue: 'Processing...' })
-                : editingUser ? t('manageUsers.update') : t('manageUsers.create')} {t('manageUsers.user')}
+                ? t("manageUsers.processing", { defaultValue: "Processing..." })
+                : editingUser
+                  ? t("manageUsers.update")
+                  : t("manageUsers.create")}{" "}
+              {t("manageUsers.user")}
             </Button>
             <Button variant="outline" onClick={resetForm}>
-              {t('manageUsers.cancel')}
+              {t("manageUsers.cancel")}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
-}; 
+};

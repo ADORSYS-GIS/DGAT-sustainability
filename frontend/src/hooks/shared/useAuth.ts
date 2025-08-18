@@ -1,11 +1,11 @@
 import React from "react";
 import { keycloak } from "../../services/shared/keycloakConfig";
-import { 
-  getAuthState, 
-  login as authLogin, 
+import {
+  getAuthState,
+  login as authLogin,
   logout as authLogout,
   UserProfile,
-  AuthState 
+  AuthState,
 } from "../../services/shared/authService";
 
 interface AuthHookState extends AuthState {
@@ -32,8 +32,38 @@ export const useAuth = (): AuthHookState => {
       setAuthState(state);
     };
 
-    // Initial state
-    updateAuthState();
+    // Set a timeout to stop loading if Keycloak takes too long
+    const loadingTimeout = setTimeout(() => {
+      setAuthState((prev) => ({ ...prev, loading: false }));
+    }, 3000); // Stop loading after 3 seconds
+
+    // Initial state check
+    const checkInitialState = async () => {
+      try {
+        // If Keycloak is already initialized, get the state immediately
+        if (keycloak.authenticated !== undefined) {
+          updateAuthState();
+          clearTimeout(loadingTimeout);
+        } else {
+          // If Keycloak is not initialized yet, wait a bit and check again
+          setTimeout(() => {
+            updateAuthState();
+            clearTimeout(loadingTimeout);
+          }, 100);
+        }
+      } catch (error) {
+        console.error("Error checking initial auth state:", error);
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          roles: [],
+          loading: false,
+        });
+        clearTimeout(loadingTimeout);
+      }
+    };
+
+    checkInitialState();
 
     // Listen for Keycloak events
     const onTokenExpired = () => {
@@ -44,6 +74,7 @@ export const useAuth = (): AuthHookState => {
     const onAuthSuccess = () => {
       console.log("Authentication successful");
       updateAuthState();
+      clearTimeout(loadingTimeout);
     };
 
     const onAuthLogout = () => {
@@ -54,6 +85,7 @@ export const useAuth = (): AuthHookState => {
         roles: [],
         loading: false,
       });
+      clearTimeout(loadingTimeout);
     };
 
     const onAuthError = () => {
@@ -64,6 +96,7 @@ export const useAuth = (): AuthHookState => {
         roles: [],
         loading: false,
       });
+      clearTimeout(loadingTimeout);
     };
 
     // Add event listeners
@@ -74,6 +107,7 @@ export const useAuth = (): AuthHookState => {
 
     // Cleanup function
     return () => {
+      clearTimeout(loadingTimeout);
       keycloak.onTokenExpired = undefined;
       keycloak.onAuthSuccess = undefined;
       keycloak.onAuthLogout = undefined;

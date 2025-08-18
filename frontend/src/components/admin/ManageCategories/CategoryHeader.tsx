@@ -14,12 +14,12 @@ export const CategoryHeader: React.FC = () => {
       <div className="flex items-center space-x-3 mb-4">
         <List className="w-8 h-8 text-dgrv-blue" />
         <h1 className="text-3xl font-bold text-dgrv-blue mb-6">
-          {t('manageCategories.title')}
+          {t("manageCategories.title")}
         </h1>
       </div>
       <p className="text-lg text-gray-600">
-        {t('manageCategories.configureCategories')}
+        {t("manageCategories.configureCategories")}
       </p>
     </div>
   );
-}; 
+};

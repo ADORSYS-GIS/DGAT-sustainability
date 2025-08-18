@@ -18,9 +18,12 @@ export const EmptyState: React.FC = () => {
           {t("noSubmissions", { defaultValue: "No Submissions" })}
         </h3>
         <p className="text-gray-600 mb-6">
-          {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
+          {t("dashboard.assessments.emptyState", {
+            defaultValue:
+              "Start your first sustainability assessment to track your cooperative's progress.",
+          })}
         </p>
       </CardContent>
     </Card>
   );
-}; 
+};

@@ -8,7 +8,7 @@ import { Welcome } from "../pages/HomePage";
 import { ROLES } from "@/constants/roles";
 import { ManageCategories } from "../pages/admin/ManageCategories";
 import { ManageQuestions } from "../pages/admin/ManageQuestions";
-import  ReviewAssessments  from "../pages/admin/ReviewAssessments";
+import ReviewAssessments from "../pages/admin/ReviewAssessments";
 import { StandardRecommendations } from "../pages/admin/StandardRecommendations";
 import { Assessment } from "../pages/user/Assesment";
 import { AssessmentList } from "../pages/user/AssessmentList";

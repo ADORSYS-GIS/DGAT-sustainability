@@ -23,14 +23,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <div className="flex items-center space-x-3">
           <Star className="w-8 h-8 text-dgrv-green" />
           <h1 className="text-3xl font-bold text-dgrv-blue">
-            {t('user.dashboard.welcome', { user: userName, org: orgName })}
+            {t("user.dashboard.welcome", { user: userName, org: orgName })}
           </h1>
         </div>
       </div>
       <p className="text-lg text-gray-600">
-        {t('user.dashboard.readyToContinue')}
+        {t("user.dashboard.readyToContinue")}
       </p>
     </div>
   );
-}; 
- 
+};

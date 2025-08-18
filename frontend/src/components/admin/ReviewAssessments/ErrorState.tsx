@@ -3,8 +3,8 @@
  * Displays error message with retry functionality when loading fails
  */
 
-import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 
 interface ErrorStateProps {
   error: Error | null;
@@ -25,4 +25,4 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
       </div>
     </div>
   );
-}; 
+};

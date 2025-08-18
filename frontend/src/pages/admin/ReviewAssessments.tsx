@@ -3,15 +3,15 @@
  * Provides submission review interface with approval/rejection actions
  */
 
-import React from 'react';
-import { 
+import React from "react";
+import {
   ReviewHeader,
   ReviewStatusIndicators,
   SubmissionsTable,
   ReviewDialog,
-  LoadingState,
-  ErrorState
+  ErrorState,
 } from "@/components/admin/ReviewAssessments";
+import { LoadingState } from "@/components/shared";
 import { useReviewAssessments } from "@/hooks/admin/useReviewAssessments";
 
 const ReviewAssessments: React.FC = () => {
@@ -50,7 +50,9 @@ const ReviewAssessments: React.FC = () => {
   } = useReviewAssessments();
 
   if (isLoading) {
-    return <LoadingState />;
+    return (
+      <LoadingState message="Loading submissions..." variant="container" />
+    );
   }
 
   if (error) {
@@ -60,7 +62,7 @@ const ReviewAssessments: React.FC = () => {
   return (
     <div className="container mx-auto p-6">
       <ReviewHeader />
-      
+
       <ReviewStatusIndicators
         isOnline={isOnline}
         pendingReviewsCount={pendingReviews.length}

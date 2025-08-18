@@ -21,10 +21,14 @@ export const useSubmissionView = () => {
     isLoading: submissionLoading,
     error: submissionError,
   } = useOfflineSubmissions();
-  
+
   // Find the specific submission by ID
-  const submission = submissionsData?.submissions?.find(s => s.submission_id === submissionId);
-  const responses = submission?.content?.responses as SubmissionResponseWithCategory[] | undefined;
+  const submission = submissionsData?.submissions?.find(
+    (s) => s.submission_id === submissionId,
+  );
+  const responses = submission?.content?.responses as
+    | SubmissionResponseWithCategory[]
+    | undefined;
 
   // Group responses by category
   const groupedByCategory = React.useMemo(() => {
@@ -38,7 +42,7 @@ export const useSubmissionView = () => {
     }
     return groups;
   }, [responses]);
-  
+
   const categories = Object.keys(groupedByCategory);
 
   return {
@@ -52,4 +56,4 @@ export const useSubmissionView = () => {
     groupedByCategory,
     categories,
   };
-}; 
+};

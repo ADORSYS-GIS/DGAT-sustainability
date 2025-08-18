@@ -9,8 +9,8 @@ import {
   AssessmentsHeader,
   SubmissionCard,
   EmptyState,
-  LoadingState,
 } from "@/components/user/Assessments";
+import { LoadingState } from "@/components/shared";
 import { useAssessments } from "@/hooks/user/useAssessments";
 
 export const Assessments: React.FC = () => {
@@ -32,7 +32,7 @@ export const Assessments: React.FC = () => {
   } = useAssessments();
 
   if (isLoading) {
-    return <LoadingState />;
+    return <LoadingState message="Loading assessments..." showNavbar={true} />;
   }
 
   return (

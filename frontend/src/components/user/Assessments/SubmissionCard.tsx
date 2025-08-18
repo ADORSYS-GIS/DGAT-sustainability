@@ -30,7 +30,10 @@ interface SubmissionCardProps {
   isDeleting: boolean;
   isOrgAdmin: boolean;
   onViewSubmission: (submissionId: string) => void;
-  getCategoryCounts: (submission: Submission) => { completed: number; total: number };
+  getCategoryCounts: (submission: Submission) => {
+    completed: number;
+    total: number;
+  };
 }
 
 export const SubmissionCard: React.FC<SubmissionCardProps> = ({
@@ -60,13 +63,17 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-semibold">
-                {t("sustainability")} {t("assessment")} {t("submission", { defaultValue: "Submission" })}
+                {t("sustainability")} {t("assessment")}{" "}
+                {t("submission", { defaultValue: "Submission" })}
               </h3>
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 <div className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {t("submittedAt")}: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "-"}
+                    {t("submittedAt")}:{" "}
+                    {submission.submitted_at
+                      ? new Date(submission.submitted_at).toLocaleDateString()
+                      : "-"}
                   </span>
                 </div>
               </div>
@@ -78,15 +85,15 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
                 submission.review_status === "approved"
                   ? "bg-dgrv-green text-white"
                   : submission.review_status === "rejected"
-                  ? "bg-red-500 text-white"
-                  : submission.review_status === "under_review"
-                  ? "bg-yellow-500 text-white"
-                  : "bg-gray-500 text-white"
+                    ? "bg-red-500 text-white"
+                    : submission.review_status === "under_review"
+                      ? "bg-yellow-500 text-white"
+                      : "bg-gray-500 text-white"
               }
             >
               {submission.review_status
                 ? submission.review_status.charAt(0).toUpperCase() +
-                  submission.review_status.slice(1).replace('_', ' ')
+                  submission.review_status.slice(1).replace("_", " ")
                 : "-"}
             </Badge>
           </div>
@@ -96,7 +103,8 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
             <p>
-              {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}/{total}
+              {t("category")} {t("completed", { defaultValue: "Completed" })}:{" "}
+              {completed}/{total}
             </p>
           </div>
           <div className="flex space-x-2">
@@ -116,7 +124,9 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
                 disabled={isDeleting}
               >
                 <Trash2 className="w-4 h-4 mr-1" />
-                {isDeleting ? t("deleting", { defaultValue: "Deleting..." }) : t("delete", { defaultValue: "Delete" })}
+                {isDeleting
+                  ? t("deleting", { defaultValue: "Deleting..." })
+                  : t("delete", { defaultValue: "Delete" })}
               </Button>
             )}
           </div>
@@ -124,4 +134,4 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};

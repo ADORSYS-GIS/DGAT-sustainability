@@ -14,12 +14,14 @@ export const UserHeader: React.FC = () => {
       <div className="flex items-center space-x-3 mb-4">
         <Users className="w-8 h-8 text-dgrv-blue" />
         <h1 className="text-3xl font-bold text-dgrv-blue">
-          {t('manageUsers.title', { defaultValue: 'Manage Users' })}
+          {t("manageUsers.title", { defaultValue: "Manage Users" })}
         </h1>
       </div>
       <p className="text-lg text-gray-600">
-        {t('manageUsers.subtitle', { defaultValue: 'Create and manage users for organizations' })}
+        {t("manageUsers.subtitle", {
+          defaultValue: "Create and manage users for organizations",
+        })}
       </p>
     </div>
   );
-}; 
+};

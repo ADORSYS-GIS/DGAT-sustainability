@@ -31,14 +31,10 @@ export const RecentSubmissions: React.FC<RecentSubmissionsProps> = ({
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center space-x-2">
           <History className="w-5 h-5 text-dgrv-blue" />
-          <span>{t('user.dashboard.recentSubmissions')}</span>
+          <span>{t("user.dashboard.recentSubmissions")}</span>
         </CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onViewAll}
-        >
-          {t('user.dashboard.viewAll')}
+        <Button variant="outline" size="sm" onClick={onViewAll}>
+          {t("user.dashboard.viewAll")}
         </Button>
       </CardHeader>
       <CardContent>
@@ -46,7 +42,7 @@ export const RecentSubmissions: React.FC<RecentSubmissionsProps> = ({
           {isLoading ? (
             <div className="text-center py-8 text-gray-500">
               <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>{t('user.dashboard.loadingSubmissionsInline')}</p>
+              <p>{t("user.dashboard.loadingSubmissionsInline")}</p>
             </div>
           ) : (
             submissions.map((submission) => (
@@ -60,19 +56,15 @@ export const RecentSubmissions: React.FC<RecentSubmissionsProps> = ({
                   </div>
                   <div>
                     <h3 className="font-medium">
-                      {t('user.dashboard.sustainabilityAssessment')}
+                      {t("user.dashboard.sustainabilityAssessment")}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {new Date(
-                        submission.submitted_at,
-                      ).toLocaleDateString()}
+                      {new Date(submission.submitted_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <Badge
-                    className={getStatusColor(submission.review_status)}
-                  >
+                  <Badge className={getStatusColor(submission.review_status)}>
                     {formatStatus(submission.review_status)}
                   </Badge>
                 </div>
@@ -82,13 +74,11 @@ export const RecentSubmissions: React.FC<RecentSubmissionsProps> = ({
           {submissions.length === 0 && !isLoading && (
             <div className="text-center py-8 text-gray-500">
               <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>
-                {t('user.dashboard.noSubmissions')}
-              </p>
+              <p>{t("user.dashboard.noSubmissions")}</p>
             </div>
           )}
         </div>
       </CardContent>
     </Card>
   );
-}; 
+};

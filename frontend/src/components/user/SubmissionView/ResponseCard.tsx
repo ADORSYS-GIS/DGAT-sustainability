@@ -19,7 +19,10 @@ interface ResponseCardProps {
   index: number;
 }
 
-export const ResponseCard: React.FC<ResponseCardProps> = ({ response, index }) => {
+export const ResponseCard: React.FC<ResponseCardProps> = ({
+  response,
+  index,
+}) => {
   const { t } = useTranslation();
 
   return (
@@ -44,4 +47,4 @@ export const ResponseCard: React.FC<ResponseCardProps> = ({ response, index }) =
       </CardContent>
     </Card>
   );
-}; 
+};

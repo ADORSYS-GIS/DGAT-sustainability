@@ -24,7 +24,19 @@ interface UserFormProps {
     roles: string[];
     categories: string[];
   };
-  setFormData: (data: any) => void;
+  setFormData:
+    | ((
+        updater: (prev: {
+          email: string;
+          roles: string[];
+          categories: string[];
+        }) => { email: string; roles: string[]; categories: string[] },
+      ) => void)
+    | ((data: {
+        email: string;
+        roles: string[];
+        categories: string[];
+      }) => void);
   categories: string[];
   onSubmit: () => void;
   onReset: () => void;
@@ -54,7 +66,9 @@ export const UserForm: React.FC<UserFormProps> = ({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {editingUser ? t('manageUsers.editUser') : t('manageUsers.addNewUser')}
+            {editingUser
+              ? t("manageUsers.editUser")
+              : t("manageUsers.addNewUser")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
@@ -65,7 +79,19 @@ export const UserForm: React.FC<UserFormProps> = ({
               type="email"
               value={formData.email}
               onChange={(e) =>
-                setFormData((prev: any) => ({ ...prev, email: e.target.value }))
+                (
+                  setFormData as (
+                    updater: (prev: {
+                      email: string;
+                      roles: string[];
+                      categories: string[];
+                    }) => {
+                      email: string;
+                      roles: string[];
+                      categories: string[];
+                    },
+                  ) => void
+                )((prev) => ({ ...prev, email: e.target.value }))
               }
               placeholder="Enter email"
             />
@@ -79,11 +105,23 @@ export const UserForm: React.FC<UserFormProps> = ({
                     type="checkbox"
                     checked={formData.categories.includes(cat)}
                     onChange={(e) => {
-                      setFormData((prev: any) => ({
+                      (
+                        setFormData as (
+                          updater: (prev: {
+                            email: string;
+                            roles: string[];
+                            categories: string[];
+                          }) => {
+                            email: string;
+                            roles: string[];
+                            categories: string[];
+                          },
+                        ) => void
+                      )((prev) => ({
                         ...prev,
                         categories: e.target.checked
                           ? [...prev.categories, cat]
-                          : prev.categories.filter((c: string) => c !== cat),
+                          : prev.categories.filter((c) => c !== cat),
                       }));
                     }}
                   />
@@ -96,7 +134,7 @@ export const UserForm: React.FC<UserFormProps> = ({
             <Label htmlFor="role">Role</Label>
             <Input
               id="role"
-              value={t('manageUsers.orgUser')}
+              value={t("manageUsers.orgUser")}
               readOnly
               className="bg-gray-100 cursor-not-allowed"
             />
@@ -107,16 +145,19 @@ export const UserForm: React.FC<UserFormProps> = ({
               className="bg-dgrv-green hover:bg-green-700"
               disabled={isPending}
             >
-              {isPending 
-                ? t('common.processing') 
-                : editingUser ? t('common.update') : t('common.create')} {t('manageUsers.user')}
+              {isPending
+                ? t("common.processing")
+                : editingUser
+                  ? t("common.update")
+                  : t("common.create")}{" "}
+              {t("manageUsers.user")}
             </Button>
             <Button variant="outline" onClick={onReset}>
-              {t('common.cancel')}
+              {t("common.cancel")}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
-}; 
+};

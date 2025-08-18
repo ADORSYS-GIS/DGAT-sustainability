@@ -82,18 +82,20 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
           }}
         >
           <Plus className="w-4 h-4 mr-2" />
-          {t('manageCategories.addCategory')}
+          {t("manageCategories.addCategory")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {editingCategory ? t('manageCategories.editCategory') : t('manageCategories.addCategory')}
+            {editingCategory
+              ? t("manageCategories.editCategory")
+              : t("manageCategories.addCategory")}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">{t('manageCategories.categoryName')}</Label>
+            <Label htmlFor="name">{t("manageCategories.categoryName")}</Label>
             <Input
               id="name"
               value={formData.name}
@@ -103,12 +105,12 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
                   name: e.target.value,
                 })
               }
-              placeholder={t('manageCategories.categoryNamePlaceholder')}
+              placeholder={t("manageCategories.categoryNamePlaceholder")}
               required
             />
           </div>
           <div>
-            <Label htmlFor="weight">{t('manageCategories.weight')}</Label>
+            <Label htmlFor="weight">{t("manageCategories.weight")}</Label>
             <Input
               id="weight"
               type="number"
@@ -125,16 +127,16 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
             />
             {!editingCategory && (
               <p className="text-sm text-gray-600 mt-1">
-                {t('manageCategories.currentTotal', { 
-                  current: totalWeight, 
+                {t("manageCategories.currentTotal", {
+                  current: totalWeight,
                   new: totalWeight + formData.weight,
-                  defaultValue: `Current total: ${totalWeight}% | New total: ${totalWeight + formData.weight}%`
+                  defaultValue: `Current total: ${totalWeight}% | New total: ${totalWeight + formData.weight}%`,
                 })}
               </p>
             )}
           </div>
           <div>
-            <Label htmlFor="order">{t('manageCategories.displayOrder')}</Label>
+            <Label htmlFor="order">{t("manageCategories.displayOrder")}</Label>
             <Input
               id="order"
               type="number"
@@ -151,9 +153,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
           </div>
           {showDialogWeightError && (
             <div className="text-red-600 text-center space-y-2">
-              <p>
-                {t('manageCategories.weightExceedsError')}
-              </p>
+              <p>{t("manageCategories.weightExceedsError")}</p>
               <Button
                 type="button"
                 variant="outline"
@@ -163,40 +163,46 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
                   setShowDialogWeightError(false);
                 }}
               >
-                {t('manageCategories.redistributeWeights')}
+                {t("manageCategories.redistributeWeights")}
               </Button>
             </div>
           )}
-          {!showDialogWeightError && !editingCategory && totalWeight + formData.weight !== 100 && (
-            <div className="text-yellow-600 text-center space-y-2">
-              <p>
-                {t('manageCategories.totalWeightNot100ForNew', { 
-                  total: totalWeight + formData.weight,
-                  defaultValue: `Total weight will be ${totalWeight + formData.weight}%. Must equal 100%.`
-                })}
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-dgrv-blue text-white hover:bg-blue-700"
-                onClick={() => {
-                  redistributeWeights(true);
-                }}
-              >
-                {t('manageCategories.redistributeWeights')}
-              </Button>
-            </div>
-          )}
+          {!showDialogWeightError &&
+            !editingCategory &&
+            totalWeight + formData.weight !== 100 && (
+              <div className="text-yellow-600 text-center space-y-2">
+                <p>
+                  {t("manageCategories.totalWeightNot100ForNew", {
+                    total: totalWeight + formData.weight,
+                    defaultValue: `Total weight will be ${totalWeight + formData.weight}%. Must equal 100%.`,
+                  })}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-dgrv-blue text-white hover:bg-blue-700"
+                  onClick={() => {
+                    redistributeWeights(true);
+                  }}
+                >
+                  {t("manageCategories.redistributeWeights")}
+                </Button>
+              </div>
+            )}
           <Button
             type="submit"
             className="w-full bg-dgrv-blue hover:bg-blue-700"
-            disabled={showDialogWeightError || isPending || (!editingCategory && totalWeight + formData.weight !== 100)}
+            disabled={
+              showDialogWeightError ||
+              isPending ||
+              (!editingCategory && totalWeight + formData.weight !== 100)
+            }
           >
             {isPending
-              ? t('manageCategories.saving', { defaultValue: 'Saving...' })
-              : editingCategory 
-                ? t('manageCategories.updateCategory') 
-                : t('manageCategories.createCategory')}
+              ? t("manageCategories.saving", { defaultValue: "Saving..." })
+              : editingCategory
+                ? t("manageCategories.updateCategory")
+                : t("manageCategories.createCategory")}
           </Button>
         </form>
       </DialogContent>

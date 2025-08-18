@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { 
+import {
   DashboardHeader,
   DashboardActions,
   RecentSubmissions,

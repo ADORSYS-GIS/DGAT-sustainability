@@ -19,16 +19,16 @@ type LocalAnswer = {
 };
 
 interface QuestionInputProps {
-  key: string;
+  questionId: string;
   answer: LocalAnswer;
-  onAnswerChange: (key: string, value: Partial<LocalAnswer>) => void;
+  onAnswerChange: (questionId: string, value: Partial<LocalAnswer>) => void;
   onFileUpload: (questionId: string, files: FileList | null) => void;
   showPercentInfo: boolean;
   setShowPercentInfo: (show: boolean) => void;
 }
 
 export const QuestionInput: React.FC<QuestionInputProps> = ({
-  key,
+  questionId,
   answer,
   onAnswerChange,
   onFileUpload,
@@ -52,16 +52,20 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({
           <Button
             type="button"
             variant={yesNoValue === true ? "default" : "outline"}
-            className={yesNoValue === true ? "bg-dgrv-green hover:bg-green-700" : ""}
-            onClick={() => onAnswerChange(key, { yesNo: true })}
+            className={
+              yesNoValue === true ? "bg-dgrv-green hover:bg-green-700" : ""
+            }
+            onClick={() => onAnswerChange(questionId, { yesNo: true })}
           >
             Yes
           </Button>
           <Button
             type="button"
             variant={yesNoValue === false ? "default" : "outline"}
-            className={yesNoValue === false ? "bg-red-500 hover:bg-red-600" : ""}
-            onClick={() => onAnswerChange(key, { yesNo: false })}
+            className={
+              yesNoValue === false ? "bg-red-500 hover:bg-red-600" : ""
+            }
+            onClick={() => onAnswerChange(questionId, { yesNo: false })}
           >
             No
           </Button>
@@ -111,7 +115,7 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({
                   ? "bg-dgrv-blue text-white border-dgrv-blue"
                   : "bg-white text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue/10"
               }
-              onClick={() => onAnswerChange(key, { percentage: val })}
+              onClick={() => onAnswerChange(questionId, { percentage: val })}
             >
               {val}%
             </Button>
@@ -119,13 +123,13 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({
         </div>
       </div>
       <div>
-        <Label htmlFor={`input-text-${key}`}>
+        <Label htmlFor={`input-text-${questionId}`}>
           {t("assessment.yourResponse")} <span className="text-red-500">*</span>
         </Label>
         <Textarea
-          id={`input-text-${key}`}
+          id={`input-text-${questionId}`}
           value={textValue}
-          onChange={(e) => onAnswerChange(key, { text: e.target.value })}
+          onChange={(e) => onAnswerChange(questionId, { text: e.target.value })}
           placeholder={t("assessment.enterYourResponse")}
           className="mt-1"
           rows={4}
@@ -134,7 +138,11 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({
           <label className="flex items-center cursor-pointer text-dgrv-blue hover:underline">
             <Paperclip className="w-4 h-4 mr-1" />
             <span>{t("assessment.addFile")}</span>
-            <input type="file" className="hidden" onChange={(e) => onFileUpload(key, e.target.files)} />
+            <input
+              type="file"
+              className="hidden"
+              onChange={(e) => onFileUpload(questionId, e.target.files)}
+            />
           </label>
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -156,4 +164,4 @@ export const QuestionInput: React.FC<QuestionInputProps> = ({
       </div>
     </div>
   );
-}; 
+};

@@ -8,8 +8,12 @@ import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OpenAPI } from "@/openapi-rq/requests";
-import { initializeAuth, getAccessToken, setupTokenRefresh } from "@/services/shared/authService";
-import './i18n';
+import {
+  initializeAuth,
+  getAccessToken,
+  setupTokenRefresh,
+} from "@/services/shared/authService";
+import "./i18n";
 
 // Register OpenAPI request middleware to add Bearer token
 OpenAPI.interceptors.request.use(async (request) => {
@@ -65,49 +69,54 @@ const queryClient = new QueryClient({
 });
 
 // Service Worker Registration
-if ('serviceWorker' in navigator) {
-  // Temporarily disable service worker registration for development
-  // Uncomment the following lines when ready to enable PWA features
-  
-  // window.addEventListener('load', () => {
-  //   navigator.serviceWorker.register('/sw.js')
-  //     .then((registration) => {
-  //       console.log('Service Worker registered successfully:', registration);
-  //     })
-  //     .catch((error) => {
-  //       console.error('Service Worker registration failed:', error);
-  //     });
-  // });
-
-  // Listen for service worker updates
-  // navigator.serviceWorker.addEventListener('message', (event) => {
-  //   if (event.data && event.data.type === 'SKIP_WAITING') {
-  //     console.log('New service worker available');
-  //     window.location.reload();
-  //   }
-  // });
+if ("serviceWorker" in navigator) {
+  // Only register in production; Vite dev serves HTML at /sw.js
+  if (import.meta.env.PROD) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((registration) => {
+          console.log("Service Worker registered successfully:", registration);
+        })
+        .catch((error) => {
+          console.error("Service Worker registration failed:", error);
+        });
+    });
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "SKIP_WAITING") {
+        console.log("New service worker available");
+        window.location.reload();
+      }
+    });
+  } else {
+    console.log("Skipping service worker registration in development");
+  }
 } else {
-  // Service worker not supported
+  console.warn("Service Worker not supported in this browser");
 }
 
 // Initialize authentication and other services
 const initializeApp = async () => {
   try {
-    // Initialize Keycloak authentication
-    const authenticated = await initializeAuth();
-    console.log("Authentication initialized:", authenticated);
-    
-    // Setup token refresh
-    setupTokenRefresh();
-    
+    // Initialize Keycloak authentication asynchronously (don't block rendering)
+    initializeAuth()
+      .then((authenticated) => {
+        console.log("Authentication initialized:", authenticated);
+        // Setup token refresh after authentication is ready
+        setupTokenRefresh();
+      })
+      .catch((error) => {
+        console.error("Authentication initialization failed:", error);
+      });
+
     // Initialize IndexedDB and other offline services
     // This ensures the database is ready when the app loads
     // await offlineDB.initialize();
-    
+
     // Initialize sync service
     // const syncService = new SyncService();
     // syncService.listenForOnlineStatus();
-    
+
     // Initialize API interceptor
     // apiInterceptor.setupNetworkListeners();
     // apiInterceptor.setupPeriodicSync();
@@ -116,11 +125,12 @@ const initializeApp = async () => {
   }
 };
 
-// Initialize app and render
-initializeApp().then(() => {
-  createRoot(document.getElementById("root")!).render(
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  );
-});
+// Render the app immediately, don't wait for authentication
+createRoot(document.getElementById("root")!).render(
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>,
+);
+
+// Initialize app services after rendering
+initializeApp();

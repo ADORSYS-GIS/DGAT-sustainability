@@ -45,25 +45,31 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">
-            {t('assessment.createAssessment', { defaultValue: 'Create Assessment' })}
+            {t("assessment.createAssessment", {
+              defaultValue: "Create Assessment",
+            })}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="assessment-name">
-              {t('assessment.assessmentName', { defaultValue: 'Assessment Name' })}
+              {t("assessment.assessmentName", {
+                defaultValue: "Assessment Name",
+              })}
             </Label>
             <Input
               id="assessment-name"
               value={assessmentName}
               onChange={(e) => setAssessmentName(e.target.value)}
-              placeholder={t('assessment.enterAssessmentName', { defaultValue: 'Enter assessment name...' })}
+              placeholder={t("assessment.enterAssessmentName", {
+                defaultValue: "Enter assessment name...",
+              })}
               required
               autoFocus
             />
           </div>
-          
+
           <div className="flex justify-end space-x-2 pt-4">
             <Button
               type="button"
@@ -71,21 +77,22 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
               onClick={handleClose}
               disabled={isLoading}
             >
-              {t('common.cancel', { defaultValue: 'Cancel' })}
+              {t("common.cancel", { defaultValue: "Cancel" })}
             </Button>
             <Button
               type="submit"
               className="bg-dgrv-blue hover:bg-blue-700"
               disabled={isLoading || !assessmentName.trim()}
             >
-              {isLoading 
-                ? t('common.creating', { defaultValue: 'Creating...' })
-                : t('assessment.createAssessment', { defaultValue: 'Create Assessment' })
-              }
+              {isLoading
+                ? t("common.creating", { defaultValue: "Creating..." })
+                : t("assessment.createAssessment", {
+                    defaultValue: "Create Assessment",
+                  })}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   );
-}; 
+};

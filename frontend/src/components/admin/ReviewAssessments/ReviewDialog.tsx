@@ -3,18 +3,18 @@
  * Provides comprehensive review interface with submission details and recommendations
  */
 
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Send } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { AdminSubmissionDetail } from '@/openapi-rq/requests/types.gen';
-import { SubmissionInfo } from './SubmissionInfo';
-import { AssessmentResponses } from './AssessmentResponses';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { AdminSubmissionDetail } from "@/openapi-rq/requests/types.gen";
+import { SubmissionInfo } from "./SubmissionInfo";
+import { AssessmentResponses } from "./AssessmentResponses";
 
 interface CategoryRecommendation {
   id: string;
@@ -27,7 +27,11 @@ interface ReviewDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   selectedSubmission: AdminSubmissionDetail | null;
-  submissionResponses: any[];
+  submissionResponses: Array<{
+    question_category: string;
+    response: string;
+    question_text: string;
+  }>;
   categoryRecommendations: CategoryRecommendation[];
   currentComment: string;
   setCurrentComment: (comment: string) => void;
@@ -39,7 +43,11 @@ interface ReviewDialogProps {
   onAddRecommendation: (category: string, recommendation: string) => void;
   onRemoveRecommendation: (id: string) => void;
   onSubmitReview: () => void;
-  getStatusBadge: (status: string) => { variant: string; className: string; text: string };
+  getStatusBadge: (status: string) => {
+    variant: string;
+    className: string;
+    text: string;
+  };
 }
 
 export const ReviewDialog: React.FC<ReviewDialogProps> = ({
@@ -70,13 +78,16 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
             <span>Review Assessment</span>
           </DialogTitle>
           <p className="text-gray-600 mt-2">
-            {t('reviewAssessments.reviewDescription', { defaultValue: 'Review and provide recommendations for this sustainability assessment' })}
+            {t("reviewAssessments.reviewDescription", {
+              defaultValue:
+                "Review and provide recommendations for this sustainability assessment",
+            })}
           </p>
         </DialogHeader>
 
         {selectedSubmission && (
           <div className="space-y-6">
-            <SubmissionInfo 
+            <SubmissionInfo
               selectedSubmission={selectedSubmission}
               getStatusBadge={getStatusBadge}
             />
@@ -102,7 +113,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
                 disabled={isSubmitting}
                 className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
-                {t('reviewAssessments.cancel', { defaultValue: 'Cancel' })}
+                {t("reviewAssessments.cancel", { defaultValue: "Cancel" })}
               </Button>
               <Button
                 onClick={onSubmitReview}
@@ -110,7 +121,11 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Send className="w-4 h-4" />
-                <span>{t('reviewAssessments.submitReview', { defaultValue: 'Submit Review' })}</span>
+                <span>
+                  {t("reviewAssessments.submitReview", {
+                    defaultValue: "Submit Review",
+                  })}
+                </span>
               </Button>
             </div>
           </div>
@@ -118,4 +133,4 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-}; 
+};

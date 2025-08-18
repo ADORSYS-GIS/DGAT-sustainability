@@ -18,7 +18,10 @@ import type {
   AssessmentDetailResponse,
 } from "@/openapi-rq/requests/types.gen";
 import { offlineDB } from "../../services/indexeddb";
-import type { CreateResponseRequest, CreateAssessmentRequest } from "@/openapi-rq/requests/types.gen";
+import type {
+  CreateResponseRequest,
+  CreateAssessmentRequest,
+} from "@/openapi-rq/requests/types.gen";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import type { OfflineSubmission } from "@/types/offline";
@@ -34,19 +37,31 @@ type LocalAnswer = {
 
 // Type guard for AssessmentDetailResponse
 function isAssessmentDetailResponse(
-  data: AssessmentType | AssessmentDetailResponse | undefined
+  data: AssessmentType | AssessmentDetailResponse | undefined,
 ): data is AssessmentDetailResponse {
   return !!data && "assessment" in data && !!data.assessment;
 }
 
 // Type guard for assessment result
-function isAssessmentResult(result: unknown): result is { assessment: AssessmentType } {
-  return !!result && typeof result === 'object' && result !== null && 'assessment' in result;
+function isAssessmentResult(
+  result: unknown,
+): result is { assessment: AssessmentType } {
+  return (
+    !!result &&
+    typeof result === "object" &&
+    result !== null &&
+    "assessment" in result
+  );
 }
 
 // Type guard for QuestionRevision
-function hasQuestionRevisionId(revision: QuestionRevision): revision is QuestionRevision & { question_revision_id: string } {
-  return "question_revision_id" in revision && typeof revision.question_revision_id === "string";
+function hasQuestionRevisionId(
+  revision: QuestionRevision,
+): revision is QuestionRevision & { question_revision_id: string } {
+  return (
+    "question_revision_id" in revision &&
+    typeof revision.question_revision_id === "string"
+  );
 }
 
 export const useAssessment = () => {
@@ -55,7 +70,8 @@ export const useAssessment = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
+  const currentLanguage =
+    localStorage.getItem("i18n_language") || i18n.language || "en";
   const { isOnline } = useOfflineSyncStatus();
 
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
@@ -63,24 +79,39 @@ export const useAssessment = () => {
   const [showPercentInfo, setShowPercentInfo] = useState(false);
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
   const [creationAttempts, setCreationAttempts] = useState(0);
-  const [pendingSubmissions, setPendingSubmissions] = useState<OfflineSubmission[]>([]);
+  const [pendingSubmissions, setPendingSubmissions] = useState<
+    OfflineSubmission[]
+  >([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreatingAssessment, setIsCreatingAssessment] = useState(false);
   const toolName = t("sustainability") + " " + t("assessment");
 
-  const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
-  const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
-  const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineDraftAssessments();
-  const { createAssessment, submitAssessment: submitAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
-  const { createResponses, isPending: responseMutationPending } = useOfflineResponsesMutation();
+  const { data: questionsData, isLoading: questionsLoading } =
+    useOfflineQuestions();
+  const { data: assessmentDetail, isLoading: assessmentLoading } =
+    useOfflineAssessment(assessmentId || "");
+  const {
+    data: assessmentsData,
+    isLoading: assessmentsLoading,
+    refetch: refetchAssessments,
+  } = useOfflineDraftAssessments();
+  const {
+    createAssessment,
+    submitAssessment: submitAssessmentHook,
+    isPending: assessmentMutationPending,
+  } = useOfflineAssessmentsMutation();
+  const { createResponses, isPending: responseMutationPending } =
+    useOfflineResponsesMutation();
 
   // Check for pending submissions
   useEffect(() => {
     const checkPendingSubmissions = async () => {
       try {
         const submissions = await offlineDB.getAllSubmissions();
-        setPendingSubmissions(submissions.filter((sub) => sub.sync_status === "pending"));
+        setPendingSubmissions(
+          submissions.filter((sub) => sub.sync_status === "pending"),
+        );
       } catch (error) {
         console.error("Failed to check pending submissions:", error);
       }
@@ -94,7 +125,12 @@ export const useAssessment = () => {
     if (user.organizations && typeof user.organizations === "object") {
       const orgKeys = Object.keys(user.organizations);
       if (orgKeys.length > 0) {
-        const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+        const orgData = (
+          user.organizations as Record<
+            string,
+            { id: string; categories: string[] }
+          >
+        )[orgKeys[0]];
         orgId = orgData?.id || "";
       }
     }
@@ -105,11 +141,19 @@ export const useAssessment = () => {
   // Assessment creation logic
   useEffect(() => {
     if (!user) return;
-    const allRoles = [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
+    const allRoles = [
+      ...(user.roles || []),
+      ...(user.realm_access?.roles || []),
+    ].map((r) => r.toLowerCase());
     const canCreate = allRoles.includes("org_admin");
 
     if (!assessmentId && !canCreate) {
-      toast.error(t("assessment.noPermissionToCreate", { defaultValue: "Only organization administrators can create assessments." }));
+      toast.error(
+        t("assessment.noPermissionToCreate", {
+          defaultValue:
+            "Only organization administrators can create assessments.",
+        }),
+      );
       navigate("/dashboard");
       return;
     }
@@ -123,7 +167,12 @@ export const useAssessment = () => {
   // Handle assessment creation from modal
   const handleCreateAssessment = async (assessmentName: string) => {
     if (creationAttempts >= 3) {
-      toast.error(t("assessment.maxRetriesExceeded", { defaultValue: "Failed to create assessment after multiple attempts. Please try again later." }));
+      toast.error(
+        t("assessment.maxRetriesExceeded", {
+          defaultValue:
+            "Failed to create assessment after multiple attempts. Please try again later.",
+        }),
+      );
       setShowCreateModal(false);
       navigate("/dashboard");
       return;
@@ -132,15 +181,19 @@ export const useAssessment = () => {
     setIsCreatingAssessment(true);
     setHasCreatedAssessment(true);
     setCreationAttempts((prev) => prev + 1);
-    
-    const newAssessment: CreateAssessmentRequest = { 
+
+    const newAssessment: CreateAssessmentRequest = {
       language: currentLanguage,
       name: assessmentName,
     };
-    
+
     createAssessment(newAssessment, {
       onSuccess: (result) => {
-        if (result && isAssessmentResult(result) && result.assessment?.assessment_id) {
+        if (
+          result &&
+          isAssessmentResult(result) &&
+          result.assessment?.assessment_id
+        ) {
           const realAssessmentId = result.assessment.assessment_id;
           if (!realAssessmentId.startsWith("temp_")) {
             setShowSuccessModal(true);
@@ -150,7 +203,8 @@ export const useAssessment = () => {
               let attempts = 0;
               const maxAttempts = 10;
               while (attempts < maxAttempts) {
-                const savedAssessment = await offlineDB.getAssessment(realAssessmentId);
+                const savedAssessment =
+                  await offlineDB.getAssessment(realAssessmentId);
                 if (savedAssessment) return;
                 await new Promise((resolve) => setTimeout(resolve, 500));
                 attempts++;
@@ -182,7 +236,11 @@ export const useAssessment = () => {
   useEffect(() => {
     if (hasCreatedAssessment && !assessmentId) {
       const timeout = setTimeout(() => {
-        toast.error(t("assessment.creationTimeout", { defaultValue: "Assessment creation timed out. Please try again." }));
+        toast.error(
+          t("assessment.creationTimeout", {
+            defaultValue: "Assessment creation timed out. Please try again.",
+          }),
+        );
         setHasCreatedAssessment(false);
         navigate("/dashboard");
       }, 30000);
@@ -193,7 +251,11 @@ export const useAssessment = () => {
   // Submit assessment
   const submitAssessment = async () => {
     if (!assessmentDetail) {
-      toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment details not loaded. Please try again." }));
+      toast.error(
+        t("assessment.failedToSubmit", {
+          defaultValue: "Assessment details not loaded. Please try again.",
+        }),
+      );
       return;
     }
 
@@ -205,7 +267,11 @@ export const useAssessment = () => {
     }
 
     if (!actualAssessment.assessment_id) {
-      toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment ID is missing. Please try again." }));
+      toast.error(
+        t("assessment.failedToSubmit", {
+          defaultValue: "Assessment ID is missing. Please try again.",
+        }),
+      );
       return;
     }
 
@@ -224,24 +290,39 @@ export const useAssessment = () => {
       }
 
       if (allResponsesToSave.length > 0) {
-        await createResponses(actualAssessment.assessment_id, allResponsesToSave, {
-          onSuccess: async () => {
-            const savedResponses = await offlineDB.getResponsesByAssessment(actualAssessment.assessment_id);
-            if (savedResponses.length !== allResponsesToSave.length) {
-              // Partial save warning handled silently
-            }
+        await createResponses(
+          actualAssessment.assessment_id,
+          allResponsesToSave,
+          {
+            onSuccess: async () => {
+              const savedResponses = await offlineDB.getResponsesByAssessment(
+                actualAssessment.assessment_id,
+              );
+              if (savedResponses.length !== allResponsesToSave.length) {
+                // Partial save warning handled silently
+              }
+            },
+            onError: () => {
+              toast.error(
+                t("assessment.failedToSaveResponses", {
+                  defaultValue: "Failed to save responses. Please try again.",
+                }),
+              );
+            },
           },
-          onError: () => {
-            toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
-          },
-        });
+        );
 
         await submitAssessmentHook(actualAssessment.assessment_id, {
           onSuccess: () => {
             toast.success(
               isOnline
-                ? t("assessment.submittedSuccessfully", { defaultValue: "Assessment submitted successfully!" })
-                : t("assessment.queuedForSync", { defaultValue: "Assessment saved offline and will be submitted when online." })
+                ? t("assessment.submittedSuccessfully", {
+                    defaultValue: "Assessment submitted successfully!",
+                  })
+                : t("assessment.queuedForSync", {
+                    defaultValue:
+                      "Assessment saved offline and will be submitted when online.",
+                  }),
             );
             navigate("/dashboard");
           },
@@ -249,18 +330,30 @@ export const useAssessment = () => {
             if (!isOnline) {
               navigate("/dashboard");
             } else {
-              toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
+              toast.error(
+                t("assessment.failedToSubmit", {
+                  defaultValue: "Failed to submit assessment.",
+                }),
+              );
             }
           },
         });
       } else {
-        toast.error(t("assessment.noResponsesToSubmit", { defaultValue: "No responses to submit for the current category." }));
+        toast.error(
+          t("assessment.noResponsesToSubmit", {
+            defaultValue: "No responses to submit for the current category.",
+          }),
+        );
       }
     } catch (error) {
       if (!navigator.onLine) {
         navigate("/dashboard");
       } else {
-        toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
+        toast.error(
+          t("assessment.failedToSubmit", {
+            defaultValue: "Failed to submit assessment.",
+          }),
+        );
       }
     }
   };
@@ -268,7 +361,10 @@ export const useAssessment = () => {
   // Group questions by category
   const groupedQuestions = React.useMemo(() => {
     if (!questionsData?.questions) return {};
-    const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
+    const groups: Record<
+      string,
+      { question: Question; revision: QuestionRevision }[]
+    > = {};
     questionsData.questions.forEach((question) => {
       const category = question.category;
       if (!groups[category]) groups[category] = [];
@@ -278,7 +374,9 @@ export const useAssessment = () => {
     const filtered: typeof groups = {};
     for (const userCat of orgInfo.categories) {
       const normalizedUserCat = userCat.toLowerCase();
-      const matchingCategory = Object.keys(groups).find((cat) => cat.toLowerCase() === normalizedUserCat);
+      const matchingCategory = Object.keys(groups).find(
+        (cat) => cat.toLowerCase() === normalizedUserCat,
+      );
       if (matchingCategory && groups[matchingCategory]) {
         filtered[matchingCategory] = groups[matchingCategory];
       }
@@ -289,30 +387,47 @@ export const useAssessment = () => {
   const categories = Object.keys(groupedQuestions);
 
   // Check if we have any categories - only show this message for Org_User, not org_admin
-  const allRoles = [...(user?.roles || []), ...(user?.realm_access?.roles || [])].map((r) => r.toLowerCase());
-  const isOrgUser = allRoles.includes("org_user") && !allRoles.includes("org_admin");
+  const allRoles = [
+    ...(user?.roles || []),
+    ...(user?.realm_access?.roles || []),
+  ].map((r) => r.toLowerCase());
+  const isOrgUser =
+    allRoles.includes("org_user") && !allRoles.includes("org_admin");
   const canCreate = allRoles.includes("org_admin");
 
-  const getCurrentCategoryQuestions = () => groupedQuestions[categories[currentCategoryIndex]] || [];
+  const getCurrentCategoryQuestions = () =>
+    groupedQuestions[categories[currentCategoryIndex]] || [];
   const getRevisionKey = (revision: QuestionRevision): string => {
     return hasQuestionRevisionId(revision) ? revision.question_revision_id : "";
   };
 
-  const handleAnswerChange = (question_revision_id: string, value: Partial<LocalAnswer>) => {
+  const handleAnswerChange = (
+    question_revision_id: string,
+    value: Partial<LocalAnswer>,
+  ) => {
     setAnswers((prev) => ({
       ...prev,
-      [question_revision_id]: { ...prev[question_revision_id], ...value } as LocalAnswer,
+      [question_revision_id]: {
+        ...prev[question_revision_id],
+        ...value,
+      } as LocalAnswer,
     }));
   };
 
-  const createResponseToSave = (key: string, answer: LocalAnswer): CreateResponseRequest => ({
+  const createResponseToSave = (
+    key: string,
+    answer: LocalAnswer,
+  ): CreateResponseRequest => ({
     question_revision_id: key,
     response: JSON.stringify(answer),
     version: 1,
   });
 
   const isAnswerComplete = (answer: LocalAnswer) =>
-    typeof answer?.yesNo === "boolean" && typeof answer?.percentage === "number" && typeof answer?.text === "string" && answer.text.trim() !== "";
+    typeof answer?.yesNo === "boolean" &&
+    typeof answer?.percentage === "number" &&
+    typeof answer?.text === "string" &&
+    answer.text.trim() !== "";
 
   const isCurrentCategoryComplete = () =>
     getCurrentCategoryQuestions().every((q) => {
@@ -332,7 +447,10 @@ export const useAssessment = () => {
       const fileData = { name: file.name, url: e.target?.result as string };
       setAnswers((prev) => ({
         ...prev,
-        [questionId]: { ...prev[questionId], files: [...(prev[questionId]?.files || []), fileData] },
+        [questionId]: {
+          ...prev[questionId],
+          files: [...(prev[questionId]?.files || []), fileData],
+        },
       }));
     };
     reader.readAsDataURL(file);
@@ -358,17 +476,26 @@ export const useAssessment = () => {
       try {
         await createResponses(assessmentId, responsesToSend, {
           onSuccess: async () => {
-            const savedResponses = await offlineDB.getResponsesByAssessment(assessmentId);
+            const savedResponses =
+              await offlineDB.getResponsesByAssessment(assessmentId);
             if (savedResponses.length !== responsesToSend.length) {
               // Partial save warning handled silently
             }
           },
           onError: () => {
-            toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+            toast.error(
+              t("assessment.failedToSaveResponses", {
+                defaultValue: "Failed to save responses. Please try again.",
+              }),
+            );
           },
         });
       } catch (error) {
-        toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+        toast.error(
+          t("assessment.failedToSaveResponses", {
+            defaultValue: "Failed to save responses. Please try again.",
+          }),
+        );
       }
     }
 
@@ -439,4 +566,4 @@ export const useAssessment = () => {
     isCurrentCategoryComplete,
     refetchAssessments,
   };
-}; 
+};

@@ -23,10 +23,10 @@ interface PendingReviewsProps {
   isLoading: boolean;
 }
 
-export const PendingReviews: React.FC<PendingReviewsProps> = ({ 
-  reviews, 
-  count, 
-  isLoading 
+export const PendingReviews: React.FC<PendingReviewsProps> = ({
+  reviews,
+  count,
+  isLoading,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export const PendingReviews: React.FC<PendingReviewsProps> = ({
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center space-x-2">
           <AlertCircle className="w-5 h-5 text-orange-500" />
-          <span>{t('adminDashboard.pendingReviewsCard')}</span>
+          <span>{t("adminDashboard.pendingReviewsCard")}</span>
         </CardTitle>
         <Badge className="bg-orange-500 text-white">
           {isLoading ? (
@@ -45,7 +45,7 @@ export const PendingReviews: React.FC<PendingReviewsProps> = ({
               <span>...</span>
             </div>
           ) : (
-            `${count} ${t('adminDashboard.pendingCount', { count })}`
+            `${count} ${t("adminDashboard.pendingCount", { count })}`
           )}
         </Badge>
       </CardHeader>
@@ -55,7 +55,9 @@ export const PendingReviews: React.FC<PendingReviewsProps> = ({
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
               <p className="text-gray-600">
-                {t('adminDashboard.loadingSubmissions', { defaultValue: 'Loading submissions...' })}
+                {t("adminDashboard.loadingSubmissions", {
+                  defaultValue: "Loading submissions...",
+                })}
               </p>
             </div>
           ) : (
@@ -72,15 +74,19 @@ export const PendingReviews: React.FC<PendingReviewsProps> = ({
                     </div>
                     <div>
                       <h3 className="font-medium">Sustainability Assessment</h3>
-                      <p className="text-sm text-gray-600">{review.organization}</p>
+                      <p className="text-sm text-gray-600">
+                        {review.organization}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">{review.submittedAt}</p>
+                    <p className="text-sm text-gray-600">
+                      {review.submittedAt}
+                    </p>
                     <Badge variant="outline" className="text-xs">
                       {review.reviewStatus === "under_review"
-                        ? t('adminDashboard.underReview')
-                        : t('adminDashboard.reviewRequired')}
+                        ? t("adminDashboard.underReview")
+                        : t("adminDashboard.reviewRequired")}
                     </Badge>
                   </div>
                 </div>
@@ -88,7 +94,7 @@ export const PendingReviews: React.FC<PendingReviewsProps> = ({
               {reviews.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>{t('adminDashboard.allUpToDate')}</p>
+                  <p>{t("adminDashboard.allUpToDate")}</p>
                 </div>
               )}
             </>
@@ -97,4 +103,4 @@ export const PendingReviews: React.FC<PendingReviewsProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};
