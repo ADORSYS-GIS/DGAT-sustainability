@@ -21,6 +21,7 @@ use axum::http::HeaderValue;
 use tokio::sync::Mutex;
 use tower_http::cors::{CorsLayer, Any};
 
+use crate::common::cache::SessionCache;
 use crate::common::config::{Configs, KeycloakConfigs};
 use crate::common::models::claims::Claims;
 use crate::common::services::keycloak_service::KeycloakService;
@@ -34,6 +35,7 @@ pub struct AppState {
     pub jwt_validator: Arc<Mutex<JwtValidator>>,
     pub database: AppDatabase,
     pub keycloak_service: Arc<KeycloakService>,
+    pub session_cache: SessionCache,
 }
 
 impl AppState {
@@ -49,6 +51,7 @@ impl AppState {
             jwt_validator,
             database,
             keycloak_service,
+            session_cache: SessionCache::new(),
         }
     }
 }
