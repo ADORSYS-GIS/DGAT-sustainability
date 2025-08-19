@@ -31,14 +31,9 @@ pub async fn request_logging_middleware(
     let path = uri.path();
     let query = uri.query().unwrap_or("");
 
-    // Extract user information from claims if available
-    let user_info = request.extensions().get::<Claims>().map(|claims| {
-        format!(
-            "user_id={}, username={}, org={}",
-            claims.sub,
-            claims.preferred_username,
-            claims.get_organization_name().unwrap_or_else(|| "none".to_string())
-        )
+    // Extract user information from claims if available (redacted in production logs)
+    let user_info = request.extensions().get::<Claims>().map(|_claims| {
+        "[redacted user info]".to_string()
     });
 
     // Extract remote IP if available from headers
@@ -55,24 +50,14 @@ pub async fn request_logging_middleware(
         .unwrap_or("unknown");
 
     // Log the incoming request
-    if let Some(ref user) = user_info {
-        info!(
-            method = %method,
-            path = %path,
-            query = %query,
-            remote_ip = %remote_ip,
-            user = %user,
-            "Incoming request"
-        );
-    } else {
-        info!(
-            method = %method,
-            path = %path,
-            query = %query,
-            remote_ip = %remote_ip,
-            "Incoming request (unauthenticated)"
-        );
-    }
+    // Production: Don't log user details
+    info!(
+        method = %method,
+        path = %path,
+        query = %query,
+        remote_ip = %remote_ip,
+        "Incoming request"
+    );
 
     // Process the request
     let response = next.run(request).await;
@@ -81,84 +66,40 @@ pub async fn request_logging_middleware(
     let duration = start_time.elapsed();
     let status = response.status();
 
-    // Log the response
+    // Log the response (generic, production safe)
     if status.is_success() {
-        if let Some(ref user) = user_info {
-            info!(
-                method = %method,
-                path = %path,
-                status = %status.as_u16(),
-                duration_ms = %duration.as_millis(),
-                user = %user,
-                "Request completed successfully"
-            );
-        } else {
-            info!(
-                method = %method,
-                path = %path,
-                status = %status.as_u16(),
-                duration_ms = %duration.as_millis(),
-                "Request completed successfully (unauthenticated)"
-            );
-        }
+        info!(
+            method = %method,
+            path = %path,
+            status = %status.as_u16(),
+            duration_ms = %duration.as_millis(),
+            "Request completed successfully"
+        );
     } else if status.is_client_error() {
-        if let Some(ref user) = user_info {
-            warn!(
-                method = %method,
-                path = %path,
-                status = %status.as_u16(),
-                duration_ms = %duration.as_millis(),
-                user = %user,
-                "Request failed with client error"
-            );
-        } else {
-            warn!(
-                method = %method,
-                path = %path,
-                status = %status.as_u16(),
-                duration_ms = %duration.as_millis(),
-                "Request failed with client error (unauthenticated)"
-            );
-        }
+        warn!(
+            method = %method,
+            path = %path,
+            status = %status.as_u16(),
+            duration_ms = %duration.as_millis(),
+            "Request failed with client error"
+        );
     } else if status.is_server_error() {
-        if let Some(ref user) = user_info {
-            warn!(
-                method = %method,
-                path = %path,
-                status = %status.as_u16(),
-                duration_ms = %duration.as_millis(),
-                user = %user,
-                "Request failed with server error"
-            );
-        } else {
-            warn!(
-                method = %method,
-                path = %path,
-                status = %status.as_u16(),
-                duration_ms = %duration.as_millis(),
-                "Request failed with server error (unauthenticated)"
-            );
-        }
+        warn!(
+            method = %method,
+            path = %path,
+            status = %status.as_u16(),
+            duration_ms = %duration.as_millis(),
+            "Request failed with server error"
+        );
     } else {
         // Other status codes (1xx, 3xx)
-        if let Some(ref user) = user_info {
-            info!(
-                method = %method,
-                path = %path,
-                status = %status.as_u16(),
-                duration_ms = %duration.as_millis(),
-                user = %user,
-                "Request completed"
-            );
-        } else {
-            info!(
-                method = %method,
-                path = %path,
-                status = %status.as_u16(),
-                duration_ms = %duration.as_millis(),
-                "Request completed (unauthenticated)"
-            );
-        }
+        info!(
+            method = %method,
+            path = %path,
+            status = %status.as_u16(),
+            duration_ms = %duration.as_millis(),
+            "Request completed"
+        );
     }
 
     response
