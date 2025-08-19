@@ -83,7 +83,7 @@ export const Assessment: React.FC = () => {
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
   const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineDraftAssessments();
-  const { createAssessment, submitAssessment: submitAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
+  const { createAssessment, submitDraftAssessment: submitDraftAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
   const { createResponses, isPending: responseMutationPending } = useOfflineResponsesMutation();
 
   // Check for pending submissions
@@ -249,12 +249,12 @@ export const Assessment: React.FC = () => {
           },
         });
 
-        await submitAssessmentHook(actualAssessment.assessment_id, {
+        await submitDraftAssessmentHook(actualAssessment.assessment_id, {
           onSuccess: () => {
             toast.success(
               isOnline
-                ? t("assessment.submittedSuccessfully", { defaultValue: "Assessment submitted successfully!" })
-                : t("assessment.queuedForSync", { defaultValue: "Assessment saved offline and will be submitted when online." })
+                ? t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" })
+                : t("assessment.draftQueuedForSync", { defaultValue: "Assessment saved offline and will be submitted for approval when online." })
             );
             navigate("/dashboard");
           },
@@ -263,7 +263,7 @@ export const Assessment: React.FC = () => {
               // Removed offline saved success toast
               navigate("/dashboard");
             } else {
-              toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
+              toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
             }
           },
         });

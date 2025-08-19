@@ -20,6 +20,7 @@ import { ManageUsers } from "../pages/admin/ManageUsers";
 import { OrgUserManageUsers } from "../pages/user/OrgUserManageUsers";
 import { AdminGuide } from "../pages/admin/AdminGuide";
 import { UserGuide } from "../pages/user/UserGuide";
+import DraftSubmissions from "../pages/user/DraftSubmissions";
 
 const routes = [
   // Public routes
@@ -71,6 +72,7 @@ const routes = [
     children: [
       { path: "assessment/:assessmentId", element: React.createElement(Assessment) },
       { path: "assessment-list", element: React.createElement(AssessmentList) },
+      { path: "draft-submissions", element: React.createElement(DraftSubmissions) },
       { path: "manage-users", element: React.createElement(OrgUserManageUsers) },
       { path: "guide", element: React.createElement(UserGuide) },
     ],

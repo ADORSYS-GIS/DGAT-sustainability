@@ -4,6 +4,8 @@ import {
   getAuthState, 
   login as authLogin, 
   logout as authLogout,
+  initializeAuth,
+  setupTokenRefresh,
   UserProfile,
   AuthState 
 } from "../../services/shared/authService";
@@ -32,8 +34,39 @@ export const useAuth = (): AuthHookState => {
       setAuthState(state);
     };
 
-    // Initial state
-    updateAuthState();
+    // Initialize Keycloak if not already initialized
+    const initializeKeycloak = async () => {
+      // Check if Keycloak is already initialized
+      if (keycloak.authenticated || keycloak.token) {
+        // Already initialized, just update state
+        updateAuthState();
+        return;
+      }
+
+      // Check if Keycloak is in the process of initializing
+      if (keycloak.authenticated === undefined) {
+        try {
+          await initializeAuth();
+          // Setup token refresh after successful initialization
+          setupTokenRefresh();
+        } catch (error) {
+          console.error("Failed to initialize Keycloak in useAuth:", error);
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            roles: [],
+            loading: false,
+          });
+          return;
+        }
+      }
+      
+      // Update state after initialization
+      updateAuthState();
+    };
+
+    // Initialize and get initial state
+    initializeKeycloak();
 
     // Listen for Keycloak events
     const onTokenExpired = () => {

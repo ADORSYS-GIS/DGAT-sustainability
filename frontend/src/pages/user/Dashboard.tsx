@@ -155,6 +155,13 @@ export const Dashboard: React.FC = () => {
             color: "blue" as const,
             onClick: () => navigate("/user/manage-users"),
           },
+          {
+            title: t('user.dashboard.draftSubmissions.title'),
+            description: t('user.dashboard.draftSubmissions.description'),
+            icon: CheckSquare,
+            color: "green" as const,
+            onClick: () => navigate("/user/draft-submissions"),
+          },
         ]
       : []),
   ];

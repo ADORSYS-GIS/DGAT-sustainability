@@ -79,7 +79,7 @@ export const AdminDashboard: React.FC = () => {
   
   // Add filter for reviewed submissions (new status from API)
   const reviewedSubmissions = submissions.filter(
-    submission => submission.review_status === 'reviewed'
+    submission => (submission.review_status as string) === 'reviewed'
   );
   
   const totalSubmissions = submissions.length;

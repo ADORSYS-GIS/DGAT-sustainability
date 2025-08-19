@@ -72,7 +72,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/assessments", get(list_assessments))
         .route("/api/assessments", post(create_assessment))
         .route("/api/assessments/:assessment_id", get(get_assessment))
-        .route("/api/assessments/:assessment_id", put(update_assessment))
+        .route("/api/assessments/:assessment_id", put(update_assessment)) 
         .route("/api/assessments/:assessment_id", delete(delete_assessment))
         .route(
             "/api/assessments/:assessment_id/submit",

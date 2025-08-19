@@ -85,14 +85,10 @@ if ('serviceWorker' in navigator) {
   // Service worker not supported
 }
 
-// Initialize authentication and other services
+// Initialize other services in the background (not authentication)
 const initializeApp = async () => {
   try {
-    // Initialize Keycloak authentication
-    const authenticated = await initializeAuth();
-    console.log("Authentication initialized:", authenticated);
-    
-    // Setup token refresh
+    // Setup token refresh (only if Keycloak is already initialized)
     setupTokenRefresh();
     
     // Initialize IndexedDB and other offline services
@@ -111,11 +107,12 @@ const initializeApp = async () => {
   }
 };
 
-// Initialize app and render
-initializeApp().then(() => {
-  createRoot(document.getElementById("root")!).render(
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  );
-});
+// Render app immediately, initialize services in background
+createRoot(document.getElementById("root")!).render(
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>
+);
+
+// Initialize services in the background
+initializeApp();

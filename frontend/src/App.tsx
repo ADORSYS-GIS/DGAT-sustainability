@@ -29,11 +29,15 @@ const UnauthenticatedApp = () => {
 const AuthenticatedApp = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
 
-  // Show loading spinner while authentication is being determined
+  // Show a minimal loading state while authentication is being determined
+  // This prevents the blank page issue while still showing something
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <LoadingSpinner text="Checking authentication..." />
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Initializing...</p>
+        </div>
       </div>
     );
   }

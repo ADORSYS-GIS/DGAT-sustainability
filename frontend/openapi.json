@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Production server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Staging server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Development server"
     }
   ],
@@ -715,11 +715,100 @@
         }
       }
     },
+    "/assessments/{assessment_id}/draft": {
+      "post": {
+        "tags": ["Assessments"],
+        "summary": "Submit draft assessment",
+        "description": "Submit a draft assessment for admin approval (creates pending submission)",
+        "operationId": "submit_draft_assessment",
+        "parameters": [
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "description": "Assessment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Draft assessment submitted for approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftSubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/draft-submissions": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List draft submissions",
+        "description": "Get all draft submissions pending admin approval (Admin only)",
+        "operationId": "list_draft_submissions",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by draft status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending_approval",
+                "approved",
+                "rejected"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of draft submissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftSubmissionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/assessments/{assessment_id}/submit": {
       "post": {
         "tags": ["Assessments"],
-        "summary": "Submit assessment",
-        "description": "Submit a draft assessment for review (creates immutable submission)",
+        "summary": "Approve and submit assessment",
+        "description": "Approve and submit a draft assessment (admin only - creates immutable submission)",
         "operationId": "submit_assessment",
         "parameters": [
           {
@@ -735,7 +824,7 @@
         ],
         "responses": {
           "201": {
-            "description": "Assessment submitted successfully",
+            "description": "Assessment approved and submitted successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -749,6 +838,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -2687,6 +2779,50 @@
           }
         }
       },
+      "DraftSubmission": {
+        "required": [
+          "assessment_id",
+          "content",
+          "draft_submission_id",
+          "submitted_at",
+          "user_id"
+        ],
+        "type": "object",
+        "properties": {
+          "draft_submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/Submission_content"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_approval",
+              "approved",
+              "rejected"
+            ],
+            "default": "pending_approval"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
       "SubmissionListResponse": {
         "required": ["submissions"],
         "type": "object",
@@ -2705,6 +2841,27 @@
         "properties": {
           "submission": {
             "$ref": "#/components/schemas/Submission"
+          }
+        }
+      },
+      "DraftSubmissionResponse": {
+        "required": ["draft_submission"],
+        "type": "object",
+        "properties": {
+          "draft_submission": {
+            "$ref": "#/components/schemas/DraftSubmission"
+          }
+        }
+      },
+      "DraftSubmissionListResponse": {
+        "required": ["draft_submissions"],
+        "type": "object",
+        "properties": {
+          "draft_submissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftSubmission"
+            }
           }
         }
       },

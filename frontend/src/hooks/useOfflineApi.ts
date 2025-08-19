@@ -48,6 +48,7 @@ import type {
 import { DataTransformationService } from "../services/dataTransformation";
 import { syncService } from "../services/syncService";
 import { toast } from "sonner";
+import { useAuth } from "./shared/useAuth";
 
 // Utility function to invalidate and refetch queries
 const invalidateAndRefetch = async (queryClient: QueryClient, queryKeys: string[]) => {
@@ -891,38 +892,53 @@ export function useOfflineAssessmentsMutation() {
     }
   }, []);
 
-  const submitAssessment = useCallback(async (
+  const submitDraftAssessment = useCallback(async (
     assessmentId: string,
     options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
   ) => {
     try {
       setIsPending(true);
 
-      const tempId = `temp_${crypto.randomUUID()}`;
+      const tempId = `temp_draft_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
 
-      // Create a proper submission object for IndexedDB storage
-      const tempSubmissionForTransform: Submission = {
-        submission_id: tempId,
+      // Create a draft submission object for IndexedDB storage
+      const tempDraftSubmissionForTransform: {
+        draft_submission_id: string;
+        assessment_id: string;
+        user_id: string;
+        content: { assessment: { assessment_id: string }; responses: unknown[] };
+        status: string;
+        submitted_at: string;
+      } = {
+        draft_submission_id: tempId,
         assessment_id: assessmentId,
         user_id: "current_user", // This will be replaced by the server's response
         content: { 
           assessment: { assessment_id: assessmentId },
           responses: [] // Will be populated from responses in IndexedDB
         },
-        review_status: 'under_review',
+        status: 'pending_approval',
         submitted_at: now,
       };
 
       // Always store in IndexedDB first for offline support
       try {
-        const offlineSubmission = DataTransformationService.transformSubmission(tempSubmissionForTransform);
+        // Note: We'll need to add draft submission storage to IndexedDB
+        // For now, we'll store it as a regular submission with a special status
+        const offlineSubmission = DataTransformationService.transformSubmission({
+          ...tempDraftSubmissionForTransform,
+          submission_id: tempId,
+          review_status: 'pending_approval',
+        });
         await offlineDB.saveSubmission(offlineSubmission);
       } catch (storageError) {
-        console.error('❌ Failed to store submission in IndexedDB:', storageError);
-        throw new Error(`Failed to store submission: ${storageError}`);
+        console.error('❌ Failed to store draft submission in IndexedDB:', storageError);
+        throw new Error(`Failed to store draft submission: ${storageError}`);
       }
 
+      // For now, we'll use the regular submit endpoint but with a different status
+      // TODO: Update this to use the new draft endpoint when the backend is ready
       const result = await apiInterceptor.interceptMutation(
         () => AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId }),
         async (apiResponse: Record<string, unknown>) => {
@@ -952,22 +968,30 @@ export function useOfflineAssessmentsMutation() {
       const isOnline = navigator.onLine;
       
       if (result && typeof result === 'object' && 'submission' in result) {
-        // Online submission successful
+        // Online draft submission successful
         options?.onSuccess?.(result);
       } else if (!isOnline) {
-        // Offline submission - stored in IndexedDB, will sync later
-        const offlineSubmission = DataTransformationService.transformSubmission(tempSubmissionForTransform);
+        // Offline draft submission - stored in IndexedDB, will sync later
+        const offlineSubmission = DataTransformationService.transformSubmission({
+          ...tempDraftSubmissionForTransform,
+          submission_id: tempId,
+          review_status: 'pending_approval',
+        });
         options?.onSuccess?.({ submission: offlineSubmission });
       } else {
         // Online but API failed - still stored in IndexedDB for retry
-        const offlineSubmission = DataTransformationService.transformSubmission(tempSubmissionForTransform);
+        const offlineSubmission = DataTransformationService.transformSubmission({
+          ...tempDraftSubmissionForTransform,
+          submission_id: tempId,
+          review_status: 'pending_approval',
+        });
         options?.onSuccess?.({ submission: offlineSubmission });
       }
       
       return result;
     } catch (err) {
-      console.error('❌ Error in submitAssessment:', err);
-      const error = err instanceof Error ? err : new Error('Failed to submit assessment');
+      console.error('❌ Error in submitDraftAssessment:', err);
+      const error = err instanceof Error ? err : new Error('Failed to submit draft assessment');
       options?.onError?.(error);
       throw error;
     } finally {
@@ -975,7 +999,55 @@ export function useOfflineAssessmentsMutation() {
     }
   }, []);
 
-  return { createAssessment, updateAssessment, deleteAssessment, submitAssessment, isPending };
+  const approveAssessment = useCallback(async (
+    assessmentId: string,
+    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
+  ) => {
+    try {
+      setIsPending(true);
+
+      const result = await apiInterceptor.interceptMutation(
+        () => AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId }),
+        async (apiResponse: Record<string, unknown>) => {
+          if (!apiResponse.submission) {
+            console.warn('Received request data instead of API response - API call may have failed');
+            return;
+          }
+          
+          const realSubmission = apiResponse.submission as Submission;
+          if (!realSubmission || !realSubmission.submission_id) {
+            console.error('API did not return a valid submission:', apiResponse);
+            throw new Error('API did not return a valid submission');
+          }
+          
+          // Update the submission status to approved
+          const finalOfflineSubmission = DataTransformationService.transformSubmission({
+            ...realSubmission,
+            review_status: 'approved',
+          });
+          await offlineDB.saveSubmission(finalOfflineSubmission);
+        },
+        { assessmentId } as Record<string, unknown>,
+        'submission',
+        'update'
+      );
+
+      if (result && typeof result === 'object' && 'submission' in result) {
+        options?.onSuccess?.(result);
+      }
+      
+      return result;
+    } catch (err) {
+      console.error('❌ Error in approveAssessment:', err);
+      const error = err instanceof Error ? err : new Error('Failed to approve assessment');
+      options?.onError?.(error);
+      throw error;
+    } finally {
+      setIsPending(false);
+    }
+  }, []);
+
+  return { createAssessment, updateAssessment, deleteAssessment, submitDraftAssessment, approveAssessment, isPending };
 }
 
 // ===== RESPONSES =====
@@ -1407,6 +1479,64 @@ export function useOfflineUsers(organizationId?: string) {
       setIsLoading(false);
     }
   }, [organizationId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, isLoading, error, refetch: fetchData };
+}
+
+// ===== DRAFT SUBMISSIONS =====
+
+export function useOfflineDraftSubmissions() {
+  const [data, setData] = useState<{ draft_submissions: unknown[] }>({ draft_submissions: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth();
+
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // For now, we'll filter submissions with pending_approval status
+      // TODO: Update this to use the new draft submissions endpoint when the backend is ready
+      const result = await apiInterceptor.interceptGet(
+        () => SubmissionsService.getSubmissions(),
+        () => offlineDB.getAllSubmissions().then(submissions => ({ submissions })),
+        'submissions',
+      );
+
+      // Filter for draft submissions (pending approval) and by organization
+      const submissions = result as { submissions: unknown[] };
+      let draftSubmissions = submissions.submissions?.filter(
+        (submission: unknown) => (submission as { review_status?: string })?.review_status === 'pending_approval'
+      ) || [];
+
+      // Filter by organization if user is org_admin
+      if (user?.organizations) {
+        const orgKeys = Object.keys(user.organizations);
+        if (orgKeys.length > 0) {
+          const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+          const organizationId = orgData?.id;
+          
+          if (organizationId) {
+            draftSubmissions = draftSubmissions.filter((submission: unknown) => {
+              const typedSubmission = submission as { org_id?: string; organization_id?: string };
+              return typedSubmission.org_id === organizationId || typedSubmission.organization_id === organizationId;
+            });
+          }
+        }
+      }
+
+      setData({ draft_submissions: draftSubmissions });
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch draft submissions'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.organizations]);
 
   useEffect(() => {
     fetchData();

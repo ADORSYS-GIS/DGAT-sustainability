@@ -36,7 +36,13 @@ export interface AuthState {
  */
 export const initializeAuth = async (): Promise<boolean> => {
   try {
-    const authenticated = await keycloak.init(keycloakInitOptions);
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("Keycloak initialization timeout")), 10000); // 10 second timeout
+    });
+
+    const initPromise = keycloak.init(keycloakInitOptions);
+    const authenticated = await Promise.race([initPromise, timeoutPromise]);
     
     if (authenticated) {
       // Store tokens in IndexedDB
@@ -220,6 +226,12 @@ export const refreshToken = async (): Promise<boolean> => {
  * Setup token refresh interval
  */
 export const setupTokenRefresh = (): void => {
+  // Only setup token refresh if Keycloak is already initialized
+  if (!keycloak.authenticated && !keycloak.token) {
+    console.log("Keycloak not initialized yet, skipping token refresh setup");
+    return;
+  }
+
   // Refresh token every 4 minutes (240 seconds)
   setInterval(async () => {
     if (keycloak.authenticated) {
