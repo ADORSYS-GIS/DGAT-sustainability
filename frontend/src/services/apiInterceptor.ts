@@ -138,11 +138,17 @@ export class ApiInterceptor {
     entityType: string,
     entityId?: string
   ): Promise<T> {
+    console.log(`🔍 interceptGet: Starting for entityType: ${entityType}, isOnline: ${this.isOnline}`);
     try {
       // Try API call first if online
       if (this.isOnline) {
         try {
+          console.log(`🔍 interceptGet: Making API call for ${entityType}`);
+          console.log(`🔍 interceptGet: About to call apiCall() function`);
           const result = await apiCall();
+          console.log(`🔍 interceptGet: API call successful for ${entityType}:`, result);
+          console.log(`🔍 interceptGet: Result type:`, typeof result);
+          console.log(`🔍 interceptGet: Result keys:`, Object.keys(result || {}));
           // Store the result locally for offline access
           await this.storeLocally(result, entityType);
           return result;
@@ -277,6 +283,22 @@ export class ApiInterceptor {
             await offlineDB.saveSubmission(offlineSubmission);
           }
           break;
+        case 'drafts_endpoint':
+          // Handle draft submissions from the /drafts endpoint
+          if (data.draft_submissions && Array.isArray(data.draft_submissions)) {
+            for (const draftSubmission of data.draft_submissions as Submission[]) {
+              const offlineSubmission = DataTransformationService.transformSubmission(draftSubmission);
+              await offlineDB.saveSubmission(offlineSubmission);
+            }
+          }
+          break;
+        case 'draft_submission':
+          // Handle individual draft submission creation
+          if (data.draft_submission) {
+            const offlineSubmission = DataTransformationService.transformSubmission(data.draft_submission as Submission);
+            await offlineDB.saveSubmission(offlineSubmission);
+          }
+          break;
         case 'reports':
           if (data.reports && Array.isArray(data.reports)) {
             for (const report of data.reports as Report[]) {
@@ -317,7 +339,7 @@ export class ApiInterceptor {
     try {
       const queueItem: SyncQueueItem = {
         id: crypto.randomUUID(),
-        entity_type: entityType as 'submission' | 'assessment' | 'question' | 'category' | 'response' | 'report' | 'organization' | 'user' | 'invitation',
+        entity_type: (entityType === 'drafts_endpoint' || entityType === 'draft_submission' ? 'submission' : entityType) as 'submission' | 'assessment' | 'question' | 'category' | 'response' | 'report' | 'organization' | 'user' | 'invitation',
         operation,
         data,
         created_at: new Date().toISOString(),
@@ -337,7 +359,7 @@ export class ApiInterceptor {
    */
   private getPriority(entityType: string, operation: 'create' | 'update' | 'delete'): 'low' | 'normal' | 'high' | 'critical' {
     // Critical: submissions (user data)
-    if (entityType === 'submissions') return 'critical';
+    if (entityType === 'submissions' || entityType === 'drafts_endpoint' || entityType === 'draft_submission') return 'critical';
     
     // High: assessments, responses (user work)
     if (entityType === 'assessments' || entityType === 'responses') return 'high';

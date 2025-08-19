@@ -759,7 +759,7 @@
         }
       }
     },
-    "/admin/draft-submissions": {
+    "/drafts": {
       "get": {
         "tags": ["Admin"],
         "summary": "List draft submissions",
