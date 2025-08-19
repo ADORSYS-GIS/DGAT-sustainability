@@ -3,66 +3,18 @@ use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
-use sea_orm::prelude::StringLen;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
-
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
-pub enum SubmissionStatus {
-    #[sea_orm(string_value = "pending_review")]
-    #[serde(rename = "pending_review")]
-    PendingReview,
-    #[sea_orm(string_value = "under_review")]
-    #[serde(rename = "under_review")]
-    UnderReview,
-    #[sea_orm(string_value = "reviewed")]
-    #[serde(rename = "reviewed")]
-    Reviewed,
-    #[sea_orm(string_value = "approved")]
-    #[serde(rename = "approved")]
-    Approved,
-    #[sea_orm(string_value = "rejected")]
-    #[serde(rename = "rejected")]
-    Rejected,
-    #[sea_orm(string_value = "revision_requested")]
-    #[serde(rename = "revision_requested")]
-    RevisionRequested,
-}
-
-impl Default for SubmissionStatus {
-    fn default() -> Self {
-        Self::UnderReview
-    }
-}
-
-impl SubmissionStatus {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::PendingReview => "pending_review",
-            Self::UnderReview => "under_review",
-            Self::Reviewed => "reviewed",
-            Self::Approved => "approved",
-            Self::Rejected => "rejected",
-            Self::RevisionRequested => "revision_requested",
-        }
-    }
-}
-
-impl std::fmt::Display for SubmissionStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
+use tracing::error;
+use tracing::log::warn;
+use crate::common::database::entity::assessments_submission::SubmissionStatus;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "assessments_submission")]
+#[sea_orm(table_name = "temp_submission")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub submission_id: Uuid, // Also FK to assessments
+    pub temp_id: Uuid, // Also FK to assessments
     pub org_id: String,             // Keycloak organization id
     pub content: Value,              // JSON blob with all answers
     pub submitted_at: DateTime<Utc>, // When the submission was created
@@ -74,12 +26,10 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::assessments::Entity",
-        from = "Column::SubmissionId",
+        from = "Column::TempId",
         to = "super::assessments::Column::AssessmentId"
     )]
     Assessment,
-    #[sea_orm(has_one = "super::submission_reports::Entity")]
-    SubmissionReport,
 }
 
 impl Related<super::assessments::Entity> for Entity {
@@ -88,25 +38,19 @@ impl Related<super::assessments::Entity> for Entity {
     }
 }
 
-impl Related<super::submission_reports::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::SubmissionReport.def()
-    }
-}
-
 impl ActiveModelBehavior for ActiveModel {}
 
-impl_database_entity!(Entity, Column::SubmissionId);
+impl_database_entity!(Entity, Column::TempId);
 
 #[allow(dead_code)]
 #[derive(Clone)]
-pub struct AssessmentsSubmissionService {
+pub struct TempSubmissionService {
     db_service: DatabaseService<Entity>,
     assessments_service: Option<Arc<super::assessments::AssessmentsService>>,
 }
 
 #[allow(dead_code)]
-impl AssessmentsSubmissionService {
+impl TempSubmissionService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {
             db_service: DatabaseService::new(db),
@@ -119,14 +63,14 @@ impl AssessmentsSubmissionService {
         self
     }
 
-    pub async fn create_submission(
+    pub async fn create_temp_submission(
         &self,
         assessment_id: Uuid,
         org_id: String,
         content: Value,
     ) -> Result<Model, DbErr> {
         let submission = ActiveModel {
-            submission_id: Set(assessment_id),
+            temp_id: Set(assessment_id),
             org_id: Set(org_id),
             content: Set(content),
             submitted_at: Set(Utc::now()),
@@ -134,46 +78,25 @@ impl AssessmentsSubmissionService {
             reviewed_at: Set(None),
         };
 
-        // Create the submission first
+        // Create the temp submission first
         let created_submission = self.db_service.create(submission).await?;
-
-        // After successful submission creation, automatically delete the assessment
-        // to prevent useless assessments from draining database space
-        if let Some(ref assessments_service) = self.assessments_service {
-            match assessments_service.delete_assessment(assessment_id).await {
-                Ok(_) => {
-                    // Assessment deleted successfully
-                    tracing::warn!("Assessment {} automatically deleted after successful submission", assessment_id);
-                }
-                Err(e) => {
-                    // Log the error but don't fail the submission creation
-                    eprintln!("Warning: Failed to auto-delete assessment {}: {}", assessment_id, e);
-                }
-            }
-        }
 
         Ok(created_submission)
     }
 
-    pub async fn get_submission_by_assessment_id(
+    pub async fn get_temp_submission_by_assessment_id(
         &self,
         assessment_id: Uuid,
     ) -> Result<Option<Model>, DbErr> {
         self.db_service.find_by_id(assessment_id).await
     }
 
-    pub async fn get_submissions_by_org(&self, org_id: &str) -> Result<Vec<Model>, DbErr> {
-        Entity::find()
-            .filter(Column::OrgId.eq(org_id))
-            .all(self.db_service.get_connection())
-            .await
-    }
 
-    pub async fn get_all_submissions(&self) -> Result<Vec<Model>, DbErr> {
+    pub async fn get_all_temp_submissions(&self) -> Result<Vec<Model>, DbErr> {
         self.db_service.find_all().await
     }
 
-    pub async fn delete_submission(&self, assessment_id: Uuid) -> Result<DeleteResult, DbErr> {
+    pub async fn delete_temp_submission(&self, assessment_id: Uuid) -> Result<DeleteResult, DbErr> {
         self.db_service.delete(assessment_id).await
     }
 
@@ -183,14 +106,14 @@ impl AssessmentsSubmissionService {
         status: SubmissionStatus,
     ) -> Result<Model, DbErr> {
         let submission = self
-            .get_submission_by_assessment_id(assessment_id)
+            .get_temp_submission_by_assessment_id(assessment_id)
             .await?
             .ok_or(DbErr::Custom("Submission not found".to_string()))?;
 
         let mut submission: ActiveModel = submission.into();
 
         // Set reviewed_at timestamp when status changes to a reviewed state
-        let should_set_reviewed_at = matches!(status, 
+        let should_set_reviewed_at = matches!(status,
             SubmissionStatus::Approved | SubmissionStatus::Rejected | SubmissionStatus::RevisionRequested
         );
 
@@ -203,13 +126,13 @@ impl AssessmentsSubmissionService {
         self.db_service.update(submission).await
     }
 
-    pub async fn mark_submission_reviewed(
+    pub async fn mark_temp_submission_reviewed(
         &self,
         assessment_id: Uuid,
         status: SubmissionStatus,
     ) -> Result<Model, DbErr> {
         let submission = self
-            .get_submission_by_assessment_id(assessment_id)
+            .get_temp_submission_by_assessment_id(assessment_id)
             .await?
             .ok_or(DbErr::Custom("Submission not found".to_string()))?;
 
@@ -226,7 +149,7 @@ impl AssessmentsSubmissionService {
         new_content: Value,
     ) -> Result<Model, DbErr> {
         let submission = self
-            .get_submission_by_assessment_id(assessment_id)
+            .get_temp_submission_by_assessment_id(assessment_id)
             .await?
             .ok_or(DbErr::Custom("Submission not found".to_string()))?;
 
@@ -247,7 +170,7 @@ impl AssessmentsSubmissionService {
         let new_obj = new.as_object()
             .ok_or(DbErr::Custom("New content is not a valid object".to_string()))?;
 
-        // Get a new responses array - this should replace the existing ones
+        // Get new responses array - this should replace the existing ones
         let new_responses = new_obj
             .get("responses")
             .and_then(|r| r.as_array())
@@ -280,6 +203,7 @@ mod tests {
     #[tokio::test]
     async fn test_automatic_assessment_deletion_after_submission() -> Result<(), Box<dyn std::error::Error>> {
         use crate::common::database::entity::assessments::{AssessmentsService, Model as AssessmentModel};
+        use crate::common::database::entity::assessments_submission::AssessmentsSubmissionService;
 
         let assessment_id = Uuid::new_v4();
 
@@ -292,7 +216,7 @@ mod tests {
         };
 
         let mock_submission = Model {
-            submission_id: assessment_id,
+            temp_id: assessment_id,
             org_id: "test_org".to_string(),
             content: json!({"question1": "answer1"}),
             submitted_at: chrono::Utc::now(),
@@ -360,8 +284,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_assessments_submission_service() -> Result<(), Box<dyn std::error::Error>> {
+        let assessment_id = Uuid::new_v4();
         let mock_submission = Model {
-            submission_id: Uuid::new_v4(),
+            temp_id: assessment_id,
             org_id: "test_org".to_string(),
             content: json!({"question1": "answer1", "question2": "answer2"}),
             submitted_at: Utc::now(),
@@ -382,37 +307,32 @@ mod tests {
             }])
             .into_connection();
 
-        let service = AssessmentsSubmissionService::new(Arc::new(db));
+        let service = TempSubmissionService::new(Arc::new(db));
 
         // Test create
         let submission = service
-            .create_submission(
-                mock_submission.submission_id,
-                "test_user".to_string(),
+            .create_temp_submission(
+                assessment_id,
+                "test_org".to_string(),
                 json!({"question1": "answer1", "question2": "answer2"}),
             )
             .await?;
 
-        assert_eq!(submission.submission_id, mock_submission.submission_id);
+        assert_eq!(submission.temp_id, assessment_id);
         assert_eq!(submission.org_id, "test_org");
 
         // Test get by assessment id
         let found = service
-            .get_submission_by_assessment_id(submission.submission_id)
+            .get_temp_submission_by_assessment_id(assessment_id)
             .await?;
         assert!(found.is_some());
 
-        // Test get by org
-        let org_submissions = service.get_submissions_by_org("test_org").await?;
-        assert!(!org_submissions.is_empty());
-        assert_eq!(org_submissions[0].org_id, "test_org");
-
         // Test get all
-        let all_submissions = service.get_all_submissions().await?;
+        let all_submissions = service.get_all_temp_submissions().await?;
         assert!(!all_submissions.is_empty());
 
         // Test delete
-        let delete_result = service.delete_submission(submission.submission_id).await?;
+        let delete_result = service.delete_temp_submission(submission.temp_id).await?;
         assert_eq!(delete_result.rows_affected, 1);
 
         Ok(())
