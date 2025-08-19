@@ -3,21 +3,21 @@
  * Provides question interface, navigation, and submission functionality
  */
 
-import * as React from "react";
-import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/shared/Navbar";
 import { AssessmentSuccessModal } from "@/components/shared/AssessmentSuccessModal";
 import { CreateAssessmentModal } from "@/components/shared/CreateAssessmentModal";
+import { Navbar } from "@/components/shared/Navbar";
 import {
   AssessmentHeader,
-  OfflineStatusCard,
-  QuestionCard,
   AssessmentNavigation,
   AssessmentSelectionView,
   LoadingView,
   NoCategoriesView,
+  OfflineStatusCard,
+  QuestionCard,
 } from "@/components/user/Assessment";
 import { useAssessment } from "@/hooks/user/useAssessment";
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
 
 export const Assessment: React.FC = () => {
   const navigate = useNavigate();

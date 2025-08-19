@@ -57,7 +57,7 @@ export class ApiInterceptor {
       maxRetries: 3,
       retryDelay: 1000,
       enablePeriodicSync: true,
-      syncInterval: 30000, // 30 seconds
+      syncInterval: 300000, // 5 minutes (300 seconds) - increased from 30 seconds
       ...config,
     };
 
@@ -77,7 +77,7 @@ export class ApiInterceptor {
 
       // Also trigger full sync after a short delay to ensure all components are ready
       setTimeout(() => {
-        syncService.performFullSync();
+        this.triggerSync();
       }, 1000);
 
       toast.success("Connection restored. Syncing data...");
@@ -95,7 +95,7 @@ export class ApiInterceptor {
       // Small delay to ensure IndexedDB is ready
       setTimeout(() => {
         this.debouncedProcessQueue();
-        syncService.performFullSync();
+        this.triggerSync();
       }, 2000);
     }
   }
@@ -123,11 +123,27 @@ export class ApiInterceptor {
 
     if (this.config.enablePeriodicSync) {
       this.syncInterval = setInterval(async () => {
-        if (this.isOnline && !syncService.isCurrentlySyncing()) {
-          // Perform full sync every interval
-          await syncService.performFullSync();
-        }
+        await this.triggerSync();
       }, this.config.syncInterval);
+    }
+  }
+
+  /**
+   * Trigger sync with rate limiting
+   */
+  private lastSyncTime: number = 0;
+  private readonly MIN_SYNC_INTERVAL = 60000; // Minimum 1 minute between syncs
+
+  private async triggerSync(): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastSyncTime < this.MIN_SYNC_INTERVAL) {
+      console.log("🔄 Sync skipped - too soon since last sync");
+      return;
+    }
+
+    if (this.isOnline && !syncService.isCurrentlySyncing()) {
+      this.lastSyncTime = now;
+      await syncService.performFullSync();
     }
   }
 
@@ -303,6 +319,22 @@ export class ApiInterceptor {
             await offlineDB.saveSubmission(offlineSubmission);
           }
           break;
+        case "admin_submissions":
+          // Admin submissions are the same as regular submissions, just a different view
+          if (data.submissions && Array.isArray(data.submissions)) {
+            for (const submission of data.submissions as Submission[]) {
+              const offlineSubmission =
+                DataTransformationService.transformSubmission(submission);
+              await offlineDB.saveSubmission(offlineSubmission);
+            }
+          } else if (data.submission) {
+            const offlineSubmission =
+              DataTransformationService.transformSubmission(
+                data.submission as Submission,
+              );
+            await offlineDB.saveSubmission(offlineSubmission);
+          }
+          break;
         case "reports":
           if (data.reports && Array.isArray(data.reports)) {
             for (const report of data.reports as Report[]) {
@@ -350,9 +382,13 @@ export class ApiInterceptor {
     operation: "create" | "update" | "delete",
   ): Promise<void> {
     try {
+      // Map admin_submissions to submission for sync queue
+      const syncEntityType =
+        entityType === "admin_submissions" ? "submission" : entityType;
+
       const queueItem: SyncQueueItem = {
         id: crypto.randomUUID(),
-        entity_type: entityType as
+        entity_type: syncEntityType as
           | "submission"
           | "assessment"
           | "question"
@@ -384,7 +420,8 @@ export class ApiInterceptor {
     operation: "create" | "update" | "delete",
   ): "low" | "normal" | "high" | "critical" {
     // Critical: submissions (user data)
-    if (entityType === "submissions") return "critical";
+    if (entityType === "submissions" || entityType === "admin_submissions")
+      return "critical";
 
     // High: assessments, responses (user work)
     if (entityType === "assessments" || entityType === "responses")

@@ -3,18 +3,16 @@
  * Provides assessment selection and creation interface
  */
 
-import * as React from "react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/shared/Navbar";
 import { AssessmentList as AssessmentListComponent } from "@/components/shared/AssessmentList";
+import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useOfflineDraftAssessments } from "../../hooks/useOfflineApi";
-import { toast } from "sonner";
-import { ArrowLeft, FileText } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
+import { ArrowLeft, FileText } from "lucide-react";
+import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { useOfflineDraftAssessments } from "../../hooks/useOfflineApi";
 
 export const AssessmentList: React.FC = () => {
   const { t } = useTranslation();

@@ -2,31 +2,29 @@
 // Converts API data to offline format for IndexedDB storage
 
 import type {
-  Question,
-  QuestionRevision,
+  AdminSubmissionDetail,
   Assessment,
+  Category,
+  CreateResponseRequest,
+  Organization,
+  OrganizationInvitation,
+  OrganizationMember,
+  Question,
+  Report,
   Response,
   Submission,
-  Report,
-  Category,
-  Organization,
-  OrganizationMember,
-  OrganizationInvitation,
-  FileMetadata,
-  CreateResponseRequest,
-  AdminSubmissionDetail,
 } from "@/openapi-rq/requests/types.gen";
 
 import type {
-  OfflineQuestion,
   OfflineAssessment,
-  OfflineResponse,
   OfflineCategory,
-  OfflineSubmission,
-  OfflineReport,
-  OfflineOrganization,
-  OfflineUser,
   OfflineInvitation,
+  OfflineOrganization,
+  OfflineQuestion,
+  OfflineReport,
+  OfflineResponse,
+  OfflineSubmission,
+  OfflineUser,
 } from "@/types/offline";
 
 export class DataTransformationService {
@@ -78,6 +76,7 @@ export class DataTransformationService {
     assessment: Assessment,
     userOrganizationId?: string,
     userEmail?: string,
+    userId?: string,
   ): OfflineAssessment {
     const now = new Date().toISOString();
 
@@ -85,6 +84,7 @@ export class DataTransformationService {
       ...assessment,
       organization_id: userOrganizationId,
       user_email: userEmail,
+      user_id: userId, // Add user_id for filtering
       status: "draft" as const, // Default status
       progress_percentage: 0,
       last_activity: assessment.created_at,
@@ -326,9 +326,15 @@ export class DataTransformationService {
     assessments: Assessment[],
     userOrganizationId?: string,
     userEmail?: string,
+    userId?: string,
   ): OfflineAssessment[] {
     return assessments.map((assessment) =>
-      this.transformAssessment(assessment, userOrganizationId, userEmail),
+      this.transformAssessment(
+        assessment,
+        userOrganizationId,
+        userEmail,
+        userId,
+      ),
     );
   }
 
@@ -560,6 +566,23 @@ export class DataTransformationService {
     assessments: OfflineAssessment[],
     submissions: OfflineSubmission[],
   ): OfflineUser {
+    // Validate input parameters
+    if (!user || !user.id) {
+      console.error("Invalid user provided to calculateUserStats");
+      return user;
+    }
+
+    if (!Array.isArray(assessments)) {
+      console.error("Invalid assessments array provided to calculateUserStats");
+      return user;
+    }
+
+    if (!Array.isArray(submissions)) {
+      console.error("Invalid submissions array provided to calculateUserStats");
+      return user;
+    }
+
+    // Filter assessments and submissions for this user
     const userAssessments = assessments.filter(
       (assessment) => assessment.user_id === user.id,
     );
@@ -567,6 +590,7 @@ export class DataTransformationService {
       (submission) => submission.user_id === user.id,
     );
 
+    // Return updated user with calculated statistics
     return {
       ...user,
       assessment_count: userAssessments.length,

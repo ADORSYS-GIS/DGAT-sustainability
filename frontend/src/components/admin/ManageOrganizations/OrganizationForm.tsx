@@ -4,15 +4,6 @@
  */
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -20,23 +11,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  X,
-  Plus,
-  ChevronDown,
-  Building2,
-  Globe,
-  Tag,
-  Settings,
-} from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { Badge } from "@/components/ui/badge";
-import { useState, useRef, useEffect } from "react";
-import {
   DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Building2,
+  ChevronDown,
+  Globe,
+  Plus,
+  Settings,
+  Tag,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Category {
   categoryId: string;
@@ -49,6 +41,8 @@ interface Category {
 type OrganizationFormData = {
   name: string;
   domains: { name: string }[];
+  redirectUrl: string;
+  enabled: string;
   attributes: { categories: string[] };
 };
 
@@ -61,8 +55,12 @@ type CategoryFormData = {
 type EditingOrganization = {
   id: string;
   name: string;
-  domains: { name: string }[];
-  attributes?: { categories?: string[] };
+  alias?: string;
+  enabled: boolean;
+  description?: string | null;
+  redirectUrl?: string | null;
+  domains?: { name: string; verified?: boolean }[];
+  attributes?: { [key: string]: string[] };
 } | null;
 
 interface OrganizationFormProps {
@@ -72,13 +70,13 @@ interface OrganizationFormProps {
   isPending: boolean;
   editingOrg: EditingOrganization;
   formData: OrganizationFormData;
-  setFormData: (data: OrganizationFormData) => void;
+  setFormData: React.Dispatch<React.SetStateAction<OrganizationFormData>>;
   categories: Category[];
   categoriesLoading: boolean;
   showCategoryCreation: boolean;
-  setShowCategoryCreation: (show: boolean) => void;
+  setShowCategoryCreation: React.Dispatch<React.SetStateAction<boolean>>;
   categoryFormData: CategoryFormData;
-  setCategoryFormData: (data: CategoryFormData) => void;
+  setCategoryFormData: React.Dispatch<React.SetStateAction<CategoryFormData>>;
   handleDomainChange: (idx: number, value: string) => void;
   addDomain: () => void;
   removeDomain: (idx: number) => void;

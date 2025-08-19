@@ -6,8 +6,8 @@ import {
 } from "@tanstack/react-query";
 import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
 import { offlineDB } from "@/services/indexeddb";
-import { syncService } from "@/services/syncService";
 import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
 
 export function useOfflineQuery<TData>(
   queryKey: QueryKey,
@@ -61,16 +61,28 @@ export function useOfflineMutation<TData, TVariables>(
         } catch (error) {
           toast.error("Request failed. Saving data locally for sync.");
           await offlineDB.addToSyncQueue({
-            type: "mutation",
+            id: uuidv4(),
+            entity_type: "user", // Default type, should be more specific
+            operation: "create",
             data: { variables },
+            retry_count: 0,
+            max_retries: 3,
+            priority: "normal",
+            created_at: new Date().toISOString(),
           });
           throw error;
         }
       } else {
         toast.info("You are offline. Queuing changes for later sync.");
         await offlineDB.addToSyncQueue({
-          type: "mutation",
+          id: uuidv4(),
+          entity_type: "user", // Default type, should be more specific
+          operation: "create",
           data: { variables },
+          retry_count: 0,
+          max_retries: 3,
+          priority: "normal",
+          created_at: new Date().toISOString(),
         });
         throw new Error("Offline. Changes queued.");
       }

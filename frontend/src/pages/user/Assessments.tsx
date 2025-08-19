@@ -3,15 +3,15 @@
  * Shows submission history, status, and management options
  */
 
-import * as React from "react";
+import { LoadingState } from "@/components/shared";
 import { Navbar } from "@/components/shared/Navbar";
 import {
   AssessmentsHeader,
-  SubmissionCard,
   EmptyState,
+  SubmissionCard,
 } from "@/components/user/Assessments";
-import { LoadingState } from "@/components/shared";
 import { useAssessments } from "@/hooks/user/useAssessments";
+import * as React from "react";
 
 export const Assessments: React.FC = () => {
   const {

@@ -24,14 +24,12 @@ interface UserFormProps {
     email: string;
     roles: string[];
   };
-  setFormData: (data: { email: string; roles: string[] }) =>
-    | void
-    | ((
-        updater: (prev: { email: string; roles: string[] }) => {
-          email: string;
-          roles: string[];
-        },
-      ) => void);
+  setFormData: React.Dispatch<
+    React.SetStateAction<{
+      email: string;
+      roles: string[];
+    }>
+  >;
   onSubmit: () => void;
   resetForm: () => void;
   selectedOrg: OrganizationResponse | null;
@@ -78,14 +76,7 @@ export const UserForm: React.FC<UserFormProps> = ({
               type="email"
               value={formData.email}
               onChange={(e) =>
-                (typeof setFormData === "function"
-                  ? (setFormData as (
-                      updater: (prev: { email: string; roles: string[] }) => {
-                        email: string;
-                        roles: string[];
-                      },
-                    ) => void)
-                  : setFormData)((prev) => ({
+                setFormData((prev) => ({
                   ...prev,
                   email: e.target.value,
                 }))

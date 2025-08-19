@@ -1,13 +1,13 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import MainLayout from "@/layouts/MainLayout";
 import {
+  QueryCache,
   QueryClient,
   QueryClientProvider,
-  QueryCache,
 } from "@tanstack/react-query";
+import React from "react";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { toast } from "sonner";
 import routes from "./routes";
-import MainLayout from "@/layouts/MainLayout";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({

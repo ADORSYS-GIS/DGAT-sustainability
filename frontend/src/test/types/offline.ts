@@ -288,9 +288,7 @@ export interface SubmissionFilters {
 }
 
 export interface UserFilters {
-  organizationId?: string; // Changed from organization_id to match usage
+  organization_id?: string;
   roles?: string[];
-  syncStatus?: "pending" | "synced" | "failed"; // Added syncStatus
-  searchText?: string; // Added searchText
   is_active?: boolean;
 }

@@ -3,15 +3,15 @@
  * Provides CRUD operations for organizations with user management
  */
 
-import { Navbar } from "@/components/shared/Navbar";
+import { OfflineStatusIndicator } from "@/components/admin/ManageCategories";
 import {
+  OrganizationForm,
   OrganizationHeader,
   OrganizationList,
-  OrganizationForm,
 } from "@/components/admin/ManageOrganizations";
 import { LoadingState } from "@/components/shared";
+import { Navbar } from "@/components/shared/Navbar";
 import { useManageOrganizations } from "@/hooks/admin/useManageOrganizations";
-import { OfflineStatusIndicator } from "@/components/admin/ManageCategories";
 
 export const ManageOrganizations: React.FC = () => {
   const {

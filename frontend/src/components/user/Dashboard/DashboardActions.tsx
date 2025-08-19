@@ -4,12 +4,12 @@
  */
 
 import { FeatureCard } from "@/components/shared/FeatureCard";
-import { useTranslation } from "react-i18next";
+import { LucideIcon } from "lucide-react";
 
 interface DashboardAction {
   title: string;
   description: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   color: "green" | "blue";
   onClick: () => void;
 }

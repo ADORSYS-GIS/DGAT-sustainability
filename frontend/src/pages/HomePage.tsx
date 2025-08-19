@@ -3,14 +3,14 @@
  * Shows system overview, benefits, and directs users to appropriate dashboards based on role
  */
 
-import { useEffect } from "react";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
-import { Leaf, CheckSquare, Users, Globe, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
+import { CheckSquare, Globe, Leaf, Shield, Users } from "lucide-react";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
 
 export const Welcome: React.FC = () => {
   const { isAuthenticated, loading, user } = useAuth();

@@ -21,7 +21,7 @@ interface CategoryRecommendation {
   id: string;
   category: string;
   recommendation: string;
-  timestamp: Date;
+  timestamp: string;
 }
 
 interface AssessmentResponsesProps {
@@ -194,7 +194,7 @@ export const AssessmentResponses: React.FC<AssessmentResponsesProps> = ({
                                   {t("reviewAssessments.addedAt", {
                                     defaultValue: "Added at",
                                   })}{" "}
-                                  {rec.timestamp.toLocaleTimeString()}
+                                  {new Date(rec.timestamp).toLocaleTimeString()}
                                 </p>
                               </div>
                               <Button

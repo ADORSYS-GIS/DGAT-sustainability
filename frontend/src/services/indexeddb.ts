@@ -1,27 +1,27 @@
-import { openDB, DBSchema, IDBPDatabase, deleteDB } from "idb";
 import type {
-  OfflineDatabaseSchema,
-  OfflineQuestion,
-  OfflineAssessment,
-  OfflineResponse,
-  OfflineCategory,
-  OfflineSubmission,
-  OfflineReport,
-  OfflineOrganization,
-  OfflineUser,
-  OfflineInvitation,
-  SyncQueueItem,
-  SyncStatus,
-  NetworkStatus,
+  AssessmentFilters,
   ConflictData,
   DataLoadingProgress,
   DatabaseStats,
+  NetworkStatus,
+  OfflineAssessment,
+  OfflineCategory,
+  OfflineDatabaseSchema,
+  OfflineInvitation,
+  OfflineOrganization,
+  OfflineQuestion,
+  OfflineReport,
+  OfflineResponse,
+  OfflineSubmission,
+  OfflineUser,
   QuestionFilters,
-  AssessmentFilters,
   ResponseFilters,
   SubmissionFilters,
+  SyncQueueItem,
+  SyncStatus,
   UserFilters,
 } from "@/types/offline";
+import { IDBPDatabase, deleteDB, openDB } from "idb";
 
 interface PendingReviewSubmission {
   id: string;
@@ -34,6 +34,8 @@ interface PendingReviewSubmission {
   }>;
   syncStatus?: "pending" | "synced";
 }
+
+export type { PendingReviewSubmission };
 
 // Enhanced IndexedDB Database Class
 class OfflineDB {
@@ -834,29 +836,53 @@ class OfflineDB {
       await deleteDB(this.DB_NAME);
 
       // Recreate the database
-      await this.initialize();
+      this.dbPromise = openDB<OfflineDatabaseSchema>(
+        this.DB_NAME,
+        this.DB_VERSION,
+        {
+          upgrade: (db, oldVersion, newVersion) => {
+            this.createObjectStores(db);
+          },
+          blocked: () => {},
+          blocking: () => {},
+          terminated: () => {},
+        },
+      );
     } catch (error) {
-      throw new Error(`Failed to clear all data: ${error}`);
+      console.error("Failed to clear all data:", error);
+      throw new Error(
+        `Failed to clear all data: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
   async deleteDatabase(): Promise<void> {
-    const db = await this.dbPromise;
-    db.close();
+    try {
+      const db = await this.dbPromise;
+      db.close();
 
-    // Delete the database completely
-    await deleteDB(this.DB_NAME);
+      // Delete the database completely
+      await deleteDB(this.DB_NAME);
 
-    // Recreate the database
-    this.dbPromise = openDB<OfflineDatabaseSchema>(
-      this.DB_NAME,
-      this.DB_VERSION,
-      {
-        upgrade: (db, oldVersion, newVersion) => {
-          this.createObjectStores(db);
+      // Recreate the database
+      this.dbPromise = openDB<OfflineDatabaseSchema>(
+        this.DB_NAME,
+        this.DB_VERSION,
+        {
+          upgrade: (db, oldVersion, newVersion) => {
+            this.createObjectStores(db);
+          },
+          blocked: () => {},
+          blocking: () => {},
+          terminated: () => {},
         },
-      },
-    );
+      );
+    } catch (error) {
+      console.error("Failed to delete database:", error);
+      throw new Error(
+        `Failed to delete database: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   async close(): Promise<void> {

@@ -99,15 +99,11 @@ if ("serviceWorker" in navigator) {
 const initializeApp = async () => {
   try {
     // Initialize Keycloak authentication asynchronously (don't block rendering)
-    initializeAuth()
-      .then((authenticated) => {
-        console.log("Authentication initialized:", authenticated);
-        // Setup token refresh after authentication is ready
-        setupTokenRefresh();
-      })
-      .catch((error) => {
-        console.error("Authentication initialization failed:", error);
-      });
+    const authenticated = await initializeAuth();
+    console.log("Authentication initialized:", authenticated);
+
+    // Setup token refresh after authentication is ready
+    setupTokenRefresh();
 
     // Initialize IndexedDB and other offline services
     // This ensures the database is ready when the app loads

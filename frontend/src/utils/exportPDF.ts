@@ -503,7 +503,7 @@ export async function exportAllAssessmentsPDF(reports) {
   const doc = new jsPDF({ orientation: "landscape" });
   let y = 20;
 
-  // Add sustainability logo to the first page
+  // Add sustainability logo to the first page - make it fill the entire page
   try {
     console.log("Loading sustainability logo...");
 
@@ -538,13 +538,19 @@ export async function exportAllAssessmentsPDF(reports) {
               ctx?.drawImage(img, 0, 0);
 
               const base64 = canvas.toDataURL("image/png");
-              console.log(
-                "Adding sustainability logo to PDF at position (10,",
-                y,
-                ")",
-              );
-              doc.addImage(base64, "PNG", 10, y, 50, 50);
-              y += 60; // Space after logo
+              console.log("Adding sustainability logo to PDF - full page");
+
+              // Get page dimensions
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const pageHeight = doc.internal.pageSize.getHeight();
+
+              // Add image to fill the entire first page
+              doc.addImage(base64, "PNG", 0, 0, pageWidth, pageHeight);
+
+              // Add a new page for content
+              doc.addPage();
+              y = 20; // Reset y position for the new page
+
               imageLoaded = true;
               resolve(true);
             } catch (error) {
@@ -581,29 +587,39 @@ export async function exportAllAssessmentsPDF(reports) {
         "Could not load sustainability logo from any path, trying fallback...",
       );
 
-      // Fallback: Create a simple placeholder logo
+      // Fallback: Create a simple placeholder logo that fills the page
       try {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        canvas.width = 50;
-        canvas.height = 50;
+        canvas.width = 800;
+        canvas.height = 600;
 
-        // Draw a simple placeholder logo
+        // Draw a simple placeholder logo that fills the canvas
         if (ctx) {
           ctx.fillStyle = "#1e3a8a";
-          ctx.fillRect(0, 0, 50, 50);
+          ctx.fillRect(0, 0, 800, 600);
           ctx.fillStyle = "white";
-          ctx.font = "bold 12px Arial";
+          ctx.font = "bold 48px Arial";
           ctx.textAlign = "center";
-          ctx.fillText("DGRV", 25, 25);
-          ctx.font = "8px Arial";
-          ctx.fillText("Sustainability", 25, 40);
+          ctx.fillText("DGRV", 400, 280);
+          ctx.font = "24px Arial";
+          ctx.fillText("Sustainability Report", 400, 320);
         }
 
         const base64 = canvas.toDataURL("image/png");
-        console.log("Adding fallback logo to PDF at position (10,", y, ")");
-        doc.addImage(base64, "PNG", 10, y, 50, 50);
-        y += 60; // Space after logo
+        console.log("Adding fallback logo to PDF - full page");
+
+        // Get page dimensions
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        // Add fallback image to fill the entire first page
+        doc.addImage(base64, "PNG", 0, 0, pageWidth, pageHeight);
+
+        // Add a new page for content
+        doc.addPage();
+        y = 20; // Reset y position for the new page
+
         console.log("Fallback logo added successfully");
       } catch (fallbackError) {
         console.error("Could not create fallback logo:", fallbackError);
@@ -852,11 +868,9 @@ export async function exportAllAssessmentsPDF(reports) {
   }
   y += 10;
 
-  // 3. Radar Chart Section (unchanged)
-  if (y > 140) {
-    doc.addPage();
-    y = 20;
-  }
+  // 3. Radar Chart Section - Put on a separate page
+  doc.addPage();
+  y = 20;
   doc.setFontSize(18);
   doc.text("Radar Chart (Sustainability Scores)", 10, y);
   y += 10;

@@ -10,22 +10,20 @@ import {
 } from "@/hooks/useOfflineApi";
 import { ReportsService } from "@/openapi-rq/requests/services.gen";
 import { AdminSubmissionDetail } from "@/openapi-rq/requests/types.gen";
-import { offlineDB } from "@/services/indexeddb";
+import { offlineDB, type PendingReviewSubmission } from "@/services/indexeddb";
+import type { Submission_content_responses } from "@/openapi-rq/requests/types.gen";
+import React from "react";
+
+// Locally extend the type to include question_category
+interface SubmissionResponseWithCategory extends Submission_content_responses {
+  question_category?: string;
+}
 
 interface CategoryRecommendation {
   id: string;
   category: string;
   recommendation: string;
-  timestamp: Date;
-}
-
-interface PendingReviewSubmission {
-  id: string;
-  submissionId: string;
-  categoryRecommendations: CategoryRecommendation[];
-  reviewer: string;
-  timestamp: Date;
-  syncStatus: "pending" | "synced";
+  timestamp: string;
 }
 
 export const useReviewAssessments = () => {
@@ -67,10 +65,16 @@ export const useReviewAssessments = () => {
         setPendingReviews(pendingReviews);
       } catch (error) {
         console.error("Failed to load pending reviews:", error);
+        toast.error(
+          t("reviewAssessments.failedToLoadPendingReviews", {
+            defaultValue: "Failed to load pending reviews",
+          }),
+        );
       }
     };
+
     loadPendingReviews();
-  }, []);
+  }, [t]);
 
   // Filter submissions for review
   const submissionsForReview =
@@ -78,8 +82,30 @@ export const useReviewAssessments = () => {
       (submission) => submission.review_status === "under_review",
     ) || [];
 
-  // Get responses from the selected submission (they're already included in the submission data)
-  const submissionResponses = selectedSubmission?.content?.responses || [];
+  // Get responses from the selected submission and transform them to match expected structure
+  const submissionResponses = React.useMemo(() => {
+    const responses = selectedSubmission?.content?.responses as
+      | SubmissionResponseWithCategory[]
+      | undefined;
+
+    if (!responses) return [];
+
+    return responses.map((response) => ({
+      question_category: response.question_category || "Uncategorized",
+      response: response.response || "",
+      question_text: (() => {
+        const q = response.question;
+        if (q && typeof q === "object") {
+          // @ts-expect-error: OpenAPI type is too loose, but backend always sends { en: string }
+          return q.en ?? "Question";
+        }
+        if (typeof q === "string") {
+          return q;
+        }
+        return "Question";
+      })(),
+    }));
+  }, [selectedSubmission]);
 
   // Listen for sync completion and update pending reviews
   useEffect(() => {
@@ -128,7 +154,7 @@ export const useReviewAssessments = () => {
       id: `rec_${Date.now()}_${Math.random()}`,
       category,
       recommendation,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
 
     // Add the new recommendation to the existing list (don't filter out existing ones)
@@ -159,8 +185,6 @@ export const useReviewAssessments = () => {
         id: crypto.randomUUID(),
         submissionId: selectedSubmission.submission_id,
         categoryRecommendations,
-        reviewer: user?.email || "Unknown",
-        timestamp: new Date(),
         syncStatus: "pending",
       };
 

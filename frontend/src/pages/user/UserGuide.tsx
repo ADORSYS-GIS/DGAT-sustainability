@@ -3,24 +3,23 @@
  * Shows getting started information, role explanations, and usage instructions
  */
 
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  ArrowLeft,
   BookOpen,
-  FileText,
   CheckSquare,
+  Download,
+  Eye,
+  FileText,
+  HelpCircle,
+  Play,
   Star,
   Users,
-  Download,
-  HelpCircle,
-  ArrowLeft,
-  Play,
-  Eye,
-  Edit,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 export const UserGuide: React.FC = () => {
   const { t } = useTranslation();

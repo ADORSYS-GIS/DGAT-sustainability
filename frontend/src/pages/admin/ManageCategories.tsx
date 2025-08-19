@@ -3,15 +3,15 @@
  * Provides CRUD operations for categories with offline-first functionality
  */
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  CategoryHeader,
-  OfflineStatusIndicator,
   CategoryForm,
+  CategoryHeader,
   CategoryList,
   ErrorState,
+  OfflineStatusIndicator,
 } from "@/components/admin/ManageCategories";
 import { LoadingState } from "@/components/shared";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useManageCategories } from "@/hooks/admin/useManageCategories";
 
 export const ManageCategories: React.FC = () => {

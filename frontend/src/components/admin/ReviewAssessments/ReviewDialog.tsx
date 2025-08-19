@@ -20,7 +20,7 @@ interface CategoryRecommendation {
   id: string;
   category: string;
   recommendation: string;
-  timestamp: Date;
+  timestamp: string;
 }
 
 interface ReviewDialogProps {

@@ -3,16 +3,16 @@
  * Provides submission review interface with approval/rejection actions
  */
 
-import React from "react";
 import {
+  ErrorState,
+  ReviewDialog,
   ReviewHeader,
   ReviewStatusIndicators,
   SubmissionsTable,
-  ReviewDialog,
-  ErrorState,
 } from "@/components/admin/ReviewAssessments";
 import { LoadingState } from "@/components/shared";
 import { useReviewAssessments } from "@/hooks/admin/useReviewAssessments";
+import React from "react";
 
 const ReviewAssessments: React.FC = () => {
   const {

@@ -18,20 +18,20 @@ import type {
   OrgAdminMemberCategoryUpdateRequest,
 } from "@/openapi-rq/requests/types.gen";
 import type { OfflineUser } from "@/types/offline";
+import type { UserProfile } from "@/services/shared/authService";
 
-// Helper to get org and categories from ID token
-function getOrgAndCategoriesAndId(user: unknown) {
-  if (!user || !user.organizations)
+// Helper to get org and categories from user profile
+function getOrgAndCategoriesAndId(user: UserProfile | null) {
+  if (!user || !user.organizations) {
     return { orgName: "", orgId: "", categories: [] };
+  }
 
-  const organizations = (
-    user as {
-      organizations: Record<string, { id: string; categories: string[] }>;
-    }
-  ).organizations as Record<string, { id: string; categories: string[] }>;
+  const organizations = user.organizations;
   const orgKeys = Object.keys(organizations);
 
-  if (orgKeys.length === 0) return { orgName: "", orgId: "", categories: [] };
+  if (orgKeys.length === 0) {
+    return { orgName: "", orgId: "", categories: [] };
+  }
 
   const orgName = orgKeys[0]; // First organization
   const orgData = organizations[orgName];

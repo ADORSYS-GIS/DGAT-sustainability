@@ -1,13 +1,19 @@
-import { useMemo, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   useOfflineAdminSubmissions,
-  useOfflineQuestions,
   useOfflineCategories,
+  useOfflineQuestions,
 } from "@/hooks/useOfflineApi";
-import { Users, List, BookOpen, Star, CheckSquare } from "lucide-react";
+import {
+  BookOpen,
+  CheckSquare,
+  List,
+  Star,
+  Users,
+  LucideIcon,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 interface PendingReview {
   id: string;
@@ -27,7 +33,7 @@ interface SystemStat {
 interface AdminAction {
   title: string;
   description: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   color: "blue" | "green";
   onClick: () => void;
 }
@@ -85,9 +91,8 @@ export const useAdminDashboard = () => {
     (submission) => submission.review_status === "rejected",
   );
 
-  // Also include 'reviewed' status as completed
   const reviewedSubmissions = submissions.filter(
-    (submission) => submission.review_status === "reviewed",
+    (submission) => (submission.review_status as string) === "reviewed",
   );
 
   const pendingReviews = useMemo(() => {

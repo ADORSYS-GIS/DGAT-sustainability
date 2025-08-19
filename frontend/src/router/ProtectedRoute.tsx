@@ -1,8 +1,7 @@
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/shared/useAuth";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { toast } from "sonner";
-import React from "react";
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];

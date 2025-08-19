@@ -4,6 +4,7 @@
  */
 
 import { FeatureCard } from "@/components/shared/FeatureCard";
+import { LucideIcon } from "lucide-react";
 
 interface AdminAction {
   title: string;
@@ -26,7 +27,13 @@ export const AdminActions: React.FC<AdminActionsProps> = ({ actions }) => {
           className="animate-fade-in"
           style={{ animationDelay: `${index * 100}ms` }}
         >
-          <FeatureCard {...action} />
+          <FeatureCard
+            title={action.title}
+            description={action.description}
+            icon={action.icon as LucideIcon}
+            color={action.color}
+            onClick={action.onClick}
+          />
         </div>
       ))}
     </div>

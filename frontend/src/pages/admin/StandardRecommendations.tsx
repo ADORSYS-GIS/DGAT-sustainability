@@ -3,8 +3,6 @@
  * Provides CRUD operations for recommendation templates with offline storage
  */
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useTranslation } from "react-i18next";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Plus, Edit, Trash2, MessageSquare } from "lucide-react";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
+import { get, set } from "idb-keyval";
+import { Edit, MessageSquare, Plus, Star, Trash2 } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-import { set, get, del } from "idb-keyval";
-import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
 
 const STANDARD_RECOMMENDATIONS_KEY = "standard_recommendations";
 

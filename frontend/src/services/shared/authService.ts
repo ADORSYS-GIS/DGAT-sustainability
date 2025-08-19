@@ -39,17 +39,33 @@ export interface AuthState {
  */
 export const initializeAuth = async (): Promise<boolean> => {
   try {
+    console.log("Initializing Keycloak authentication...");
+
     const authenticated = await keycloak.init(keycloakInitOptions);
 
     if (authenticated) {
+      // Validate that we have valid tokens
+      if (!keycloak.token || !keycloak.refreshToken) {
+        console.warn("Keycloak authenticated but missing tokens");
+        return false;
+      }
+
       // Store tokens in IndexedDB
       await storeTokens();
       console.log("Keycloak initialized successfully");
+      return true;
+    } else {
+      console.log("Keycloak initialization completed - user not authenticated");
+      return false;
     }
-
-    return authenticated;
   } catch (error) {
     console.error("Failed to initialize Keycloak:", error);
+
+    // Provide more specific error information
+    if (error instanceof Error) {
+      console.error("Error details:", error.message);
+    }
+
     return false;
   }
 };

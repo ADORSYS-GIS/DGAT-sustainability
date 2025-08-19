@@ -3,25 +3,24 @@
  * Shows system overview, management procedures, and best practices for admin users
  */
 
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  BookOpen,
-  Users,
-  Building2,
-  List,
-  FileText,
-  CheckSquare,
-  Star,
-  Settings,
-  AlertTriangle,
-  HelpCircle,
-  ArrowLeft,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
+import {
+  ArrowLeft,
+  BookOpen,
+  Building2,
+  CheckSquare,
+  FileText,
+  HelpCircle,
+  List,
+  Settings,
+  Star,
+  Users,
+} from "lucide-react";
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 export const AdminGuide: React.FC = () => {
   const { t } = useTranslation();

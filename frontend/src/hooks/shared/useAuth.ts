@@ -4,7 +4,6 @@ import {
   getAuthState,
   login as authLogin,
   logout as authLogout,
-  UserProfile,
   AuthState,
 } from "../../services/shared/authService";
 

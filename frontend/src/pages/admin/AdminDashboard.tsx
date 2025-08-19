@@ -4,11 +4,11 @@
  */
 
 import {
-  AdminDashboardHeader,
-  SystemStats,
   AdminActions,
-  PendingReviews,
+  AdminDashboardHeader,
   AdminGuide,
+  PendingReviews,
+  SystemStats,
 } from "@/components/admin/AdminDashboard";
 import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
 

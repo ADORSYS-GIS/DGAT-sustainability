@@ -4,18 +4,17 @@
  */
 
 import { Navbar } from "@/components/shared/Navbar";
-import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertCircle,
-  Calendar,
   CheckCircle,
   Kanban,
   PlayCircle,
   ThumbsUp,
 } from "lucide-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { useOfflineReports } from "../../hooks/useOfflineApi";
 
 export const ActionPlan: React.FC = () => {

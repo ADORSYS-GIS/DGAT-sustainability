@@ -4,15 +4,15 @@
  * Provides complete view of submission with categorized responses
  */
 
-import * as React from "react";
+import { LoadingState } from "@/components/shared";
 import { Navbar } from "@/components/shared/Navbar";
 import {
-  SubmissionHeader,
   CategoryAccordion,
   ErrorState,
+  SubmissionHeader,
 } from "@/components/user/SubmissionView";
-import { LoadingState } from "@/components/shared";
 import { useSubmissionView } from "@/hooks/user/useSubmissionView";
+import * as React from "react";
 
 export const SubmissionView: React.FC = () => {
   const {
