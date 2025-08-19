@@ -226,7 +226,6 @@ pub async fn list_temp_submissions_by_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<AdminSubmissionListResponse>, ApiError> {
     // Check if user has admin permissions (similar to other admin endpoints)
     if !claims.can_create_assessments() {
@@ -235,11 +234,16 @@ pub async fn list_temp_submissions_by_assessment(
         ));
     }
 
-    // Fetch temp submissions for the specific assessment from the database
-    let temp_submission = app_state
+    // Extract org_id from claims instead of path parameter
+    let org_id = claims.get_org_id().ok_or_else(|| {
+        ApiError::BadRequest("No organization found in user claims".to_string())
+    })?;
+
+    // Fetch temp submissions for the specific organization from the database
+    let temp_submissions = app_state
         .database
         .temp_submission
-        .get_temp_submission_by_assessment_id(assessment_id)
+        .get_temp_submissions_by_org_id(&org_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch temp submissions: {e}")))?;
 
@@ -262,7 +266,7 @@ pub async fn list_temp_submissions_by_assessment(
     // Convert database models to API models
     let mut submissions = Vec::new();
     
-    if let Some(model) = temp_submission {
+    for model in temp_submissions {
         // Parse the content to extract assessment and responses information
         let default_map = serde_json::Map::new();
         let content_obj = model.content.as_object().unwrap_or(&default_map);

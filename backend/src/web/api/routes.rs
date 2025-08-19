@@ -118,7 +118,7 @@ pub fn create_router(app_state: AppState) -> Router {
         )
         // Admin endpoints
         .route("/api/admin/submissions", get(list_all_submissions))
-        .route("/api/admin/assessments/:assessment_id/drafts", get(list_temp_submissions_by_assessment))
+        .route("/api/drafts", get(list_temp_submissions_by_assessment))
         // User submission endpoints
         .route("/api/submissions", get(list_user_submissions))
         .route("/api/submissions/:submission_id", get(get_submission))
