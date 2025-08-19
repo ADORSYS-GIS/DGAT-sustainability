@@ -4,6 +4,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, TransactionTrait, Set};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -593,24 +594,66 @@ pub async fn submit_assessment(
         ));
     }
 
-    // Fetch the temp submission (must exist)
-    let temp_submission = app_state.database.temp_submission
-        .get_temp_submission_by_assessment_id(assessment_id)
+    // Start database transaction to ensure atomicity
+    let txn = app_state.database.get_connection()
+        .begin()
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to read temp_submission: {e}")))?
-        .ok_or_else(|| ApiError::BadRequest("No temp submission to finalize".to_string()))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to start transaction: {e}")))?;
 
-    // Create final submission using the content from temp submission
-    app_state.database.assessments_submission
-        .create_submission(assessment_id, temp_submission.org_id, temp_submission.content.clone())
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to create final submission: {e}")))?;
+    // Perform all operations within the transaction
+    let result = async {
+        // Fetch the temp submission (must exist) - this read operation doesn't need transaction
+        let temp_submission = app_state.database.temp_submission
+            .get_temp_submission_by_assessment_id(assessment_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to read temp_submission: {e}")))?
+            .ok_or_else(|| ApiError::BadRequest("No temp submission to finalize".to_string()))?;
 
-    // Delete the temp submission after successful final submission
-    app_state.database.temp_submission
-        .delete_temp_submission(assessment_id)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to clean up temp submission: {e}")))?;
+        // Create final submission using the content from temp submission
+        let submission = crate::common::database::entity::assessments_submission::ActiveModel {
+            submission_id: Set(assessment_id),
+            org_id: Set(temp_submission.org_id.clone()),
+            content: Set(temp_submission.content.clone()),
+            submitted_at: Set(chrono::Utc::now()),
+            status: Set(crate::common::database::entity::assessments_submission::SubmissionStatus::UnderReview),
+            reviewed_at: Set(None),
+        };
+        
+        submission.insert(&txn)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to create final submission: {e}")))?;
 
-    Ok(StatusCode::OK)
+        // Delete the temp submission after successful final submission
+        crate::common::database::entity::temp_submission::Entity::delete_by_id(assessment_id)
+            .exec(&txn)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to clean up temp submission: {e}")))?;
+
+        // Delete the assessment after successful final submission and temp submission cleanup
+        // This will cascade delete all associated assessment_response records
+        crate::common::database::entity::assessments::Entity::delete_by_id(assessment_id)
+            .exec(&txn)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to clean up assessment: {e}")))?;
+
+        Ok::<(), ApiError>(())
+    }.await;
+
+    match result {
+        Ok(_) => {
+            // Commit transaction on success
+            txn.commit()
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to commit transaction: {e}")))?;
+            Ok(StatusCode::OK)
+        }
+        Err(e) => {
+            // Rollback transaction on any error
+            if let Err(rollback_err) = txn.rollback().await {
+                tracing::error!("Failed to rollback transaction: {}", rollback_err);
+                return Err(ApiError::InternalServerError(format!("Transaction failed and rollback failed: {rollback_err}")));
+            }
+            Err(e)
+        }
+    }
 }
