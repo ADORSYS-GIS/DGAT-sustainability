@@ -241,6 +241,43 @@ graph TD
 - CloudWatch for metrics and logs.
 - Audit logs for user actions.
 
+### Caching Architecture:
+
+The system implements a two-tier caching strategy to optimize performance and reduce database load:
+
+#### Request-Level Caching:
+- **Implementation**: Uses Tokio's `task_local!()` macro for request-scoped storage
+- **Scope**: Data persists only within a single HTTP request lifecycle
+- **Storage**: `RefCell<HashMap>` for thread-safe interior mutability
+- **Cached Data**: 
+  - Assessment models by assessment_id
+  - Submission status by assessment_id
+  - File models by file_id and response_id
+  - Assessment responses by assessment_id
+  - Temp submissions by assessment_id
+- **Activation**: Only active when handlers are wrapped with `with_request_cache!` macro
+- **Benefits**: Eliminates redundant database calls within single requests
+- **Graceful Degradation**: Falls back to direct database calls if cache unavailable
+
+#### Session-Level Caching:
+- **Implementation**: `Arc<RwLock<HashMap>>` for thread-safe cross-request storage
+- **Scope**: User-specific data persists across multiple requests during user session
+- **Expiration**: Automatic cleanup based on JWT token expiration time
+- **Cached Data**:
+  - User assessments by organization_id
+  - Organization mappings
+  - User submission statuses
+  - User temp submissions
+- **User Isolation**: Each user has separate cache namespace preventing data leakage
+- **Cache Invalidation**: Automatic invalidation on data mutations (create/update/delete operations)
+- **Benefits**: Significant performance improvement for frequently accessed user data
+
+#### Cache Usage Patterns:
+- **list_assessments**: Session cache for user assessments and submission statuses
+- **get_assessment**: Request cache for assessment details, responses, and files
+- **create_assessment**: Request cache for cleanup operations, session cache invalidation
+- **Assessment mutations**: Automatic session cache invalidation to maintain consistency
+
 *Cross-reference: See Section 9 for justifications.*
 
 ## 9. Design Decisions
@@ -255,6 +292,10 @@ graph TD
 | Sync Queue | Reliable offline sync with conflict resolution.                       | Real-time sync (requires connectivity). |
 | AWS Deployment | Scalable, managed services.                                           | On-premises (higher costs). |
 | Rust Backend | Memory safety, performance, concurrency. and low resource utilisation | Node.js (higher memory usage). |
+| Two-Tier Caching Strategy | Request-level caching eliminates redundant DB calls within requests; Session-level caching persists user data across requests for better UX. | Single-level caching (less optimization), Redis (additional infrastructure complexity). |
+| Tokio task_local! for Request Cache | Provides request-scoped storage with automatic cleanup and zero overhead when not used. | Thread-local storage (not async-safe), Arc<Mutex> (higher contention). |
+| JWT-Based Session Cache Expiration | Aligns cache lifetime with user authentication, automatic cleanup prevents memory leaks. | Fixed TTL (may cache stale data), Manual invalidation (complex management). |
+| Temp Submission Table | Enables draft workflow with staging area before final submission, supports review process. | Direct submission (no draft capability), File-based drafts (less reliable). |
 
 *Cross-reference: See Section 4 for strategy and Section 11 for quality impacts.*
 
@@ -292,7 +333,11 @@ graph TD
 | ESG | Environmental, Social, Governance criteria. |
 | Keycloak | Identity and access management system. |
 | JSONB | PostgreSQL binary JSON format. |
+| Request-Level Cache | Tokio task_local! storage that persists data within a single HTTP request lifecycle. |
+| Session-Level Cache | User-specific cache that persists data across multiple requests during a user session. |
 | Sync Queue | Mechanism for offline data synchronization. |
+| Temp Submission | Draft staging area for assessment submissions before finalization. |
+| Two-Tier Caching | Architecture combining request-level and session-level caching for optimal performance. |
 
 ## Database ER Diagram
 
@@ -303,6 +348,8 @@ erDiagram
     ORGANIZATION_CATEGORIES ||--o{ QUESTIONS : "contains"
     ASSESSMENTS ||--o{ SYNC_QUEUE : "queued for"
     ASSESSMENTS ||--o| REPORTS : "generates"
+    ASSESSMENTS ||--o| TEMP_SUBMISSION : "drafts to"
+    ASSESSMENTS ||--o| ASSESSMENTS_SUBMISSION : "finalizes to"
 
     ORGANIZATIONS {
         uuid organization_id PK
@@ -315,6 +362,24 @@ erDiagram
         varchar user_id "Keycloak sub"
         jsonb data "Answers: [{question_id, answer}]"
         assessment_status status "ENUM(Draft, Submitted, Completed)"
+    }
+
+    TEMP_SUBMISSION {
+        uuid temp_id PK "FK to assessments.assessment_id"
+        varchar org_id "Organization identifier"
+        jsonb content "Draft submission content with responses and files"
+        timestamp submitted_at "When draft was created"
+        varchar status "Review status (under_review, reviewed, etc.)"
+        timestamp reviewed_at "When reviewed (nullable)"
+    }
+
+    ASSESSMENTS_SUBMISSION {
+        uuid submission_id PK "FK to assessments.assessment_id"
+        varchar org_id "Organization identifier"
+        jsonb content "Final submission content"
+        timestamp submitted_at "When finalized"
+        varchar status "Submission status"
+        timestamp reviewed_at "When reviewed (nullable)"
     }
 
     ORGANIZATION_CATEGORIES {

@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod config;
 pub mod database;
 mod database_macros;
