@@ -96,6 +96,13 @@ impl TempSubmissionService {
         self.db_service.find_all().await
     }
 
+    pub async fn get_temp_submissions_by_org_id(&self, org_id: &str) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .filter(Column::OrgId.eq(org_id))
+            .all(self.db_service.get_connection())
+            .await
+    }
+
     pub async fn delete_temp_submission(&self, assessment_id: Uuid) -> Result<DeleteResult, DbErr> {
         self.db_service.delete(assessment_id).await
     }
