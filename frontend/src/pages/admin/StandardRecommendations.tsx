@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import { Star, Plus, Edit, Trash2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { set, get, del } from "idb-keyval";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
 
 const STANDARD_RECOMMENDATIONS_KEY = "standard_recommendations";
 
@@ -24,11 +26,13 @@ interface Recommendation {
 }
 
 export const StandardRecommendations: React.FC = () => {
+  const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingRec, setEditingRec] = useState<Recommendation | null>(null);
   const [formData, setFormData] = useState({ text: "" });
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { isOnline } = useOfflineSyncStatus();
 
   useEffect(() => {
     const load = async () => {
@@ -68,7 +72,7 @@ export const StandardRecommendations: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!formData.text.trim()) {
-      toast.error("Recommendation text is required");
+      toast.error(t('standardRecommendations.textRequired', { defaultValue: 'Text is required' }));
       return;
     }
     try {
@@ -77,17 +81,17 @@ export const StandardRecommendations: React.FC = () => {
           r.id === editingRec.id ? { ...r, text: formData.text } : r,
         );
         await saveRecommendations(updated);
-        toast.success("Recommendation updated successfully");
+        toast.success(t('standardRecommendations.updateSuccess', { defaultValue: 'Recommendation updated successfully' }));
       } else {
         const newRec: Recommendation = { id: uuidv4(), text: formData.text };
         await saveRecommendations([...recommendations, newRec]);
-        toast.success("Standard recommendation created successfully");
+        toast.success(t('standardRecommendations.createSuccess', { defaultValue: 'Recommendation created successfully' }));
       }
       resetForm();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
-  }, [formData, editingRec, recommendations, saveRecommendations, resetForm]);
+  }, [formData, editingRec, recommendations, saveRecommendations, resetForm, t]);
 
   const handleEdit = useCallback((rec: Recommendation) => {
     setEditingRec(rec);
@@ -99,19 +103,19 @@ export const StandardRecommendations: React.FC = () => {
     async (recId: string) => {
       if (
         !confirm(
-          "Are you sure you want to delete this standard recommendation?",
+          t('standardRecommendations.confirmDelete', { defaultValue: 'Are you sure you want to delete this recommendation?' }),
         )
       )
         return;
       try {
         const updated = recommendations.filter((r) => r.id !== recId);
         await saveRecommendations(updated);
-        toast.success("Standard recommendation deleted successfully");
+        toast.success(t('standardRecommendations.deleteSuccess', { defaultValue: 'Recommendation deleted successfully' }));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err));
       }
     },
-    [recommendations, saveRecommendations],
+    [recommendations, saveRecommendations, t],
   );
 
   if (isLoading) {
@@ -131,6 +135,20 @@ export const StandardRecommendations: React.FC = () => {
 
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Offline Status Indicator */}
+          <div className="mb-4 flex items-center justify-end">
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+              isOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOnline ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
+              <span>{isOnline ? 'Online' : 'Offline'}</span>
+            </div>
+          </div>
+
           {/* Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -138,11 +156,11 @@ export const StandardRecommendations: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <Star className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    Standard Recommendations
+                    {t('standardRecommendations.title', { defaultValue: 'Standard Recommendations' })}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  Manage reusable recommendations for assessment reviews
+                  {t('standardRecommendations.manageDesc', { defaultValue: 'Manage standard recommendations for sustainability assessments' })}
                 </p>
               </div>
 
@@ -156,20 +174,20 @@ export const StandardRecommendations: React.FC = () => {
                 <DialogTrigger asChild>
                   <Button className="bg-dgrv-green hover:bg-green-700">
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Recommendation
+                    {t('standardRecommendations.add', { defaultValue: 'Add Recommendation' })}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
                       {editingRec
-                        ? "Edit Standard Recommendation"
-                        : "Add Standard Recommendation"}
+                        ? t('standardRecommendations.edit', { defaultValue: 'Edit Recommendation' })
+                        : t('standardRecommendations.addDialog', { defaultValue: 'Add New Recommendation' })}
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="text">Recommendation Text</Label>
+                      <Label htmlFor="text">{t('standardRecommendations.textLabel', { defaultValue: 'Recommendation Text' })}</Label>
                       <Textarea
                         id="text"
                         value={formData.text}
@@ -179,7 +197,7 @@ export const StandardRecommendations: React.FC = () => {
                             text: e.target.value,
                           }))
                         }
-                        placeholder="Enter the recommendation text..."
+                        placeholder={t('standardRecommendations.textPlaceholder', { defaultValue: 'Enter your recommendation text...' })}
                         rows={4}
                       />
                     </div>
@@ -189,11 +207,11 @@ export const StandardRecommendations: React.FC = () => {
                         className="bg-dgrv-green hover:bg-green-700"
                       >
                         {editingRec
-                          ? "Update Recommendation"
-                          : "Create Recommendation"}
+                          ? t('standardRecommendations.update', { defaultValue: 'Update' })
+                          : t('standardRecommendations.create', { defaultValue: 'Create' })}
                       </Button>
                       <Button variant="outline" onClick={resetForm}>
-                        Cancel
+                        {t('standardRecommendations.cancel', { defaultValue: 'Cancel' })}
                       </Button>
                     </div>
                   </div>
@@ -250,17 +268,16 @@ export const StandardRecommendations: React.FC = () => {
                 <CardContent>
                   <Star className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No standard recommendations yet
+                    {t('standardRecommendations.emptyTitle', { defaultValue: 'No recommendations yet' })}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    Create reusable recommendations to speed up assessment
-                    reviews.
+                    {t('standardRecommendations.emptyDesc', { defaultValue: 'Create your first standard recommendation to get started.' })}
                   </p>
                   <Button
                     onClick={() => setShowAddDialog(true)}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    Add First Recommendation
+                    {t('standardRecommendations.addFirst', { defaultValue: 'Add First Recommendation' })}
                   </Button>
                 </CardContent>
               </Card>

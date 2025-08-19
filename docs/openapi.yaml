@@ -1,0 +1,1930 @@
+openapi: 3.0.3
+info:
+  title: Assessment System API
+  description: |
+    A comprehensive API for managing assessments, submissions, and reviews in a sustainability assessment system.
+
+    ## Authentication
+    All endpoints require JWT authentication. Include the token in the Authorization header:
+    `Authorization: Bearer <your-jwt-token>`
+
+    ## Versioning
+    The API supports response versioning to track changes and resolve conflicts.
+  version: "1.0.0"
+  contact:
+    name: Assessment System Team
+    email: support@assessment-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+- url: "{baseUrl}/api/v1"
+  description: Select environment at runtime
+  variables:
+    baseUrl:
+      description: Base URL of the API
+      default: http://localhost:8080
+      enum:
+      - https://api.assessment-system.com
+      - https://staging-api.assessment-system.com
+      - http://localhost:8080
+
+paths:
+  # Health Endpoints
+  /health:
+    get:
+      tags:
+      - Health
+      summary: Health check
+      description: Basic health check endpoint
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # Question Management Endpoints
+  /questions:
+    get:
+      tags:
+      - Questions
+      summary: List questions
+      description: Get all questions with optional filtering
+      operationId: listQuestions
+      parameters:
+      - name: category
+        in: query
+        description: Filter by question category
+        required: false
+        schema:
+          type: string
+      - name: language
+        in: query
+        description: Filter by language
+        required: false
+        schema:
+          type: string
+          default: "en"
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+      - Questions
+      summary: Create question
+      description: Create a new question (Admin only)
+      operationId: createQuestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuestionRequest'
+      responses:
+        '201':
+          description: Question created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /questions/{question_id}:
+    get:
+      tags:
+      - Questions
+      summary: Get question
+      description: Get a specific question by ID
+      operationId: getQuestion
+      parameters:
+      - name: question_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: language
+        in: query
+        description: Language for question text
+        required: false
+        schema:
+          type: string
+          default: "en"
+      responses:
+        '200':
+          description: Question details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+      - Questions
+      summary: Update question
+      description: Update a question (Admin only)
+      operationId: updateQuestion
+      parameters:
+      - name: question_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateQuestionRequest'
+      responses:
+        '200':
+          description: Question updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Questions
+      summary: Delete question
+      description: Delete a question (Admin only)
+      operationId: deleteQuestion
+      parameters:
+      - name: question_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Question deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /questions/{question_id}/revisions:
+    get:
+      tags:
+      - Questions
+      summary: Get question revisions
+      description: Get all revisions for a question
+      operationId: getQuestionRevisions
+      parameters:
+      - name: question_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: language
+        in: query
+        description: Language for question text
+        required: false
+        schema:
+          type: string
+          default: "en"
+      responses:
+        '200':
+          description: Question revisions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionRevisionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /questions/revisions/{revision_id}:
+    get:
+      tags:
+      - Questions
+      summary: Get question revision
+      description: Get a specific question revision
+      operationId: getQuestionRevision
+      parameters:
+      - name: revision_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: language
+        in: query
+        description: Language for question text
+        required: false
+        schema:
+          type: string
+          default: "en"
+      responses:
+        '200':
+          description: Question revision details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionRevisionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Assessment Management Endpoints (Draft Assessments - Mutable)
+  /assessments:
+    get:
+      tags:
+      - Assessments
+      summary: List assessments
+      description: Get user's draft assessments
+      operationId: listAssessments
+      parameters:
+      - name: language
+        in: query
+        description: Filter by language
+        required: false
+        schema:
+          type: string
+          default: "en"
+      responses:
+        '200':
+          description: List of assessments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+      - Assessments
+      summary: Create assessment
+      description: Create a new draft assessment
+      operationId: createAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssessmentRequest'
+      responses:
+        '201':
+          description: Assessment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessment_id}:
+    get:
+      tags:
+      - Assessments
+      summary: Get assessment
+      description: Get a specific draft assessment
+      operationId: getAssessment
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Assessment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+      - Assessments
+      summary: Update assessment
+      description: Update a draft assessment
+      operationId: updateAssessment
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssessmentRequest'
+      responses:
+        '200':
+          description: Assessment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Assessments
+      summary: Delete assessment
+      description: Delete a draft assessment
+      operationId: deleteAssessment
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Assessment deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessment_id}/submit:
+    post:
+      tags:
+      - Assessments
+      summary: Submit assessment
+      description: Submit a draft assessment for review (creates immutable submission)
+      operationId: submitAssessment
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '201':
+          description: Assessment submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Response Management Endpoints (Draft Assessment Responses)
+  /assessments/{assessment_id}/responses:
+    get:
+      tags:
+      - Responses
+      summary: List responses
+      description: Get all responses for a draft assessment
+      operationId: listResponses
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: latest_only
+        in: query
+        description: Return only latest version of each response
+        required: false
+        schema:
+          type: boolean
+          default: true
+      responses:
+        '200':
+          description: List of responses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+      - Responses
+      summary: Create response
+      description: Create or update a response to a question
+      operationId: createResponse
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateResponseRequest'
+      responses:
+        '201':
+          description: Response created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessment_id}/responses/{response_id}:
+    get:
+      tags:
+      - Responses
+      summary: Get response
+      description: Get a specific response
+      operationId: getResponse
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: response_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Response details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+      - Responses
+      summary: Update response
+      description: Update a response (creates new version)
+      operationId: updateResponse
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: response_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResponseRequest'
+      responses:
+        '200':
+          description: Response updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Responses
+      summary: Delete response
+      description: Delete a response
+      operationId: deleteResponse
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: response_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Response deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessment_id}/responses/{response_id}/history:
+    get:
+      tags:
+      - Responses
+      summary: Get response history
+      description: Get all versions of a response
+      operationId: getResponseHistory
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: response_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Response history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseHistoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Submission Management Endpoints (Immutable Snapshots)
+  /submissions:
+    get:
+      tags:
+      - Submissions
+      summary: List user submissions
+      description: Get user's submitted assessments
+      operationId: listUserSubmissions
+      parameters:
+      - name: status
+        in: query
+        description: Filter by review status
+        required: false
+        schema:
+          type: string
+          enum: [ pending_review, under_review, approved, rejected, revision_requested ]
+      responses:
+        '200':
+          description: List of user submissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /submissions/{submission_id}:
+    get:
+      tags:
+      - Submissions
+      summary: Get submission
+      description: Get a specific submission
+      operationId: getSubmission
+      parameters:
+      - name: submission_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Submission details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Admin Review Management Endpoints
+  /admin/submissions:
+    get:
+      tags:
+      - Admin
+      summary: List all submissions
+      description: Get all submissions for admin review management (Admin only)
+      operationId: listAllSubmissions
+      parameters:
+      - name: status
+        in: query
+        description: Filter by review status
+        required: false
+        schema:
+          type: string
+          enum: [ pending_review, under_review, approved, rejected, revision_requested ]
+      - name: reviewer_id
+        in: query
+        description: Filter by assigned reviewer
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of all submissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSubmissionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/reviews:
+    get:
+      tags:
+      - Admin
+      summary: List all reviews
+      description: Get all reviews for admin management (Admin only)
+      operationId: listAllReviews
+      parameters:
+      - name: status
+        in: query
+        description: Filter by review status
+        required: false
+        schema:
+          type: string
+          enum: [ pending, in_progress, completed ]
+      - name: reviewer_id
+        in: query
+        description: Filter by reviewer
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of all reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminReviewListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Report Management Endpoints (Only for Approved Submissions)
+  /submissions/{submission_id}/reports:
+    get:
+      tags:
+      - Reports
+      summary: List reports
+      description: Get all reports for an approved submission
+      operationId: listReports
+      parameters:
+      - name: submission_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: report_type
+        in: query
+        description: Filter by report type
+        required: false
+        schema:
+          type: string
+          enum: [ sustainability, compliance, summary, detailed ]
+      responses:
+        '200':
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+      - Reports
+      summary: Generate report
+      description: Generate a new report for an approved submission
+      operationId: generateReport
+      parameters:
+      - name: submission_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateReportRequest'
+      responses:
+        '201':
+          description: Report generation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportGenerationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /reports/{report_id}:
+    get:
+      tags:
+      - Reports
+      summary: Get report
+      description: Get a specific report
+      operationId: getReport
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Report details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Reports
+      summary: Delete report
+      description: Delete a report
+      operationId: deleteReport
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Report deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # File Management Endpoints
+  /files:
+    post:
+      tags:
+      - Files
+      summary: Upload file
+      description: Upload a file
+      operationId: uploadFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                metadata:
+                  type: string
+                  description: JSON metadata for the file
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /files/{file_id}:
+    get:
+      tags:
+      - Files
+      summary: Download file
+      description: Download a file
+      operationId: downloadFile
+      parameters:
+      - name: file_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Files
+      summary: Delete file
+      description: Delete a file
+      operationId: deleteFile
+      parameters:
+      - name: file_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: File deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /files/{file_id}/metadata:
+    get:
+      tags:
+      - Files
+      summary: Get file metadata
+      description: Get metadata for a file
+      operationId: getFileMetadata
+      parameters:
+      - name: file_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileMetadataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessment_id}/responses/{response_id}/files:
+    post:
+      tags:
+      - Files
+      summary: Attach file to response
+      description: Attach a file to a response
+      operationId: attachFile
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: response_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                file_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: File attached successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assessments/{assessment_id}/responses/{response_id}/files/{file_id}:
+    delete:
+      tags:
+      - Files
+      summary: Remove file from response
+      description: Remove a file from a response
+      operationId: removeFile
+      parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: response_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: file_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: File removed successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    # Question Schemas
+    Question:
+      type: object
+      required:
+      - question_id
+      - category
+      - created_at
+      properties:
+        question_id:
+          type: string
+          format: uuid
+        category:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    QuestionRevision:
+      type: object
+      required:
+      - question_revision_id
+      - question_id
+      - text
+      - language
+      - version
+      - created_at
+      properties:
+        question_revision_id:
+          type: string
+          format: uuid
+        question_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        language:
+          type: string
+          default: "en"
+        version:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    CreateQuestionRequest:
+      type: object
+      required:
+      - category
+      - text
+      properties:
+        category:
+          type: string
+        text:
+          type: string
+        language:
+          type: string
+          default: "en"
+
+    UpdateQuestionRequest:
+      type: object
+      required:
+      - category
+      - text
+      - weight
+      properties:
+        category:
+          type: string
+        text:
+          type: object
+          additionalProperties:
+            type: string
+        weight:
+          type: number
+          format: double
+
+    QuestionListResponse:
+      type: object
+      required:
+      - questions
+      properties:
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+
+    QuestionResponse:
+      type: object
+      required:
+      - question
+      properties:
+        question:
+          $ref: '#/components/schemas/Question'
+
+    QuestionDetailResponse:
+      type: object
+      required:
+      - question
+      - current_revision
+      properties:
+        question:
+          $ref: '#/components/schemas/Question'
+        current_revision:
+          $ref: '#/components/schemas/QuestionRevision'
+
+    QuestionRevisionListResponse:
+      type: object
+      required:
+      - revisions
+      properties:
+        revisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionRevision'
+
+    QuestionRevisionResponse:
+      type: object
+      required:
+      - revision
+      properties:
+        revision:
+          $ref: '#/components/schemas/QuestionRevision'
+
+    # Assessment Schemas
+    Assessment:
+      type: object
+      required:
+      - assessment_id
+      - org_id
+      - language
+      - name
+      - status
+      - created_at
+      - updated_at
+      properties:
+        assessment_id:
+          type: string
+          format: uuid
+        org_id:
+          type: string
+        language:
+          type: string
+          default: "en"
+        name:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateAssessmentRequest:
+      type: object
+      required:
+      - language
+      - name
+      properties:
+        language:
+          type: string
+          default: "en"
+        name:
+          type: string
+
+    UpdateAssessmentRequest:
+      type: object
+      properties:
+        language:
+          type: string
+
+    AssessmentListResponse:
+      type: object
+      required:
+      - assessments
+      properties:
+        assessments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assessment'
+
+    AssessmentResponse:
+      type: object
+      required:
+      - assessment
+      properties:
+        assessment:
+          $ref: '#/components/schemas/Assessment'
+
+    AssessmentDetailResponse:
+      type: object
+      required:
+      - assessment
+      - questions
+      - responses
+      properties:
+        assessment:
+          $ref: '#/components/schemas/Assessment'
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionRevision'
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Response'
+
+    # Response Schemas
+    Response:
+      type: object
+      required:
+      - response_id
+      - assessment_id
+      - question_revision_id
+      - response
+      - version
+      - updated_at
+      properties:
+        response_id:
+          type: string
+          format: uuid
+        assessment_id:
+          type: string
+          format: uuid
+        question_revision_id:
+          type: string
+          format: uuid
+        response:
+          type: string
+        version:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateResponseRequest:
+      type: object
+      required:
+      - question_revision_id
+      - response
+      properties:
+        question_revision_id:
+          type: string
+          format: uuid
+        response:
+          type: string
+        version:
+          type: integer
+          description: Version for conflict resolution
+
+    UpdateResponseRequest:
+      type: object
+      required:
+      - response
+      properties:
+        response:
+          type: string
+
+    ResponseListResponse:
+      type: object
+      required:
+      - responses
+      properties:
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Response'
+
+    ResponseResponse:
+      type: object
+      required:
+      - response
+      properties:
+        response:
+          $ref: '#/components/schemas/Response'
+
+    ResponseDetailResponse:
+      type: object
+      required:
+      - response
+      - question
+      - files
+      properties:
+        response:
+          $ref: '#/components/schemas/Response'
+        question:
+          $ref: '#/components/schemas/QuestionRevision'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileMetadata'
+
+    ResponseHistoryResponse:
+      type: object
+      required:
+      - history
+      properties:
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/Response'
+
+    # Submission Schemas
+    Submission:
+      type: object
+      required:
+      - submission_id
+      - assessment_id
+      - user_id
+      - content
+      - review_status
+      - submitted_at
+      properties:
+        submission_id:
+          type: string
+          format: uuid
+        assessment_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+        content:
+          type: object
+          description: Immutable snapshot of assessment and all responses
+          properties:
+            assessment:
+              type: object
+              properties:
+                assessment_id:
+                  type: string
+                  format: uuid
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                language:
+                  type: string
+                  example: "en"
+            responses:
+              type: array
+              items:
+                type: object
+                properties:
+                  question:
+                    type: string
+                    format: uuid
+                    example: "What is your organization's sustainability policy?"
+                  response:
+                    type: string
+                    example: "Our organization has a comprehensive sustainability policy"
+                  files:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FileMetadata'
+        review_status:
+          type: string
+          enum: [ pending_review, under_review, approved, rejected, revision_requested ]
+        submitted_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SubmissionListResponse:
+      type: object
+      required:
+      - submissions
+      properties:
+        submissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Submission'
+
+    SubmissionResponse:
+      type: object
+      required:
+      - submission
+      properties:
+        submission:
+          $ref: '#/components/schemas/Submission'
+
+    SubmissionDetailResponse:
+      type: object
+      required:
+      - submission
+      - current_review
+      properties:
+        submission:
+          $ref: '#/components/schemas/Submission'
+        current_review:
+          $ref: '#/components/schemas/Review'
+          nullable: true
+
+    # Admin Submission Management Schemas
+    AdminSubmissionListResponse:
+      type: object
+      required:
+      - submissions
+      properties:
+        submissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminSubmissionDetail'
+
+    AdminSubmissionDetail:
+      type: object
+      required:
+      - submission_id
+      - assessment_id
+      - user_id
+      - content
+      - review_status
+      - submitted_at
+      properties:
+        submission_id:
+          type: string
+          format: uuid
+          description: Unique submission identifier
+        assessment_id:
+          type: string
+          format: uuid
+          description: Original assessment that was submitted
+        user_id:
+          type: string
+          description: User who submitted the assessment
+        content:
+          type: object
+          description: Immutable snapshot of assessment and all responses with question text
+          properties:
+            assessment:
+              type: object
+              properties:
+                assessment_id:
+                  type: string
+                  format: uuid
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                language:
+                  type: string
+                  example: "en"
+            responses:
+              type: array
+              items:
+                type: object
+                properties:
+                  question_text:
+                    type: string
+                    description: The actual question text (mapped from question_revision_id)
+                    example: "What is your organization's sustainability policy?"
+                  question_category:
+                    type: string
+                    description: Question category
+                    example: "Environmental"
+                  response:
+                    type: string
+                    description: User's response to the question
+                    example: "Our organization has a comprehensive sustainability policy"
+                  files:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FileMetadata'
+                    description: Attached files with complete metadata
+        review_status:
+          type: string
+          enum: [ pending_review, under_review, approved, rejected, revision_requested ]
+          description: Current review status
+        submitted_at:
+          type: string
+          format: date-time
+          description: Submission timestamp
+        reviewed_at:
+          type: string
+          format: date-time
+          description: Review completion timestamp
+          nullable: true
+
+    # Review Schemas
+    Review:
+      type: object
+      required:
+      - review_id
+      - submission_id
+      - reviewer_id
+      - status
+      - created_at
+      properties:
+        review_id:
+          type: string
+          format: uuid
+        submission_id:
+          type: string
+          format: uuid
+        reviewer_id:
+          type: string
+        reviewer_email:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [ pending, in_progress, completed ]
+        decision:
+          type: string
+          enum: [ approved, rejected, revision_requested ]
+          nullable: true
+        comments:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateReviewRequest:
+      type: object
+      required:
+      - decision
+      properties:
+        decision:
+          type: string
+          enum: [ approved, rejected, revision_requested ]
+        comments:
+          type: string
+
+    UpdateReviewRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ pending, in_progress, completed ]
+        decision:
+          type: string
+          enum: [ approved, rejected, revision_requested ]
+        comments:
+          type: string
+
+    ReviewListResponse:
+      type: object
+      required:
+      - reviews
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+
+    ReviewResponse:
+      type: object
+      required:
+      - review
+      properties:
+        review:
+          $ref: '#/components/schemas/Review'
+
+    ReviewDetailResponse:
+      type: object
+      required:
+      - review
+      - submission
+      properties:
+        review:
+          $ref: '#/components/schemas/Review'
+        submission:
+          $ref: '#/components/schemas/Submission'
+
+    # Admin Review Management Schemas
+    AdminReview:
+      type: object
+      required:
+      - review_id
+      - submission_id
+      - user_email
+      - reviewer_id
+      - reviewer_email
+      - status
+      - created_at
+      properties:
+        review_id:
+          type: string
+          format: uuid
+        submission_id:
+          type: string
+          format: uuid
+        user_email:
+          type: string
+        reviewer_id:
+          type: string
+        reviewer_email:
+          type: string
+        status:
+          type: string
+          enum: [ pending, in_progress, completed ]
+        decision:
+          type: string
+          enum: [ approved, rejected, revision_requested ]
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    AdminReviewListResponse:
+      type: object
+      required:
+      - reviews
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminReview'
+
+    AssignReviewerRequest:
+      type: object
+      required:
+      - submission_id
+      - reviewer_id
+      properties:
+        submission_id:
+          type: string
+          format: uuid
+        reviewer_id:
+          type: string
+
+    ReviewAssignmentResponse:
+      type: object
+      required:
+      - review_id
+      - submission_id
+      - reviewer_id
+      - assigned_at
+      properties:
+        review_id:
+          type: string
+          format: uuid
+        submission_id:
+          type: string
+          format: uuid
+        reviewer_id:
+          type: string
+        assigned_at:
+          type: string
+          format: date-time
+
+    # Report Schemas
+    Report:
+      type: object
+      required:
+      - report_id
+      - submission_id
+      - report_type
+      - status
+      - generated_at
+      properties:
+        report_id:
+          type: string
+          format: uuid
+        submission_id:
+          type: string
+          format: uuid
+        report_type:
+          type: string
+          enum: [ sustainability, compliance, summary, detailed ]
+        status:
+          type: string
+          enum: [ generating, completed, failed ]
+        generated_at:
+          type: string
+          format: date-time
+        data:
+          type: object
+          nullable: true
+
+    GenerateReportRequest:
+      type: object
+      required:
+      - report_type
+      properties:
+        report_type:
+          type: string
+          enum: [ sustainability, compliance, summary, detailed ]
+        options:
+          type: object
+          nullable: true
+
+    ReportGenerationResponse:
+      type: object
+      required:
+      - report_id
+      - status
+      properties:
+        report_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ generating, completed, failed ]
+
+    ReportListResponse:
+      type: object
+      required:
+      - reports
+      properties:
+        reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+
+    ReportResponse:
+      type: object
+      required:
+      - report
+      properties:
+        report:
+          $ref: '#/components/schemas/Report'
+
+    # File Schemas
+    FileMetadata:
+      type: object
+      required:
+      - file_id
+      - metadata
+      properties:
+        file_id:
+          type: string
+          format: uuid
+        metadata:
+          type: object
+          description: File metadata including filename, size, content type, etc.
+
+    FileResponse:
+      type: object
+      required:
+      - file
+      properties:
+        file:
+          $ref: '#/components/schemas/FileMetadata'
+
+    FileMetadataResponse:
+      type: object
+      required:
+      - file_id
+      - metadata
+      properties:
+        file_id:
+          type: string
+          format: uuid
+        metadata:
+          type: object
+
+    # Error Schemas
+    Error:
+      type: object
+      required:
+      - error
+      - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          nullable: true
+
+    ValidationError:
+      type: object
+      required:
+      - error
+      - message
+      - validation_errors
+      properties:
+        error:
+          type: string
+          example: "validation_failed"
+        message:
+          type: string
+          example: "Request validation failed"
+        validation_errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+- BearerAuth: []

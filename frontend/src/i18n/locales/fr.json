@@ -1,4 +1,903 @@
 {
-  "greeting": "Bonjour",
-  "farewell": "Au revoir"
+  "home": "Accueil",
+  "homePage": {
+    "hero": {
+      "title": "Renforcez votre coopérative",
+      "subtitle": "Évaluez les objectifs de durabilité",
+      "description": "Simple, sécurisé et impactant—aidez votre coopérative à prospérer à l'ère numérique tout en développant des pratiques durables pour l'avenir.",
+      "cta": "Commencer l'évaluation"
+    },
+    "features": {
+      "title": "Fonctionnalités",
+      "items": [
+        {
+          "title": "Évaluation de la durabilité",
+          "description": "Évaluez les pratiques environnementales, sociales et de gouvernance pour construire une coopérative plus durable et responsable."
+        },
+        {
+          "title": "Plans d'action",
+          "description": "Suivez vos progrès avec des tableaux Kanban interactifs, transformant les insights d'évaluation en tâches exploitables et améliorations mesurables."
+        }
+      ]
+    },
+    "benefits": {
+      "title": "Avantages",
+      "items": [
+        {
+          "title": "Conçu pour les coopératives",
+          "description": "Conçu spécifiquement pour les organisations coopératives en Afrique australe"
+        },
+        {
+          "title": "Support multilingue",
+          "description": "Disponible en anglais, siSwati, portugais, zoulou, allemand et français"
+        },
+        {
+          "title": "Capable hors ligne",
+          "description": "Fonctionne de manière fiable même avec une connectivité Internet limitée"
+        }
+      ]
+    }
+  },
+  "login": "Connexion",
+  "logout": "Déconnexion",
+  "profile": "Profil",
+  "sustainability": "Durabilité",
+  "assessment": "Évaluation",
+  "submit": "Soumettre",
+  "next": "Suivant",
+  "previous": "Précédent",
+  "saveDraft": "Enregistrer le brouillon",
+  "category": "Catégorie",
+  "progress": "Progrès",
+  "viewSubmission": "Voir la soumission",
+  "yourSubmissions": "Vos soumissions",
+  "noSubmissions": "Aucune soumission pour le moment",
+  "startAssessment": "Commencer l'évaluation",
+  "status": "Statut",
+  "submittedAt": "Soumis le",
+  "reviewedAt": "Révisé le",
+  "manageUsers": "Gérer les utilisateurs",
+  "actionPlan": "Plan d'action",
+  "viewAssessments": "Voir les évaluations",
+  "answerAssessment": "Répondre à l'évaluation",
+  "viewAll": "Voir tout",
+  "welcome": "Bienvenue, {{user}} de {{org}} !",
+  "loading": "Chargement...",
+  "noData": "Aucune donnée disponible",
+  "common": {
+    "processing": "Traitement...",
+    "edit": "Modifier",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "update": "Mettre à jour",
+    "create": "Créer"
+  },
+  "adminDashboard": {
+    "welcome": "Bienvenue, Admin ! Maximisez l'impact des coopératives !",
+    "intro": "Gérez la plateforme d'évaluation DGRV et soutenez les coopératives à travers l'Afrique australe.",
+    "numCategories": "Nombre de catégories",
+    "numQuestions": "Nombre de questions",
+    "pendingReviews": "Révisions en attente",
+    "completedAssessments": "Évaluations terminées",
+    "manageOrganizations": "Gérer les organisations",
+    "manageOrganizationsDesc": "Ajouter, modifier et gérer les organisations coopératives dans le système.",
+    "manageUsers": "Gérer les utilisateurs",
+    "manageUsersDesc": "Contrôler l'accès et les rôles des utilisateurs pour toutes les organisations.",
+    "manageCategories": "Gérer les catégories",
+    "manageCategoriesDesc": "Configurer les catégories d'évaluation pour les outils de durabilité.",
+    "manageQuestions": "Gérer les questions",
+    "manageQuestionsDesc": "Créer et modifier les questions dans chaque catégorie d'évaluation.",
+    "reviewAssessments": "Réviser les évaluations",
+    "reviewAssessmentsDesc": "Examiner les évaluations soumises et fournir des recommandations.",
+    "standardRecommendations": "Recommandations standard",
+    "standardRecommendationsDesc": "Gérer les recommandations réutilisables pour les scénarios d'évaluation courants.",
+    "pendingReviewsCard": "Révisions en attente",
+    "pendingCount": "{{count}} en attente",
+    "sustainabilityAssessment": "Évaluation de la durabilité",
+    "byUser": "par {{user}}",
+    "underReview": "En cours de révision",
+    "reviewRequired": "Révision requise",
+    "allUpToDate": "Toutes les évaluations sont à jour !",
+    "adminGuide": "Guide de l'administrateur",
+    "guideIntro": "Bienvenue sur le tableau de bord administrateur DGRV ! Voici quelques conseils pour vous aider à gérer la plateforme :",
+    "guideOrgsUsers": "Utilisez les sections Gérer les organisations et Gérer les utilisateurs pour contrôler l'accès et les adhésions.",
+    "guideReview": "Examinez et approuvez les évaluations dans la section Réviser les évaluations.",
+    "guideCategoriesQuestions": "Configurez les catégories et les questions pour adapter le processus d'évaluation à vos besoins.",
+    "guideDocs": "Pour la documentation détaillée, visitez la Documentation Admin.",
+    "guideSupport": "Si vous avez besoin d'aide, contactez support@dgrv.org.",
+    "loadingSubmissions": "Chargement des soumissions...",
+    "viewCompleteGuide": "Voir le guide complet"
+  },
+  "standardRecommendations": {
+    "title": "Recommandations standard",
+    "manageDesc": "Gérer les recommandations réutilisables pour les révisions d'évaluation",
+    "add": "Ajouter une recommandation",
+    "edit": "Modifier la recommandation standard",
+    "addDialog": "Ajouter une recommandation standard",
+    "textLabel": "Texte de la recommandation",
+    "textPlaceholder": "Entrez le texte de la recommandation...",
+    "update": "Mettre à jour la recommandation",
+    "create": "Créer une recommandation",
+    "cancel": "Annuler",
+    "singleTitle": "Recommandation standard",
+    "editBtn": "Modifier",
+    "emptyTitle": "Aucune recommandation standard pour le moment",
+    "emptyDesc": "Créez des recommandations réutilisables pour accélérer les révisions d'évaluation.",
+    "addFirst": "Ajouter la première recommandation",
+    "textRequired": "Le texte de la recommandation est requis",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette recommandation standard ?",
+    "deleteSuccess": "Recommandation standard supprimée avec succès",
+    "updateSuccess": "Recommandation mise à jour avec succès",
+    "createSuccess": "Recommandation standard créée avec succès"
+  },
+  "dashboard": {
+    "welcome": {
+      "title": "Bienvenue, Admin ! Maximisez l'impact des coopératives !",
+      "description": "Gérez la plateforme d'évaluation DGRV et soutenez les coopératives à travers l'Afrique australe."
+    },
+    "pendingReviews": {
+      "title": "Révisions en attente",
+      "badge": "en attente",
+      "assessmentType": "Évaluation de la durabilité",
+      "submittedBy": "par",
+      "reviewRequired": "Révision requise",
+      "upToDate": "Toutes les évaluations sont à jour !"
+    },
+    "systemHealth": {
+      "title": "Santé du système",
+      "database": "Base de données",
+      "healthy": "Sain",
+      "apiResponse": "Réponse de l'API",
+      "fast": "Rapide",
+      "syncQueue": "File de synchronisation",
+      "clear": "Vide"
+    },
+    "quickActions": {
+      "title": "Actions rapides",
+      "exportReport": "Exporter le rapport système",
+      "backupDatabase": "Sauvegarder la base de données",
+      "viewAuditLogs": "Voir les journaux d'audit",
+      "systemSettings": "Paramètres du système"
+    },
+    "stats": {
+      "numCategories": "Nombre de catégories",
+      "numQuestions": "Nombre de questions",
+      "pendingReviews": "Révisions en attente",
+      "completedAssessments": "Évaluations terminées"
+    },
+    "assessments": {
+      "subtitle": "Voir et gérer toutes vos soumissions de durabilité",
+      "emptyState": "Commencez votre première évaluation de durabilité pour suivre les progrès de votre coopérative."
+    },
+    "numCategories": "Nombre de catégories",
+    "numQuestions": "Nombre de questions",
+    "pendingReviews": "Révisions en attente",
+    "completedAssessments": "Évaluations terminées"
+  },
+  "actions": {
+    "manageOrganizations": "Gérer les organisations",
+    "manageOrganizationsDesc": "Ajouter, modifier et gérer les organisations coopératives dans le système.",
+    "manageUsers": "Gérer les utilisateurs",
+    "manageUsersDesc": "Contrôler l'accès et les rôles des utilisateurs pour toutes les organisations.",
+    "manageCategories": "Gérer les catégories",
+    "manageCategoriesDesc": "Configurer les catégories d'évaluation pour les outils de durabilité.",
+    "manageQuestions": "Gérer les questions",
+    "manageQuestionsDesc": "Créer et modifier les questions dans chaque catégorie d'évaluation.",
+    "reviewAssessments": "Réviser les évaluations",
+    "reviewAssessmentsDesc": "Examiner les évaluations soumises et fournir des recommandations.",
+    "standardRecommendations": "Recommandations standard",
+    "standardRecommendationsDesc": "Gérer les recommandations réutilisables pour les scénarios d'évaluation courants."
+  },
+  "guide": {
+    "title": "Guide de l'administrateur",
+    "intro": "Bienvenue sur le tableau de bord administrateur DGRV ! Voici quelques conseils pour vous aider à gérer la plateforme :",
+    "orgsUsers": "Utilisez les sections Gérer les organisations et Gérer les utilisateurs pour contrôler l'accès et les adhésions.",
+    "review": "Examinez et approuvez les évaluations dans la section Réviser les évaluations.",
+    "categoriesQuestions": "Configurez les catégories et les questions pour adapter le processus d'évaluation à vos besoins.",
+    "docs": "Pour une documentation détaillée, visitez la Documentation de l'administrateur.",
+    "support": "Si vous avez besoin d'aide, contactez support@dgrv.org."
+  },
+  "questions": {
+    "manage": {
+      "title": "Gérer les questions",
+      "description": "Créer et modifier les questions dans chaque catégorie d'évaluation.",
+      "add": "Ajouter une nouvelle question",
+      "edit": "Modifier la question",
+      "delete": "Supprimer la question",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette question ?",
+      "success": "Question supprimée avec succès !",
+      "error": "Erreur lors de la suppression de la question."
+    },
+    "list": {
+      "title": "Toutes les questions",
+      "noQuestions": "Aucune question trouvée.",
+      "question": "Question",
+      "category": "Catégorie",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Formulaire de question",
+      "question": "Question",
+      "category": "Catégorie",
+      "type": "Type",
+      "options": "Options",
+      "required": "Requis",
+      "save": "Enregistrer la question",
+      "cancel": "Annuler",
+      "success": "Question enregistrée avec succès !",
+      "error": "Erreur lors de l'enregistrement de la question."
+    }
+  },
+  "categories": {
+    "manage": {
+      "title": "Gérer les catégories",
+      "description": "Configurer les catégories d'évaluation pour les outils de durabilité.",
+      "add": "Ajouter une nouvelle catégorie",
+      "edit": "Modifier la catégorie",
+      "delete": "Supprimer la catégorie",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette catégorie ? Cela supprimera également toutes les questions de cette catégorie. Remarque : Les soumissions existantes contenant des réponses à ces questions seront préservées, mais les enregistrements de réponses individuels seront supprimés.",
+      "success": "Catégorie supprimée avec succès !",
+      "error": "Erreur lors de la suppression de la catégorie."
+    },
+    "list": {
+      "title": "Toutes les catégories",
+      "noCategories": "Aucune catégorie trouvée.",
+      "category": "Catégorie",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Formulaire de catégorie",
+      "name": "Nom",
+      "description": "Description",
+      "save": "Enregistrer la catégorie",
+      "cancel": "Annuler",
+      "success": "Catégorie enregistrée avec succès !",
+      "error": "Erreur lors de l'enregistrement de la catégorie."
+    }
+  },
+  "organizations": {
+    "manage": {
+      "title": "Gérer les organisations",
+      "description": "Ajouter, modifier et gérer les organisations coopératives dans le système.",
+      "add": "Ajouter une nouvelle organisation",
+      "edit": "Modifier l'organisation",
+      "delete": "Supprimer l'organisation",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette organisation ?",
+      "success": "Organisation supprimée avec succès !",
+      "error": "Erreur lors de la suppression de l'organisation."
+    },
+    "list": {
+      "title": "Toutes les organisations",
+      "noOrganizations": "Aucune organisation trouvée.",
+      "organization": "Organisation",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Formulaire d'organisation",
+      "name": "Nom",
+      "description": "Description",
+      "save": "Enregistrer l'organisation",
+      "cancel": "Annuler",
+      "success": "Organisation enregistrée avec succès !",
+      "error": "Erreur lors de l'enregistrement de l'organisation."
+    }
+  },
+  "users": {
+    "manage": {
+      "title": "Gérer les utilisateurs",
+      "description": "Contrôler l'accès et les rôles des utilisateurs pour toutes les organisations.",
+      "add": "Ajouter un nouvel utilisateur",
+      "edit": "Modifier l'utilisateur",
+      "delete": "Supprimer l'utilisateur",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
+      "success": "Utilisateur supprimé avec succès !",
+      "error": "Erreur lors de la suppression de l'utilisateur."
+    },
+    "list": {
+      "title": "Tous les utilisateurs",
+      "noUsers": "Aucun utilisateur trouvé.",
+      "user": "Utilisateur",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Formulaire d'utilisateur",
+      "username": "Nom d'utilisateur",
+      "email": "Email",
+      "role": "Rôle",
+      "organization": "Organisation",
+      "save": "Enregistrer l'utilisateur",
+      "cancel": "Annuler",
+      "success": "Utilisateur enregistré avec succès !",
+      "error": "Erreur lors de l'enregistrement de l'utilisateur."
+    }
+  },
+  "reviews": {
+    "manage": {
+      "title": "Réviser les évaluations",
+      "description": "Examiner les évaluations soumises et fournir des recommandations.",
+      "review": "Réviser",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "comments": "Commentaires",
+      "recommendations": "Recommandations",
+      "save": "Enregistrer la révision",
+      "cancel": "Annuler",
+      "success": "Révision enregistrée avec succès !",
+      "error": "Erreur lors de l'enregistrement de la révision."
+    },
+    "list": {
+      "title": "Toutes les révisions",
+      "noReviews": "Aucune révision trouvée.",
+      "assessment": "Évaluation",
+      "status": "Statut",
+      "reviewedBy": "Révisé par",
+      "actions": "Actions"
+    }
+  },
+  "recommendations": {
+    "manage": {
+      "title": "Recommandations standard",
+      "description": "Gérer les recommandations réutilisables pour les scénarios d'évaluation courants.",
+      "add": "Ajouter une nouvelle recommandation",
+      "edit": "Modifier la recommandation",
+      "delete": "Supprimer la recommandation",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette recommandation ?",
+      "success": "Recommandation supprimée avec succès !",
+      "error": "Erreur lors de la suppression de la recommandation."
+    },
+    "list": {
+      "title": "Toutes les recommandations",
+      "noRecommendations": "Aucune recommandation trouvée.",
+      "recommendation": "Recommandation",
+      "actions": "Actions"
+    },
+    "form": {
+      "formTitle": "Formulaire de recommandation",
+      "title": "Titre",
+      "description": "Description",
+      "save": "Enregistrer la recommandation",
+      "cancel": "Annuler",
+      "success": "Recommandation enregistrée avec succès !",
+      "error": "Erreur lors de l'enregistrement de la recommandation."
+    }
+  },
+  "manageCategories": {
+    "title": "Gérer les catégories",
+    "configureCategories": "Configurer les catégories pour l'évaluation de la durabilité",
+    "categories": "Catégories d'évaluation de la durabilité",
+    "addCategory": "Ajouter une catégorie",
+    "editCategory": "Modifier la catégorie",
+    "categoryName": "Nom de la catégorie",
+    "categoryNamePlaceholder": "par exemple, Impact environnemental",
+    "weight": "Poids (%)",
+    "displayOrder": "Ordre d'affichage",
+    "createCategory": "Créer une catégorie",
+    "updateCategory": "Mettre à jour la catégorie",
+    "loadSuccess": "{{count}} catégories chargées avec succès !",
+    "saveSuccess": "{{count}} catégories enregistrées avec succès !",
+    "deleteSuccess": "Catégorie supprimée avec succès !",
+    "weightExceedsError": "Le poids total dépasserait 100 %. Veuillez ajuster ou redistribuer.",
+    "redistributeWeights": "Redistribuer les poids uniformément",
+    "totalWeightExceeds": "Le poids total dépasse 100%. Veuillez redistribuer les poids.",
+    "totalWeightNot100": "Le poids total est de {{total}}%. Il devrait être égal à 100%.",
+    "totalWeightMustBe100": "Le poids total doit être égal à 100%. Veuillez ajuster les poids ou utiliser le bouton de redistribution.",
+    "totalWeightNot100ForNew": "Le poids total sera de {{total}}%. Doit être égal à 100%.",
+    "currentTotal": "Total actuel : {{current}}% | Nouveau total : {{new}}%",
+    "noCategoriesYet": "Aucune catégorie n'a encore été créée.",
+    "weightLabel": "Poids: {{weight}}% | Ordre: {{order}}",
+    "newCategory": "Nouvelle catégorie"
+  },
+  "manageOrganizations": {
+    "title": "Gérer les organisations",
+    "subtitle": "Ajouter et gérer les organisations coopératives",
+    "addOrganization": "Ajouter une organisation",
+    "domains": "Domaines",
+    "description": "Description",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "noOrganizations": "Aucune organisation pour le moment",
+    "getStarted": "Ajoutez votre première organisation coopérative pour commencer.",
+    "addFirstOrganization": "Ajouter la première organisation",
+    "update": "Mettre à jour l'organisation",
+    "create": "Créer une organisation",
+    "cancel": "Annuler",
+    "editOrganization": "Modifier l'organisation",
+    "createCategoryWithOrg": "Créer une catégorie avec l'organisation",
+    "createCategoryWithOrgDesc": "Créer optionnellement une nouvelle catégorie et l'assigner à cette organisation",
+    "newCategoryName": "Nom de la nouvelle catégorie",
+    "newCategoryNamePlaceholder": "Entrez le nom de la catégorie...",
+    "categoryWeight": "Poids de la catégorie (%)",
+    "categoryDisplayOrder": "Ordre d'affichage",
+    "createCategory": "Créer la catégorie",
+    "skipCategoryCreation": "Passer la création de catégorie"
+  },
+  "user": {
+    "dashboard": {
+      "welcome": "Bienvenue, {{user}} de {{org}} !",
+      "readyToContinue": "Prêt à continuer le voyage de durabilité de votre coopérative ?",
+      "answerAssessment": {
+        "title": "Répondre à l'évaluation",
+        "description": "Répondre aux évaluations de durabilité en attente pour votre coopérative."
+      },
+      "viewAssessments": {
+        "title": "Voir les évaluations",
+        "description": "Voir toutes vos évaluations de durabilité passées et actuelles.",
+        "subtitle": "Suivre et gérer les tâches d'amélioration de la durabilité de votre coopérative."
+      },
+      "actionPlan": {
+        "kanban": {
+          "todo": "À faire",
+          "inProgress": "En cours",
+          "done": "Terminé",
+          "approved": "Approuvé",
+          "approve": "Approuver",
+          "moveToInProgress": "Passer à En cours",
+          "backToTodo": "Retour à À faire",
+          "moveToDone": "Passer à Terminé",
+          "backToInProgress": "Retour à En cours",
+          "backToDone": "Retour à Terminé"
+        },
+        "title": "Plan d'action",
+        "description": "Suivre et gérer les tâches d'amélioration de la durabilité de votre coopérative.",
+        "recentSubmissions": "Soumissions récentes",
+        "viewAll": "Voir tout",
+        "noSubmissions": "Aucune soumission pour le moment.",
+        "exportReports": "Exporter les rapports",
+        "downloadReportsDescription": "Téléchargez vos rapports d'évaluation dans différents formats.",
+        "exportAsPDF": "Exporter en PDF",
+        "exportAsWord": "Exporter en Word",
+        "exportAsCSV": "Exporter en CSV",
+        "needHelp": "Besoin d'aide ?",
+        "getSupport": "Obtenez du support et des documents de formation pour tirer le meilleur parti de vos évaluations.",
+        "viewUserGuide": "Voir le guide de l'utilisateur",
+        "manageUsers": {
+          "title": "Gérer les utilisateurs",
+          "description": "Ajouter et gérer les utilisateurs dans votre organisation."
+        },
+        "status": {
+          "approved": "Approuvé",
+          "pendingReview": "En attente de révision",
+          "underReview": "En cours de révision",
+          "rejected": "Rejeté",
+          "revisionRequested": "Révision requise",
+          "unknown": "Inconnu"
+        },
+        "loadingSubmissionsInline": "Chargement des soumissions...",
+        "user": "Utilisateur",
+        "org": "votre organisation",
+        "startAssessment": {
+          "title": "Commencer l'évaluation de durabilité",
+          "description": "Évaluez les pratiques environnementales, sociales et de gouvernance pour une croissance durable."
+        },
+        "noDraftAssessment": "Aucune évaluation brouillon disponible à répondre.",
+        "sustainabilityAssessment": "Évaluation de la durabilité",
+        "noSubmissionsMessage": "Aucune soumission pour le moment. Commencez votre première évaluation ci-dessus !"
+      },
+      "recentSubmissions": "Soumissions récentes",
+      "viewAll": "Voir tout",
+      "noSubmissions": "Aucune soumission pour le moment.",
+      "exportReports": "Exporter les rapports",
+      "downloadReportsDescription": "Téléchargez vos rapports d'évaluation dans différents formats.",
+      "exportAsPDF": "Exporter en PDF",
+      "exportAsWord": "Exporter en Word",
+      "exportAsCSV": "Exporter en CSV",
+      "needHelp": "Besoin d'aide ?",
+      "getSupport": "Obtenez du support et des documents de formation pour tirer le meilleur parti de vos évaluations.",
+      "viewUserGuide": "Voir le guide de l'utilisateur",
+      "manageUsers": {
+        "title": "Gérer les utilisateurs",
+        "description": "Ajouter et gérer les utilisateurs dans votre organisation."
+      },
+      "status": {
+        "approved": "Approuvé",
+        "pendingReview": "En attente de révision",
+        "underReview": "En cours de révision",
+        "rejected": "Rejeté",
+        "revisionRequested": "Révision requise",
+        "unknown": "Inconnu"
+      },
+      "loadingSubmissionsInline": "Chargement des soumissions...",
+      "user": "Utilisateur",
+      "org": "votre organisation",
+      "startAssessment": {
+        "title": "Commencer l'évaluation de durabilité",
+        "description": "Évaluez les pratiques environnementales, sociales et de gouvernance pour une croissance durable."
+      },
+      "noDraftAssessment": "Aucune évaluation brouillon disponible à répondre.",
+      "sustainabilityAssessment": "Évaluation de la durabilité",
+      "noSubmissionsMessage": "Aucune soumission pour le moment. Commencez votre première évaluation ci-dessus !"
+    }
+  },
+  "manageUsers.selectOrganization": "Sélectionner une organisation",
+  "manageUsers.clickOrgToManage": "Cliquez sur une organisation pour gérer ses utilisateurs",
+  "manageUsers.backToOrganizations": "Retour aux organisations",
+  "manageUsers.addUser": "+ Ajouter un utilisateur",
+  "manageUsers.manageUsersForOrg": "Ajouter et gérer les utilisateurs pour {{org}}",
+  "manageUsers.editUser": "Modifier l'utilisateur",
+  "manageUsers.addNewUser": "Ajouter un nouvel utilisateur",
+  "manageUsers.email": "Email",
+  "manageUsers.emailPlaceholder": "Entrez l'email",
+  "manageUsers.role": "Rôle",
+  "manageUsers.organizationAdmin": "Administrateur de l'organisation",
+  "manageUsers.organization": "Organisation",
+  "manageUsers.selectOrganizationPlaceholder": "Sélectionner une organisation",
+  "manageUsers.update": "Mettre à jour",
+  "manageUsers.create": "Créer",
+  "manageUsers.user": "Utilisateur",
+  "manageUsers.cancel": "Annuler",
+  "manageUsers.verified": "Vérifié",
+  "manageUsers.notVerified": "Non vérifié",
+  "manageUsers.edit": "Modifier",
+  "manageUsers.noUsersYet": "Aucun utilisateur pour le moment",
+  "manageUsers.addFirstUserDesc": "Ajoutez votre premier utilisateur pour commencer.",
+  "manageUsers.addFirstUser": "Ajouter le premier utilisateur",
+  "manageUsers.orgLabel": "Org :",
+  "manageUsers.unknown": "Inconnu",
+  "manageUsers.admin": "Admin",
+  "manageUsers.orgAdmin": "Admin Org",
+  "manageUsers.orgUser": "Utilisateur Org",
+  "manageUsers.createUser": "Créer un utilisateur",
+  "manageUsers.updateUser": "Mettre à jour l'utilisateur",
+  "manageUsers.emailRequired": "L'email est requis",
+  "manageUsers.selectOrgRequired": "Veuillez sélectionner une organisation",
+  "manageUsers.confirmDelete": "Êtes-vous sûr de vouloir supprimer cet utilisateur de l'organisation ? Cette action ne peut pas être annulée.",
+  "manageQuestions.questionEnPlaceholder": "Entrez la question en anglais",
+  "manageQuestions.questionLangPlaceholder": "Entrez la question en {{lang}}",
+  "manageQuestions.category": "Catégorie",
+  "manageQuestions.selectCategoryPlaceholder": "Sélectionner une catégorie",
+  "manageQuestions.weightLabel": "Poids (1-10)",
+  "manageQuestions.displayOrder": "Ordre d'affichage",
+  "manageQuestions.saving": "Enregistrement...",
+  "manageQuestions.updateQuestion": "Mettre à jour la question",
+  "manageQuestions.createQuestion": "Créer une question",
+  "manageQuestions.createSuccess": "Question créée.",
+  "manageQuestions.updateSuccess": "Question mise à jour.",
+  "manageQuestions.deleteSuccess": "Question supprimée.",
+  "manageQuestions.textRequired": "Le texte de la question (en anglais) est requis.",
+  "manageQuestions.categoryRequired": "La catégorie est requise.",
+  "manageQuestions.weightRangeError": "Le poids doit être compris entre 1 et 10.",
+  "manageQuestions.confirmDelete": "Êtes-vous sûr de vouloir supprimer cette question ?",
+  "manageQuestions.title": "Gérer les questions",
+  "manageQuestions.subtitle": "Gérer les questions pour l'évaluation de la durabilité",
+  "manageQuestions.cardTitle": "Questions d'évaluation de la durabilité",
+  "manageQuestions.addQuestion": "Ajouter une question",
+  "manageQuestions.editQuestion": "Modifier la question",
+  "manageQuestions.addNewQuestion": "Ajouter une nouvelle question",
+  "manageQuestions.noQuestionsInCategory": "Aucune question dans cette catégorie pour le moment.",
+  "assessment.yesNo": "Oui/Non",
+  "assessment.yes": "Oui",
+  "assessment.no": "Non",
+  "assessment.percentage": "Pourcentage",
+  "assessment.percentNotStarted": "Non commencé",
+  "assessment.percentSomeProgress": "Quelques progrès",
+  "assessment.percentHalfway": "À mi-chemin",
+  "assessment.percentAlmostDone": "Presque terminé",
+  "assessment.percentFullyAchieved": "Complètement atteint",
+  "assessment.yourResponse": "Votre réponse",
+  "assessment.enterYourResponse": "Entrez votre réponse...",
+  "assessment.addFile": "Ajouter un fichier",
+  "assessment.completeAllQuestions": "Veuillez répondre à toutes les questions de cette catégorie avant de soumettre.",
+  "assessment.submittedLocally": "L’évaluation a été soumise localement et sera synchronisée lorsque vous serez en ligne.",
+  "assessment.failedToCreate": "Échec de la création de l’évaluation localement.",
+  "assessment.fileTooLarge": "La taille du fichier doit être inférieure à 1 Mo.",
+  "assessment.completeAllQuestionsNext": "Veuillez répondre à toutes les questions de cette catégorie avant de continuer.",
+  "assessment.successTitle": "Évaluation créée avec succès !",
+  "assessment.successMessage": "Vos utilisateurs vont répondre à l'évaluation qui leur a été assignée.",
+  "assessment.returnToDashboard": "Retour au tableau de bord",
+  "manageQuestions.noCategories": "Aucune catégorie disponible. Veuillez d'abord créer des catégories !",
+  "manageQuestions.noText": "Aucun texte disponible.",
+  "userGuide": {
+    "title": "Guide utilisateur pour les coopératives",
+    "subtitle": "Guide complet pour utiliser la plateforme d'évaluation de durabilité DGRV",
+    "backToDashboard": "Retour au tableau de bord",
+    "quickStart": {
+      "title": "Démarrage rapide",
+      "step1": "1. 📋 Commencez ou répondez à une évaluation depuis votre tableau de bord",
+      "step2": "2. ✏️ Complétez toutes les questions avec des explications détaillées",
+      "step3": "3. 📎 Joignez des documents de soutien le cas échéant",
+      "step4": "4. ✅ Soumettez pour examen une fois terminé",
+      "step5": "5. 📊 Utilisez les résultats pour créer des plans d'action et suivre les progrès"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Commencer",
+        "content": [
+          "Bienvenue sur la plateforme d'évaluation de durabilité DGRV ! Cet outil aide votre coopérative à mesurer et améliorer ses pratiques de durabilité.",
+          "Votre tableau de bord vous donne accès aux évaluations, plans d'action et outils de suivi des progrès.",
+          "Si vous êtes administrateur d'organisation, vous pouvez créer de nouvelles évaluations et gérer les membres de l'équipe. Les utilisateurs d'organisation peuvent répondre aux évaluations et suivre les progrès."
+        ]
+      },
+      "roles": {
+        "title": "Comprendre les rôles utilisateur",
+        "content": [
+          "Administrateur d'organisation (org_admin) : Peut créer de nouvelles évaluations, gérer les utilisateurs et voir toutes les données de l'organisation.",
+          "Utilisateur d'organisation (Org_User) : Peut répondre aux évaluations assignées, voir les résultats et gérer les plans d'action.",
+          "Les deux rôles peuvent accéder au tableau de bord, voir les soumissions et exporter des rapports pour leur organisation."
+        ]
+      },
+      "assessments": {
+        "title": "Réaliser des évaluations",
+        "content": [
+          "Les évaluations sont organisées en catégories (ex. Environnement, Social, Gouvernance) avec des questions dans chaque catégorie.",
+          "Pour chaque question, fournissez : réponse Oui/Non, pourcentage de réalisation (0%, 25%, 50%, 75%, 100%) et explication textuelle détaillée.",
+          "Vous pouvez joindre des fichiers pour étayer vos réponses (max 1MB par fichier). Utilisez l'icône trombone pour ajouter des documents.",
+          "Sauvegardez votre progression à tout moment avec 'Sauvegarder brouillon'. Complétez toutes les questions d'une catégorie avant de passer à la suivante.",
+          "Une fois soumises, les évaluations passent par un processus d'examen avant approbation finale."
+        ]
+      },
+      "actionPlans": {
+        "title": "Gérer les plans d'action",
+        "content": [
+          "Les plans d'action vous aident à suivre les tâches d'amélioration basées sur les recommandations d'évaluation.",
+          "Utilisez le tableau Kanban pour déplacer les tâches à travers les étapes : À faire → En cours → Terminé → Approuvé.",
+          "Ajoutez de nouvelles tâches, définissez des échéances et assignez des membres d'équipe pour suivre efficacement les progrès.",
+          "Les mises à jour régulières de votre plan d'action démontrent les efforts d'amélioration continue.",
+          "Exportez les plans d'action pour partager les progrès avec les parties prenantes et la direction."
+        ]
+      },
+      "viewingResults": {
+        "title": "Voir les résultats d'évaluation",
+        "content": [
+          "Accédez à toutes vos soumissions via 'Voir les évaluations' sur le tableau de bord.",
+          "Suivez le statut de soumission : En attente d'examen → En cours d'examen → Approuvé/Rejeté/Demande de révision.",
+          "Voyez les commentaires détaillés et recommandations des examinateurs pour comprendre les domaines d'amélioration.",
+          "Comparez les résultats sur différentes périodes d'évaluation pour suivre les progrès de votre coopérative.",
+          "Utilisez la vue de soumission pour examiner vos réponses et documents de soutien."
+        ]
+      },
+      "creatingAssessments": {
+        "title": "Créer des évaluations (Admins uniquement)",
+        "content": [
+          "Les administrateurs d'organisation peuvent démarrer de nouveaux cycles d'évaluation pour leur coopérative.",
+          "Cliquez sur 'Démarrer l'évaluation de durabilité' pour créer un nouveau projet d'évaluation.",
+          "Partagez l'ID d'évaluation avec les membres de l'équipe pour qu'ils puissent contribuer à différentes sections.",
+          "Surveillez les progrès et assurez-vous que toutes les catégories sont complétées avant la soumission finale.",
+          "Ne soumettez les évaluations que lorsque toutes les sections requises sont complètement terminées."
+        ]
+      },
+      "userManagement": {
+        "title": "Gérer les membres de l'équipe (Admins uniquement)",
+        "content": [
+          "Les administrateurs d'organisation peuvent ajouter et gérer les membres de l'équipe via 'Gérer les utilisateurs'.",
+          "Invitez de nouveaux utilisateurs par email et assignez des rôles appropriés basés sur leurs responsabilités.",
+          "Assignez l'accès aux catégories aux utilisateurs pour qu'ils puissent contribuer à des domaines d'évaluation spécifiques.",
+          "Supprimez les utilisateurs qui n'ont plus besoin d'accès pour maintenir la sécurité et l'intégrité des données.",
+          "Révisez régulièrement les permissions utilisateur pour assurer des niveaux d'accès appropriés."
+        ]
+      },
+      "reportsExports": {
+        "title": "Rapports et exports",
+        "content": [
+          "Exportez les rapports d'évaluation au format PDF pour partager avec les parties prenantes et conseils.",
+          "Utilisez les exports CSV pour l'analyse de données et le suivi des tendances dans le temps.",
+          "Téléchargez des documents Word pour la documentation détaillée et les rapports.",
+          "La génération régulière de rapports aide à démontrer les efforts d'amélioration continue.",
+          "Partagez les rapports avec les membres et parties prenantes pour maintenir la transparence."
+        ]
+      },
+      "bestPractices": {
+        "title": "Meilleures pratiques pour les coopératives",
+        "content": [
+          "Impliquez divers membres de l'équipe dans les évaluations pour obtenir des perspectives complètes sur les pratiques de durabilité.",
+          "Fournissez des réponses détaillées et honnêtes avec des exemples spécifiques et une documentation de soutien.",
+          "Utilisez les résultats d'évaluation pour créer des plans d'action réalistes et réalisables pour l'amélioration.",
+          "Les cycles d'évaluation réguliers (annuels ou semestriels) aident à suivre les progrès et maintenir l'élan.",
+          "Célébrez les améliorations et partagez les succès avec vos membres coopératifs et la communauté."
+        ]
+      },
+      "troubleshooting": {
+        "title": "Problèmes courants et solutions",
+        "content": [
+          "Impossible d'accéder aux évaluations : Vérifiez avec votre administrateur d'organisation les assignations de rôles et accès aux catégories.",
+          "L'évaluation ne sauvegarde pas : Assurez-vous de compléter tous les champs requis (Oui/Non, pourcentage et explication textuelle).",
+          "Problèmes de téléchargement de fichiers : Les fichiers doivent faire moins de 1MB. Essayez de réduire la taille du fichier ou utiliser différents formats.",
+          "Impossible de voir les soumissions d'autres équipes : Seuls les administrateurs d'organisation peuvent voir toutes les soumissions.",
+          "Catégories d'évaluation manquantes : Contactez votre administrateur pour vérifier les assignations de catégories pour votre organisation."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "Conseils pour des évaluations de durabilité réussies",
+      "beforeStarting": {
+        "title": "Avant de commencer :",
+        "items": [
+          "• Rassemblez les documents et données pertinents",
+          "• Impliquez les membres de l'équipe de différents domaines",
+          "• Révisez les évaluations précédentes si disponibles",
+          "• Prévoyez du temps adéquat pour la complétion"
+        ]
+      },
+      "duringAssessment": {
+        "title": "Pendant l'évaluation :",
+        "items": [
+          "• Soyez honnête et spécifique dans les réponses",
+          "• Fournissez des exemples concrets",
+          "• Téléchargez des preuves de soutien",
+          "• Sauvegardez les brouillons régulièrement"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "Besoin d'aide ?",
+      "description": "Si vous avez besoin d'assistance ou avez des questions sur l'utilisation de la plateforme :",
+      "email": "📧 Email : support@dgrv.org",
+      "phone": "📞 Téléphone : +27 (0) 11 000 0000",
+      "website": "🌐 Site web : www.dgrv.org/support",
+      "contactAdmin": "💬 Contactez votre administrateur d'organisation pour les questions spécifiques aux rôles"
+    }
+  },
+  "adminGuide": {
+    "title": "Guide administrateur pour la plateforme DGRV",
+    "subtitle": "Guide complet pour gérer la plateforme d'évaluation de durabilité DGRV",
+    "backToDashboard": "Retour au tableau de bord",
+    "quickStart": {
+      "title": "Démarrage rapide",
+      "step1": "1. 👥 Gérer les organisations et utilisateurs",
+      "step2": "2. 📋 Configurer les catégories et questions",
+      "step3": "3. ✅ Examiner et approuver les évaluations",
+      "step4": "4. 📊 Surveiller la santé et performance du système",
+      "step5": "5. 🎯 Soutenir les coopératives dans leur parcours de durabilité"
+    },
+    "sections": {
+      "overview": {
+        "title": "Aperçu de la plateforme",
+        "content": [
+          "La plateforme d'évaluation de durabilité DGRV est conçue pour aider les coopératives à travers l'Afrique australe à mesurer et améliorer leurs pratiques de durabilité.",
+          "En tant qu'administrateur, vous avez accès à des outils complets pour gérer les organisations, utilisateurs, contenu d'évaluation et examiner les soumissions.",
+          "La plateforme supporte plusieurs langues et fonctionne hors ligne pour accommoder divers défis de connectivité dans la région."
+        ]
+      },
+      "organizations": {
+        "title": "Gérer les organisations",
+        "content": [
+          "Ajoutez de nouvelles organisations coopératives à la plateforme avec leurs informations de base et paramètres de domaine.",
+          "Configurez les paramètres spécifiques à l'organisation et gérez l'accès utilisateur pour chaque coopérative.",
+          "Surveillez l'activité de l'organisation et assurez l'isolation appropriée des données entre différentes coopératives.",
+          "Archivez ou supprimez les organisations qui ne sont plus actives tout en préservant leurs données historiques."
+        ]
+      },
+      "users": {
+        "title": "Gérer les utilisateurs",
+        "content": [
+          "Créez et gérez les comptes utilisateur dans toutes les organisations avec des assignations de rôles appropriées.",
+          "Assignez les utilisateurs à des organisations spécifiques et configurez leurs permissions d'accès.",
+          "Surveillez l'activité utilisateur et gérez le statut de vérification de compte.",
+          "Assurez la sécurité appropriée en révisant régulièrement l'accès utilisateur et en supprimant les comptes inactifs."
+        ]
+      },
+      "categories": {
+        "title": "Gérer les catégories d'évaluation",
+        "content": [
+          "Configurez les catégories d'évaluation qui s'alignent avec les meilleures pratiques de durabilité et exigences locales.",
+          "Définissez des poids appropriés pour chaque catégorie pour assurer des scores d'évaluation équilibrés.",
+          "Organisez les catégories dans un ordre d'affichage logique pour une expérience utilisateur optimale.",
+          "Révisez et mettez à jour régulièrement les catégories basées sur les retours et standards de durabilité changeants."
+        ]
+      },
+      "questions": {
+        "title": "Gérer les questions d'évaluation",
+        "content": [
+          "Créez des questions complètes dans chaque catégorie pour évaluer exhaustivement les pratiques de durabilité.",
+          "Fournissez des questions en plusieurs langues pour soutenir les communautés coopératives diverses.",
+          "Définissez des poids et ordre d'affichage appropriés pour les questions dans chaque catégorie.",
+          "Révisez et mettez à jour régulièrement les questions basées sur les résultats d'évaluation et retours des parties prenantes."
+        ]
+      },
+      "reviews": {
+        "title": "Examiner les évaluations",
+        "content": [
+          "Examinez exhaustivement les évaluations soumises, considérant à la fois les scores quantitatifs et réponses qualitatives.",
+          "Fournissez des commentaires constructifs et des recommandations spécifiques pour l'amélioration.",
+          "Utilisez des recommandations standard pour assurer la cohérence à travers plusieurs évaluations.",
+          "Approuvez, rejetez ou demandez des révisions basées sur la qualité et complétude de l'évaluation."
+        ]
+      },
+      "recommendations": {
+        "title": "Recommandations standard",
+        "content": [
+          "Créez des modèles de recommandations réutilisables pour les scénarios d'évaluation courants et domaines d'amélioration.",
+          "Maintenez une bibliothèque de recommandations de haute qualité qui peuvent être appliquées à travers différentes coopératives.",
+          "Mettez à jour régulièrement les recommandations basées sur les meilleures pratiques et stratégies d'amélioration réussies.",
+          "Assurez-vous que les recommandations sont pratiques et réalisables pour les coopératives de diverses tailles et ressources."
+        ]
+      },
+      "systemHealth": {
+        "title": "Santé et performance du système",
+        "content": [
+          "Surveillez régulièrement la performance de la plateforme, santé de la base de données et temps de réponse API.",
+          "Révisez le statut de la file de synchronisation et assurez-vous que la synchronisation des données fonctionne correctement.",
+          "Exportez les rapports système et logs d'audit pour la conformité et résolution de problèmes.",
+          "Maintenez des sauvegardes régulières et assurez la sécurité des données à travers tous les composants de la plateforme."
+        ]
+      },
+      "support": {
+        "title": "Soutenir les coopératives",
+        "content": [
+          "Fournissez des conseils aux coopératives sur l'utilisation efficace de la plateforme pour leurs objectifs de durabilité.",
+          "Offrez des formations et matériels de soutien pour aider les organisations à maximiser la valeur de leurs évaluations.",
+          "Surveillez les tendances d'évaluation et identifiez les opportunités d'amélioration de la plateforme.",
+          "Construisez des relations avec les dirigeants coopératifs pour comprendre leurs besoins et défis uniques."
+        ]
+      }
+    },
+    "bestPractices": {
+      "title": "Meilleures pratiques pour l'administration de plateforme",
+      "regularReviews": {
+        "title": "Révisions régulières :",
+        "items": [
+          "• Révisez les évaluations en attente au moins hebdomadairement",
+          "• Surveillez les métriques de santé et performance du système",
+          "• Mettez à jour les catégories et questions basées sur les retours",
+          "• Maintenez une communication active avec les dirigeants coopératifs"
+        ]
+      },
+      "qualityAssurance": {
+        "title": "Assurance qualité :",
+        "items": [
+          "• Assurez des standards d'examen cohérents à travers toutes les évaluations",
+          "• Fournissez des commentaires détaillés et actionnables aux coopératives",
+          "• Maintenez des modèles de recommandations à jour",
+          "• Sauvegardez régulièrement les données et configurations système"
+        ]
+      }
+    },
+    "contactInfo": {
+      "title": "Support administratif",
+      "description": "Pour le support technique ou questions d'administration de plateforme :",
+      "email": "📧 Email : admin@dgrv.org",
+      "phone": "📞 Téléphone : +27 (0) 11 000 0000",
+      "website": "🌐 Site web : www.dgrv.org/admin",
+      "documentation": "📚 Documentation : Disponible dans le portail administrateur"
+    }
+  },
+  "reviewAssessments": {
+    "title": "Examiner les évaluations",
+    "subtitle": "Examiner et approuver les évaluations soumises",
+    "syncData": "Synchroniser les données",
+    "pendingSync": "Synchronisation en attente",
+    "submissionsUnderReview": "Soumissions en cours d'examen",
+    "noSubmissionsUnderReview": "Aucune soumission en cours d'examen",
+    "unknownOrganization": "Organisation inconnue",
+    "organization": "Organisation",
+    "submitted": "Soumis",
+    "unknown": "Inconnu",
+    "review": "Examiner",
+    "underReview": "En cours d'examen",
+    "approved": "Approuvé",
+    "rejected": "Rejeté",
+    "reviewAssessment": "Examiner l'évaluation",
+    "reviewDescription": "Examiner cette évaluation de durabilité et fournir des recommandations",
+    "submissionDetails": "Détails de la soumission",
+    "submissionDate": "Date de soumission",
+    "status": "Statut",
+    "assessmentResponses": "Réponses d'évaluation",
+    "noResponsesFound": "Aucune réponse trouvée",
+    "addRecommendation": "Ajouter une recommandation",
+    "collapse": "Réduire",
+    "expand": "Développer",
+    "yourRecommendations": "Vos recommandations :",
+    "addedAt": "Ajouté à",
+    "addRecommendationFor": "Ajouter une recommandation pour",
+    "recommendation": "Recommandation",
+    "enterRecommendationFor": "Entrez votre recommandation pour",
+    "category": "catégorie",
+    "cancel": "Annuler",
+    "yesNo": "Oui/Non :",
+    "yes": "Oui",
+    "no": "Non",
+    "percentage": "Pourcentage :",
+    "response": "Réponse :",
+    "clickExpandToView": "Cliquez sur \"Développer\" pour voir",
+    "question": "question",
+    "submitReview": "Soumettre l'examen",
+    "loadingSubmissions": "Chargement des soumissions...",
+    "errorLoadingSubmissions": "Erreur lors du chargement des soumissions",
+    "retry": "Réessayer",
+    "backToDashboard": "Retour au tableau de bord",
+    "reviewSubmittedSuccessfully": "Examen soumis avec succès",
+    "reviewSavedLocally": "Examen sauvegardé localement. Sera synchronisé quand en ligne.",
+    "failedToSubmitReview": "Échec de la soumission de l'examen",
+    "manualSyncFailed": "Échec de la synchronisation manuelle"
+  }
 }

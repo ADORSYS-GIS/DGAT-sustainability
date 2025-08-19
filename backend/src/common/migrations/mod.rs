@@ -8,7 +8,13 @@ mod m20250706_000005_create_file_table;
 mod m20250706_000006_create_assessments_response_file_table;
 mod m20250706_000007_create_assessments_submission_table;
 mod m20250706_000008_create_submission_reports_table;
-mod m20250706_000009_add_unique_version_constraint;
+mod m20250706_000010_remove_assessment_submission_fk;
+mod m20250715_000011_add_status_to_assessments_submission;
+mod m20250715_000012_add_reviewed_at_to_assessments_submission;
+mod m20250715_000013_update_submission_reports_table;
+mod m20250123_000014_create_categories_table;
+mod m20250731_000001_add_assessment_name;
+mod m20250819_000015_create_temp_submission_table;
 
 pub struct Migrator;
 
@@ -24,7 +30,13 @@ impl MigratorTrait for Migrator {
             Box::new(m20250706_000006_create_assessments_response_file_table::Migration),
             Box::new(m20250706_000007_create_assessments_submission_table::Migration),
             Box::new(m20250706_000008_create_submission_reports_table::Migration),
-            Box::new(m20250706_000009_add_unique_version_constraint::Migration),
+            Box::new(m20250706_000010_remove_assessment_submission_fk::Migration),
+            Box::new(m20250715_000011_add_status_to_assessments_submission::Migration),
+            Box::new(m20250715_000012_add_reviewed_at_to_assessments_submission::Migration),
+            Box::new(m20250715_000013_update_submission_reports_table::Migration),
+            Box::new(m20250123_000014_create_categories_table::Migration),
+            Box::new(m20250731_000001_add_assessment_name::Migration),
+            Box::new(m20250819_000015_create_temp_submission_table::Migration),
         ]
     }
 }
