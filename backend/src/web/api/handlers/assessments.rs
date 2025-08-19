@@ -587,11 +587,8 @@ pub async fn submit_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let org_id = claims.get_org_id()
-        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
-
     if !claims.can_create_assessments() {
-        return Err(ApiError::BadRequest(
+        return Err(ApiError::Forbidden(
             "You don't have permission to finalize assessments.".to_string(),
         ));
     }
@@ -605,7 +602,7 @@ pub async fn submit_assessment(
 
     // Create final submission using the content from temp submission
     app_state.database.assessments_submission
-        .create_submission(assessment_id, org_id, temp_submission.content.clone())
+        .create_submission(assessment_id, temp_submission.org_id, temp_submission.content.clone())
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create final submission: {e}")))?;
 

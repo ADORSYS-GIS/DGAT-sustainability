@@ -9,6 +9,7 @@ use serde_json::json;
 pub enum ApiError {
     BadRequest(String),
     NotFound(String),
+    Forbidden(String),
     Conflict(String),
     InternalServerError(String),
     DatabaseError(String),
@@ -20,6 +21,7 @@ impl IntoResponse for ApiError {
             ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             ApiError::NotFound(message) => (StatusCode::NOT_FOUND, message),
             ApiError::Conflict(message) => (StatusCode::CONFLICT, message),
+            ApiError::Forbidden(message) => (StatusCode::FORBIDDEN, message),
             ApiError::InternalServerError(message) => (StatusCode::INTERNAL_SERVER_ERROR, message),
             ApiError::DatabaseError(message) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
