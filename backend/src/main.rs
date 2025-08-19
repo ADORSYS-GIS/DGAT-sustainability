@@ -23,14 +23,7 @@ async fn startup() -> Result<(), Box<dyn std::error::Error>> {
     // Load configuration
     let config = Configs::new()?;
 
-    tracing::info!("Starting Sustainability Tool backend server...");
-    tracing::info!("Keycloak URL: {}", config.keycloak.url);
-    tracing::info!("Keycloak Realm: {}", config.keycloak.realm);
-    tracing::info!(
-        "Server will listen on {}:{}",
-        config.server.host,
-        config.server.port
-    );
+    tracing::info!("Starting Sustainability Tool backend server");
 
     // Initialize application database
     let app_db = initialize_app().await?;
@@ -44,16 +37,7 @@ async fn startup() -> Result<(), Box<dyn std::error::Error>> {
     // Start the server
     let bind_address = format!("{}:{}", config.server.host, config.server.port);
     let listener = tokio::net::TcpListener::bind(&bind_address).await?;
-
-    tracing::info!("🚀 Server started successfully on http://{}", bind_address);
-    tracing::info!(
-        "📋 Health check available at: http://{}/health",
-        bind_address
-    );
-    tracing::info!(
-        "🔐 API endpoints available at: http://{}/api/v1",
-        bind_address
-    );
+    tracing::info!("Server started and listening");
 
     axum::serve(listener, app).await?;
 

@@ -83,6 +83,12 @@ ASSESSMENTS_RESPONSE_FILE |o--o| FILE : "one"
         uuid assessment_id FK
         jsonb data "Report content"
     }
+
+    TEMP_SUBMISSION {
+        uuid assessment_id PK "from assessment table"
+        varchar user_id "Keycloak sub (string UUID)"
+        jsonb content "{question: response}[]"
+    }
 ```
 
 ## Implementation

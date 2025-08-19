@@ -14,6 +14,7 @@ mod m20250715_000012_add_reviewed_at_to_assessments_submission;
 mod m20250715_000013_update_submission_reports_table;
 mod m20250123_000014_create_categories_table;
 mod m20250731_000001_add_assessment_name;
+mod m20250819_000015_create_temp_submission_table;
 
 pub struct Migrator;
 
@@ -35,6 +36,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250715_000013_update_submission_reports_table::Migration),
             Box::new(m20250123_000014_create_categories_table::Migration),
             Box::new(m20250731_000001_add_assessment_name::Migration),
+            Box::new(m20250819_000015_create_temp_submission_table::Migration),
         ]
     }
 }

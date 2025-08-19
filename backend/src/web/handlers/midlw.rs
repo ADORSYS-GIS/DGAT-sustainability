@@ -53,12 +53,8 @@ pub async fn auth_middleware(
         StatusCode::UNAUTHORIZED
     })?;
 
-    // Log successful authentication
-    tracing::debug!(
-        "User authenticated: {} (org: {:?})",
-        claims.preferred_username,
-        claims.get_primary_organization_id()
-    );
+    // Log authentication at debug level (redacted in production)
+    tracing::debug!("User authenticated");
 
     // Add claims and raw token to request extensions
     request.extensions_mut().insert(claims);

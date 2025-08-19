@@ -3,7 +3,7 @@ use crate::web::api::handlers::{
     admin::list_all_submissions,
     assessments::{
         create_assessment, delete_assessment, get_assessment, list_assessments, submit_assessment,
-        update_assessment,
+        update_assessment, user_submit_draft_assessment,
     },
     categories::{
         create_category, delete_category, get_category, list_categories, update_category,
@@ -77,6 +77,10 @@ pub fn create_router(app_state: AppState) -> Router {
         .route(
             "/api/assessments/:assessment_id/submit",
             post(submit_assessment),
+        )
+        .route(
+            "/api/assessments/:assessment_id/draft",
+            post(user_submit_draft_assessment),
         )
         // Response endpoints
         .route(

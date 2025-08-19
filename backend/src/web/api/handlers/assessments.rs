@@ -453,7 +453,7 @@ pub async fn delete_assessment(
         ));
     }
 
-    // Check if assessment has been submitted (cannot delete submitted assessments)
+    // Check if an assessment has been submitted (cannot delete submitted assessments)
     let has_submission = app_state
         .database
         .assessments_submission
@@ -470,7 +470,7 @@ pub async fn delete_assessment(
         ));
     }
 
-    // Delete the assessment from the database (this will cascade delete responses due to foreign key)
+    // Delete the assessment from the database (this will cascade delete responses due to a foreign key)
     app_state
         .database
         .assessments
@@ -481,7 +481,8 @@ pub async fn delete_assessment(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn submit_assessment(
+/// API handler for user draft submission -- constructs content from live state and saves to temp_submission table
+pub async fn user_submit_draft_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
@@ -489,7 +490,6 @@ pub async fn submit_assessment(
     let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Check if user has permission to submit assessments
     if !claims.can_answer_assessments() {
         return Err(ApiError::BadRequest(
             "You don't have permission to submit assessments. Only Org_User and org_admin roles can submit assessments.".to_string(),
@@ -509,29 +509,9 @@ pub async fn submit_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // Allow submissions to assessments in the following cases:
-    // 1. User owns the assessment (same org_id)
-    // 2. User is a super user (can submit to any assessment)
-    // 3. Any user with proper role can submit to any assessment if they have the assessment_id (shared assessments)
-    //    This implements the use case where org_admin creates assessments and shares assessment_id with Org_User users
-    let _is_owner = assessment_model.org_id == org_id;
-    let _is_super_user = claims.is_super_user();
+    let user_id = claims.sub.clone();
 
-    // Allow submission to any assessment for users with proper roles - this enables the sharing use case
-    // where org_admin creates assessments and shares the assessment_id with Org_User users
-    // The role check above ensures only authorized users can access this functionality
-
-    // Check if assessment has already been submitted
-    let existing_submission = app_state
-        .database
-        .assessments_submission
-        .get_submission_by_assessment_id(assessment_id)
-        .await
-        .map_err(|e| {
-            ApiError::InternalServerError(format!("Failed to check existing submission: {e}"))
-        })?;
-
-    // Fetch all responses for this assessment to include in the submission
+    // Gather responses for this assessment as draft content
     let response_models = app_state
         .database
         .assessments_response
@@ -541,10 +521,8 @@ pub async fn submit_assessment(
             ApiError::InternalServerError(format!("Failed to fetch assessment responses: {e}"))
         })?;
 
-    // Build the submission content with file metadata
     let mut responses_with_files = Vec::new();
     for response_model in &response_models {
-        // Fetch files associated with this response
         let files = app_state
             .database
             .assessments_response_file
@@ -554,7 +532,6 @@ pub async fn submit_assessment(
                 ApiError::InternalServerError(format!("Failed to fetch files for response: {e}"))
             })?;
 
-        // Convert file models to metadata
         let file_metadata: Vec<serde_json::Value> = files.iter().map(|file| {
             let empty_map = serde_json::Map::new();
             let metadata = file.metadata.as_object().unwrap_or(&empty_map);
@@ -576,7 +553,7 @@ pub async fn submit_assessment(
         }));
     }
 
-    let submission_content = serde_json::json!({
+    let draft_content = serde_json::json!({
         "assessment": {
             "assessment_id": assessment_id,
             "language": assessment_model.language
@@ -584,37 +561,59 @@ pub async fn submit_assessment(
         "responses": responses_with_files
     });
 
-    // Create or update the submission record in the database
-    let _submission_model = if existing_submission.is_some() {
-        // Update existing submission by appending new content
-        app_state
-            .database
-            .assessments_submission
-            .update_submission_content(assessment_id, submission_content.clone())
+    // Insert or update the draft in temp_submission using service API
+    let existing_temp = app_state.database.temp_submission.get_temp_submission_by_assessment_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to query temp submission: {e}")))?;
+
+    if existing_temp.is_some() {
+        // Update draft
+        app_state.database.temp_submission.update_submission_content(assessment_id, draft_content.clone())
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to update submission: {e}")))?
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to update temp submission: {e}")))?;
     } else {
-        // Create new submission
-        app_state
-            .database
-            .assessments_submission
-            .create_submission(assessment_id, org_id.clone(), submission_content.clone())
+        // Create draft
+        app_state.database.temp_submission.create_temp_submission(assessment_id, org_id.clone(), draft_content.clone())
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to create submission: {e}")))?
-    };
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to store temp submission: {e}")))?;
+    }
 
-    // Build the response
-    let submission = AssessmentSubmission {
-        assessment_id,
-        org_id,
-        content: _submission_model.content.clone(),
-        submitted_at: _submission_model.submitted_at.to_rfc3339(),
-        review_status: _submission_model.status.to_string(),
-        reviewed_at: _submission_model.reviewed_at.map(|dt| dt.to_rfc3339()),
-    };
+    Ok((StatusCode::OK, Json(draft_content)))
+}
 
-    Ok((
-        StatusCode::CREATED,
-        Json(AssessmentSubmissionResponse { submission }),
-    ))
+/// API handler to move a user's temp_submission to assessments_submission (approval/finalize)
+pub async fn submit_assessment(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(assessment_id): Path<Uuid>,
+) -> Result<impl IntoResponse, ApiError> {
+    let org_id = claims.get_org_id()
+        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
+
+    if !claims.can_create_assessments() {
+        return Err(ApiError::BadRequest(
+            "You don't have permission to finalize assessments.".to_string(),
+        ));
+    }
+
+    // Fetch the temp submission (must exist)
+    let temp_submission = app_state.database.temp_submission
+        .get_temp_submission_by_assessment_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to read temp_submission: {e}")))?
+        .ok_or_else(|| ApiError::BadRequest("No temp submission to finalize".to_string()))?;
+
+    // Create final submission using the content from temp submission
+    app_state.database.assessments_submission
+        .create_submission(assessment_id, org_id, temp_submission.content.clone())
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to create final submission: {e}")))?;
+
+    // Delete the temp submission after successful final submission
+    app_state.database.temp_submission
+        .delete_temp_submission(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to clean up temp submission: {e}")))?;
+
+    Ok(StatusCode::OK)
 }
