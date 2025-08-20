@@ -1053,7 +1053,8 @@ export function useOfflineResponses(assessmentId: string) {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!assessmentId) {
+    if (!assessmentId || assessmentId.trim() === '') {
+      console.warn('⚠️ Empty or invalid assessmentId provided to useOfflineResponses:', assessmentId);
       setData({ responses: [] });
       setIsLoading(false);
       return;
@@ -1062,6 +1063,8 @@ export function useOfflineResponses(assessmentId: string) {
     try {
       setIsLoading(true);
       setError(null);
+
+      console.log('🔍 Fetching responses for assessmentId:', assessmentId);
 
       const result = await apiInterceptor.interceptGet(
         () => ResponsesService.getAssessmentsByAssessmentIdResponses({ assessmentId }),
@@ -1072,6 +1075,7 @@ export function useOfflineResponses(assessmentId: string) {
 
       setData(result);
     } catch (err) {
+      console.error('❌ Error fetching responses:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch responses'));
     } finally {
       setIsLoading(false);
@@ -1101,6 +1105,8 @@ export function useOfflineResponsesMutation() {
         console.error('❌ Invalid assessmentId provided to createResponses:', assessmentId);
         throw new Error('Invalid assessment ID provided');
       }
+
+      console.log('🔍 Creating responses for assessmentId:', assessmentId);
 
       // Create temporary offline responses for immediate UI feedback
       const tempOfflineResponses = responses.map(response => {
@@ -1159,6 +1165,18 @@ export function useOfflineResponsesMutation() {
     try {
       setIsPending(true);
 
+      // Validate parameters
+      if (!assessmentId || assessmentId.trim() === '') {
+        console.error('❌ Invalid assessmentId provided to updateResponse:', assessmentId);
+        throw new Error('Invalid assessment ID provided');
+      }
+      if (!responseId || responseId.trim() === '') {
+        console.error('❌ Invalid responseId provided to updateResponse:', responseId);
+        throw new Error('Invalid response ID provided');
+      }
+
+      console.log('🔍 Updating response for assessmentId:', assessmentId, 'responseId:', responseId);
+
       const result = await apiInterceptor.interceptMutation(
         () => ResponsesService.putAssessmentsByAssessmentIdResponsesByResponseId({ assessmentId, responseId, requestBody: response }),
         async (data: Record<string, unknown>) => {
@@ -1199,6 +1217,18 @@ export function useOfflineResponsesMutation() {
   ) => {
     try {
       setIsPending(true);
+
+      // Validate parameters
+      if (!assessmentId || assessmentId.trim() === '') {
+        console.error('❌ Invalid assessmentId provided to deleteResponse:', assessmentId);
+        throw new Error('Invalid assessment ID provided');
+      }
+      if (!responseId || responseId.trim() === '') {
+        console.error('❌ Invalid responseId provided to deleteResponse:', responseId);
+        throw new Error('Invalid response ID provided');
+      }
+
+      console.log('🔍 Deleting response for assessmentId:', assessmentId, 'responseId:', responseId);
 
       const result = await apiInterceptor.interceptMutation(
         () => ResponsesService.deleteAssessmentsByAssessmentIdResponsesByResponseId({ assessmentId, responseId }).then(() => ({ success: true })),

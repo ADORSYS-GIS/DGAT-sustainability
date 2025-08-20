@@ -953,6 +953,30 @@ class OfflineDB {
     await store.delete(id);
     await tx.done;
   }
+
+  /**
+   * Clean up invalid responses (those with empty assessment IDs)
+   */
+  async cleanupInvalidResponses(): Promise<number> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("responses", "readwrite");
+    const store = tx.objectStore("responses");
+    
+    const allResponses = await store.getAll();
+    let deletedCount = 0;
+    
+    for (const response of allResponses) {
+      if (!response.assessment_id || response.assessment_id.trim() === '') {
+        console.warn('🧹 Cleaning up invalid response with empty assessment_id:', response.response_id);
+        await store.delete(response.response_id);
+        deletedCount++;
+      }
+    }
+    
+    await tx.done;
+    console.log(`🧹 Cleaned up ${deletedCount} invalid responses`);
+    return deletedCount;
+  }
 }
 
 // Export singleton instance

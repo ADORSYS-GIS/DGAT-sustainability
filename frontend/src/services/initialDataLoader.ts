@@ -320,6 +320,14 @@ export class InitialDataLoader {
       
       for (const assessment of assessments) {
         try {
+          // Validate assessment ID
+          if (!assessment.assessment_id || assessment.assessment_id.trim() === '') {
+            console.warn('⚠️ Skipping assessment with empty assessment_id:', assessment);
+            continue;
+          }
+
+          console.log('🔍 Loading responses for assessment:', assessment.assessment_id);
+
           const responsesData = await ResponsesService.getAssessmentsByAssessmentIdResponses({ 
             assessmentId: assessment.assessment_id 
           });

@@ -6,13 +6,12 @@ import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/us
 import { offlineDB } from "@/services/indexeddb";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
 import type { Submission } from "@/openapi-rq/requests/types.gen";
-import { Calendar, Eye, FileText, RefreshCw, Trash2 } from "lucide-react";
+import { Calendar, Eye, FileText, Trash2 } from "lucide-react";
 import * as React from "react";
 import { useNavigate, NavigateFunction } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { syncService } from "@/services/syncService";
 import { Navbar } from "@/components/shared/Navbar";
 
 type AuthUser = {
@@ -89,15 +88,7 @@ export const Assessments: React.FC = () => {
     }
   };
 
-  // Manual sync function
-  const handleManualSync = async () => {
-    try {
-      await syncService.performFullSync();
-      await refetch(); // Refresh the submissions list
-    } catch (error) {
-      console.error("Manual sync failed:", error);
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -207,22 +198,16 @@ export const Assessments: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center space-x-3 mb-4">
-              <FileText className="w-8 h-8 text-dgrv-blue" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">
-                {t("yourSubmissions", { defaultValue: "Your Submissions" })}
-              </h1>
-            </div>
-            <p className="text-lg text-gray-600">
-              {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
-            </p>
+        <div className="mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <FileText className="w-8 h-8 text-dgrv-blue" />
+            <h1 className="text-3xl font-bold text-dgrv-blue">
+              {t("yourSubmissions", { defaultValue: "Your Submissions" })}
+            </h1>
           </div>
-          <Button onClick={handleManualSync} className="flex items-center space-x-2">
-            <RefreshCw className="w-4 h-4" />
-            {t("syncData", { defaultValue: "Sync Data" })}
-          </Button>
+          <p className="text-lg text-gray-600">
+            {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
+          </p>
         </div>
 
         <div className="grid gap-6">

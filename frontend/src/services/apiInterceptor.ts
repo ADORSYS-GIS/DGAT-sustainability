@@ -63,6 +63,9 @@ export class ApiInterceptor {
 
     this.setupNetworkListeners();
     this.setupPeriodicSync();
+    
+    // Clean up invalid responses on startup
+    this.cleanupInvalidResponses();
   }
 
   /**
@@ -558,6 +561,13 @@ export class ApiInterceptor {
       const allResponses = await offlineDB.getResponsesWithFilters({});
       const pendingResponses = allResponses.filter(r => r.sync_status === 'pending');
 
+      console.log(`🔄 Processing ${pendingResponses.length} pending responses`);
+      
+      // Log details of pending responses for debugging
+      for (const response of pendingResponses) {
+        console.log(`🔍 Pending response: ${response.response_id}, assessment_id: "${response.assessment_id}", sync_status: ${response.sync_status}`);
+      }
+
       for (const response of pendingResponses) {
         try {
           
@@ -571,6 +581,13 @@ export class ApiInterceptor {
             question_revision_id: response.question_revision_id,
             response: response.response
           };
+
+          // Handle responses with empty assessment IDs
+          if (!response.assessment_id || response.assessment_id.trim() === '') {
+            console.warn('⚠️ Found response with empty assessment_id, deleting invalid response:', response.response_id);
+            await offlineDB.deleteResponse(response.response_id);
+            continue; // Skip this response and continue with the next one
+          }
 
           const { ResponsesService } = await import('@/openapi-rq/requests/services.gen');
           const apiResponse = await ResponsesService.postAssessmentsByAssessmentIdResponses({ 
@@ -681,7 +698,7 @@ export class ApiInterceptor {
             const { ReportsService } = await import('@/openapi-rq/requests/services.gen');
             const result = await ReportsService.postSubmissionsBySubmissionIdReports({
               submissionId: submissionId,
-              requestBody: queueItem.data.categoryRecommendations as any[]
+              requestBody: queueItem.data.categoryRecommendations as { category: string; recommendation: string }[]
             });
             
             console.log(`✅ Report generation successful: ${result.report_id}`);
@@ -749,6 +766,13 @@ export class ApiInterceptor {
   }
 
   /**
+   * Manual cleanup of invalid responses
+   */
+  async cleanupInvalidData(): Promise<number> {
+    return await offlineDB.cleanupInvalidResponses();
+  }
+
+  /**
    * Get sync status
    */
   async getSyncStatus(): Promise<{ queueLength: number; isOnline: boolean; isSyncing: boolean }> {
@@ -759,7 +783,45 @@ export class ApiInterceptor {
       isSyncing: syncService.isCurrentlySyncing()
     };
   }
+
+  /**
+   * Clean up invalid responses on startup
+   */
+  private async cleanupInvalidResponses(): Promise<void> {
+    try {
+      const deletedCount = await offlineDB.cleanupInvalidResponses();
+      if (deletedCount > 0) {
+        console.log(`🧹 Cleaned up ${deletedCount} invalid responses on startup`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to cleanup invalid responses:', error);
+    }
+  }
 }
 
 // Export singleton instance
-export const apiInterceptor = new ApiInterceptor(); 
+export const apiInterceptor = new ApiInterceptor();
+
+// Export utility functions for debugging
+export const debugUtils = {
+  /**
+   * Clean up invalid responses manually
+   */
+  async cleanupInvalidResponses(): Promise<number> {
+    return await apiInterceptor.cleanupInvalidData();
+  },
+
+  /**
+   * Get sync status
+   */
+  async getSyncStatus(): Promise<{ queueLength: number; isOnline: boolean; isSyncing: boolean }> {
+    return await apiInterceptor.getSyncStatus();
+  },
+
+  /**
+   * Manual sync trigger
+   */
+  async manualSync(): Promise<void> {
+    await apiInterceptor.manualSync();
+  }
+}; 
