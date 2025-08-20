@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Building2, Plus, Edit, Trash2, MapPin, Mail } from "lucide-react";
-import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
+
 import type {
   OrganizationResponse,
   OrganizationCreateRequest,
@@ -177,7 +177,7 @@ export const ManageOrganizations: React.FC = () => {
     }
   });
 
-  const { isOnline } = useOfflineSyncStatus();
+
 
   // Transform the organizations data from the direct API call
   const fixedOrgs = organizations ? 
@@ -404,19 +404,7 @@ export const ManageOrganizations: React.FC = () => {
 
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Offline Status Indicator */}
-          <div className="mb-4 flex items-center justify-end">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-              isOnline 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
-              <span>{isOnline ? 'Online' : 'Offline'}</span>
-            </div>
-          </div>
+
 
           {/* Header */}
           <div className="mb-8 animate-fade-in">

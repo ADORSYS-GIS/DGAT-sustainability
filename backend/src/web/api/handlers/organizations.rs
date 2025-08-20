@@ -816,12 +816,57 @@ pub async fn remove_member(
 
     tracing::info!("Attempting to remove member {} from organization {}", membership_id, org_id);
 
+    // First, get the user's current roles to remove them
+    let user_roles = match app_state.keycloak_service.get_user_realm_roles(&token, &membership_id).await {
+        Ok(roles) => roles,
+        Err(e) => {
+            tracing::warn!("Failed to get user roles for removal: {}", e);
+            vec![] // Continue with removal even if we can't get roles
+        }
+    };
+
+    // Remove the user from the organization
     match app_state.keycloak_service
         .remove_user_from_organization(&token, &org_id, &membership_id)
         .await
     {
         Ok(()) => {
-            tracing::info!("Successfully removed member {} from organization {}", membership_id, org_id);
+            // Remove all realm roles from the user, except the default role
+            for role_name in &user_roles {
+                // Skip the default role that should be preserved
+                if role_name == "default-roles-sustainability-realm" {
+                    tracing::info!("Preserving default role '{}' for user {}", role_name, membership_id);
+                    continue;
+                }
+                
+                if let Err(e) = app_state.keycloak_service.remove_realm_role_from_user(&token, &membership_id, role_name).await {
+                    tracing::warn!("Failed to remove realm role '{}' from user {}: {}", role_name, membership_id, e);
+                    // Continue removing other roles even if one fails
+                }
+            }
+
+            // If the user had org_admin role, also remove the associated client roles
+            if user_roles.contains(&"org_admin".to_string()) {
+                let client_roles = vec![
+                    "view-users",
+                    "query-users", 
+                    "manage-users",
+                    "manage-organizations",
+                    "manage-clients",
+                    "manage-realm"
+                ];
+                // Use the correct UUID for the realm-management client
+                let client_id = "4c6be2d1-547f-4ecc-912d-facf2f52935a";
+                
+                for client_role in client_roles {
+                    if let Err(e) = app_state.keycloak_service.remove_client_role_from_user(&token, &membership_id, client_id, client_role).await {
+                        tracing::warn!("Failed to remove client role '{}' from user {}: {}", client_role, membership_id, e);
+                        // Continue removing other client roles even if one fails
+                    }
+                }
+            }
+
+            tracing::info!("Successfully removed member {} from organization {} and removed all associated roles", membership_id, org_id);
             Ok(StatusCode::NO_CONTENT)
         },
         Err(e) => {
@@ -904,10 +949,58 @@ pub async fn remove_org_admin_member(
         tracing::error!(?claims, org_id = %org_id, member_id = %member_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
+
+    // First, get the user's current roles to remove them
+    let user_roles = match app_state.keycloak_service.get_user_realm_roles(&token, &member_id).await {
+        Ok(roles) => roles,
+        Err(e) => {
+            tracing::warn!("Failed to get user roles for removal: {}", e);
+            vec![] // Continue with removal even if we can't get roles
+        }
+    };
+
+    // Remove the user from the organization
     app_state.keycloak_service.remove_user_from_organization(&token, &org_id, &member_id).await.map_err(|e| {
         tracing::error!("Failed to remove org user: {}", e);
         ApiError::InternalServerError("Failed to remove org user".to_string())
     })?;
+
+    // Remove all realm roles from the user, except the default role
+    for role_name in &user_roles {
+        // Skip the default role that should be preserved
+        if role_name == "default-roles-sustainability-realm" {
+            tracing::info!("Preserving default role '{}' for user {}", role_name, member_id);
+            continue;
+        }
+        
+        if let Err(e) = app_state.keycloak_service.remove_realm_role_from_user(&token, &member_id, role_name).await {
+            tracing::warn!("Failed to remove realm role '{}' from user {}: {}", role_name, member_id, e);
+            // Continue removing other roles even if one fails
+        }
+    }
+
+    // If the user had org_admin role, also remove the associated client roles
+    if user_roles.contains(&"org_admin".to_string()) {
+        let client_roles = vec![
+            "view-users",
+            "query-users", 
+            "manage-users",
+            "manage-organizations",
+            "manage-clients",
+            "manage-realm"
+        ];
+        // Use the correct UUID for the realm-management client
+        let client_id = "4c6be2d1-547f-4ecc-912d-facf2f52935a";
+        
+        for client_role in client_roles {
+            if let Err(e) = app_state.keycloak_service.remove_client_role_from_user(&token, &member_id, client_id, client_role).await {
+                tracing::warn!("Failed to remove client role '{}' from user {}: {}", client_role, member_id, e);
+                // Continue removing other client roles even if one fails
+            }
+        }
+    }
+
+    tracing::info!("Successfully removed user {} from organization {} and removed all associated roles", member_id, org_id);
     Ok(StatusCode::NO_CONTENT)
 }
 

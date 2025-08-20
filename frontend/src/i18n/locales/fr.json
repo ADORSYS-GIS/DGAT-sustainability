@@ -182,8 +182,8 @@
     "numQuestions": "Nombre de questions",
     "pendingReviews": "Examens en attente",
     "completedAssessments": "Évaluations terminées"
-  },
-  "actions": {
+    },
+    "actions": {
     "manageOrganizations": "Gérer les organisations",
     "manageOrganizationsDesc": "Ajouter, modifier et gérer les organisations coopératives dans le système.",
     "manageUsers": "Gérer les utilisateurs",
@@ -196,8 +196,8 @@
     "reviewAssessmentsDesc": "Examiner les évaluations soumises et fournir des recommandations.",
     "standardRecommendations": "Recommandations standard",
     "standardRecommendationsDesc": "Gérer les recommandations réutilisables pour les scénarios d'évaluation courants."
-  },
-  "guide": {
+    },
+    "guide": {
     "title": "Guide de l'administrateur",
     "intro": "Bienvenue dans le tableau de bord de l'administrateur DGRV ! Voici quelques conseils pour vous aider à gérer la plateforme :",
     "orgsUsers": "Utilisez les sections Gérer les organisations et Gérer les utilisateurs pour contrôler l'accès et l'adhésion.",
@@ -205,7 +205,7 @@
     "categoriesQuestions": "Configurez les catégories et les questions pour adapter le processus d'évaluation à vos besoins.",
     "docs": "Pour une documentation détaillée, visitez la Documentation de l'administrateur.",
     "support": "Si vous avez besoin d'aide, contactez support@dgrv.org."
-  },
+    },
   "questions": {
     "manage": {
       "title": "Gérer les questions",
@@ -445,7 +445,7 @@
         "subtitle": "Suivez et gérez les tâches d'amélioration de la durabilité de votre coopérative."
       },
       "actionPlan": {
-        "kanban": {
+  "kanban": {
           "todo": "À faire",
           "inProgress": "En cours",
           "done": "Terminé",

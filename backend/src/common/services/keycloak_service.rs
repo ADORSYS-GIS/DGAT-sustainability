@@ -229,6 +229,43 @@ impl KeycloakService {
         }
     }
 
+    /// Remove a realm role from a user by role name
+    pub async fn remove_realm_role_from_user(&self, token: &str, user_id: &str, role_name: &str) -> Result<()> {
+        // Get the role object by name
+        let url = format!("{}/admin/realms/{}/roles/{}", self.config.url, self.config.realm, role_name);
+        let role: serde_json::Value = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        // Remove the role from the user
+        let remove_url = format!("{}/admin/realms/{}/users/{}/role-mappings/realm", self.config.url, self.config.realm, user_id);
+        let roles_payload = serde_json::json!([role]);
+        let response = self.client.delete(&remove_url)
+            .bearer_auth(token)
+            .json(&roles_payload)
+            .send()
+            .await?;
+        match response.status() {
+            StatusCode::NO_CONTENT | StatusCode::OK => {
+                info!("Successfully removed realm role '{}' from user {}", role_name, user_id);
+                Ok(())
+            },
+            StatusCode::NOT_FOUND => {
+                // Role doesn't exist or was already removed - consider this a success (idempotent)
+                info!("Realm role '{}' was not found for user {} (may have been already removed)", role_name, user_id);
+                Ok(())
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to remove realm role from user: {}", error_text);
+                Err(anyhow!("Failed to remove realm role from user: {}", error_text))
+            }
+        }
+    }
+
     /// Assign a client role to a user by role name
     pub async fn assign_client_role_to_user(&self, token: &str, user_id: &str, client_id: &str, role_name: &str) -> Result<()> {
         // Get the client role object by name
@@ -254,6 +291,43 @@ impl KeycloakService {
                 let error_text = response.text().await?;
                 error!("Failed to assign client role to user: {}", error_text);
                 Err(anyhow!("Failed to assign client role to user: {}", error_text))
+            }
+        }
+    }
+
+    /// Remove a client role from a user by role name
+    pub async fn remove_client_role_from_user(&self, token: &str, user_id: &str, client_id: &str, role_name: &str) -> Result<()> {
+        // Get the client role object by name
+        let url = format!("{}/admin/realms/{}/clients/{}/roles/{}", self.config.url, self.config.realm, client_id, role_name);
+        let role: serde_json::Value = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        // Remove the client role from the user
+        let remove_url = format!("{}/admin/realms/{}/users/{}/role-mappings/clients/{}", self.config.url, self.config.realm, user_id, client_id);
+        let roles_payload = json!([role]);
+        let response = self.client.delete(&remove_url)
+            .bearer_auth(token)
+            .json(&roles_payload)
+            .send()
+            .await?;
+        match response.status() {
+            StatusCode::NO_CONTENT | StatusCode::OK => {
+                info!("Successfully removed client role '{}' from user {}", role_name, user_id);
+                Ok(())
+            },
+            StatusCode::NOT_FOUND => {
+                // Role doesn't exist or was already removed - consider this a success (idempotent)
+                info!("Client role '{}' was not found for user {} (may have been already removed)", role_name, user_id);
+                Ok(())
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to remove client role from user: {}", error_text);
+                Err(anyhow!("Failed to remove client role from user: {}", error_text))
             }
         }
     }

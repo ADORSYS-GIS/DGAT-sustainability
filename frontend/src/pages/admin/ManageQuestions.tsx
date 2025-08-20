@@ -26,8 +26,22 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  BookOpen, 
+  FileText, 
+  Settings, 
+  Globe,
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
+  Target,
+  Layers
+} from "lucide-react";
 import { 
   useOfflineQuestions, 
   useOfflineCategories, 
@@ -87,77 +101,49 @@ interface QuestionFormData {
 
 const QuestionForm: React.FC<{
   categories: Category[];
-  
+  selectedCategory?: string;
   formData: QuestionFormData;
   setFormData: React.Dispatch<React.SetStateAction<QuestionFormData>>;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
   editingQuestion: QuestionWithLatestRevision | null;
-  isOnline: boolean;
+  onCancel: () => void;
 }> = ({
   categories,
+  selectedCategory,
   formData,
   setFormData,
   onSubmit,
   isPending,
   editingQuestion,
-  isOnline,
+  onCancel,
 }) => {
   // Track which language dropdown is open (only one at a time)
   const [openLang, setOpenLang] = useLocalState<string | null>(null);
   const { t } = useTranslation();
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      {/* English always visible */}
-      <div>
-        <Label htmlFor="text_en">🇺🇸 English (Required)</Label>
-        <Textarea
-          id="text_en"
-          value={formData.text["en"] || ""}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              text: { ...prev.text, en: e.target.value },
-            }))
-          }
-          placeholder={t('manageQuestions.questionEnPlaceholder')}
-          required
-        />
+    <form onSubmit={onSubmit} className="space-y-6">
+      {/* Header */}
+      <div className="text-center pb-4">
+        <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
+          <FileText className="w-6 h-6 text-blue-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900">
+          {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
+        </h3>
+        {selectedCategory && (
+          <p className="text-sm text-gray-500 mt-1">
+            Adding to category: <span className="font-medium text-blue-600">{selectedCategory}</span>
+          </p>
+        )}
       </div>
-      {/* Other languages as dropdowns */}
+
+      {/* Category Selection */}
       <div className="space-y-2">
-        {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
-          <Select
-            key={lang.code}
-            open={openLang === lang.code}
-            onOpenChange={(isOpen) => setOpenLang(isOpen ? lang.code : null)}
-            value={openLang === lang.code ? lang.code : ""}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={lang.name}>{lang.name}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <div className="p-2">
-                <Label htmlFor={`text_${lang.code}`}>{lang.name}</Label>
-                <Textarea
-                  id={`text_${lang.code}`}
-                  value={formData.text[lang.code] || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      text: { ...prev.text, [lang.code]: e.target.value },
-                    }))
-                  }
-                  placeholder={t('manageQuestions.questionLangPlaceholder', { lang: lang.name })}
-                />
-              </div>
-            </SelectContent>
-          </Select>
-        ))}
-      </div>
-      <div>
-        <Label htmlFor="categoryName">{t('manageQuestions.category')}</Label>
+        <Label className="text-sm font-medium text-gray-700">
+          {t('manageQuestions.category')} <span className="text-red-500">*</span>
+        </Label>
         <Select
           value={formData.categoryName}
           onValueChange={(value) =>
@@ -167,21 +153,79 @@ const QuestionForm: React.FC<{
             }))
           }
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue placeholder={t('manageQuestions.selectCategoryPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
               <SelectItem key={category.category_id} value={category.name}>
-                {category.name}
+                <div className="flex items-center space-x-2">
+                  <Layers className="w-4 h-4 text-gray-500" />
+                  <span>{category.name}</span>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
+
+      {/* Question Text - English (Required) */}
+      <div className="space-y-2">
+        <Label htmlFor="text_en" className="text-sm font-medium text-gray-700">
+          🇺🇸 English Question <span className="text-red-500">*</span>
+        </Label>
+        <Textarea
+          id="text_en"
+          value={formData.text["en"] || ""}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              text: { ...prev.text, en: e.target.value },
+            }))
+          }
+          placeholder="Enter the question in English..."
+          className="min-h-[100px] resize-none"
+          required
+        />
+      </div>
+
+      {/* Other Languages */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+          <Globe className="w-4 h-4" />
+          <span>Additional Languages (Optional)</span>
+        </Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
+            <div key={lang.code} className="space-y-2">
+              <Label className="text-xs font-medium text-gray-600 flex items-center space-x-1">
+                <span>{lang.flag}</span>
+                <span>{lang.name}</span>
+              </Label>
+              <Textarea
+                id={`text_${lang.code}`}
+                value={formData.text[lang.code] || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    text: { ...prev.text, [lang.code]: e.target.value },
+                  }))
+                }
+                placeholder={`Enter the question in ${lang.name}...`}
+                className="min-h-[80px] resize-none text-sm"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Weight and Order */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="weight">{t('manageQuestions.weightLabel')}</Label>
+        <div className="space-y-2">
+          <Label htmlFor="weight" className="text-sm font-medium text-gray-700 flex items-center space-x-1">
+            <Target className="w-4 h-4" />
+            <span>{t('manageQuestions.weightLabel')}</span>
+          </Label>
           <Input
             id="weight"
             type="number"
@@ -194,11 +238,15 @@ const QuestionForm: React.FC<{
                 weight: parseInt(e.target.value) || 1,
               }))
             }
+            className="text-center"
             required
           />
+          <p className="text-xs text-gray-500">Higher weight = more important</p>
         </div>
-        <div>
-          <Label htmlFor="order">{t('manageQuestions.displayOrder')}</Label>
+        <div className="space-y-2">
+          <Label htmlFor="order" className="text-sm font-medium text-gray-700">
+            {t('manageQuestions.displayOrder')}
+          </Label>
           <Input
             id="order"
             type="number"
@@ -210,21 +258,42 @@ const QuestionForm: React.FC<{
                 order: parseInt(e.target.value) || 1,
               }))
             }
+            className="text-center"
             required
           />
+          <p className="text-xs text-gray-500">Display sequence</p>
         </div>
       </div>
+
+      {/* Action Buttons */}
+      <div className="flex space-x-3 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="flex-1"
+          disabled={isPending}
+        >
+          Cancel
+        </Button>
       <Button
         type="submit"
-        className="w-full bg-dgrv-blue hover:bg-blue-700"
+          className="flex-1 bg-blue-600 hover:bg-blue-700"
         disabled={isPending}
       >
-        {isPending
-          ? t('manageQuestions.saving')
-          : editingQuestion
-            ? t('manageQuestions.updateQuestion')
-            : t('manageQuestions.createQuestion')}
+          {isPending ? (
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Saving...</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4" />
+              <span>{editingQuestion ? 'Update Question' : 'Create Question'}</span>
+            </div>
+          )}
       </Button>
+      </div>
     </form>
   );
 };
@@ -233,8 +302,10 @@ export const ManageQuestions = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [editingQuestion, setEditingQuestion] =
     useState<QuestionWithLatestRevision | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<QuestionFormData>({
     text: LANGUAGES.reduce(
       (acc, lang) => ({ ...acc, [lang.code]: "" }),
@@ -293,7 +364,6 @@ export const ManageQuestions = () => {
 
   // Use enhanced offline mutation hooks
   const { createQuestion, updateQuestion, deleteQuestion, isPending } = useOfflineQuestionsMutation();
-  const { isOnline } = useOfflineSyncStatus();
 
   function getErrorMessage(error: unknown): string {
     if (
@@ -314,7 +384,7 @@ export const ManageQuestions = () => {
         toast.error(t('manageQuestions.textRequired'));
         return;
       }
-      if (!formData.categoryName) {
+      if (!formData.categoryName && !selectedCategory) {
         toast.error(t('manageQuestions.categoryRequired'));
         return;
       }
@@ -322,6 +392,10 @@ export const ManageQuestions = () => {
         toast.error(t('manageQuestions.weightRangeError'));
         return;
       }
+      
+      // Use selected category if available, otherwise use form category
+      const categoryName = selectedCategory || formData.categoryName;
+      
       // Remove empty language fields
       const text: Record<string, string> = {};
       for (const code of Object.keys(formData.text)) {
@@ -329,9 +403,10 @@ export const ManageQuestions = () => {
           text[code] = formData.text[code].trim();
         }
       }
+      
       if (editingQuestion) {
         const updateBody: UpdateQuestionRequest = {
-          category: formData.categoryName,
+          category: categoryName,
           text,
           weight: formData.weight,
         };
@@ -341,12 +416,13 @@ export const ManageQuestions = () => {
             refetchQuestions();
             setIsDialogOpen(false);
             setEditingQuestion(null);
+            setSelectedCategory(undefined);
           },
           onError: (error: unknown) => toast.error(getErrorMessage(error)),
         });
       } else {
         const createBody: CreateQuestionRequest = {
-          category: formData.categoryName,
+          category: categoryName,
           text,
           weight: formData.weight,
         };
@@ -355,16 +431,33 @@ export const ManageQuestions = () => {
             toast.success(t('manageQuestions.createSuccess'));
             refetchQuestions();
             setIsDialogOpen(false);
+            setSelectedCategory(undefined);
           },
           onError: (error: unknown) => toast.error(getErrorMessage(error)),
         });
       }
     },
-    [formData, editingQuestion, createQuestion, updateQuestion, refetchQuestions, setIsDialogOpen, setEditingQuestion, t],
+    [formData, editingQuestion, selectedCategory, createQuestion, updateQuestion, refetchQuestions, setIsDialogOpen, setEditingQuestion, setSelectedCategory, t],
   );
+
+  const handleAddQuestion = useCallback((categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setEditingQuestion(null);
+    setFormData({
+      text: LANGUAGES.reduce(
+        (acc, lang) => ({ ...acc, [lang.code]: "" }),
+        {} as Record<string, string>,
+      ),
+      weight: 5,
+      categoryName: categoryName,
+      order: questions.filter(q => q.category === categoryName).length + 1,
+    });
+    setIsDialogOpen(true);
+  }, [questions]);
 
   const handleEdit = useCallback((question: QuestionWithLatestRevision) => {
     setEditingQuestion(question);
+    setSelectedCategory(undefined);
     const weight = question.latest_revision?.weight || 5;
     const text: Record<string, string> = LANGUAGES.reduce(
       (acc, lang) => {
@@ -398,20 +491,41 @@ export const ManageQuestions = () => {
     [deleteQuestion, refetchQuestions, t],
   );
 
+  const handleCancel = useCallback(() => {
+    setIsDialogOpen(false);
+    setEditingQuestion(null);
+    setSelectedCategory(undefined);
+  }, []);
+
+  const toggleCategoryExpansion = useCallback((categoryName: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryName)) {
+        newSet.delete(categoryName);
+      } else {
+        newSet.add(categoryName);
+      }
+      return newSet;
+    });
+  }, []);
+
   const getQuestionsByCategory = useCallback(
-    (categoryId: string) => {
+    (categoryName: string) => {
       return questions
-        .filter((q: QuestionWithLatestRevision) => q.category === categoryId)
-        .sort((a, b) => 0);
+        .filter((q: QuestionWithLatestRevision) => q.category === categoryName)
+        .sort((a, b) => (a.latest_revision?.weight || 0) - (b.latest_revision?.weight || 0));
     },
     [questions],
   );
 
   if (categoriesLoading || questionsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <div className="pt-20 pb-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading questions...</p>
+          </div>
         </div>
       </div>
     );
@@ -420,16 +534,20 @@ export const ManageQuestions = () => {
   // Show error if categories failed to load
   if (categoriesError) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center py-8 text-red-500">
-              <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>{t('manageQuestions.categoriesLoadError')}</p>
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                <BookOpen className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Categories</h3>
+              <p className="text-gray-600 mb-6">{t('manageQuestions.categoriesLoadError')}</p>
               <Button
                 onClick={() => queryClient.invalidateQueries({ queryKey: ["categories"] })}
-                className="mt-4 bg-dgrv-blue hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700"
               >
+                <Settings className="w-4 h-4 mr-2" />
                 {t('manageQuestions.retry')}
               </Button>
             </div>
@@ -442,12 +560,15 @@ export const ManageQuestions = () => {
   // Safety check for questions data
   if (!questions || !Array.isArray(questions)) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center py-8 text-gray-500">
-              <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No questions data available.</p>
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                <BookOpen className="w-8 h-8 text-gray-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Questions Available</h3>
+              <p className="text-gray-600">No questions data available.</p>
             </div>
           </div>
         </div>
@@ -456,164 +577,191 @@ export const ManageQuestions = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Offline Status Indicator */}
-          <div className="mb-4 flex items-center justify-end">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-              isOnline 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
-              <span>{isOnline ? 'Online' : 'Offline'}</span>
+          {/* Header Section */}
+          <div className="mb-8">
+            {/* Questions Count */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <Badge variant="outline" className="bg-gray-50">
+                  {questions.length} Questions
+                </Badge>
+              </div>
+            </div>
+
+            {/* Title Section */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                <BookOpen className="w-8 h-8 text-blue-600" />
+              </div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-3">
+                {t('manageQuestions.title')}
+              </h1>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                {t('manageQuestions.subtitle')}
+              </p>
             </div>
           </div>
 
-          <div className="mb-8 animate-fade-in">
-            <div className="flex items-center space-x-3 mb-4">
-              <BookOpen className="w-8 h-8 text-dgrv-blue" />
-              <h1 className="text-3xl font-bold text-dgrv-blue">
-                {t('manageQuestions.title')}
-              </h1>
-            </div>
-            <p className="text-lg text-gray-600">
-              {t('manageQuestions.subtitle')}
-            </p>
-          </div>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{t('manageQuestions.cardTitle')}</CardTitle>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
+          {/* Categories Grid */}
+          <div className="grid gap-6">
+            {categories.map((category) => {
+              const categoryQuestions = getQuestionsByCategory(category.name);
+              const questionCount = categoryQuestions.length;
+              
+              return (
+                <Card key={category.category_id} className="overflow-hidden border shadow-lg bg-white">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
+                          <Layers className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle className="text-xl font-semibold text-gray-900">
+                            {category.name}
+                          </CardTitle>
+                          <div className="flex items-center space-x-3 mt-1">
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                              {questionCount} {questionCount === 1 ? 'Question' : 'Questions'}
+                            </Badge>
+                            <span className="text-sm text-gray-500">
+                              Weight: {category.weight}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleCategoryExpansion(category.name)}
+                          className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                        >
+                          {expandedCategories.has(category.name) ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
+                        </Button>
                   <Button
-                    className="bg-dgrv-blue hover:bg-blue-700"
-                    onClick={() => {
-                      setEditingQuestion(null);
-                      setFormData({
-                        text: LANGUAGES.reduce(
-                          (acc, lang) => ({ ...acc, [lang.code]: "" }),
-                          {} as Record<string, string>,
-                        ),
-                        weight: 5,
-                        categoryName: categories[0]?.name || "",
-                        order: questions.length + 1,
-                      });
-                    }}
+                          onClick={() => handleAddQuestion(category.name)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          size="sm"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {t('manageQuestions.addQuestion')}
+                          Add Question
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <QuestionForm
-                    categories={categories}
-                    formData={formData}
-                    setFormData={setFormData}
-                    onSubmit={handleSubmit}
-                    isPending={isPending}
-                    editingQuestion={editingQuestion}
-                    isOnline={true}
-                  />
-                </DialogContent>
-              </Dialog>
+                      </div>
+                    </div>
             </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                {categories.map((category) => {
-                  const categoryQuestions = questions.filter(
-                    (q) => q.category === category.name,
-                  );
-                  return (
-                    <AccordionItem
-                      key={category.category_id}
-                      value={category.category_id}
-                    >
-                      <AccordionTrigger className="text-left text-xl font-bold text-dgrv-blue">
-                        {category.name}
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-4 pt-4">
-                          {categoryQuestions.length > 0 ? (
-                            categoryQuestions.map((question) => (
-                              <div
-                                key={question.question_id}
-                                className="border rounded-lg p-4"
-                              >
-                                <div className="flex justify-between items-start">
+                  
+                  <CardContent className="p-0">
+                    {expandedCategories.has(category.name) && (
+                      <>
+                        {questionCount > 0 ? (
+                          <div className="divide-y divide-gray-100">
+                            {categoryQuestions.map((question, index) => (
+                              <div key={question.question_id} className="p-6 hover:bg-gray-50 transition-colors">
+                                <div className="flex items-start justify-between">
                                   <div className="flex-1">
-                                    <div className="mb-2">
+                                    <div className="flex items-start space-x-3">
+                                      <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full text-sm font-medium text-gray-600 mt-1">
+                                        {index + 1}
+                                      </div>
+                                      <div className="flex-1">
                                       <QuestionText question={question} />
+                                        <div className="flex items-center space-x-4 mt-3">
+                                          <Badge variant="outline" className="text-xs">
+                                            Weight: {question.latest_revision?.weight || 5}
+                                          </Badge>
+                                          <span className="text-xs text-gray-500">
+                                            {new Date(question.created_at).toLocaleDateString()}
+                                          </span>
+                                        </div>
                                     </div>
-                                    <div className="flex space-x-4 text-sm text-gray-600">
-                                      {question.latest_revision && (
-                                        <span>
-                                          <strong>Weight:</strong>{" "}
-                                          {question.latest_revision.weight}
-                                        </span>
-                                      )}
                                     </div>
                                   </div>
-                                  <div className="flex space-x-2 ml-4">
+                                  <div className="flex items-center space-x-2 ml-4">
                                     <Button
-                                      variant="outline"
+                                      variant="ghost"
                                       size="sm"
                                       onClick={() => handleEdit(question)}
-                                      disabled={false}
+                                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Button>
-                                    {question.latest_revision &&
-                                      question.latest_revision
-                                        .question_revision_id && (
                                         <Button
-                                          variant="outline"
+                                      variant="ghost"
                                           size="sm"
-                                          onClick={() =>
-                                            handleDelete(
-                                              question.question_id,
-                                            )
-                                          }
-                                          disabled={false}
-                                          className="text-red-600 hover:text-red-700"
+                                      onClick={() => handleDelete(question.question_id)}
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                         >
                                           <Trash2 className="w-4 h-4" />
                                         </Button>
-                                      )}
                                   </div>
                                 </div>
                               </div>
-                            ))
-                          ) : (
-                            <div className="text-center py-8 text-gray-500">
-                              <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                              <p>{t('manageQuestions.noQuestionsInCategory')}</p>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                              <FileText className="w-8 h-8 text-gray-400" />
                             </div>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Questions Yet</h3>
+                            <p className="text-gray-500 mb-4">{t('manageQuestions.noQuestionsInCategory')}</p>
+                            <Button
+                              onClick={() => handleAddQuestion(category.name)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add First Question
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
                   );
                 })}
+            
                 {categories.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('manageQuestions.noCategories')}</p>
+              <Card className="text-center py-12 border shadow-lg bg-white">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                  <BookOpen className="w-8 h-8 text-gray-400" />
                   </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories Available</h3>
+                <p className="text-gray-500">{t('manageQuestions.noCategories')}</p>
+              </Card>
                 )}
-              </Accordion>
-            </CardContent>
-          </Card>
+          </div>
         </div>
       </div>
+
+      {/* Question Form Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="sr-only">
+              {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
+            </DialogTitle>
+          </DialogHeader>
+          <QuestionForm
+            categories={categories}
+            selectedCategory={selectedCategory}
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={handleSubmit}
+            isPending={isPending}
+            editingQuestion={editingQuestion}
+            onCancel={handleCancel}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -625,28 +773,43 @@ const QuestionText = ({
 }) => {
   const { t } = useTranslation();
   if (!question.latest_revision || !question.latest_revision.text) {
-    return <em>{t('manageQuestions.noText')}</em>;
+    return <em className="text-gray-500">{t('manageQuestions.noText')}</em>;
   }
 
   const text = question.latest_revision.text;
-  const languages = Object.keys(text);
+  const languages = Object.keys(text).filter(lang => text[lang] && text[lang].trim());
 
   if (languages.length === 0) {
-    return <em>{t('manageQuestions.noText')}</em>;
+    return <em className="text-gray-500">{t('manageQuestions.noText')}</em>;
   }
 
   return (
-    <div className="space-y-2">
-      {languages.map((lang) => {
+    <div className="space-y-3">
+      {/* Primary language (English) */}
+      {text.en && (
+        <div className="space-y-1">
+          <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
+            <span>🇺🇸</span>
+            <span>English</span>
+          </span>
+          <p className="text-gray-900 leading-relaxed">{text.en}</p>
+        </div>
+      )}
+      
+      {/* Other languages */}
+      {languages.filter(lang => lang !== 'en').map((lang) => {
         const langText = text[lang];
         if (!langText) return null;
 
+        const langInfo = LANGUAGES.find(l => l.code === lang);
+
         return (
-          <div key={lang} className="text-sm">
-            <span className="font-medium text-gray-600 uppercase">
-              {t(`languages.${lang}`)}:
-            </span>{" "}
-            <span className="text-gray-800">{langText}</span>
+          <div key={lang} className="space-y-1">
+            <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
+              <span>{langInfo?.flag || '🌐'}</span>
+              <span>{langInfo?.name || lang}</span>
+            </span>
+            <p className="text-gray-700 leading-relaxed text-sm">{langText}</p>
           </div>
         );
       })}

@@ -190,7 +190,7 @@ export const ManageUsers: React.FC = () => {
         }
       } catch (apiError) {
         console.warn('API call failed, user saved locally for sync:', apiError);
-        toast.success("User created locally (will sync when online)");
+        toast.success("Fail to creat user");
       }
       
       return { success: true };
