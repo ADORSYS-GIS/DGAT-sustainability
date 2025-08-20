@@ -640,6 +640,7 @@
   "assessment.enterYourResponse": "Faka imphendvulo yakho...",
   "assessment.addFile": "Ngezelela ifayela",
   "assessment.completeAllQuestions": "Sicela uphendvule yonke imibuto kulesigaba ngaphambi kwekutfumela.",
+  "assessment.existingResponses": "Unemiphendvulo lekhona yalokuhlolo. Ungaqhubeka nokuhlela noma uphindze utfumele imiphendvulo yakho.",
   "assessment.submittedLocally": "Kuhlola kutfunyelwe endzaweni kanye nekutawuvumelaniswa uma kuse-inthanethi.",
   "assessment.failedToCreate": "Kwehluleka kudalwa kuhlola endzaweni.",
   "assessment.fileTooLarge": "Sisayizi sefayela kufanele sibe ngaphasi kwe-1MB.",

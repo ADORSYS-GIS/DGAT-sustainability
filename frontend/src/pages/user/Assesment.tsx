@@ -16,6 +16,7 @@ import {
   useOfflineAssessment,
   useOfflineAssessmentsMutation,
   useOfflineResponsesMutation,
+  useOfflineResponses,
   useOfflineSyncStatus,
   useOfflineDraftAssessments,
 } from "../../hooks/useOfflineApi";
@@ -71,18 +72,20 @@ export const Assessment: React.FC = () => {
 
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, LocalAnswer>>({});
-  const [showPercentInfo, setShowPercentInfo] = useState(false);
+  const [showPercentInfo, setShowPercentInfo] = useState<string | null>(null);
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
   const [creationAttempts, setCreationAttempts] = useState(0);
   const [pendingSubmissions, setPendingSubmissions] = useState<OfflineSubmission[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreatingAssessment, setIsCreatingAssessment] = useState(false);
+  const [hasExistingResponses, setHasExistingResponses] = useState(false);
   const toolName = t("sustainability") + " " + t("assessment");
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
   const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineDraftAssessments();
+  const { data: existingResponses, isLoading: responsesLoading } = useOfflineResponses(assessmentId || "");
   const { createAssessment, submitDraftAssessment: submitDraftAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
   const { createResponses, isPending: responseMutationPending } = useOfflineResponsesMutation();
 
@@ -98,6 +101,39 @@ export const Assessment: React.FC = () => {
     };
     checkPendingSubmissions();
   }, [isOnline]);
+
+  // Load existing responses into answers state
+  useEffect(() => {
+    console.log('🔍 Loading existing responses:', existingResponses);
+    if (existingResponses?.responses && existingResponses.responses.length > 0) {
+      const loadedAnswers: Record<string, LocalAnswer> = {};
+      
+      existingResponses.responses.forEach((response) => {
+        try {
+          console.log('🔍 Processing response:', response);
+          const responseData = JSON.parse(response.response[0] || response.response);
+          if (responseData && typeof responseData === 'object') {
+            loadedAnswers[response.question_revision_id] = {
+              yesNo: responseData.yesNo,
+              percentage: responseData.percentage,
+              text: responseData.text || '',
+              files: responseData.files || []
+            };
+            console.log('✅ Loaded answer for question:', response.question_revision_id, loadedAnswers[response.question_revision_id]);
+          }
+        } catch (error) {
+          console.warn('Failed to parse response data:', error, response);
+        }
+      });
+      
+      console.log('📝 Setting loaded answers:', loadedAnswers);
+      setAnswers(loadedAnswers);
+      setHasExistingResponses(true);
+    } else {
+      console.log('📝 No existing responses found');
+      setHasExistingResponses(false);
+    }
+  }, [existingResponses]);
 
   const orgInfo = React.useMemo(() => {
     if (!user) return { orgId: "", categories: [] };
@@ -507,12 +543,12 @@ export const Assessment: React.FC = () => {
             <button
               type="button"
               className="cursor-pointer text-dgrv-blue focus:outline-none"
-              onClick={() => setShowPercentInfo((prev) => !prev)}
+              onClick={() => setShowPercentInfo(showPercentInfo === key ? null : key)}
               aria-label="Show percentage explanation"
             >
               <Info className="w-4 h-4" />
             </button>
-            {showPercentInfo && (
+            {showPercentInfo === key && (
               <div className="absolute left-8 top-6 z-10 bg-white border rounded shadow-md p-3 w-56 text-xs text-gray-700">
                 <div>
                   <b>0%:</b> {t("assessment.percentNotStarted")}
@@ -617,7 +653,7 @@ export const Assessment: React.FC = () => {
     );
   }
 
-  if (assessmentLoading || !assessmentDetail) {
+  if (assessmentLoading || responsesLoading || !assessmentDetail) {
     return (
       <>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -685,6 +721,19 @@ export const Assessment: React.FC = () => {
                   {t("assessment.pendingSubmissions", { defaultValue: "Pending submissions:" })} {pendingSubmissions.length}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {hasExistingResponses && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium text-blue-800">
+                  {t("assessment.existingResponses", { defaultValue: "You have existing responses for this assessment. You can continue editing or resubmit your answers." })}
+                </span>
+              </div>
             </CardContent>
           </Card>
         )}

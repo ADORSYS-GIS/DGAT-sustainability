@@ -559,7 +559,18 @@ export class ApiInterceptor {
 
       // Scan responses table for pending items
       const allResponses = await offlineDB.getResponsesWithFilters({});
-      const pendingResponses = allResponses.filter(r => r.sync_status === 'pending');
+      
+      // Clean up invalid responses before processing
+      const invalidResponses = allResponses.filter(r => !r.assessment_id || r.assessment_id.trim() === '');
+      if (invalidResponses.length > 0) {
+        console.warn(`🧹 Found ${invalidResponses.length} responses with empty assessment_id, cleaning up...`);
+        for (const invalidResponse of invalidResponses) {
+          console.warn(`🧹 Deleting invalid response: ${invalidResponse.response_id}`);
+          await offlineDB.deleteResponse(invalidResponse.response_id);
+        }
+      }
+      
+      const pendingResponses = allResponses.filter(r => r.sync_status === 'pending' && r.assessment_id && r.assessment_id.trim() !== '');
 
       console.log(`🔄 Processing ${pendingResponses.length} pending responses`);
       
@@ -793,6 +804,17 @@ export class ApiInterceptor {
       if (deletedCount > 0) {
         console.log(`🧹 Cleaned up ${deletedCount} invalid responses on startup`);
       }
+      
+      // Also clean up any responses with empty assessment_id that might have been missed
+      const allResponses = await offlineDB.getResponsesWithFilters({});
+      const invalidResponses = allResponses.filter(r => !r.assessment_id || r.assessment_id.trim() === '');
+      if (invalidResponses.length > 0) {
+        console.warn(`🧹 Found ${invalidResponses.length} additional responses with empty assessment_id, cleaning up...`);
+        for (const invalidResponse of invalidResponses) {
+          console.warn(`🧹 Deleting invalid response: ${invalidResponse.response_id}`);
+          await offlineDB.deleteResponse(invalidResponse.response_id);
+        }
+      }
     } catch (error) {
       console.warn('⚠️ Failed to cleanup invalid responses:', error);
     }
@@ -812,6 +834,38 @@ export const debugUtils = {
   },
 
   /**
+   * Comprehensive cleanup of all invalid data
+   */
+  async comprehensiveCleanup(): Promise<{ deletedResponses: number; deletedSubmissions: number }> {
+    console.log('🧹 Starting comprehensive cleanup...');
+    
+    // Clean up responses with empty assessment_id
+    const allResponses = await offlineDB.getResponsesWithFilters({});
+    const invalidResponses = allResponses.filter(r => !r.assessment_id || r.assessment_id.trim() === '');
+    let deletedResponses = 0;
+    
+    for (const invalidResponse of invalidResponses) {
+      console.warn(`🧹 Deleting invalid response: ${invalidResponse.response_id}`);
+      await offlineDB.deleteResponse(invalidResponse.response_id);
+      deletedResponses++;
+    }
+    
+    // Clean up submissions with empty assessment_id
+    const allSubmissions = await offlineDB.getAllSubmissions();
+    const invalidSubmissions = allSubmissions.filter(s => !s.assessment_id || s.assessment_id.trim() === '');
+    let deletedSubmissions = 0;
+    
+    for (const invalidSubmission of invalidSubmissions) {
+      console.warn(`🧹 Deleting invalid submission: ${invalidSubmission.submission_id}`);
+      await offlineDB.deleteSubmission(invalidSubmission.submission_id);
+      deletedSubmissions++;
+    }
+    
+    console.log(`🧹 Comprehensive cleanup completed: ${deletedResponses} responses, ${deletedSubmissions} submissions deleted`);
+    return { deletedResponses, deletedSubmissions };
+  },
+
+  /**
    * Get sync status
    */
   async getSyncStatus(): Promise<{ queueLength: number; isOnline: boolean; isSyncing: boolean }> {
@@ -824,4 +878,15 @@ export const debugUtils = {
   async manualSync(): Promise<void> {
     await apiInterceptor.manualSync();
   }
-}; 
+};
+
+// Make debugUtils available globally for browser console access
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).debugUtils = debugUtils;
+  console.log('🔧 Debug utilities available at window.debugUtils');
+  console.log('🔧 Available functions:');
+  console.log('  - debugUtils.comprehensiveCleanup() - Clean up all invalid data');
+  console.log('  - debugUtils.cleanupInvalidResponses() - Clean up invalid responses');
+  console.log('  - debugUtils.manualSync() - Trigger manual sync');
+  console.log('  - debugUtils.getSyncStatus() - Get current sync status');
+} 

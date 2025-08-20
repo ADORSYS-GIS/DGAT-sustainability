@@ -640,6 +640,7 @@
   "assessment.enterYourResponse": "Entrez votre réponse...",
   "assessment.addFile": "Ajouter un fichier",
   "assessment.completeAllQuestions": "Veuillez répondre à toutes les questions de cette catégorie avant de soumettre.",
+  "assessment.existingResponses": "Vous avez des réponses existantes pour cette évaluation. Vous pouvez continuer à modifier ou resoumettre vos réponses.",
   "assessment.submittedLocally": "L'évaluation a été soumise localement et sera synchronisée lorsque vous serez en ligne.",
   "assessment.failedToCreate": "Échec de la création de l'évaluation localement.",
   "assessment.fileTooLarge": "La taille du fichier doit être inférieure à 1 Mo.",

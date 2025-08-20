@@ -640,6 +640,7 @@
   "assessment.enterYourResponse": "Enter your response...",
   "assessment.addFile": "Add file",
   "assessment.completeAllQuestions": "Please answer all questions in this category before submitting.",
+  "assessment.existingResponses": "You have existing responses for this assessment. You can continue editing or resubmit your answers.",
   "assessment.submittedLocally": "Assessment has been submitted locally and will sync when online.",
   "assessment.failedToCreate": "Failed to create assessment locally.",
   "assessment.fileTooLarge": "File size must be less than 1MB.",
