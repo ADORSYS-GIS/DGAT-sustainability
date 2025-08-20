@@ -115,13 +115,39 @@ pub struct QuestionRevisionListResponse {
 
 // =============== Assessment Models ===============
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum AssessmentStatus {
+    #[serde(rename = "draft")]
+    Draft,
+    #[serde(rename = "submitted")]
+    Submitted,
+    #[serde(rename = "reviewed")]
+    Reviewed,
+}
+
+impl Default for AssessmentStatus {
+    fn default() -> Self {
+        AssessmentStatus::Draft
+    }
+}
+
+impl std::fmt::Display for AssessmentStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AssessmentStatus::Draft => write!(f, "draft"),
+            AssessmentStatus::Submitted => write!(f, "submitted"),
+            AssessmentStatus::Reviewed => write!(f, "reviewed"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {
     pub assessment_id: Uuid,
     pub org_id: String,
     pub language: String,
     pub name: String,
-    pub status: String,
+    pub status: AssessmentStatus,
     pub created_at: String,
     pub updated_at: String,
 }

@@ -15,7 +15,10 @@ This schema implements a version-safe assessment system with the following compo
 - `TEMP_SUBMISSION` serves as a staging area for draft submissions before finalization
 - Allows users to save assessment progress and review before final submission
 - Contains complete assessment content including responses and file metadata
-- Supports review workflow with status tracking (under_review, reviewed, etc.)
+- Supports three-tier status workflow using `AssessmentStatus` enum:
+  - **`Draft`**: Default status for new assessments (includes assessments with responses but not yet submitted)
+  - **`Submitted`**: Assessments moved to `TEMP_SUBMISSION` table for review
+  - **`Reviewed`**: Assessments finalized in `ASSESSMENTS_SUBMISSION` table for report generation
 - Automatically cleaned up when moved to final submission
 
 ## 4. Submission & Reporting

@@ -15,6 +15,34 @@ use crate::web::api::models::*;
 use crate::common::cache::cached_ops;
 use crate::with_request_cache;
 
+// Helper function to determine assessment status based on three-tier system
+async fn determine_assessment_status(
+    app_state: &AppState,
+    claims: &Claims,
+    assessment_id: Uuid,
+) -> Result<AssessmentStatus, ApiError> {
+    // Check if assessment has been reviewed (in assessments_submission table)
+    let has_final_submission = cached_ops::get_submission_with_session(app_state, claims, assessment_id)
+        .await?
+        .is_some();
+    
+    if has_final_submission {
+        return Ok(AssessmentStatus::Reviewed);
+    }
+    
+    // Check if assessment has been submitted to temp_submission table
+    let has_temp_submission = cached_ops::get_temp_submission_with_session(app_state, claims, assessment_id)
+        .await?
+        .is_some();
+    
+    if has_temp_submission {
+        return Ok(AssessmentStatus::Submitted);
+    }
+    
+    // Default to draft (covers both cases: no responses exist, or has responses but not submitted)
+    Ok(AssessmentStatus::Draft)
+}
+
 // Helper function to convert file::Model to FileMetadata
 async fn convert_file_model_to_metadata(
     file_model: crate::common::database::entity::file::Model,
@@ -74,6 +102,18 @@ async fn fetch_files_for_response(
 #[derive(Debug, Deserialize)]
 pub struct AssessmentQuery {
     status: Option<String>,
+    language: Option<String>,
+}
+
+impl AssessmentQuery {
+    fn parse_status(&self) -> Option<AssessmentStatus> {
+        self.status.as_ref().and_then(|s| match s.as_str() {
+            "draft" => Some(AssessmentStatus::Draft),
+            "submitted" => Some(AssessmentStatus::Submitted),
+            "reviewed" => Some(AssessmentStatus::Reviewed),
+            _ => None,
+        })
+    }
 }
 
 pub async fn list_assessments(
@@ -91,16 +131,8 @@ pub async fn list_assessments(
         // Convert database models to API models
         let mut assessments = Vec::new();
         for model in assessment_models {
-            // Determine status based on whether an assessment has been submitted - using session-level cache
-            let has_submission = cached_ops::get_submission_with_session(&app_state, &claims, model.assessment_id)
-                .await?
-                .is_some();
-
-            let status = if has_submission {
-                "submitted".to_string()
-            } else {
-                "draft".to_string()
-            };
+            // Determine status using three-tier system (under_review, submitted, reviewed)
+            let status = determine_assessment_status(&app_state, &claims, model.assessment_id).await?;
 
             assessments.push(Assessment {
                 assessment_id: model.assessment_id,
@@ -113,17 +145,27 @@ pub async fn list_assessments(
             });
         }
 
-        // Filter by status if specified
-        let filtered_assessments = if let Some(status) = &query.status {
+        // Filter by language if specified
+        let mut filtered_assessments = if let Some(ref language) = query.language {
             assessments
                 .into_iter()
-                .filter(|a| a.status == *status)
+                .filter(|a| a.language == *language)
+                .collect()
+        } else {
+            assessments
+        };
+
+        // Filter by status if specified
+        filtered_assessments = if let Some(parsed_status) = query.parse_status() {
+            filtered_assessments
+                .into_iter()
+                .filter(|a| a.status == parsed_status)
                 .collect()
         } else {
             // Default to only draft assessments when no status filter is specified
-            assessments
+            filtered_assessments
                 .into_iter()
-                .filter(|a| a.status == "draft")
+                .filter(|a| a.status == AssessmentStatus::Draft)
                 .collect()
         };
 
@@ -212,7 +254,7 @@ pub async fn create_assessment(
             org_id: assessment_model.org_id,
             language: assessment_model.language,
             name: assessment_model.name,
-            status: "draft".to_string(),
+            status: AssessmentStatus::Draft,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
         };
@@ -261,16 +303,8 @@ pub async fn get_assessment(
             // ));
         }
 
-        // Determine status based on whether assessment has been submitted - using session-level cache
-        let has_submission = cached_ops::get_submission_with_session(&app_state, &claims, assessment_id)
-            .await?
-            .is_some();
-
-        let status = if has_submission {
-            "submitted".to_string()
-        } else {
-            "draft".to_string()
-        };
+        // Determine status using three-tier system (under_review, submitted, reviewed)
+        let status = determine_assessment_status(&app_state, &claims, assessment_id).await?;
 
         // Convert a database model to an API model
         let assessment = Assessment {
@@ -385,7 +419,7 @@ pub async fn update_assessment(
         org_id: assessment_model.org_id,
         language: assessment_model.language,
         name: assessment_model.name,
-        status: "draft".to_string(),
+        status: AssessmentStatus::Draft,
         created_at: assessment_model.created_at.to_rfc3339(),
         updated_at: assessment_model.created_at.to_rfc3339(),
     };
