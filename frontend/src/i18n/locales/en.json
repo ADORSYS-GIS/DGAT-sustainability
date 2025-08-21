@@ -627,6 +627,42 @@
     "categoriesLoadError": "Failed to load categories. Please try again.",
     "retry": "Retry"
   },
+  "userInvitation": {
+    "title": "Create User Invitation",
+    "description": "Invite a new user to join an organization. The user will receive two emails: first to verify their email address, then to join the organization.",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email Address",
+    "organization": "Organization",
+    "roles": "Roles",
+    "categories": "Categories",
+    "firstNamePlaceholder": "Enter first name",
+    "lastNamePlaceholder": "Enter last name",
+    "emailPlaceholder": "Enter email address",
+    "selectOrganization": "Select an organization",
+    "create": "Create Invitation",
+    "creating": "Creating Invitation...",
+    "createdSuccessfully": "User invitation created successfully for {{email}}. Status: {{status}}",
+    "creationFailed": "Failed to create user invitation. Please try again.",
+    "roles": {
+      "org_user": "Organization User",
+      "org_admin": "Organization Admin"
+    },
+    "status": {
+      "pendingEmail": "Pending Email Verification",
+      "emailVerified": "Email Verified",
+      "pendingOrg": "Pending Organization Invitation",
+      "active": "Active",
+      "error": "Error"
+    },
+    "flowInfo": {
+      "title": "Invitation Flow",
+      "step1": "User receives email verification email with temporary password",
+      "step2": "User verifies their email address",
+      "step3": "User receives organization invitation email",
+      "step4": "User accepts invitation and joins organization"
+    }
+  },
   "assessment.yesNo": "Yes/No",
   "assessment.yes": "Yes",
   "assessment.no": "No",

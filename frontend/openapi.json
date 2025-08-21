@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Production server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Staging server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Development server"
     }
   ],
@@ -1324,6 +1324,216 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Create user invitation",
+        "description": "Create a new user invitation with email verification (Admin only)",
+        "operationId": "create_user_invitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "User invitation created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations/{user_id}/trigger-verification": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Trigger email verification",
+        "description": "Manually trigger email verification email for a user (Admin only)",
+        "operationId": "trigger_user_verification_manual",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verification triggered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Email verification email sent successfully"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations/{user_id}/trigger-org-invitation": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Trigger organization invitation",
+        "description": "Manually trigger organization invitation for a user (Admin only)",
+        "operationId": "trigger_organization_invitation_manual",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization invitation triggered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Organization invitation triggered successfully"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations/{user_id}/check-and-trigger": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Check and trigger organization invitation",
+        "description": "Check if user email is verified and trigger organization invitation if verified (Admin only)",
+        "operationId": "check_and_trigger_organization_invitation",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verified and organization invitation sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Email verified and organization invitation sent"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -3810,6 +4020,68 @@
             "items": {
               "$ref": "#/components/schemas/Category"
             }
+          }
+        }
+      },
+      "UserInvitationRequest": {
+        "required": ["email", "first_name", "last_name", "organization_id"],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User first name"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User last name"
+          },
+          "organization_id": {
+            "type": "string",
+            "description": "Organization ID to invite user to"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Roles to assign to the user",
+            "default": ["org_user"]
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Categories to assign to the user"
+          }
+        }
+      },
+      "UserInvitationResponse": {
+        "required": ["user_id", "email", "status", "message"],
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Created user ID"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending_email_verification", "email_verified", "pending_org_invitation", "active", "error"],
+            "description": "Current invitation status"
+          },
+          "message": {
+            "type": "string",
+            "description": "Status message"
           }
         }
       }

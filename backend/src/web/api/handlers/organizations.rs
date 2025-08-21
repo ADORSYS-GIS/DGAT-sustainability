@@ -124,7 +124,7 @@ pub async fn get_organizations(
             let max = params.max.unwrap_or(10) as usize;
 
             let total_count = organizations.len();
-            let end = std::cmp::min(first + max, total_count);
+            let _end = std::cmp::min(first + max, total_count);
 
             if first < total_count {
                 organizations = organizations.into_iter().skip(first).take(max).collect();

@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use std::sync::Arc;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use serde::Deserialize;
 
 #[derive(Debug, Clone)]
@@ -196,7 +196,7 @@ impl KeycloakService {
             .error_for_status()?;
         let users: Vec<KeycloakUser> = response.json().await?;
         // Try to find an exact match by username or email
-        let user = users.into_iter().find(|u| u.username == query || u.email.as_deref() == Some(query));
+        let user = users.into_iter().find(|u| u.username == query || u.email == query);
         Ok(user)
     }
 
@@ -440,27 +440,38 @@ impl KeycloakService {
 
     /// Create an invitation to an organization
     pub async fn create_invitation(&self, token: &str, org_id: &str, email: &str, roles: Vec<String>, expiration: Option<String>) -> Result<KeycloakInvitation> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations",
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/invite-user",
                           self.config.url, self.config.realm, org_id);
 
-        let mut payload = json!({
-            "email": email,
-            "roles": roles
-        });
-
-        if let Some(exp) = expiration {
-            payload["expiration"] = json!(exp);
+        // Build form data (not JSON)
+        let mut form_data = std::collections::HashMap::new();
+        form_data.insert("email".to_string(), email.to_string());
+        
+        // Add roles if provided (might need to be comma-separated or handled differently)
+        if !roles.is_empty() {
+            let roles_str = roles.join(",");
+            form_data.insert("roles".to_string(), roles_str);
         }
+
+        info!(url = %url, email = %email, org_id = %org_id, "Creating organization invitation with form data");
 
         let response = self.client.post(&url)
             .bearer_auth(token)
-            .json(&payload)
+            .form(&form_data)
             .send()
             .await?;
 
         match response.status() {
-            StatusCode::CREATED => {
-                let invitation: KeycloakInvitation = response.json().await?;
+            StatusCode::NO_CONTENT => {
+                // Since the API returns 204 No Content, we create a mock invitation response
+                let invitation = KeycloakInvitation {
+                    id: format!("invitation-{}", chrono::Utc::now().timestamp()),
+                    email: email.to_string(),
+                    invited_at: chrono::Utc::now().to_rfc3339(),
+                    expiration,
+                    roles,
+                };
+                info!(invitation_id = %invitation.id, email = %email, "Organization invitation created successfully");
                 Ok(invitation)
             },
             _ => {
@@ -473,7 +484,7 @@ impl KeycloakService {
 
     /// Get all invitations for an organization
     pub async fn get_invitations(&self, token: &str, org_id: &str) -> Result<Vec<KeycloakInvitation>> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations",
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/invitations",
                           self.config.url, self.config.realm, org_id);
 
         let response = self.client.get(&url)
@@ -488,7 +499,7 @@ impl KeycloakService {
 
     /// Delete an invitation
     pub async fn delete_invitation(&self, token: &str, org_id: &str, invitation_id: &str) -> Result<()> {
-        let url = format!("{}/admin/realms/{}/organizations/{}/invitations/{}",
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/invitations/{}",
                           self.config.url, self.config.realm, org_id, invitation_id);
 
         let response = self.client.delete(&url)
@@ -509,7 +520,7 @@ impl KeycloakService {
     pub async fn set_user_categories_by_email(&self, token: &str, email: &str, categories: &Vec<String>) -> Result<()> {
         let user = self.find_user_by_username_or_email(token, email).await?.ok_or_else(|| anyhow!("User not found by email: {}", email))?;
         let user_id = user.id;
-        let user_email = user.email.clone().unwrap_or_default();
+        let user_email = user.email.clone();
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
         let payload = json!({
             "email": user_email,
@@ -529,51 +540,364 @@ impl KeycloakService {
             }
         }
     }
+    /// Get user categories by user ID
     pub async fn get_user_categories_by_id(&self, token: &str, user_id: &str) -> Result<Vec<String>> {
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+        
         let response = self.client.get(&url)
             .bearer_auth(token)
             .send()
             .await?;
-        if response.status().is_success() {
+
+        match response.status() {
+            StatusCode::OK => {
             let user: serde_json::Value = response.json().await?;
-            if let Some(attrs) = user.get("attributes").and_then(|a| a.get("categories")) {
-                if let Some(arr) = attrs.as_array() {
-                    return Ok(arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect());
+                let attributes = user.get("attributes").and_then(|a| a.as_object());
+                
+                if let Some(attrs) = attributes {
+                    if let Some(categories) = attrs.get("categories") {
+                        if let Some(categories_array) = categories.as_array() {
+                            let categories: Vec<String> = categories_array
+                                .iter()
+                                .filter_map(|c| c.as_str().map(|s| s.to_string()))
+                                .collect();
+                            return Ok(categories);
+                        }
+                    }
                 }
-            }
-            Ok(vec![])
-        } else {
+                Ok(Vec::new())
+            },
+            _ => {
             let error_text = response.text().await?;
             error!("Failed to get user categories: {}", error_text);
             Err(anyhow!("Failed to get user categories: {}", error_text))
         }
     }
+    }
 
-    pub async fn set_user_categories_by_id(&self, token: &str, user_id: &str, categories: &Vec<String>) -> Result<()> {
+    /// Create a new user with email verification required
+    pub async fn create_user_with_email_verification(&self, token: &str, request: &CreateUserRequest) -> Result<KeycloakUser> {
+        let url = format!("{}/admin/realms/{}/users", self.config.url, self.config.realm);
+        
+        // Generate a temporary password
+        let temp_password = self.generate_temporary_password();
+        
+        let mut payload = json!({
+            "username": request.username,
+            "email": request.email,
+            "enabled": true,
+            "emailVerified": false,
+            "requiredActions": ["VERIFY_EMAIL"],
+            "credentials": [{
+                "type": "password",
+                "value": temp_password,
+                "temporary": true
+            }]
+        });
+
+        // Add optional fields if provided
+        if let Some(first_name) = &request.first_name {
+            payload["firstName"] = json!(first_name);
+        }
+        if let Some(last_name) = &request.last_name {
+            payload["lastName"] = json!(last_name);
+        }
+        if let Some(attributes) = &request.attributes {
+            payload["attributes"] = json!(attributes);
+        }
+
+        info!(url = %url, email = %request.email, "Creating user with email verification");
+
+        let response = self.client.post(&url)
+            .bearer_auth(token)
+            .json(&payload)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::CREATED => {
+                // Get the created user to return the full user object
+                let location = response.headers()
+                    .get("location")
+                    .and_then(|h| h.to_str().ok())
+                    .ok_or_else(|| anyhow!("No location header in response"))?;
+                
+                let user_id = location.split('/').last()
+                    .ok_or_else(|| anyhow!("Invalid location header"))?;
+                
+                // Fetch the created user
+                let user = self.get_user_by_id(token, user_id).await?;
+                
+                // Trigger email verification email
+                self.trigger_email_verification(token, user_id).await?;
+                
+                // Note: Organization invitation is now handled in the admin handler
+                // after user creation, not in this function
+                
+                info!(user_id = %user_id, email = %request.email, "User created successfully with email verification required");
+                Ok(user)
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to create user: {}", error_text);
+                Err(anyhow!("Failed to create user: {}", error_text))
+            }
+        }
+    }
+
+    /// Get user by ID
+    pub async fn get_user_by_id(&self, token: &str, user_id: &str) -> Result<KeycloakUser> {
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
-        // Fetch the user to get their email
+        
         let response = self.client.get(&url)
             .bearer_auth(token)
             .send()
             .await?;
-        let user: serde_json::Value = response.json().await?;
-        let user_email = user.get("email").and_then(|e| e.as_str()).unwrap_or("");
-        let payload = serde_json::json!({
-            "email": user_email,
-            "attributes": { "categories": categories }
-        });
+
+        match response.status() {
+            StatusCode::OK => {
+                let user: KeycloakUser = response.json().await?;
+                Ok(user)
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to get user by ID: {}", error_text);
+                Err(anyhow!("Failed to get user by ID: {}", error_text))
+            }
+        }
+    }
+
+    /// Check if user's email is verified
+    pub async fn is_user_email_verified(&self, token: &str, user_id: &str) -> Result<bool> {
+        let user = self.get_user_by_id(token, user_id).await?;
+        Ok(user.email_verified)
+    }
+
+    /// Send organization invitation immediately (regardless of email verification)
+    pub async fn send_organization_invitation_immediate(&self, token: &str, org_id: &str, user_id: &str, roles: Vec<String>) -> Result<KeycloakInvitation> {
+        // First, get the user to get their email
+        let user = self.get_user_by_id(token, user_id).await?;
+        
+        info!(user_id = %user_id, user_email = %user.email, org_id = %org_id, roles = ?roles, "Preparing to send organization invitation");
+        
+        // Check if user email is empty
+        if user.email.is_empty() {
+            return Err(anyhow!("User email is empty, cannot send organization invitation"));
+        }
+        
+        // Assign realm roles and client roles (same logic as add_user_to_organization)
+        if let Some(role_name) = roles.get(0) {
+            info!(user_id = %user_id, role = %role_name, "Assigning realm role to user");
+            self.assign_realm_role_to_user(token, user_id, role_name).await?;
+            
+            // If the user is an org_admin, automatically assign client roles for realm-management
+            if role_name == "org_admin" {
+                info!(user_id = %user_id, "User is org_admin, assigning client roles");
+                // Define the client roles that org_admin users should have
+                let client_roles = vec![
+                    "view-users",
+                    "query-users",
+                    "manage-users",
+                    "manage-organizations",
+                    "manage-clients",
+                    "manage-realm"
+                ];
+                // Use the correct UUID for the realm-management client
+                let client_id = "4c6be2d1-547f-4ecc-912d-facf2f52935a";
+                for client_role in client_roles {
+                    match self.assign_client_role_to_user(token, user_id, client_id, client_role).await {
+                        Ok(_) => info!(user_id = %user_id, client_role = %client_role, "Successfully assigned client role"),
+                        Err(e) => {
+                            // Log the error but don't fail the entire operation
+                            warn!(user_id = %user_id, client_role = %client_role, error = %e, "Failed to assign client role");
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Create the organization invitation (no email verification check)
+        let invitation = self.create_invitation(token, org_id, &user.email, roles.clone(), None).await?;
+        
+        info!(user_id = %user_id, email = %user.email, org_id = %org_id, "Organization invitation sent immediately with role assignments (email verification not required)");
+        Ok(invitation)
+    }
+
+    /// Send organization invitation after email verification
+    pub async fn send_organization_invitation(&self, token: &str, org_id: &str, user_id: &str, roles: Vec<String>) -> Result<KeycloakInvitation> {
+        // First, get the user to get their email
+        let user = self.get_user_by_id(token, user_id).await?;
+        
+        // Check if email is verified
+        if !user.email_verified {
+            return Err(anyhow!("Cannot send organization invitation: user email not verified"));
+        }
+
+        // Create the organization invitation
+        let invitation = self.create_invitation(token, org_id, &user.email, roles, None).await?;
+        
+        info!(user_id = %user_id, email = %user.email, org_id = %org_id, "Organization invitation sent successfully");
+        Ok(invitation)
+    }
+
+    /// Generate a temporary password for new users
+    fn generate_temporary_password(&self) -> String {
+        use rand::{thread_rng, Rng};
+        use rand::distributions::Alphanumeric;
+        
+        let mut rng = thread_rng();
+        let password: String = (0..12)
+            .map(|_| rng.sample(Alphanumeric) as char)
+            .collect();
+        
+        format!("Temp{}!", password)
+    }
+
+    /// Trigger email verification email for a user
+    pub async fn trigger_email_verification(&self, token: &str, user_id: &str) -> Result<()> {
+        // Method 1: Try the send-verify-email endpoint
+        let url = format!("{}/admin/realms/{}/users/{}/send-verify-email", 
+                         self.config.url, self.config.realm, user_id);
+        
+        let response = self.client.post(&url)
+            .bearer_auth(token)
+            .send()
+            .await;
+
+        match response {
+            Ok(response) => {
+                match response.status() {
+                    StatusCode::NO_CONTENT | StatusCode::OK => {
+                        info!(user_id = %user_id, "Email verification email triggered successfully via send-verify-email");
+                        return Ok(());
+                    },
+                    _ => {
+                        let error_text = response.text().await?;
+                        debug!("send-verify-email failed: {}", error_text);
+                        // Continue to method 2
+                    }
+                }
+            },
+            Err(e) => {
+                debug!("send-verify-email request failed: {}", e);
+                // Continue to method 2
+            }
+        }
+
+        // Method 2: Try executing the VERIFY_EMAIL action
+        let url = format!("{}/admin/realms/{}/users/{}/execute-actions-email", 
+                         self.config.url, self.config.realm, user_id);
+        
+        let payload = json!(["VERIFY_EMAIL"]);
+        
         let response = self.client.put(&url)
             .bearer_auth(token)
             .json(&payload)
             .send()
             .await?;
+
         match response.status() {
-            StatusCode::NO_CONTENT | StatusCode::OK => Ok(()),
+            StatusCode::NO_CONTENT | StatusCode::OK => {
+                info!(user_id = %user_id, "Email verification email triggered successfully via execute-actions-email");
+                Ok(())
+            },
             _ => {
                 let error_text = response.text().await?;
-                error!("Failed to set user categories by id: {}", error_text);
-                Err(anyhow!("Failed to set user categories by id: {}", error_text))
+                error!("Failed to trigger email verification via execute-actions-email: {}", error_text);
+                Err(anyhow!("Failed to trigger email verification: {}", error_text))
+            }
+        }
+    }
+
+    /// Handle email verification event (called by webhook)
+    pub async fn handle_email_verification_event(&self, token: &str, user_id: &str, org_id: &str, roles: Vec<String>, categories: Vec<String>) -> Result<()> {
+        // Verify that the user's email is actually verified
+        let is_verified = self.is_user_email_verified(token, user_id).await?;
+        
+        if !is_verified {
+            return Err(anyhow!("User email is not verified"));
+        }
+
+        // Set user categories
+        self.set_user_categories_by_id(token, user_id, &categories).await?;
+
+        // Send organization invitation
+        self.send_organization_invitation(token, org_id, user_id, roles).await?;
+
+        info!(user_id = %user_id, org_id = %org_id, "Email verification handled successfully, organization invitation sent");
+        Ok(())
+    }
+
+    /// Set user categories by user ID
+    pub async fn set_user_categories_by_id(&self, token: &str, user_id: &str, categories: &[String]) -> Result<()> {
+        let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+        
+        let payload = json!({
+            "attributes": {
+                "categories": categories
+            }
+        });
+
+        let response = self.client.put(&url)
+            .bearer_auth(token)
+            .json(&payload)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::NO_CONTENT => {
+                info!(user_id = %user_id, categories = ?categories, "User categories set successfully");
+                Ok(())
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to set user categories: {}", error_text);
+                Err(anyhow!("Failed to set user categories: {}", error_text))
+            }
+        }
+    }
+
+    /// Update user attributes
+    pub async fn update_user_attributes(&self, token: &str, user_id: &str, request: &CreateUserRequest) -> Result<()> {
+        let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+        
+        let mut payload = json!({});
+
+        // Add fields that should be updated
+        if let Some(first_name) = &request.first_name {
+            payload["firstName"] = json!(first_name);
+        }
+        if let Some(last_name) = &request.last_name {
+            payload["lastName"] = json!(last_name);
+        }
+        if let Some(email_verified) = request.email_verified {
+            payload["emailVerified"] = json!(email_verified);
+        }
+        if let Some(enabled) = request.enabled {
+            payload["enabled"] = json!(enabled);
+        }
+        if let Some(attributes) = &request.attributes {
+            payload["attributes"] = json!(attributes);
+        }
+        if let Some(required_actions) = &request.required_actions {
+            payload["requiredActions"] = json!(required_actions);
+        }
+
+        let response = self.client.put(&url)
+            .bearer_auth(token)
+            .json(&payload)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::NO_CONTENT => {
+                info!(user_id = %user_id, "User attributes updated successfully");
+                Ok(())
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to update user attributes: {}", error_text);
+                Err(anyhow!("Failed to update user attributes: {}", error_text))
             }
         }
     }
@@ -633,9 +957,3 @@ impl KeycloakService {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct KeycloakUser {
-    pub id: String,
-    pub username: String,
-    pub email: Option<String>,
-}

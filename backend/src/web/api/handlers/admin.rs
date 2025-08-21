@@ -5,13 +5,15 @@ use crate::web::api::models::{
     AdminSubmissionListResponse,
 };
 use crate::common::models::claims::Claims;
-use crate::common::models::keycloak::KeycloakOrganization;
+use crate::common::models::keycloak::{KeycloakOrganization, UserInvitationRequest, UserInvitationResponse, UserInvitationStatus, EmailVerificationEvent};
 use axum::{
     extract::{Path, Query, State, Extension},
     Json,
 };
 use serde::Deserialize;
+use serde_json::json;
 use uuid::Uuid;
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct ListSubmissionsQuery {
@@ -20,7 +22,7 @@ pub struct ListSubmissionsQuery {
 
 pub async fn list_all_submissions(
     State(app_state): State<AppState>,
-    Extension(claims): Extension<Claims>,
+    Extension(_claims): Extension<Claims>,
     Extension(token): Extension<String>,
     Query(params): Query<ListSubmissionsQuery>,
 ) -> Result<Json<AdminSubmissionListResponse>, ApiError> {
@@ -420,6 +422,408 @@ pub async fn list_temp_submissions_by_assessment(
     }
 
     Ok(Json(AdminSubmissionListResponse { submissions }))
+}
+
+/// Create a new user invitation with email verification
+pub async fn create_user_invitation(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    Json(request): Json<UserInvitationRequest>,
+) -> Result<Json<UserInvitationResponse>, ApiError> {
+    // Check if user has admin permissions
+    if !claims.is_application_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    // Generate username from email
+    let username = request.email.split('@').next().unwrap_or(&request.email).to_string();
+    
+    // Create user request for Keycloak
+    let create_user_request = crate::common::models::keycloak::CreateUserRequest {
+        username: username.clone(),
+        email: request.email.clone(),
+        first_name: request.first_name.clone(),
+        last_name: request.last_name.clone(),
+        email_verified: Some(false),
+        enabled: Some(true),
+        attributes: Some(serde_json::json!({
+            "organization_id": request.organization_id,
+            "pending_roles": request.roles,
+            "pending_categories": request.categories,
+            "invitation_status": "pending_email_verification"
+        })),
+        credentials: None,
+        required_actions: Some(vec!["VERIFY_EMAIL".to_string()]),
+    };
+
+    match app_state.keycloak_service.create_user_with_email_verification(&token, &create_user_request).await {
+        Ok(user) => {
+            let user_id = user.id.clone();
+            let user_email = user.email.clone();
+            
+            // Send organization invitation immediately (regardless of email verification)
+            match app_state.keycloak_service.send_organization_invitation_immediate(&token, &request.organization_id, &user_id, request.roles.clone()).await {
+                Ok(invitation) => {
+                    tracing::info!(user_id = %user_id, org_id = %request.organization_id, "Organization invitation sent immediately");
+                    
+                    let response = UserInvitationResponse {
+                        user_id: user.id,
+                        email: user.email,
+                        status: UserInvitationStatus::Active,
+                        message: "User created successfully. Email verification and organization invitation emails have been sent. User roles have been assigned.".to_string(),
+                    };
+                    
+                    tracing::info!(user_id = %user_id, email = %user_email, "User invitation created successfully with immediate organization invitation");
+                    Ok(Json(response))
+                },
+                Err(e) => {
+                    tracing::warn!(user_id = %user_id, error = %e, "Failed to send organization invitation immediately, but user was created");
+                    
+                    let response = UserInvitationResponse {
+                        user_id: user.id,
+                        email: user.email,
+                        status: UserInvitationStatus::PendingEmailVerification,
+                        message: "User created successfully. Email verification email has been sent. Organization invitation will be sent after email verification.".to_string(),
+                    };
+                    
+                    tracing::info!(user_id = %user_id, email = %user_email, "User invitation created successfully (organization invitation failed)");
+                    Ok(Json(response))
+                }
+            }
+        },
+        Err(e) => {
+            tracing::error!("Failed to create user invitation: {}", e);
+            Err(ApiError::InternalServerError(format!("Failed to create user invitation: {}", e)))
+        }
+    }
+}
+
+/// Manual trigger for email verification (for testing)
+pub async fn trigger_user_verification_manual(
+    State(app_state): State<AppState>,
+    Extension(_claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // Check if user has admin permissions
+    if !_claims.is_application_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    // Trigger email verification
+    match app_state.keycloak_service.trigger_email_verification(&token, &user_id).await {
+        Ok(()) => {
+            tracing::info!(user_id = %user_id, "Email verification triggered manually");
+            Ok(Json(json!({
+                "status": "success",
+                "message": "Email verification triggered successfully",
+                "user_id": user_id
+            })))
+        },
+        Err(e) => {
+            tracing::error!(user_id = %user_id, error = %e, "Failed to trigger email verification");
+            Err(ApiError::InternalServerError(format!("Failed to trigger email verification: {}", e)))
+        }
+    }
+}
+
+/// Check and trigger organization invitation (polling approach)
+pub async fn check_and_trigger_organization_invitation(
+    State(app_state): State<AppState>,
+    Extension(_claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // Check if user has admin permissions
+    if !_claims.is_application_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    // Check if user's email is verified
+    let is_verified = app_state.keycloak_service.is_user_email_verified(&token, &user_id).await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to check email verification: {}", e)))?;
+
+    if !is_verified {
+        return Ok(Json(json!({
+            "status": "pending",
+            "message": "Email not yet verified",
+            "user_id": user_id
+        })));
+    }
+
+    // Process the email verification
+    match process_email_verification(&app_state, &token, &user_id).await {
+        Ok(()) => {
+            tracing::info!(user_id = %user_id, "Organization invitation triggered via polling");
+            Ok(Json(json!({
+                "status": "success",
+                "message": "Email verified and organization invitation sent",
+                "user_id": user_id
+            })))
+        },
+        Err(e) => {
+            tracing::error!(user_id = %user_id, error = %e, "Failed to process email verification via polling");
+            Err(ApiError::InternalServerError(format!("Failed to process email verification: {}", e)))
+        }
+    }
+}
+
+/// Process email verification and trigger organization invitation
+async fn process_email_verification(
+    app_state: &AppState,
+    token: &str,
+    user_id: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Get user attributes to extract organization and role information
+    let user = app_state.keycloak_service.get_user_by_id(token, user_id).await?;
+
+    let attributes = user.attributes.ok_or_else(|| {
+        anyhow::anyhow!("User attributes not found")
+    })?;
+
+    let org_id = attributes.get("organization_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("Organization ID not found in user attributes"))?;
+
+    let pending_roles: Vec<String> = attributes.get("pending_roles")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .unwrap_or_default();
+
+    let pending_categories: Vec<String> = attributes.get("pending_categories")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .unwrap_or_default();
+
+    // Handle the email verification event
+    app_state.keycloak_service.handle_email_verification_event(
+        token, 
+        user_id, 
+        org_id, 
+        pending_roles.clone(), 
+        pending_categories.clone()
+    ).await?;
+
+    // Update user attributes to mark as email verified
+    let updated_attributes = json!({
+        "organization_id": org_id,
+        "pending_roles": pending_roles,
+        "pending_categories": pending_categories,
+        "invitation_status": "email_verified",
+        "email_verified_at": chrono::Utc::now().to_rfc3339()
+    });
+
+    let update_request = crate::common::models::keycloak::CreateUserRequest {
+        username: user.username,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email_verified: Some(true),
+        enabled: Some(true),
+        attributes: Some(updated_attributes),
+        credentials: None,
+        required_actions: Some(vec![]),
+    };
+
+    app_state.keycloak_service.update_user_attributes(token, user_id, &update_request).await?;
+
+    tracing::info!(user_id = %user_id, "Email verification processed successfully");
+    Ok(())
+}
+
+/// Manual trigger for organization invitation (for testing)
+pub async fn trigger_organization_invitation_manual(
+    State(app_state): State<AppState>,
+    Extension(_claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // Check if user has admin permissions
+    if !_claims.is_application_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    // Get user attributes to extract organization and role information
+    let user = app_state.keycloak_service.get_user_by_id(&token, &user_id).await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to get user: {}", e)))?;
+
+    let attributes = user.attributes.ok_or_else(|| {
+        ApiError::InternalServerError("User attributes not found".to_string())
+    })?;
+
+    let org_id = attributes.get("organization_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ApiError::InternalServerError("Organization ID not found in user attributes".to_string()))?;
+
+    let pending_roles: Vec<String> = attributes.get("pending_roles")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .unwrap_or_default();
+
+    let pending_categories: Vec<String> = attributes.get("pending_categories")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .unwrap_or_default();
+
+    // Handle the email verification event manually
+    match app_state.keycloak_service.handle_email_verification_event(
+        &token, 
+        &user_id, 
+        org_id, 
+        pending_roles.clone(), 
+        pending_categories.clone()
+    ).await {
+        Ok(()) => {
+            // Update user attributes to mark as email verified
+            let updated_attributes = json!({
+                "organization_id": org_id,
+                "pending_roles": pending_roles,
+                "pending_categories": pending_categories,
+                "invitation_status": "email_verified",
+                "email_verified_at": chrono::Utc::now().to_rfc3339()
+            });
+
+            let update_request = crate::common::models::keycloak::CreateUserRequest {
+                username: user.username,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email_verified: Some(true),
+                enabled: Some(true),
+                attributes: Some(updated_attributes),
+                credentials: None,
+                required_actions: Some(vec![]),
+            };
+
+            app_state.keycloak_service.update_user_attributes(&token, &user_id, &update_request).await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to update user attributes: {}", e)))?;
+
+            tracing::info!(user_id = %user_id, "Organization invitation triggered manually");
+            Ok(Json(json!({
+                "status": "success",
+                "message": "Organization invitation triggered successfully",
+                "user_id": user_id
+            })))
+        },
+        Err(e) => {
+            tracing::error!(user_id = %user_id, error = %e, "Failed to trigger organization invitation");
+            Err(ApiError::InternalServerError(format!("Failed to trigger organization invitation: {}", e)))
+        }
+    }
+}
+
+/// Handle email verification webhook/event
+pub async fn handle_email_verification_webhook(
+    State(app_state): State<AppState>,
+    Extension(token): Extension<String>,
+    Json(event): Json<EmailVerificationEvent>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // Get user attributes to extract organization and role information
+    let user = app_state.keycloak_service.get_user_by_id(&token, &event.user_id).await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to get user: {}", e)))?;
+
+    let attributes = user.attributes.ok_or_else(|| {
+        ApiError::InternalServerError("User attributes not found".to_string())
+    })?;
+
+    let org_id = attributes.get("organization_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ApiError::InternalServerError("Organization ID not found in user attributes".to_string()))?;
+
+    let pending_roles: Vec<String> = attributes.get("pending_roles")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .unwrap_or_default();
+
+    let pending_categories: Vec<String> = attributes.get("pending_categories")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .unwrap_or_default();
+
+    // Handle the email verification event
+    match app_state.keycloak_service.handle_email_verification_event(
+        &token, 
+        &event.user_id, 
+        org_id, 
+        pending_roles.clone(), 
+        pending_categories.clone()
+    ).await {
+        Ok(()) => {
+            // Update user attributes to mark as email verified
+            let updated_attributes = serde_json::json!({
+                "organization_id": org_id,
+                "pending_roles": pending_roles,
+                "pending_categories": pending_categories,
+                "invitation_status": "email_verified",
+                "email_verified_at": event.verified_at
+            });
+
+            let update_request = crate::common::models::keycloak::CreateUserRequest {
+                username: user.username,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email_verified: Some(true),
+                enabled: Some(true),
+                attributes: Some(updated_attributes),
+                credentials: None,
+                required_actions: None,
+            };
+
+            // Update user attributes
+            app_state.keycloak_service.update_user_attributes(&token, &event.user_id, &update_request).await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to update user attributes: {}", e)))?;
+
+            tracing::info!(user_id = %event.user_id, email = %event.email, "Email verification handled successfully");
+            
+            Ok(Json(serde_json::json!({
+                "status": "success",
+                "message": "Email verification handled successfully, organization invitation sent",
+                "user_id": event.user_id,
+                "email": event.email
+            })))
+        },
+        Err(e) => {
+            tracing::error!("Failed to handle email verification event: {}", e);
+            Err(ApiError::InternalServerError(format!("Failed to handle email verification event: {}", e)))
+        }
+    }
+}
+
+/// Get user invitation status
+pub async fn get_user_invitation_status(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // Check if user has admin permissions
+    if !claims.is_application_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    let user = app_state.keycloak_service.get_user_by_id(&token, &user_id).await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to get user: {}", e)))?;
+
+    let attributes = user.attributes.unwrap_or_default();
+    let invitation_status = attributes.get("invitation_status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+
+    let response = serde_json::json!({
+        "user_id": user.id,
+        "email": user.email,
+        "email_verified": user.email_verified,
+        "invitation_status": invitation_status,
+        "organization_id": attributes.get("organization_id"),
+        "pending_roles": attributes.get("pending_roles"),
+        "pending_categories": attributes.get("pending_categories"),
+        "email_verified_at": attributes.get("email_verified_at"),
+        "org_invited_at": attributes.get("org_invited_at")
+    });
+
+    Ok(Json(response))
 }
 
 #[cfg(test)]

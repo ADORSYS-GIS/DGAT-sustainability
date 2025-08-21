@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Edit, Trash2, Mail, Building2 } from "lucide-react";
+import { Users, Plus, Edit, Trash2, Mail, Building2, UserPlus } from "lucide-react";
 import { 
   useOrganizationsServiceGetAdminOrganizations,
   useOrganizationMembersServiceGetOrganizationsByIdMembers,
@@ -36,6 +36,7 @@ import type {
 } from "@/openapi-rq/requests/types.gen";
 import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
+import { UserInvitationForm } from "@/components/shared/UserInvitationForm";
 
 // Helper to extract domain names
 function getDomainNames(domains: unknown): string[] {
@@ -59,6 +60,7 @@ function getOrgDescription(org: OrganizationResponse): string | undefined {
 export const ManageUsers: React.FC = () => {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showInvitationDialog, setShowInvitationDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
   );
@@ -385,12 +387,22 @@ export const ManageUsers: React.FC = () => {
             >
               <span className="mr-2">&larr;</span> {t('manageUsers.backToOrganizations')}
             </Button>
-            <Button
-              className="bg-dgrv-green hover:bg-green-700"
-              onClick={() => setShowAddDialog(true)}
-            >
-              {t('manageUsers.addUser')}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowInvitationDialog(true)}
+                className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                {t('userInvitation.create')}
+              </Button>
+              <Button
+                className="bg-dgrv-green hover:bg-green-700"
+                onClick={() => setShowAddDialog(true)}
+              >
+                {t('manageUsers.addUser')}
+              </Button>
+            </div>
           </div>
           <p className="text-lg text-gray-600 mb-6">
             {t('manageUsers.manageUsersForOrg', { org: selectedOrg.name })}
@@ -558,6 +570,30 @@ export const ManageUsers: React.FC = () => {
               </Card>
             )}
           </div>
+
+          {/* User Invitation Dialog */}
+          <Dialog
+            open={showInvitationDialog}
+            onOpenChange={setShowInvitationDialog}
+          >
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{t('userInvitation.title')}</DialogTitle>
+              </DialogHeader>
+              <UserInvitationForm
+                organizations={(organizations || []).map(org => ({
+                  id: org.id || '',
+                  name: org.name || ''
+                }))}
+                categories={[]} // TODO: Add categories API call
+                onInvitationCreated={() => {
+                  setShowInvitationDialog(false);
+                  refetch();
+                  toast.success(t('userInvitation.createdSuccessfully'));
+                }}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

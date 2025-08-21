@@ -97,6 +97,10 @@ services:
       KC_EMAIL_STARTTLS: "${EMAIL_STARTTLS:-true}"
       KC_EMAIL_AUTH: "${EMAIL_AUTH:-true}"
       KC_EMAIL_FROM_DISPLAY_NAME: "${DISPLAY_NAME:-DGRV COOPERATION}"
+      # Webhook configuration for email verification
+      KC_SPI_EVENTS_LISTENER_WEBHOOK_URL: "http://backend:3001/api/admin/webhooks/email-verification"
+      KC_SPI_EVENTS_LISTENER_WEBHOOK_TIMEOUT: "5000"
+      KC_SPI_EVENTS_LISTENER_WEBHOOK_RETRY: "3"
       # Startup command to be executed by wrapper
       KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start-dev --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak"
     entrypoint: ["/bin/bash", "/keycloak-startup.sh"]

@@ -2896,6 +2896,7 @@ dependencies = [
  "hyper 1.6.0",
  "jsonwebtoken",
  "once_cell",
+ "rand",
  "reqwest",
  "sea-orm",
  "sea-orm-migration",
