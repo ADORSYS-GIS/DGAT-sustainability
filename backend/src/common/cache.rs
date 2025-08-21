@@ -331,7 +331,7 @@ pub mod cached_ops {
         app_state: &AppState,
         assessment_id: Uuid,
     ) -> Result<Option<SubmissionModel>, ApiError> {
-        // Check cache first
+        // Check cache first (prior to database)
         if let Ok(cached) = REQUEST_CACHE.try_with(|cache| cache.get_submission(&assessment_id)) {
             if let Some(submission) = cached {
                 return Ok(submission);
@@ -422,7 +422,7 @@ pub mod cached_ops {
             }
         }
 
-        // Fetch from database
+        // Fetch from  database
         let temp_submission = app_state
             .database
             .temp_submission
