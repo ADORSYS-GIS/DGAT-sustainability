@@ -88,10 +88,10 @@ services:
       KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
       KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
       # email config
-      KC_EMAIL_HOST: "${EMAIL_HOST:-live.smtp.mailtrap.io}"
-      KC_EMAIL_PORT: 2525
+      KC_EMAIL_HOST: "${EMAIL_HOST:smtp.gmail.com}"
+      KC_EMAIL_PORT: 587
       KC_EMAIL_FROM: "${EMAIL_FROM:-noreply@dgrv.coop}"
-      KC_EMAIL_USER: "${EMAIL_USER:-api}"
+      KC_EMAIL_USER: "${EMAIL_USER:-yemelechristian2@gmail.com}"
       KC_EMAIL_PASSWORD: "${EMAIL_PASSWORD}"
       KC_EMAIL_SSL: "${EMAIL_SSL:-false}"
       KC_EMAIL_STARTTLS: "${EMAIL_STARTTLS:-true}"
