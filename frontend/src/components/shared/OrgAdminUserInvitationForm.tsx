@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
-import { AdminService } from '../../openapi-rq/requests/services.gen';
-import type { UserInvitationRequest, UserInvitationResponse } from '../../openapi-rq/requests/types.gen';
+import { OrganizationMembersService } from '../../openapi-rq/requests/services.gen';
+import type { OrgAdminMemberRequest, OrgAdminUserInvitationResponse } from '../../openapi-rq/requests/types.gen';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -11,34 +11,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 
-interface UserInvitationFormProps {
-  organizations: Array<{ id: string; name: string }>;
+interface OrgAdminUserInvitationFormProps {
+  organizationId: string;
+  organizationName: string;
   categories: Array<{ id: string; name: string }>;
   onInvitationCreated?: () => void;
-  defaultOrganizationId?: string; // Add optional default organization
 }
 
-export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
-  organizations,
+export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProps> = ({
+  organizationId,
+  organizationName,
   categories,
-  onInvitationCreated,
-  defaultOrganizationId
+  onInvitationCreated
 }) => {
   const { t } = useTranslation();
-      const [formData, setFormData] = useState<UserInvitationRequest>({
-      email: '',
-      first_name: '',
-      last_name: '',
-      organization_id: defaultOrganizationId || '',
-              roles: ['org_admin'], // Default to org_admin for DRGV admin
-      categories: []
-    });
-  const [createdInvitation, setCreatedInvitation] = useState<UserInvitationResponse | null>(null);
+  const [formData, setFormData] = useState<OrgAdminMemberRequest>({
+    email: '',
+    first_name: '',
+    last_name: '',
+    roles: ['Org_User'], // Default to Org_User for org admin
+    categories: []
+  });
+  const [createdInvitation, setCreatedInvitation] = useState<OrgAdminUserInvitationResponse | null>(null);
 
   // Create user invitation mutation
   const createUserInvitationMutation = useMutation({
-    mutationFn: async (data: UserInvitationRequest): Promise<UserInvitationResponse> => {
-      return AdminService.postAdminUserInvitations({ requestBody: data });
+    mutationFn: async (data: OrgAdminMemberRequest): Promise<OrgAdminUserInvitationResponse> => {
+      return OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({ 
+        id: organizationId, 
+        requestBody: data 
+      });
     },
     onSuccess: (result) => {
       toast.success(t('userInvitation.createdSuccessfully', {
@@ -54,8 +56,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
         email: '',
         first_name: '',
         last_name: '',
-        organization_id: defaultOrganizationId || '',
-        roles: ['org_admin'],
+        roles: ['Org_User'], // Default to Org_User for org admin
         categories: []
       });
 
@@ -70,7 +71,10 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
   // Manual trigger mutations
   const triggerVerificationMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return AdminService.postAdminUserInvitationsByUserIdTriggerVerification({ userId });
+      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdTriggerVerification({ 
+        orgId: organizationId, 
+        userId 
+      });
     },
     onSuccess: () => {
       toast.success('Email verification email sent successfully');
@@ -83,7 +87,10 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
 
   const triggerOrgInvitationMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return AdminService.postAdminUserInvitationsByUserIdTriggerOrgInvitation({ userId });
+      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdTriggerOrgInvitation({ 
+        orgId: organizationId, 
+        userId 
+      });
     },
     onSuccess: () => {
       toast.success('Organization invitation sent successfully');
@@ -96,7 +103,10 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
 
   const checkAndTriggerMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return AdminService.postAdminUserInvitationsByUserIdCheckAndTrigger({ userId });
+      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdCheckAndTrigger({ 
+        orgId: organizationId, 
+        userId 
+      });
     },
     onSuccess: (result) => {
       toast.success('Email verified and organization invitation sent automatically');
@@ -128,7 +138,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
-        <CardTitle>{t('userInvitation.title')}</CardTitle>
+        <CardTitle>{t('userInvitation.title')} - {organizationName}</CardTitle>
         <CardDescription>
           {t('userInvitation.description')}
         </CardDescription>
@@ -171,36 +181,6 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="organization">{t('userInvitation.organization')} *</Label>
-            {defaultOrganizationId ? (
-              // Show read-only organization when default is provided
-              <Input
-                id="organization"
-                value={organizations.find(org => org.id === defaultOrganizationId)?.name || ''}
-                readOnly
-                className="bg-gray-100 cursor-not-allowed"
-              />
-            ) : (
-              // Show organization selector when no default is provided
-              <Select
-                value={formData.organization_id}
-                onValueChange={(value) => setFormData({ ...formData, organization_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('userInvitation.selectOrganization')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {organizations.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="space-y-2">
             <Label>{t('userInvitation.roles')}</Label>
             <div className="flex gap-2">
               <Button
@@ -210,10 +190,10 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
                 disabled
                 className="bg-gray-100 text-gray-800 cursor-not-allowed"
               >
-                {t('userInvitation.roles.Org_Admin')}
+                {t('userInvitation.roles.Org_User')}
               </Button>
             </div>
-            <p className="text-xs text-gray-500">DRGV Admin can only create Organization Admin users</p>
+            <p className="text-xs text-gray-500">Organization Admin can only create Organization User accounts</p>
           </div>
 
           <div className="space-y-2">
@@ -248,7 +228,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
             </ol>
           </div>
 
-          <Button type="submit" disabled={createUserInvitationMutation.isPending || !formData.email || !formData.organization_id} className="w-full">
+          <Button type="submit" disabled={createUserInvitationMutation.isPending || !formData.email} className="w-full">
             {createUserInvitationMutation.isPending ? t('userInvitation.creating') : t('userInvitation.create')}
           </Button>
         </form>
@@ -261,7 +241,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">User ID: {createdInvitation.user_id}</p>
-                  <div className="text-sm text-gray-600">Status: {getStatusBadge(createdInvitation.status)}</div>
+                  <p className="text-sm text-gray-600">Status: {getStatusBadge(createdInvitation.status)}</p>
                 </div>
                 <Button
                   type="button"

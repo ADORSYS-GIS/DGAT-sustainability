@@ -879,8 +879,18 @@ pub async fn remove_member(
 #[derive(serde::Deserialize)]
 pub struct OrgAdminMemberRequest {
     pub email: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
     pub roles: Vec<String>,
     pub categories: Vec<String>,
+}
+
+#[derive(serde::Serialize)]
+pub struct OrgAdminUserInvitationResponse {
+    pub user_id: String,
+    pub email: String,
+    pub status: String,
+    pub message: String,
 }
 
 // POST /api/organizations/:org_id/org-admin/members
@@ -897,18 +907,70 @@ pub async fn add_org_admin_member(
         tracing::error!(?claims, org_id = %org_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
-    // Add user to org
-    app_state.keycloak_service.add_user_to_organization(&token, &org_id, &request.email, request.roles.clone()).await.map_err(|e| {
-        tracing::error!("Failed to add org user: {}", e);
-        ApiError::InternalServerError("Failed to add org user".to_string())
-    })?;
-    // Set categories as user attribute
-    app_state.keycloak_service.set_user_categories_by_email(&token, &request.email, &request.categories).await.map_err(|e| {
-        tracing::error!("Failed to set user categories: {}", e);
-        ApiError::InternalServerError("Failed to set user categories".to_string())
-    })?;
-    Ok(StatusCode::CREATED)
+
+    // Generate username from email
+    let username = request.email.split('@').next().unwrap_or(&request.email).to_string();
+    
+    // Create user request for Keycloak
+    let create_user_request = crate::common::models::keycloak::CreateUserRequest {
+        username: username.clone(),
+        email: request.email.clone(),
+        first_name: request.first_name.clone(),
+        last_name: request.last_name.clone(),
+        email_verified: Some(false),
+        enabled: Some(true),
+        attributes: Some(serde_json::json!({
+            "organization_id": org_id,
+            "pending_roles": request.roles,
+            "pending_categories": request.categories,
+            "invitation_status": "pending_email_verification"
+        })),
+        credentials: None,
+        required_actions: Some(vec!["VERIFY_EMAIL".to_string()]),
+    };
+
+    match app_state.keycloak_service.create_user_with_email_verification(&token, &create_user_request).await {
+        Ok(user) => {
+            let user_id = user.id.clone();
+            let user_email = user.email.clone();
+            
+            // Send organization invitation immediately (regardless of email verification)
+            match app_state.keycloak_service.send_organization_invitation_immediate(&token, &org_id, &user_id, request.roles.clone()).await {
+                Ok(_invitation) => {
+                    tracing::info!(user_id = %user_id, org_id = %org_id, "Organization invitation sent immediately");
+                    
+                    let response = OrgAdminUserInvitationResponse {
+                        user_id: user.id,
+                        email: user.email,
+                        status: "active".to_string(),
+                        message: "User created successfully. Email verification and organization invitation emails have been sent. User roles have been assigned.".to_string(),
+                    };
+                    
+                    tracing::info!(user_id = %user_id, email = %user_email, "Org admin user invitation created successfully with immediate organization invitation");
+                    Ok((StatusCode::CREATED, Json(response)))
+                },
+                Err(e) => {
+                    tracing::warn!(user_id = %user_id, org_id = %org_id, error = %e, "Failed to send organization invitation immediately, but user was created");
+                    
+                    let response = OrgAdminUserInvitationResponse {
+                        user_id: user.id,
+                        email: user.email,
+                        status: "pending_org_invitation".to_string(),
+                        message: "User created successfully and email verification sent. Organization invitation failed and will need to be sent manually.".to_string(),
+                    };
+                    
+                    Ok((StatusCode::CREATED, Json(response)))
+                }
+            }
+        },
+        Err(e) => {
+            tracing::error!(email = %request.email, error = %e, "Failed to create user for org admin invitation");
+            Err(ApiError::InternalServerError(format!("Failed to create user: {}", e)))
+        }
+    }
 }
+
+
 
 // GET /api/organizations/:org_id/org-admin/members
 pub async fn get_org_admin_members(
@@ -922,7 +984,8 @@ pub async fn get_org_admin_members(
         tracing::error!(?claims, org_id = %org_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
-    let members = app_state.keycloak_service.get_organization_members(&token, &org_id).await.map_err(|e| {
+    // Get only Org_User members (org admins should only see regular users, not other admins)
+    let members = app_state.keycloak_service.get_organization_members_by_role(&token, &org_id, "Org_User").await.map_err(|e| {
         tracing::error!("Failed to get org members: {}", e);
         ApiError::InternalServerError("Failed to get org members".to_string())
     })?;

@@ -345,7 +345,7 @@ impl KeycloakService {
             self.assign_realm_role_to_user(token, &user_uuid, role_name).await?;
             // If the user is an org_admin, automatically assign client roles for realm-management
             if role_name == "org_admin" {
-                // Define the client roles that org_admin users should have
+                // Define the client roles that Org_Admin users should have
                 let client_roles = vec![
                     "view-users",
                     "query-users",
@@ -520,12 +520,13 @@ impl KeycloakService {
     pub async fn set_user_categories_by_email(&self, token: &str, email: &str, categories: &Vec<String>) -> Result<()> {
         let user = self.find_user_by_username_or_email(token, email).await?.ok_or_else(|| anyhow!("User not found by email: {}", email))?;
         let user_id = user.id;
-        let user_email = user.email.clone();
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+        
+        // Only update the attributes, not the email field
         let payload = json!({
-            "email": user_email,
             "attributes": { "categories": categories }
         });
+        
         let response = self.client.put(&url)
             .bearer_auth(token)
             .json(&payload)
@@ -628,8 +629,16 @@ impl KeycloakService {
                 // Fetch the created user
                 let user = self.get_user_by_id(token, user_id).await?;
                 
-                // Trigger email verification email
-                self.trigger_email_verification(token, user_id).await?;
+                // Try to trigger email verification email, but don't fail if it doesn't work
+                match self.trigger_email_verification(token, user_id).await {
+                    Ok(_) => {
+                        info!(user_id = %user_id, "Email verification email sent successfully");
+                    },
+                    Err(e) => {
+                        warn!(user_id = %user_id, error = %e, "Failed to send email verification email, but user was created successfully");
+                        // Don't fail the entire operation, just log the warning
+                    }
+                }
                 
                 // Note: Organization invitation is now handled in the admin handler
                 // after user creation, not in this function
@@ -692,8 +701,8 @@ impl KeycloakService {
             
             // If the user is an org_admin, automatically assign client roles for realm-management
             if role_name == "org_admin" {
-                info!(user_id = %user_id, "User is org_admin, assigning client roles");
-                // Define the client roles that org_admin users should have
+                info!(user_id = %user_id, "User is Org_Admin, assigning client roles");
+                // Define the client roles that Org_Admin users should have
                 let client_roles = vec![
                     "view-users",
                     "query-users",
@@ -809,30 +818,22 @@ impl KeycloakService {
         }
     }
 
-    /// Handle email verification event (called by webhook)
-    pub async fn handle_email_verification_event(&self, token: &str, user_id: &str, org_id: &str, roles: Vec<String>, categories: Vec<String>) -> Result<()> {
-        // Verify that the user's email is actually verified
-        let is_verified = self.is_user_email_verified(token, user_id).await?;
-        
-        if !is_verified {
-            return Err(anyhow!("User email is not verified"));
-        }
 
-        // Set user categories
-        self.set_user_categories_by_id(token, user_id, &categories).await?;
-
-        // Send organization invitation
-        self.send_organization_invitation(token, org_id, user_id, roles).await?;
-
-        info!(user_id = %user_id, org_id = %org_id, "Email verification handled successfully, organization invitation sent");
-        Ok(())
-    }
 
     /// Set user categories by user ID
     pub async fn set_user_categories_by_id(&self, token: &str, user_id: &str, categories: &[String]) -> Result<()> {
+        // First, get the current user data to preserve existing fields
+        let user = self.get_user_by_id(token, user_id).await?;
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
         
-        let payload = json!({
+        // Create payload with all required user fields plus the updated categories
+        let mut payload = json!({
+            "username": user.username,
+            "email": user.email,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "enabled": user.enabled,
+            "emailVerified": user.email_verified,
             "attributes": {
                 "categories": categories
             }

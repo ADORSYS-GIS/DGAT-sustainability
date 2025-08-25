@@ -391,10 +391,10 @@ export const ManageUsers: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowInvitationDialog(true)}
-                className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10"
+                className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 bg-blue-50"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                {t('userInvitation.create')}
+                Create Invitation
               </Button>
               <Button
                 className="bg-dgrv-green hover:bg-green-700"
@@ -586,6 +586,7 @@ export const ManageUsers: React.FC = () => {
                   name: org.name || ''
                 }))}
                 categories={[]} // TODO: Add categories API call
+                defaultOrganizationId={selectedOrg?.id || undefined}
                 onInvitationCreated={() => {
                   setShowInvitationDialog(false);
                   refetch();

@@ -28,6 +28,7 @@ import { offlineDB } from "@/services/indexeddb";
 import { OrganizationMembersService } from "@/openapi-rq/requests/services.gen";
 import type { OfflineUser } from "@/types/offline";
 import { useTranslation } from "react-i18next";
+import { OrgAdminUserInvitationForm } from "@/components/shared/OrgAdminUserInvitationForm";
 
 // Helper to get org and categories from ID token
 function getOrgAndCategoriesAndId(user: Record<string, unknown>) {
@@ -415,7 +416,7 @@ export const OrgUserManageUsers: React.FC = () => {
             className="bg-dgrv-green hover:bg-green-700"
             onClick={() => setShowAddDialog(true)}
           >
-            + Add User
+            + Invite User
           </Button>
         </div>
         <p className="text-lg text-gray-600 mb-6">
@@ -430,71 +431,85 @@ export const OrgUserManageUsers: React.FC = () => {
           }}
         >
           <DialogTrigger asChild></DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>
-                {editingUser ? t('manageUsers.editUser') : t('manageUsers.addNewUser')}
+                {editingUser ? t('manageUsers.editUser') : 'Invite New User'}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, email: e.target.value }))
-                  }
-                  placeholder="Enter email"
-                />
-              </div>
-              <div>
-                <Label htmlFor="categories">Categories</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {categories.map((cat) => (
-                    <label key={cat} className="flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={formData.categories.includes(cat)}
-                        onChange={(e) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            categories: e.target.checked
-                              ? [...prev.categories, cat]
-                              : prev.categories.filter((c) => c !== cat),
-                          }));
-                        }}
-                      />
-                      <span>{cat}</span>
-                    </label>
-                  ))}
+            {editingUser ? (
+              // Show edit form for existing users
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, email: e.target.value }))
+                    }
+                    placeholder="Enter email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="categories">Categories</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {categories.map((cat) => (
+                      <label key={cat} className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={formData.categories.includes(cat)}
+                          onChange={(e) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              categories: e.target.checked
+                                ? [...prev.categories, cat]
+                                : prev.categories.filter((c) => c !== cat),
+                            }));
+                          }}
+                        />
+                        <span>{cat}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="role">Role</Label>
+                  <Input
+                    id="role"
+                    value={t('manageUsers.orgUser')}
+                    readOnly
+                    className="bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+                <div className="flex space-x-2 pt-4">
+                  <Button
+                    onClick={handleSubmit}
+                    className="bg-dgrv-green hover:bg-green-700"
+                    disabled={createUser.isPending || updateUser.isPending}
+                  >
+                    {createUser.isPending || updateUser.isPending 
+                      ? t('common.processing') 
+                      : editingUser ? t('common.update') : t('common.create')} {t('manageUsers.user')}
+                  </Button>
+                  <Button variant="outline" onClick={resetForm}>
+                    {t('common.cancel')}
+                  </Button>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Input
-                  id="role"
-                  value={t('manageUsers.orgUser')}
-                  readOnly
-                  className="bg-gray-100 cursor-not-allowed"
-                />
-              </div>
-              <div className="flex space-x-2 pt-4">
-                <Button
-                  onClick={handleSubmit}
-                  className="bg-dgrv-green hover:bg-green-700"
-                  disabled={createUser.isPending || updateUser.isPending}
-                >
-                  {createUser.isPending || updateUser.isPending 
-                    ? t('common.processing') 
-                    : editingUser ? t('common.update') : t('common.create')} {t('manageUsers.user')}
-                </Button>
-                <Button variant="outline" onClick={resetForm}>
-                  {t('common.cancel')}
-                </Button>
-              </div>
-            </div>
+            ) : (
+              // Show invitation form for new users
+              <OrgAdminUserInvitationForm
+                organizationId={orgId}
+                organizationName={orgName}
+                categories={categories.map(cat => ({ id: cat, name: cat }))}
+                onInvitationCreated={() => {
+                  setShowAddDialog(false);
+                  refetch();
+                }}
+              />
+            )}
           </DialogContent>
         </Dialog>
         {/* Users Grid */}

@@ -2436,7 +2436,14 @@
           }
         },
         "responses": {
-          "201": { "description": "User added successfully" },
+          "201": { 
+            "description": "User created and invited successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OrgAdminUserInvitationResponse" }
+              }
+            }
+          },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
@@ -2524,7 +2531,7 @@
     "/organizations/{id}/org-admin/members/{member_id}/categories": {
       "put": {
         "summary": "Update org user categories (org admin only)",
-        "description": "Update the categories assigned to a user in the organization (org admin only)",
+        "description": "Update categories for a user in the organization (org admin only)",
         "tags": ["Organization Members"],
         "parameters": [
           {
@@ -2539,21 +2546,112 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string" },
-            "description": "User ID"
+            "description": "Member ID"
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrgAdminMemberCategoryUpdateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/OrgAdminMemberCategoryUpdateRequest" }
             }
           }
         },
         "responses": {
-          "204": { "description": "Categories updated successfully" },
+          "200": { "description": "Categories updated successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{org_id}/org-admin/user-invitations/{user_id}/trigger-verification": {
+      "post": {
+        "summary": "Trigger email verification for org admin user invitation",
+        "description": "Manually trigger email verification for a user created by org admin",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User ID"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Email verification triggered successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{org_id}/org-admin/user-invitations/{user_id}/trigger-org-invitation": {
+      "post": {
+        "summary": "Trigger organization invitation for org admin user invitation",
+        "description": "Manually trigger organization invitation for a user created by org admin",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User ID"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Organization invitation triggered successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{org_id}/org-admin/user-invitations/{user_id}/check-and-trigger": {
+      "post": {
+        "summary": "Check email verification and trigger organization invitation for org admin user invitation",
+        "description": "Check if user's email is verified and trigger organization invitation if verified",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User ID"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Email verified and organization invitation sent successfully" },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
@@ -3871,6 +3969,14 @@
             "format": "email",
             "description": "User email to add to the organization"
           },
+          "first_name": {
+            "type": "string",
+            "description": "User's first name"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User's last name"
+          },
           "roles": {
             "type": "array",
             "items": { "type": "string" },
@@ -3894,6 +4000,29 @@
           }
         },
         "required": ["categories"]
+      },
+      "OrgAdminUserInvitationResponse": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email"
+          },
+          "status": {
+            "type": "string",
+            "description": "Invitation status"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          }
+        },
+        "required": ["user_id", "email", "status", "message"]
       },
       "OrgAssessmentResults": {
         "type": "object",

@@ -645,8 +645,8 @@
     "createdSuccessfully": "User invitation created successfully for {{email}}. Status: {{status}}",
     "creationFailed": "Failed to create user invitation. Please try again.",
     "roles": {
-      "org_user": "Organization User",
-      "org_admin": "Organization Admin"
+      "Org_User": "Organization User",
+      "Org_Admin": "Organization Admin"
     },
     "status": {
       "pendingEmail": "Pending Email Verification",

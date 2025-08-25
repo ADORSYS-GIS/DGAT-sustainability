@@ -12,13 +12,13 @@ This document summarizes the implementation of the two-email sequential user inv
 - **`UserInvitationRequest`**: Request model for creating user invitations
 - **`UserInvitationResponse`**: Response model for invitation creation
 - **`UserInvitationStatus`**: Enum for tracking invitation status
-- **`EmailVerificationEvent`**: Model for email verification webhooks
+
 - **`CreateUserRequest`**: Model for Keycloak user creation
 - **`KeycloakUser`**: Enhanced user model with all required fields
 
 #### Enhanced Keycloak Service (`backend/src/common/services/keycloak_service.rs`)
 - **`create_user_with_email_verification`**: Creates users with email verification required
-- **`handle_email_verification_event`**: Processes email verification and sends organization invitations
+
 - **`send_organization_invitation`**: Sends organization invitations after email verification
 - **`update_user_attributes`**: Updates user attributes to track invitation status
 - **`get_user_by_id`**: Retrieves user information by ID
@@ -27,7 +27,7 @@ This document summarizes the implementation of the two-email sequential user inv
 
 #### New API Endpoints (`backend/src/web/api/handlers/admin.rs`)
 - **`POST /api/admin/user-invitations`**: Create user invitations
-- **`POST /api/admin/webhooks/email-verification`**: Handle email verification events
+
 - **`GET /api/admin/user-invitations/:user_id/status`**: Get invitation status
 
 #### Updated Routes (`backend/src/web/api/routes.rs`)
@@ -72,7 +72,7 @@ This document summarizes the implementation of the two-email sequential user inv
 - ✅ Secure temporary password generation
 - ✅ Complete audit trail of invitation process
 - ✅ Permission-based access control
-- ✅ Webhook validation and security
+
 
 ### 2. User Experience
 - ✅ Clear two-step email process
@@ -112,7 +112,7 @@ POST /api/admin/user-invitations
 ### Step 3: User Verifies Email
 - User clicks verification link
 - Keycloak marks email as verified
-- Webhook triggers organization invitation
+
 
 ### Step 4: Organization Invitation Sent
 - Backend detects email verification
@@ -157,7 +157,7 @@ KEYCLOAK_REALM=sustainability-realm
 ### Keycloak Setup
 - Email verification action enabled
 - Email templates configured
-- Webhook endpoints configured
+
 - Organization management enabled
 
 ## Testing

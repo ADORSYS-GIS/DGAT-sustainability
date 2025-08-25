@@ -1,6 +1,6 @@
 
 use crate::web::api::handlers::{
-    admin::{list_all_submissions, list_temp_submissions_by_assessment, create_user_invitation, handle_email_verification_webhook, get_user_invitation_status, trigger_user_verification_manual, trigger_organization_invitation_manual, check_and_trigger_organization_invitation},
+    admin::{list_all_submissions, list_temp_submissions_by_assessment, create_user_invitation, get_user_invitation_status},
     assessments::{
         create_assessment, delete_assessment, get_assessment, list_assessments, submit_assessment,
         update_assessment, user_submit_draft_assessment,
@@ -140,12 +140,12 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/organizations/:org_id/org-admin/members", get(get_org_admin_members))
         .route("/api/organizations/:org_id/org-admin/members/:member_id", delete(remove_org_admin_member))
         .route("/api/organizations/:org_id/org-admin/members/:member_id/categories", put(update_org_admin_member_categories))
+        // Org admin user invitation endpoints
+
         // User invitation endpoints
         .route("/api/admin/user-invitations", post(create_user_invitation))
         .route("/api/admin/user-invitations/:user_id/status", get(get_user_invitation_status))
-        .route("/api/admin/webhooks/email-verification", post(handle_email_verification_webhook))
-        .route("/api/admin/user-invitations/:user_id/trigger-verification", post(trigger_user_verification_manual))
-        .route("/api/admin/user-invitations/:user_id/trigger-org-invitation", post(trigger_organization_invitation_manual))
-        .route("/api/admin/user-invitations/:user_id/check-and-trigger", post(check_and_trigger_organization_invitation))
+
+
         .with_state(app_state)
 }

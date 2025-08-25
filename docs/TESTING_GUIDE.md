@@ -24,7 +24,7 @@ docker-compose up keycloak
 - Email verification action enabled
 - Email templates configured
 - SMTP settings configured
-- Webhook endpoints configured
+
 
 ### 3. Admin Access
 - You need admin credentials to access the user invitation feature

@@ -143,10 +143,4 @@ pub enum UserInvitationStatus {
     Error,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EmailVerificationEvent {
-    pub user_id: String,
-    pub email: String,
-    pub verified_at: String,
-    pub event_type: String,
-}
+

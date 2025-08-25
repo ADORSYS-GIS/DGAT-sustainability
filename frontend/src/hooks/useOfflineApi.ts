@@ -579,17 +579,23 @@ export function useOfflineDraftAssessments() {
 
       console.log('🔍 useOfflineDraftAssessments: API response received:', result);
 
-      // Transform API response to match OfflineAssessment type
+      // Transform API response to match OfflineAssessment type and filter for draft only
       const transformedResult = {
-        assessments: result.assessments.map(assessment => {
-          console.log('🔍 useOfflineDraftAssessments: Processing assessment:', assessment);
-          return {
-            ...assessment,
-            status: 'draft' as const, // Default to draft since we're filtering for drafts
-            updated_at: new Date().toISOString(),
-            sync_status: 'synced' as const,
-          };
-        })
+        assessments: result.assessments
+          .filter(assessment => assessment.status === 'draft') // Only include draft assessments
+          .map(assessment => {
+            console.log('🔍 useOfflineDraftAssessments: Processing assessment:', assessment);
+            return {
+              ...assessment,
+              // Map the backend status to the expected offline status format
+              status: (assessment.status === 'draft' ? 'draft' : 
+                      assessment.status === 'submitted' ? 'submitted' : 
+                      assessment.status === 'reviewed' ? 'completed' : 
+                      'draft') as 'draft' | 'in_progress' | 'completed' | 'submitted',
+              updated_at: new Date().toISOString(),
+              sync_status: 'synced' as const,
+            };
+          })
       };
 
       console.log('🔍 useOfflineDraftAssessments: Final transformed result:', transformedResult);
