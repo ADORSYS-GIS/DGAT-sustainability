@@ -394,13 +394,7 @@ export const ManageUsers: React.FC = () => {
                 className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 bg-blue-50"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                Create Invitation
-              </Button>
-              <Button
-                className="bg-dgrv-green hover:bg-green-700"
-                onClick={() => setShowAddDialog(true)}
-              >
-                {t('manageUsers.addUser')}
+                Invite User
               </Button>
             </div>
           </div>
@@ -561,10 +555,10 @@ export const ManageUsers: React.FC = () => {
                     {t('manageUsers.addFirstUserDesc')}
                   </p>
                   <Button
-                    onClick={() => setShowAddDialog(true)}
-                    className="bg-dgrv-green hover:bg-green-700"
+                    onClick={() => setShowInvitationDialog(true)}
+                    className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 bg-blue-50"
                   >
-                    {t('manageUsers.addFirstUser')}
+                    Create First User
                   </Button>
                 </CardContent>
               </Card>
