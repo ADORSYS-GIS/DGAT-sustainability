@@ -99,7 +99,7 @@ export const ManageOrganizations: React.FC = () => {
   const [formData, setFormData] = useState<OrganizationCreateRequest>({
     name: "",
     domains: [{ name: "" }],
-    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
     enabled: "true",
     attributes: { categories: [] },
   });
@@ -135,7 +135,7 @@ export const ManageOrganizations: React.FC = () => {
       setFormData({
         name: "",
         domains: [{ name: "" }],
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
         enabled: "true",
         attributes: { categories: [] },
       });
@@ -155,7 +155,7 @@ export const ManageOrganizations: React.FC = () => {
       setFormData({
         name: "",
         domains: [{ name: "" }],
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
         enabled: "true",
         attributes: { categories: [] },
       });
@@ -274,7 +274,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({
       name: org.name,
       domains: org.domains || [{ name: "" }],
-      redirectUrl: org.redirectUrl || import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+      redirectUrl: org.redirectUrl || import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
       enabled: org.enabled ? "true" : "false",
       attributes: org.attributes || { categories: [] },
     });
@@ -297,7 +297,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({
       name: "",
       domains: [{ name: "" }],
-      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "http://localhost:5173",
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
       enabled: "true",
       attributes: { categories: [] },
     });
