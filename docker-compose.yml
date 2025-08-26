@@ -100,7 +100,7 @@ services:
       KC_SPI_EMAIL_DEFAULT_AUTH: "${KC_EMAIL_AUTH:-true}"
 
       # Startup command to be executed by wrapper
-      KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start-dev --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak --log-level=DEBUG"
+      KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start-dev --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak"
     entrypoint: ["/bin/bash", "/keycloak-startup.sh"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:rw
