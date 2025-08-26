@@ -88,16 +88,16 @@ services:
       KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
       KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
 
-      # SMTP Configuration using SPI configuration
-      KC_SPI_EMAIL_HOST: "$${EMAIL_HOST:smtp.gmail.com}"
-      KC_SPI_EMAIL_PORT: 587
-      KC_SPI_EMAIL_FROM: "$${EMAIL_FROM:-noreply@dgrv.coop}"
-      KC_SPI_EMAIL_FROM_DISPLAY_NAME: "$${EMAIL_USER:-yemelechristian2@gmail.com}"
-      KC_SPI_EMAIL_USER: "$${EMAIL_USER:-yemelechristian2@gmail.com}"
-      KC_SPI_EMAIL_PASSWORD: "$${EMAIL_PASSWORD}"
-      KC_SPI_EMAIL_SSL: "$${EMAIL_SSL:-false}"
-      KC_SPI_EMAIL_STARTTLS: "$${EMAIL_STARTTLS:-true}"
-      KC_SPI_EMAIL_AUTH: "$${EMAIL_AUTH:-true}"
+      # SMTP Configuration - Keycloak official method
+      KC_SPI_EMAIL_DEFAULT_HOST: "${EMAIL_HOST:-smtp.gmail.com}"
+      KC_SPI_EMAIL_DEFAULT_PORT: "${EMAIL_PORT:-587}"
+      KC_SPI_EMAIL_DEFAULT_FROM: "${EMAIL_FROM:-noreply@dgrv.coop}"
+      KC_SPI_EMAIL_DEFAULT_FROM_DISPLAY_NAME: "${EMAIL_FROM_DISPLAY_NAME:-DGRV COOPERATION}"
+      KC_SPI_EMAIL_DEFAULT_USER: "${EMAIL_USER:-yemelechristian2@gmail.com}"
+      KC_SPI_EMAIL_DEFAULT_PASSWORD: "${EMAIL_PASSWORD}"
+      KC_SPI_EMAIL_DEFAULT_SSL: "${EMAIL_SSL:-false}"
+      KC_SPI_EMAIL_DEFAULT_STARTTLS: "${EMAIL_STARTTLS:-true}"
+      KC_SPI_EMAIL_DEFAULT_AUTH: "${EMAIL_AUTH:-true}"
 
       # Startup command to be executed by wrapper
       KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start-dev --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak"
