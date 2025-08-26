@@ -111,6 +111,7 @@ services:
       # Mount startup scripts
       - ./a.sh:/a.sh:ro
       - ./keycloak-startup.sh:/keycloak-startup.sh:ro
+      - ./test_email_config.sh:/test_email_config.sh:ro
     depends_on:
       db:
         condition: service_healthy
