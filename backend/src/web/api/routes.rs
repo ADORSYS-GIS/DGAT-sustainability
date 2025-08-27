@@ -1,6 +1,6 @@
 
 use crate::web::api::handlers::{
-    admin::{list_all_submissions, list_temp_submissions_by_assessment, create_user_invitation, get_user_invitation_status},
+    admin::{list_all_submissions, list_temp_submissions_by_assessment, create_user_invitation, get_user_invitation_status, delete_user},
     assessments::{
         create_assessment, delete_assessment, get_assessment, list_assessments, submit_assessment,
         update_assessment, user_submit_draft_assessment,
@@ -145,6 +145,8 @@ pub fn create_router(app_state: AppState) -> Router {
         // User invitation endpoints
         .route("/api/admin/user-invitations", post(create_user_invitation))
         .route("/api/admin/user-invitations/:user_id/status", get(get_user_invitation_status))
+        // User management endpoints
+        .route("/api/admin/users/:user_id", delete(delete_user))
 
 
         .with_state(app_state)

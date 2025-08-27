@@ -699,7 +699,7 @@ pub async fn invite_user(
 
     let email = form.get("email").ok_or_else(|| ApiError::BadRequest("Missing email parameter".to_string()))?;
     let first_name = form.get("firstName");
-    let last_name = form.get("lastName");
+    let _last_name = form.get("lastName");
 
     // TODO: Implement logic to invite user by email
     Ok(StatusCode::NO_CONTENT)
@@ -893,19 +893,34 @@ pub struct OrgAdminUserInvitationResponse {
     pub message: String,
 }
 
-// POST /api/organizations/:org_id/org-admin/members
+/// Add a new member to an organization (Org Admin only)
 pub async fn add_org_admin_member(
+    State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
     Path(org_id): Path<String>,
     Json(request): Json<OrgAdminMemberRequest>,
-) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
-    // Only org_admins for this org can add
-    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
-        tracing::error!(?claims, org_id = %org_id, "Permission denied: not org_admin or not member of org");
-        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+) -> Result<(StatusCode, Json<OrgAdminUserInvitationResponse>), ApiError> {
+    // Check if user has org admin permissions for this organization
+    if !claims.is_org_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions for this organization".to_string()));
+    }
+
+    // Validate email format
+    if !request.email.contains('@') || !request.email.contains('.') {
+        return Err(ApiError::BadRequest("Invalid email format".to_string()));
+    }
+
+    // Validate required fields
+    if request.email.trim().is_empty() || 
+       request.first_name.as_ref().map_or(true, |name| name.trim().is_empty()) || 
+       request.last_name.as_ref().map_or(true, |name| name.trim().is_empty()) {
+        return Err(ApiError::BadRequest("Email, first name, and last name are required".to_string()));
+    }
+
+    // Validate roles
+    if request.roles.is_empty() {
+        return Err(ApiError::BadRequest("At least one role must be assigned".to_string()));
     }
 
     // Generate username from email
@@ -943,7 +958,7 @@ pub async fn add_org_admin_member(
                         user_id: user.id,
                         email: user.email,
                         status: "active".to_string(),
-                        message: "User created successfully. Email verification and organization invitation emails have been sent. User roles have been assigned.".to_string(),
+                        message: "User created successfully and organization invitation sent. User can now access the system.".to_string(),
                     };
                     
                     tracing::info!(user_id = %user_id, email = %user_email, "Org admin user invitation created successfully with immediate organization invitation");
@@ -964,8 +979,25 @@ pub async fn add_org_admin_member(
             }
         },
         Err(e) => {
-            tracing::error!(email = %request.email, error = %e, "Failed to create user for org admin invitation");
-            Err(ApiError::InternalServerError(format!("Failed to create user: {}", e)))
+            let error_message = e.to_string();
+            tracing::error!(email = %request.email, error = %error_message, "Failed to create user for org admin invitation");
+            
+            // Provide specific error messages based on the error type
+            if error_message.contains("already exists") || error_message.contains("duplicate") || error_message.contains("User exists with same email") || (error_message.contains("errorMessage") && error_message.contains("User exists with same email")) {
+                Err(ApiError::Conflict("A user with this email address already exists in the system".to_string()))
+            } else if error_message.contains("email") && error_message.contains("invalid") {
+                Err(ApiError::BadRequest("Invalid email format".to_string()))
+            } else if error_message.contains("organization") && error_message.contains("not found") {
+                Err(ApiError::NotFound("Organization not found".to_string()))
+            } else if error_message.contains("permission") || error_message.contains("access") {
+                Err(ApiError::Forbidden("You don't have permission to create users in this organization".to_string()))
+            } else if error_message.contains("email service") || error_message.contains("mail") {
+                Err(ApiError::InternalServerError("Email service is temporarily unavailable. The user was created but verification email could not be sent".to_string()))
+            } else if error_message.contains("network") || error_message.contains("connection") {
+                Err(ApiError::InternalServerError("Service temporarily unavailable. Please try again later".to_string()))
+            } else {
+                Err(ApiError::InternalServerError("Failed to create user. Please try again later".to_string()))
+            }
         }
     }
 }

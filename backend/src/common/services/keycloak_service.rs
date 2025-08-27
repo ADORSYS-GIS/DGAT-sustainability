@@ -684,7 +684,7 @@ impl KeycloakService {
 
     /// Send organization invitation immediately (regardless of email verification)
     pub async fn send_organization_invitation_immediate(&self, token: &str, org_id: &str, user_id: &str, roles: Vec<String>) -> Result<KeycloakInvitation> {
-        // First, get the user to get their email
+        // First, get the user to get their email and pending categories
         let user = self.get_user_by_id(token, user_id).await?;
         
         info!(user_id = %user_id, user_email = %user.email, org_id = %org_id, roles = ?roles, "Preparing to send organization invitation");
@@ -725,16 +725,39 @@ impl KeycloakService {
             }
         }
         
+        // Assign categories to the user from pending_categories attribute
+        if let Some(attributes) = &user.attributes {
+            if let Some(pending_categories) = attributes.get("pending_categories") {
+                if let Some(categories_array) = pending_categories.as_array() {
+                    let categories: Vec<String> = categories_array
+                        .iter()
+                        .filter_map(|cat| cat.as_str().map(|s| s.to_string()))
+                        .collect();
+                    
+                    if !categories.is_empty() {
+                        info!(user_id = %user_id, categories = ?categories, "Assigning categories to user");
+                        match self.set_user_categories_by_id(token, user_id, &categories).await {
+                            Ok(_) => info!(user_id = %user_id, categories = ?categories, "Successfully assigned categories to user"),
+                            Err(e) => {
+                                // Log the error but don't fail the entire operation
+                                warn!(user_id = %user_id, categories = ?categories, error = %e, "Failed to assign categories to user");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         // Create the organization invitation (no email verification check)
         let invitation = self.create_invitation(token, org_id, &user.email, roles.clone(), None).await?;
         
-        info!(user_id = %user_id, email = %user.email, org_id = %org_id, "Organization invitation sent immediately with role assignments (email verification not required)");
+        info!(user_id = %user_id, email = %user.email, org_id = %org_id, "Organization invitation sent immediately with role and category assignments (email verification not required)");
         Ok(invitation)
     }
 
     /// Send organization invitation after email verification
     pub async fn send_organization_invitation(&self, token: &str, org_id: &str, user_id: &str, roles: Vec<String>) -> Result<KeycloakInvitation> {
-        // First, get the user to get their email
+        // First, get the user to get their email and pending categories
         let user = self.get_user_by_id(token, user_id).await?;
         
         // Check if email is verified
@@ -742,10 +765,33 @@ impl KeycloakService {
             return Err(anyhow!("Cannot send organization invitation: user email not verified"));
         }
 
+        // Assign categories to the user from pending_categories attribute
+        if let Some(attributes) = &user.attributes {
+            if let Some(pending_categories) = attributes.get("pending_categories") {
+                if let Some(categories_array) = pending_categories.as_array() {
+                    let categories: Vec<String> = categories_array
+                        .iter()
+                        .filter_map(|cat| cat.as_str().map(|s| s.to_string()))
+                        .collect();
+                    
+                    if !categories.is_empty() {
+                        info!(user_id = %user_id, categories = ?categories, "Assigning categories to user");
+                        match self.set_user_categories_by_id(token, user_id, &categories).await {
+                            Ok(_) => info!(user_id = %user_id, categories = ?categories, "Successfully assigned categories to user"),
+                            Err(e) => {
+                                // Log the error but don't fail the entire operation
+                                warn!(user_id = %user_id, categories = ?categories, error = %e, "Failed to assign categories to user");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Create the organization invitation
         let invitation = self.create_invitation(token, org_id, &user.email, roles, None).await?;
         
-        info!(user_id = %user_id, email = %user.email, org_id = %org_id, "Organization invitation sent successfully");
+        info!(user_id = %user_id, email = %user.email, org_id = %org_id, "Organization invitation sent successfully with category assignments");
         Ok(invitation)
     }
 
@@ -955,6 +1001,33 @@ impl KeycloakService {
         }
 
         Ok(filtered_members)
+    }
+
+    /// Delete a user entirely from Keycloak
+    pub async fn delete_user(&self, token: &str, user_id: &str) -> Result<()> {
+        let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+
+        let response = self.client.delete(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::NO_CONTENT => {
+                info!(user_id = %user_id, "User deleted successfully from Keycloak");
+                Ok(())
+            },
+            StatusCode::NOT_FOUND => {
+                // User doesn't exist - consider this a success (idempotent)
+                info!(user_id = %user_id, "User not found in Keycloak (may have been already deleted)");
+                Ok(())
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to delete user from Keycloak: {}", error_text);
+                Err(anyhow!("Failed to delete user from Keycloak: {}", error_text))
+            }
+        }
     }
 }
 

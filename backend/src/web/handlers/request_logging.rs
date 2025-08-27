@@ -32,7 +32,7 @@ pub async fn request_logging_middleware(
     let query = uri.query().unwrap_or("");
 
     // Extract user information from claims if available (redacted in production logs)
-    let user_info = request.extensions().get::<Claims>().map(|_claims| {
+    let _user_info = request.extensions().get::<Claims>().map(|_claims| {
         "[redacted user info]".to_string()
     });
 

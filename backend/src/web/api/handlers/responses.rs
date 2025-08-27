@@ -227,7 +227,7 @@ pub async fn create_response(
     // Process each request
     for request in requests {
         // Check if a response already exists for this question_revision_id
-        if let Some(existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
+        if let Some(_existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
             // Replace existing response with new one instead of appending
             let updated_response = app_state
                 .database

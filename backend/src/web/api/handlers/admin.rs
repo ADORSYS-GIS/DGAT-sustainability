@@ -8,12 +8,18 @@ use crate::common::models::claims::Claims;
 use crate::common::models::keycloak::{KeycloakOrganization, UserInvitationRequest, UserInvitationResponse, UserInvitationStatus};
 use axum::{
     extract::{Path, Query, State, Extension},
+    http::StatusCode,
     Json,
 };
 use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 use std::collections::HashMap;
+
+// Helper function to extract token from request extensions
+fn get_token_from_extensions(token: &str) -> Result<String, ApiError> {
+    Ok(token.to_string())
+}
 
 #[derive(Deserialize)]
 pub struct ListSubmissionsQuery {
@@ -436,6 +442,23 @@ pub async fn create_user_invitation(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
+    // Validate email format
+    if !request.email.contains('@') || !request.email.contains('.') {
+        return Err(ApiError::BadRequest("Invalid email format".to_string()));
+    }
+
+    // Validate required fields
+    if request.email.trim().is_empty() || 
+       request.first_name.as_ref().map_or(true, |name| name.trim().is_empty()) || 
+       request.last_name.as_ref().map_or(true, |name| name.trim().is_empty()) {
+        return Err(ApiError::BadRequest("Email, first name, and last name are required".to_string()));
+    }
+
+    // Validate organization ID
+    if request.organization_id.trim().is_empty() {
+        return Err(ApiError::BadRequest("Organization ID is required".to_string()));
+    }
+
     // Generate username from email
     let username = request.email.split('@').next().unwrap_or(&request.email).to_string();
     
@@ -493,8 +516,25 @@ pub async fn create_user_invitation(
             }
         },
         Err(e) => {
-            tracing::error!("Failed to create user invitation: {}", e);
-            Err(ApiError::InternalServerError(format!("Failed to create user invitation: {}", e)))
+            let error_message = e.to_string();
+            tracing::error!("Failed to create user invitation: {}", error_message);
+            
+            // Provide specific error messages based on the error type
+            if error_message.contains("already exists") || error_message.contains("duplicate") || error_message.contains("User exists with same email") || (error_message.contains("errorMessage") && error_message.contains("User exists with same email")) {
+                Err(ApiError::Conflict("A user with this email address already exists in the system".to_string()))
+            } else if error_message.contains("email") && error_message.contains("invalid") {
+                Err(ApiError::BadRequest("Invalid email format".to_string()))
+            } else if error_message.contains("organization") && error_message.contains("not found") {
+                Err(ApiError::NotFound("Selected organization not found".to_string()))
+            } else if error_message.contains("permission") || error_message.contains("access") {
+                Err(ApiError::Forbidden("You don't have permission to create users in this organization".to_string()))
+            } else if error_message.contains("email service") || error_message.contains("mail") {
+                Err(ApiError::InternalServerError("Email service is temporarily unavailable. The user was created but verification email could not be sent".to_string()))
+            } else if error_message.contains("network") || error_message.contains("connection") {
+                Err(ApiError::InternalServerError("Service temporarily unavailable. Please try again later".to_string()))
+            } else {
+                Err(ApiError::InternalServerError("Failed to create user invitation. Please try again later".to_string()))
+            }
         }
     }
 }
@@ -538,6 +578,33 @@ pub async fn get_user_invitation_status(
     });
 
     Ok(Json(response))
+}
+
+/// Delete a user entirely from the system
+pub async fn delete_user(
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    State(app_state): State<AppState>,
+    Path(user_id): Path<String>,
+) -> Result<StatusCode, ApiError> {
+    let token = get_token_from_extensions(&token)?;
+
+    // Check if user has admin permissions
+    if !claims.is_application_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    // Delete the user from Keycloak
+    match app_state.keycloak_service.delete_user(&token, &user_id).await {
+        Ok(()) => {
+            tracing::info!(user_id = %user_id, "User deleted successfully");
+            Ok(StatusCode::NO_CONTENT)
+        },
+        Err(e) => {
+            tracing::error!(user_id = %user_id, error = %e, "Failed to delete user");
+            Err(ApiError::InternalServerError("Failed to delete user".to_string()))
+        }
+    }
 }
 
 #[cfg(test)]
