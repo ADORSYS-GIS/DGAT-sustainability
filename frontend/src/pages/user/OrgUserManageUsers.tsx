@@ -29,6 +29,7 @@ import { OrganizationMembersService } from "@/openapi-rq/requests/services.gen";
 import type { OfflineUser } from "@/types/offline";
 import { useTranslation } from "react-i18next";
 import { OrgAdminUserInvitationForm } from "@/components/shared/OrgAdminUserInvitationForm";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 // Helper to get org and categories from ID token
 function getOrgAndCategoriesAndId(user: Record<string, unknown>) {
@@ -272,6 +273,10 @@ export const OrgUserManageUsers: React.FC = () => {
     categories: [] as string[],
   });
 
+  // Confirmation dialog state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(null);
+
   // Cleanup function to remove any stuck temporary users
   const cleanupTemporaryUsers = useCallback(async () => {
     try {
@@ -361,19 +366,22 @@ export const OrgUserManageUsers: React.FC = () => {
     setShowAddDialog(true);
   };
 
-  const handleDelete = (userId: string) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this user from the organization? This action cannot be undone.",
-      )
-    )
-      return;
-    if (!orgId) return;
+  const handleDelete = (user: OrganizationMember) => {
+    setUserToDelete(user);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDelete = () => {
+    if (!userToDelete || !orgId) return;
     
-    deleteUser.mutate({ id: orgId, memberId: userId }).then(() => {
+    deleteUser.mutate({ id: orgId, memberId: userToDelete.id }).then(() => {
       refetch();
+      setShowDeleteConfirmation(false);
+      setUserToDelete(null);
     }).catch(() => {
       // Error already handled in mutation
+      setShowDeleteConfirmation(false);
+      setUserToDelete(null);
     });
   };
 
@@ -583,7 +591,7 @@ export const OrgUserManageUsers: React.FC = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDelete(user)}
                         className="text-red-600 hover:bg-red-50"
                         disabled={deleteUser.isPending}
                       >
@@ -615,6 +623,27 @@ export const OrgUserManageUsers: React.FC = () => {
             </Card>
           )}
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmationDialog
+          isOpen={showDeleteConfirmation}
+          onClose={() => {
+            setShowDeleteConfirmation(false);
+            setUserToDelete(null);
+          }}
+          onConfirm={confirmDelete}
+          title={t('manageUsers.confirmDeleteTitle')}
+          description={t('manageUsers.confirmDeleteDescription', { 
+            email: userToDelete?.email || '',
+            name: userToDelete?.firstName && userToDelete?.lastName 
+              ? `${userToDelete.firstName} ${userToDelete.lastName}`
+              : userToDelete?.email || ''
+          })}
+          confirmText={t('manageUsers.deleteUser')}
+          cancelText={t('manageUsers.cancel')}
+          variant="destructive"
+          isLoading={deleteUser.isPending}
+        />
       </div>
     </div>
   );

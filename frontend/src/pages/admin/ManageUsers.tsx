@@ -25,7 +25,8 @@ import {
   useOrganizationMembersServiceGetOrganizationsByIdMembers,
   useOrganizationMembersServicePostOrganizationsByIdMembers,
   useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles,
-  useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId
+  useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId,
+  useAdminServiceDeleteAdminUsersByUserId
 } from "@/openapi-rq/queries/queries";
 import type {
   OrganizationMember,
@@ -37,6 +38,7 @@ import type {
 import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
 import { UserInvitationForm } from "@/components/shared/UserInvitationForm";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 // Helper to extract domain names
 function getDomainNames(domains: unknown): string[] {
@@ -123,14 +125,34 @@ export const ManageUsers: React.FC = () => {
   
   const deleteUserMutation = useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId({
     onSuccess: () => {
-      toast.success("User deleted successfully");
+      toast.success("User removed from organization successfully");
       refetch();
     },
     onError: (error) => {
-      console.error("Failed to delete user:", error);
-      toast.error("Failed to delete user");
+      console.error("Failed to remove user from organization:", error);
+      toast.error("Failed to remove user from organization");
     }
   });
+
+  // New mutation for deleting user entirely
+  const deleteUserEntirelyMutation = useAdminServiceDeleteAdminUsersByUserId({
+    onSuccess: () => {
+      toast.success("User deleted entirely from system");
+      refetch();
+      setShowDeleteConfirmation(false);
+      setUserToDelete(null);
+    },
+    onError: (error) => {
+      console.error("Failed to delete user entirely:", error);
+      toast.error("Failed to delete user entirely");
+      setShowDeleteConfirmation(false);
+      setUserToDelete(null);
+    }
+  });
+
+  // Confirmation dialog state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(null);
 
   // Offline-first user creation logic
   const createUserOffline = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
@@ -262,16 +284,16 @@ export const ManageUsers: React.FC = () => {
     setShowAddDialog(true);
   };
 
-  const handleDelete = (userId: string) => {
-    const confirmed = window.confirm(
-      t('manageUsers.confirmDelete'),
-    );
-    if (!confirmed) return;
-    if (!selectedOrg?.id) return;
+  const handleDelete = (user: OrganizationMember) => {
+    setUserToDelete(user);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDelete = () => {
+    if (!userToDelete) return;
     
-    deleteUserMutation.mutate({
-      id: selectedOrg.id,
-      membershipId: userId
+    deleteUserEntirelyMutation.mutate({
+      userId: userToDelete.id
     });
   };
 
@@ -532,9 +554,9 @@ export const ManageUsers: React.FC = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDelete(user)}
                         className="text-red-600 hover:bg-red-50"
-                        disabled={deleteUserMutation.isPending}
+                        disabled={deleteUserEntirelyMutation.isPending}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -584,11 +606,31 @@ export const ManageUsers: React.FC = () => {
                 onInvitationCreated={() => {
                   setShowInvitationDialog(false);
                   refetch();
-                  toast.success(t('userInvitation.createdSuccessfully'));
                 }}
               />
             </DialogContent>
           </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <ConfirmationDialog
+            isOpen={showDeleteConfirmation}
+            onClose={() => {
+              setShowDeleteConfirmation(false);
+              setUserToDelete(null);
+            }}
+            onConfirm={confirmDelete}
+            title={t('manageUsers.confirmDeleteTitle')}
+            description={t('manageUsers.confirmDeleteDescription', { 
+              email: userToDelete?.email || '',
+              name: userToDelete?.firstName && userToDelete?.lastName 
+                ? `${userToDelete.firstName} ${userToDelete.lastName}`
+                : userToDelete?.email || ''
+            })}
+            confirmText={t('manageUsers.deleteUser')}
+            cancelText={t('manageUsers.cancel')}
+            variant="destructive"
+            isLoading={deleteUserEntirelyMutation.isPending}
+          />
         </div>
       </div>
     </div>

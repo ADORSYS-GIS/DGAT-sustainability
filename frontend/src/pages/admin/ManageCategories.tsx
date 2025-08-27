@@ -31,7 +31,6 @@ interface Category {
   category_id: string;
   name: string;
   weight: number;
-  order: number;
   template_id: string;
   created_at: string;
   updated_at: string;
@@ -49,7 +48,6 @@ export const ManageCategories: React.FC = () => {
   const [formData, setFormData] = useState({
     name: "",
     weight: 25,
-    order: 1,
   });
   // State for add/edit dialog weight error
   const [showDialogWeightError, setShowDialogWeightError] = useState(false);
@@ -68,8 +66,8 @@ export const ManageCategories: React.FC = () => {
 
   const { isOnline } = useOfflineSyncStatus();
 
-  // Sort categories by order
-  const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
+  // Use categories as is (no sorting needed)
+  const sortedCategories = [...categories];
 
   // Calculate total weight
   const totalWeight = sortedCategories.reduce(
@@ -97,7 +95,7 @@ export const ManageCategories: React.FC = () => {
         category_id: "temp",
         name: formData.name || t('manageCategories.newCategory'),
         weight: 0,
-        order: formData.order || cats.length + 1,
+        order: 1, // Default order for temp category
         template_id: SUSTAINABILITY_TEMPLATE_ID,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -122,7 +120,7 @@ export const ManageCategories: React.FC = () => {
         await updateCategory(cat.category_id, {
           name: cat.name,
           weight: cat.weight,
-          order: cat.order,
+          order: 1, // Default order value for API compatibility
         }, {
           onSuccess: () => {
             // Category updated successfully
@@ -166,13 +164,13 @@ export const ManageCategories: React.FC = () => {
       await updateCategory(editingCategory.category_id, {
         name: formData.name,
         weight: formData.weight,
-        order: formData.order,
+        order: 1, // Default order value for API compatibility
       }, {
         onSuccess: () => {
           toast.success(t('manageCategories.updateSuccess', { defaultValue: 'Category updated successfully' }));
           setIsDialogOpen(false);
           setEditingCategory(null);
-          setFormData({ name: "", weight: 25, order: 1 });
+          setFormData({ name: "", weight: 25 });
           refetch();
         },
         onError: (error) => {
@@ -184,13 +182,13 @@ export const ManageCategories: React.FC = () => {
       await createCategory({
         name: formData.name,
         weight: formData.weight,
-        order: formData.order,
+        order: categories.length + 1, // Default order value for API compatibility
         template_id: SUSTAINABILITY_TEMPLATE_ID,
       }, {
         onSuccess: () => {
           toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
           setIsDialogOpen(false);
-          setFormData({ name: "", weight: 25, order: categories.length + 1 });
+          setFormData({ name: "", weight: 25 });
           refetch();
         },
         onError: (error) => {
@@ -205,7 +203,6 @@ export const ManageCategories: React.FC = () => {
     setFormData({
       name: category.name,
       weight: category.weight,
-      order: category.order,
     });
     setIsDialogOpen(true);
   };
@@ -279,8 +276,7 @@ export const ManageCategories: React.FC = () => {
           </div>
 
           <div className="mb-8 animate-fade-in">
-            <div className="flex items-center space-x-3 mb-4">
-              <List className="w-8 h-8 text-dgrv-blue" />
+            <div className="mb-4">
               <h1 className="text-3xl font-bold text-dgrv-blue mb-6">
                 {t('manageCategories.title')}
               </h1>
@@ -302,7 +298,6 @@ export const ManageCategories: React.FC = () => {
                       setFormData({
                         name: "",
                         weight: defaultWeight,
-                        order: categories.length + 1,
                       });
                       setShowDialogWeightError(false);
                     }}
@@ -311,7 +306,7 @@ export const ManageCategories: React.FC = () => {
                     {t('manageCategories.addCategory')}
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
                       {editingCategory ? t('manageCategories.editCategory') : t('manageCategories.addCategory')}
@@ -358,22 +353,6 @@ export const ManageCategories: React.FC = () => {
                           })}
                         </p>
                       )}
-                    </div>
-                    <div>
-                      <Label htmlFor="order">{t('manageCategories.displayOrder')}</Label>
-                      <Input
-                        id="order"
-                        type="number"
-                        min="1"
-                        value={formData.order}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            order: parseInt(e.target.value) || 1,
-                          }))
-                        }
-                        required
-                      />
                     </div>
                     {showDialogWeightError && (
                       <div className="text-red-600 text-center space-y-2">
@@ -438,7 +417,7 @@ export const ManageCategories: React.FC = () => {
                     <div>
                       <h3 className="font-medium text-lg">{category.name}</h3>
                       <p className="text-sm text-gray-600">
-                        {t('manageCategories.weightLabel', { weight: category.weight, order: category.order })}
+                        Weight: {category.weight}%
                       </p>
                     </div>
                     <div className="flex space-x-2">
@@ -489,7 +468,6 @@ export const ManageCategories: React.FC = () => {
                   )}
                 {sortedCategories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    <List className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>
                       {t('manageCategories.noCategoriesYet')}
                     </p>

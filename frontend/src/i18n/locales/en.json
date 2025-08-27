@@ -429,7 +429,10 @@
     "categoryWeight": "Category Weight (%)",
     "categoryDisplayOrder": "Display Order",
     "createCategory": "Create Category",
-    "skipCategoryCreation": "Skip Category Creation"
+    "skipCategoryCreation": "Skip Category Creation",
+    "confirmDeleteTitle": "Delete Organization",
+    "confirmDeleteDescription": "Are you sure you want to delete the organization '{{name}}'? This action will permanently remove the organization and all its associated data from the system and cannot be undone.",
+    "deleteOrganization": "Delete Organization"
   },
   "user": {
     "dashboard": {
@@ -596,8 +599,11 @@
   "manageUsers.createUser": "Create User",
   "manageUsers.updateUser": "Update User",
   "manageUsers.emailRequired": "Email is required",
-  "manageUsers.selectOrgRequired": "Please select an organization",
+  "manageUsers.selectOrgRequired": "Please select an organizationaaaa",
   "manageUsers.confirmDelete": "Are you sure you want to delete this user from the organization? This action cannot be undone.",
+  "manageUsers.confirmDeleteTitle": "Delete User",
+  "manageUsers.confirmDeleteDescription": "Are you sure you want to delete {{name}} ({{email}}) entirely from the system? This action will permanently remove the user from Keycloak and cannot be undone.",
+  "manageUsers.deleteUser": "Delete User",
   "manageQuestions": {
     "title": "Manage Questions",
     "subtitle": "Create and organize assessment questions by category",
@@ -634,6 +640,7 @@
     "lastName": "Last Name",
     "email": "Email Address",
     "organization": "Organization",
+    "role": "Role",
     "roles": "Roles",
     "categories": "Categories",
     "firstNamePlaceholder": "Enter first name",
@@ -642,8 +649,26 @@
     "selectOrganization": "Select an organization",
     "create": "Create Invitation",
     "creating": "Creating Invitation...",
-    "createdSuccessfully": "User invitation created successfully for {{email}}. Status: {{status}}",
     "creationFailed": "Failed to create user invitation. Please try again.",
+    "errors": {
+      "userAlreadyExists": "A user with this email address already exists in the system.",
+      "invalidEmail": "Please enter a valid email address.",
+      "organizationNotFound": "Selected organization not found. Please try again.",
+      "insufficientPermissions": "You don't have permission to create users in this organization.",
+      "emailServiceUnavailable": "Email service is temporarily unavailable. The user was created but verification email could not be sent.",
+      "invitationServiceUnavailable": "Invitation service is temporarily unavailable. Please try again later.",
+      "networkError": "Network connection error. Please check your internet connection and try again.",
+      "serverError": "Server error occurred. Please try again later or contact support if the problem persists.",
+      "validationError": "Please check your input and try again.",
+      "unknownError": "An unexpected error occurred. Please try again later."
+    },
+    "success": {
+      "userCreated": "User created successfully!",
+      "emailVerificationSent": "Email verification email has been sent to {{email}}.",
+      "organizationInvitationSent": "Organization invitation has been sent to {{email}}.",
+      "userActive": "User is now active and can access the system.",
+      "invitationComplete": "Invitation process completed successfully for {{email}}."
+    },
     "roles": {
       "Org_User": "Organization User",
       "Org_Admin": "Organization Admin"

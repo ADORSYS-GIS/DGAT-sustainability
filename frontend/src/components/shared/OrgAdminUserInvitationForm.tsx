@@ -43,10 +43,9 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
       });
     },
     onSuccess: (result) => {
-      toast.success(t('userInvitation.createdSuccessfully', {
-        email: result.email,
-        status: result.status
-      }));
+      // Use proper interpolation instead of template placeholders
+      const statusText = getStatusText(result.status);
+      toast.success(`User invitation created successfully for ${result.email}. Status: ${statusText}`);
 
       // Store the created invitation for manual triggers
       setCreatedInvitation(result);
@@ -62,9 +61,124 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
 
       onInvitationCreated?.();
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error('Error creating user invitation:', error);
-      toast.error(t('userInvitation.creationFailed'));
+      
+      // Provide specific error messages based on the error type
+      let errorMessage = t('userInvitation.errors.unknownError');
+      
+      // Type guard to check if error has response property
+      const isApiError = (err: unknown): err is { response: { status: number; data?: unknown } } => {
+        return typeof err === 'object' && err !== null && 'response' in err;
+      };
+      
+      // Type guard to check if error has message property
+      const isNetworkError = (err: unknown): err is { message: string } => {
+        return typeof err === 'object' && err !== null && 'message' in err && typeof (err as { message: unknown }).message === 'string';
+      };
+      
+      // Type guard to check if error is an ApiError object
+      const isApiErrorObject = (err: unknown): err is { message: string; status?: number; data?: unknown } => {
+        return typeof err === 'object' && err !== null && 'message' in err && typeof (err as { message: unknown }).message === 'string';
+      };
+      
+      if (isApiError(error)) {
+        console.log('API Error Response:', {
+          status: error.response.status,
+          data: error.response.data,
+          fullError: error
+        });
+        
+        const errorData = error.response.data as { message?: string; error?: string } | string;
+        const status = error.response.status;
+        
+        // Check for user already exists in any status code
+        if ((typeof errorData === 'object' && errorData?.error?.includes('already exists')) || 
+            (typeof errorData === 'object' && errorData?.message?.includes('already exists')) || 
+            (typeof errorData === 'object' && errorData?.error?.includes('User exists with same email')) ||
+            (typeof errorData === 'object' && errorData?.message?.includes('User exists with same email')) ||
+            (typeof errorData === 'string' && errorData.includes('already exists'))) {
+          console.log('User already exists detected');
+          errorMessage = t('userInvitation.errors.userAlreadyExists');
+        } else {
+          switch (status) {
+            case 400:
+              if ((typeof errorData === 'object' && errorData?.message?.includes('email')) || (typeof errorData === 'object' && errorData?.error?.includes('email'))) {
+                errorMessage = t('userInvitation.errors.invalidEmail');
+              } else if ((typeof errorData === 'object' && errorData?.message?.includes('organization')) || (typeof errorData === 'object' && errorData?.error?.includes('organization'))) {
+                errorMessage = t('userInvitation.errors.organizationNotFound');
+              } else {
+                errorMessage = t('userInvitation.errors.validationError');
+              }
+              break;
+            case 403:
+              errorMessage = t('userInvitation.errors.insufficientPermissions');
+              break;
+            case 404:
+              errorMessage = t('userInvitation.errors.organizationNotFound');
+              break;
+            case 409:
+              console.log('409 Conflict detected - User already exists');
+              errorMessage = t('userInvitation.errors.userAlreadyExists');
+              break;
+            case 422:
+              errorMessage = t('userInvitation.errors.validationError');
+              break;
+            case 500:
+              // Check for user already exists in 500 errors too
+              if ((typeof errorData === 'object' && errorData?.error?.includes('already exists')) || 
+                  (typeof errorData === 'object' && errorData?.message?.includes('already exists')) || 
+                  (typeof errorData === 'object' && errorData?.error?.includes('User exists with same email')) ||
+                  (typeof errorData === 'object' && errorData?.message?.includes('User exists with same email'))) {
+                console.log('User already exists detected in 500 error');
+                errorMessage = t('userInvitation.errors.userAlreadyExists');
+              } else if (typeof errorData === 'object' && errorData?.message?.includes('email')) {
+                errorMessage = t('userInvitation.errors.emailServiceUnavailable');
+              } else if (typeof errorData === 'object' && errorData?.message?.includes('invitation')) {
+                errorMessage = t('userInvitation.errors.invitationServiceUnavailable');
+              } else {
+                errorMessage = t('userInvitation.errors.serverError');
+              }
+              break;
+            case 503:
+              errorMessage = t('userInvitation.errors.invitationServiceUnavailable');
+              break;
+            default:
+              console.log('Default case reached with status:', status);
+              if (isNetworkError(error) && (error.message.includes('Network Error') || error.message.includes('fetch'))) {
+                errorMessage = t('userInvitation.errors.networkError');
+              } else {
+                errorMessage = t('userInvitation.errors.unknownError');
+              }
+          }
+        }
+      } else if (isApiErrorObject(error)) {
+        console.log('ApiError Object:', {
+          message: error.message,
+          status: error.status,
+          data: error.data
+        });
+        
+        // Handle ApiError objects (like ApiError: Conflict)
+        if (error.message === 'Conflict' || error.status === 409) {
+          console.log('409 Conflict detected in ApiError object');
+          errorMessage = t('userInvitation.errors.userAlreadyExists');
+        } else if (error.message.includes('already exists') || error.message.includes('User exists with same email')) {
+          console.log('User already exists detected in ApiError message');
+          errorMessage = t('userInvitation.errors.userAlreadyExists');
+        } else {
+          errorMessage = t('userInvitation.errors.unknownError');
+        }
+      } else if (isNetworkError(error)) {
+        if (error.message.includes('Network Error') || error.message.includes('fetch')) {
+          errorMessage = t('userInvitation.errors.networkError');
+        } else {
+          errorMessage = t('userInvitation.errors.unknownError');
+        }
+      }
+      
+      console.log('Final error message:', errorMessage);
+      toast.error(errorMessage);
     }
   });
 
@@ -135,6 +249,18 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
+  // Helper function to get readable status text
+  const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'pending_email_verification': t('userInvitation.status.pendingEmail'),
+      'email_verified': t('userInvitation.status.emailVerified'),
+      'pending_org_invitation': t('userInvitation.status.pendingOrg'),
+      'active': t('userInvitation.status.active'),
+      'error': t('userInvitation.status.error')
+    };
+    return statusMap[status] || status;
+  };
+
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
@@ -181,7 +307,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
           </div>
 
           <div className="space-y-2">
-            <Label>{t('userInvitation.roles')}</Label>
+            <Label>{t('userInvitation.role')}</Label>
             <div className="flex gap-2">
               <Button
                 type="button"

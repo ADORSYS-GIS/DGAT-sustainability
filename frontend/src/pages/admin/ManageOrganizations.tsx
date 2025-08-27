@@ -28,6 +28,7 @@ import {
   useOrganizationsServicePutAdminOrganizationsById,
   useOrganizationsServiceDeleteAdminOrganizationsById
 } from "@/openapi-rq/queries/queries";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
 
 interface Category {
@@ -113,6 +114,10 @@ export const ManageOrganizations: React.FC = () => {
     weight: 25,
     order: 1,
   });
+  
+  // Confirmation dialog state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [orgToDelete, setOrgToDelete] = useState<OrganizationResponseFixed | null>(null);
   
   // Category mutation hooks
   const categoryMutations = useOfflineCategoriesMutation();
@@ -287,10 +292,15 @@ export const ManageOrganizations: React.FC = () => {
     });
   };
 
-  const handleDelete = (orgId: string) => {
-    if (!confirm("Are you sure you want to delete this organization?")) return;
+  const handleDelete = (org: OrganizationResponseFixed) => {
+    setOrgToDelete(org);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDelete = () => {
+    if (!orgToDelete) return;
     
-    deleteOrganizationMutation.mutate({ id: orgId });
+    deleteOrganizationMutation.mutate({ id: orgToDelete.id });
   };
 
   const resetForm = () => {
@@ -437,7 +447,7 @@ export const ManageOrganizations: React.FC = () => {
                     {t('manageOrganizations.addOrganization', { defaultValue: 'Add Organization' })}
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
                       {editingOrg
@@ -739,7 +749,7 @@ export const ManageOrganizations: React.FC = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDelete(org.id)}
+                        onClick={() => handleDelete(org)}
                         className="text-red-600 hover:bg-red-50"
                         disabled={deleteOrganizationMutation.isPending}
                       >
@@ -772,6 +782,24 @@ export const ManageOrganizations: React.FC = () => {
               </Card>
             )}
           </div>
+
+          {/* Delete Confirmation Dialog */}
+          <ConfirmationDialog
+            isOpen={showDeleteConfirmation}
+            onClose={() => {
+              setShowDeleteConfirmation(false);
+              setOrgToDelete(null);
+            }}
+            onConfirm={confirmDelete}
+            title={t('manageOrganizations.confirmDeleteTitle')}
+            description={t('manageOrganizations.confirmDeleteDescription', { 
+              name: orgToDelete?.name || ''
+            })}
+            confirmText={t('manageOrganizations.deleteOrganization')}
+            cancelText={t('manageOrganizations.cancel')}
+            variant="destructive"
+            isLoading={deleteOrganizationMutation.isPending}
+          />
         </div>
       </div>
     </div>
