@@ -24,8 +24,12 @@ import type {
   Report,
   Organization,
   OrganizationMember,
-  AdminSubmissionDetail
+  AdminSubmissionDetail,
+  OrganizationResponse // Add OrganizationResponse import
 } from "@/openapi-rq/requests/types.gen";
+import type {
+  OfflineOrganization // Import OfflineOrganization
+} from "@/types/offline";
 import { getAuthState } from "./shared/authService";
 
 export interface SyncResult {
@@ -197,15 +201,26 @@ export class SyncService {
 
     try {
       // Get server questions
-      const serverQuestions = await QuestionsService.getQuestions();
-      const serverQuestionIds = new Set(serverQuestions.questions.map(q => q.question_id));
+      const serverQuestionsResponse = await QuestionsService.getQuestions();
+      const serverQuestions: Question[] = serverQuestionsResponse.questions.map(q => q.question); // Extract Question from QuestionWithRevisionsResponse
+
+      // If server returns no questions, clear the local store completely
+      if (serverQuestions.length === 0) {
+        // Need to get the current count of local questions before clearing for the result.deleted count
+        const currentLocalQuestions = await offlineDB.getAllQuestions();
+        await offlineDB.clearStore('questions');
+        result.deleted = currentLocalQuestions.length; // All local questions are considered deleted
+        return result;
+      }
+      
+      const serverQuestionIds = new Set(serverQuestions.map(q => q.question_id));
 
       // Get local questions
       const localQuestions = await offlineDB.getAllQuestions();
       const localQuestionIds = new Set(localQuestions.map(q => q.question_id));
 
       // Find questions to add/update
-      for (const serverQuestion of serverQuestions.questions) {
+      for (const serverQuestion of serverQuestions) {
         const localQuestion = localQuestions.find(q => q.question_id === serverQuestion.question_id);
         
         if (!localQuestion) {
@@ -214,7 +229,8 @@ export class SyncService {
           await offlineDB.saveQuestion(offlineQuestion);
           result.added++;
         } else {
-          // Update existing question if different
+          // Check if the server version is more recent or if local has no pending changes
+          // For now, we'll always update if the server version exists to ensure consistency
           const offlineQuestion = DataTransformationService.transformQuestion(serverQuestion);
           await offlineDB.saveQuestion(offlineQuestion);
           result.updated++;
@@ -244,15 +260,25 @@ export class SyncService {
 
     try {
       // Get server categories
-      const serverCategories = await CategoriesService.getCategories();
-      const serverCategoryIds = new Set(serverCategories.categories.map(c => c.category_id));
+      const serverCategoriesResponse = await CategoriesService.getCategories();
+      const serverCategories = serverCategoriesResponse.categories;
+      
+      // If server returns no categories, clear the local store completely
+      if (serverCategories.length === 0) {
+        const currentLocalCategories = await offlineDB.getAllCategories();
+        await offlineDB.clearStore('categories');
+        result.deleted = currentLocalCategories.length;
+        return result;
+      }
+
+      const serverCategoryIds = new Set(serverCategories.map(c => c.category_id));
 
       // Get local categories
       const localCategories = await offlineDB.getAllCategories();
       const localCategoryIds = new Set(localCategories.map(c => c.category_id));
 
       // Find categories to add/update
-      for (const serverCategory of serverCategories.categories) {
+      for (const serverCategory of serverCategories) {
         const localCategory = localCategories.find(c => c.category_id === serverCategory.category_id);
         
         if (!localCategory) {
@@ -291,15 +317,25 @@ export class SyncService {
 
     try {
       // Get server assessments
-      const serverAssessments = await AssessmentsService.getAssessments();
-      const serverAssessmentIds = new Set(serverAssessments.assessments.map(a => a.assessment_id));
+      const serverAssessmentsResponse = await AssessmentsService.getAssessments();
+      const serverAssessments = serverAssessmentsResponse.assessments;
+      
+      // If server returns no assessments, clear the local store completely
+      if (serverAssessments.length === 0) {
+        const currentLocalAssessments = await offlineDB.getAllAssessments();
+        await offlineDB.clearStore('assessments');
+        result.deleted = currentLocalAssessments.length;
+        return result;
+      }
+
+      const serverAssessmentIds = new Set(serverAssessments.map(a => a.assessment_id));
 
       // Get local assessments
       const localAssessments = await offlineDB.getAllAssessments();
       const localAssessmentIds = new Set(localAssessments.map(a => a.assessment_id));
 
       // Find assessments to add/update
-      for (const serverAssessment of serverAssessments.assessments) {
+      for (const serverAssessment of serverAssessments) {
         const localAssessment = localAssessments.find(a => a.assessment_id === serverAssessment.assessment_id);
         
         if (!localAssessment) {
@@ -338,15 +374,25 @@ export class SyncService {
 
     try {
       // Get server submissions (user submissions)
-      const serverSubmissions = await SubmissionsService.getSubmissions();
-      const serverSubmissionIds = new Set(serverSubmissions.submissions.map(s => s.submission_id));
+      const serverSubmissionsResponse = await SubmissionsService.getSubmissions();
+      const serverSubmissions = serverSubmissionsResponse.submissions;
+      
+      // If server returns no submissions, clear the local store completely
+      if (serverSubmissions.length === 0) {
+        const currentLocalSubmissions = await offlineDB.getAllSubmissions();
+        await offlineDB.clearStore('submissions');
+        result.deleted = currentLocalSubmissions.length;
+        return result;
+      }
+      
+      const serverSubmissionIds = new Set(serverSubmissions.map(s => s.submission_id));
 
       // Get local submissions
       const localSubmissions = await offlineDB.getAllSubmissions();
       const localSubmissionIds = new Set(localSubmissions.map(s => s.submission_id));
 
       // Find submissions to add/update
-      for (const serverSubmission of serverSubmissions.submissions) {
+      for (const serverSubmission of serverSubmissions) {
         const localSubmission = localSubmissions.find(s => s.submission_id === serverSubmission.submission_id);
         
         if (!localSubmission) {
@@ -385,15 +431,25 @@ export class SyncService {
 
     try {
       // Get server reports
-      const serverReports = await ReportsService.getUserReports();
-      const serverReportIds = new Set(serverReports.reports.map(r => r.report_id));
+      const serverReportsResponse = await ReportsService.getUserReports();
+      const serverReports = serverReportsResponse.reports;
+
+      // If server returns no reports, clear the local store completely
+      if (serverReports.length === 0) {
+        const currentLocalReports = await offlineDB.getAllReports();
+        await offlineDB.clearStore('reports');
+        result.deleted = currentLocalReports.length;
+        return result;
+      }
+      
+      const serverReportIds = new Set(serverReports.map(r => r.report_id));
 
       // Get local reports
       const localReports = await offlineDB.getAllReports();
       const localReportIds = new Set(localReports.map(r => r.report_id));
 
       // Find reports to add/update
-      for (const serverReport of serverReports.reports) {
+      for (const serverReport of serverReports) {
         const localReport = localReports.find(r => r.report_id === serverReport.report_id);
         
         if (!localReport) {
@@ -432,25 +488,35 @@ export class SyncService {
 
     try {
       // Get server organizations (admin organizations)
-      const serverOrganizations = await OrganizationsService.getAdminOrganizations();
-      const serverOrgIds = new Set(serverOrganizations.organizations.map(o => o.organization_id));
+      const serverOrganizationsResponse = await OrganizationsService.getAdminOrganizations();
+      const serverOrganizations: OfflineOrganization[] = serverOrganizationsResponse.map(o => DataTransformationService.transformOrganizationResponseToOffline(o));
+
+      // If server returns no organizations, clear the local store completely
+      if (serverOrganizations.length === 0) {
+        const currentLocalOrganizations = await offlineDB.getAllOrganizations();
+        await offlineDB.clearStore('organizations');
+        result.deleted = currentLocalOrganizations.length;
+        return result;
+      }
+      
+      const serverOrgIds = new Set(serverOrganizations.map(o => o.id));
 
       // Get local organizations
       const localOrganizations = await offlineDB.getAllOrganizations();
-      const localOrgIds = new Set(localOrganizations.map(o => o.organization_id));
+      const localOrgIds = new Set(localOrganizations.map(o => o.id));
 
       // Find organizations to add/update
-      for (const serverOrg of serverOrganizations.organizations) {
-        const localOrg = localOrganizations.find(o => o.organization_id === serverOrg.organization_id);
+      for (const serverOrg of serverOrganizations) {
+        const localOrg = localOrganizations.find(o => o.id === serverOrg.id);
         
         if (!localOrg) {
           // Add new organization
-          const offlineOrg = DataTransformationService.transformOrganization(serverOrg);
+          const offlineOrg = DataTransformationService.transformOrganizationResponseToOffline(serverOrg);
           await offlineDB.saveOrganization(offlineOrg);
           result.added++;
-    } else {
+        } else {
           // Update existing organization if different
-          const offlineOrg = DataTransformationService.transformOrganization(serverOrg);
+          const offlineOrg = DataTransformationService.transformOrganizationResponseToOffline(serverOrg);
           await offlineDB.saveOrganization(offlineOrg);
           result.updated++;
         }
@@ -458,8 +524,8 @@ export class SyncService {
 
       // Find organizations to delete (local organizations not on server)
       for (const localOrg of localOrganizations) {
-        if (!serverOrgIds.has(localOrg.organization_id) && !localOrg.organization_id.startsWith('temp_')) {
-          await offlineDB.deleteOrganization(localOrg.organization_id);
+        if (!serverOrgIds.has(localOrg.id) && !localOrg.id.startsWith('temp_')) {
+          await offlineDB.deleteOrganization(localOrg.id);
           result.deleted++;
         }
       }

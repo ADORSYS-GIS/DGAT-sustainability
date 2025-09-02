@@ -175,6 +175,8 @@ export const ManageOrganizations: React.FC = () => {
     onSuccess: () => {
       toast.success("Organization deleted successfully");
       refetch();
+      setShowDeleteConfirmation(false); // Close the dialog
+      setOrgToDelete(null); // Clear the organization to delete
     },
     onError: (error) => {
       console.error('Failed to delete organization:', error);

@@ -14,7 +14,9 @@ import type {
   OrganizationInvitation,
   FileMetadata,
   CreateResponseRequest,
-  AdminSubmissionDetail
+  AdminSubmissionDetail,
+  RecommendationWithStatus, // Import RecommendationWithStatus
+  OrganizationResponse // Import OrganizationResponse
 } from "@/openapi-rq/requests/types.gen";
 
 import type {
@@ -26,7 +28,9 @@ import type {
   OfflineReport,
   OfflineOrganization,
   OfflineUser,
-  OfflineInvitation
+  OfflineInvitation,
+  OfflineRecommendation, // Import OfflineRecommendation
+  ReportCategoryData // Import ReportCategoryData
 } from "@/types/offline";
 
 export class DataTransformationService {
@@ -75,15 +79,17 @@ export class DataTransformationService {
    * Transform API Assessment to OfflineAssessment
    */
   static transformAssessment(
-    assessment: Assessment, 
+    assessment: Assessment,
     userOrganizationId?: string,
-    userEmail?: string
+    userEmail?: string,
+    userId?: string // Add userId parameter
   ): OfflineAssessment {
     const now = new Date().toISOString();
     
     return {
       ...assessment,
       organization_id: userOrganizationId,
+      user_id: userId, // Populate user_id
       user_email: userEmail,
       status: 'draft' as const, // Default status
       progress_percentage: 0,
@@ -230,6 +236,35 @@ export class DataTransformationService {
       submission_count: 0, // Will be calculated when submissions are loaded
       is_active: true,
       updated_at: now,
+      sync_status: 'synced' as const,
+      local_changes: false,
+      last_synced: now
+    };
+  }
+
+  /**
+   * Transform API OrganizationResponse to OfflineOrganization
+   */
+  static transformOrganizationResponseToOffline(organizationResponse: OrganizationResponse): OfflineOrganization {
+    const now = new Date().toISOString();
+    
+    // Ensure 'id' is present, it should be for a valid organization response
+    if (!organizationResponse.id) {
+      throw new Error('OrganizationResponse missing required id for transformation to OfflineOrganization');
+    }
+
+    return {
+      id: organizationResponse.id, // Add the 'id' property here
+      organization_id: organizationResponse.id,
+      name: organizationResponse.name || 'Unknown Organization',
+      description: null, // Default as it's not in OrganizationResponse
+      country: null, // Default
+      attributes: organizationResponse.attributes || {},
+      updated_at: now,
+      member_count: 0,
+      assessment_count: 0,
+      submission_count: 0,
+      is_active: true,
       sync_status: 'synced' as const,
       local_changes: false,
       last_synced: now
@@ -533,4 +568,51 @@ export class DataTransformationService {
       question_count: categoryQuestions.length
     };
   }
-} 
+
+  /**
+   * Transform API Report data to OfflineRecommendation objects
+   */
+  static transformReportToOfflineRecommendations(
+    report: Report,
+    userOrganizationId?: string, // Optional: if we can derive from context
+    organizationName?: string // Optional: if we can derive from context
+  ): OfflineRecommendation[] {
+    const recommendations: OfflineRecommendation[] = [];
+    const now = new Date().toISOString();
+
+    if (!report.data || !Array.isArray(report.data)) {
+      console.warn('Report data is missing or not an array:', report);
+      return [];
+    }
+
+    report.data.forEach((catObj: ReportCategoryData) => {
+      if (catObj && typeof catObj === 'object') {
+        Object.entries(catObj).forEach(([categoryName, value]) => {
+          if (
+            value &&
+            typeof value === 'object' &&
+            'recommendation' in value &&
+            typeof value.recommendation === 'string'
+          ) {
+            const recWithStatus = value as RecommendationWithStatus;
+            recommendations.push({
+              recommendation_id: crypto.randomUUID(), // Generate a unique ID for IndexedDB
+              report_id: report.report_id,
+              category: categoryName,
+              recommendation: recWithStatus.recommendation,
+              status: recWithStatus.status || 'todo', // Default to 'todo' if status is missing
+              created_at: recWithStatus.created_at || now,
+              organization_id: userOrganizationId || 'unknown', // Removed report.org_id
+              organization_name: organizationName || 'Unknown Organization', // Attempt to get org_name
+              updated_at: now,
+              sync_status: 'synced',
+              local_changes: false,
+              last_synced: now,
+            });
+          }
+        });
+      }
+    });
+    return recommendations;
+  }
+}

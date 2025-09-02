@@ -9,7 +9,7 @@ import { ROLES } from "@/constants/roles";
 import { ManageCategories } from "../pages/admin/ManageCategories";
 import { ManageQuestions } from "../pages/admin/ManageQuestions";
 import ReviewAssessments from "../pages/admin/ReviewAssessments";
-import { StandardRecommendations } from "../pages/admin/StandardRecommendations";
+import AdminActionPlans from "../pages/admin/AdminActionPlans";
 import { Assessment } from "../pages/user/Assesment";
 import { AssessmentList } from "../pages/user/AssessmentList";
 import { Assessments } from "../pages/user/Assessments";
@@ -38,7 +38,7 @@ const routes = [
       { path: "users", element: React.createElement(ManageUsers) },
       { path: "questions", element: React.createElement(ManageQuestions) },
       { path: "reviews", element: React.createElement(ReviewAssessments) },
-      { path: "recommendations", element: React.createElement(StandardRecommendations) },
+      { path: "action-plans", element: React.createElement(AdminActionPlans) },
       { path: "guide", element: React.createElement(AdminGuide) },
     ],
   },

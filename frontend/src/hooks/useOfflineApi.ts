@@ -36,14 +36,18 @@ import type {
   UpdateResponseRequest,
   AdminSubmissionDetail,
   AssessmentDetailResponse,
-  QuestionRevision
+  QuestionRevision,
+  ActionPlanListResponse, // Import ActionPlanListResponse
+  RecommendationWithStatus, // Import RecommendationWithStatus
+  OrganizationActionPlan // Import OrganizationActionPlan
 } from "@/openapi-rq/requests/types.gen";
 import type { 
-  OfflineQuestion, 
-  OfflineCategory, 
-  OfflineAssessment, 
-  OfflineResponse, 
-  OfflineSubmission 
+  OfflineQuestion,
+  OfflineCategory,
+  OfflineAssessment,
+  OfflineResponse,
+  OfflineSubmission,
+  OfflineRecommendation // Import OfflineRecommendation
 } from "@/types/offline";
 import { DataTransformationService } from "../services/dataTransformation";
 import { syncService } from "../services/syncService";
@@ -1408,8 +1412,8 @@ export function useOfflineAdminSubmissions() {
 
 // ===== REPORTS =====
 
-export function useOfflineReports() {
-  const [data, setData] = useState<{ reports: Report[] }>({ reports: [] });
+export function useOfflineAdminActionPlans() {
+  const [data, setData] = useState<ActionPlanListResponse>({ organizations: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -1419,14 +1423,39 @@ export function useOfflineReports() {
       setError(null);
 
       const result = await apiInterceptor.interceptGet(
-        () => ReportsService.getUserReports(),
-        () => offlineDB.getAllReports().then(reports => ({ reports })),
-        'reports'
+        () => AdminService.getAdminActionPlans(),
+        async () => {
+          // Offline fallback: fetch all recommendations from IndexedDB
+          const offlineRecommendations = await offlineDB.getAllRecommendations();
+
+          // Group recommendations by organization to match ActionPlanListResponse structure
+          const organizationsMap = new Map<string, OrganizationActionPlan>();
+
+          offlineRecommendations.forEach(rec => {
+            if (!organizationsMap.has(rec.organization_id)) {
+              organizationsMap.set(rec.organization_id, {
+                organization_id: rec.organization_id,
+                organization_name: rec.organization_name,
+                recommendations: [],
+              });
+            }
+            organizationsMap.get(rec.organization_id)?.recommendations.push({
+              report_id: rec.report_id,
+              category: rec.category,
+              recommendation: rec.recommendation,
+              status: rec.status,
+              created_at: rec.created_at,
+            });
+          });
+
+          return { organizations: Array.from(organizationsMap.values()) };
+        },
+        'admin_action_plans'
       );
 
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch reports'));
+      setError(err instanceof Error ? err : new Error('Failed to fetch admin action plans'));
     } finally {
       setIsLoading(false);
     }
@@ -1437,6 +1466,180 @@ export function useOfflineReports() {
   }, [fetchData]);
 
   return { data, isLoading, error, refetch: fetchData };
+}
+
+export function useOfflineReports() {
+  const [data, setData] = useState<{ recommendations: OfflineRecommendation[] }>({ recommendations: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth(); // Get current user for organization_id context
+
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await apiInterceptor.interceptGet(
+        async () => {
+          const reports = await ReportsService.getUserReports();
+          // Transform reports into offline recommendations and save them
+          const allOfflineRecommendations: OfflineRecommendation[] = [];
+          for (const report of reports.reports) {
+            const transformedRecs = DataTransformationService.transformReportToOfflineRecommendations(
+              report,
+              user?.organization, // Access organization_id correctly
+              user?.organization_name // Access organization_name correctly
+            );
+            allOfflineRecommendations.push(...transformedRecs);
+          }
+          await offlineDB.saveRecommendations(allOfflineRecommendations);
+          return { recommendations: allOfflineRecommendations }; // Return the transformed data
+        },
+        async () => {
+          // Offline fallback: fetch all recommendations from IndexedDB
+          const offlineRecommendations = await offlineDB.getAllRecommendations();
+          // Filter by user's organization_id if available, otherwise return all
+          return {
+            recommendations: user?.organization
+              ? offlineRecommendations.filter(rec => rec.organization_id === user.organization)
+              : offlineRecommendations
+          };
+        },
+        'user_recommendations'
+      );
+
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch user recommendations'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]); // Re-run if user changes
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, isLoading, error, refetch: fetchData };
+}
+
+export function useOfflineUserRecommendations() {
+  const [data, setData] = useState<{ recommendations: OfflineRecommendation[] }>({ recommendations: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth();
+
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await apiInterceptor.interceptGet(
+        async () => {
+          const reports = await ReportsService.getUserReports();
+          const allOfflineRecommendations: OfflineRecommendation[] = [];
+          for (const report of reports.reports) {
+            const transformedRecs = DataTransformationService.transformReportToOfflineRecommendations(
+              report,
+              user?.organization,
+              user?.organization_name
+            );
+            allOfflineRecommendations.push(...transformedRecs);
+          }
+          await offlineDB.saveRecommendations(allOfflineRecommendations);
+          return { recommendations: allOfflineRecommendations };
+        },
+        async () => {
+          const offlineRecommendations = await offlineDB.getAllRecommendations();
+          return {
+            recommendations: user?.organization
+              ? offlineRecommendations.filter(rec => rec.organization_id === user.organization)
+              : offlineRecommendations
+          };
+        },
+        'user_recommendations'
+      );
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch user recommendations'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, isLoading, error, refetch: fetchData };
+}
+
+
+export function useOfflineRecommendationStatusMutation() {
+  const [isPending, setIsPending] = useState(false);
+  const queryClient = useQueryClient();
+
+  const updateRecommendationStatus = useCallback(async (
+    recommendationId: string,
+    reportId: string,
+    category: string,
+    newStatus: "todo" | "in_progress" | "done" | "approved", // Use literal union type
+    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
+  ) => {
+    try {
+      setIsPending(true);
+
+      // Optimistically update the local state first
+      await offlineDB.updateRecommendationStatus(recommendationId, newStatus);
+      
+      // Invalidate relevant queries for immediate UI feedback
+      await invalidateAndRefetch(queryClient, ['user_recommendations', 'admin_action_plans']);
+
+      const result = await apiInterceptor.interceptMutation(
+        () => ReportsService.putReportsByReportIdRecommendationsByCategoryStatus({
+          reportId: reportId,
+          category: category,
+          requestBody: {
+            report_id: reportId,
+            category: category,
+            status: newStatus,
+          },
+        }) as Promise<Record<string, unknown>>, // Cast to Promise<Record<string, unknown>>
+        async (apiResponse: Record<string, unknown>) => {
+          // If the API call succeeds, the status should already be updated in localDB by the optimistic update.
+          // However, we should ensure the sync_status is set to 'synced' if not already.
+          const updatedRecommendation = await offlineDB.getRecommendation(recommendationId);
+          if (updatedRecommendation && updatedRecommendation.sync_status === 'pending') {
+            await offlineDB.saveRecommendation({ ...updatedRecommendation, sync_status: 'synced' });
+          }
+        },
+        { recommendation_id: recommendationId, report_id: reportId, category, status: newStatus } as Record<string, unknown>,
+        'recommendations',
+        'update'
+      );
+
+      options?.onSuccess?.(result);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to update recommendation status');
+      console.error('❌ updateRecommendationStatus error:', error);
+      
+      // Revert optimistic update on error if possible and desired
+      const originalRecommendation = await offlineDB.getRecommendation(recommendationId);
+      if (originalRecommendation) {
+        // Here you might want to revert to the previous status or mark as 'failed'
+        // For simplicity, we'll mark as failed. A robust solution might store original status.
+        await offlineDB.saveRecommendation({ ...originalRecommendation, sync_status: 'failed' });
+      }
+
+      options?.onError?.(error);
+      throw error;
+    } finally {
+      setIsPending(false);
+    }
+  }, [queryClient]);
+
+  return { updateRecommendationStatus, isPending };
 }
 
 // ===== ORGANIZATIONS =====

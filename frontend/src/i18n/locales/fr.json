@@ -98,6 +98,8 @@
     "manageQuestionsDesc": "Créer et modifier des questions dans chaque catégorie d'évaluation.",
     "reviewAssessments": "Examiner les évaluations",
     "reviewAssessmentsDesc": "Examiner les évaluations soumises et fournir des recommandations.",
+    "actionPlans": "Gérer les plans d'action",
+    "actionPlansDesc": "Voir et gérer les plans d'action pour toutes les organisations",
     "standardRecommendations": "Recommandations standard",
     "standardRecommendationsDesc": "Gérer les recommandations réutilisables pour les scénarios d'évaluation courants.",
     "pendingReviewsCard": "Examens en attente",

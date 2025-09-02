@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
 import { UserInvitationForm } from "@/components/shared/UserInvitationForm";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useOfflineCategories } from "@/hooks/useOfflineApi";
 
 // Helper to extract domain names
 function getDomainNames(domains: unknown): string[] {
@@ -77,6 +78,11 @@ export const ManageUsers: React.FC = () => {
   
   // Use direct React Query hooks for data fetching
   const { data: organizations, isLoading: orgsLoading } = useOrganizationsServiceGetAdminOrganizations();
+  const { data: { categories }, isLoading: categoriesLoading } = useOfflineCategories();
+  const transformedCategories = categories.map(cat => ({
+    id: cat.category_id,
+    name: cat.name
+  }));
   
   // Add a new state to track the selected organization object
   const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(
@@ -601,7 +607,7 @@ export const ManageUsers: React.FC = () => {
                   id: org.id || '',
                   name: org.name || ''
                 }))}
-                categories={[]} // TODO: Add categories API call
+                categories={transformedCategories}
                 defaultOrganizationId={selectedOrg?.id || undefined}
                 onInvitationCreated={() => {
                   setShowInvitationDialog(false);

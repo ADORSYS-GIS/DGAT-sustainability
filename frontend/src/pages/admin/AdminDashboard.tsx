@@ -12,6 +12,7 @@ import {
   CheckSquare,
   TrendingUp,
   AlertCircle,
+  Kanban,
 } from "lucide-react";
 import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen";
 import { useNavigate } from "react-router-dom";
@@ -158,11 +159,11 @@ export const AdminDashboard: React.FC = () => {
       onClick: () => navigate("/admin/reviews"),
     },
     {
-      title: t('adminDashboard.standardRecommendations'),
-      description: t('adminDashboard.standardRecommendationsDesc'),
-      icon: Star,
+      title: t('adminDashboard.actionPlans', { defaultValue: 'Manage Action Plans' }),
+      description: t('adminDashboard.actionPlansDesc', { defaultValue: 'View and manage action plans for all organizations' }),
+      icon: Kanban,
       color: "blue" as const,
-      onClick: () => navigate("/admin/recommendations"),
+      onClick: () => navigate("/admin/action-plans"),
     },
   ];
 

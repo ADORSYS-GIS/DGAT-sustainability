@@ -14,7 +14,21 @@ import type {
   QuestionRevision,
   FileMetadata,
   Review,
+  RecommendationWithStatus, // Import the type
 } from "@/openapi-rq/requests/types.gen";
+
+// Define ReportCategoryData and ReportData based on usage in ActionPlan.tsx (local definitions)
+export interface ReportCategoryData {
+  [key: string]: {
+    recommendation: string;
+    status?: string;
+    created_at?: string;
+  };
+}
+
+export interface ReportData {
+  data: ReportCategoryData[];
+}
 
 // Base interface for all offline entities
 export interface OfflineEntity {
@@ -34,6 +48,7 @@ export interface OfflineQuestion extends Question, OfflineEntity {
 // Enhanced Assessment with offline fields
 export interface OfflineAssessment extends Assessment, OfflineEntity {
   organization_id?: string;
+  user_id?: string; // Add user_id
   user_email?: string;
   status: 'draft' | 'in_progress' | 'completed' | 'submitted';
   progress_percentage?: number;
@@ -70,6 +85,13 @@ export interface OfflineReport extends Report, OfflineEntity {
   user_id?: string;
   file_path?: string; // Local file path if downloaded
   is_downloaded?: boolean;
+}
+
+// Enhanced Recommendation with offline fields
+export interface OfflineRecommendation extends RecommendationWithStatus, OfflineEntity {
+  recommendation_id: string; // Unique ID for IndexedDB
+  organization_id: string;
+  organization_name: string; // Cached organization name for display
 }
 
 // Enhanced Organization with offline fields (fixing the created_at conflict)
@@ -178,6 +200,7 @@ export interface DatabaseStats {
   organizations_count: number;
   users_count: number;
   invitations_count: number;
+  recommendations_count: number; // Add recommendations count
   sync_queue_count: number;
   total_size_bytes: number;
   last_updated: string;
@@ -245,6 +268,10 @@ export interface OfflineDatabaseSchema {
     key: string; // 'current'
     value: DatabaseStats;
   };
+  recommendations: { // Add the new object store
+    key: string; // recommendation_id
+    value: OfflineRecommendation;
+  };
 }
 
 // Query Filters for efficient data retrieval
@@ -281,4 +308,16 @@ export interface UserFilters {
   organization_id?: string;
   roles?: string[];
   is_active?: boolean;
-} 
+  search_text?: string;
+  sync_status?: 'synced' | 'pending' | 'failed'; // Add sync_status filter
+}
+
+// Type definition for pending review submissions
+export interface OfflinePendingReviewSubmission {
+  id: string; // Unique ID for the pending review entry
+  submission_id: string; // The ID of the submission being reviewed
+  reviewer: string; // ID of the reviewer
+  sync_status: 'pending' | 'synced' | 'failed';
+  timestamp: string; // When the pending review was created/updated
+  // Add any other relevant fields for a pending review
+}

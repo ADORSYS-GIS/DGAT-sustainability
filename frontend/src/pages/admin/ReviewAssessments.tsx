@@ -41,7 +41,7 @@ import {
   ChevronDown,
   ChevronRight,
   RefreshCw,
-  Star
+  Kanban
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/shared/useAuth';
@@ -53,17 +53,18 @@ import { ReportsService } from '@/openapi-rq/requests/services.gen';
 import { AdminSubmissionDetail } from '@/openapi-rq/requests/types.gen';
 import { offlineDB } from '@/services/indexeddb';
 import { useTranslation } from 'react-i18next';
-import { get, set } from 'idb-keyval';
 
-const STANDARD_RECOMMENDATIONS_KEY = "standard_recommendations";
+import FileDisplay from '@/components/shared/FileDisplay';
 
-interface StandardRecommendation {
-  id: string;
-  category_id: string;
-  category_name: string;
-  text: string;
-  created_at: string;
+// Type for file attachments
+interface FileAttachment {
+  name?: string;
+  url?: string;
+  type?: string;
+  [key: string]: unknown;
 }
+
+
 
 interface CategoryRecommendation {
   id: string;
@@ -93,26 +94,9 @@ const ReviewAssessments: React.FC = () => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingReviews, setPendingReviews] = useState<PendingReviewSubmission[]>([]);
-  const [standardRecommendations, setStandardRecommendations] = useState<StandardRecommendation[]>([]);
-  const [showStandardRecommendations, setShowStandardRecommendations] = useState(false);
-  const [selectedCategoryForStandardRecs, setSelectedCategoryForStandardRecs] = useState<string>('');
-
   // Use offline hooks
   const { data: submissionsData, isLoading: submissionsLoading, error: submissionsError, refetch: refetchSubmissions } = useOfflineAdminSubmissions();
   const { isOnline } = useOfflineSyncStatus();
-
-  // Load standard recommendations from IndexedDB
-  useEffect(() => {
-    const loadStandardRecommendations = async () => {
-      try {
-        const stored = (await get(STANDARD_RECOMMENDATIONS_KEY)) as StandardRecommendation[] | undefined;
-        setStandardRecommendations(stored || []);
-      } catch (error) {
-        console.error('Failed to load standard recommendations:', error);
-      }
-    };
-    loadStandardRecommendations();
-  }, []);
 
   // Load pending reviews from IndexedDB
   useEffect(() => {
@@ -241,17 +225,7 @@ const ReviewAssessments: React.FC = () => {
     }
   };
 
-  // Get standard recommendations for a specific category
-  const getStandardRecommendationsForCategory = (categoryName: string) => {
-    return standardRecommendations.filter(rec => rec.category_name === categoryName);
-  };
 
-  // Handle selecting a standard recommendation
-  const handleSelectStandardRecommendation = (recommendation: StandardRecommendation) => {
-    addCategoryRecommendation(recommendation.category_name, recommendation.text);
-    setShowStandardRecommendations(false);
-    setSelectedCategoryForStandardRecs('');
-  };
 
   if (submissionsLoading) {
     return (
@@ -300,6 +274,18 @@ const ReviewAssessments: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">{t('reviewAssessments.title', { defaultValue: 'Review Assessments' })}</h1>
             <p className="text-gray-600">{t('reviewAssessments.subtitle', { defaultValue: 'Review and approve submitted assessments' })}</p>
           </div>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/admin/action-plans')}
+            className="flex items-center space-x-2"
+          >
+            <Kanban className="w-4 h-4" />
+            <span>{t('reviewAssessments.viewActionPlans', { defaultValue: 'View Action Plans' })}</span>
+          </Button>
         </div>
 
         {/* Status Indicators */}
@@ -467,18 +453,7 @@ const ReviewAssessments: React.FC = () => {
                                   <Plus className="w-4 h-4" />
                                   <span>{t('reviewAssessments.addRecommendation', { defaultValue: 'Add Recommendation' })}</span>
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedCategoryForStandardRecs(category);
-                                    setShowStandardRecommendations(true);
-                                  }}
-                                  className="flex items-center space-x-2 border-green-200 text-green-700 hover:bg-green-50"
-                                >
-                                  <Star className="w-4 h-4" />
-                                  <span>Standard</span>
-                                </Button>
+
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -590,7 +565,13 @@ const ReviewAssessments: React.FC = () => {
                           {expandedCategories.has(category) ? (
                             <div className="space-y-4">
                               {categoryResponses.map((response, index) => {
-                                const responseData = JSON.parse(response.response);
+                                let responseData;
+                                try {
+                                  responseData = JSON.parse(response.response);
+                                } catch (error) {
+                                  console.error('Failed to parse response data:', error);
+                                  responseData = { text: response.response };
+                                }
                                 return (
                                   <div key={index} className="bg-gray-50 p-4 rounded-lg">
                                     <div className="mb-3">
@@ -616,7 +597,22 @@ const ReviewAssessments: React.FC = () => {
                                             <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{responseData.text}</p>
                                           </div>
                                         )}
+                                                                                {/* Files in responseData */}
+                                        {responseData.files && responseData.files.length > 0 && (
+                                          <FileDisplay 
+                                            files={responseData.files as FileAttachment[]} 
+                                            title={t('reviewAssessments.attachments', { defaultValue: 'Attachments' })}
+                                          />
+                                        )}
                                       </div>
+                                      
+                                      {/* Files attached to the response itself */}
+                                      {response.files && response.files.length > 0 && (
+                                        <FileDisplay 
+                                          files={response.files as FileAttachment[]} 
+                                          title={t('reviewAssessments.attachments', { defaultValue: 'Attachments' })}
+                                        />
+                                      )}
                                     </div>
                                   </div>
                                 );
@@ -660,64 +656,7 @@ const ReviewAssessments: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Standard Recommendations Dialog */}
-      <Dialog open={showStandardRecommendations} onOpenChange={setShowStandardRecommendations}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Star className="w-5 h-5 text-green-600" />
-              <span>Standard Recommendations - {selectedCategoryForStandardRecs}</span>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {getStandardRecommendationsForCategory(selectedCategoryForStandardRecs).length === 0 ? (
-              <div className="text-center py-8">
-                <Star className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No standard recommendations</h3>
-                <p className="text-gray-600 mb-4">
-                  No standard recommendations found for the "{selectedCategoryForStandardRecs}" category.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowStandardRecommendations(false)}
-                >
-                  Close
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {getStandardRecommendationsForCategory(selectedCategoryForStandardRecs).map((recommendation) => (
-                  <Card key={recommendation.id} className="hover:shadow-md transition-shadow cursor-pointer" 
-                        onClick={() => handleSelectStandardRecommendation(recommendation)}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-gray-700">{recommendation.text}</p>
-                          <p className="text-xs text-gray-500 mt-2">
-                            Created: {new Date(recommendation.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectStandardRecommendation(recommendation);
-                          }}
-                          className="ml-4"
-                        >
-                          Select
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 };

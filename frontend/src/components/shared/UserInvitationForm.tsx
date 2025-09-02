@@ -31,7 +31,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
       last_name: '',
       organization_id: defaultOrganizationId || '',
               roles: ['org_admin'], // Default to org_admin for DRGV admin
-      categories: []
+      categories: [] // Default to empty array
     });
   const [createdInvitation, setCreatedInvitation] = useState<UserInvitationResponse | null>(null);
 
@@ -55,7 +55,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
         last_name: '',
         organization_id: defaultOrganizationId || '',
         roles: ['org_admin'],
-        categories: []
+        categories: [] // Clear categories after successful invitation
       });
 
       onInvitationCreated?.();
@@ -441,5 +441,6 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
         )}
       </CardContent>
     </Card>
+
   );
 };

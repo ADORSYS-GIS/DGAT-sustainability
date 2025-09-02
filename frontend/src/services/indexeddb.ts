@@ -10,6 +10,8 @@ import type {
   OfflineOrganization,
   OfflineUser,
   OfflineInvitation,
+  OfflineRecommendation, // Add the new type
+  OfflinePendingReviewSubmission, // Import OfflinePendingReviewSubmission
   SyncQueueItem,
   SyncStatus,
   NetworkStatus,
@@ -27,18 +29,14 @@ import type {
 class OfflineDB {
   private dbPromise: Promise<IDBPDatabase<OfflineDatabaseSchema>>;
   private readonly DB_NAME = "dgat-offline-db";
-  private readonly DB_VERSION = 3;
+  private readonly DB_VERSION = 4; // Increment DB_VERSION
 
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
       upgrade: (db, oldVersion, newVersion) => {
         
-        try {
-          // Create all object stores with proper indexing
-          this.createObjectStores(db);
-        } catch (error) {
-          throw error;
-        }
+        // Create all object stores with proper indexing
+        this.createObjectStores(db);
       },
       blocked: () => {
       },
@@ -147,6 +145,17 @@ class OfflineDB {
       pendingReviewsStore.createIndex("reviewer", "reviewer", { unique: false });
       pendingReviewsStore.createIndex("sync_status", "sync_status", { unique: false });
       pendingReviewsStore.createIndex("timestamp", "timestamp", { unique: false });
+    }
+
+    // Recommendations store with indexes
+    if (!existingStores.includes("recommendations")) {
+      const recommendationsStore = db.createObjectStore("recommendations", { keyPath: "recommendation_id" });
+      recommendationsStore.createIndex("organization_id", "organization_id", { unique: false });
+      recommendationsStore.createIndex("report_id", "report_id", { unique: false });
+      recommendationsStore.createIndex("category", "category", { unique: false });
+      recommendationsStore.createIndex("status", "status", { unique: false });
+      recommendationsStore.createIndex("sync_status", "sync_status", { unique: false });
+      recommendationsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
     // Sync Queue store with indexes
@@ -350,14 +359,9 @@ class OfflineDB {
 
   // ===== SUBMISSIONS =====
   async saveSubmission(submission: OfflineSubmission): Promise<string> {
-    try {
-      const db = await this.dbPromise;
-      
-      const result = await db.put("submissions", submission);
-      return result as string;
-    } catch (error) {
-      throw error;
-    }
+    const db = await this.dbPromise;
+    const result = await db.put("submissions", submission);
+    return result as string;
   }
 
   async saveSubmissions(submissions: OfflineSubmission[]): Promise<void> {
@@ -661,7 +665,8 @@ class OfflineDB {
       organizations,
       users,
       invitations,
-      syncQueue
+      syncQueue,
+      recommendations // Add recommendations to the list
     ] = await Promise.all([
       db.getAll("questions"),
       db.getAll("assessments"),
@@ -672,7 +677,8 @@ class OfflineDB {
       db.getAll("organizations"),
       db.getAll("users"),
       db.getAll("invitations"),
-      db.getAll("sync_queue")
+      db.getAll("sync_queue"),
+      db.getAll("recommendations") // Get all recommendations
     ]);
 
     const stats: DatabaseStats = {
@@ -685,6 +691,7 @@ class OfflineDB {
       organizations_count: organizations.length,
       users_count: users.length,
       invitations_count: invitations.length,
+      recommendations_count: recommendations.length, // Add recommendations count
       sync_queue_count: syncQueue.length,
       total_size_bytes: 0, // Would need to calculate actual size
       last_updated: new Date().toISOString()
@@ -704,30 +711,41 @@ class OfflineDB {
   }
 
   // ===== UTILITY METHODS =====
+  /**
+   * Clears all data from a specific object store.
+   * @param storeName The name of the object store to clear.
+   */
+  async clearStore(storeName: keyof OfflineDatabaseSchema): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction(storeName, 'readwrite');
+    await tx.store.clear();
+    await tx.done;
+  }
+
   async clearAllData(): Promise<void> {
-    try {
-      const db = await this.dbPromise;
-      
-      // Delete all object stores
-      const objectStoreNames = Array.from(db.objectStoreNames);
-      for (const storeName of objectStoreNames) {
-        const tx = db.transaction(storeName, "readwrite");
-        const store = tx.objectStore(storeName);
-        await store.clear();
-        await tx.done;
-      }
-      
-      // Close the database connection
-      db.close();
-      
-      // Delete the database completely
-      await deleteDB(this.DB_NAME);
-      
-      // Recreate the database
-      await this.initialize();
-    } catch (error) {
-      throw new Error(`Failed to clear all data: ${error}`);
+    const db = await this.dbPromise;
+    
+    // Delete all object stores
+    const objectStoreNames = Array.from(db.objectStoreNames);
+    for (const storeName of objectStoreNames) {
+      const tx = db.transaction(storeName, "readwrite");
+      const store = tx.objectStore(storeName);
+      await store.clear();
+      await tx.done;
     }
+    
+    // Close the database connection
+    db.close();
+    
+    // Delete the database completely
+    await deleteDB(this.DB_NAME);
+    
+    // Recreate the database by reopening it
+    this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
+      upgrade: (db, oldVersion, newVersion) => {
+        this.createObjectStores(db);
+      }
+    });
   }
 
   async deleteDatabase(): Promise<void> {
@@ -871,20 +889,20 @@ class OfflineDB {
     let users = await store.getAll();
     
     // Apply filters
-    if (filters.organizationId) {
-      users = users.filter(user => user.organization_id === filters.organizationId);
+    if (filters.organization_id) { // Renamed from organizationId
+      users = users.filter(user => user.organization_id === filters.organization_id);
     }
     if (filters.roles && filters.roles.length > 0) {
-      users = users.filter(user => 
+      users = users.filter(user =>
         filters.roles!.some(role => user.roles.includes(role))
       );
     }
-    if (filters.syncStatus) {
-      users = users.filter(user => user.sync_status === filters.syncStatus);
+    if (filters.sync_status) { // Renamed from syncStatus
+      users = users.filter(user => user.sync_status === filters.sync_status);
     }
-    if (filters.searchText) {
-      const searchLower = filters.searchText.toLowerCase();
-      users = users.filter(user => 
+    if (filters.search_text) { // Renamed from searchText
+      const searchLower = filters.search_text.toLowerCase();
+      users = users.filter(user =>
         user.email.toLowerCase().includes(searchLower) ||
         user.first_name?.toLowerCase().includes(searchLower) ||
         user.last_name?.toLowerCase().includes(searchLower)
@@ -894,55 +912,114 @@ class OfflineDB {
     return users;
   }
 
-  // Pending Review Submissions methods
-  async savePendingReviewSubmission(pendingReview: any): Promise<string> {
+  // ===== PENDING REVIEW SUBMISSIONS =====
+  async savePendingReviewSubmission(pendingReview: OfflinePendingReviewSubmission): Promise<string> {
     const db = await this.dbPromise;
-    const tx = db.transaction("pending_review_submissions", "readwrite");
-    const store = tx.objectStore("pending_review_submissions");
-    
-    await store.put(pendingReview);
-    await tx.done;
-    
-    return pendingReview.id;
+    const result = await db.put("pending_review_submissions", pendingReview);
+    return result as string;
   }
 
-  async getPendingReviewSubmission(id: string): Promise<any | undefined> {
+  async getPendingReviewSubmission(id: string): Promise<OfflinePendingReviewSubmission | undefined> {
     const db = await this.dbPromise;
-    const tx = db.transaction("pending_review_submissions", "readonly");
-    const store = tx.objectStore("pending_review_submissions");
-    
-    return await store.get(id);
+    return db.get("pending_review_submissions", id);
   }
 
-  async getAllPendingReviewSubmissions(): Promise<any[]> {
+  async getAllPendingReviewSubmissions(): Promise<OfflinePendingReviewSubmission[]> {
+    const db = await this.dbPromise;
+    return db.getAll("pending_review_submissions");
+  }
+
+  async getPendingReviewSubmissions(submissionId?: string, reviewer?: string, syncStatus?: 'pending' | 'synced' | 'failed'): Promise<OfflinePendingReviewSubmission[]> {
     const db = await this.dbPromise;
     const tx = db.transaction("pending_review_submissions", "readonly");
     const store = tx.objectStore("pending_review_submissions");
     
-    return await store.getAll();
+    let pendingReviews = await store.getAll();
+
+    if (submissionId) {
+      pendingReviews = pendingReviews.filter(pr => pr.submission_id === submissionId);
+    }
+    if (reviewer) {
+      pendingReviews = pendingReviews.filter(pr => pr.reviewer === reviewer);
+    }
+    if (syncStatus) {
+      pendingReviews = pendingReviews.filter(pr => pr.sync_status === syncStatus);
+    }
+
+    return pendingReviews;
   }
 
-  async getPendingReviewSubmissions(): Promise<any[]> {
-    const db = await this.dbPromise;
-    const tx = db.transaction("pending_review_submissions", "readonly");
-    const store = tx.objectStore("pending_review_submissions");
-    const index = store.index("sync_status");
-    
-    return await index.getAll("pending");
-  }
-
-  async updatePendingReviewSubmission(id: string, syncStatus: 'pending' | 'synced'): Promise<void> {
+  async updatePendingReviewSubmission(id: string, updates: Partial<OfflinePendingReviewSubmission>): Promise<void> {
     const db = await this.dbPromise;
     const tx = db.transaction("pending_review_submissions", "readwrite");
     const store = tx.objectStore("pending_review_submissions");
     
     const pendingReview = await store.get(id);
     if (pendingReview) {
-      pendingReview.syncStatus = syncStatus;
-      await store.put(pendingReview);
+      const updatedReview = { ...pendingReview, ...updates, timestamp: new Date().toISOString() };
+      await store.put(updatedReview);
     }
     
     await tx.done;
+  }
+
+  // ===== RECOMMENDATIONS =====
+  async saveRecommendation(recommendation: OfflineRecommendation): Promise<string> {
+    const db = await this.dbPromise;
+    const result = await db.put("recommendations", recommendation);
+    return result as string;
+  }
+
+  async saveRecommendations(recommendations: OfflineRecommendation[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("recommendations", "readwrite");
+    await Promise.all(recommendations.map(r => tx.store.put(r)));
+    await tx.done;
+  }
+
+  async getRecommendation(recommendationId: string): Promise<OfflineRecommendation | undefined> {
+    const db = await this.dbPromise;
+    return db.get("recommendations", recommendationId);
+  }
+
+  async getAllRecommendations(): Promise<OfflineRecommendation[]> {
+    const db = await this.dbPromise;
+    return db.getAll("recommendations");
+  }
+
+  async getRecommendationsByOrganization(organizationId: string): Promise<OfflineRecommendation[]> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("recommendations", "readonly");
+    const index = tx.store.index("organization_id");
+    return index.getAll(organizationId);
+  }
+  
+  async getRecommendationsByReportId(reportId: string): Promise<OfflineRecommendation[]> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("recommendations", "readonly");
+    const index = tx.store.index("report_id");
+    return index.getAll(reportId);
+  }
+
+  async updateRecommendationStatus(recommendationId: string, status: string): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("recommendations", "readwrite");
+    const store = tx.objectStore("recommendations");
+    
+    const recommendation = await store.get(recommendationId);
+    if (recommendation) {
+      recommendation.status = status;
+      recommendation.sync_status = 'pending'; // Mark as pending for sync
+      recommendation.updated_at = new Date().toISOString();
+      await store.put(recommendation);
+    }
+    
+    await tx.done;
+  }
+
+  async deleteRecommendation(recommendationId: string): Promise<void> {
+    const db = await this.dbPromise;
+    await db.delete("recommendations", recommendationId);
   }
 
   async deletePendingReviewSubmission(id: string): Promise<void> {

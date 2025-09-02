@@ -2,6 +2,7 @@ import { Navbar } from "@/components/shared/Navbar";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 import {
   AlertCircle,
   Calendar,
@@ -11,52 +12,28 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import * as React from "react";
-import { useOfflineReports } from "../../hooks/useOfflineApi";
+import { useOfflineUserRecommendations, useOfflineRecommendationStatusMutation } from "../../hooks/useOfflineApi";
+import { OfflineRecommendation } from "@/types/offline";
+import { useAuth } from "../../hooks/shared/useAuth"; // Import useAuth hook
 
 export const ActionPlan: React.FC = () => {
   const { t } = useTranslation();
   // Fetch all user reports
-  const { data, isLoading } = useOfflineReports();
+  const { data, isLoading } = useOfflineUserRecommendations();
+  const { updateRecommendationStatus } = useOfflineRecommendationStatusMutation();
+  const { roles } = useAuth(); // Get user roles
+  const isAdmin = roles.includes("org_admin"); // Check if user is an organization admin
 
   // Flat recommendation type for Kanban with status
-  type KanbanRecommendation = {
-    id: string; // unique id for React key
-    category: string;
-    recommendation: string;
-    status: string; // 'todo', 'in_progress', 'done', 'approved'
-  };
+  // Type for Kanban recommendations
+  type KanbanRecommendation = OfflineRecommendation & { id: string }; // Add a local 'id' for React keys
+  
   // Extract and flatten recommendations from all reports (fixed for actual data structure)
-  const extractRecommendations = (): KanbanRecommendation[] => {
-    if (!data?.reports) return [];
-    let idx = 0;
-    return data.reports.flatMap((report) => {
-      if (Array.isArray(report.data)) {
-        return report.data.flatMap((catObj) => {
-          if (catObj && typeof catObj === "object") {
-            return Object.entries(catObj)
-              .map(([category, value]) => {
-                if (
-                  value &&
-                  typeof value === "object" &&
-                  "recommendation" in value &&
-                  typeof value.recommendation === "string"
-                ) {
-                  return {
-                    id: `${report.report_id}-${category}-${idx++}`,
-                    category,
-                    recommendation: value.recommendation,
-                    status: "todo",
-                  };
-                }
-                return null;
-              })
-              .filter(Boolean) as KanbanRecommendation[];
-          }
-          return [];
-        });
-      }
-      return [];
-    });
+  const extractRecommendations = (recommendations: OfflineRecommendation[]): KanbanRecommendation[] => {
+    return recommendations.map((rec) => ({
+      ...rec,
+      id: rec.recommendation_id, // Use recommendation_id as the unique key
+    }));
   };
   // State for Kanban recommendations
   const [kanbanRecs, setKanbanRecs] = React.useState<KanbanRecommendation[]>(
@@ -64,11 +41,10 @@ export const ActionPlan: React.FC = () => {
   );
   // On data load, initialize state (only once)
   React.useEffect(() => {
-    if (kanbanRecs.length === 0 && data?.reports) {
-      setKanbanRecs(extractRecommendations());
+    if (data?.recommendations) {
+      setKanbanRecs(extractRecommendations(data.recommendations));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [data]); // Depend on data to re-run when recommendations change
 
   // Columns for Kanban
   const columns = [
@@ -93,10 +69,44 @@ export const ActionPlan: React.FC = () => {
     kanbanRecs.filter((rec) => rec.status === status);
 
   // Move a recommendation to a new status
-  const moveRecommendation = (id: string, newStatus: string) => {
+  const moveRecommendation = async (id: string, newStatus: "todo" | "in_progress" | "done" | "approved") => {
+    // Update local state immediately for better UX
     setKanbanRecs((prev) =>
       prev.map((rec) => (rec.id === id ? { ...rec, status: newStatus } : rec)),
     );
+
+    // Extract report_id and category from the id
+    // The `id` here is actually the `recommendation_id` from OfflineRecommendation
+    // We need to find the full recommendation object to get report_id and category
+    const recommendationToUpdate = kanbanRecs.find(rec => rec.id === id);
+
+    if (!recommendationToUpdate) {
+      toast.error('Recommendation not found.');
+      return;
+    }
+    
+    try {
+      await updateRecommendationStatus(
+        recommendationToUpdate.recommendation_id,
+        recommendationToUpdate.report_id,
+        recommendationToUpdate.category,
+        newStatus,
+        {
+          onSuccess: () => {
+            // No need to manually update local state here, as useOfflineRecommendationStatusMutation does it optimistically
+            toast.success('Status updated successfully');
+          },
+          onError: (error) => {
+            console.error('Failed to update status:', error);
+            // The mutation hook should handle reverting the optimistic update or marking as failed
+            toast.error('Failed to update status');
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Unhandled error in moveRecommendation:', error);
+      toast.error('Failed to update status');
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -205,7 +215,7 @@ export const ActionPlan: React.FC = () => {
                                 {task.recommendation}
                               </div>
                               <div className="flex gap-2 mt-2">
-                                {task.status === "todo" && (
+                                {isAdmin && task.status === "todo" && (
                                   <button
                                     className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                                     onClick={() =>
@@ -215,7 +225,7 @@ export const ActionPlan: React.FC = () => {
                                     {t("user.actionPlan.kanban.moveToInProgress", { defaultValue: "Move to In Progress" })}
                                   </button>
                                 )}
-                                {task.status === "in_progress" && (
+                                {isAdmin && task.status === "in_progress" && (
                                   <>
                                     <button
                                       className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
@@ -235,7 +245,7 @@ export const ActionPlan: React.FC = () => {
                                     </button>
                                   </>
                                 )}
-                                {task.status === "done" && (
+                                {isAdmin && task.status === "done" && (
                                   <>
                                     <button
                                       className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
@@ -258,7 +268,7 @@ export const ActionPlan: React.FC = () => {
                                     </button>
                                   </>
                                 )}
-                                {task.status === "approved" && (
+                                {isAdmin && task.status === "approved" && (
                                   <button
                                     className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
                                     onClick={() =>

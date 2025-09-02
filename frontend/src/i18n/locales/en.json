@@ -98,6 +98,8 @@
     "manageQuestionsDesc": "Create and edit questions within each assessment category.",
     "reviewAssessments": "Review Assessments",
     "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
+    "actionPlans": "Manage Action Plans",
+    "actionPlansDesc": "View and manage action plans for all organizations",
     "standardRecommendations": "Standard Recommendations",
     "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios.",
     "pendingReviewsCard": "Pending Reviews",
