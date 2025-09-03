@@ -29,7 +29,7 @@
   "oauth2DevicePollingInterval": 5,
   "enabled": true,
   "sslRequired": "external",
-  "registrationAllowed": false,
+  "registrationAllowed": true,
   "registrationEmailAsUsername": true,
   "rememberMe": true,
   "verifyEmail": false,
@@ -1029,15 +1029,15 @@
       "clientId": "sustainability-tool",
       "name": "",
       "description": "",
-      "rootUrl": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com",
-      "adminUrl": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com",
-      "baseUrl": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com",
+      "rootUrl": "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com",
+      "adminUrl": "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com",
+      "baseUrl": "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": true,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/*"
+        "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com//*"
       ],
       "webOrigins": [
         "+"
@@ -1057,7 +1057,7 @@
         "oidc.ciba.grant.enabled": "false",
         "backchannel.logout.session.required": "true",
         "standard.token.exchange.enabled": "false",
-        "post.logout.redirect.uris": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/*",
+        "post.logout.redirect.uris": "https://ec2-16-171-203-85.eu-north-1.compute.amazonaws.com//*",
         "frontchannel.logout.session.required": "true",
         "oauth2.device.authorization.grant.enabled": "false",
         "display.on.consent.screen": "false",
@@ -1993,13 +1993,13 @@
         "config": {
           "allowed-protocol-mapper-types": [
             "oidc-usermodel-property-mapper",
-            "oidc-address-mapper",
-            "saml-user-property-mapper",
-            "oidc-sha256-pairwise-sub-mapper",
             "oidc-usermodel-attribute-mapper",
-            "saml-user-attribute-mapper",
             "saml-role-list-mapper",
-            "oidc-full-name-mapper"
+            "saml-user-attribute-mapper",
+            "saml-user-property-mapper",
+            "oidc-full-name-mapper",
+            "oidc-sha256-pairwise-sub-mapper",
+            "oidc-address-mapper"
           ]
         }
       },
@@ -2023,13 +2023,13 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "saml-user-property-mapper",
+            "oidc-usermodel-attribute-mapper",
             "saml-role-list-mapper",
             "oidc-address-mapper",
-            "oidc-full-name-mapper",
-            "oidc-usermodel-attribute-mapper",
             "oidc-usermodel-property-mapper",
+            "oidc-full-name-mapper",
             "saml-user-attribute-mapper",
+            "saml-user-property-mapper",
             "oidc-sha256-pairwise-sub-mapper"
           ]
         }
@@ -3146,10 +3146,7 @@
     "clientOfflineSessionMaxLifespan": "0",
     "oauth2DevicePollingInterval": "5",
     "clientSessionIdleTimeout": "0",
-    "actionTokenGeneratedByUserLifespan.verify-email": "3600",
-    "actionTokenGeneratedByUserLifespan.idp-verify-account-via-email": "",
     "clientOfflineSessionIdleTimeout": "0",
-    "actionTokenGeneratedByUserLifespan.execute-actions": "",
     "cibaInterval": "5",
     "realmReusableOtpCode": "false",
     "cibaExpiresIn": "120",
@@ -3159,8 +3156,6 @@
     "clientSessionMaxLifespan": "0",
     "frontendUrl": "",
     "acr.loa.map": "{}",
-    "shortVerificationUri": "",
-    "actionTokenGeneratedByUserLifespan.reset-credentials": "",
     "darkMode": "true"
   },
   "keycloakVersion": "26.3.1",
