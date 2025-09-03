@@ -406,7 +406,36 @@ pub struct Report {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateReportRequest {
     pub category: String,
-    pub recommendation: String
+    pub recommendation: String,
+    pub status: Option<String> // New field for action plan status
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateRecommendationStatusRequest {
+    pub report_id: Uuid,
+    pub category: String,
+    pub status: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationActionPlan {
+    pub organization_id: Uuid,
+    pub organization_name: String,
+    pub recommendations: Vec<RecommendationWithStatus>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RecommendationWithStatus {
+    pub report_id: Uuid,
+    pub category: String,
+    pub recommendation: String,
+    pub status: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActionPlanListResponse {
+    pub organizations: Vec<OrganizationActionPlan>,
 }
 
 #[derive(Debug, Serialize)]

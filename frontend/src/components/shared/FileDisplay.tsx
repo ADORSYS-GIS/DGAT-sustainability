@@ -25,20 +25,20 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title = 'Attachments' 
             <title>${file.name || 'Image'}</title>
             <style>
               body { 
-                margin: 0; 
-                padding: 20px; 
-                background: #f5f5f5; 
-                display: flex; 
-                justify-content: center; 
-                align-items: center; 
-                min-height: 100vh; 
+                margin: 0;
+                padding: 0;
+                background: #f5f5f5;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
               }
-              img { 
-                max-width: 100%; 
-                max-height: 90vh; 
-                object-fit: contain; 
-                border-radius: 8px; 
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+              img {
+                width: 100%;
+                height: 100vh;
+                object-fit: contain;
+                border-radius: 0;
+                box-shadow: none;
               }
               .close-btn { 
                 position: fixed; 

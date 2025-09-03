@@ -127,10 +127,11 @@ async fn generate_report_content(
             .cloned()
             .unwrap_or_else(|| "No recommendation provided".to_string());
 
-        // Create category object with questions and single recommendation
+        // Create category object with questions, recommendation, and status
         let category_data = serde_json::json!({
             "questions": questions,
-            "recommendation": recommendation
+            "recommendation": recommendation,
+            "status": "todo" // Default status for new recommendations
         });
 
         result_object.insert(category, category_data);
@@ -327,6 +328,135 @@ pub async fn delete_report(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to delete report: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Get all action plans for all organizations (DGRV admin view)
+/// GET /admin/action-plans
+pub async fn list_all_action_plans(
+    Extension(token): Extension<String>,
+    State(app_state): State<AppState>,
+) -> Result<impl IntoResponse, ApiError> {
+    // Get all organizations from Keycloak
+    let organizations = app_state
+        .keycloak_service
+        .get_organizations(&token)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organizations: {e}")))?;
+
+    let mut action_plans = Vec::new();
+
+    for org in organizations {
+        // Get all submissions for this organization
+        let submissions = app_state
+            .database
+            .assessments_submission
+            .get_submissions_by_org(&org.id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions for org {}: {e}", org.id)))?;
+
+        let mut org_recommendations = Vec::new();
+
+        for submission in submissions {
+            // Get reports for this submission
+            let reports = app_state
+                .database
+                .submission_reports
+                .get_reports_by_submission(submission.submission_id)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch reports for submission {}: {e}", submission.submission_id)))?;
+
+            for report in reports {
+                if let Some(data) = report.data {
+                    // Parse the report data to extract recommendations
+                    if let Some(categories) = data.as_array() {
+                        for category_obj in categories {
+                            if let Some(category_map) = category_obj.as_object() {
+                                for (category_name, category_data) in category_map {
+                                    if let Some(category_obj) = category_data.as_object() {
+                                        if let Some(recommendation) = category_obj.get("recommendation") {
+                                            if let Some(recommendation_str) = recommendation.as_str() {
+                                                // Get the status from the category data, default to "todo" if not present
+                                                let status = category_obj.get("status")
+                                                    .and_then(|s| s.as_str())
+                                                    .unwrap_or("todo")
+                                                    .to_string();
+                                                
+                                                org_recommendations.push(RecommendationWithStatus {
+                                                    report_id: report.report_id,
+                                                    category: category_name.clone(),
+                                                    recommendation: recommendation_str.to_string(),
+                                                    status: status,
+                                                    created_at: report.generated_at.to_rfc3339(),
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if !org_recommendations.is_empty() {
+            action_plans.push(OrganizationActionPlan {
+                organization_id: Uuid::parse_str(&org.id).unwrap_or_else(|_| Uuid::nil()),
+                organization_name: org.name,
+                recommendations: org_recommendations,
+            });
+        }
+    }
+
+    Ok(Json(ActionPlanListResponse { organizations: action_plans }))
+}
+
+/// Update recommendation status (for org admins)
+/// PATCH /reports/{report_id}/recommendations/{category}/status
+pub async fn update_recommendation_status(
+    State(app_state): State<AppState>,
+    Path((report_id, category)): Path<(Uuid, String)>,
+    Json(request): Json<UpdateRecommendationStatusRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    // Validate status
+    let valid_statuses = vec!["todo", "in_progress", "done", "approved"];
+    if !valid_statuses.contains(&request.status.as_str()) {
+        return Err(ApiError::BadRequest(format!("Invalid status: {}. Must be one of: {:?}", request.status, valid_statuses)));
+    }
+
+    // Get the report
+    let report = app_state
+        .database
+        .submission_reports
+        .get_report_by_id(report_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch report: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Report not found".to_string()))?;
+
+    // Update the report data to include the status
+    if let Some(mut data) = report.data {
+        if let Some(categories) = data.as_array_mut() {
+            for category_obj in categories {
+                if let Some(category_map) = category_obj.as_object_mut() {
+                    if let Some(category_data) = category_map.get_mut(&category) {
+                        if let Some(category_obj) = category_data.as_object_mut() {
+                            category_obj.insert("status".to_string(), serde_json::Value::String(request.status.clone()));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update the report in the database
+        app_state
+            .database
+            .submission_reports
+            .update_report_status(report_id, report.status, Some(data))
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))?;
+    }
+
+    Ok(StatusCode::OK)
 }
 
 #[cfg(test)]

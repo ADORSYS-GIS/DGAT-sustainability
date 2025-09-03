@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import Chart from "chart.js/auto";
+import { OrganizationActionPlan, RecommendationWithStatus } from "../openapi-rq/requests/types.gen";
 
 // PDF export question type
 interface PDFQuestion {
@@ -11,9 +12,39 @@ interface PDFQuestion {
   };
 }
 
+// Structure for items within a report category, specifically when extracting questions/answers
+interface ReportCategoryItem {
+  question?: string;
+  answer?: {
+    yesNo?: boolean;
+    percentage?: number;
+    text?: string;
+  };
+  recommendation?: string;
+}
+
+// Structure for a category object within a report's data array
+interface ReportDataCategoryValue {
+  questions?: PDFQuestion[];
+  recommendation?: string;
+  answer?: { percentage?: number; yesNo?: boolean; text?: string };
+  [key: string]: unknown; // For radar data extraction, allows for other properties
+}
+
+interface ReportDataCategory {
+  [categoryName: string]: ReportCategoryItem | ReportCategoryItem[] | ReportDataCategoryValue;
+}
+
+interface AssessmentReport {
+  report_id: string;
+  data: ReportDataCategory[];
+}
+
 // Helper: Extract all questions, responses, and recommendations from a report
-function extractSubmissionSections(report) {
-  const sections = [];
+// This function might not be directly used with OrganizationActionPlan,
+// but kept for compatibility if report structure is still used elsewhere.
+function extractSubmissionSections(report: AssessmentReport) {
+  const sections: { category: string; question?: string; response?: unknown; recommendation?: string }[] = [];
   if (!Array.isArray(report.data)) return sections;
   for (const catObj of report.data) {
     if (catObj && typeof catObj === "object") {
@@ -21,14 +52,15 @@ function extractSubmissionSections(report) {
         const items = Array.isArray(arrOrObj) ? arrOrObj : [arrOrObj];
         for (const item of items) {
           if (item && typeof item === "object") {
+            const typedItem = item as ReportCategoryItem; // Cast for specific properties
             const question =
-              item.question ||
+              typedItem.question ||
               Object.keys(item).find(
                 (k) => k !== "answer" && k !== "recommendation",
               );
             const response =
-              item.answer || (question ? item[question] : undefined);
-            const recommendation = item.recommendation;
+              typedItem.answer || (question ? (item as ReportCategoryItem & { [key: string]: unknown })[question as keyof ReportCategoryItem] : undefined); // Fallback for dynamic access
+            const recommendation = typedItem.recommendation;
             sections.push({
               category,
               question: typeof question === "string" ? question : undefined,
@@ -43,37 +75,18 @@ function extractSubmissionSections(report) {
   return sections;
 }
 
-// Helper: Extract all recommendations for Kanban
-function extractKanbanTasks(reports) {
-  let idx = 0;
-  const tasks = [];
-  for (const report of reports) {
-    if (!Array.isArray(report.data)) continue;
-    for (const catObj of report.data) {
-      if (catObj && typeof catObj === "object") {
-        for (const [category, arrOrObj] of Object.entries(
-          catObj as Record<string, unknown>,
-        )) {
-          const items = Array.isArray(arrOrObj) ? arrOrObj : [arrOrObj];
-          for (const item of items) {
-            if (item && typeof item === "object" && "recommendation" in item) {
-              tasks.push({
-                id: `${report.report_id}-${category}-${idx++}`,
-                category,
-                recommendation: item.recommendation,
-                status: "todo", // default for now
-              });
-            }
-          }
-        }
-      }
-    }
+// Helper: Extract all recommendations for Kanban from OrganizationActionPlan
+function extractKanbanTasksFromActionPlans(actionPlans: OrganizationActionPlan[]): RecommendationWithStatus[] {
+  const allRecommendations: RecommendationWithStatus[] = [];
+  for (const plan of actionPlans) {
+    allRecommendations.push(...plan.recommendations);
   }
-  return tasks;
+  return allRecommendations;
 }
 
 // Helper: Extract radar chart data (dummy axes for now)
-function extractRadarData(reports) {
+// This function might need adjustment based on the actual data available in OrganizationActionPlan
+function extractRadarData(reports: AssessmentReport[]) {
   // Example axes
   const axes = [
     "Environmental",
@@ -97,10 +110,10 @@ function extractRadarData(reports) {
             if (
               item &&
               typeof item === "object" &&
-              item.answer &&
-              typeof item.answer.percentage === "number"
+              (item as ReportDataCategoryValue).answer &&
+              typeof (item as ReportDataCategoryValue).answer?.percentage === "number"
             ) {
-              sum += item.answer.percentage;
+              sum += (item as ReportDataCategoryValue).answer?.percentage || 0;
               count++;
             }
           }
@@ -115,7 +128,7 @@ function extractRadarData(reports) {
 }
 
 // Helper: Render radar chart to a hidden canvas and return image data
-async function renderRadarChartToImage({ axes, values, maxValues }) {
+async function renderRadarChartToImage({ axes, values, maxValues }: { axes: string[]; values: number[]; maxValues: number[] }) {
   // You must have a <canvas id="radar-canvas" width="500" height="400" style="display:none" /> in your DOM
   const canvas = document.getElementById(
     "radar-canvas",
@@ -126,6 +139,8 @@ async function renderRadarChartToImage({ axes, values, maxValues }) {
     canvas._chartInstance.destroy();
   }
   const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not get 2D context from canvas");
+
   const chart = new Chart(ctx, {
     type: "radar",
     data: {
@@ -172,18 +187,78 @@ async function renderRadarChartToImage({ axes, values, maxValues }) {
   return image;
 }
 
+// Helper: Render a bar chart for Kanban progress to a hidden canvas and return image data
+async function renderKanbanProgressChartToImage(
+  data: {
+    labels: string[];
+    datasets: {
+      label: string;
+      data: number[];
+      backgroundColor: string[];
+      borderColor: string[];
+      borderWidth: number;
+    }[];
+  },
+) {
+  const canvas = document.getElementById(
+    "kanban-progress-canvas",
+  ) as HTMLCanvasElement & { _chartInstance?: Chart };
+  if (!canvas)
+    throw new Error("Missing <canvas id='kanban-progress-canvas'> in DOM");
+
+  if (canvas._chartInstance) {
+    canvas._chartInstance.destroy();
+  }
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not get 2D context from canvas");
+
+  const chart = new Chart(ctx, {
+    type: "bar",
+    data: data,
+    options: {
+      indexAxis: 'y', // Horizontal bar chart
+      responsive: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: 'Recommendation Progress',
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            callback: function(value: number | string) {
+              return value + '%';
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  canvas._chartInstance = chart;
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const image = canvas.toDataURL("image/png");
+  chart.destroy();
+  return image;
+}
+
 // Helper: Group questions/answers/recommendations by category for tabular display
-function extractCategoryTables(report) {
-  const grouped = {};
+function extractCategoryTables(report: AssessmentReport) {
+  const grouped: Record<string, { question: string | undefined; response: PDFQuestion['answer']; recommendation: string | undefined }[]> = {};
   if (!Array.isArray(report.data)) return grouped;
   for (const catObj of report.data) {
     if (catObj && typeof catObj === "object") {
       for (const [category, value] of Object.entries(catObj)) {
         if (!value || typeof value !== "object") continue;
-        const catVal = value as {
-          questions?: PDFQuestion[];
-          recommendation?: string;
-        };
+        const catVal = value as ReportDataCategoryValue;
         const questions = Array.isArray(catVal.questions)
           ? catVal.questions
           : [];
@@ -200,10 +275,10 @@ function extractCategoryTables(report) {
 }
 
 // Helper: Extract one Kanban card per category (first recommendation per category, per status)
-function extractKanbanTasksOnePerCategory(reports) {
+function extractKanbanTasksOnePerCategory(reports: AssessmentReport[]) {
   let idx = 0;
-  const tasks = [];
-  const seen = new Set();
+  const tasks: { id: string; category: string; recommendation: string; status: string }[] = [];
+  const seen = new Set<string>();
   for (const report of reports) {
     if (!Array.isArray(report.data)) continue;
     for (const catObj of report.data) {
@@ -218,7 +293,7 @@ function extractKanbanTasksOnePerCategory(reports) {
               tasks.push({
                 id: `${report.report_id}-${category}-${idx++}`,
                 category,
-                recommendation: item.recommendation,
+                recommendation: (item as { recommendation: string }).recommendation,
                 status: "todo", // default for now
               });
               seen.add(category);
@@ -233,7 +308,7 @@ function extractKanbanTasksOnePerCategory(reports) {
 }
 
 // Helper: Calculate overall progress percentage from actual report data
-function calculateOverallProgress(reports) {
+function calculateOverallProgress(reports: AssessmentReport[]) {
   let totalPercentage = 0;
   let count = 0;
   
@@ -243,7 +318,8 @@ function calculateOverallProgress(reports) {
       if (catObj && typeof catObj === "object") {
         for (const [category, value] of Object.entries(catObj)) {
           if (value && typeof value === "object" && "questions" in value) {
-            const questions = Array.isArray(value.questions) ? value.questions : [];
+            const typedValue = value as ReportDataCategoryValue;
+            const questions = Array.isArray(typedValue.questions) ? typedValue.questions : [];
             for (const question of questions) {
               if (question.answer && typeof question.answer.percentage === "number") {
                 totalPercentage += question.answer.percentage;
@@ -260,8 +336,8 @@ function calculateOverallProgress(reports) {
 }
 
 // Helper: Extract category statistics from actual report data
-function extractCategoryStats(reports) {
-  const stats = {};
+function extractCategoryStats(reports: AssessmentReport[]) {
+  const stats: Record<string, { total: number; count: number; yesCount: number; noCount: number; average?: number }> = {};
   
   for (const report of reports) {
     if (!Array.isArray(report.data)) continue;
@@ -273,7 +349,8 @@ function extractCategoryStats(reports) {
           }
           
           if (value && typeof value === "object" && "questions" in value) {
-            const questions = Array.isArray(value.questions) ? value.questions : [];
+            const typedValue = value as ReportDataCategoryValue;
+            const questions = Array.isArray(typedValue.questions) ? typedValue.questions : [];
             for (const question of questions) {
               if (question.answer) {
                 stats[category].count++;
@@ -305,6 +382,30 @@ function extractCategoryStats(reports) {
   }
   
   return stats;
+}
+
+// Helper: Calculate Kanban progress percentages
+function calculateKanbanProgress(recommendations: RecommendationWithStatus[]) {
+  const total = recommendations.length;
+  const statusCounts = {
+    todo: 0,
+    in_progress: 0,
+    done: 0,
+    approved: 0,
+  };
+
+  recommendations.forEach((rec) => {
+    statusCounts[rec.status]++;
+  });
+
+  const progress = {
+    todo: total > 0 ? Math.round((statusCounts.todo / total) * 100) : 0,
+    in_progress: total > 0 ? Math.round((statusCounts.in_progress / total) * 100) : 0,
+    done: total > 0 ? Math.round((statusCounts.done / total) * 100) : 0,
+    approved: total > 0 ? Math.round((statusCounts.approved / total) * 100) : 0,
+  };
+
+  return progress;
 }
 
 // Helper: Draw gradient background
@@ -475,7 +576,10 @@ function drawLineChart(doc, x, y, width, height, data, label) {
 }
 
 // Main export function
-export async function exportAllAssessmentsPDF(reports) {
+export async function exportAllAssessmentsPDF(
+  reports: AssessmentReport[], // Keep original reports for tabular data and radar chart if still needed
+  organizationActionPlans: OrganizationActionPlan[], // New parameter for Kanban data
+) {
   const doc = new jsPDF({ orientation: "landscape" });
   let y = 20;
 
@@ -502,7 +606,7 @@ export async function exportAllAssessmentsPDF(reports) {
         img.crossOrigin = "anonymous";
         
         // Wait for the image to load before continuing
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
           img.onload = () => {
             console.log("Sustainability logo loaded successfully from:", path);
             try {
@@ -518,7 +622,7 @@ export async function exportAllAssessmentsPDF(reports) {
               doc.addImage(base64, "PNG", 10, y, 50, 50);
               y += 60; // Space after logo
               imageLoaded = true;
-              resolve(true);
+              resolve();
             } catch (error) {
               console.error("Could not add sustainability logo to PDF:", error);
               reject(error);
@@ -527,7 +631,7 @@ export async function exportAllAssessmentsPDF(reports) {
           
           img.onerror = (error) => {
             console.warn("Could not load sustainability logo from:", path, error);
-            resolve(false);
+            resolve();
           };
           
           // Set the source to trigger loading
@@ -591,9 +695,8 @@ export async function exportAllAssessmentsPDF(reports) {
     doc.setFont(undefined, "normal");
     y += 7;
     const grouped = extractCategoryTables(report);
-    for (const [category, rowsUnknown] of Object.entries(grouped)) {
-      const rows = Array.isArray(rowsUnknown) ? rowsUnknown : [];
-      if (y > 170) {
+    for (const [category, rows] of Object.entries(grouped)) {
+      if (y > doc.internal.pageSize.height - 40) { // Check if new page is needed for category header + table
         doc.addPage();
         y = 20;
       }
@@ -621,7 +724,7 @@ export async function exportAllAssessmentsPDF(reports) {
         colX[0],
         y - 4,
         colX[colX.length - 1] - colX[0],
-        10 + rows.length * 10,
+        10 + rows.length * 10, // Approximate height for rows
       ); // outer border
       for (let i = 1; i < colX.length - 1; i++) {
         doc.line(colX[i], y - 4, colX[i], y - 4 + 10 + rows.length * 10);
@@ -631,7 +734,7 @@ export async function exportAllAssessmentsPDF(reports) {
       // Table rows
       for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
         const row = rows[rowIdx];
-        if (y > 180) {
+        if (y > doc.internal.pageSize.height - 20) {
           doc.addPage();
           y = 20;
         }
@@ -716,122 +819,100 @@ export async function exportAllAssessmentsPDF(reports) {
       y += 4;
     }
     y += 4;
-    if (y > 180) {
+    if (y > doc.internal.pageSize.height - 20) {
       doc.addPage();
       y = 20;
     }
   }
 
-  // 2. Kanban Board Section (Tabular, Card-like, Colored Columns, one card per category)
-  if (y > 140) {
-    doc.addPage();
-    y = 20;
-  }
-  doc.setFontSize(18);
-  doc.text("Kanban Board (Recommendations)", 10, y);
-  y += 10;
-  doc.setFontSize(12);
-  const kanbanTasks = extractKanbanTasksOnePerCategory(reports);
-  const statuses = ["todo", "in_progress", "done", "approved"];
-  const statusLabels = {
-    todo: "To Do",
-    in_progress: "In Progress",
-    done: "Done",
-    approved: "Approved",
-  };
-  const statusColors = {
-    todo: [59, 130, 246] as [number, number, number], // blue
-    in_progress: [37, 99, 235] as [number, number, number], // darker blue
-    done: [16, 185, 129] as [number, number, number], // green
-    approved: [34, 197, 94] as [number, number, number], // emerald
-  };
-  const colWidth = 70;
-  const boardX = 10;
-  // Draw Kanban headers with colored bg
-  statuses.forEach((status, i) => {
-    doc.setFillColor(...(statusColors[status] as [number, number, number]));
-    doc.setTextColor(255, 255, 255);
-    doc.setFont(undefined, "bold");
-    doc.rect(boardX + i * colWidth, y - 4, colWidth - 2, 12, "F");
-    doc.text(statusLabels[status], boardX + 4 + i * colWidth, y + 4);
-    doc.setFont(undefined, "normal");
-  });
-  doc.setTextColor(0, 0, 0);
-  // Draw outer border for the board
-  doc.rect(boardX, y - 4, colWidth * statuses.length - 2, 100, "S");
-  // Draw vertical column lines
-  for (let i = 1; i < statuses.length; i++) {
-    doc.line(boardX + i * colWidth, y - 4, boardX + i * colWidth, y - 4 + 100);
-  }
-  y += 12;
-  // Group tasks by status, only one per category
-  const groupedTasks = {};
-  statuses.forEach(
-    (s) => (groupedTasks[s] = kanbanTasks.filter((t) => t.status === s)),
-  );
-  const maxRows = Math.max(...statuses.map((s) => groupedTasks[s].length));
-  const cardHeight = 20;
-  for (let row = 0; row < maxRows; row++) {
-    statuses.forEach((status, i) => {
-      const task = groupedTasks[status][row];
-      if (task) {
-        // Draw card-like cell
-        doc.setFillColor(245, 245, 245); // light card bg
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.2);
-        doc.roundedRect(
-          boardX + i * colWidth + 2,
-          y,
-          colWidth - 6,
-          cardHeight - 4,
-          2,
-          2,
-          "FD",
-        );
-        doc.setFont(undefined, "bold");
-        doc.text(task.category, boardX + i * colWidth + 6, y + 8, {
-          maxWidth: colWidth - 12,
-        });
-        doc.setFont(undefined, "normal");
-        doc.text(task.recommendation, boardX + i * colWidth + 6, y + 15, {
-          maxWidth: colWidth - 12,
-        });
-      } else {
-        // Empty column: show placeholder
-        doc.setTextColor(180, 180, 180);
-        doc.setFontSize(10);
-        doc.text(
-          "No tasks in " + statusLabels[status].toLowerCase(),
-          boardX + i * colWidth + 6,
-          y + 12,
-          { maxWidth: colWidth - 12 },
-        );
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
+  // Kanban Board Section (Recommendations from organizationActionPlans)
+  if (organizationActionPlans && organizationActionPlans.length > 0) {
+    for (const organizationPlan of organizationActionPlans) {
+      if (y > doc.internal.pageSize.height - 60) { // Ensure space for title and chart
+        doc.addPage();
+        y = 20;
       }
-    });
-    y += cardHeight;
-    if (y > 180) {
+      doc.setFontSize(18);
+      doc.text(`Kanban Board for ${organizationPlan.organization_name}`, 10, y);
+      y += 10;
+      doc.setFontSize(12);
+
+      const allRecommendations = organizationPlan.recommendations;
+      const kanbanProgress = calculateKanbanProgress(allRecommendations);
+      const progressLabels = ["To Do", "In Progress", "Done", "Approved"];
+      const progressDataValues = [
+        kanbanProgress.todo,
+        kanbanProgress.in_progress,
+        kanbanProgress.done,
+        kanbanProgress.approved,
+      ];
+      const progressColors = [
+        "rgba(59, 130, 246, 0.6)", // blue
+        "rgba(37, 99, 235, 0.6)", // darker blue
+        "rgba(16, 185, 129, 0.6)", // green
+        "rgba(34, 197, 94, 0.6)", // emerald
+      ];
+      const borderColors = [
+        "rgb(59, 130, 246)",
+        "rgb(37, 99, 235)",
+        "rgb(16, 185, 129)",
+        "rgb(34, 197, 94)",
+      ];
+
+      const kanbanChartData = {
+        labels: progressLabels,
+        datasets: [
+          {
+            label: "Progress",
+            data: progressDataValues,
+            backgroundColor: progressColors,
+            borderColor: borderColors,
+            borderWidth: 1,
+          },
+        ],
+      };
+
+      const kanbanChartImg = await renderKanbanProgressChartToImage(kanbanChartData);
+      doc.addImage(kanbanChartImg, "PNG", 10, y, 150, 100);
+      y += 110;
+
+      // Display individual recommendations (simple list)
+      doc.setFontSize(14);
+      doc.text("Recommendations:", 10, y);
+      y += 7;
+      doc.setFontSize(10);
+      for (const rec of allRecommendations) {
+        if (y > doc.internal.pageSize.height - 20) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(`- Category: ${rec.category}, Status: ${rec.status}, Recommendation: ${rec.recommendation}`, 15, y);
+        y += 7;
+      }
+      y += 10; // Space between organizations
+    }
+  }
+
+
+  // 3. Radar Chart Section (unchanged, still uses 'reports' parameter)
+  // This section assumes 'reports' still contains the data for the radar chart.
+  // If the radar chart should also use OrganizationActionPlan data, further adjustments are needed.
+  if (reports && reports.length > 0) {
+    if (y > doc.internal.pageSize.height - 120) { // Ensure space for radar chart
       doc.addPage();
       y = 20;
     }
+    doc.setFontSize(18);
+    doc.text("Radar Chart (Sustainability Scores)", 10, y);
+    y += 10;
+    const radarData = extractRadarData(reports);
+    const radarImg = await renderRadarChartToImage(radarData);
+    doc.addImage(radarImg, "PNG", 10, y, 120, 90);
   }
-  y += 10;
-
-  // 3. Radar Chart Section (unchanged)
-  if (y > 140) {
-    doc.addPage();
-    y = 20;
-  }
-  doc.setFontSize(18);
-  doc.text("Radar Chart (Sustainability Scores)", 10, y);
-  y += 10;
-  const radarData = extractRadarData(reports);
-  const radarImg = await renderRadarChartToImage(radarData);
-  doc.addImage(radarImg, "PNG", 10, y, 120, 90);
 
   // Save the PDF
   doc.save("assessment-report.pdf");
 }
 
-// NOTE: You must have a <canvas id="radar-canvas" width="500" height="400" style={{display:'none'}} /> in your DOM for this to work!
+// NOTE: You must have <canvas id="radar-canvas" width="500" height="400" style={{display:'none'}} />
+// and <canvas id="kanban-progress-canvas" width="600" height="400" style={{display:'none'}} /> in your DOM for this to work!
