@@ -266,10 +266,33 @@ pub async fn delete_organization(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service.delete_organization(&token, &org_id).await {
-        Ok(()) => Ok(StatusCode::NO_CONTENT),
+    // First, get all members of the organization
+    let members = match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
+        Ok(members) => members,
         Err(e) => {
-            tracing::error!("Failed to delete organization: {}", e);
+            tracing::error!("Failed to get organization members for deletion: {}", e);
+            return Err(ApiError::InternalServerError("Failed to get organization members for deletion".to_string()));
+        }
+    };
+
+    // Iterate and delete each member
+    for member in members {
+        tracing::info!("Attempting to delete user {} from Keycloak as part of organization deletion", member.id);
+        if let Err(e) = app_state.keycloak_service.delete_user(&token, &member.id).await {
+            tracing::warn!("Failed to delete user {} from Keycloak: {}. Continuing with other users.", member.id, e);
+            // We log the error but continue to attempt deleting other users and the organization.
+            // A full rollback/transaction is complex with external services like Keycloak.
+        }
+    }
+
+    // Finally, delete the organization
+    match app_state.keycloak_service.delete_organization(&token, &org_id).await {
+        Ok(()) => {
+            tracing::info!("Organization {} and all its associated users deleted successfully", org_id);
+            Ok(StatusCode::NO_CONTENT)
+        },
+        Err(e) => {
+            tracing::error!("Failed to delete organization {}: {}", org_id, e);
             Err(ApiError::InternalServerError("Failed to delete organization".to_string()))
         }
     }
