@@ -2,7 +2,7 @@
 
 # ==== CONFIGURATION ====
 export KEYCLOAK_BIN_DIR=/opt/keycloak/bin
-export KEYCLOAK_SERVER=https://ec2-3-120-151-17.eu-central-1.compute.amazonaws.com/keycloak
+export KEYCLOAK_SERVER=https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak
 export TRUSTSTORE=/opt/keycloak/bin/truststore.jks
 export REALM=sustainability-realm
 export ADMIN_USER=admin
