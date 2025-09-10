@@ -19,6 +19,7 @@ import {
   useOfflineResponses,
   useOfflineSyncStatus,
   useOfflineDraftAssessments,
+  useOfflineCategories,
 } from "../../hooks/useOfflineApi";
 import { toast } from "sonner";
 import { Info, Paperclip, ChevronLeft, ChevronRight, Send, FileText } from "lucide-react";
@@ -84,6 +85,7 @@ export const Assessment: React.FC = () => {
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
+  const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategories();
   const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineDraftAssessments();
   const { data: existingResponses, isLoading: responsesLoading } = useOfflineResponses(assessmentId || "");
   const { createAssessment, submitDraftAssessment: submitDraftAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
@@ -137,15 +139,28 @@ export const Assessment: React.FC = () => {
 
   const orgInfo = React.useMemo(() => {
     if (!user) return { orgId: "", categories: [] };
+
+    const allRoles = [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
+    const isOrgAdmin = allRoles.includes("org_admin");
+
     let orgId = "";
+    let userCategories: string[] = [];
+
     if (user.organizations && typeof user.organizations === "object") {
       const orgKeys = Object.keys(user.organizations);
       if (orgKeys.length > 0) {
         const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
         orgId = orgData?.id || "";
+        if (isOrgAdmin) {
+          userCategories = orgData?.categories || [];
+        }
       }
     }
-    const userCategories = user.categories || [];
+
+    if (!isOrgAdmin && user.categories && Array.isArray(user.categories)) {
+      userCategories = user.categories;
+    }
+
     return { orgId, categories: userCategories };
   }, [user]);
 
@@ -164,7 +179,7 @@ export const Assessment: React.FC = () => {
 
   // Handle assessment selection
   const handleSelectAssessment = (selectedAssessmentId: string) => {
-    navigate(`/assessment/${selectedAssessmentId}`);
+    navigate(`/user/assessment/${selectedAssessmentId}`);
   };
 
   // Handle assessment creation from modal
@@ -653,7 +668,7 @@ export const Assessment: React.FC = () => {
     );
   }
 
-  if (assessmentLoading || responsesLoading || !assessmentDetail) {
+  if (assessmentLoading || responsesLoading || !assessmentDetail || categoriesLoading) {
     return (
       <>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -675,6 +690,7 @@ export const Assessment: React.FC = () => {
   }
 
   const currentCategory = categories[currentCategoryIndex];
+  const currentCategoryObject = categoriesData?.categories.find(c => c.name === currentCategory);
   const currentQuestions = getCurrentCategoryQuestions();
   const progress = ((currentCategoryIndex + 1) / categories.length) * 100;
   const isLastCategory = currentCategoryIndex === categories.length - 1;
@@ -768,7 +784,14 @@ export const Assessment: React.FC = () => {
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="text-xl text-dgrv-blue">{currentCategory}</CardTitle>
+            <CardTitle className="text-xl text-dgrv-blue">
+              {currentCategory}
+              {currentCategoryObject && (
+                <span className="text-base text-gray-500 font-normal ml-2">
+                  ({t("weight", { defaultValue: "Weight" })}: {currentCategoryObject.weight})
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
             {currentQuestions.map((question, index) => {

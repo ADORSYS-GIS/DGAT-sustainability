@@ -1469,7 +1469,7 @@ export function useOfflineAdminActionPlans() {
 }
 
 export function useOfflineReports() {
-  const [data, setData] = useState<{ recommendations: OfflineRecommendation[] }>({ recommendations: [] });
+  const [data, setData] = useState<{ recommendations: OfflineRecommendation[]; reports: Report[] }>({ recommendations: [], reports: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth(); // Get current user for organization_id context
@@ -1493,7 +1493,7 @@ export function useOfflineReports() {
             allOfflineRecommendations.push(...transformedRecs);
           }
           await offlineDB.saveRecommendations(allOfflineRecommendations);
-          return { recommendations: allOfflineRecommendations }; // Return the transformed data
+          return { recommendations: allOfflineRecommendations, reports: reports.reports }; // Return the transformed data and raw reports
         },
         async () => {
           // Offline fallback: fetch all recommendations from IndexedDB
@@ -1502,13 +1502,14 @@ export function useOfflineReports() {
           return {
             recommendations: user?.organization
               ? offlineRecommendations.filter(rec => rec.organization_id === user.organization)
-              : offlineRecommendations
+              : offlineRecommendations,
+            reports: [], // No raw reports available offline
           };
         },
         'user_recommendations'
       );
 
-      setData(result);
+      setData(result as { recommendations: OfflineRecommendation[], reports: Report[] });
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch user recommendations'));
     } finally {

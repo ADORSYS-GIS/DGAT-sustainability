@@ -47,7 +47,8 @@ const routes = [
   {
     path: "/dashboard",
     element: React.createElement(ProtectedRoute, { 
-      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User],
+      requireOrganization: true,
     }),
     children: [{ path: "", element: React.createElement(Dashboard) }],
   },

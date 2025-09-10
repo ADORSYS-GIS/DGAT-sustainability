@@ -22,7 +22,14 @@ export const Welcome: React.FC = () => {
     if (isDrgvAdmin && window.location.pathname !== "/admin/") {
       navigate("/admin/dashboard", { replace: true });
     } else if (
-      (isOrgAdmin || isOrgUser) &&
+      isOrgAdmin &&
+      window.location.pathname !== "/dashboard"
+    ) {
+      navigate("/dashboard", { replace: true });
+    } else if (
+      isOrgUser &&
+      user?.organizations &&
+      Object.keys(user.organizations).length > 0 &&
       window.location.pathname !== "/dashboard"
     ) {
       navigate("/dashboard", { replace: true });

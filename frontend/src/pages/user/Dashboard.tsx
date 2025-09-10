@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
+import { exportAllAssessmentsDOCX } from "@/utils/exportDOCX";
 import {
   CheckSquare,
   Download,
@@ -14,16 +15,33 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import type { Submission } from "../../openapi-rq/requests/types.gen";
+import { Radar, Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+} from "chart.js";
+import type { Submission, OrganizationActionPlan } from "../../openapi-rq/requests/types.gen";
+import type { OfflineRecommendation } from "@/types/offline";
 import { toast } from "sonner";
+import { generateRadarChartData } from "@/utils/radarChart";
+import { generateRecommendationChartData } from "@/utils/recommendationChart";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { OrgUserManageUsers } from "./OrgUserManageUsers";
 import { 
-  useOfflineSubmissions, 
-  useOfflineReports, 
+  useOfflineSubmissions,
+  useOfflineReports,
   useOfflineAssessments,
-  useOfflineAdminSubmissions
+  useOfflineAdminSubmissions,
+  useOfflineUserRecommendations,
 } from "@/hooks/useOfflineApi";
 import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
 
@@ -31,12 +49,15 @@ export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const chartRef = React.useRef<ChartJS<"radar">>(null);
+  const recommendationChartRef = React.useRef<ChartJS<"bar">>(null);
   
   // Always call both hooks to avoid React hooks violation
   const { data: userSubmissionsData, isLoading: userSubmissionsLoading, error: userSubmissionsError } = useOfflineSubmissions();
   const { data: adminSubmissionsData, isLoading: adminSubmissionsLoading, error: adminSubmissionsError } = useOfflineAdminSubmissions();
   const { data: reportsData, isLoading: reportsLoading } = useOfflineReports();
   const { data: assessmentsData } = useOfflineAssessments();
+  const { data: userRecommendations } = useOfflineUserRecommendations();
   
   // Add initial data loading hook
   const { refreshData } = useInitialDataLoad();
@@ -87,7 +108,7 @@ export const Dashboard: React.FC = () => {
   }, [assessmentsData?.assessments, user?.organizations]);
   
   const submissions: Submission[] = submissionsData?.submissions?.slice(0, 5) || [];
-  const reports = reportsData?.reports || [];
+  const recommendations: OfflineRecommendation[] = reportsData?.recommendations || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
 
   React.useEffect(() => {
@@ -103,7 +124,7 @@ export const Dashboard: React.FC = () => {
   // Remove the offline status useEffect
 
   const dashboardActions = [
-    // Only org_admin can start new assessment
+    // 1. Start Assessment (org_admin)
     ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
@@ -115,7 +136,7 @@ export const Dashboard: React.FC = () => {
           },
         ]
       : []),
-    // Only Org_User sees 'Answer Assessment' card
+    // Answer Assessment (Org_User)
     ...(!user?.roles?.includes("org_admin") && !user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
@@ -123,30 +144,12 @@ export const Dashboard: React.FC = () => {
             description: t('user.dashboard.answerAssessment.description'),
             icon: FileText,
             color: "blue" as const,
-            onClick: () => {
-              // Navigate to assessment list page instead of directly to an assessment
-              navigate("/user/assessment-list");
-            },
+            onClick: () => navigate("/user/assessment-list"),
           },
         ]
       : []),
-    {
-      title: t('user.dashboard.viewAssessments.title'),
-      description: t('user.dashboard.viewAssessments.description'),
-      icon: FileText,
-      color: "blue" as const,
-      onClick: () => navigate("/assessments"),
-    },
-    {
-      title: t('user.dashboard.actionPlan.title'),
-      description: t('user.dashboard.actionPlan.description'),
-      icon: CheckSquare,
-      color: "blue" as const,
-      onClick: () => navigate("/action-plan"),
-    },
-    // Conditionally add Manage Users card for org admins
-    ...(user?.roles?.includes("org_admin") ||
-    user?.realm_access?.roles?.includes("org_admin")
+    // 2. Manage Users (org_admin)
+    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
             title: t('user.dashboard.manageUsers.title'),
@@ -155,6 +158,11 @@ export const Dashboard: React.FC = () => {
             color: "blue" as const,
             onClick: () => navigate("/user/manage-users"),
           },
+        ]
+      : []),
+    // 3. Draft Submissions (org_admin)
+    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
+      ? [
           {
             title: t('user.dashboard.draftSubmissions.title'),
             description: t('user.dashboard.draftSubmissions.description'),
@@ -164,6 +172,22 @@ export const Dashboard: React.FC = () => {
           },
         ]
       : []),
+    // 4. View Assessments (all users)
+    {
+      title: t('user.dashboard.viewAssessments.title'),
+      description: t('user.dashboard.viewAssessments.description'),
+      icon: FileText,
+      color: "blue" as const,
+      onClick: () => navigate("/assessments"),
+    },
+    // 5. Action Plan (all users)
+    {
+      title: t('user.dashboard.actionPlan.title'),
+      description: t('user.dashboard.actionPlan.description'),
+      icon: CheckSquare,
+      color: "blue" as const,
+      onClick: () => navigate("/action-plan"),
+    },
   ];
 
   const getStatusColor = (status: string) => {
@@ -205,7 +229,29 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleExportAllPDF = async () => {
-    await exportAllAssessmentsPDF(reports);
+    const radarChartDataUrl = chartRef.current?.toBase64Image();
+    const recommendationChartDataUrl =
+      recommendationChartRef.current?.toBase64Image();
+
+    await exportAllAssessmentsPDF(
+      adminSubmissionsData?.submissions || [],
+      userRecommendations?.recommendations || [],
+      radarChartDataUrl,
+      recommendationChartDataUrl
+    );
+  };
+
+  const handleExportAllDOCX = async () => {
+    const radarChartDataUrl = chartRef.current?.toBase64Image();
+    const recommendationChartDataUrl =
+      recommendationChartRef.current?.toBase64Image();
+
+    await exportAllAssessmentsDOCX(
+      adminSubmissionsData?.submissions || [],
+      userRecommendations?.recommendations || [],
+      radarChartDataUrl,
+      recommendationChartDataUrl
+    );
   };
 
   // Get user name and organization name from user object (ID token)
@@ -232,8 +278,57 @@ export const Dashboard: React.FC = () => {
     "Org_admin",
   );
 
+  ChartJS.register(
+    RadialLinearScale,
+    PointElement,
+    LineElement,
+    Filler,
+    Tooltip,
+    Legend,
+    BarElement,
+    CategoryScale,
+    LinearScale
+  );
+
+  const radarChartData = React.useMemo(() => {
+    if (reportsData?.reports) {
+      return generateRadarChartData({ reports: reportsData.reports });
+    }
+    return null;
+  }, [reportsData]);
+
+
+  const radarChartOptions = {
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        pointLabels: {
+          font: {
+            size: 14, // Increase font size for category labels
+          },
+        },
+      },
+    },
+  };
+
+  const recommendationChartInfo = React.useMemo(() => {
+    if (userRecommendations?.recommendations) {
+      return generateRecommendationChartData(userRecommendations.recommendations);
+    }
+    return null;
+  }, [userRecommendations]);
+ 
   return (
     <div className="min-h-screen bg-gray-50">
+      {recommendationChartInfo && (
+        <div style={{ width: '800px', height: '400px', position: 'absolute', zIndex: -1, opacity: 0 }}>
+          <Bar
+            ref={recommendationChartRef}
+            data={recommendationChartInfo.data}
+            options={recommendationChartInfo.options}
+          />
+        </div>
+      )}
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 animate-fade-in">
@@ -348,10 +443,19 @@ export const Dashboard: React.FC = () => {
                       size="sm"
                       className="w-full justify-start"
                       onClick={handleExportAllPDF}
-                      disabled={reportsLoading || reports.length === 0}
+                      disabled={reportsLoading}
                     >
                       {t('user.dashboard.exportAsPDF')}
                     </Button>
+                    {/* <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={handleExportAllDOCX}
+                      disabled={reportsLoading}
+                    >
+                      {t('user.dashboard.exportAsDOCX')}
+                    </Button> */}
                   </div>
                 </CardContent>
               </Card>
@@ -379,16 +483,23 @@ export const Dashboard: React.FC = () => {
               </Card>
             </div>
           </div>
+
+          {radarChartData && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+              <Card className="animate-fade-in">
+                <CardHeader>
+                  <CardTitle>{t('user.dashboard.sustainabilityOverview')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div style={{ height: '400px' }}>
+                    <Radar ref={chartRef} data={radarChartData} options={radarChartOptions} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
-      {/* Remove modal logic for Manage Users */}
-      {/* Hidden canvas for PDF radar chart export */}
-      <canvas
-        id="radar-canvas"
-        width={500}
-        height={400}
-        style={{ display: "none" }}
-      />
     </div>
   );
 };

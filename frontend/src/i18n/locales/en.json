@@ -504,6 +504,7 @@
       "exportReports": "Export Reports",
       "downloadReportsDescription": "Download your assessment reports in various formats.",
       "exportAsPDF": "Export as PDF",
+      "exportAsDOCX": "Export as DOCX",
       "exportAsWord": "Export as Word",
       "exportAsCSV": "Export as CSV",
       "needHelp": "Need Help?",
@@ -567,7 +568,8 @@
       },
       "noDraftAssessment": "No draft assessment available to answer.",
       "sustainabilityAssessment": "Sustainability Assessment",
-      "noSubmissionsMessage": "No submissions yet. Start your first assessment above!"
+      "noSubmissionsMessage": "No submissions yet. Start your first assessment above!",
+      "sustainabilityOverview": "Sustainability Overview"
     }
   },
   "manageUsers.selectOrganization": "Select an Organization",

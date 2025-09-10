@@ -564,7 +564,8 @@
       },
       "noDraftAssessment": "Aucun brouillon d'évaluation disponible à répondre.",
       "sustainabilityAssessment": "Évaluation de la durabilité",
-      "noSubmissionsMessage": "Aucune soumission pour le moment. Commencez votre première évaluation ci-dessus !"
+      "noSubmissionsMessage": "Aucune soumission pour le moment. Commencez votre première évaluation ci-dessus !",
+      "sustainabilityOverview": "Aperçu de la durabilité"
     }
   },
   "manageUsers.selectOrganization": "Sélectionner une organisation",

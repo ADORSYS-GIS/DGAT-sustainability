@@ -6,11 +6,13 @@ import React from "react";
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
+  requireOrganization?: boolean;
   children?: React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   allowedRoles,
+  requireOrganization,
   children,
 }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -44,6 +46,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (allowedRoles && allowedRoles.length > 0 && !hasRequiredRole) {
     toast.error("You don't have permission to access this page.");
     return <Navigate to="/unauthorized" replace />;
+  }
+
+  if (requireOrganization && !user?.organizations) {
+    toast.error("You must be part of an organization to access this page.");
+    return <Navigate to="/" replace />;
   }
 
   // Render the protected content
