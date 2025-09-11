@@ -1,56 +1,98 @@
-import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useSubmissionsServiceGetSubmissions } from "../../openapi-rq/queries/queries";
-import type { Submission } from "../../openapi-rq/requests/types.gen";
-import { Calendar, Download, Eye, FileText, Star } from "lucide-react";
+import { useAuth } from "@/hooks/shared/useAuth";
+import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
+import { offlineDB } from "@/services/indexeddb";
+import type { Assessment } from "@/openapi-rq/requests/types.gen";
+import type { Submission } from "@/openapi-rq/requests/types.gen";
+import { Calendar, Eye, FileText, Trash2 } from "lucide-react";
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavigateFunction } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { Navbar } from "@/components/shared/Navbar";
+
+type AuthUser = {
+  sub?: string;
+  name?: string;
+  preferred_username?: string;
+  email?: string;
+  roles?: string[];
+  organizations?: Record<string, unknown>;
+  realm_access?: { roles?: string[] };
+  organisation_name?: string;
+  organisation?: string;
+};
+
+// Extend Assessment type to include status for local use
+type AssessmentWithStatus = Assessment & { status?: string };
 
 export const Assessments: React.FC = () => {
-  const { data, isLoading } = useSubmissionsServiceGetSubmissions();
-  const submissions: Submission[] = data?.submissions || [];
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "bg-dgrv-green text-white";
-      case "pending_review":
-        return "bg-blue-500 text-white";
-      case "under_review":
-        return "bg-orange-500 text-white";
-      case "rejected":
-        return "bg-red-500 text-white";
-      case "revision_requested":
-        return "bg-yellow-500 text-white";
-      default:
-        return "bg-gray-500 text-white";
+  // Fetch all submissions for the current user/org
+  const { data, isLoading: remoteLoading, refetch } = useOfflineSubmissions();
+  const submissions = data?.submissions || [];
+
+  // Delete submission mutation
+  const { deleteSubmission, isPending: isDeleting } = useOfflineSubmissionsMutation();
+
+  useEffect(() => {
+    setIsLoading(remoteLoading);
+  }, [remoteLoading]);
+
+  // Helper function to count unique categories completed and total for a submission
+  const getCategoryCounts = (submission: Submission) => {
+    try {
+      // Extract responses from submission content
+      const responses = submission?.content?.responses || [];
+      const completed = responses.length;
+      
+      // For total categories, we need to get the assessment details
+      // For now, we'll use a reasonable estimate or fetch from assessment
+      const total = completed > 0 ? Math.max(completed, 3) : 0; // Default to at least 3 categories
+      
+      return { completed, total };
+    } catch (error) {
+      console.warn('Error calculating category counts:', error);
+      return { completed: 0, total: 0 };
     }
   };
 
-  const formatStatus = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "Approved";
-      case "pending_review":
-        return "Pending Review";
-      case "under_review":
-        return "Under Review";
-      case "rejected":
-        return "Rejected";
-      case "revision_requested":
-        return "Revision Requested";
-      default:
-        return "Unknown";
+  // Helper function to check if user is org_admin
+  const isOrgAdmin = () => {
+    if (!user?.roles) return false;
+    return user.roles.includes('org_admin');
+  };
+
+  // Handle delete submission
+  const handleDeleteSubmission = async (submissionId: string) => {
+    try {
+      await deleteSubmission(submissionId, {
+        onSuccess: () => {
+          toast.success(t('submission.deleted', { defaultValue: 'Submission deleted successfully' }));
+          refetch(); // Refresh the list
+        },
+        onError: (error) => {
+          toast.error(t('submission.deleteError', { defaultValue: 'Failed to delete submission' }));
+          console.error('Delete submission error:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Delete submission error:', error);
     }
   };
+
+
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="pt-20 pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
@@ -58,130 +100,143 @@ export const Assessments: React.FC = () => {
     );
   }
 
+  // Card for each submission
+  const SubmissionCard: React.FC<{
+    submission: Submission;
+    user: AuthUser | null;
+    navigate: NavigateFunction;
+    index: number;
+    onDelete: (submissionId: string) => void;
+    isDeleting: boolean;
+    isOrgAdmin: boolean;
+  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin }) => {
+    const { completed, total } = getCategoryCounts(submission);
+    
+    return (
+      <Card
+        key={submission.submission_id}
+        className="animate-fade-in"
+        style={{ animationDelay: `${index * 100}ms` }}
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-3">
+              <div className="p-2 rounded-full bg-dgrv-green/10">
+                <FileText className="w-5 h-5 text-dgrv-green" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">
+                  {t("sustainability")} {t("assessment")} {t("submission", { defaultValue: "Submission" })}
+                </h3>
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      {t("submittedAt")}: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "-"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardTitle>
+            <div className="flex items-center space-x-3">
+              <Badge
+                className={
+                  submission.review_status === "approved"
+                    ? "bg-dgrv-green text-white"
+                    : submission.review_status === "rejected"
+                    ? "bg-red-500 text-white"
+                    : submission.review_status === "under_review"
+                    ? "bg-yellow-500 text-white"
+                    : "bg-gray-500 text-white"
+                }
+              >
+                {submission.review_status
+                  ? submission.review_status.charAt(0).toUpperCase() +
+                    submission.review_status.slice(1).replace('_', ' ')
+                  : "-"}
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              <p>
+                {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}/{total}
+              </p>
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  navigate(`/submission-view/${submission.submission_id}`)
+                }
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                {t("viewSubmission")}
+              </Button>
+              {isOrgAdmin && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => onDelete(submission.submission_id)}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  {isDeleting ? t("deleting", { defaultValue: "Deleting..." }) : t("delete", { defaultValue: "Delete" })}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
+      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <FileText className="w-8 h-8 text-dgrv-blue" />
+            <h1 className="text-3xl font-bold text-dgrv-blue">
+              {t("yourSubmissions", { defaultValue: "Your Submissions" })}
+            </h1>
+          </div>
+          <p className="text-lg text-gray-600">
+            {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
+          </p>
+        </div>
 
-      <div className="pt-20 pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center space-x-3 mb-4">
-                  <FileText className="w-8 h-8 text-dgrv-blue" />
-                  <h1 className="text-3xl font-bold text-dgrv-blue">
-                    Your Submissions
-                  </h1>
-                </div>
-                <p className="text-lg text-gray-600">
-                  View and manage all your sustainability submissions
+        <div className="grid gap-6">
+          {submissions.map((submission: Submission, index) => (
+            <SubmissionCard
+              key={submission.submission_id}
+              submission={submission}
+              user={user}
+              navigate={navigate}
+              index={index}
+              onDelete={handleDeleteSubmission}
+              isDeleting={isDeleting}
+              isOrgAdmin={isOrgAdmin()}
+            />
+          ))}
+
+          {submissions.length === 0 && !isLoading && (
+            <Card className="text-center py-12">
+              <CardContent>
+                <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {t("noSubmissions", { defaultValue: "No Submissions" })}
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
                 </p>
-              </div>
-              <Button
-                onClick={() => navigate("/assessment/sustainability")}
-                className="bg-dgrv-green hover:bg-green-700"
-              >
-                Start New Assessment
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-6">
-            {submissions.map((submission, index) => (
-              <Card
-                key={submission.submission_id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center space-x-3">
-                      <div className="p-2 rounded-full bg-dgrv-green/10">
-                        <FileText className="w-5 h-5 text-dgrv-green" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">
-                          Sustainability Assessment
-                        </h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              Submitted:{" "}
-                              {new Date(
-                                submission.submitted_at,
-                              ).toLocaleDateString()}
-                            </span>
-                          </div>
-                          {submission.reviewed_at && (
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>
-                                Reviewed:{" "}
-                                {new Date(
-                                  submission.reviewed_at,
-                                ).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardTitle>
-                    <div className="flex items-center space-x-3">
-                      <Badge
-                        className={getStatusColor(submission.review_status)}
-                      >
-                        {formatStatus(submission.review_status)}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      <p>Submission ID: {submission.submission_id}</p>
-                      <p>Assessment ID: {submission.assessment_id}</p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          navigate(
-                            `/submission-view/${submission.submission_id}`,
-                          )
-                        }
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {submissions.length === 0 && (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No submissions yet
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    Start your first sustainability assessment to track your
-                    cooperative's progress.
-                  </p>
-                  <Button
-                    onClick={() => navigate("/assessment/sustainability")}
-                    className="bg-dgrv-green hover:bg-green-700"
-                  >
-                    Start Assessment
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

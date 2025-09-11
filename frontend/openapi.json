@@ -15,19 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://virtserver.swaggerhub.com/adorsys-cc2/DGAT-Sustainaibility/1.0.0",
-      "description": "SwaggerHub API Auto Mocking"
-    },
-    {
-      "url": "https://api.assessment-system.com/api/v1",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Production server"
     },
     {
-      "url": "https://staging-api.assessment-system.com/api/v1",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Staging server"
     },
     {
-      "url": "http://localhost:8080/api/v1",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Development server"
     }
   ],
@@ -61,36 +57,14 @@
       "get": {
         "tags": ["Questions"],
         "summary": "List questions",
-        "description": "Get all questions with optional filtering. When question_revision_id is provided, returns the question containing that specific revision.",
-        "operationId": "list_questions",
-        "parameters": [
-          {
-            "name": "category",
-            "in": "query",
-            "description": "Filter by question category",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "description": "Language for content",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "en"
-            }
-          }
-        ],
+        "description": "Get all questions",
         "responses": {
           "200": {
-            "description": "List of questions",
+            "description": "List of questions with their revisions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QuestionListResponse"
+                  "$ref": "#/components/schemas/QuestionListWithRevisionsResponse"
                 }
               }
             }
@@ -278,28 +252,20 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         }
-      },
+      }
+    },
+    "/questions/revisions/{question_revision_id}": {
       "delete": {
         "tags": ["Questions"],
-        "summary": "Delete question",
-        "description": "Delete a question (Admin only). Include question_revision_id for optimistic locking.",
-        "operationId": "delete_question",
+        "summary": "Delete question revision",
+        "description": "Delete a question revision (Admin only). Requires question_revision_id as path parameter.",
+        "operationId": "delete_question_revision",
         "parameters": [
           {
-            "name": "question_id",
-            "in": "path",
-            "description": "Question ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
             "name": "question_revision_id",
-            "in": "query",
-            "description": "Current revision ID for optimistic locking",
-            "required": false,
+            "in": "path",
+            "description": "Question Revision ID",
+            "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -308,7 +274,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Question deleted successfully"
+            "description": "Question revision deleted successfully"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -335,11 +301,208 @@
         }
       }
     },
+    "/categories": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "List categories",
+        "description": "Get all categories",
+        "operationId": "list_categories",
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Categories"],
+        "summary": "Create category",
+        "description": "Create a new category (Admin only)",
+        "operationId": "create_category",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/categories/{category_id}": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Get category",
+        "description": "Get specific category by ID",
+        "operationId": "get_category",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Categories"],
+        "summary": "Update category",
+        "description": "Update a category (Admin only)",
+        "operationId": "update_category",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Categories"],
+        "summary": "Delete category",
+        "description": "Delete a category (Admin only)",
+        "operationId": "delete_category",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Category deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/assessments": {
       "get": {
         "tags": ["Assessments"],
-        "summary": "List assessments",
-        "description": "Get user's draft assessments",
+        "summary": "List assessments (org-scoped)",
+        "description": "Get all draft and submitted assessments for the current user's organization. Accessible to both org_admin and Org_User.",
         "operationId": "list_assessments",
         "parameters": [
           {
@@ -350,6 +513,16 @@
             "schema": {
               "type": "string",
               "default": "en"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by assessment status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["draft", "submitted"]
             }
           }
         ],
@@ -374,18 +547,25 @@
       },
       "post": {
         "tags": ["Assessments"],
-        "summary": "Create assessment",
-        "description": "Create a new draft assessment",
+        "summary": "Create assessment (org-scoped)",
+        "description": "Create a new draft assessment for the current user's organization. Only accessible to org_admin.",
         "operationId": "create_assessment",
         "requestBody": {
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateAssessmentRequest"
+                "type": "object",
+                "properties": {
+                  "language": {
+                    "type": "string",
+                    "default": "en",
+                    "description": "Language for the assessment"
+                  }
+                }
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -535,11 +715,100 @@
         }
       }
     },
+    "/assessments/{assessment_id}/draft": {
+      "post": {
+        "tags": ["Assessments"],
+        "summary": "Submit draft assessment",
+        "description": "Submit a draft assessment for admin approval (creates pending submission)",
+        "operationId": "submit_draft_assessment",
+        "parameters": [
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "description": "Assessment ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Draft assessment submitted for approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftSubmissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/drafts": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List draft submissions",
+        "description": "Get all draft submissions pending admin approval (Admin only)",
+        "operationId": "list_draft_submissions",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by draft status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending_approval",
+                "approved",
+                "rejected"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of draft submissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftSubmissionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/assessments/{assessment_id}/submit": {
       "post": {
         "tags": ["Assessments"],
-        "summary": "Submit assessment",
-        "description": "Submit a draft assessment for review (creates immutable submission)",
+        "summary": "Approve and submit assessment",
+        "description": "Approve and submit a draft assessment (admin only - creates immutable submission)",
         "operationId": "submit_assessment",
         "parameters": [
           {
@@ -555,7 +824,7 @@
         ],
         "responses": {
           "201": {
-            "description": "Assessment submitted successfully",
+            "description": "Assessment approved and submitted successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -569,6 +838,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -631,9 +903,9 @@
       },
       "post": {
         "tags": ["Responses"],
-        "summary": "Create response",
-        "description": "Create or update a response to a question",
-        "operationId": "create_response",
+        "summary": "Create batch of responses",
+        "description": "Create or update a batch of responses to questions for a given assessment.",
+        "operationId": "create_batch_responses",
         "parameters": [
           {
             "name": "assessment_id",
@@ -650,7 +922,10 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateResponseRequest"
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreateResponseRequest"
+                }
               }
             }
           },
@@ -658,11 +933,11 @@
         },
         "responses": {
           "201": {
-            "description": "Response created successfully",
+            "description": "Responses created successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseResponse"
+                  "$ref": "#/components/schemas/ResponseListResponse"
                 }
               }
             }
@@ -971,6 +1246,48 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         }
+      },
+      "delete": {
+        "tags": ["Submissions"],
+        "summary": "Delete submission",
+        "description": "Delete a submission (Organization admins only)",
+        "operationId": "delete_submission",
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Submission deleted successfully"
+          },
+          "400": {
+            "description": "Bad Request - Only organization admins can delete submissions or submission not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
       }
     },
     "/admin/submissions": {
@@ -1013,6 +1330,336 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Create user invitation",
+        "description": "Create a new user invitation with email verification (Admin only)",
+        "operationId": "create_user_invitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "User invitation created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInvitationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations/{user_id}/trigger-verification": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Trigger email verification",
+        "description": "Manually trigger email verification email for a user (Admin only)",
+        "operationId": "trigger_user_verification_manual",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verification triggered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Email verification email sent successfully"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations/{user_id}/trigger-org-invitation": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Trigger organization invitation",
+        "description": "Manually trigger organization invitation for a user (Admin only)",
+        "operationId": "trigger_organization_invitation_manual",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization invitation triggered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Organization invitation triggered successfully"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations/{user_id}/check-and-trigger": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Check and trigger organization invitation",
+        "description": "Check if user email is verified and trigger organization invitation if verified (Admin only)",
+        "operationId": "check_and_trigger_organization_invitation",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verified and organization invitation sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Email verified and organization invitation sent"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/user-invitations/{user_id}/status": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Get user invitation status",
+        "description": "Get the current status of a user invitation (Admin only)",
+        "operationId": "get_user_invitation_status",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User invitation status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "email_verified": {
+                      "type": "boolean"
+                    },
+                    "invitation_status": {
+                      "type": "string"
+                    },
+                    "organization_id": {
+                      "type": "string"
+                    },
+                    "pending_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "pending_categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "email_verified_at": {
+                      "type": "string"
+                    },
+                    "org_invited_at": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/users/{user_id}": {
+      "delete": {
+        "tags": ["Admin"],
+        "summary": "Delete user",
+        "description": "Delete a user entirely from the system (Admin only)",
+        "operationId": "delete_user",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1094,7 +1741,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GenerateReportRequest"
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "category": { "type": "string" },
+                    "recommendation": { "type": "string" }
+                  },
+                  "required": ["category", "recommendation"]
+                }
               }
             }
           },
@@ -1129,37 +1784,84 @@
         }
       }
     },
-    "/reports/{report_id}": {
+    "/admin/action-plans": {
       "get": {
-        "tags": ["Reports"],
-        "summary": "Get report",
-        "description": "Get a specific report",
-        "operationId": "get_report",
-        "parameters": [
-          {
-            "name": "report_id",
-            "in": "path",
-            "description": "Report ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
+        "tags": ["Admin"],
+        "summary": "Get all action plans",
+        "description": "Get all action plans for all organizations (DGRV admin only)",
+        "operationId": "list_all_action_plans",
         "responses": {
           "200": {
-            "description": "Report details",
+            "description": "List of all organization action plans",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReportResponse"
+                  "$ref": "#/components/schemas/ActionPlanListResponse"
                 }
               }
             }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/reports/{report_id}/recommendations/{category}/status": {
+      "put": {
+        "tags": ["Reports"],
+        "summary": "Update recommendation status",
+        "description": "Update the status of a recommendation (org admin only)",
+        "operationId": "update_recommendation_status",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Report ID"
+          },
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Category name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRecommendationStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recommendation status updated successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -1168,33 +1870,44 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         }
-      },
-      "delete": {
+      }
+    },
+    "/user/reports": {
+      "get": {
         "tags": ["Reports"],
-        "summary": "Delete report",
-        "description": "Delete a report",
-        "operationId": "delete_report",
-        "parameters": [
-          {
-            "name": "report_id",
-            "in": "path",
-            "description": "Report ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
+        "summary": "Get user reports",
+        "description": "Get all reports for the authenticated user",
+        "operationId": "get_user_reports",
         "responses": {
-          "204": {
-            "description": "Report deleted successfully"
+          "200": {
+            "description": "List of user reports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportListResponse"
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Reports"],
+        "summary": "Delete all user reports",
+        "description": "Delete all reports for the authenticated user",
+        "operationId": "delete_user_reports",
+        "responses": {
+          "204": {
+            "description": "All reports deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -1466,12 +2179,733 @@
           }
         }
       }
+    },
+    "/admin/organizations": {
+      "get": {
+        "summary": "Get all organizations",
+        "description": "Retrieve all organizations the current user is a member of",
+        "tags": ["Organizations"],
+        "responses": {
+          "200": {
+            "description": "List of organizations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "post": {
+        "summary": "Create organization",
+        "description": "Creates a new organization with the specified details including domains, redirect URL, enabled status, and custom attributes. Requires application admin permissions.",
+        "tags": ["Organizations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreateRequest"
+              },
+              "example": {
+                "name": "adorsy51s",
+                "domains": [{ "name": "yd5es.com" }],
+                "redirectUrl": "http://localhost:5173",
+                "enabled": "true",
+                "attributes": {
+                  "categories": ["environmental"]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Organization created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                },
+                "example": {
+                  "id": "org-123-456",
+                  "name": "adorsy51s",
+                  "domains": ["yd5es.com"],
+                  "attributes": {
+                    "domains": ["yd5es.com"],
+                    "redirect_url": ["http://localhost:5173"],
+                    "enabled": ["true"],
+                    "categories": ["environmental"]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": "Invalid organization data",
+                  "message": "Organization name is required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": "Insufficient permissions",
+                  "message": "Application admin role required to create organizations"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": {
+                  "error": "Failed to create organization",
+                  "message": "Internal server error occurred"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/organizations/{id}": {
+      "get": {
+        "summary": "Get organization",
+        "description": "Retrieve a specific organization by ID",
+        "tags": ["Organizations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Organization" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "put": {
+        "summary": "Update organization",
+        "description": "Update an existing organization (requires organization management permissions)",
+        "tags": ["Organizations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Organization updated successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "delete": {
+        "summary": "Delete organization",
+        "description": "Delete an organization (requires organization management permissions)",
+        "tags": ["Organizations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "responses": {
+          "204": { "description": "Organization deleted successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{id}/members": {
+      "get": {
+        "summary": "Get organization members",
+        "description": "Retrieve all members of an organization",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of organization members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/OrganizationMember" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "post": {
+        "summary": "Add member to organization",
+        "description": "Add a new member to an organization (requires organization management permissions)",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MemberRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Member added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationMembership"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/admin/organizations/{id}/members/{membership_id}": {
+      "delete": {
+        "summary": "Remove member from organization",
+        "description": "Remove a member from an organization (requires organization management permissions)",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "membership_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Membership ID"
+          }
+        ],
+        "responses": {
+          "204": { "description": "Member removed successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/api/organizations/{id}/members/{membership_id}/roles": {
+      "put": {
+        "summary": "Update member roles",
+        "description": "Update the roles of an organization member (requires organization management permissions)",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "membership_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Membership ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RoleAssignment" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Member roles updated successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/api/organizations/{id}/invitations": {
+      "get": {
+        "summary": "Get organization invitations",
+        "description": "Retrieve all pending invitations for an organization (requires organization management permissions)",
+        "tags": ["Organization Invitations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of organization invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationInvitation"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "post": {
+        "summary": "Create organization invitation",
+        "description": "Create a new invitation to join an organization (requires organization management permissions)",
+        "tags": ["Organization Invitations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/InvitationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationInvitation"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/api/organizations/{id}/invitations/{invitation_id}": {
+      "delete": {
+        "summary": "Delete organization invitation",
+        "description": "Delete a pending invitation (requires organization management permissions)",
+        "tags": ["Organization Invitations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Invitation ID"
+          }
+        ],
+        "responses": {
+          "204": { "description": "Invitation deleted successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{id}/org-admin/members": {
+      "post": {
+        "summary": "Add org user with categories (org admin only)",
+        "description": "Add a user to the organization and assign categories (org admin only)",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OrgAdminMemberRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { 
+            "description": "User created and invited successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OrgAdminUserInvitationResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "get": {
+        "summary": "List org users with categories (org admin only)",
+        "description": "List users in the organization, including their categories (org admin only)",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of organization members with categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      { "$ref": "#/components/schemas/OrganizationMember" },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "categories": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{id}/org-admin/members/{member_id}": {
+      "delete": {
+        "summary": "Remove org user (org admin only)",
+        "description": "Remove a user from the organization (org admin only)",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User ID"
+          }
+        ],
+        "responses": {
+          "204": { "description": "User removed successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{id}/org-admin/members/{member_id}/categories": {
+      "put": {
+        "summary": "Update org user categories (org admin only)",
+        "description": "Update categories for a user in the organization (org admin only)",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "member_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Member ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OrgAdminMemberCategoryUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Categories updated successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{org_id}/org-admin/user-invitations/{user_id}/trigger-verification": {
+      "post": {
+        "summary": "Trigger email verification for org admin user invitation",
+        "description": "Manually trigger email verification for a user created by org admin",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User ID"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Email verification triggered successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{org_id}/org-admin/user-invitations/{user_id}/trigger-org-invitation": {
+      "post": {
+        "summary": "Trigger organization invitation for org admin user invitation",
+        "description": "Manually trigger organization invitation for a user created by org admin",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User ID"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Organization invitation triggered successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/organizations/{org_id}/org-admin/user-invitations/{user_id}/check-and-trigger": {
+      "post": {
+        "summary": "Check email verification and trigger organization invitation for org admin user invitation",
+        "description": "Check if user's email is verified and trigger organization invitation if verified",
+        "tags": ["Organization Members"],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User ID"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Email verified and organization invitation sent successfully" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/api/organizations/{id}/assessments/results": {
+      "get": {
+        "summary": "Get aggregated assessment results for an organization",
+        "description": "Aggregate all assessment submissions and responses for the given organization. Only accessible to org_admins.",
+        "tags": ["Assessments", "Organizations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated assessment results for the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgAssessmentResults"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
       "Question": {
-        "required": ["category", "created_at", "question_id"],
+        "required": ["question_id", "category", "created_at", "latest_revision"],
         "type": "object",
         "properties": {
           "question_id": {
@@ -1484,17 +2918,19 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "latest_revision": {
+            "$ref": "#/components/schemas/QuestionRevision"
           }
         }
       },
       "QuestionRevision": {
         "required": [
-          "created_at",
-          "language",
-          "question_id",
           "question_revision_id",
+          "question_id",
           "text",
-          "version"
+          "weight",
+          "created_at"
         ],
         "type": "object",
         "properties": {
@@ -1507,14 +2943,10 @@
             "format": "uuid"
           },
           "text": {
-            "type": "string"
+            "type": "object"
           },
-          "language": {
-            "type": "string",
-            "default": "en"
-          },
-          "version": {
-            "type": "integer"
+          "weight": {
+            "type": "number"
           },
           "created_at": {
             "type": "string",
@@ -1532,12 +2964,12 @@
           "text": {
             "type": "object",
             "default": {
-              "en": "explain you ecological policies"
+              "en": "explain your ecological policies"
             }
           },
           "weight": {
-            "type": "integer",
-            "default": 1
+            "type": "number",
+            "default": 1.0
           }
         }
       },
@@ -1548,7 +2980,10 @@
             "type": "string"
           },
           "text": {
-            "type": "string"
+            "type": "object"
+          },
+          "weight": {
+            "type": "number"
           }
         }
       },
@@ -1560,6 +2995,18 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Question"
+            }
+          }
+        }
+      },
+      "QuestionListWithRevisionsResponse": {
+        "required": ["questions"],
+        "type": "object",
+        "properties": {
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionWithRevisionsResponse"
             }
           }
         }
@@ -1610,33 +3057,33 @@
         }
       },
       "Assessment": {
-        "required": ["assessment_id", "created_at", "language", "user_id"],
+        "required": ["assessment_id", "created_at", "language", "org_id", "name", "status", "updated_at"],
         "type": "object",
         "properties": {
           "assessment_id": {
             "type": "string",
             "format": "uuid"
           },
-          "user_id": {
+          "org_id": {
             "type": "string"
           },
           "language": {
             "type": "string",
             "default": "en"
           },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
-          }
-        }
-      },
-      "CreateAssessmentRequest": {
-        "required": ["language"],
-        "type": "object",
-        "properties": {
-          "language": {
+          },
+          "updated_at": {
             "type": "string",
-            "default": "en"
+            "format": "date-time"
           }
         }
       },
@@ -1848,6 +3295,50 @@
           }
         }
       },
+      "DraftSubmission": {
+        "required": [
+          "assessment_id",
+          "content",
+          "draft_submission_id",
+          "submitted_at",
+          "user_id"
+        ],
+        "type": "object",
+        "properties": {
+          "draft_submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/Submission_content"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_approval",
+              "approved",
+              "rejected"
+            ],
+            "default": "pending_approval"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
       "SubmissionListResponse": {
         "required": ["submissions"],
         "type": "object",
@@ -1866,6 +3357,27 @@
         "properties": {
           "submission": {
             "$ref": "#/components/schemas/Submission"
+          }
+        }
+      },
+      "DraftSubmissionResponse": {
+        "required": ["draft_submission"],
+        "type": "object",
+        "properties": {
+          "draft_submission": {
+            "$ref": "#/components/schemas/DraftSubmission"
+          }
+        }
+      },
+      "DraftSubmissionListResponse": {
+        "required": ["draft_submissions"],
+        "type": "object",
+        "properties": {
+          "draft_submissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftSubmission"
+            }
           }
         }
       },
@@ -1900,7 +3412,9 @@
           "review_status",
           "submission_id",
           "submitted_at",
-          "user_id"
+          "user_id",
+          "org_id",
+          "org_name"
         ],
         "type": "object",
         "properties": {
@@ -1917,6 +3431,14 @@
           "user_id": {
             "type": "string",
             "description": "User who submitted the assessment"
+          },
+          "org_id": {
+            "type": "string",
+            "description": "Organization ID that submitted the assessment"
+          },
+          "org_name": {
+            "type": "string",
+            "description": "Organization name that submitted the assessment"
           },
           "content": {
             "$ref": "#/components/schemas/AdminSubmissionDetail_content"
@@ -2087,18 +3609,24 @@
         }
       },
       "GenerateReportRequest": {
-        "required": ["report_type"],
         "type": "object",
         "properties": {
-          "report_type": {
+          "category": {
             "type": "string",
-            "enum": ["sustainability", "compliance", "summary", "detailed"]
+            "description": "Category name"
           },
-          "options": {
-            "type": "object",
-            "nullable": true
+          "recommendation": {
+            "type": "string",
+            "description": "Recommendation text"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["todo", "in_progress", "done", "approved"],
+            "description": "Status for the recommendation",
+            "default": "todo"
           }
-        }
+        },
+        "required": ["category", "recommendation"]
       },
       "ReportGenerationResponse": {
         "required": ["report_id", "status"],
@@ -2340,6 +3868,652 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "Organization": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique organization identifier"
+          },
+          "name": { "type": "string", "description": "Organization name" },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Organization description"
+          },
+          "country": {
+            "type": "string",
+            "nullable": true,
+            "description": "Organization country"
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "description": "Additional organization attributes"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Organization creation timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Organization last update timestamp"
+          }
+        },
+        "required": ["id", "name"]
+      },
+      "OrganizationCreateRequest": {
+        "type": "object",
+        "required": ["name", "domains", "redirectUrl", "enabled"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the organization",
+            "example": "adorsy51s",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "domains": {
+            "type": "array",
+            "description": "List of domains associated with the organization",
+            "items": { "$ref": "#/components/schemas/OrganizationDomain" },
+            "minItems": 1,
+            "example": [{ "name": "yd5es.com" }]
+          },
+          "redirectUrl": {
+            "type": "string",
+            "description": "The redirect URL for the organization",
+            "format": "uri",
+            "example": "http://localhost:5173"
+          },
+          "enabled": {
+            "type": "string",
+            "description": "Whether the organization is enabled (sent as string)",
+            "enum": ["true", "false"],
+            "example": "true"
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Custom attributes for the organization",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "example": {
+              "categories": ["environmental"],
+              "industry": ["technology", "sustainability"]
+            }
+          }
+        }
+      },
+      "OrganizationDomain": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The domain name",
+            "format": "hostname",
+            "example": "yd5es.com",
+            "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?)*$"
+          }
+        }
+      },
+      "OrganizationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the organization",
+            "example": "org-123-456"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the organization",
+            "example": "adorsy51s"
+          },
+          "domains": {
+            "type": "array",
+            "description": "List of domain names associated with the organization",
+            "items": { "type": "string" },
+            "example": ["yd5es.com"]
+          },
+          "attributes": {
+            "type": "object",
+            "description": "All attributes including domains, redirect_url, enabled status, and custom attributes",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "example": {
+              "domains": ["yd5es.com"],
+              "redirect_url": ["http://localhost:5173"],
+              "enabled": ["true"],
+              "categories": ["environmental"]
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error type or category",
+            "example": "Bad Request"
+          },
+          "message": {
+            "type": "string",
+            "description": "Detailed error message",
+            "example": "Invalid organization data provided"
+          }
+        }
+      },
+      "OrganizationMember": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "User identifier" },
+          "username": { "type": "string", "description": "Username" },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "description": "Whether the user's email is verified"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true,
+            "description": "User first name"
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true,
+            "description": "User last name"
+          },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "User roles in the organization"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the user joined the organization"
+          }
+        },
+        "required": ["id", "username", "email", "roles"]
+      },
+      "OrganizationMembership": {
+        "type": "object",
+        "properties": {
+          "membership_id": {
+            "type": "string",
+            "description": "Unique membership identifier"
+          },
+          "user_id": { "type": "string", "description": "User identifier" },
+          "organization_id": {
+            "type": "string",
+            "description": "Organization identifier"
+          },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "User roles in the organization"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Membership creation timestamp"
+          }
+        },
+        "required": ["membership_id", "user_id", "organization_id", "roles"]
+      },
+      "MemberRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email to add to the organization"
+          },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Roles to assign to the user"
+          }
+        },
+        "required": ["email", "roles"]
+      },
+      "RoleAssignment": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "New roles to assign to the user"
+          }
+        },
+        "required": ["roles"]
+      },
+      "OrganizationInvitation": {
+        "type": "object",
+        "properties": {
+          "invitation_id": {
+            "type": "string",
+            "description": "Unique invitation identifier"
+          },
+          "organization_id": {
+            "type": "string",
+            "description": "Organization identifier"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address of the invited user"
+          },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Roles to assign when invitation is accepted"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "accepted", "expired", "cancelled"],
+            "description": "Invitation status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Invitation creation timestamp"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Invitation expiration timestamp"
+          },
+          "invited_by": {
+            "type": "string",
+            "description": "User ID who created the invitation"
+          }
+        },
+        "required": [
+          "invitation_id",
+          "organization_id",
+          "email",
+          "roles",
+          "status",
+          "created_at",
+          "invited_by"
+        ]
+      },
+      "InvitationRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address of the user to invite"
+          },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Roles to assign when invitation is accepted"
+          },
+          "expiration": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Optional invitation expiration timestamp"
+          }
+        },
+        "required": ["email", "roles"]
+      },
+      "OrgAdminMemberRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email to add to the organization"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User's first name"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User's last name"
+          },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Roles to assign to the user"
+          },
+          "categories": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Categories to assign to the user"
+          }
+        },
+        "required": ["email", "roles", "categories"]
+      },
+      "OrgAdminMemberCategoryUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Categories to assign to the user"
+          }
+        },
+        "required": ["categories"]
+      },
+      "OrgAdminUserInvitationResponse": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email"
+          },
+          "status": {
+            "type": "string",
+            "description": "Invitation status"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          }
+        },
+        "required": ["user_id", "email", "status", "message"]
+      },
+      "OrgAssessmentResults": {
+        "type": "object",
+        "properties": {
+          "org_id": { "type": "string", "description": "Organization ID" },
+          "num_assessments": {
+            "type": "integer",
+            "description": "Number of assessments in the org"
+          },
+          "num_submissions": {
+            "type": "integer",
+            "description": "Number of submissions in the org"
+          },
+          "category_counts": {
+            "type": "object",
+            "additionalProperties": { "type": "integer" },
+            "description": "Map of category name to number of answers/submissions"
+          }
+        },
+        "required": [
+          "org_id",
+          "num_assessments",
+          "num_submissions",
+          "category_counts"
+        ]
+      },
+      "CreateAssessmentRequest": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "Language for the assessment"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the assessment"
+          }
+        },
+        "required": ["language", "name"]
+      },
+      "Category": {
+        "required": ["category_id", "name", "weight", "order", "template_id", "created_at", "updated_at"],
+        "type": "object",
+        "properties": {
+          "category_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateCategoryRequest": {
+        "required": ["name", "weight", "order", "template_id"],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "template_id": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "CategoryResponse": {
+        "required": ["category"],
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          }
+        }
+      },
+      "CategoryListResponse": {
+        "required": ["categories"],
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          }
+        }
+      },
+      "UserInvitationRequest": {
+        "required": ["email", "first_name", "last_name", "organization_id"],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User first name"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User last name"
+          },
+          "organization_id": {
+            "type": "string",
+            "description": "Organization ID to invite user to"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Roles to assign to the user",
+            "default": ["org_user"]
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Categories to assign to the user"
+          }
+        }
+      },
+      "UserInvitationResponse": {
+        "required": ["user_id", "email", "status", "message"],
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Created user ID"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending_email_verification", "email_verified", "pending_org_invitation", "active", "error"],
+            "description": "Current invitation status"
+          },
+          "message": {
+            "type": "string",
+            "description": "Status message"
+          }
+        }
+      },
+      "RecommendationWithStatus": {
+        "required": ["report_id", "category", "recommendation", "status", "created_at"],
+        "type": "object",
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Report ID"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category name"
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "Recommendation text"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["todo", "in_progress", "done", "approved"],
+            "description": "Current status of the recommendation"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the recommendation was created"
+          }
+        }
+      },
+      "OrganizationActionPlan": {
+        "required": ["organization_id", "organization_name", "recommendations"],
+        "type": "object",
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Organization ID"
+          },
+          "organization_name": {
+            "type": "string",
+            "description": "Organization name"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecommendationWithStatus"
+            },
+            "description": "List of recommendations for this organization"
+          }
+        }
+      },
+      "ActionPlanListResponse": {
+        "required": ["organizations"],
+        "type": "object",
+        "properties": {
+          "organizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationActionPlan"
+            },
+            "description": "List of organizations with their action plans"
+          }
+        }
+      },
+      "UpdateRecommendationStatusRequest": {
+        "required": ["report_id", "category", "status"],
+        "type": "object",
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Report ID"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category name"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["todo", "in_progress", "done", "approved"],
+            "description": "New status for the recommendation"
           }
         }
       }

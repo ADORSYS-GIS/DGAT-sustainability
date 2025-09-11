@@ -1,28 +1,175 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15
+  #
+  # ─────────────────────────────── BACKEND ───────────────────────────────
+  #
+  backend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.backend
+    image: sustainability-backend:latest
+    container_name: sustainability-backend
+    command: ["/app/sustainability-tool"]
+    env_file: .env
     environment:
-      POSTGRES_DB: dgrv_db
-      POSTGRES_USER: dgrv_user
-      POSTGRES_PASSWORD: dgrv_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/database/seeds:/docker-entrypoint-initdb.d
+      RUST_LOG: "debug,hyper=info,sea_orm=info"
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
+      KEYCLOAK_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
+      SERVER_PORT: "3001"
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}
 
-  # Keycloak Authentication
-  keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "3001:3001"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── POSTGRES ──────────────────────────────
+  #
+  db:
+    image: postgres:16-alpine
+    container_name: sustainability-db
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      POSTGRES_DB:       "${POSTGRES_DB:-sustainability}"
+      POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5432"
+    networks: [tool-net]
+
+  #
+  # ────────────────────────────── KEYCLOAK ──────────────────────────────
+  #
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: sustainability-keycloak
+    environment:
+      KC_DB: "postgres"
+      KC_DB_URL_HOST: db
+      KC_DB_URL_PORT: 5432
+      KC_DB_URL_DATABASE: "${POSTGRES_DB:-sustainability}"
+      KC_DB_USERNAME: "${POSTGRES_USER:-postgres}"
+      KC_DB_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
+      KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
+      KEYCLOAK_REALM: "sustainability-realm"
+      KEYCLOAK_FRONTEND_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
+      KC_PROXY_HEADERS: "forwarded"
+      KC_PROXY: "edge"
+      KC_FEATURES: "preview,organization"
+      # Hostname v2 configuration (replaces deprecated v1 options)
+      KC_HOSTNAME: "ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"
+      KC_HOSTNAME_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
+      KC_HOSTNAME_PATH: "/keycloak"
+      KC_HOSTNAME_STRICT: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HTTPS_PORT: 8443
+      # if you also want to allow HTTP, for debugging only
+      # Fernando user password
+      FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
+      KC_URL: "${KC_URL:-ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+      # Use the nginx certificate paths
+      SSL_CERT_PATH: "/etc/x509/https/nginx.crt"
+      SSL_KEY_PATH: "/etc/x509/https/nginx.key"
+      KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
+      KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
+
+      # SMTP Configuration - Keycloak official method
+      KC_SPI_EMAIL_DEFAULT_HOST: "${EMAIL_HOST:-smtp.gmail.com}"
+      KC_SPI_EMAIL_DEFAULT_PORT: "${EMAIL_PORT:-587}"
+      KC_SPI_EMAIL_DEFAULT_FROM: "${EMAIL_FROM:-noreply@dgrv.coop}"
+      KC_SPI_EMAIL_DEFAULT_FROM_DISPLAY_NAME: "${EMAIL_FROM_DISPLAY_NAME:-DGRV COOPERATION}"
+      KC_SPI_EMAIL_DEFAULT_USER: "${EMAIL_USER:-yemelechristian2@gmail.com}"
+      KC_SPI_EMAIL_DEFAULT_PASSWORD: "${EMAIL_PASSWORD}"
+      KC_SPI_EMAIL_DEFAULT_SSL: "${EMAIL_SSL:-false}"
+      KC_SPI_EMAIL_DEFAULT_STARTTLS: "${EMAIL_STARTTLS:-true}"
+      KC_SPI_EMAIL_DEFAULT_AUTH: "${EMAIL_AUTH:-true}"
+
+      # Startup command to be executed by wrapper
+      KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start-dev --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak"
+    entrypoint: ["/bin/bash", "/keycloak-startup.sh"]
+    volumes:
+      - ./infrastructure/keycloak:/opt/keycloak/data/import:rw
+      - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
+      # Mount the same SSL certificates used by the frontend container
+      - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
+      - ./ssl/nginx.key:/etc/x509/https/nginx.key:ro
+      # Mount startup scripts
+      - ./a.sh:/a.sh:ro
+      - ./keycloak-startup.sh:/keycloak-startup.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "exit 0" ]
+      interval: 30s
+      timeout: 10s
+      retries: 1
+      start_period: 240s
     ports:
       - "8080:8080"
-    command: start-dev
+    networks: [tool-net]
 
+  #
+  # ────────────────────────────── USER PWA ──────────────────────────────
+  #
+  frontend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.frontend
+      args:
+        FE_HOST: "${FE_HOST:-localhost}"
+        API_BASE_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"
+        VITE_KEYCLOAK_URL: "${VITE_KEYCLOAK_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak}"
+        VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak/realms/sustainability-realm}"
+        VITE_KEYCLOAK_CLIENT_ID: "${VITE_KEYCLOAK_CLIENT_ID:-sustainability-tool}"
+        VITE_KEYCLOAK_SCOPES: "${VITE_KEYCLOAK_SCOPES:-openid profile email}"
+        VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+        VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/callback}"
+        VITE_ORGANIZATION_REDIRECT_URL: "${VITE_ORGANIZATION_REDIRECT_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+
+    image: sustainability-frontend:latest
+    container_name: sustainability-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'curl -k https://$$FE_HOST/health || exit 1'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./infrastructure/frontend-entrypoint.sh:/docker-entrypoint.d/40-check-network.sh:ro
+    networks: [tool-net]
+
+
+# ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
-  postgres_data:
+  postgres-data:
+  ssl-certs:
+    driver: local
+
+networks:
+  tool-net:
+    driver: bridge

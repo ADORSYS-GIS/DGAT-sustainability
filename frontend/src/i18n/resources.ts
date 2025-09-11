@@ -1,9 +1,16 @@
-import en from "./locales/en.json";
-import fr from "./locales/fr.json";
-import es from "./locales/es.json";
-
-export const resources = {
+import en from './locales/en.json';
+import de from './locales/de.json';
+import fr from './locales/fr.json';
+import ss from './locales/ss.json';
+import zu from './locales/zu.json';
+import pt from './locales/pt.json';
+const resources = {
   en: { translation: en },
+  de: { translation: de },
   fr: { translation: fr },
-  es: { translation: es },
+  ss: { translation: ss },
+  zu: { translation: zu },
+  pt: { translation: pt },
 };
+
+export default resources;

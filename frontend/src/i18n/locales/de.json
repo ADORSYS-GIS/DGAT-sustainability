@@ -1,0 +1,986 @@
+{
+  "home": "Dashboard",
+  "homePage": {
+    "hero": {
+      "title": "Stärken Sie Ihre Genossenschaft",
+      "subtitle": "Bewerten Sie Nachhaltigkeitsziele",
+      "description": "Einfach, sicher und wirkungsvoll. Helfen Sie Ihrer Genossenschaft, im digitalen Zeitalter zu florieren, während Sie nachhaltige Praktiken für die Zukunft aufbauen.",
+      "cta": "Bewertung starten"
+    },
+    "features": {
+      "title": "Funktionen",
+      "items": [
+        {
+          "title": "Nachhaltigkeitsbewertung",
+          "description": "Bewerten Sie Umwelt-, Sozial- und Governance-Praktiken, um eine nachhaltigere und verantwortungsvollere Genossenschaft aufzubauen."
+        },
+        {
+          "title": "Aktionspläne",
+          "description": "Verfolgen Sie Ihren Fortschritt mit interaktiven Kanban-Boards, die Bewertungserkenntnisse in umsetzbare Aufgaben und messbare Verbesserungen umwandeln."
+        }
+      ]
+    },
+    "benefits": {
+      "title": "Vorteile",
+      "items": [
+        {
+          "title": "Für Genossenschaften entwickelt",
+          "description": "Speziell für Genossenschaftsorganisationen in Südafrika entwickelt"
+        },
+        {
+          "title": "Mehrsprachige Unterstützung",
+          "description": "Verfügbar in Englisch, siSwati, Portugiesisch, Zulu, Deutsch und Französisch"
+        },
+        {
+          "title": "Offline-fähig",
+          "description": "Funktioniert zuverlässig auch bei begrenzter Internetverbindung"
+        }
+      ]
+    }
+  },
+  "login": "Anmelden",
+  "logout": "Abmelden",
+  "profile": "Profil",
+  "sustainability": "Nachhaltigkeit",
+  "assessment": "Bewertung",
+  "submit": "Einreichen",
+  "next": "Weiter",
+  "previous": "Zurück",
+  "saveDraft": "Entwurf speichern",
+  "category": "Kategorie",
+  "progress": "Fortschritt",
+  "viewSubmission": "Einreichung anzeigen",
+  "yourSubmissions": "Ihre Einreichungen",
+  "noSubmissions": "Noch keine Einreichungen",
+  "submissionDeleted": "Einreichung erfolgreich gelöscht",
+  "failedToDeleteSubmission": "Einreichung konnte nicht gelöscht werden",
+  "syncData": "Daten synchronisieren",
+  "startAssessment": "Bewertung starten",
+  "status": "Status",
+  "submittedAt": "Eingereicht am",
+  "reviewedAt": "Geprüft am",
+  "manageUsers": "Benutzer verwalten",
+  "actionPlan": "Aktionsplan",
+  "viewAssessments": "Bewertungen anzeigen",
+  "answerAssessment": "Bewertung beantworten",
+  "viewAll": "Alle anzeigen",
+  "welcome": "Willkommen, {{user}} von {{org}}!",
+  "loading": "Laden...",
+  "noData": "Keine Daten verfügbar",
+  "common": {
+    "processing": "Verarbeitung...",
+    "edit": "Bearbeiten",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "update": "Aktualisieren",
+    "create": "Erstellen",
+    "loading": "Laden...",
+    "error": "Fehler",
+    "tryAgain": "Erneut versuchen",
+    "yes": "Ja",
+    "no": "Nein"
+  },
+  "adminDashboard": {
+    "welcome": "Willkommen, Admin! Fördern Sie den Einfluss von Genossenschaften!",
+    "intro": "Verwalten Sie die DGRV-Bewertungsplattform und unterstützen Sie Genossenschaften in ganz Südafrika.",
+    "numCategories": "Anzahl der Kategorien",
+    "numQuestions": "Anzahl der Fragen",
+    "pendingReviews": "Ausstehende Überprüfungen",
+    "completedAssessments": "Abgeschlossene Bewertungen",
+    "manageOrganizations": "Organisationen verwalten",
+    "manageOrganizationsDesc": "Hinzufügen, bearbeiten und verwalten von Genossenschaftsorganisationen im System.",
+    "manageUsers": "Benutzer verwalten",
+    "manageUsersDesc": "Steuern Sie den Zugriff und die Rollen der Benutzer in allen Organisationen.",
+    "manageCategories": "Kategorien verwalten",
+    "manageCategoriesDesc": "Konfigurieren Sie Bewertungskategorien für Nachhaltigkeitstools.",
+    "manageQuestions": "Fragen verwalten",
+    "manageQuestionsDesc": "Erstellen und bearbeiten Sie Fragen innerhalb jeder Bewertungskategorie.",
+    "reviewAssessments": "Bewertungen prüfen",
+    "reviewAssessmentsDesc": "Überprüfen Sie eingereichte Bewertungen und geben Sie Empfehlungen.",
+    "actionPlans": "Aktionspläne verwalten",
+    "actionPlansDesc": "Aktionspläne für alle Organisationen anzeigen und verwalten",
+    "standardRecommendations": "Standardempfehlungen",
+    "standardRecommendationsDesc": "Verwalten Sie wiederverwendbare Empfehlungen für gängige Bewertungsszenarien.",
+    "pendingReviewsCard": "Ausstehende Überprüfungen",
+    "pendingCount": "{count} ausstehend",
+    "sustainabilityAssessment": "Nachhaltigkeitsbewertung",
+    "byUser": "von {user}",
+    "underReview": "In Überprüfung",
+    "reviewRequired": "Überprüfung erforderlich",
+    "allUpToDate": "Alle Bewertungen sind auf dem neuesten Stand!",
+    "adminGuide": "Admin-Leitfaden",
+    "guideIntro": "Willkommen im DGRV-Admin-Dashboard! Hier sind einige Tipps, um Ihnen bei der Verwaltung der Plattform zu helfen:",
+    "guideOrgsUsers": "Verwenden Sie die Abschnitte Organisationen verwalten und Benutzer verwalten, um Zugriff und Mitgliedschaft zu steuern.",
+    "guideReview": "Überprüfen und genehmigen Sie Bewertungen im Abschnitt Bewertungen prüfen.",
+    "guideCategoriesQuestions": "Konfigurieren Sie Kategorien und Fragen, um den Bewertungsprozess an Ihre Bedürfnisse anzupassen.",
+    "guideDocs": "Für detaillierte Dokumentation besuchen Sie die Admin-Dokumentation.",
+    "guideSupport": "Wenn Sie Hilfe benötigen, kontaktieren Sie support@dgrv.org.",
+    "loadingSubmissions": "Einreichungen werden geladen...",
+    "viewCompleteGuide": "Vollständigen Leitfaden anzeigen"
+  },
+  "standardRecommendations": {
+    "title": "Standardempfehlungen",
+    "manageDesc": "Verwalten Sie wiederverwendbare Empfehlungen für Bewertungsprüfungen",
+    "add": "Empfehlung hinzufügen",
+    "edit": "Standardempfehlung bearbeiten",
+    "addDialog": "Standardempfehlung hinzufügen",
+    "textLabel": "Empfehlungstext",
+    "textPlaceholder": "Geben Sie den Empfehlungstext ein...",
+    "update": "Empfehlung aktualisieren",
+    "create": "Empfehlung erstellen",
+    "cancel": "Abbrechen",
+    "singleTitle": "Standardempfehlung",
+    "editBtn": "Bearbeiten",
+    "emptyTitle": "Noch keine Standardempfehlungen",
+    "emptyDesc": "Erstellen Sie wiederverwendbare Empfehlungen, um Bewertungsprüfungen zu beschleunigen.",
+    "addFirst": "Erste Empfehlung hinzufügen",
+    "textRequired": "Empfehlungstext ist erforderlich",
+    "confirmDelete": "Sind Sie sicher, dass Sie diese Standardempfehlung löschen möchten?",
+    "deleteSuccess": "Standardempfehlung erfolgreich gelöscht",
+    "updateSuccess": "Empfehlung erfolgreich aktualisiert",
+    "createSuccess": "Standardempfehlung erfolgreich erstellt"
+  },
+  "dashboard": {
+    "welcome": {
+      "title": "Willkommen, Admin! Fördern Sie den Einfluss von Genossenschaften!",
+      "description": "Verwalten Sie die DGRV-Bewertungsplattform und unterstützen Sie Genossenschaften in ganz Südafrika."
+    },
+    "pendingReviews": {
+      "title": "Ausstehende Überprüfungen",
+      "badge": "ausstehend",
+      "assessmentType": "Nachhaltigkeitsbewertung",
+      "submittedBy": "von",
+      "reviewRequired": "Überprüfung erforderlich",
+      "upToDate": "Alle Bewertungen sind auf dem neuesten Stand!"
+    },
+    "systemHealth": {
+      "title": "Systemgesundheit",
+      "database": "Datenbank",
+      "healthy": "Gesund",
+      "apiResponse": "API-Antwort",
+      "fast": "Schnell",
+      "syncQueue": "Synchronisationswarteschlange",
+      "clear": "Leer"
+    },
+    "quickActions": {
+      "title": "Schnellaktionen",
+      "exportReport": "Systembericht exportieren",
+      "backupDatabase": "Datenbank sichern",
+      "viewAuditLogs": "Audit-Logs anzeigen",
+      "systemSettings": "Systemeinstellungen"
+    },
+    "stats": {
+      "numCategories": "Anzahl der Kategorien",
+      "numQuestions": "Anzahl der Fragen",
+      "pendingReviews": "Ausstehende Überprüfungen",
+      "completedAssessments": "Abgeschlossene Bewertungen"
+    },
+    "assessments": {
+      "subtitle": "Anzeigen und verwalten Sie alle Ihre Nachhaltigkeitseinreichungen",
+      "emptyState": "Starten Sie Ihre erste Nachhaltigkeitsbewertung, um den Fortschritt Ihrer Genossenschaft zu verfolgen."
+    },
+    "numCategories": "Anzahl der Kategorien",
+    "numQuestions": "Anzahl der Fragen",
+    "pendingReviews": "Ausstehende Überprüfungen",
+    "completedAssessments": "Abgeschlossene Bewertungen"
+  },
+  "actions": {
+    "manageOrganizations": "Organisationen verwalten",
+    "manageOrganizationsDesc": "Hinzufügen, bearbeiten und verwalten von Genossenschaftsorganisationen im System.",
+    "manageUsers": "Benutzer verwalten",
+    "manageUsersDesc": "Steuern Sie den Zugriff und die Rollen der Benutzer in allen Organisationen.",
+    "manageCategories": "Kategorien verwalten",
+    "manageCategoriesDesc": "Konfigurieren Sie Bewertungskategorien für Nachhaltigkeitstools.",
+    "manageQuestions": "Fragen verwalten",
+    "manageQuestionsDesc": "Erstellen und bearbeiten Sie Fragen innerhalb jeder Bewertungskategorie.",
+    "reviewAssessments": "Bewertungen prüfen",
+    "reviewAssessmentsDesc": "Überprüfen Sie eingereichte Bewertungen und geben Sie Empfehlungen.",
+    "standardRecommendations": "Standardempfehlungen",
+    "standardRecommendationsDesc": "Verwalten Sie wiederverwendbare Empfehlungen für gängige Bewertungsszenarien."
+  },
+  "guide": {
+    "title": "Admin-Leitfaden",
+    "intro": "Willkommen im DGRV-Admin-Dashboard! Hier sind einige Tipps, um Ihnen bei der Verwaltung der Plattform zu helfen:",
+    "orgsUsers": "Verwenden Sie die Abschnitte Organisationen verwalten und Benutzer verwalten, um Zugriff und Mitgliedschaft zu steuern.",
+    "review": "Überprüfen und genehmigen Sie Bewertungen im Abschnitt Bewertungen prüfen.",
+    "categoriesQuestions": "Konfigurieren Sie Kategorien und Fragen, um den Bewertungsprozess an Ihre Bedürfnisse anzupassen.",
+    "docs": "Für detaillierte Dokumentation besuchen Sie die Admin-Dokumentation.",
+    "support": "Wenn Sie Hilfe benötigen, kontaktieren Sie support@dgrv.org."
+  },
+  "questions": {
+    "manage": {
+      "title": "Fragen verwalten",
+      "description": "Erstellen und bearbeiten Sie Fragen innerhalb jeder Bewertungskategorie.",
+      "add": "Neue Frage hinzufügen",
+      "edit": "Frage bearbeiten",
+      "delete": "Frage löschen",
+      "confirmDelete": "Sind Sie sicher, dass Sie diese Frage löschen möchten?",
+      "success": "Frage erfolgreich gelöscht!",
+      "error": "Fehler beim Löschen der Frage."
+    },
+    "list": {
+      "title": "Alle Fragen",
+      "noQuestions": "Keine Fragen gefunden.",
+      "question": "Frage",
+      "category": "Kategorie",
+      "actions": "Aktionen"
+    },
+    "form": {
+      "title": "Fragenformular",
+      "question": "Frage",
+      "category": "Kategorie",
+      "type": "Typ",
+      "options": "Optionen",
+      "required": "Erforderlich",
+      "save": "Frage speichern",
+      "cancel": "Abbrechen",
+      "success": "Frage erfolgreich gespeichert!",
+      "error": "Fehler beim Speichern der Frage."
+    }
+  },
+  "categories": {
+    "manage": {
+      "title": "Kategorien verwalten",
+      "description": "Konfigurieren Sie Bewertungskategorien für Nachhaltigkeitstools.",
+      "add": "Neue Kategorie hinzufügen",
+      "edit": "Kategorie bearbeiten",
+      "delete": "Kategorie löschen",
+      "confirmDelete": "Sind Sie sicher, dass Sie diese Kategorie löschen möchten? Dadurch werden auch alle Fragen in dieser Kategorie gelöscht. Hinweis: Bestehende Einreichungen, die Antworten auf diese Fragen enthalten, bleiben erhalten, aber die einzelnen Antwortdatensätze werden entfernt.",
+      "success": "Kategorie erfolgreich gelöscht!",
+      "error": "Fehler beim Löschen der Kategorie."
+    },
+    "list": {
+      "title": "Alle Kategorien",
+      "noCategories": "Keine Kategorien gefunden.",
+      "category": "Kategorie",
+      "actions": "Aktionen"
+    },
+    "form": {
+      "title": "Kategorieformular",
+      "name": "Name",
+      "description": "Beschreibung",
+      "save": "Kategorie speichern",
+      "cancel": "Abbrechen",
+      "success": "Kategorie erfolgreich gespeichert!",
+      "error": "Fehler beim Speichern der Kategorie."
+    }
+  },
+  "organizations": {
+    "manage": {
+      "title": "Organisationen verwalten",
+      "description": "Hinzufügen, bearbeiten und verwalten von Genossenschaftsorganisationen im System.",
+      "add": "Neue Organisation hinzufügen",
+      "edit": "Organisation bearbeiten",
+      "delete": "Organisation löschen",
+      "confirmDelete": "Sind Sie sicher, dass Sie diese Organisation löschen möchten?",
+      "success": "Organisation erfolgreich gelöscht!",
+      "error": "Fehler beim Löschen der Organisation."
+    },
+    "list": {
+      "title": "Alle Organisationen",
+      "noOrganizations": "Keine Organisationen gefunden.",
+      "organization": "Organisation",
+      "actions": "Aktionen"
+    },
+    "form": {
+      "title": "Organisationsformular",
+      "name": "Name",
+      "description": "Beschreibung",
+      "save": "Organisation speichern",
+      "cancel": "Abbrechen",
+      "success": "Organisation erfolgreich gespeichert!",
+      "error": "Fehler beim Speichern der Organisation."
+    }
+  },
+  "users": {
+    "manage": {
+      "title": "Benutzer verwalten",
+      "description": "Steuern Sie den Zugriff und die Rollen der Benutzer in allen Organisationen.",
+      "add": "Neuen Benutzer hinzufügen",
+      "edit": "Benutzer bearbeiten",
+      "delete": "Benutzer löschen",
+      "confirmDelete": "Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?",
+      "success": "Benutzer erfolgreich gelöscht!",
+      "error": "Fehler beim Löschen des Benutzers."
+    },
+    "list": {
+      "title": "Alle Benutzer",
+      "noUsers": "Keine Benutzer gefunden.",
+      "user": "Benutzer",
+      "actions": "Aktionen"
+    },
+    "form": {
+      "title": "Benutzerformular",
+      "username": "Benutzername",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "organization": "Organisation",
+      "save": "Benutzer speichern",
+      "cancel": "Abbrechen",
+      "success": "Benutzer erfolgreich gespeichert!",
+      "error": "Fehler beim Speichern des Benutzers."
+    }
+  },
+  "reviews": {
+    "manage": {
+      "title": "Bewertungen prüfen",
+      "description": "Überprüfen Sie eingereichte Bewertungen und geben Sie Empfehlungen.",
+      "review": "Prüfen",
+      "approve": "Genehmigen",
+      "reject": "Ablehnen",
+      "comments": "Kommentare",
+      "recommendations": "Empfehlungen",
+      "save": "Prüfung speichern",
+      "cancel": "Abbrechen",
+      "success": "Prüfung erfolgreich gespeichert!",
+      "error": "Fehler beim Speichern der Prüfung."
+    },
+    "list": {
+      "title": "Alle Prüfungen",
+      "noReviews": "Keine Prüfungen gefunden.",
+      "assessment": "Bewertung",
+      "status": "Status",
+      "reviewedBy": "Geprüft von",
+      "actions": "Aktionen"
+    }
+  },
+  "recommendations": {
+    "manage": {
+      "title": "Standardempfehlungen",
+      "description": "Verwalten Sie wiederverwendbare Empfehlungen für gängige Bewertungsszenarien.",
+      "add": "Neue Empfehlung hinzufügen",
+      "edit": "Empfehlung bearbeiten",
+      "delete": "Empfehlung löschen",
+      "confirmDelete": "Sind Sie sicher, dass Sie diese Empfehlung löschen möchten?",
+      "success": "Empfehlung erfolgreich gelöscht!",
+      "error": "Fehler beim Löschen der Empfehlung."
+    },
+    "list": {
+      "title": "Alle Empfehlungen",
+      "noRecommendations": "Keine Empfehlungen gefunden.",
+      "recommendation": "Empfehlung",
+      "actions": "Aktionen"
+    },
+    "form": {
+      "formTitle": "Empfehlungsformular",
+      "title": "Titel",
+      "description": "Beschreibung",
+      "save": "Empfehlung speichern",
+      "cancel": "Abbrechen",
+      "success": "Empfehlung erfolgreich gespeichert!",
+      "error": "Fehler beim Speichern der Empfehlung."
+    }
+  },
+  "manageCategories": {
+    "title": "Kategorien verwalten",
+    "configureCategories": "Konfigurieren und verwalten Sie Bewertungskategorien",
+    "categories": "Kategorien",
+    "addCategory": "Kategorie hinzufügen",
+    "editCategory": "Kategorie bearbeiten",
+    "categoryName": "Kategoriename",
+    "categoryNamePlaceholder": "Kategorienamen eingeben...",
+    "weight": "Gewichtung (%)",
+    "displayOrder": "Anzeigereihenfolge",
+    "createCategory": "Kategorie erstellen",
+    "updateCategory": "Kategorie aktualisieren",
+    "loadSuccess": "{{count}} Kategorien erfolgreich geladen!",
+    "saveSuccess": "{{count}} Kategorien erfolgreich gespeichert!",
+    "deleteSuccess": "Kategorie erfolgreich gelöscht!",
+    "weightExceedsError": "Das Gesamtgewicht überschreitet 100 %. Bitte verteilen Sie die Gewichtungen neu oder reduzieren Sie das Gewicht dieser Kategorie.",
+    "redistributeWeights": "Gewichtungen neu verteilen",
+    "totalWeightExceeds": "Das Gesamtgewicht überschreitet 100 %. Bitte verteilen Sie die Gewichtungen neu.",
+    "totalWeightNot100": "Das Gesamtgewicht beträgt {{total}} %. Es sollte 100 % betragen.",
+    "totalWeightMustBe100": "Das Gesamtgewicht muss 100 % betragen. Bitte passen Sie die Gewichtungen an oder verwenden Sie die Schaltfläche zur Neuverteilung.",
+    "totalWeightNot100ForNew": "Das Gesamtgewicht wird {{total}} % betragen. Es muss 100 % betragen.",
+    "currentTotal": "Aktueller Gesamtwert: {{current}} % | Neuer Gesamtwert: {{new}} %",
+    "noCategoriesYet": "Es wurden noch keine Kategorien erstellt.",
+    "weightLabel": "Gewichtung: {{weight}} % | Reihenfolge: {{order}}",
+    "categoryCreated": "Kategorie erfolgreich erstellt!",
+    "categoryUpdated": "Kategorie erfolgreich aktualisiert!",
+    "categoryDeleted": "Kategorie erfolgreich gelöscht!",
+    "weightsRedistributed": "Gewichtungen gleichmäßig neu verteilt.",
+    "createError": "Fehler beim Erstellen der Kategorie",
+    "updateError": "Fehler beim Aktualisieren der Kategorie",
+    "deleteError": "Fehler beim Löschen der Kategorie",
+    "redistributeError": "Fehler beim Neuverteilen der Gewichtungen",
+    "loadError": "Fehler beim Laden der Kategorien",
+    "unknownError": "Ein unbekannter Fehler ist aufgetreten",
+    "retry": "Erneut versuchen",
+    "newCategory": "Neue Kategorie"
+  },
+  "manageOrganizations": {
+    "title": "Organisationen verwalten",
+    "subtitle": "Genossenschaftsorganisationen hinzufügen und verwalten",
+    "addOrganization": "Organisation hinzufügen",
+    "domains": "Domänen",
+    "description": "Beschreibung",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "noOrganizations": "Noch keine Organisationen",
+    "getStarted": "Fügen Sie Ihre erste Genossenschaftsorganisation hinzu, um zu beginnen.",
+    "addFirstOrganization": "Erste Organisation hinzufügen",
+    "update": "Organisation aktualisieren",
+    "create": "Organisation erstellen",
+    "cancel": "Abbrechen",
+    "editOrganization": "Organisation bearbeiten",
+    "createCategoryWithOrg": "Kategorie mit Organisation erstellen",
+    "createCategoryWithOrgDesc": "Optional eine neue Kategorie erstellen und dieser Organisation zuweisen",
+    "newCategoryName": "Neuer Kategoriename",
+    "newCategoryNamePlaceholder": "Kategorienamen eingeben...",
+    "categoryWeight": "Kategoriegewichtung (%)",
+    "categoryDisplayOrder": "Anzeigereihenfolge",
+    "createCategory": "Kategorie erstellen",
+    "skipCategoryCreation": "Kategorien-Erstellung überspringen"
+  },
+  "user": {
+    "dashboard": {
+      "welcome": "Willkommen, {{user}} von {{org}}!",
+      "readyToContinue": "Bereit, die Nachhaltigkeitsreise Ihrer Genossenschaft fortzusetzen?",
+      "answerAssessment": {
+        "title": "Bewertung beantworten",
+        "description": "Beantworten Sie ausstehende Nachhaltigkeitsbewertungen für Ihre Genossenschaft."
+      },
+      "viewAssessments": {
+        "title": "Bewertungen anzeigen",
+        "description": "Sehen Sie alle Ihre vergangenen und aktuellen Nachhaltigkeitsbewertungen.",
+        "subtitle": "Verfolgen und verwalten Sie die Nachhaltigkeitsverbesserungsaufgaben Ihrer Genossenschaft."
+      },
+      "actionPlan": {
+        "kanban": {
+          "todo": "Zu erledigen",
+          "inProgress": "In Bearbeitung",
+          "done": "Erledigt",
+          "approved": "Genehmigt",
+          "approve": "Genehmigen",
+          "moveToInProgress": "In Bearbeitung verschieben",
+          "backToTodo": "Zurück zu Zu erledigen",
+          "moveToDone": "Zu Erledigt verschieben",
+          "backToInProgress": "Zurück zu In Bearbeitung",
+          "backToDone": "Zurück zu Erledigt"
+        },
+        "title": "Aktionsplan",
+        "description": "Verfolgen und verwalten Sie die Nachhaltigkeitsverbesserungsaufgaben Ihrer Genossenschaft.",
+        "recentSubmissions": "Neueste Einreichungen",
+        "viewAll": "Alle anzeigen",
+        "noSubmissions": "Noch keine Einreichungen.",
+        "exportReports": "Berichte exportieren",
+        "downloadReportsDescription": "Laden Sie Ihre Bewertungsberichte in verschiedenen Formaten herunter.",
+        "exportAsPDF": "Als PDF exportieren",
+        "exportAsWord": "Als Word exportieren",
+        "exportAsCSV": "Als CSV exportieren",
+        "needHelp": "Hilfe benötigt?",
+        "getSupport": "Holen Sie sich Unterstützung und Schulungsmaterialien, um das Beste aus Ihren Bewertungen herauszuholen.",
+        "viewUserGuide": "Benutzerhandbuch anzeigen",
+        "manageUsers": {
+          "title": "Benutzer verwalten",
+          "description": "Benutzer in Ihrer Organisation hinzufügen und verwalten."
+        },
+        "status": {
+          "approved": "Genehmigt",
+          "pendingReview": "Ausstehende Überprüfung",
+          "underReview": "In Überprüfung",
+          "rejected": "Abgelehnt",
+          "revisionRequested": "Überarbeitung angefordert",
+          "unknown": "Unbekannt"
+        },
+        "loadingSubmissionsInline": "Einreichungen werden geladen...",
+        "user": "Benutzer",
+        "org": "Ihre Organisation",
+        "startAssessment": {
+          "title": "Nachhaltigkeitsbewertung starten",
+          "description": "Bewerten Sie Umwelt-, Sozial- und Governance-Praktiken für nachhaltiges Wachstum."
+        },
+        "noDraftAssessment": "Keine Entwurfsbewertung zum Beantworten verfügbar.",
+        "sustainabilityAssessment": "Nachhaltigkeitsbewertung",
+        "noSubmissionsMessage": "Noch keine Einreichungen. Starten Sie Ihre erste Bewertung oben!"
+      },
+      "recentSubmissions": "Neueste Einreichungen",
+      "viewAll": "Alle anzeigen",
+      "noSubmissions": "Noch keine Einreichungen.",
+      "exportReports": "Berichte exportieren",
+      "downloadReportsDescription": "Laden Sie Ihre Bewertungsberichte in verschiedenen Formaten herunter.",
+      "exportAsPDF": "Als PDF exportieren",
+      "exportAsWord": "Als Word exportieren",
+      "exportAsCSV": "Als CSV exportieren",
+      "needHelp": "Hilfe benötigt?",
+      "getSupport": "Holen Sie sich Unterstützung und Schulungsmaterialien, um das Beste aus Ihren Bewertungen herauszuholen.",
+      "viewUserGuide": "Benutzerhandbuch anzeigen",
+      "manageUsers": {
+        "title": "Benutzer verwalten",
+        "description": "Benutzer in Ihrer Organisation hinzufügen und verwalten."
+      },
+      "draftSubmissions": {
+        "title": "Entwurfseinreichungen",
+        "description": "Überprüfen und genehmigen Sie Entwurfsbewertungen, die von Organisationsbenutzern eingereicht wurden.",
+        "noDrafts": "Keine ausstehenden Entwurfseinreichungen zur Genehmigung.",
+        "assessment": "Bewertung",
+        "submittedBy": "Eingereicht von",
+        "submittedAt": "Eingereicht am",
+        "organization": "Organisation",
+        "pendingApproval": "Genehmigung ausstehend",
+        "view": "Anzeigen",
+        "approve": "Genehmigen",
+        "approving": "Wird genehmigt...",
+        "approvedSuccessfully": "Bewertung erfolgreich genehmigt!",
+        "failedToApprove": "Genehmigung der Bewertung fehlgeschlagen.",
+        "viewFullAssessment": "Vollständige Bewertung anzeigen",
+        "approveSubmission": "Einreichung genehmigen",
+        "backToDraftSubmissions": "Zurück zu Entwurfseinreichungen",
+        "reviewAndApprove": "Diese Entwurfseinreichung überprüfen und genehmigen",
+        "submissionInfo": "Einreichungsinformationen",
+        "submitted": "Eingereicht",
+        "questionsAnswered": "Beantwortete Fragen",
+        "assessmentResponses": "Bewertungsantworten",
+        "noResponsesAvailable": "Keine Antworten verfügbar",
+        "yesNoResponse": "Ja/Nein-Antwort",
+        "percentageResponse": "Prozentuale Antwort",
+        "textResponse": "Textantwort",
+        "noTextResponseProvided": "Keine Textantwort angegeben",
+        "attachedFiles": "Angehängte Dateien",
+        "noFilesAttached": "Keine Dateien angehängt",
+        "loadingDraftSubmissions": "Entwurfseinreichungen werden geladen...",
+        "errorLoadingDraftSubmissions": "Fehler beim Laden der Entwurfseinreichungen",
+        "tryAgain": "Erneut versuchen",
+        "noDraftSubmissions": "Keine Entwurfseinreichungen",
+        "noDraftSubmissionsDescription": "Derzeit gibt es keine ausstehenden Entwurfseinreichungen zur Genehmigung. Schauen Sie später nach neuen Einreichungen.",
+        "viewDetails": "Details anzeigen",
+        "responses": "Antworten"
+      },
+      "status": {
+        "approved": "Genehmigt",
+        "pendingReview": "Ausstehende Überprüfung",
+        "underReview": "In Überprüfung",
+        "rejected": "Abgelehnt",
+        "revisionRequested": "Überarbeitung angefordert",
+        "unknown": "Unbekannt"
+      },
+      "loadingSubmissionsInline": "Einreichungen werden geladen...",
+      "user": "Benutzer",
+      "org": "Ihre Organisation",
+      "startAssessment": {
+        "title": "Nachhaltigkeitsbewertung starten",
+        "description": "Bewerten Sie Umwelt-, Sozial- und Governance-Praktiken für nachhaltiges Wachstum."
+      },
+      "noDraftAssessment": "Keine Entwurfsbewertung zum Beantworten verfügbar.",
+      "sustainabilityAssessment": "Nachhaltigkeitsbewertung",
+      "noSubmissionsMessage": "Noch keine Einreichungen. Starten Sie Ihre erste Bewertung oben!"
+    }
+  },
+  "manageUsers.selectOrganization": "Organisation auswählen",
+  "manageUsers.clickOrgToManage": "Klicken Sie auf eine Organisation, um deren Benutzer zu verwalten",
+  "manageUsers.backToOrganizations": "Zurück zu Organisationen",
+  "manageUsers.addUser": "+ Benutzer hinzufügen",
+  "manageUsers.manageUsersForOrg": "Benutzer in {{org}} hinzufügen und verwalten",
+  "manageUsers.editUser": "Benutzer bearbeiten",
+  "manageUsers.addNewUser": "Neuen Benutzer hinzufügen",
+  "manageUsers.email": "E-Mail",
+  "manageUsers.emailPlaceholder": "E-Mail eingeben",
+  "manageUsers.role": "Rolle",
+  "manageUsers.organizationAdmin": "Organisationsadministrator",
+  "manageUsers.organization": "Organisation",
+  "manageUsers.selectOrganizationPlaceholder": "Organisation auswählen",
+  "manageUsers.update": "Aktualisieren",
+  "manageUsers.create": "Erstellen",
+  "manageUsers.user": "Benutzer",
+  "manageUsers.cancel": "Abbrechen",
+  "manageUsers.verified": "Verifiziert",
+  "manageUsers.notVerified": "Nicht verifiziert",
+  "manageUsers.edit": "Bearbeiten",
+  "manageUsers.noUsersYet": "Noch keine Benutzer",
+  "manageUsers.addFirstUserDesc": "Fügen Sie Ihren ersten Benutzer hinzu, um zu beginnen.",
+  "manageUsers.addFirstUser": "Ersten Benutzer hinzufügen",
+  "manageUsers.orgLabel": "Org:",
+  "manageUsers.unknown": "Unbekannt",
+  "manageUsers.admin": "Admin",
+  "manageUsers.orgAdmin": "Org-Admin",
+  "manageUsers.orgUser": "Org-Benutzer",
+  "manageUsers.createUser": "Benutzer erstellen",
+  "manageUsers.updateUser": "Benutzer aktualisieren",
+  "manageUsers.emailRequired": "E-Mail ist erforderlich",
+  "manageUsers.selectOrgRequired": "Bitte wählen Sie eine Organisation aus",
+  "manageUsers.confirmDelete": "Sind Sie sicher, dass Sie diesen Benutzer aus der Organisation löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+  "manageQuestions": {
+    "title": "Fragen verwalten",
+    "subtitle": "Bewertungsfragen nach Kategorie erstellen und organisieren",
+    "cardTitle": "Bewertungsfragen",
+    "addQuestion": "Frage hinzufügen",
+    "addNewQuestion": "Neue Frage hinzufügen",
+    "editQuestion": "Frage bearbeiten",
+    "category": "Kategorie",
+    "selectCategoryPlaceholder": "Kategorie auswählen...",
+    "weightLabel": "Gewichtung (1-10)",
+    "displayOrder": "Anzeigereihenfolge",
+    "questionEnPlaceholder": "Frage auf Englisch eingeben...",
+    "questionLangPlaceholder": "Frage auf {{lang}} eingeben...",
+    "createQuestion": "Frage erstellen",
+    "updateQuestion": "Frage aktualisieren",
+    "saving": "Speichern...",
+    "textRequired": "Englischer Text ist erforderlich",
+    "categoryRequired": "Kategorie ist erforderlich",
+    "weightRangeError": "Gewichtung muss zwischen 1 und 10 liegen",
+    "createSuccess": "Frage erfolgreich erstellt!",
+    "updateSuccess": "Frage erfolgreich aktualisiert!",
+    "deleteSuccess": "Frage erfolgreich gelöscht!",
+    "confirmDelete": "Sind Sie sicher, dass Sie diese Frage löschen möchten?",
+    "noQuestionsInCategory": "Noch keine Fragen in dieser Kategorie.",
+    "noCategories": "Keine Kategorien verfügbar. Bitte erstellen Sie zuerst Kategorien!",
+    "noText": "Kein Text verfügbar.",
+    "categoriesLoadError": "Fehler beim Laden der Kategorien. Bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen"
+  },
+  "assessment.yesNo": "Ja/Nein",
+  "assessment.yes": "Ja",
+  "assessment.no": "Nein",
+  "assessment.percentage": "Prozentsatz",
+  "assessment.percentNotStarted": "Nicht begonnen",
+  "assessment.percentSomeProgress": "Einige Fortschritte",
+  "assessment.percentHalfway": "Halbwegs",
+  "assessment.percentAlmostDone": "Fast fertig",
+  "assessment.percentFullyAchieved": "Vollständig erreicht",
+  "assessment.yourResponse": "Ihre Antwort",
+  "assessment.enterYourResponse": "Geben Sie Ihre Antwort ein...",
+  "assessment.addFile": "Datei hinzufügen",
+  "assessment.completeAllQuestions": "Bitte beantworten Sie alle Fragen in dieser Kategorie, bevor Sie einreichen.",
+  "assessment.submittedLocally": "Bewertung wurde lokal eingereicht und wird synchronisiert, wenn online.",
+  "assessment.failedToCreate": "Fehler beim lokalen Erstellen der Bewertung.",
+  "assessment.fileTooLarge": "Die Dateigröße muss weniger als 1 MB betragen.",
+  "assessment.completeAllQuestionsNext": "Bitte beantworten Sie alle Fragen in dieser Kategorie, bevor Sie fortfahren.",
+  "assessment.noPermissionToCreate": "Nur Organisationsadministratoren können Bewertungen erstellen.",
+  "assessment.successTitle": "Bewertung erfolgreich erstellt!",
+  "assessment.successMessage": "Ihre Benutzer werden die ihnen zugewiesene Bewertung beantworten.",
+  "assessment.returnToDashboard": "Zum Dashboard zurückkehren",
+  "assessment.draftSubmittedSuccessfully": "Bewertung zur Genehmigung durch den Administrator eingereicht!",
+  "assessment.draftQueuedForSync": "Bewertung offline gespeichert und wird bei Online-Verbindung zur Genehmigung eingereicht.",
+  "assessment.failedToSubmitDraft": "Fehler beim Einreichen der Bewertung zur Genehmigung.",
+  "assessment.createAssessment": "Bewertung erstellen",
+  "assessment.assessmentName": "Bewertungsname",
+  "assessment.enterAssessmentName": "Bewertungsnamen eingeben...",
+  "assessment.noAssessmentsAvailable": "Keine Bewertungen verfügbar",
+  "assessment.noAssessmentsDescription": "Für Ihre Organisation wurden noch keine Bewertungen erstellt.",
+  "assessment.untitled": "Unbenannte Bewertung",
+  "assessment.status.draft": "Entwurf",
+  "assessment.status.submitted": "Eingereicht",
+  "assessment.continueAssessment": "Fortsetzen",
+  "assessment.viewAssessment": "Anzeigen",
+  "assessment.selectAssessment": "Bewertung auswählen",
+  "assessment.selectAssessmentDescription": "Wählen Sie eine Bewertung zum Fortsetzen aus oder erstellen Sie eine neue.",
+  "assessment.createNewAssessment": "Neue Bewertung erstellen",
+  "common.cancel": "Abbrechen",
+  "common.creating": "Erstellen...",
+  "manageQuestions.noCategories": "Keine Kategorien verfügbar. Bitte erstellen Sie zuerst Kategorien!",
+  "manageQuestions.noText": "Kein Text verfügbar.",
+  "userGuide": {
+    "title": "Benutzerhandbuch für Genossenschaften",
+    "subtitle": "Vollständiger Leitfaden zur Nutzung der DGRV-Nachhaltigkeitsbewertungsplattform",
+    "backToDashboard": "Zum Dashboard zurückkehren",
+    "quickStart": {
+      "title": "Schnellstart",
+      "step1": "1. 📋 Starten oder beantworten Sie eine Bewertung von Ihrem Dashboard",
+      "step2": "2. ✏️ Beantworten Sie alle Fragen mit detaillierten Erklärungen",
+      "step3": "3. 📎 Fügen Sie relevante unterstützende Dokumente hinzu",
+      "step4": "4. ✅ Reichen Sie zur Überprüfung ein, wenn fertig",
+      "step5": "5. 📊 Nutzen Sie die Ergebnisse, um Aktionspläne zu erstellen und Fortschritte zu verfolgen"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Erste Schritte",
+        "content": [
+          "Willkommen auf der DGRV-Nachhaltigkeitsbewertungsplattform! Dieses Tool hilft Ihrer Genossenschaft, ihre Nachhaltigkeitspraktiken zu messen und zu verbessern.",
+          "Ihr Dashboard bietet Zugriff auf Bewertungen, Aktionspläne und Tools zur Fortschrittsverfolgung.",
+          "Wenn Sie Organisationsadministrator sind, können Sie neue Bewertungen erstellen und Teammitglieder verwalten. Organisationsbenutzer können Bewertungen beantworten und Fortschritte verfolgen."
+        ]
+      },
+      "roles": {
+        "title": "Benutzerrollen verstehen",
+        "content": [
+          "Organisationsadministrator (org_admin): Kann neue Bewertungen erstellen, Benutzer verwalten und alle Organisationsdaten einsehen.",
+          "Organisationsbenutzer (Org_User): Kann zugewiesene Bewertungen beantworten, Ergebnisse einsehen und Aktionspläne verwalten.",
+          "Beide Rollen können auf das Dashboard zugreifen, Einreichungen anzeigen und Berichte für ihre Organisation exportieren."
+        ]
+      },
+      "assessments": {
+        "title": "Bewertungen durchführen",
+        "content": [
+          "Bewertungen sind in Kategorien (z. B. Umwelt, Soziales, Governance) mit Fragen in jeder Kategorie organisiert.",
+          "Geben Sie für jede Frage an: Ja/Nein-Antwort, Prozentsatz der Fertigstellung (0 %, 25 %, 50 %, 75 %, 100 %) und detaillierte Texterklärung.",
+          "Sie können Dateien zur Unterstützung Ihrer Antworten anhängen (max. 1 MB pro Datei). Verwenden Sie das Büroklammer-Symbol, um Dokumente hinzuzufügen.",
+          "Speichern Sie Ihren Fortschritt jederzeit mit 'Entwurf speichern'. Beantworten Sie alle Fragen in einer Kategorie, bevor Sie zur nächsten übergehen.",
+          "Nach der Einreichung durchlaufen Bewertungen einen Überprüfungsprozess vor der endgültigen Genehmigung."
+        ]
+      },
+      "actionPlans": {
+        "title": "Aktionspläne verwalten",
+        "content": [
+          "Aktionspläne helfen Ihnen, Verbesserungsaufgaben basierend auf Bewertungsempfehlungen zu verfolgen.",
+          "Verwenden Sie das Kanban-Board, um Aufgaben durch die Phasen zu bewegen: Zu erledigen → In Bearbeitung → Erledigt → Genehmigt.",
+          "Fügen Sie neue Aufgaben hinzu, setzen Sie Fristen und weisen Sie Teammitglieder zu, um den Fortschritt effektiv zu verfolgen.",
+          "Regelmäßige Aktualisierungen Ihres Aktionsplans zeigen kontinuierliche Verbesserungsbemühungen.",
+          "Exportieren Sie Aktionspläne, um Fortschritte mit Stakeholdern und der Geschäftsführung zu teilen."
+        ]
+      },
+      "viewingResults": {
+        "title": "Bewertungsergebnisse anzeigen",
+        "content": [
+          "Greifen Sie über 'Bewertungen anzeigen' auf dem Dashboard auf alle Ihre Einreichungen zu.",
+          "Verfolgen Sie den Einreichungsstatus: Ausstehende Überprüfung → In Überprüfung → Genehmigt/Abgelehnt/Überarbeitung angefordert.",
+          "Sehen Sie detailliertes Feedback und Empfehlungen von Prüfern, um Verbesserungsbereiche zu verstehen.",
+          "Vergleichen Sie Ergebnisse über verschiedene Bewertungszeiträume, um den Fortschritt Ihrer Genossenschaft zu verfolgen.",
+          "Verwenden Sie die Einreichungsansicht, um Ihre Antworten und unterstützenden Dokumente zu überprüfen."
+        ]
+      },
+      "creatingAssessments": {
+        "title": "Bewertungen erstellen (nur Admins)",
+        "content": [
+          "Organisationsadministratoren können neue Bewertungszyklen für ihre Genossenschaft starten.",
+          "Klicken Sie auf 'Nachhaltigkeitsbewertung starten', um einen neuen Bewertungsentwurf zu erstellen.",
+          "Teilen Sie die Bewertungs-ID mit Teammitgliedern, damit sie zu verschiedenen Abschnitten beitragen können.",
+          "Überwachen Sie den Fortschritt und stellen Sie sicher, dass alle Kategorien vor der endgültigen Einreichung abgeschlossen sind.",
+          "Reichen Sie Bewertungen nur ein, wenn alle erforderlichen Abschnitte vollständig ausgefüllt sind."
+        ]
+      },
+      "userManagement": {
+        "title": "Teammitglieder verwalten (nur Admins)",
+        "content": [
+          "Organisationsadministratoren können Teammitglieder über 'Benutzer verwalten' hinzufügen und verwalten.",
+          "Laden Sie neue Benutzer per E-Mail ein und weisen Sie ihnen entsprechende Rollen basierend auf ihren Verantwortlichkeiten zu.",
+          "Weisen Sie Benutzern Kategoriezugang zu, damit sie zu spezifischen Bewertungsbereichen beitragen können.",
+          "Entfernen Sie Benutzer, die keinen Zugriff mehr benötigen, um Sicherheit und Datenintegrität zu gewährleisten.",
+          "Überprüfen Sie regelmäßig die Benutzerberechtigungen, um angemessene Zugriffsebenen sicherzustellen."
+        ]
+      },
+      "reportsExports": {
+        "title": "Berichte und Exporte",
+        "content": [
+          "Exportieren Sie Bewertungsberichte im PDF-Format, um sie mit Stakeholdern und Vorständen zu teilen.",
+          "Verwenden Sie CSV-Exporte für Datenanalysen und die Verfolgung von Trends über die Zeit.",
+          "Laden Sie Word-Dokumente für detaillierte Dokumentation und Berichtszwecke herunter.",
+          "Regelmäßige Berichtserstellung hilft, kontinuierliche Verbesserungsbemühungen zu demonstrieren.",
+          "Teilen Sie Berichte mit Mitgliedern und Stakeholdern, um Transparenz zu wahren."
+        ]
+      },
+      "bestPractices": {
+        "title": "Beste Praktiken für Genossenschaften",
+        "content": [
+          "Beteiligen Sie verschiedene Teammitglieder an Bewertungen, um umfassende Perspektiven auf Nachhaltigkeitspraktiken zu erhalten.",
+          "Geben Sie detaillierte, ehrliche Antworten mit spezifischen Beispielen und unterstützenden Dokumenten.",
+          "Nutzen Sie Bewertungsergebnisse, um realistische, erreichbare Aktionspläne zur Verbesserung zu erstellen.",
+          "Regelmäßige Bewertungszyklen (jährlich oder halbjährlich) helfen, den Fortschritt zu verfolgen und den Schwung aufrechtzuerhalten.",
+          "Feiern Sie Verbesserungen und teilen Sie Erfolge mit Ihren Genossenschaftsmitgliedern und der Gemeinschaft."
+        ]
+      },
+      "troubleshooting": {
+        "title": "Häufige Probleme und Lösungen",
+        "content": [
+          "Kein Zugriff auf Bewertungen: Überprüfen Sie mit Ihrem Organisationsadministrator die Rollenzuweisungen und den Kategoriezugang.",
+          "Bewertung wird nicht gespeichert: Stellen Sie sicher, dass Sie alle erforderlichen Felder ausfüllen (Ja/Nein, Prozentsatz und Texterklärung).",
+          "Probleme beim Hochladen von Dateien: Dateien müssen unter 1 MB liegen. Versuchen Sie, die Dateigröße zu reduzieren oder andere Formate zu verwenden.",
+          "Andere Teameinreichungen nicht sichtbar: Nur Organisationsadministratoren können alle Einreichungen sehen.",
+          "Fehlende Bewertungskategorien: Kontaktieren Sie Ihren Administrator, um die Kategoriezuweisungen für Ihre Organisation zu überprüfen."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "Tipps für erfolgreiche Nachhaltigkeitsbewertungen",
+      "beforeStarting": {
+        "title": "Vor dem Start:",
+        "items": [
+          "• Relevante Dokumente und Daten sammeln",
+          "• Teammitglieder aus verschiedenen Bereichen einbeziehen",
+          "• Frühere Bewertungen überprüfen, falls verfügbar",
+          "• Ausreichend Zeit für die Fertigstellung einplanen"
+        ]
+      },
+      "duringAssessment": {
+        "title": "Während der Bewertung:",
+        "items": [
+          "• Ehrlich und spezifisch in den Antworten sein",
+          "• Konkrete Beispiele angeben",
+          "• Unterstützende Beweise hochladen",
+          "• Entwürfe regelmäßig speichern"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "Hilfe benötigt?",
+      "description": "Wenn Sie Unterstützung benötigen oder Fragen zur Nutzung der Plattform haben:",
+      "email": "📧 E-Mail: support@dgrv.org",
+      "phone": "📞 Telefon: +27 (0) 11 000 0000",
+      "website": "🌐 Website: www.dgrv.org/support",
+      "contactAdmin": "💬 Kontaktieren Sie Ihren Organisationsadministrator für rollenspezifische Fragen"
+    }
+  },
+  "adminGuide": {
+    "title": "Admin-Leitfaden für die DGRV-Plattform",
+    "subtitle": "Vollständiger Leitfaden zur Verwaltung der DGRV-Nachhaltigkeitsbewertungsplattform",
+    "backToDashboard": "Zum Dashboard zurückkehren",
+    "quickStart": {
+      "title": "Schnellstart",
+      "step1": "1. 👥 Organisationen und Benutzer verwalten",
+      "step2": "2. 📋 Kategorien und Fragen konfigurieren",
+      "step3": "3. ✅ Bewertungen prüfen und genehmigen",
+      "step4": "4. 📊 Systemgesundheit und Leistung überwachen",
+      "step5": "5. 🎯 Genossenschaften auf ihrer Nachhaltigkeitsreise unterstützen"
+    },
+    "sections": {
+      "overview": {
+        "title": "Plattformübersicht",
+        "content": [
+          "Die DGRV-Nachhaltigkeitsbewertungsplattform ist darauf ausgelegt, Genossenschaften in ganz Südafrika zu helfen, ihre Nachhaltigkeitspraktiken zu messen und zu verbessern.",
+          "Als Administrator haben Sie Zugriff auf umfassende Tools zur Verwaltung von Organisationen, Benutzern, Bewertungsinhalten und zur Überprüfung von Einreichungen.",
+          "Die Plattform unterstützt mehrere Sprachen und funktioniert offline, um verschiedenen Konnektivitätsherausforderungen in der Region gerecht zu werden."
+        ]
+      },
+      "organizations": {
+        "title": "Organisationen verwalten",
+        "content": [
+          "Fügen Sie neue Genossenschaftsorganisationen mit ihren grundlegenden Informationen und Domäneneinstellungen zur Plattform hinzu.",
+          "Konfigurieren Sie organisationsspezifische Einstellungen und verwalten Sie den Benutzerzugriff für jede Genossenschaft.",
+          "Überwachen Sie die Aktivität der Organisation und gewährleisten Sie eine ordnungsgemäße Datenisolierung zwischen verschiedenen Genossenschaften.",
+          "Archivieren oder entfernen Sie inaktive Organisationen, während Sie deren historische Daten bewahren."
+        ]
+      },
+      "users": {
+        "title": "Benutzer verwalten",
+        "content": [
+          "Erstellen und verwalten Sie Benutzerkonten in allen Organisationen mit entsprechenden Rollenzuweisungen.",
+          "Weisen Sie Benutzer spezifischen Organisationen zu und konfigurieren Sie deren Zugriffsberechtigungen.",
+          "Überwachen Sie die Benutzeraktivität und verwalten Sie den Verifizierungsstatus von Konten.",
+          "Stellen Sie die Sicherheit durch regelmäßige Überprüfung des Benutzerzugriffs und Entfernung inaktiver Konten sicher."
+        ]
+      },
+      "categories": {
+        "title": "Bewertungskategorien verwalten",
+        "content": [
+          "Konfigurieren Sie Bewertungskategorien, die mit den besten Nachhaltigkeitspraktiken und lokalen Anforderungen übereinstimmen.",
+          "Legen Sie angemessene Gewichtungen für jede Kategorie fest, um eine ausgewogene Bewertungsbewertung sicherzustellen.",
+          "Organisieren Sie Kategorien in einer logischen Anzeigereihenfolge für eine optimale Benutzererfahrung.",
+          "Überprüfen und aktualisieren Sie Kategorien regelmäßig basierend auf Feedback und sich ändernden Nachhaltigkeitsstandards."
+        ]
+      },
+      "questions": {
+        "title": "Bewertungsfragen verwalten",
+        "content": [
+          "Erstellen Sie umfassende Fragen innerhalb jeder Kategorie, um Nachhaltigkeitspraktiken gründlich zu bewerten.",
+          "Stellen Sie Fragen in mehreren Sprachen bereit, um diverse Genossenschaftsgemeinschaften zu unterstützen.",
+          "Legen Sie angemessene Gewichtungen und Anzeigereihenfolge für Fragen innerhalb jeder Kategorie fest.",
+          "Überprüfen und aktualisieren Sie Fragen regelmäßig basierend auf Bewertungsergebnissen und Feedback von Stakeholdern."
+        ]
+      },
+      "reviews": {
+        "title": "Bewertungen prüfen",
+        "content": [
+          "Überprüfen Sie eingereichte Bewertungen gründlich unter Berücksichtigung sowohl quantitativer Bewertungen als auch qualitativer Antworten.",
+          "Geben Sie konstruktives Feedback und spezifische Verbesserungsempfehlungen.",
+          "Verwenden Sie Standardempfehlungen, um Konsistenz über mehrere Bewertungen hinweg sicherzustellen.",
+          "Genehmigen, ablehnen oder fordern Sie Überarbeitungen basierend auf der Qualität und Vollständigkeit der Bewertung an."
+        ]
+      },
+      "recommendations": {
+        "title": "Standardempfehlungen",
+        "content": [
+          "Erstellen Sie wiederverwendbare Empfehlungsvorlagen für gängige Bewertungsszenarien und Verbesserungsbereiche.",
+          "Pflegen Sie eine Bibliothek hochwertiger Empfehlungen, die auf verschiedene Genossenschaften anwendbar sind.",
+          "Aktualisieren Sie Empfehlungen regelmäßig basierend auf besten Praktiken und erfolgreichen Verbesserungsstrategien.",
+          "Stellen Sie sicher, dass Empfehlungen praktisch und für Genossenschaften unterschiedlicher Größe und Ressourcen umsetzbar sind."
+        ]
+      },
+      "systemHealth": {
+        "title": "Systemgesundheit und Leistung",
+        "content": [
+          "Überwachen Sie regelmäßig die Plattformleistung, Datenbankgesundheit und API-Antwortzeiten.",
+          "Überprüfen Sie den Status der Synchronisationswarteschlange und stellen Sie sicher, dass die Datensynchronisation ordnungsgemäß funktioniert.",
+          "Exportieren Sie Systemberichte und Audit-Logs für Compliance- und Fehlerbehebungszwecke.",
+          "Führen Sie regelmäßige Backups durch und stellen Sie die Datensicherheit über alle Plattformkomponenten hinweg sicher."
+        ]
+      },
+      "support": {
+        "title": "Genossenschaften unterstützen",
+        "content": [
+          "Bieten Sie Genossenschaften Anleitung zur effektiven Nutzung der Plattform für ihre Nachhaltigkeitsziele.",
+          "Bieten Sie Schulungen und Unterstützungsmaterialien an, um Organisationen zu helfen, den Wert ihrer Bewertungen zu maximieren.",
+          "Überwachen Sie Bewertungstrends und identifizieren Sie Möglichkeiten zur Plattformverbesserung.",
+          "Bauen Sie Beziehungen zu Genossenschaftsführern auf, um ihre einzigartigen Bedürfnisse und Herausforderungen zu verstehen."
+        ]
+      }
+    },
+    "bestPractices": {
+      "title": "Beste Praktiken für die Plattformadministration",
+      "regularReviews": {
+        "title": "Regelmäßige Überprüfungen:",
+        "items": [
+          "• Überprüfen Sie ausstehende Bewertungen mindestens wöchentlich",
+          "• Überwachen Sie Systemgesundheit und Leistungsmetriken",
+          "• Aktualisieren Sie Kategorien und Fragen basierend auf Feedback",
+          "• Pflegen Sie aktive Kommunikation mit Genossenschaftsführern"
+        ]
+      },
+      "qualityAssurance": {
+        "title": "Qualitätssicherung:",
+        "items": [
+          "• Stellen Sie konsistente Überprüfungsstandards für alle Bewertungen sicher",
+          "• Geben Sie detailliertes, umsetzbares Feedback an Genossenschaften",
+          "• Halten Sie Empfehlungsvorlagen auf dem neuesten Stand",
+          "• Führen Sie regelmäßig Backups von Systemdaten und -konfigurationen durch"
+        ]
+      }
+    },
+    "contactInfo": {
+      "title": "Administrativer Support",
+      "description": "Für technischen Support oder Fragen zur Plattformadministration:",
+      "email": "📧 E-Mail: admin@dgrv.org",
+      "phone": "📞 Telefon: +27 (0) 11 000 0000",
+      "website": "🌐 Website: www.dgrv.org/admin",
+      "documentation": "📚 Dokumentation: Verfügbar im Admin-Portal"
+    }
+  },
+  "reviewAssessments": {
+    "title": "Bewertungen prüfen",
+    "subtitle": "Eingereichte Bewertungen prüfen und genehmigen",
+    "syncData": "Daten synchronisieren",
+    "pendingSync": "Ausstehende Synchronisation",
+    "submissionsUnderReview": "Einreichungen in Überprüfung",
+    "noSubmissionsUnderReview": "Keine Einreichungen in Überprüfung",
+    "unknownOrganization": "Unbekannte Organisation",
+    "organization": "Organisation",
+    "submitted": "Eingereicht",
+    "unknown": "Unbekannt",
+    "review": "Prüfen",
+    "underReview": "In Überprüfung",
+    "approved": "Genehmigt",
+    "rejected": "Abgelehnt",
+    "reviewAssessment": "Bewertung prüfen",
+    "reviewDescription": "Überprüfen und geben Sie Empfehlungen für diese Nachhaltigkeitsbewertung",
+    "submissionDetails": "Einreichungsdetails",
+    "submissionDate": "Einreichungsdatum",
+    "status": "Status",
+    "assessmentResponses": "Bewertungsantworten",
+    "noResponsesFound": "Keine Antworten gefunden",
+    "addRecommendation": "Empfehlung hinzufügen",
+    "collapse": "Einklappen",
+    "expand": "Ausklappen",
+    "yourRecommendations": "Ihre Empfehlungen:",
+    "addedAt": "Hinzugefügt am",
+    "addRecommendationFor": "Empfehlung hinzufügen für",
+    "recommendation": "Empfehlung",
+    "enterRecommendationFor": "Geben Sie Ihre Empfehlung für ein",
+    "category": "Kategorie",
+    "cancel": "Abbrechen",
+    "yesNo": "Ja/Nein:",
+    "yes": "Ja",
+    "no": "Nein",
+    "percentage": "Prozentsatz:",
+    "response": "Antwort:",
+    "clickExpandToView": "Klicken Sie auf 'Ausklappen', um anzuzeigen",
+    "question": "Frage",
+    "submitReview": "Prüfung einreichen",
+    "loadingSubmissions": "Einreichungen werden geladen...",
+    "errorLoadingSubmissions": "Fehler beim Laden der Einreichungen",
+    "retry": "Erneut versuchen",
+    "backToDashboard": "Zum Dashboard zurückkehren",
+    "reviewSubmittedSuccessfully": "Prüfung erfolgreich eingereicht",
+    "reviewSavedLocally": "Prüfung lokal gespeichert. Wird synchronisiert, wenn online.",
+    "failedToSubmitReview": "Fehler beim Einreichen der Prüfung",
+    "manualSyncFailed": "Manuelle Synchronisation fehlgeschlagen"
+  }
+}

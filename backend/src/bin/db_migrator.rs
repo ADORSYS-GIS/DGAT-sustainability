@@ -3,27 +3,33 @@ use sea_orm_migration::prelude::*;
 use sea_orm_migration::sea_orm::{Database, DbErr};
 use std::env;
 use sustainability_tool::common::migrations::Migrator;
+use anyhow::{Context, Result};
+use tracing::{info, error};
+use tracing_subscriber;
 
 #[tokio::main]
-async fn main() -> Result<(), DbErr> {
-    println!("Database Migration Tool");
-    println!("======================");
+async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .with_env_filter("info")
+        .init();
 
-    // Load environment variables from .env file
     dotenv().ok();
 
-    // Get database URL from environment
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
+    let database_url = env::var("DATABASE_URL")
+        .context("DATABASE_URL must be set in environment or .env")?;
 
-    // Connect to the database
-    let conn = Database::connect(database_url).await?;
+    let conn = Database::connect(&database_url)
+        .await
+        .with_context(|| format!("Failed to connect to database at {}", &database_url))?;
 
-    // Run migrations
-    println!("🚀 Running migrations...");
-    Migrator::up(&conn, None).await?;
+    info!("Running database migrations");
+    if let Err(e) = Migrator::up(&conn, None).await {
+        error!("Database migration failed: {:?}", e);
+        return Err(e.into());
+    }
 
-    println!("✅ All migrations completed successfully");
-    println!("Database setup is complete");
+    info!("All database migrations completed successfully");
 
     Ok(())
 }

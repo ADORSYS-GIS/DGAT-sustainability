@@ -11,7 +11,17 @@ This schema implements a version-safe assessment system with the following compo
 - `QUESTIONS` + `QUESTIONS_REVISIONS` ensure question edits don't affect existing assessments
 - Each response links to a specific question revision, preserving historical accuracy
 
-## 3. Submission & Reporting
+## 3. Draft Workflow & Temporary Submissions
+- `TEMP_SUBMISSION` serves as a staging area for draft submissions before finalization
+- Allows users to save assessment progress and review before final submission
+- Contains complete assessment content including responses and file metadata
+- Supports three-tier status workflow using `AssessmentStatus` enum:
+  - **`Draft`**: Default status for new assessments (includes assessments with responses but not yet submitted)
+  - **`Submitted`**: Assessments moved to `TEMP_SUBMISSION` table for review
+  - **`Reviewed`**: Assessments finalized in `ASSESSMENTS_SUBMISSION` table for report generation
+- Automatically cleaned up when moved to final submission
+
+## 4. Submission & Reporting
 - `ASSESSMENTS_SUBMISSION` creates an immutable snapshot when user submits
 - `SUBMISSION_REPORTS` stores grading results and feedback tied to the submission
 
@@ -19,6 +29,8 @@ This schema implements a version-safe assessment system with the following compo
 - ✅ **Immutable assessments** - completed tests remain unchanged even if questions are updated
 - ✅ **Answer versioning** - tracks how responses evolve during the assessment
 - ✅ **File attachment support** - handles document/image uploads
+- ✅ **Draft workflow** - users can save progress and review before final submission
+- ✅ **Review process** - supports approval workflow with status tracking
 - ✅ **Audit trail** - complete history from draft to final grade
 
 ## Entity Relationships
@@ -67,6 +79,7 @@ ASSESSMENTS_RESPONSE_FILE |o--o| FILE : "one"
     QUESTIONS {
         uuid question_id PK
         text categoty
+        timestamp created_at
     }
 
     QUESTIONS_REVISIONS {
@@ -81,6 +94,15 @@ ASSESSMENTS_RESPONSE_FILE |o--o| FILE : "one"
         uuid report_id PK
         uuid assessment_id FK
         jsonb data "Report content"
+    }
+
+    TEMP_SUBMISSION {
+        uuid temp_id PK "FK to assessments.assessment_id"
+        varchar org_id "Organization identifier"
+        jsonb content "Complete draft submission with responses and file metadata"
+        timestamp submitted_at "When draft was created"
+        varchar status "Review status (under_review, reviewed, etc.)"
+        timestamp reviewed_at "When reviewed (nullable)"
     }
 ```
 

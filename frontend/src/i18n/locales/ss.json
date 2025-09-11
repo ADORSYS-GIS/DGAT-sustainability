@@ -1,0 +1,987 @@
+{
+  "home": "Ikhaya",
+  "homePage": {
+    "hero": {
+      "title": "Nika Amandla Inhlangano Yakho",
+      "subtitle": "Hlela Tinhloso Tekusimama",
+      "description": "Kulula, kuphephile, kanye nekuba nesikhona Siza inhlangano yakho kutsi iphumelele esikhatsini sesimanje ngesikhatsi sakha timiso letisima tekusasa.",
+      "cta": "Cala Kuhlola"
+    },
+    "features": {
+      "title": "Tinto Letibalulekile",
+      "items": [
+        {
+          "title": "Kuhlola Kusimama",
+          "description": "Hlela timiso temvelo, tenhlalakahle, kanye nekuphatsa kutsi wakhe inhlangano lesima kakhulu futhi lenemtfwalo."
+        },
+        {
+          "title": "Tihlelo Temsebenti",
+          "description": "Landzela inchubekela yakho ngebhodhi le-Kanban lehlanganyelako, ugucule tinhloso tekwehlola kube imisebenti lenekusetjentiswa kanye nentfutfuko lenukaleka."
+        }
+      ]
+    },
+    "benefits": {
+      "title": "Tinzuzo",
+      "items": [
+        {
+          "title": "Yakhelwe Inhlangano",
+          "description": "Yenzelwe ngalokukhethekile inhlangano letisebenta ndzawonye eNingizimu Afrika"
+        },
+        {
+          "title": "Kusekela Tindzimi Letinyenti",
+          "description": "Kuyafumaneka ngeSingisi, siSwati, siPutukezi, siZulu, siJalimane, kanye nesiFulentshi"
+        },
+        {
+          "title": "Kusebenta Ngaphandle Kwe-inthanethi",
+          "description": "Kusebenta ngekuthembela noma kuncane lokuxhumana ne-inthanethi"
+        }
+      ]
+    }
+  },
+  "login": "Ngena",
+  "logout": "Phuma",
+  "profile": "Iphrofayili",
+  "sustainability": "Kusimama",
+  "assessment": "Kuhlola",
+  "submit": "Tfumela",
+  "next": "Lokulandzelako",
+  "previous": "Lokwedlule",
+  "saveDraft": "Gcina Okusalungiswa",
+  "category": "Sigaba",
+  "progress": "Inchubekela",
+  "viewSubmission": "Buka Lokutfunyelwe",
+  "yourSubmissions": "Lokutfunyelwe Kwakho",
+  "noSubmissions": "Akukho lokutfunyelwe okwamanje",
+  "submissionDeleted": "Lokutfunyelwe kusulwe ngemphumelelo",
+  "failedToDeleteSubmission": "Kwehluleka kususa lokutfunyelwe",
+  "syncData": "Vumelanisa Tidzingo",
+  "startAssessment": "Cala Kuhlola",
+  "status": "Simo",
+  "submittedAt": "Kutfunyelwe Ngesikhatsi",
+  "reviewedAt": "Kubuyeketwe Ngesikhatsi",
+  "manageUsers": "Phatsa Basebenti",
+  "actionPlan": "Luhlelo Lwemsebenti",
+  "viewAssessments": "Buka Tihlolo",
+  "answerAssessment": "Phendvula Kuhlola",
+  "viewAll": "Buka Konkhe",
+  "welcome": "Siyakwemukela, {{user}} kusuka {{org}}!",
+  "loading": "Iyalayisha...",
+  "noData": "Akukho tidzingo letitfolakalako",
+  "common": {
+    "processing": "Iyacubungula...",
+    "edit": "Hlela",
+    "cancel": "Khansela",
+    "save": "Gcina",
+    "delete": "Susa",
+    "update": "Buyeketa",
+    "create": "Dala",
+    "loading": "Iyalayisha...",
+    "error": "Liphutsa",
+    "tryAgain": "Zama Futi",
+    "yes": "Yebo",
+    "no": "Cha"
+  },
+  "adminDashboard": {
+    "welcome": "Siyakwemukela, Mphatsi! Shukumisa Umthelela Wenhlangano!",
+    "intro": "Phatsa ipulatifomu yekuhlola ye-DGRV bese usekela tinhlangano kulo lonkhe eNingizimu Afrika.",
+    "numCategories": "Inani Letigaba",
+    "numQuestions": "Inani Lemibuto",
+    "pendingReviews": "Kubuyeketa Lokusalindzile",
+    "completedAssessments": "Tihlolo Letiphelile",
+    "manageOrganizations": "Phatsa Tinhlangano",
+    "manageOrganizationsDesc": "Ngezelela, hlela, kanye nekuphatsa tinhlangano letisebenta ndzawonye esistimeni.",
+    "manageUsers": "Phatsa Basebenti",
+    "manageUsersDesc": "Lawula kufinyelela kwebasebenti kanye netindzima kuto tonkhe tinhlangano.",
+    "manageCategories": "Phatsa Tigaba",
+    "manageCategoriesDesc": "Lungiselela tigaba tekwehlola temathuluzi ekusimama.",
+    "manageQuestions": "Phatsa Imibuto",
+    "manageQuestionsDesc": "Dala kanye nekulungisa imibuto ngaphakatsi kwesigaba sekwehlola.",
+    "reviewAssessments": "Buyeketa Tihlolo",
+    "reviewAssessmentsDesc": "Buyeketa tihlolo letitfunyelwe bese uniketela tincomo.",
+    "actionPlans": "Phatsa Tihlelo Temsebenti",
+    "actionPlansDesc": "Buka kanye nekuphatsa tihlelo temsebenti tato tonkhe tinhlangano",
+    "standardRecommendations": "Tincomo Letijwayelekile",
+    "standardRecommendationsDesc": "Phatsa tincomo letingasetjentiswa kabusha ngetimo tekwehlola letivamile.",
+    "pendingReviewsCard": "Kubuyeketa Lokusalindzile",
+    "pendingCount": "{count} lokusalindzile",
+    "sustainabilityAssessment": "Kuhlola Kusimama",
+    "byUser": "ngu {user}",
+    "underReview": "Ngaphasi Kwekubuyeketa",
+    "reviewRequired": "Kubuyeketa Kuyadzingeka",
+    "allUpToDate": "Tonke tihlolo zisesikhatsini!",
+    "adminGuide": "Umhlahlandzela Wemphatsi",
+    "guideIntro": "Siyakwemukela kuDGRV Admin Dashboard! Nati tetinsita letingakusita kuphatsa ipulatifomu:",
+    "guideOrgsUsers": "Sebentisa tigatja tekuPhatsa Tinhlangano kanye nekuPhatsa Basebenti kute ulawule kufinyelela kanye nebumembu.",
+    "guideReview": "Buyeketa kanye nekugunyata tihlolo esigatjeni sekubuyeketa Tihlolo.",
+    "guideCategoriesQuestions": "Lungiselela tigaba nemibuto kute ulungiselele inchubo yekuhlola ngetidzingo takho.",
+    "guideDocs": "Ngekufumana imininingwane leyetayelekile, vakashela i-Admin Documentation.",
+    "guideSupport": "Uma udzinga lusito, tsintsana ne support@dgrv.org.",
+    "loadingSubmissions": "Iyalayisha lokutfunyelwe...",
+    "viewCompleteGuide": "Buka Umhlahlandzela Lophelele"
+  },
+  "standardRecommendations": {
+    "title": "Tincomo Letijwayelekile",
+    "manageDesc": "Phatsa tincomo letingasetjentiswa kabusha ngekubuyeketa kwehlolo",
+    "add": "Ngezelela Tincomo",
+    "edit": "Lungisa Tincomo Letijwayelekile",
+    "addDialog": "Ngezelela Tincomo Letijwayelekile",
+    "textLabel": "Umbhalo Wetincomo",
+    "textPlaceholder": "Faka umbhalo wetincomo...",
+    "update": "Buyeketa Tincomo",
+    "create": "Dala Tincomo",
+    "cancel": "Khansela",
+    "singleTitle": "Tincomo Letijwayelekile",
+    "editBtn": "Lungisa",
+    "emptyTitle": "Asekho tincomo letijwayelekile okwamanje",
+    "emptyDesc": "Dala tincomo letingasetjentiswa kabusha kute usheshise kubuyeketa kwehlolo.",
+    "addFirst": "Ngezelela Tincomo Tekucala",
+    "textRequired": "Umbhalo wetincomo uyadzingeka",
+    "confirmDelete": "Ucinisekile yini kutsi ufuna kususa le tincomo letijwayelekile?",
+    "deleteSuccess": "Tincomo letijwayelekile zisulwe ngemphumelelo",
+    "updateSuccess": "Tincomo zibuyeketwe ngemphumelelo",
+    "createSuccess": "Tincomo letijwayelekile tidaliwe ngemphumelelo"
+  },
+  "dashboard": {
+    "welcome": {
+      "title": "Siyakwemukela, Mphatsi! Shukumisa Umthelela Wenhlangano!",
+      "description": "Phatsa ipulatifomu yekuhlola ye-DGRV bese usekela tinhlangano kulo lonkhe eNingizimu Afrika."
+    },
+    "pendingReviews": {
+      "title": "Kubuyeketa Lokusalindzile",
+      "badge": "lokusalindzile",
+      "assessmentType": "Kuhlola Kusimama",
+      "submittedBy": "ngu",
+      "reviewRequired": "Kubuyeketa Kuyadzingeka",
+      "upToDate": "Tonke tihlolo zisesikhatsini!"
+    },
+    "systemHealth": {
+      "title": "Simo Sesistimu",
+      "database": "I-Database",
+      "healthy": "Iphile",
+      "apiResponse": "Imphendvulo ye-API",
+      "fast": "Isheshako",
+      "syncQueue": "Ukulayini Kwekuvumelanisa",
+      "clear": "Sula"
+    },
+    "quickActions": {
+      "title": "Tento Letisheshako",
+      "exportReport": "Tfumela Umbiko Wesistimu",
+      "backupDatabase": "Gcina I-Database",
+      "viewAuditLogs": "Buka Tincwadzi Tekuhlola",
+      "systemSettings": "Tinhlelo Tesistimu"
+    },
+    "stats": {
+      "numCategories": "Inani Letigaba",
+      "numQuestions": "Inani Lemibuto",
+      "pendingReviews": "Kubuyeketa Lokusalindzile",
+      "completedAssessments": "Tihlolo Letiphelile"
+    },
+    "assessments": {
+      "subtitle": "Buka kanye nekuphatsa tonke letitfunyelwe takho tekusimama",
+      "emptyState": "Cala kuhlola kwakho kwekucala kwekusimama kute ulandzele inchubekela yenhlangano yakho."
+    },
+    "numCategories": "Inani Letigaba",
+    "numQuestions": "Inani Lemibuto",
+    "pendingReviews": "Kubuyeketa Lokusalindzile",
+    "completedAssessments": "Tihlolo Letiphelile",
+    "actions": {
+      "manageOrganizations": "Phatsa Tinhlangano",
+      "manageOrganizationsDesc": "Ngezelela, hlela, kanye nekuphatsa tinhlangano letisebenta ndzawonye esistimeni.",
+      "manageUsers": "Phatsa Basebenti",
+      "manageUsersDesc": "Lawula kufinyelela kwebasebenti kanye netindzima kuto tonkhe tinhlangano.",
+      "manageCategories": "Phatsa Tigaba",
+      "manageCategoriesDesc": "Lungiselela tigaba tekwehlola temathuluzi ekusimama.",
+      "manageQuestions": "Phatsa Imibuto",
+      "manageQuestionsDesc": "Dala kanye nekulungisa imibuto ngaphakatsi kwesigaba sekwehlola.",
+      "reviewAssessments": "Buyeketa Tihlolo",
+      "reviewAssessmentsDesc": "Buyeketa tihlolo letitfunyelwe bese uniketela tincomo.",
+      "standardRecommendations": "Tincomo Letijwayelekile",
+      "standardRecommendationsDesc": "Phatsa tincomo letingasetjentiswa kabusha ngetimo tekwehlola letivamile."
+    },
+    "guide": {
+      "title": "Umhlahlandzela Wemphatsi",
+      "intro": "Siyakwemukela kuDGRV Admin Dashboard! Nati tetinsita letingakusita kuphatsa ipulatifomu:",
+      "orgsUsers": "Sebentisa tigatja tekuPhatsa Tinhlangano kanye nekuPhatsa Basebenti kute ulawule kufinyelela kanye nebumembu.",
+      "review": "Buyeketa kanye nekugunyata tihlolo esigatjeni sekubuyeketa Tihlolo.",
+      "categoriesQuestions": "Lungiselela tigaba nemibuto kute ulungiselele inchubo yekuhlola ngetidzingo takho.",
+      "docs": "Ngekufumana imininingwane leyetayelekile, vakashela i-Admin Documentation.",
+      "support": "Uma udzinga lusito, tsintsana ne support@dgrv.org."
+    }
+  },
+  "questions": {
+    "manage": {
+      "title": "Phatsa Imibuto",
+      "description": "Dala kanye nekulungisa imibuto ngaphakatsi kwesigaba sekwehlola.",
+      "add": "Ngezelela Umbuto Lomusha",
+      "edit": "Lungisa Umbuto",
+      "delete": "Susa Umbuto",
+      "confirmDelete": "Ucinisekile yini kutsi ufuna kususa lommbuto?",
+      "success": "Umbuto usulwe ngemphumelelo!",
+      "error": "Liphutsa ekususeni umbuto."
+    },
+    "list": {
+      "title": "Yonke Imibuto",
+      "noQuestions": "Ayikho imibuto letitfolakele.",
+      "question": "Umbuto",
+      "category": "Sigaba",
+      "actions": "Tento"
+    },
+    "form": {
+      "title": "Ifomu Yemibuto",
+      "question": "Umbuto",
+      "category": "Sigaba",
+      "type": "Luhlobo",
+      "options": "Tikhetselo",
+      "required": "Kuyadzingeka",
+      "save": "Gcina Umbuto",
+      "cancel": "Khansela",
+      "success": "Umbuto ugcinwe ngemphumelelo!",
+      "error": "Liphutsa ekugcineni umbuto."
+    }
+  },
+  "categories": {
+    "manage": {
+      "title": "Phatsa Tigaba",
+      "description": "Lungiselela tigaba tekwehlola temathuluzi ekusimama.",
+      "add": "Ngezelela Sigaba Lesisha",
+      "edit": "Lungisa Sigaba",
+      "delete": "Susa Sigaba",
+      "confirmDelete": "Ucinisekile yini kutsi ufuna kususa lesigaba? Lokho kutawususa yonke imibuto kulesigaba. Qaphela: Noma ngukuphi lokutfunyelwe lokukhona lokuneempendvulo kulemibuto kutawugcinwa, kodvwa timininingwane tetimpendvulo ngatotinye titawusulwa.",
+      "success": "Sigaba sisulwe ngemphumelelo!",
+      "error": "Liphutsa ekususeni sigaba."
+    },
+    "list": {
+      "title": "Tonke Tigaba",
+      "noCategories": "Atekho tigaba letitfolakele.",
+      "category": "Sigaba",
+      "actions": "Tento"
+    },
+    "form": {
+      "title": "Ifomu Yesigaba",
+      "name": "Ligama",
+      "description": "Incazelo",
+      "save": "Gcina Sigaba",
+      "cancel": "Khansela",
+      "success": "Sigaba sigcinwe ngemphumelelo!",
+      "error": "Liphutsa ekugcineni sigaba."
+    }
+  },
+  "organizations": {
+    "manage": {
+      "title": "Phatsa Tinhlangano",
+      "description": "Ngezelela, hlela, kanye nekuphatsa tinhlangano letisebenta ndzawonye esistimeni.",
+      "add": "Ngezelela Inhlangano Lensha",
+      "edit": "Lungisa Inhlangano",
+      "delete": "Susa Inhlangano",
+      "confirmDelete": "Ucinisekile yini kutsi ufuna kususa le nhlangano?",
+      "success": "Inhlangano isulwe ngemphumelelo!",
+      "error": "Liphutsa ekususeni inhlangano."
+    },
+    "list": {
+      "title": "Tonke Tinhlangano",
+      "noOrganizations": "Atekho tinhlangano letitfolakele.",
+      "organization": "Inhlangano",
+      "actions": "Tento"
+    },
+    "form": {
+      "title": "Ifomu Yenhlangano",
+      "name": "Ligama",
+      "description": "Incazelo",
+      "save": "Gcina Inhlangano",
+      "cancel": "Khansela",
+      "success": "Inhlangano igcinwe ngemphumelelo!",
+      "error": "Liphutsa ekugcineni inhlangano."
+    }
+  },
+  "users": {
+    "manage": {
+      "title": "Phatsa Basebenti",
+      "description": "Lawula kufinyelela kwebasebenti kanye netindzima kuto tonkhe tinhlangano.",
+      "add": "Ngezelela Umsebenti Lomusha",
+      "edit": "Lungisa Umsebenti",
+      "delete": "Susa Umsebenti",
+      "confirmDelete": "Ucinisekile yini kutsi ufuna kususa lomsebenti?",
+      "success": "Umsebenti usulwe ngemphumelelo!",
+      "error": "Liphutsa ekususeni umsebenti."
+    },
+    "list": {
+      "title": "Bonkhe Basebenti",
+      "noUsers": "Abekho basebenti betitfolakele.",
+      "user": "Umsebenti",
+      "actions": "Tento"
+    },
+    "form": {
+      "title": "Ifomu Yomsebenti",
+      "username": "Ligama Lomsebenti",
+      "email": "I-imeyili",
+      "role": "Indzima",
+      "organization": "Inhlangano",
+      "save": "Gcina Umsebenti",
+      "cancel": "Khansela",
+      "success": "Umsebenti ugcinwe ngemphumelelo!",
+      "error": "Liphutsa ekugcineni umsebenti."
+    }
+  },
+  "reviews": {
+    "manage": {
+      "title": "Buyeketa Tihlolo",
+      "description": "Buyeketa tihlolo letitfunyelwe bese uniketela tincomo.",
+      "review": "Buyeketa",
+      "approve": "Gunyata",
+      "reject": "Nqaba",
+      "comments": "Ticelo",
+      "recommendations": "Tincomo",
+      "save": "Gcina Kubuyeketa",
+      "cancel": "Khansela",
+      "success": "Kubuyeketa kugcinwe ngemphumelelo!",
+      "error": "Liphutsa ekugcineni kubuyeketa."
+    },
+    "list": {
+      "title": "Tonke Tibuyeketo",
+      "noReviews": "Atekho tibuyeketo letitfolakele.",
+      "assessment": "Kuhlola",
+      "status": "Simo",
+      "reviewedBy": "Kubuyeketwe Ngu",
+      "actions": "Tento"
+    }
+  },
+  "recommendations": {
+    "manage": {
+      "title": "Tincomo Letijwayelekile",
+      "description": "Phatsa tincomo letingasetjentiswa kabusha ngetimo tekwehlola letivamile.",
+      "add": "Ngezelela Tincomo Lensha",
+      "edit": "Lungisa Tincomo",
+      "delete": "Susa Tincomo",
+      "confirmDelete": "Ucinisekile yini kutsi ufuna kususa le tincomo?",
+      "success": "Tincomo zisulwe ngemphumelelo!",
+      "error": "Liphutsa ekususeni tincomo."
+    },
+    "list": {
+      "title": "Tonke Tincomo",
+      "noRecommendations": "Atekho tincomo letitfolakele.",
+      "recommendation": "Tincomo",
+      "actions": "Tento"
+    },
+    "form": {
+      "formTitle": "Ifomu Yetincomo",
+      "title": "Sihloko",
+      "description": "Incazelo",
+      "save": "Gcina Tincomo",
+      "cancel": "Khansela",
+      "success": "Tincomo zigcinwe ngemphumelelo!",
+      "error": "Liphutsa ekugcineni tincomo."
+    }
+  },
+  "manageCategories": {
+    "title": "Phatsa Tigaba",
+    "configureCategories": "Lungiselela kanye nekuphatsa tigaba tekwehlola",
+    "categories": "Tigaba",
+    "addCategory": "Ngezelela Sigaba",
+    "editCategory": "Lungisa Sigaba",
+    "categoryName": "Ligama Lesigaba",
+    "categoryNamePlaceholder": "Faka ligama lesigaba...",
+    "weight": "Sisindo (%)",
+    "displayOrder": "Kubukwa Ngekulandzelana",
+    "createCategory": "Dala Sigaba",
+    "updateCategory": "Buyeketa Sigaba",
+    "loadSuccess": "Kulayishwe {{count}} tigaba ngemphumelelo!",
+    "saveSuccess": "Kugcinwe {{count}} tigaba ngemphumelelo!",
+    "deleteSuccess": "Sigaba sisulwe ngemphumelelo!",
+    "weightExceedsError": "Sisindo soke siyedlula 100%. Sicela uhlele kabusha sisindo noma wehlise sisindo salesigaba.",
+    "redistributeWeights": "Hlela Kabusha Tisisindo",
+    "totalWeightExceeds": "Sisindo soke siyedlula 100%. Sicela uhlele kabusha tisisindo.",
+    "totalWeightNot100": "Sisindo soke singu {{total}}%. Kufanele silingane ne-100%.",
+    "totalWeightMustBe100": "Sisindo soke kufanele silingane ne-100%. Sicela ulungise tisisindo noma usebentise inkinobho yekuhlela kabusha.",
+    "totalWeightNot100ForNew": "Sisindo soke sitawuba {{total}}%. Kufanele silingane ne-100%.",
+    "currentTotal": "Sisindo sanyalo: {{current}}% | Sisindo esisha: {{new}}%",
+    "noCategoriesYet": "Asekho tigaba letidalwe okwamanje.",
+    "weightLabel": "Sisindo: {{weight}}% | Kulandzelana: {{order}}",
+    "categoryCreated": "Sigaba sidalwe ngemphumelelo!",
+    "categoryUpdated": "Sigaba sibuyeketwe ngemphumelelo!",
+    "categoryDeleted": "Sigaba sisulwe ngemphumelelo!",
+    "weightsRedistributed": "Tisisindo tihlukaniswe kabusha ngendlela lelinganako.",
+    "createError": "Kwehluleka kudalwa sigaba",
+    "updateError": "Kwehluleka kubuyeketa sigaba",
+    "deleteError": "Kwehluleka kususa sigaba",
+    "redistributeError": "Kwehluleka kuhlela kabusha tisisindo",
+    "loadError": "Liphutsa Ekulayisheni Tigaba",
+    "unknownError": "Kwenteke liphutsa lelingatiwa",
+    "retry": "Zama Futi",
+    "newCategory": "Sigaba Lesisha"
+  },
+  "manageOrganizations": {
+    "title": "Phatsa Tinhlangano",
+    "subtitle": "Ngezelela kanye nekuphatsa tinhlangano letisebenta ndzawonye",
+    "addOrganization": "Ngezelela Inhlangano",
+    "domains": "Tindzawo",
+    "description": "Incazelo",
+    "edit": "Lungisa",
+    "delete": "Susa",
+    "noOrganizations": "Atekho tinhlangano okwamanje",
+    "getStarted": "Ngezelela inhlangano yakho yekucala letisebenta ndzawonye kute uqale.",
+    "addFirstOrganization": "Ngezelela Inhlangano Yekucala",
+    "update": "Buyeketa Inhlangano",
+    "create": "Dala Inhlangano",
+    "cancel": "Khansela",
+    "editOrganization": "Lungisa Inhlangano",
+    "createCategoryWithOrg": "Dala Sigaba Ngenhlangano",
+    "createCategoryWithOrgDesc": "Ngokukhetsa dala sigaba lesisha bese usiniketa le nhlangano",
+    "newCategoryName": "Ligama Lesigaba Lesisha",
+    "newCategoryNamePlaceholder": "Faka ligama lesigaba...",
+    "categoryWeight": "Sisindo Sesigaba (%)",
+    "categoryDisplayOrder": "Kubukwa Ngekulandzelana",
+    "createCategory": "Dala Sigaba",
+    "skipCategoryCreation": "Yeqa Kudala Sigaba"
+  },
+  "user": {
+    "dashboard": {
+      "welcome": "Siyakwemukela, {{user}} kusuka {{org}}!",
+      "readyToContinue": "Ulungele yini kucela inchubo yekusimama kwenhlangano yakho?",
+      "answerAssessment": {
+        "title": "Phendvula Kuhlola",
+        "description": "Phendvula tihlolo tekusimama letisalindzile kwenhlangano yakho."
+      },
+      "viewAssessments": {
+        "title": "Buka Tihlolo",
+        "description": "Buka tonke tihlolo takho takudlule kanye netamanje tekusimama.",
+        "subtitle": "Landzela kanye nekuphatsa imisebenti yenhlangano yakho yekutfutfukisa kusimama."
+      },
+      "actionPlan": {
+        "kanban": {
+          "todo": "Kutsiwenziwe",
+          "inProgress": "Kuyasentwa",
+          "done": "Kuphelile",
+          "approved": "Kugunyatiwe",
+          "approve": "Gunyata",
+          "moveToInProgress": "Yisa Ekuqhubekeni",
+          "backToTodo": "Buyela Ekuqaleni",
+          "moveToDone": "Yisa Ekuphelweni",
+          "backToInProgress": "Buyela Ekuqhubekeni",
+          "backToDone": "Buyela Ekuphelweni"
+        },
+        "title": "Luhlelo Lwemsebenti",
+        "description": "Landzela kanye nekuphatsa imisebenti yenhlangano yakho yekutfutfukisa kusimama.",
+        "recentSubmissions": "Lokutfunyelwe Kwanyalo",
+        "viewAll": "Buka Konkhe",
+        "noSubmissions": "Akukho lokutfunyelwe okwamanje.",
+        "exportReports": "Tfumela Tibiko",
+        "downloadReportsDescription": "Landa tibiko takho tekwehlola ngetindlela tefomethi letinyenti.",
+        "exportAsPDF": "Tfumela njenge-PDF",
+        "exportAsWord": "Tfumela njenge-Word",
+        "exportAsCSV": "Tfumela njenge-CSV",
+        "needHelp": "Udzinga Lusito?",
+        "getSupport": "Tfola lusito kanye nemathiriyali yekufundzisa kute usebentise kahle tihlolo takho.",
+        "viewUserGuide": "Buka Umhlahlandzela Womsebenti",
+        "manageUsers": {
+          "title": "Phatsa Basebenti",
+          "description": "Ngezelela kanye nekuphatsa basebenti enhlanganweni yakho."
+        },
+        "status": {
+          "approved": "Kugunyatiwe",
+          "pendingReview": "Kusalindzile Kubuyeketa",
+          "underReview": "Ngaphasi Kwekubuyeketa",
+          "rejected": "Kunqatshiwe",
+          "revisionRequested": "Kuceliwe Kubuyeketiwe",
+          "unknown": "Akwatiwa"
+        },
+        "loadingSubmissionsInline": "Iyalayisha lokutfunyelwe...",
+        "user": "Umsebenti",
+        "org": "inhlangano yakho",
+        "startAssessment": {
+          "title": "Cala Kuhlola Kusimama",
+          "description": "Hlela timiso temvelo, tenhlalakahle, kanye nekuphatsa ngekukhula lokusima."
+        },
+        "noDraftAssessment": "Akukho kuhlola lokusalungiswa lokutfolakalako.",
+        "sustainabilityAssessment": "Kuhlola Kusimama",
+        "noSubmissionsMessage": "Akukho lokutfunyelwe okwamanje. Cala kuhlola kwakho kwekucala ngenhla!"
+      },
+      "recentSubmissions": "Lokutfunyelwe Kwanyalo",
+      "viewAll": "Buka Konkhe",
+      "noSubmissions": "Akukho lokutfunyelwe okwamanje.",
+      "exportReports": "Tfumela Tibiko",
+      "downloadReportsDescription": "Landa tibiko takho tekwehlola ngetindlela tefomethi letinyenti.",
+      "exportAsPDF": "Tfumela njenge-PDF",
+      "exportAsWord": "Tfumela njenge-Word",
+      "exportAsCSV": "Tfumela njenge-CSV",
+      "needHelp": "Udzinga Lusito?",
+      "getSupport": "Tfola lusito kanye nemathiriyali yekufundzisa kute usebentise kahle tihlolo takho.",
+      "viewUserGuide": "Buka Umhlahlandzela Womsebenti",
+      "manageUsers": {
+        "title": "Phatsa Basebenti",
+        "description": "Ngezelela kanye nekuphatsa basebenti enhlanganweni yakho."
+      },
+      "draftSubmissions": {
+        "title": "Lokutfunyelwe Lokusalungiswa",
+        "description": "Buyeketa kanye nekugunyata tihlolo letisalungiswa letitfunyelwe ngabasebenti benhlangano.",
+        "noDrafts": "Akukho lokutfunyelwe lokusalungiswa lokusalindzile kugunyatwa.",
+        "assessment": "Kuhlola",
+        "submittedBy": "Kutfunyelwe Ngu",
+        "submittedAt": "Kutfunyelwe Ngesikhatsi",
+        "organization": "Inhlangano",
+        "pendingApproval": "Kusalindzile Kugunyatwa",
+        "view": "Buka",
+        "approve": "Gunyata",
+        "approving": "Kuyagunyatwa...",
+        "approvedSuccessfully": "Kuhlola kugunyatiwe ngemphumelelo!",
+        "failedToApprove": "Kwehluleka kugunyata kuhlola.",
+        "viewFullAssessment": "Buka Kuhlola Lokuphelele",
+        "approveSubmission": "Gunyata Lokutfunyelwe",
+        "backToDraftSubmissions": "Buyela Kulokutfunyelwe Lokusalungiswa",
+        "reviewAndApprove": "Buyeketa kanye nekugunyata lokutfunyelwe lokusalungiswa",
+        "submissionInfo": "Temininingwane Yelokutfunyelwe",
+        "submitted": "Kutfunyelwe",
+        "questionsAnswered": "Imibuto Yaphendvulwa",
+        "assessmentResponses": "Timphendvulo Tekuhlola",
+        "noResponsesAvailable": "Atekho timphendvulo letitfolakalako",
+        "yesNoResponse": "Imphendvulo Ye-Yebo/Cha",
+        "percentageResponse": "Imphendvulo Yephesenti",
+        "textResponse": "Imphendvulo Yombhalo",
+        "noTextResponseProvided": "Akukho mphendvulo yombhalo leniketwe",
+        "attachedFiles": "Emafayela Lanamatselwe",
+        "noFilesAttached": "Awekho emafayela lanamatselwe",
+        "loadingDraftSubmissions": "Iyalayisha lokutfunyelwe lokusalungiswa...",
+        "errorLoadingDraftSubmissions": "Liphutsa ekulayisheni lokutfunyelwe lokusalungiswa",
+        "tryAgain": "Zama Futi",
+        "noDraftSubmissions": "Akukho Lokutfunyelwe Lokusalungiswa",
+        "noDraftSubmissionsDescription": "Okwamanje akukho lokutfunyelwe lokusalungiswa lokusalindzile kugunyatwa. Buyela emuva kute utfole lokutfunyelwe lokusha.",
+        "viewDetails": "Buka Temininingwane",
+        "responses": "timphendvulo"
+      },
+      "status": {
+        "approved": "Kugunyatiwe",
+        "pendingReview": "Kusalindzile Kubuyeketa",
+        "underReview": "Ngaphasi Kwekubuyeketa",
+        "rejected": "Kunqatshiwe",
+        "revisionRequested": "Kuceliwe Kubuyeketiwe",
+        "unknown": "Akwatiwa"
+      },
+      "loadingSubmissionsInline": "Iyalayisha lokutfunyelwe...",
+      "user": "Umsebenti",
+      "org": "inhlangano yakho",
+      "startAssessment": {
+        "title": "Cala Kuhlola Kusimama",
+        "description": "Hlela timiso temvelo, tenhlalakahle, kanye nekuphatsa ngekukhula lokusima."
+      },
+      "noDraftAssessment": "Akukho kuhlola lokusalungiswa lokutfolakalako.",
+      "sustainabilityAssessment": "Kuhlola Kusimama",
+      "noSubmissionsMessage": "Akukho lokutfunyelwe okwamanje. Cala kuhlola kwakho kwekucala ngenhla!"
+    }
+  },
+  "manageUsers.selectOrganization": "Khetsa Inhlangano",
+  "manageUsers.clickOrgToManage": "Cofa inhlangano kute uphatse basebenti bayo",
+  "manageUsers.backToOrganizations": "Buyela Etinhlanganweni",
+  "manageUsers.addUser": "+ Ngezelela Umsebenti",
+  "manageUsers.manageUsersForOrg": "Ngezelela kanye nekuphatsa basebenti kulo lonkhe {{org}}",
+  "manageUsers.editUser": "Lungisa Umsebenti",
+  "manageUsers.addNewUser": "Ngezelela Umsebenti Lomusha",
+  "manageUsers.email": "I-imeyili",
+  "manageUsers.emailPlaceholder": "Faka i-imeyili",
+  "manageUsers.role": "Indzima",
+  "manageUsers.organizationAdmin": "Mphatsi Wenhlangano",
+  "manageUsers.organization": "Inhlangano",
+  "manageUsers.selectOrganizationPlaceholder": "Khetsa inhlangano",
+  "manageUsers.update": "Buyeketa",
+  "manageUsers.create": "Dala",
+  "manageUsers.user": "Umsebenti",
+  "manageUsers.cancel": "Khansela",
+  "manageUsers.verified": "Kucinisekisiwe",
+  "manageUsers.notVerified": "Akucinisekisiwe",
+  "manageUsers.edit": "Lungisa",
+  "manageUsers.noUsersYet": "Abekho basebenti okwamanje",
+  "manageUsers.addFirstUserDesc": "Ngezelela umsebenti wakho wekucala kute uqale.",
+  "manageUsers.addFirstUser": "Ngezelela Umsebenti Wekucala",
+  "manageUsers.orgLabel": "Inhlangano:",
+  "manageUsers.unknown": "Akwatiwa",
+  "manageUsers.admin": "Mphatsi",
+  "manageUsers.orgAdmin": "Mphatsi Wenhlangano",
+  "manageUsers.orgUser": "Umsebenti Wenhlangano",
+  "manageUsers.createUser": "Dala Umsebenti",
+  "manageUsers.updateUser": "Buyeketa Umsebenti",
+  "manageUsers.emailRequired": "I-imeyili iyadzingeka",
+  "manageUsers.selectOrgRequired": "Sicela ukhetse inhlangano",
+  "manageUsers.confirmDelete": "Ucinisekile yini kutsi ufuna kususa lomsebenti enhlanganweni? Lento ayikwati kuhlehliswa.",
+  "manageQuestions": {
+    "title": "Phatsa Imibuto",
+    "subtitle": "Dala kanye nekuhlela imibuto yekuhlola ngesigaba",
+    "cardTitle": "Imibuto Yekuhlola",
+    "addQuestion": "Ngezelela Umbuto",
+    "addNewQuestion": "Ngezelela Umbuto Lomusha",
+    "editQuestion": "Lungisa Umbuto",
+    "category": "Sigaba",
+    "selectCategoryPlaceholder": "Khetsa sigaba...",
+    "weightLabel": "Sisindo (1-10)",
+    "displayOrder": "Kubukwa Ngekulandzelana",
+    "questionEnPlaceholder": "Faka umbuto ngesiNgisi...",
+    "questionLangPlaceholder": "Faka umbuto nge {{lang}}...",
+    "createQuestion": "Dala Umbuto",
+    "updateQuestion": "Buyeketa Umbuto",
+    "saving": "Kuyagcinwa...",
+    "textRequired": "Umbhalo ngesiNgisi uyadzingeka",
+    "categoryRequired": "Sigaba siyadzingeka",
+    "weightRangeError": "Sisindo kufanele sibe phakatsi kwe-1 kanye ne-10",
+    "createSuccess": "Umbuto udaliwe ngemphumelelo!",
+    "updateSuccess": "Umbuto ubuyeketwe ngemphumelelo!",
+    "deleteSuccess": "Umbuto usulwe ngemphumelelo!",
+    "confirmDelete": "Ucinisekile yini kutsi ufuna kususa lommbuto?",
+    "noQuestionsInCategory": "Ayikho imibuto kulesigaba okwamanje.",
+    "noCategories": "Atekho tigaba letitfolakalako. Sicela udale tigaba kuqala!",
+    "noText": "Asekho umbhalo ofumanekako.",
+    "categoriesLoadError": "Kwehluleka kulayisha tigaba. Sicela uzame futi.",
+    "retry": "Zama Futi"
+  },
+  "assessment.yesNo": "Yebo/Cha",
+  "assessment.yes": "Yebo",
+  "assessment.no": "Cha",
+  "assessment.percentage": "Iphesenti",
+  "assessment.percentNotStarted": "Akukacali",
+  "assessment.percentSomeProgress": "Inchubekela lencane",
+  "assessment.percentHalfway": "Phakatsi",
+  "assessment.percentAlmostDone": "Cishe Kuphelile",
+  "assessment.percentFullyAchieved": "Kuphelile Ngokuphelele",
+  "assessment.yourResponse": "Imphendvulo Yakho",
+  "assessment.enterYourResponse": "Faka imphendvulo yakho...",
+  "assessment.addFile": "Ngezelela ifayela",
+  "assessment.completeAllQuestions": "Sicela uphendvule yonke imibuto kulesigaba ngaphambi kwekutfumela.",
+  "assessment.existingResponses": "Unemiphendvulo lekhona yalokuhlolo. Ungaqhubeka nokuhlela noma uphindze utfumele imiphendvulo yakho.",
+  "assessment.submittedLocally": "Kuhlola kutfunyelwe endzaweni kanye nekutawuvumelaniswa uma kuse-inthanethi.",
+  "assessment.failedToCreate": "Kwehluleka kudalwa kuhlola endzaweni.",
+  "assessment.fileTooLarge": "Sisayizi sefayela kufanele sibe ngaphasi kwe-1MB.",
+  "assessment.completeAllQuestionsNext": "Sicela uphendvule yonke imibuto kulesigaba ngaphambi kwekuqhubeka.",
+  "assessment.noPermissionToCreate": "Baphatsi benhlangano kuphela labangadala tihlolo.",
+  "assessment.successTitle": "Kuhlola Kudaliwe Ngemphumelelo!",
+  "assessment.successMessage": "Basebenti bakho batawuphendvula kuhlola lokwabelwe bona.",
+  "assessment.returnToDashboard": "Buyela Ku-Ikhaya",
+  "assessment.draftSubmittedSuccessfully": "Kuhlola kutfunyelwe kugunyatwa ngumphatsi!",
+  "assessment.draftQueuedForSync": "Kuhlola kugcinwe ngaphandle kwe-inthanethi kanye nekutawutfunyelwa kugunyatwa uma kuse-inthanethi.",
+  "assessment.failedToSubmitDraft": "Kwehluleka kutfumela kuhlola kugunyatwa.",
+  "assessment.createAssessment": "Dala Kuhlola",
+  "assessment.assessmentName": "Ligama Lekuhlola",
+  "assessment.enterAssessmentName": "Faka ligama lekuhlola...",
+  "assessment.noAssessmentsAvailable": "Atekho tihlolo letitfolakalako",
+  "assessment.noAssessmentsDescription": "Atekho tihlolo letidalwe inhlangano yakho okwamanje.",
+  "assessment.untitled": "Kuhlola Lokungakabizwa",
+  "assessment.status.draft": "Okusalungiswa",
+  "assessment.status.submitted": "Kutfunyelwe",
+  "assessment.continueAssessment": "Qhubeka",
+  "assessment.viewAssessment": "Buka",
+  "assessment.selectAssessment": "Khetsa Kuhlola",
+  "assessment.selectAssessmentDescription": "Khetsa kuhlola kute uqhubeke noma udale lokusha.",
+  "assessment.createNewAssessment": "Dala Kuhlola Lokusha",
+  "common.cancel": "Khansela",
+  "common.creating": "Kuyadaliwa...",
+  "manageQuestions.noCategories": "Atekho tigaba letitfolakalako. Sicela udale tigaba kuqala!",
+  "manageQuestions.noText": "Asekho umbhalo ofumanekako.",
+  "userGuide": {
+    "title": "Umhlahlandzela Wemsebenti Wetinhlangano",
+    "subtitle": "Umhlahlandzela ophelele wekusebentisa ipulatifomu yekuhlola kusimama ye-DGRV",
+    "backToDashboard": "Buyela Ku-Ikhaya",
+    "quickStart": {
+      "title": "Kucala Lokusheshako",
+      "step1": "1. 📋 Cala noma uphendvule kuhlola kusuka ku-ikhaya lakho",
+      "step2": "2. ✏️ Phelela yonke imibuto ngetincazelo letinemininingwane",
+      "step3": "3. 📎 Namatisa tidokhumenti letisekelako lapho kufanele khona",
+      "step4": "4. ✅ Tfumela kute kubuyeketwe uma kuphelile",
+      "step5": "5. 📊 Sebentisa imiphumela kute udale tihlelo temsebenti kanye nekulandzela inchubekela"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Kucala",
+        "content": [
+          "Siyakwemukela kuPulatifomu Yekuhlola Kusimama ye-DGRV! Leli thuluzi lisita inhlangano yakho kutsi ikale kanye nekutfutfukisa timiso tayo tekusimama.",
+          "I-ikhaya lakho liniketela kufinyelela kwehlolo, tihlelo temsebenti, kanye nemathuluzi ekulandzela inchubekela.",
+          "Uma ungunumphatsi wenhlangano, ungadala tihlolo letintsha kanye nekuphatsa emalunga etikweni. Basebenti benhlangano bangaphendvula tihlolo kanye nekulandzela inchubekela."
+        ]
+      },
+      "roles": {
+        "title": "Kucazwa Tindzima Tabasebenti",
+        "content": [
+          "Umphatsi Wenhlangano (org_admin): Angadala tihlolo letintsha, aphatsa basebenti, kanye nekubuka tidzingo tenhlangano yonkhe.",
+          "Umsebenti Wenhlangano (Org_User): Angaphendvula tihlolo letiwele, abuke imiphumela, kanye nekuphatsa tihlelo temsebenti.",
+          "Tindzima tobabili tingafinyelela ku-ikhaya, tibuke lokutfunyelwe, kanye nekutfumela tibiko tenhlangano yabo."
+        ]
+      },
+      "assessments": {
+        "title": "Kutfola Tihlolo",
+        "content": [
+          "Tihlolo tihlelwe ngatigaba (e.g., Temvelo, Tenhlalakahle, Nekuphatsa) ngenkibuto kulesigaba ngasinye.",
+          "Kunembuto ngamunye, niketa: Imphendvulo Ye-Yebo/Cha, iphesenti lokuphelile (0%, 25%, 50%, 75%, 100%), kanye nencazelo yombhalo leyetayelekile.",
+          "Unganamatisa emafayela kusekela timphendvulo takho (max 1MB ngefayela ngalinye). Sebentisa isithonjana sekuphepha kute ungezelele tidokhumenti.",
+          "Gcina inchubekela yakho noma nini nge-'Gcina Okusalungiswa'. Phelela yonke imibuto esigabeni ngaphambi kwekuhambela kwesilandzelako.",
+          "Uma sekutfunyelwe, tihlolo tiya kunchubo yekubuyeketa ngaphambi kwekugunyatwa kokugcina."
+        ]
+      },
+      "actionPlans": {
+        "title": "Kuphatsa Tihlelo Temsebenti",
+        "content": [
+          "Tihlelo temsebenti tisita kutsi ulandzele imisebenti yekutfutfukisa ngokuya ngetincomo tekwehlola.",
+          "Sebentisa ibhodhi ye-Kanban kute uhambise imisebenti ngetigaba: Kutsiwenziwe → Kuyasentwa → Kuphelile → Kugunyatiwe.",
+          "Ngezelela imisebenti lemisha, usete tinhlanganiso, kanye nekabela emalunga etikweni kute ulandzele inchubekela ngemphumelelo.",
+          "Kubuyeketa njalo kwehlelo lakho lemsebenti kukhombisa kutfutfukisa lokulandzelako.",
+          "Tfumela tihlelo temsebenti kute wabelane ngenchubekela nabatfunywa kanye nabaphatsi."
+        ]
+      },
+      "viewingResults": {
+        "title": "Kubuka Imiphumela Yekuhlola",
+        "content": [
+          "Finyelela kulo lonkhe lokutfunyelwe kwakho nge-'Buka Tihlolo' ku-ikhaya.",
+          "Landzela simo selokutfunyelwe: Kusalindzile Kubuyeketa → Ngaphasi Kwekubuyeketa → Kugunyatiwe/Kunqatshiwe/Kuceliwe Kubuyeketiwe.",
+          "Buka imibono leyetayelekile kanye netincomo kusuka kubabuyeketi kute wati tindzawo tekutfutfukisa.",
+          "Cinganisa imiphumela ngetikhatsi tekuhlola letihlukile kute ulandzele inchubekela yenhlangano yakho.",
+          "Sebentisa kubukwa kwelokutfunyelwe kute ubuyekete timphendvulo takho kanye netidokhumenti letisekelako."
+        ]
+      },
+      "creatingAssessments": {
+        "title": "Kudala Tihlolo (Baphatsi Kuphela)",
+        "content": [
+          "Baphatsi benhlangano bangacala tindzima letintsha tekuhlola kwenhlangano yabo.",
+          "Cofa 'Cala Kuhlola Kusimama' kute udale kuhlola lokusalungiswa.",
+          "Yabelana nge-ID yekuhlola nemalunga etikweni kute bangafaka sandla etigabeni tehlukile.",
+          "Citsa inchubekela kanye nokuqinisekisa kutsi tonke tigaba tiphelile ngaphambi kwekutfumela kokugcina.",
+          "Tfumela tihlolo kuphela uma tonke tigaba letidzingekako tiphelwe ngokuphelele."
+        ]
+      },
+      "userManagement": {
+        "title": "Kuphatsa Emalunga Etikweni (Baphatsi Kuphela)",
+        "content": [
+          "Baphatsi benhlangano bangangezelela kanye nekuphatsa emalunga etikweni nge-'Phatsa Basebenti'.",
+          "Memela basebenti labasha nge-imeyili kanye nekabela tindzima letifanele ngokuya ngetimfanelo tabo.",
+          "Bela kufinyelela kwesigaba kubasebenti kute bangafaka sandla etindzaweni letikhethekile tekuhlola.",
+          "Susa basebenti labangasadzingeki kufinyelela kute ugcine kukhuseleka kanye nekuthembeka kwetidzingo.",
+          "Buyeketa njalo timvume tabasebenti kute uqinisekise tindlela tekufinyelela letifanele."
+        ]
+      },
+      "reportsExports": {
+        "title": "Tibiko Nekutfumela",
+        "content": [
+          "Tfumela tibiko tekwehlola ngefomethi ye-PDF kute wabelane nabatfunywa kanye namabhodi.",
+          "Sebentisa kutfumela kwe-CSV kwekuhlatiya tidzingo kanye nekulandzela tindlela ngesikhatsi.",
+          "Landa tidokhumenti te-Word ngenjongo yetidokhumenti letinemininingwane kanye nekubika.",
+          "Kudala tibiko njalo kusita kukhombisa kutfutfukisa lokulandzelako.",
+          "Yabelana ngetibiko nemalunga kanye nabatfunywa kute ugcine kusebuka."
+        ]
+      },
+      "bestPractices": {
+        "title": "Tindlela Letinhle Kakhulu Tetinhlangano",
+        "content": [
+          "Bandzakanya emalunga etikweni ahlukahlukene etiHlolo kute utfola tibono leticacile ngetimiso tekusimama.",
+          "Niketa timphendvulo letinemininingwane, letithembekile ngetibonelo leticacile kanye netidokhumenti letisekelako.",
+          "Sebentisa imiphumela yekuhlola kute udale tihlelo temsebenti letetfutfukisako, letingafinyeleleka.",
+          "Tindzima tekuhlola njalo (nyakeni noma kabini enyakeni) tisita kulandzela inchubekela kanye nekugcina umfutho.",
+          "Gubha kutfutfukisa kanye nekuyabelana ngetimpumelelo nemalunga enhlangano kanye nemphakatsi."
+        ]
+      },
+      "troubleshooting": {
+        "title": "Tinkinga Letivamile kanye Netindlela Tekulungisa",
+        "content": [
+          "Awukwati kufinyelela etiHlolo: Hlola kumphatsi wenhlangano mayelana nekabelwa kwetindzima kanye nekufinyelela kwesigaba.",
+          "Kuhlola akugcinwa: Qinisekisa kutsi uphelela tonke tindzawo letidzingekako (Yebo/Cha, iphesenti, kanye nencazelo yombhalo).",
+          "Tinkinga tekulayisha ifayela: Emafayela kufanele abe ngaphasi kwe-1MB. Zama kwehlisa sisayizi sefayela noma usebentise tindlela tefomethi tehlukile.",
+          "Awukwati kubona lokutfunyelwe kwetimayini letinye: Baphatsi benhlangano kuphela labangabuka lokutfunyelwe lonkhe.",
+          "Tigaba tekuhlola letingekho: Tsintsana nomphatsi wakho kute uqinisekise kabela kwetigaba kwenhlangano yakho."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "Tinsita Tekuphumelela Kwekuhlola Kusimama",
+      "beforeStarting": {
+        "title": "Ngaphambi Kwekucala:",
+        "items": [
+          "• Citsa tidokhumenti kanye netidzingo letifanele",
+          "• Bandzakanya emalunga etikweni kusuka etindzaweni tehlukile",
+          "• Buyeketa tihlolo tedlule uma tikhona",
+          "• Bekela eceleni sikhatsi lesanele sekuphelelisa"
+        ]
+      },
+      "duringAssessment": {
+        "title": "Ngesikhatsi Sekuhlola:",
+        "items": [
+          "• Yiba netembekile kanye nekucacisa etimphendvulweni",
+          "• Niketa tibonelo leticacile",
+          "• Layisha bufakazi lobusekelako",
+          "• Gcina okusalungiswa njalo"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "Udzinga Lusito?",
+      "description": "Uma udzinga lusito noma unemibuto mayelana nekusebentisa ipulatifomu:",
+      "email": "📧 I-imeyili: support@dgrv.org",
+      "phone": "📞 Lucingo: +27 (0) 11 000 0000",
+      "website": "🌐 Iwebhusayithi: www.dgrv.org/support",
+      "contactAdmin": "💬 Tsintsana nomphatsi wenhlangano yakho ngetinkinga letikhethekile mayelana nendzima"
+    }
+  },
+  "adminGuide": {
+    "title": "Umhlahlandzela Wemphatsi wePulatifomu ye-DGRV",
+    "subtitle": "Umhlahlandzela ophelele wekuphatsa ipulatifomu yekuhlola kusimama ye-DGRV",
+    "backToDashboard": "Buyela Ku-Ikhaya",
+    "quickStart": {
+      "title": "Kucala Lokusheshako",
+      "step1": "1. 👥 Phatsa tinhlangano kanye nabasebenti",
+      "step2": "2. 📋 Lungiselela tigaba nemibuto",
+      "step3": "3. ✅ Buyeketa kanye nekugunyata tihlolo",
+      "step4": "4. 📊 Citsa impilo yesistimu kanye nekusebenta kwayo",
+      "step5": "5. 🎯 Sekela tinhlangano ekuhambeni kwato kwekusimama"
+    },
+    "sections": {
+      "overview": {
+        "title": "Sigcawu Sepulatifomu",
+        "content": [
+          "Ipulatifomu Yekuhlola Kusimama ye-DGRV yenzelwe kusita tinhlangano kulo lonkhe eNingizimu Afrika kutsi tikale kanye nekutfutfukisa timiso tato tekusimama.",
+          "Njengemphatsi, unekufinyelela ematthuluzini laphangale ekuphatseni tinhlangano, basebenti, lokusetjentiswa kwekuhlola, kanye nekubuyeketa lokutfunyelwe.",
+          "Ipulatifomu isekela tindzimi letinyenti kanye nekusebenta ngaphandle kwe-inthanethi kute ibhekane netinkinga tekuvumelaniswa kwe-inthanethi ehlukahlukene esifundzeni."
+        ]
+      },
+      "organizations": {
+        "title": "Kuphatsa Tinhlangano",
+        "content": [
+          "Ngezelela tinhlangano letintsha letisebenta ndzawonye epulatifomini ngetimininingwane tato letisisekelo kanye netinhlelo tetindzawo.",
+          "Lungiselela tinhlelo letikhethekile tenhlangano kanye nekuphatsa kufinyelela kwabasebenti kwenhlangano ngasinye.",
+          "Citsa inchubekela yenhlangano kanye nekuqinisekisa kuhlukaniswa kwetidzingo ngendlela lefanele phakatsi kwetinhlangano tehlukile.",
+          "Faka egcini noma susa tinhlangano letingasasebenti ngesikhatsi ugcina tidzingo tato temlandvo."
+        ]
+      },
+      "users": {
+        "title": "Kuphatsa Basebenti",
+        "content": [
+          "Dala kanye nekuphatsa ema-akhawunti abasebenti kuto tonkhe tinhlangano ngekabela tindzima letifanele.",
+          "Bela basebenti etinhlanganweni letikhethekile kanye nekulungiselela timvume tato tekufinyelela.",
+          "Citsa inchubekela yabasebenti kanye nekuphatsa simo sekucinisekisa kwe-akhawunti.",
+          "Qinisekisa kukhuseleka lokufanele ngokubuyeketa njalo kufinyelela kwabasebenti kanye nekususa ema-akhawunti langasasebenti."
+        ]
+      },
+      "categories": {
+        "title": "Kuphatsa Tigaba Tekuhlola",
+        "content": [
+          "Lungiselela tigaba tekwehlola letivumelekana netindlela letinhle tekusimama kanye netidzingo tasendzaweni.",
+          "Seta tisisindo letifanele kulesigaba ngasinye kute uqinisekise kulinganisa kwemamaki ekuhloleni.",
+          "Hlela tigaba ngekulandzelana lokubukwa lokufanele kwekwemukeleka kwabasebenti.",
+          "Buyeketa njalo kanye nekubuyeketa tigaba ngokuya ngemibono kanye netingucuko tetimiso tekusimama."
+        ]
+      },
+      "questions": {
+        "title": "Kuphatsa Imibuto Yekuhlola",
+        "content": [
+          "Dala imibuto lephangale ngaphakatsi kwesigaba ngasinye kute uhlola kahle timiso tekusimama.",
+          "Niketa imibuto ngetindzimi letinyenti kusekela timphakatsi letinhlangano letihlukahlukene.",
+          "Seta tisisindo letifanele kanye nekulandzelana lokubukwa kwemibuto ngaphakatsi kwesigaba ngasinye.",
+          "Buyeketa njalo kanye nekubuyeketa imibuto ngokuya ngemiphumela yekuhlola kanye nemibono yabatfunywa."
+        ]
+      },
+      "reviews": {
+        "title": "Kubuyeketa Tihlolo",
+        "content": [
+          "Buyeketa tihlolo letitfunyelwe ngokuphelele, ucabangela kokubili emamaki wekwantithati kanye netimphendvulo tekwalitathivu.",
+          "Niketa imibono lekhakhi kanye netincomo letikhethekile tekutfutfukisa.",
+          "Sebentisa tincomo letijwayelekile kute uqinisekise kuhambelana kwehlolo leminyenti.",
+          "Gunyata, nqaba, noma cela kubuyeketiwe ngokuya ngekuphelela kwekuhlola."
+        ]
+      },
+      "recommendations": {
+        "title": "Tincomo Letijwayelekile",
+        "content": [
+          "Dala titemplate tetincomo letingasetjentiswa kabusha ngetimo tekwehlola letivamile kanye netindzawo tekutfutfukisa.",
+          "Gcina umtapo wetincomo letisezingeni lelisetulu letingasetjentiswa kuto tonkhe tinhlangano.",
+          "Buyeketa njalo tincomo ngokuya ngetindlela letinhle kanye netindlela tekutfutfukisa letiphumelele.",
+          "Qinisekisa kutsi tincomo tingasetjentiseka kanye nekutsi tingafinyeleleka etinhlanganweni letinobukhulu obuhlukile kanye netinsita."
+        ]
+      },
+      "systemHealth": {
+        "title": "Impilo Yesistimu kanye Nekusebenta",
+        "content": [
+          "Citsa kusebenta kwepulatifomu, impilo ye-database, kanye nesikhatsi semphendvulo ye-API njalo.",
+          "Buyeketa simo sekulayini kwekuvumelanisa kanye nekuqinisekisa kutsi kuvumelaniswa kwetidzingo kusebenta kahle.",
+          "Tfumela tibiko tesistimu kanye netincwadzi tekuhlola ngenjongo yekuvumelana kanye nekulungisa tinkinga.",
+          "Gcina kugcinwa njalo kanye nekuqinisekisa kukhuseleka kwetidzingo kuto tonkhe tindzima tepulatifomu."
+        ]
+      },
+      "support": {
+        "title": "Kusekela Tinhlangano",
+        "content": [
+          "Niketa umhlahlandzela etinhlanganweni mayelana nekusebentisa ipulatifomu ngemphumelelo ngetinhloso tato tekusimama.",
+          "Niketa kufundziswa kanye nemathiriyali yekusekela kute usite tinhlangano titfole inani leliphezulu letihlolo tato.",
+          "Citsa tindlela tekuhlola kanye nekukhomba amathuba ekutfutfukisa ipulatifomu.",
+          "Yakha budlelwane nabaholi betinhlangano kute wati tidzingo kanye netinsita tabo letikhethekile."
+        ]
+      }
+    },
+    "bestPractices": {
+      "title": "Tindlela Letinhle Kakhulu Tekuphatsa Ipulatifomu",
+      "regularReviews": {
+        "title": "Kubuyeketa Njalo:",
+        "items": [
+          "• Buyeketa tihlolo letisalindzile okungenani kanye ngesontfo",
+          "• Citsa impilo yesistimu kanye nemetrikhi yekusebenta",
+          "• Buyeketa tigaba nemibuto ngokuya ngemibono",
+          "• Gcina kuxhumana lokusebenta nabaholi betinhlangano"
+        ]
+      },
+      "qualityAssurance": {
+        "title": "Kuqinisekisa Ikhwalithi:",
+        "items": [
+          "• Qinisekisa timiso tekubuyeketa letihambelana kwehlolo lonkhe",
+          "• Niketa imibono leyetayelekile, lenekusetjentiswa etinhlanganweni",
+          "• Gcina titemplate tetincomo letisesikhatsini",
+          "• Gcina kugcinwa kwetidzingo tesistimu kanye netinhlelo njalo"
+        ]
+      }
+    },
+    "contactInfo": {
+      "title": "Lusito Lwemphatsi",
+      "description": "Ngelusito lwetekhnikhali noma imibuto yekuphatsa ipulatifomu:",
+      "email": "📧 I-imeyili: admin@dgrv.org",
+      "phone": "📞 Lucingo: +27 (0) 11 000 0000",
+      "website": "🌐 Iwebhusayithi: www.dgrv.org/admin",
+      "documentation": "📚 Tidokhumenti: Tiyafumaneka kwi-portal yemphatsi"
+    }
+  },
+  "reviewAssessments": {
+    "title": "Buyeketa Tihlolo",
+    "subtitle": "Buyeketa kanye nekugunyata tihlolo letitfunyelwe",
+    "syncData": "Vumelanisa Tidzingo",
+    "pendingSync": "Kusalindzile Kuvumelaniswa",
+    "submissionsUnderReview": "Lokutfunyelwe Ngaphasi Kwekubuyeketa",
+    "noSubmissionsUnderReview": "Akukho lokutfunyelwe ngaphasi kwekubuyeketa",
+    "unknownOrganization": "Inhlangano Engatiwa",
+    "organization": "Inhlangano",
+    "submitted": "Kutfunyelwe",
+    "unknown": "Akwatiwa",
+    "review": "Buyeketa",
+    "underReview": "Ngaphasi Kwekubuyeketa",
+    "approved": "Kugunyatiwe",
+    "rejected": "Kunqatshiwe",
+    "reviewAssessment": "Buyeketa Kuhlola",
+    "reviewDescription": "Buyeketa kanye nekuniketa tincomo ngekuhlola lokusimama",
+    "submissionDetails": "Temininingwane Yelokutfunyelwe",
+    "submissionDate": "Lusuku Lwekutfunyelwe",
+    "status": "Simo",
+    "assessmentResponses": "Timphendvulo Tekuhlola",
+    "noResponsesFound": "Atekho timphendvulo letitfolakele",
+    "addRecommendation": "Ngezelela Tincomo",
+    "collapse": "Fihla",
+    "expand": "Vula",
+    "yourRecommendations": "Tincomo Takho:",
+    "addedAt": "Ngezelelwe Ngesikhatsi",
+    "addRecommendationFor": "Ngezelela Tincomo Nge",
+    "recommendation": "Tincomo",
+    "enterRecommendationFor": "Faka tincomo takho nge",
+    "category": "sigaba",
+    "cancel": "Khansela",
+    "yesNo": "Yebo/Cha:",
+    "yes": "Yebo",
+    "no": "Cha",
+    "percentage": "Iphesenti:",
+    "response": "Imphendvulo:",
+    "clickExpandToView": "Cofa \"Vula\" kute ubuke",
+    "question": "umbuto",
+    "submitReview": "Tfumela Kubuyeketa",
+    "loadingSubmissions": "Iyalayisha lokutfunyelwe...",
+    "errorLoadingSubmissions": "Liphutsa ekulayisheni lokutfunyelwe",
+    "retry": "Zama Futi",
+    "backToDashboard": "Buyela Ku-Ikhaya",
+    "reviewSubmittedSuccessfully": "Kubuyeketa kutfunyelwe ngemphumelelo",
+    "reviewSavedLocally": "Kubuyeketa kugcinwe endzaweni. Kutawuvumelaniswa uma kuse-inthanethi.",
+    "failedToSubmitReview": "Kwehluleka kutfumela kubuyeketa",
+    "manualSyncFailed": "Kuvumelanisa ngesandla kwehlulekile"
+  }
+}

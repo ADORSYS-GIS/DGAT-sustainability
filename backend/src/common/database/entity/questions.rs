@@ -1,5 +1,6 @@
 use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
 use std::sync::Arc;
@@ -10,6 +11,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub question_id: Uuid,
     pub category: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -46,6 +48,7 @@ impl QuestionsService {
         let question = ActiveModel {
             question_id: Set(Uuid::new_v4()),
             category: Set(category),
+            created_at: Set(Utc::now()),
         };
 
         self.db_service.create(question).await
@@ -100,6 +103,7 @@ mod tests {
         let mock_question = Model {
             question_id: Uuid::new_v4(),
             category: "test_category".to_string(),
+            created_at: Utc::now(),
         };
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)

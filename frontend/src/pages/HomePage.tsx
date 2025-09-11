@@ -1,39 +1,51 @@
-import React, { useState } from "react";
-import { Navbar } from "@/components/shared/Navbar";
+import { useEffect } from "react";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
-
-import {
-  BarChart3,
-  Leaf,
-  CheckSquare,
-  Users,
-  Globe,
-  Shield,
-} from "lucide-react";
+import { Leaf, CheckSquare, Users, Globe, Shield } from "lucide-react";
+import { useAuth } from "@/hooks/shared/useAuth";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const Welcome: React.FC = () => {
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const { isAuthenticated, loading, user, login } = useAuth();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isAuthenticated) return;
+    const roles = user?.roles || user?.realm_access?.roles || [];
+    const isDrgvAdmin = roles.includes("drgv_admin");
+    const isOrgAdmin = roles.includes("org_admin");
+    const isOrgUser = roles.includes("Org_User");
+    if (isDrgvAdmin && window.location.pathname !== "/admin/") {
+      navigate("/admin/dashboard", { replace: true });
+    } else if (
+      isOrgAdmin &&
+      window.location.pathname !== "/dashboard"
+    ) {
+      navigate("/dashboard", { replace: true });
+    } else if (
+      isOrgUser &&
+      user?.organizations &&
+      Object.keys(user.organizations).length > 0 &&
+      window.location.pathname !== "/dashboard"
+    ) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, loading, user, navigate]);
 
   const features = [
     {
-      title: "Digital Gap Analysis",
-      description:
-        "Assess your cooperative's digital maturity with comprehensive questionnaires covering technology infrastructure, digital literacy, and online presence.",
-      icon: BarChart3,
-      color: "blue" as const,
-    },
-    {
-      title: "Sustainability Assessment",
-      description:
-        "Evaluate environmental, social, and governance practices to build a more sustainable and responsible cooperative.",
+      title: t('homePage.features.items.0.title'),
+      description: t('homePage.features.items.0.description'),
       icon: Leaf,
       color: "green" as const,
     },
     {
-      title: "Action Plans",
-      description:
-        "Track your progress with interactive Kanban boards, turning assessment insights into actionable tasks and measurable improvements.",
+      title: t('homePage.features.items.1.title'),
+      description: t('homePage.features.items.1.description'),
       icon: CheckSquare,
       color: "blue" as const,
     },
@@ -41,112 +53,127 @@ export const Welcome: React.FC = () => {
 
   const benefits = [
     {
-      title: "Built for Cooperatives",
-      description:
-        "Designed specifically for cooperative organizations in Southern Africa",
+      title: t('homePage.benefits.items.0.title'),
+      description: t('homePage.benefits.items.0.description'),
       icon: Users,
     },
     {
-      title: "Multilingual Support",
-      description:
-        "Available in English, siSwati, Portuguese, Zulu, German, and French",
+      title: t('homePage.benefits.items.1.title'),
+      description: t('homePage.benefits.items.1.description'),
       icon: Globe,
     },
     {
-      title: "Offline Capable",
-      description: "Works reliably even with limited internet connectivity",
+      title: t('homePage.benefits.items.2.title'),
+      description: t('homePage.benefits.items.2.description'),
       icon: Shield,
     },
   ];
 
+  const handleStartAssessment = async () => {
+    // Check if user is authenticated first
+    if (!isAuthenticated) {
+      try {
+        await login();
+      } catch (error) {
+        console.error("Failed to redirect to authentication:", error);
+        toast.error(
+          "Failed to redirect to authentication. Please try again.",
+        );
+      }
+      return;
+    }
+
+    // Check if user has organizations
+    if (user?.organizations && Object.keys(user.organizations).length > 0) {
+      navigate("/assessment/sustainability");
+    } else {
+      toast.error(
+        "You need to be part of an organisation to start an assessment.",
+      );
+    }
+  };
+
+  const handleViewAssessments = async () => {
+    // Check if user is authenticated first
+    if (!isAuthenticated) {
+      try {
+        await login();
+      } catch (error) {
+        console.error("Failed to redirect to authentication:", error);
+        toast.error(
+          "Failed to redirect to authentication. Please try again.",
+        );
+      }
+      return;
+    }
+
+    // Check if user has organizations
+    if (user?.organizations && Object.keys(user.organizations).length > 0) {
+      navigate("/assessments");
+    } else {
+      toast.error(
+        "You need to be part of an organisation to view assessments.",
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-dgrv-light-blue">
-      <Navbar onLoginClick={() => setShowLoginModal(true)} />
-
       {/* Hero Section */}
       <div className="pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Content */}
           <div className="text-center mb-16 animate-fade-in">
             <div className="mb-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-dgrv-blue to-dgrv-green rounded-full flex items-center justify-center mx-auto mb-6 animate-glow">
-                <span className="text-white font-bold text-3xl">D</span>
+              <div className="w-32 h-32 flex items-center justify-center mx-auto mb-6">
+                <img 
+                  src="/dgrv-logo.png" 
+                  alt="DGRV Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-dgrv-blue mb-4 animate-scale-in">
-                Empower Your Cooperative
+                {t('homePage.hero.title')}
               </h1>
               <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
-                Assess Digital & Sustainability Goals
+                {t('homePage.hero.subtitle')}
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Simple, secure, and impactful—help your cooperative thrive in
-                the digital age while building sustainable practices for the
-                future.
+                {t('homePage.hero.description')}
               </p>
+              <Button
+                className="mt-4 px-8 py-3 text-lg font-semibold bg-dgrv-green text-white rounded shadow hover:bg-dgrv-blue transition"
+                onClick={handleStartAssessment}
+              >
+                {t('homePage.hero.cta')}
+              </Button>
             </div>
-
-            <Button
-              onClick={() => setShowLoginModal(true)}
-              size="lg"
-              className="bg-dgrv-blue hover:bg-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-lg "
-            >
-              Start Assessment
-            </Button>
           </div>
 
           {/* Features Grid */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
             {features.map((feature, index) => (
               <div
                 key={feature.title}
                 className="animate-fade-in"
                 style={{ animationDelay: `${index * 200}ms` }}
               >
-                <FeatureCard
-                  {...feature}
-                  onClick={() => setShowLoginModal(true)}
-                />
+                <FeatureCard {...feature} />
               </div>
             ))}
           </div>
 
           {/* Benefits Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12 animate-fade-in">
-            <h3 className="text-3xl font-bold text-center text-dgrv-blue mb-8">
-              Why Choose DGRV Assessment Tools?
-            </h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              {benefits.map((benefit, index) => (
-                <div key={benefit.title} className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-dgrv-blue to-dgrv-green rounded-full flex items-center justify-center mx-auto mb-4">
-                    <benefit.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                    {benefit.title}
-                  </h4>
-                  <p className="text-gray-600">{benefit.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Call to Action */}
-          <div className="text-center mt-16">
-            <h3 className="text-2xl font-bold text-dgrv-blue mb-4">
-              Ready to Transform Your Cooperative?
-            </h3>
-            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Join cooperatives across Southern Africa in building a more
-              digital and sustainable future.
-            </p>
-            <Button
-              onClick={() => setShowLoginModal(true)}
-              size="lg"
-              variant="outline"
-              className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue hover:text-white px-8 py-4 text-lg font-semibold rounded-lg"
-            >
-              Get Started Today
-            </Button>
+          <div className="grid md:grid-cols-3 gap-8">
+            {benefits.map((benefit, index) => (
+              <div
+                key={benefit.title}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 200}ms` }}
+              >
+                <FeatureCard {...benefit} />
+              </div>
+            ))}
           </div>
         </div>
       </div>
