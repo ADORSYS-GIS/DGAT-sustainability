@@ -13,9 +13,9 @@ services:
     environment:
       RUST_LOG: "debug,hyper=info,sea_orm=info"
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
-      KEYCLOAK_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
-      SERVER_PORT: "3001"
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}
+      KEYCLOAK_URL: "${KEYCLOAK_URL:-https://localhost/keycloak}"
+      SERVER_PORT: 3001
+      CORS_ORIGIN: "${CORS_ORIGIN:-https://localhost}"
 
     depends_on:
       db:
@@ -72,7 +72,7 @@ services:
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
       # Hostname v2 configuration (replaces deprecated v1 options)
-      KC_HOSTNAME: "ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"
+      KC_HOSTNAME: "${KC_HOSTNAME:-ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
       KC_HOSTNAME_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
       KC_HOSTNAME_PATH: "/keycloak"
       KC_HOSTNAME_STRICT: "true"
@@ -94,7 +94,7 @@ services:
       KC_SPI_EMAIL_DEFAULT_FROM: "${EMAIL_FROM:-noreply@dgrv.coop}"
       KC_SPI_EMAIL_DEFAULT_FROM_DISPLAY_NAME: "${EMAIL_FROM_DISPLAY_NAME:-DGRV COOPERATION}"
       KC_SPI_EMAIL_DEFAULT_USER: "${EMAIL_USER:-yemelechristian2@gmail.com}"
-      KC_SPI_EMAIL_DEFAULT_PASSWORD: "${EMAIL_PASSWORD}"
+      KC_SPI_EMAIL_DEFAULT_PASSWORD: "${EMAIL_PASSWORD:-verysecurepassword123!}"
       KC_SPI_EMAIL_DEFAULT_SSL: "${EMAIL_SSL:-false}"
       KC_SPI_EMAIL_DEFAULT_STARTTLS: "${EMAIL_STARTTLS:-true}"
       KC_SPI_EMAIL_DEFAULT_AUTH: "${EMAIL_AUTH:-true}"
