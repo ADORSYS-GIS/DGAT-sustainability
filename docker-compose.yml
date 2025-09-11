@@ -109,7 +109,7 @@ services:
       - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
       - ./ssl/nginx.key:/etc/x509/https/nginx.key:ro
       # Mount startup scripts
-      - ./a.sh:/a.sh:ro
+      - ./scripts/a.sh:/a.sh:ro
       - ./keycloak-startup.sh:/keycloak-startup.sh:ro
     depends_on:
       db:

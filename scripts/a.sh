@@ -202,6 +202,29 @@ fi
   --truststore "${TRUSTSTORE}" \
   --trustpass "${TRUSTSTORE_PASS}"
 
+echo ${KC_KC_SPI_EMAIL_DEFAULT_PASSWORD}
+
+echo "[a.sh] Configuring realm email settings..."
+./kcadm.sh update realms/"${REALM}" \
+  -s 'smtpServer.host='"${KC_SPI_EMAIL_DEFAULT_HOST:-smtp.gmail.com}" \
+  -s 'smtpServer.port='"${KC_SPI_EMAIL_DEFAULT_PORT:-25}" \
+  -s 'smtpServer.from='"${KC_SPI_EMAIL_DEFAULT_FROM:-noreply@dgrv.coop}" \
+  -s 'smtpServer.fromDisplayName='"${KC_SPI_EMAIL_DEFAULT_FROM_DISPLAY_NAME:-DGRV COOPERATION}" \
+  -s 'smtpServer.user='"${KC_SPI_EMAIL_DEFAULT_USER:-yemelechristian2@gmail.com}" \
+  -s 'smtpServer.password='"${KC_SPI_EMAIL_DEFAULT_PASSWORD}" \
+  -s 'smtpServer.ssl='"${KC_SPI_EMAIL_DEFAULT_SSL:-false}" \
+  -s 'smtpServer.starttls='"${KC_SPI_EMAIL_DEFAULT_STARTTLS:-true}" \
+  -s 'smtpServer.auth='"${KC_SPI_EMAIL_DEFAULT_AUTH:-true}" \
+  -s 'smtpServer.replyTo='"${KC_SPI_EMAIL_DEFAULT_FROM:-noreply@dgrv.coop}" \
+  -s 'smtpServer.replyToDisplayName='"${KC_SPI_EMAIL_DEFAULT_FROM_DISPLAY_NAME:-DGRV COOPERATION}" \
+  -s 'smtpServer.envelopeFrom=' \
+  -s 'smtpServer.debug=false' \
+  --server "${KEYCLOAK_SERVER}" \
+  --truststore "${TRUSTSTORE}" \
+  --trustpass "${TRUSTSTORE_PASS}"
+
+echo "[a.sh] Email configuration completed successfully"
+
 # Mark provisioning as done to avoid re-running on subsequent starts
 touch "${RUN_ONCE_MARKER}"
 echo "[a.sh] Provisioning completed; marker created at ${RUN_ONCE_MARKER}"
