@@ -67,13 +67,13 @@ services:
       KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
-      KEYCLOAK_FRONTEND_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
+      KEYCLOAK_FRONTEND_URL: "{KEYCLOAK_FRONTEND_URL:-https://localhost/keycloak}"
       KC_PROXY_HEADERS: "forwarded"
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
       # Hostname v2 configuration (replaces deprecated v1 options)
-      KC_HOSTNAME: "${KC_HOSTNAME:-ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
-      KC_HOSTNAME_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak"
+      KC_HOSTNAME: "${KC_HOSTNAME:-localhost}"
+      KC_HOSTNAME_URL: "${KC_HOSTNAME_URL:-https://localhost/keycloak}"
       KC_HOSTNAME_PATH: "/keycloak"
       KC_HOSTNAME_STRICT: "true"
       KC_HTTP_ENABLED: "true"
@@ -81,7 +81,7 @@ services:
       # if you also want to allow HTTP, for debugging only
       # Fernando user password
       FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
-      KC_URL: "${KC_URL:-ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+      KC_URL: "${KC_URL:-localhost}"
       # Use the nginx certificate paths
       SSL_CERT_PATH: "/etc/x509/https/nginx.crt"
       SSL_KEY_PATH: "/etc/x509/https/nginx.key"
@@ -133,14 +133,14 @@ services:
       dockerfile: ./infrastructure/Dockerfile.frontend
       args:
         FE_HOST: "${FE_HOST:-localhost}"
-        API_BASE_URL: "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"
-        VITE_KEYCLOAK_URL: "${VITE_KEYCLOAK_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak}"
-        VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak/realms/sustainability-realm}"
+        API_BASE_URL: "${API_BASE_URL:-https://localhost}"
+        VITE_KEYCLOAK_URL: "${VITE_KEYCLOAK_URL:-https://localhost/keycloak}"
+        VITE_KEYCLOAK_ISSUER_URI: "${VITE_KEYCLOAK_ISSUER_URI:-https://localhost/keycloak/realms/sustainability-realm}"
         VITE_KEYCLOAK_CLIENT_ID: "${VITE_KEYCLOAK_CLIENT_ID:-sustainability-tool}"
         VITE_KEYCLOAK_SCOPES: "${VITE_KEYCLOAK_SCOPES:-openid profile email}"
-        VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
-        VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/callback}"
-        VITE_ORGANIZATION_REDIRECT_URL: "${VITE_ORGANIZATION_REDIRECT_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+        VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://localhost}"
+        VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://localhost/callback}"
+        VITE_ORGANIZATION_REDIRECT_URL: "${VITE_ORGANIZATION_REDIRECT_URL:-https://localhost}"
 
     image: sustainability-frontend:latest
     container_name: sustainability-frontend
