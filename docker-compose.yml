@@ -68,6 +68,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
       KEYCLOAK_FRONTEND_URL: "{KEYCLOAK_FRONTEND_URL:-https://localhost/keycloak}"
+      KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-https://localhost}"
       KC_PROXY_HEADERS: "forwarded"
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
