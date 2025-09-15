@@ -61,7 +61,6 @@ pub fn routers(app_state: AppState) -> Router {
     Router::new()
         .merge(protected_routes())
         .merge(create_router(app_state.clone()))
-        .route("/openapi-json", get(crate::web::api::handlers::openapi::get_openapi_json))
         // Apply authentication middleware to all protected routes
         .layer(middleware::from_fn_with_state(
             app_state.jwt_validator.clone(),
