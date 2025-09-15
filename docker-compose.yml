@@ -31,6 +31,24 @@ services:
     ports:
       - "3001:3001"
     networks: [tool-net]
+  
+    # OpenAPI fetcher service
+  openapi-fetcher:
+    image: node:18
+    container_name: openapi-fetcher
+    working_dir: /app
+    command: ["node", "scripts/fetch_openapi.js"]
+    environment:
+      - EVENTSERVER_OPENAPI_URL=http://backend:3001/openapi-json
+    volumes:
+      - openapi-volume:/app
+      - ./scripts:/app/scripts:ro
+      - ./package.json:/app/package.json
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - tool-net
 
   #
   # ────────────────────────────── POSTGRES ──────────────────────────────
@@ -161,13 +179,25 @@ services:
       - "443:443"
     volumes:
       - ./ssl:/etc/nginx/ssl:ro
+      - openapi-volume:/usr/share/nginx/html
+      - ./openapi.json:/app/openapi.json
       - ./infrastructure/frontend-entrypoint.sh:/docker-entrypoint.d/40-check-network.sh:ro
+    entrypoint: >
+      /bin/sh -c "
+        while [ ! -f /usr/share/nginx/html/openapi.json ]; do
+          echo 'Waiting for openapi.json...';
+          sleep 2;
+        done;
+        nginx -g 'daemon off;'
+      "
     networks: [tool-net]
 
 
 # ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
   postgres-data:
+  openapi-volume:
+    name: sustainability-openapi-volume
   ssl-certs:
     driver: local
 
