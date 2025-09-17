@@ -6,6 +6,7 @@
 
 use crate::common::models::claims::Claims;
 use crate::web::handlers::jwt_validator::JwtValidator;
+use crate::web::api::routes::should_skip_validation;
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, StatusCode},
@@ -27,6 +28,11 @@ pub async fn auth_middleware(
     mut request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
+    // Check if the path should skip validation
+    if should_skip_validation(request.uri().path()) {
+        return Ok(next.run(request).await);
+    }
+
     // Extract Authorization header
     let auth_header = headers.get("Authorization").ok_or_else(|| {
         tracing::warn!("Missing Authorization header");
