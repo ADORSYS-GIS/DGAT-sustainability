@@ -104,7 +104,7 @@ impl Claims {
 
     #[warn(non_snake_case)]
     /// Check if user has Org_User role
-    pub fn is_Org_User(&self) -> bool {
+    pub fn is_org_user(&self) -> bool {
         self.has_role("Org_User")
     }
 
@@ -115,7 +115,7 @@ impl Claims {
 
     /// Check if user can answer assessments (Org_User or org_admin)
     pub fn can_answer_assessments(&self) -> bool {
-        self.is_Org_User() || self.is_org_admin() || self.is_application_admin()
+        self.is_org_user() || self.is_org_admin() || self.is_application_admin()
     }
 
     /// Check if user has a specific role in a specific organization
