@@ -21,6 +21,7 @@ import { OrgUserManageUsers } from "../pages/user/OrgUserManageUsers";
 import { AdminGuide } from "../pages/admin/AdminGuide";
 import { UserGuide } from "../pages/user/UserGuide";
 import DraftSubmissions from "../pages/user/DraftSubmissions";
+import { ReportHistory } from "../pages/admin/ReportHistory";
 
 const routes = [
   // Public routes
@@ -39,6 +40,7 @@ const routes = [
       { path: "questions", element: React.createElement(ManageQuestions) },
       { path: "reviews", element: React.createElement(ReviewAssessments) },
       { path: "action-plans", element: React.createElement(AdminActionPlans) },
+      { path: "report-history", element: React.createElement(ReportHistory) },
       { path: "guide", element: React.createElement(AdminGuide) },
     ],
   },

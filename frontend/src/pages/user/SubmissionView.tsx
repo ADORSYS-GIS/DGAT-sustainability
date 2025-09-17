@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { useTranslation } from "react-i18next";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useOfflineSubmissionsMutation } from "../../hooks/useOfflineApi";
 
 // Locally extend the type to include question_category
 interface SubmissionResponseWithCategory extends Submission_content_responses {
@@ -22,11 +24,23 @@ interface SubmissionResponseWithCategory extends Submission_content_responses {
 export const SubmissionView: React.FC = () => {
   const { t } = useTranslation();
   const { submissionId } = useParams<{ submissionId: string }>();
+  const navigate = useNavigate();
   const {
     data: submissionsData,
     isLoading: submissionLoading,
     error: submissionError,
+    deleteSubmission,
   } = useOfflineSubmissions();
+  const { deleteSubmission: deleteSubmissionMutation } = useOfflineSubmissionsMutation();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+
+  const handleDelete = async () => {
+    if (submissionId) {
+      await deleteSubmissionMutation(submissionId);
+      navigate("/user/assessments"); // Redirect after deletion
+    }
+    setIsDeleteDialogOpen(false);
+  };
   
   // Find the specific submission by ID
   const submission = submissionsData?.submissions?.find(s => s.submission_id === submissionId);
@@ -308,7 +322,22 @@ export const SubmissionView: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+        <div className="mt-6 flex justify-end">
+          <Button
+            variant="destructive"
+            onClick={() => setIsDeleteDialogOpen(true)}
+          >
+            {t("deleteSubmission")}
+          </Button>
+        </div>
       </div>
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDelete}
+        title={t("confirmDeletion")}
+        description={t("confirmDeletionDescription")}
+      />
     </div>
   );
 };

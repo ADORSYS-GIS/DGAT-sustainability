@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Production server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Staging server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Development server"
     }
   ],
@@ -33,6 +33,29 @@
     }
   ],
   "paths": {
+    "/admin/reports": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Get all reports across organizations",
+        "description": "Get all reports for all organizations (DGRV admin only)",
+        "operationId": "list_all_reports",
+        "responses": {
+          "200": {
+            "description": "List of all organization reports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportListResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": ["Health"],
@@ -2904,6 +2927,36 @@
   },
   "components": {
     "schemas": {
+      "AdminReport": {
+        "type": "object",
+        "properties": {
+          "report_id": { "type": "string", "format": "uuid" },
+          "submission_id": { "type": "string", "format": "uuid" },
+          "org_id": { "type": "string" },
+          "org_name": { "type": "string" },
+          "status": { "type": "string" },
+          "generated_at": { "type": "string", "format": "date-time" },
+          "data": { "type": "object", "nullable": true }
+        },
+        "required": [
+          "report_id",
+          "submission_id",
+          "org_id",
+          "org_name",
+          "status",
+          "generated_at"
+        ]
+      },
+      "AdminReportListResponse": {
+        "type": "object",
+        "properties": {
+          "reports": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminReport" }
+          }
+        },
+        "required": ["reports"]
+      },
       "Question": {
         "required": ["question_id", "category", "created_at", "latest_revision"],
         "type": "object",
@@ -3076,6 +3129,14 @@
           },
           "status": {
             "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "List of category UUIDs assigned to this assessment"
           },
           "created_at": {
             "type": "string",
@@ -4278,6 +4339,14 @@
           "name": {
             "type": "string",
             "description": "Name of the assessment"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "List of category UUIDs to assign to this assessment (org_admin only)"
           }
         },
         "required": ["language", "name"]

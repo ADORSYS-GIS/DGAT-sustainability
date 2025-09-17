@@ -139,6 +139,8 @@ pub async fn list_assessments(
                 org_id: model.org_id,
                 language: model.language,
                 name: model.name,
+                categories: serde_json::from_value(model.categories.clone())
+                    .unwrap_or_default(),
                 status,
                 created_at: model.created_at.to_rfc3339(),
                 updated_at: model.created_at.to_rfc3339(),
@@ -240,11 +242,11 @@ pub async fn create_assessment(
             }
         }
 
-        // Create the new assessment in the database
+        // Create the new assessment in the database with categories
         let assessment_model = app_state
             .database
             .assessments
-            .create_assessment(org_id, request.language, request.name)
+            .create_assessment(org_id, request.language, request.name, request.categories)
             .await
             .map_err(|e| ApiError::InternalServerError(format!("Failed to create assessment: {e}")))?;
 
@@ -254,6 +256,8 @@ pub async fn create_assessment(
             org_id: assessment_model.org_id,
             language: assessment_model.language,
             name: assessment_model.name,
+            categories: serde_json::from_value(assessment_model.categories)
+                .unwrap_or_default(),
             status: AssessmentStatus::Draft,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
@@ -312,6 +316,8 @@ pub async fn get_assessment(
             org_id: assessment_model.org_id,
             language: assessment_model.language,
             name: assessment_model.name,
+            categories: serde_json::from_value(assessment_model.categories)
+                .unwrap_or_default(),
             status,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
@@ -419,6 +425,8 @@ pub async fn update_assessment(
         org_id: assessment_model.org_id,
         language: assessment_model.language,
         name: assessment_model.name,
+        categories: serde_json::from_value(assessment_model.categories)
+            .unwrap_or_default(),
         status: AssessmentStatus::Draft,
         created_at: assessment_model.created_at.to_rfc3339(),
         updated_at: assessment_model.created_at.to_rfc3339(),

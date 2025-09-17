@@ -53,6 +53,7 @@ export interface OfflineAssessment extends Assessment, OfflineEntity {
   status: 'draft' | 'in_progress' | 'completed' | 'submitted';
   progress_percentage?: number;
   last_activity?: string;
+  categories?: string[]; // List of category UUIDs assigned to this assessment
 }
 
 // Enhanced Response with offline fields

@@ -94,6 +94,7 @@ export class DataTransformationService {
       status: 'draft' as const, // Default status
       progress_percentage: 0,
       last_activity: assessment.created_at,
+      categories: assessment.categories, // Preserve categories from API assessment
       updated_at: now,
       sync_status: 'synced' as const,
       local_changes: false,

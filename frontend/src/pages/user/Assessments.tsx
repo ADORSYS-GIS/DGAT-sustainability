@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Navbar } from "@/components/shared/Navbar";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 type AuthUser = {
   sub?: string;
@@ -34,6 +35,8 @@ export const Assessments: React.FC = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
 
   // Fetch all submissions for the current user/org
   const { data, isLoading: remoteLoading, refetch } = useOfflineSubmissions();
@@ -86,6 +89,21 @@ export const Assessments: React.FC = () => {
     } catch (error) {
       console.error('Delete submission error:', error);
     }
+  };
+
+  // Handle delete confirmation
+  const confirmDelete = (submissionId: string) => {
+    setSubmissionToDelete(submissionId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Execute deletion after confirmation
+  const executeDelete = async () => {
+    if (submissionToDelete) {
+      await handleDeleteSubmission(submissionToDelete);
+    }
+    setIsDeleteDialogOpen(false);
+    setSubmissionToDelete(null);
   };
 
 
@@ -180,7 +198,7 @@ export const Assessments: React.FC = () => {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => onDelete(submission.submission_id)}
+                  onClick={() => confirmDelete(submission.submission_id)}
                   disabled={isDeleting}
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
@@ -239,6 +257,13 @@ export const Assessments: React.FC = () => {
           )}
         </div>
       </div>
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={executeDelete}
+        title={t("confirmDeletion")}
+        description={t("confirmDeletionDescription")}
+      />
     </div>
   );
 };

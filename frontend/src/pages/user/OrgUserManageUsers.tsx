@@ -32,7 +32,7 @@ import { OrgAdminUserInvitationForm } from "@/components/shared/OrgAdminUserInvi
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 // Helper to get org and categories from ID token
-function getOrgAndCategoriesAndId(user: Record<string, unknown>) {
+function getOrgAndCategoriesAndId(user: { organizations?: Record<string, { id: string; categories: string[] }> }) {
   if (!user || !user.organizations)
     return { orgName: "", orgId: "", categories: [] };
   
@@ -511,7 +511,6 @@ export const OrgUserManageUsers: React.FC = () => {
               <OrgAdminUserInvitationForm
                 organizationId={orgId}
                 organizationName={orgName}
-                categories={categories.map(cat => ({ id: cat, name: cat }))}
                 onInvitationCreated={() => {
                   setShowAddDialog(false);
                   refetch();

@@ -2,7 +2,7 @@ use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
-use sea_orm::{DeleteResult, Set};
+use sea_orm::{ActiveModelBehavior, DeleteResult, Set};
 use std::sync::Arc;
 use super::assessments_submission::AssessmentsSubmissionService;
 
@@ -14,6 +14,7 @@ pub struct Model {
     pub org_id: String,
     pub language: String,
     pub name: String,
+    pub categories: Json,
     pub created_at: DateTime<Utc>,
 }
 
@@ -73,12 +74,14 @@ impl AssessmentsService {
         org_id: String,
         language: String,
         name: String,
+        categories: Vec<Uuid>,
     ) -> Result<Model, DbErr> {
         let assessment = ActiveModel {
             assessment_id: Set(Uuid::new_v4()),
             org_id: Set(org_id),
             language: Set(language),
             name: Set(name),
+            categories: Set(Json::from(categories.into_iter().map(|uuid| uuid.to_string()).collect::<Vec<String>>())),
             created_at: Set(Utc::now()),
         };
 
@@ -131,6 +134,12 @@ impl AssessmentsService {
         // If submission exists, proceed with deletion (cascade will handle assessment_response deletion)
         self.db_service.delete(id).await
     }
+
+    /// Get the categories service for category validation and operations
+    pub async fn get_categories_service(&self) -> Result<super::categories::CategoriesService, DbErr> {
+        let db = self.db_service.get_connection().clone();
+        Ok(super::categories::CategoriesService::new(Arc::new(db)))
+    }
 }
 
 #[cfg(test)]
@@ -148,6 +157,7 @@ mod tests {
             org_id: "test_org".to_string(),
             language: "en".to_string(),
             name: "Test Assessment".to_string(),
+            categories: Json::from(Vec::<Uuid>::new()),
             created_at: Utc::now(),
         };
 
@@ -194,7 +204,7 @@ mod tests {
 
         // Test create
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string(), Vec::new())
             .await?;
 
         assert_eq!(assessment.org_id, "test_org");
@@ -266,6 +276,7 @@ mod tests {
             org_id: "test_org".to_string(),
             language: "en".to_string(),
             name: "Test Assessment".to_string(),
+            categories: Json::from(Vec::<Uuid>::new()),
             created_at: Utc::now(),
         };
 
@@ -395,6 +406,7 @@ mod tests {
             org_id: "test_org".to_string(),
             language: "en".to_string(),
             name: "Test Assessment".to_string(),
+            categories: Json::from(Vec::<Uuid>::new()),
             created_at: Utc::now(),
         };
 
@@ -418,7 +430,7 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string(), Vec::new())
             .await?;
 
         // Try to delete the assessment without creating a submission - this should fail

@@ -165,6 +165,13 @@ export const AdminDashboard: React.FC = () => {
       color: "blue" as const,
       onClick: () => navigate("/admin/action-plans"),
     },
+    {
+      title: t('reportHistory.title', { defaultValue: 'Report History' }),
+      description: t('reportHistory.subtitle', { defaultValue: 'View and manage all organization reports' }),
+      icon: TrendingUp,
+      color: "blue" as const,
+      onClick: () => navigate("/admin/report-history"),
+    },
   ];
 
   // Dynamic counts for categories and questions using offline hooks
