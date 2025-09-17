@@ -143,7 +143,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/organizations/:org_id/org-admin/members/:member_id", delete(remove_org_admin_member))
         .route("/api/organizations/:org_id/org-admin/members/:member_id/categories", put(update_org_admin_member_categories))
         // Org admin user invitation endpoints
-.route("/openapi-json", get(crate::web::api::handlers::openapi::get_openapi_json).layer(axum::middleware::from_fn(|req, next| async move { next.run(req).await })))
+.route("/openapi-json", get(crate::web::api::handlers::openapi::get_openapi_json).layer(axum::middleware::from_fn(|req, next: axum::middleware::Next| async move { next.run(req).await })))
 
         // User invitation endpoints
         .route("/api/admin/user-invitations", post(create_user_invitation))
