@@ -102,6 +102,7 @@ impl Claims {
         self.has_role("org_admin")
     }
 
+    #[warn(non_snake_case)]
     /// Check if user has Org_User role
     pub fn is_Org_User(&self) -> bool {
         self.has_role("Org_User")
