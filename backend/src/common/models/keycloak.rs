@@ -140,5 +140,3 @@ pub enum UserInvitationStatus {
     #[serde(rename = "error")]
     Error,
 }
-
-

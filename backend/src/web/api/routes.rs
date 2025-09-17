@@ -34,8 +34,8 @@ use crate::web::api::handlers::{
 
 use crate::web::routes::AppState;
 use axum::{
-    Router,
     routing::{delete, get, post, put},
+    Router,
 };
 
 pub fn should_skip_validation(path: &str) -> bool {
@@ -216,12 +216,6 @@ pub fn create_router(app_state: AppState) -> Router {
             "/openapi-json",
             get(crate::web::api::handlers::openapi::get_openapi_json),
         )
-        .route("/api/admin/user-invitations", post(create_user_invitation))
-        .route(
-            "/api/admin/user-invitations/:user_id/status",
-            get(get_user_invitation_status),
-        )
-        .route("/api/admin/users/:user_id", delete(delete_user))
         // User invitation endpoints
         .route("/api/admin/user-invitations", post(create_user_invitation))
         .route(
@@ -232,4 +226,3 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/admin/users/:user_id", delete(delete_user))
         .with_state(app_state)
 }
-

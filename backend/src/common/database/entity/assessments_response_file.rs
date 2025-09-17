@@ -76,12 +76,7 @@ impl AssessmentsResponseFileService {
             .find_also_related(super::file::Entity)
             .all(self.db.as_ref())
             .await
-            .map(|results| {
-                results
-                    .into_iter()
-                    .filter_map(|(_, file)| file)
-                    .collect()
-            })
+            .map(|results| results.into_iter().filter_map(|(_, file)| file).collect())
     }
 
     pub async fn get_responses_for_file(

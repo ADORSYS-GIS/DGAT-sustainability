@@ -4,15 +4,15 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, TransactionTrait, Set};
+use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::common::cache::cached_ops;
 use crate::common::models::claims::Claims;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
-use crate::common::cache::cached_ops;
+use crate::web::routes::AppState;
 use crate::with_request_cache;
 
 // Helper function to determine assessment status based on three-tier system
@@ -22,23 +22,25 @@ async fn determine_assessment_status(
     assessment_id: Uuid,
 ) -> Result<AssessmentStatus, ApiError> {
     // Check if assessment has been reviewed (in assessments_submission table)
-    let has_final_submission = cached_ops::get_submission_with_session(app_state, claims, assessment_id)
-        .await?
-        .is_some();
-    
+    let has_final_submission =
+        cached_ops::get_submission_with_session(app_state, claims, assessment_id)
+            .await?
+            .is_some();
+
     if has_final_submission {
         return Ok(AssessmentStatus::Reviewed);
     }
-    
+
     // Check if assessment has been submitted to temp_submission table
-    let has_temp_submission = cached_ops::get_temp_submission_with_session(app_state, claims, assessment_id)
-        .await?
-        .is_some();
-    
+    let has_temp_submission =
+        cached_ops::get_temp_submission_with_session(app_state, claims, assessment_id)
+            .await?
+            .is_some();
+
     if has_temp_submission {
         return Ok(AssessmentStatus::Submitted);
     }
-    
+
     // Default to draft (covers both cases: no responses exist, or has responses but not submitted)
     Ok(AssessmentStatus::Draft)
 }
@@ -122,17 +124,20 @@ pub async fn list_assessments(
     Query(query): Query<AssessmentQuery>,
 ) -> Result<Json<AssessmentListResponse>, ApiError> {
     with_request_cache!({
-        let org_id = claims.get_org_id()
+        let org_id = claims
+            .get_org_id()
             .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
         // Fetch assessments from the database for the current organization - using session-level cache
-        let assessment_models = cached_ops::get_user_assessments_with_session(&app_state, &claims, &org_id).await?;
+        let assessment_models =
+            cached_ops::get_user_assessments_with_session(&app_state, &claims, &org_id).await?;
 
         // Convert database models to API models
         let mut assessments = Vec::new();
         for model in assessment_models {
             // Determine status using three-tier system (under_review, submitted, reviewed)
-            let status = determine_assessment_status(&app_state, &claims, model.assessment_id).await?;
+            let status =
+                determine_assessment_status(&app_state, &claims, model.assessment_id).await?;
 
             assessments.push(Assessment {
                 assessment_id: model.assessment_id,
@@ -181,7 +186,8 @@ pub async fn create_assessment(
     Json(request): Json<CreateAssessmentRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     with_request_cache!({
-        let org_id = claims.get_org_id()
+        let org_id = claims
+            .get_org_id()
             .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
         // Check if user has permission to create assessments (only org_admin)
@@ -210,18 +216,27 @@ pub async fn create_assessment(
             .assessments
             .get_assessments_by_org(&org_id)
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing assessments: {e}")))?;
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to fetch existing assessments: {e}"))
+            })?;
 
         for existing_assessment in existing_assessments {
             // Check if this assessment has a submission (submitted) - using session-level cache
-            let has_submission = cached_ops::get_submission_with_session(&app_state, &claims, existing_assessment.assessment_id)
-                .await?
-                .is_some();
+            let has_submission = cached_ops::get_submission_with_session(
+                &app_state,
+                &claims,
+                existing_assessment.assessment_id,
+            )
+            .await?
+            .is_some();
 
             if !has_submission {
                 // Only delete responses and the assessment if it is a draft (no submission) - using cached operation
-                let existing_responses = cached_ops::get_latest_responses_by_assessment(&app_state, existing_assessment.assessment_id)
-                    .await?;
+                let existing_responses = cached_ops::get_latest_responses_by_assessment(
+                    &app_state,
+                    existing_assessment.assessment_id,
+                )
+                .await?;
 
                 for response in existing_responses {
                     let _ = app_state
@@ -246,7 +261,9 @@ pub async fn create_assessment(
             .assessments
             .create_assessment(org_id, request.language, request.name)
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to create assessment: {e}")))?;
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to create assessment: {e}"))
+            })?;
 
         // Convert a database model to an API model
         let assessment = Assessment {
@@ -272,7 +289,8 @@ pub async fn get_assessment(
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<AssessmentWithResponsesResponse>, ApiError> {
     with_request_cache!({
-        let org_id = claims.get_org_id()
+        let org_id = claims
+            .get_org_id()
             .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
         // Fetch the assessment from the database - using cached operation
@@ -318,7 +336,8 @@ pub async fn get_assessment(
         };
 
         // Fetch the latest responses for this assessment - using cached operation
-        let response_models = cached_ops::get_latest_responses_by_assessment(&app_state, assessment_id).await?;
+        let response_models =
+            cached_ops::get_latest_responses_by_assessment(&app_state, assessment_id).await?;
 
         // Convert response models to API models
         let mut responses = Vec::new();
@@ -352,7 +371,8 @@ pub async fn update_assessment(
     Path(assessment_id): Path<Uuid>,
     Json(request): Json<UpdateAssessmentRequest>,
 ) -> Result<Json<AssessmentResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate request
@@ -435,7 +455,8 @@ pub async fn delete_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Check if the assessment exists and get its details
@@ -495,7 +516,8 @@ pub async fn user_submit_draft_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     if !claims.can_answer_assessments() {
@@ -568,20 +590,35 @@ pub async fn user_submit_draft_assessment(
     });
 
     // Insert or update the draft in temp_submission using service API
-    let existing_temp = app_state.database.temp_submission.get_temp_submission_by_assessment_id(assessment_id)
+    let existing_temp = app_state
+        .database
+        .temp_submission
+        .get_temp_submission_by_assessment_id(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to query temp submission: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to query temp submission: {e}"))
+        })?;
 
     if existing_temp.is_some() {
         // Update draft
-        app_state.database.temp_submission.update_submission_content(assessment_id, draft_content.clone())
+        app_state
+            .database
+            .temp_submission
+            .update_submission_content(assessment_id, draft_content.clone())
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to update temp submission: {e}")))?;
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to update temp submission: {e}"))
+            })?;
     } else {
         // Create draft
-        app_state.database.temp_submission.create_temp_submission(assessment_id, org_id.clone(), draft_content.clone())
+        app_state
+            .database
+            .temp_submission
+            .create_temp_submission(assessment_id, org_id.clone(), draft_content.clone())
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to store temp submission: {e}")))?;
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to store temp submission: {e}"))
+            })?;
     }
 
     Ok((StatusCode::OK, Json(draft_content)))
@@ -600,7 +637,9 @@ pub async fn submit_assessment(
     }
 
     // Start database transaction to ensure atomicity
-    let txn = app_state.database.get_connection()
+    let txn = app_state
+        .database
+        .get_connection()
         .begin()
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to start transaction: {e}")))?;
@@ -647,20 +686,22 @@ pub async fn submit_assessment(
     match result {
         Ok(_) => {
             // Commit transaction on success
-            txn.commit()
-                .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to commit transaction: {e}")))?;
-            
+            txn.commit().await.map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to commit transaction: {e}"))
+            })?;
+
             // Invalidate user's session cache since we submitted an assessment
             cached_ops::invalidate_user_session_cache(&app_state, &claims, Some(assessment_id));
-            
+
             Ok(StatusCode::OK)
         }
         Err(e) => {
             // Rollback transaction on any error
             if let Err(rollback_err) = txn.rollback().await {
                 tracing::error!("Failed to rollback transaction: {}", rollback_err);
-                return Err(ApiError::InternalServerError(format!("Transaction failed and rollback failed: {rollback_err}")));
+                return Err(ApiError::InternalServerError(format!(
+                    "Transaction failed and rollback failed: {rollback_err}"
+                )));
             }
             Err(e)
         }

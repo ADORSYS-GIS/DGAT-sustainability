@@ -8,9 +8,9 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
+use crate::web::routes::AppState;
 
 #[derive(Debug, Serialize)]
 pub struct ResponseHistoryResponse {
@@ -93,7 +93,8 @@ pub async fn list_responses(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<ResponseListResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment
@@ -159,7 +160,8 @@ pub async fn create_response(
     Path(assessment_id): Path<Uuid>,
     Json(requests): Json<Vec<CreateResponseRequest>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate requests
@@ -220,14 +222,19 @@ pub async fn create_response(
         .assessments_response
         .get_latest_responses_by_assessment(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}"))
+        })?;
 
     let mut updated_responses = Vec::new();
 
     // Process each request
     for request in requests {
         // Check if a response already exists for this question_revision_id
-        if let Some(_existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
+        if let Some(_existing) = existing_responses
+            .iter()
+            .find(|r| r.question_revision_id == request.question_revision_id)
+        {
             // Replace existing response with new one instead of appending
             let updated_response = app_state
                 .database
@@ -238,7 +245,9 @@ pub async fn create_response(
                     request.response,
                 )
                 .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
+                .map_err(|e| {
+                    ApiError::InternalServerError(format!("Failed to update response: {e}"))
+                })?;
 
             updated_responses.push(updated_response);
         } else {
@@ -253,7 +262,9 @@ pub async fn create_response(
                     1,
                 )
                 .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
+                .map_err(|e| {
+                    ApiError::InternalServerError(format!("Failed to create response: {e}"))
+                })?;
 
             updated_responses.push(new_response);
         }
@@ -279,7 +290,10 @@ pub async fn create_response(
         responses.push(response);
     }
 
-    Ok((StatusCode::CREATED, Json(ResponseListResponse { responses })))
+    Ok((
+        StatusCode::CREATED,
+        Json(ResponseListResponse { responses }),
+    ))
 }
 
 pub async fn get_response(
@@ -287,7 +301,8 @@ pub async fn get_response(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment
@@ -363,7 +378,8 @@ pub async fn update_response(
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<UpdateResponseRequest>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate request
@@ -484,7 +500,8 @@ pub async fn delete_response(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment

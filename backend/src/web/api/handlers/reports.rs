@@ -4,20 +4,19 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
-
+use crate::web::routes::AppState;
 
 /// Helper function to process report data and generate report content
 async fn generate_report_content(
     requests: &Vec<GenerateReportRequest>,
     submission_id: Uuid,
-    app_state: &AppState
+    app_state: &AppState,
 ) -> Result<Value, ApiError> {
     // Get the submission data to extract questions, answers, and categories
     let submission = app_state
@@ -30,14 +29,17 @@ async fn generate_report_content(
 
     // Extract responses from submission content
     let empty_responses = vec![];
-    let responses = submission.content
+    let responses = submission
+        .content
         .get("responses")
         .and_then(|r| r.as_array())
         .unwrap_or(&empty_responses);
 
     // Collect all requested categories and recommendations
-    let mut requested_categories: std::collections::HashSet<String> = std::collections::HashSet::new();
-    let mut recommendations: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut requested_categories: std::collections::HashSet<String> =
+        std::collections::HashSet::new();
+    let mut recommendations: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
 
     for request in requests {
         if !request.category.is_empty() {
@@ -50,13 +52,16 @@ async fn generate_report_content(
     let include_all_categories = requested_categories.is_empty();
 
     // Group responses by category, filtering by the requested categories if specified
-    let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
+    let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> =
+        std::collections::HashMap::new();
 
     for response in responses {
         // Handle the new structure where response contains question_revision_id and escaped JSON response
         if let (Some(question_revision_id_str), Some(response_str)) = (
-            response.get("question_revision_id").and_then(|q| q.as_str()),
-            response.get("response").and_then(|r| r.as_str())
+            response
+                .get("question_revision_id")
+                .and_then(|q| q.as_str()),
+            response.get("response").and_then(|r| r.as_str()),
         ) {
             // Parse the question_revision_id
             let question_revision_id = match Uuid::parse_str(question_revision_id_str) {
@@ -87,7 +92,8 @@ async fn generate_report_content(
             };
 
             // Extract question text from the jsonb field (assuming English for now)
-            let question_text = question_revision.text
+            let question_text = question_revision
+                .text
                 .get("en")
                 .and_then(|t| t.as_str())
                 .unwrap_or("Unknown question");
@@ -95,11 +101,12 @@ async fn generate_report_content(
             let category = &question.category;
 
             // Parse the response string directly (no longer an array)
-            let answer = if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(response_str) {
-                response_obj
-            } else {
-                json!({"text": response_str})
-            };
+            let answer =
+                if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(response_str) {
+                    response_obj
+                } else {
+                    json!({"text": response_str})
+                };
 
             // Include responses if all categories are requested or if this category is specifically requested
             if include_all_categories || requested_categories.contains(category) {
@@ -110,8 +117,9 @@ async fn generate_report_content(
                 });
 
                 // Add this question/answer to the category (supporting multiple questions per category)
-                categories.entry(category.to_string())
-                    .or_insert_with(Vec::new)
+                categories
+                    .entry(category.to_string())
+                    .or_default()
                     .push(question_data);
             }
         }
@@ -123,7 +131,8 @@ async fn generate_report_content(
 
     for (category, questions) in categories {
         // Get the recommendation for this category
-        let recommendation = recommendations.get(&category)
+        let recommendation = recommendations
+            .get(&category)
             .cloned()
             .unwrap_or_else(|| "No recommendation provided".to_string());
 
@@ -142,15 +151,14 @@ async fn generate_report_content(
     Ok(serde_json::Value::Array(result))
 }
 
-
-
 /// List all reports for the authenticated organization
 /// GET /user/reports
 pub async fn list_user_reports(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Get all submissions for the organization
@@ -159,7 +167,9 @@ pub async fn list_user_reports(
         .assessments_submission
         .get_submissions_by_org(&org_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}"))
+        })?;
 
     // Collect all reports for organization's submissions
     let mut all_reports = Vec::new();
@@ -173,7 +183,11 @@ pub async fn list_user_reports(
             .submission_reports
             .get_reports_by_submission(submission_id)
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch reports for submission {}: {e}", submission_id)))?;
+            .map_err(|e| {
+                ApiError::InternalServerError(format!(
+                    "Failed to fetch reports for submission {submission_id}: {e}"
+                ))
+            })?;
 
         // Convert database models to API models and add to collection
         for model in report_models {
@@ -187,7 +201,9 @@ pub async fn list_user_reports(
         }
     }
 
-    Ok(Json(ReportListResponse { reports: all_reports }))
+    Ok(Json(ReportListResponse {
+        reports: all_reports,
+    }))
 }
 
 /// List reports for a submission
@@ -259,17 +275,28 @@ pub async fn generate_report(
     report_model = app_state
         .database
         .submission_reports
-        .update_report_status(report_model.report_id, "completed".to_string(), Some(report_content))
+        .update_report_status(
+            report_model.report_id,
+            "completed".to_string(),
+            Some(report_content),
+        )
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to update report with content: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to update report with content: {e}"))
+        })?;
 
     // Update the assessment submission status to "reviewed" after successful report generation
     app_state
         .database
         .assessments_submission
-        .update_submission_status(submission_id, crate::common::database::entity::assessments_submission::SubmissionStatus::Reviewed)
+        .update_submission_status(
+            submission_id,
+            crate::common::database::entity::assessments_submission::SubmissionStatus::Reviewed,
+        )
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to update submission status: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to update submission status: {e}"))
+        })?;
 
     let response = ReportGenerationResponse {
         report_id: report_model.report_id,
@@ -341,7 +368,9 @@ pub async fn list_all_action_plans(
         .keycloak_service
         .get_organizations(&token)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organizations: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to fetch organizations: {e}"))
+        })?;
 
     let mut action_plans = Vec::new();
 
@@ -352,7 +381,12 @@ pub async fn list_all_action_plans(
             .assessments_submission
             .get_submissions_by_org(&org.id)
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions for org {}: {e}", org.id)))?;
+            .map_err(|e| {
+                ApiError::InternalServerError(format!(
+                    "Failed to fetch submissions for org {}: {e}",
+                    org.id
+                ))
+            })?;
 
         let mut org_recommendations = Vec::new();
 
@@ -363,7 +397,12 @@ pub async fn list_all_action_plans(
                 .submission_reports
                 .get_reports_by_submission(submission.submission_id)
                 .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch reports for submission {}: {e}", submission.submission_id)))?;
+                .map_err(|e| {
+                    ApiError::InternalServerError(format!(
+                        "Failed to fetch reports for submission {}: {e}",
+                        submission.submission_id
+                    ))
+                })?;
 
             for report in reports {
                 if let Some(data) = report.data {
@@ -373,21 +412,31 @@ pub async fn list_all_action_plans(
                             if let Some(category_map) = category_obj.as_object() {
                                 for (category_name, category_data) in category_map {
                                     if let Some(category_obj) = category_data.as_object() {
-                                        if let Some(recommendation) = category_obj.get("recommendation") {
-                                            if let Some(recommendation_str) = recommendation.as_str() {
+                                        if let Some(recommendation) =
+                                            category_obj.get("recommendation")
+                                        {
+                                            if let Some(recommendation_str) =
+                                                recommendation.as_str()
+                                            {
                                                 // Get the status from the category data, default to "todo" if not present
-                                                let status = category_obj.get("status")
+                                                let status = category_obj
+                                                    .get("status")
                                                     .and_then(|s| s.as_str())
                                                     .unwrap_or("todo")
                                                     .to_string();
-                                                
-                                                org_recommendations.push(RecommendationWithStatus {
-                                                    report_id: report.report_id,
-                                                    category: category_name.clone(),
-                                                    recommendation: recommendation_str.to_string(),
-                                                    status: status,
-                                                    created_at: report.generated_at.to_rfc3339(),
-                                                });
+
+                                                org_recommendations.push(
+                                                    RecommendationWithStatus {
+                                                        report_id: report.report_id,
+                                                        category: category_name.clone(),
+                                                        recommendation: recommendation_str
+                                                            .to_string(),
+                                                        status,
+                                                        created_at: report
+                                                            .generated_at
+                                                            .to_rfc3339(),
+                                                    },
+                                                );
                                             }
                                         }
                                     }
@@ -408,7 +457,9 @@ pub async fn list_all_action_plans(
         }
     }
 
-    Ok(Json(ActionPlanListResponse { organizations: action_plans }))
+    Ok(Json(ActionPlanListResponse {
+        organizations: action_plans,
+    }))
 }
 
 /// Update recommendation status (for org admins)
@@ -421,7 +472,10 @@ pub async fn update_recommendation_status(
     // Validate status
     let valid_statuses = vec!["todo", "in_progress", "done", "approved"];
     if !valid_statuses.contains(&request.status.as_str()) {
-        return Err(ApiError::BadRequest(format!("Invalid status: {}. Must be one of: {:?}", request.status, valid_statuses)));
+        return Err(ApiError::BadRequest(format!(
+            "Invalid status: {}. Must be one of: {:?}",
+            request.status, valid_statuses
+        )));
     }
 
     // Get the report
@@ -440,7 +494,10 @@ pub async fn update_recommendation_status(
                 if let Some(category_map) = category_obj.as_object_mut() {
                     if let Some(category_data) = category_map.get_mut(&category) {
                         if let Some(category_obj) = category_data.as_object_mut() {
-                            category_obj.insert("status".to_string(), serde_json::Value::String(request.status.clone()));
+                            category_obj.insert(
+                                "status".to_string(),
+                                serde_json::Value::String(request.status.clone()),
+                            );
                         }
                     }
                 }
@@ -461,7 +518,7 @@ pub async fn update_recommendation_status(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use serde_json::json;
 
     #[test]
@@ -495,12 +552,20 @@ mod tests {
         });
 
         // Simulate categories and recommendations
-        let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
-        let mut recommendations: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> =
+            std::collections::HashMap::new();
+        let mut recommendations: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
 
         // Add sample recommendations
-        recommendations.insert("Environmental".to_string(), "Improve environmental policies and increase renewable energy usage".to_string());
-        recommendations.insert("Social".to_string(), "Expand employee training and diversity programs".to_string());
+        recommendations.insert(
+            "Environmental".to_string(),
+            "Improve environmental policies and increase renewable energy usage".to_string(),
+        );
+        recommendations.insert(
+            "Social".to_string(),
+            "Expand employee training and diversity programs".to_string(),
+        );
 
         // Extract responses from submission content
         let empty_responses = vec![];
@@ -512,15 +577,20 @@ mod tests {
         // Process responses (simulating the new structure)
         for (i, response) in responses.iter().enumerate() {
             if let (Some(_question_revision_id_str), Some(response_str)) = (
-                response.get("question_revision_id").and_then(|q| q.as_str()),
-                response.get("response").and_then(|r| r.as_str())
+                response
+                    .get("question_revision_id")
+                    .and_then(|q| q.as_str()),
+                response.get("response").and_then(|r| r.as_str()),
             ) {
                 // Parse the escaped JSON response string
-                let parsed_response: Vec<serde_json::Value> = serde_json::from_str(response_str).unwrap();
+                let parsed_response: Vec<serde_json::Value> =
+                    serde_json::from_str(response_str).unwrap();
 
                 // Extract the complete answer data set from the parsed response
                 let answer = if let Some(first_response) = parsed_response.first() {
-                    if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(first_response.as_str().unwrap_or("{}")) {
+                    if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(
+                        first_response.as_str().unwrap_or("{}"),
+                    ) {
                         response_obj
                     } else {
                         json!({"text": first_response.as_str().unwrap_or("No response")})
@@ -531,10 +601,13 @@ mod tests {
 
                 // Simulate category assignment
                 let (category, question_text) = match i {
-                    0 => ("Environmental", "What is your organization's sustainability policy?"),
+                    0 => (
+                        "Environmental",
+                        "What is your organization's sustainability policy?",
+                    ),
                     1 => ("Environmental", "How do you measure carbon footprint?"),
                     2 => ("Social", "What is your employee training program?"),
-                    _ => ("Unknown", "Unknown question")
+                    _ => ("Unknown", "Unknown question"),
                 };
 
                 // Create question/answer object WITHOUT recommendation (recommendation will be added at category level)
@@ -544,8 +617,9 @@ mod tests {
                 });
 
                 // Add this question/answer to the category
-                categories.entry(category.to_string())
-                    .or_insert_with(Vec::new)
+                categories
+                    .entry(category.to_string())
+                    .or_default()
                     .push(question_data);
             }
         }
@@ -555,7 +629,8 @@ mod tests {
 
         for (category, questions) in categories {
             // Get the recommendation for this category
-            let recommendation = recommendations.get(&category)
+            let recommendation = recommendations
+                .get(&category)
                 .cloned()
                 .unwrap_or_else(|| "No recommendation provided".to_string());
 
@@ -591,19 +666,37 @@ mod tests {
         let env_questions = env_category.get("questions").unwrap().as_array().unwrap();
         assert_eq!(env_questions.len(), 2); // 2 questions
 
-        let env_recommendation = env_category.get("recommendation").unwrap().as_str().unwrap();
-        assert_eq!(env_recommendation, "Improve environmental policies and increase renewable energy usage");
+        let env_recommendation = env_category
+            .get("recommendation")
+            .unwrap()
+            .as_str()
+            .unwrap();
+        assert_eq!(
+            env_recommendation,
+            "Improve environmental policies and increase renewable energy usage"
+        );
 
         // Check Social category - NEW structure
         let social_category = obj.get("Social").unwrap();
         assert!(social_category.get("questions").is_some());
         assert!(social_category.get("recommendation").is_some());
 
-        let social_questions = social_category.get("questions").unwrap().as_array().unwrap();
+        let social_questions = social_category
+            .get("questions")
+            .unwrap()
+            .as_array()
+            .unwrap();
         assert_eq!(social_questions.len(), 1); // 1 question
 
-        let social_recommendation = social_category.get("recommendation").unwrap().as_str().unwrap();
-        assert_eq!(social_recommendation, "Expand employee training and diversity programs");
+        let social_recommendation = social_category
+            .get("recommendation")
+            .unwrap()
+            .as_str()
+            .unwrap();
+        assert_eq!(
+            social_recommendation,
+            "Expand employee training and diversity programs"
+        );
 
         println!("Test passed! Generated report content with NEW format (single recommendation per category):");
         println!("{}", serde_json::to_string_pretty(&final_result).unwrap());

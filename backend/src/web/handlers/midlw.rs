@@ -5,8 +5,8 @@
 //! enforcing role-based permissions.
 
 use crate::common::models::claims::Claims;
-use crate::web::handlers::jwt_validator::JwtValidator;
 use crate::web::api::routes::should_skip_validation;
+use crate::web::handlers::jwt_validator::JwtValidator;
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, StatusCode},
@@ -38,7 +38,6 @@ pub async fn auth_middleware(
         tracing::warn!("Missing Authorization header");
         StatusCode::UNAUTHORIZED
     })?;
-
 
     let token = auth_header
         .to_str()

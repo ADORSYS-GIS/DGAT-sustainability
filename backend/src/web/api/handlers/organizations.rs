@@ -9,9 +9,9 @@ use std::collections::HashMap;
 
 use crate::common::models::claims::Claims;
 use crate::common::models::keycloak::*;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
+use crate::web::routes::AppState;
 
 // Query parameter structs for different endpoints
 #[derive(Deserialize)]
@@ -59,8 +59,12 @@ fn can_access_organization(claims: &Claims, organization_id: &str) -> bool {
     // 1. Application admin (can access all organizations)
     // 2. Organization admin and member of the organization
     // 3. Regular user and member of the organization
-    claims.is_application_admin() 
-        || claims.organizations.as_ref().map(|orgs| orgs.orgs.contains_key(organization_id)).unwrap_or(false)
+    claims.is_application_admin()
+        || claims
+            .organizations
+            .as_ref()
+            .map(|orgs| orgs.orgs.contains_key(organization_id))
+            .unwrap_or(false)
 }
 
 // Add this struct at the top of the file (if not already present):
@@ -76,8 +80,14 @@ fn is_member_of_org_by_id(claims: &Claims, org_id: &str) -> bool {
     if claims.is_application_admin() {
         return true;
     }
-    claims.organizations.as_ref()
-        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
+    claims
+        .organizations
+        .as_ref()
+        .map(|orgs| {
+            orgs.orgs
+                .values()
+                .any(|info| info.id.as_deref() == Some(org_id))
+        })
         .unwrap_or(false)
 }
 
@@ -95,24 +105,45 @@ pub async fn get_organizations(
         Ok(mut organizations) => {
             // Log organization details for debugging
             for org in &organizations {
-                tracing::warn!("Organization: id={}, name={}, attributes={:?}", 
-                    org.id, org.name, org.attributes);
+                tracing::warn!(
+                    "Organization: id={}, name={}, attributes={:?}",
+                    org.id,
+                    org.name,
+                    org.attributes
+                );
             }
-            
+
             // Apply search filtering if provided
             if let Some(search_term) = &params.search {
                 organizations.retain(|org| {
-                    let name_matches = org.name.to_lowercase().contains(&search_term.to_lowercase());
-                    let domain_matches = org.domains.as_ref()
-                        .map(|domains| domains.iter().any(|domain| 
-                            domain.name.to_lowercase().contains(&search_term.to_lowercase())))
+                    let name_matches = org
+                        .name
+                        .to_lowercase()
+                        .contains(&search_term.to_lowercase());
+                    let domain_matches = org
+                        .domains
+                        .as_ref()
+                        .map(|domains| {
+                            domains.iter().any(|domain| {
+                                domain
+                                    .name
+                                    .to_lowercase()
+                                    .contains(&search_term.to_lowercase())
+                            })
+                        })
                         .unwrap_or(false);
 
                     if params.exact.unwrap_or(false) {
-                        org.name.eq_ignore_ascii_case(search_term) || 
-                        org.domains.as_ref()
-                            .map(|domains| domains.iter().any(|domain| domain.name.eq_ignore_ascii_case(search_term)))
-                            .unwrap_or(false)
+                        org.name.eq_ignore_ascii_case(search_term)
+                            || org
+                                .domains
+                                .as_ref()
+                                .map(|domains| {
+                                    domains
+                                        .iter()
+                                        .any(|domain| domain.name.eq_ignore_ascii_case(search_term))
+                                })
+                                .unwrap_or(false)
                     } else {
                         name_matches || domain_matches
                     }
@@ -140,10 +171,12 @@ pub async fn get_organizations(
             }
 
             Ok((StatusCode::OK, Json(organizations)))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get organizations: {}", e);
-            Err(ApiError::InternalServerError("Failed to get organizations".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get organizations".to_string(),
+            ))
         }
     }
 }
@@ -164,7 +197,8 @@ pub async fn create_organization(
     }
 
     // Call Keycloak service with all required arguments
-    match app_state.keycloak_service
+    match app_state
+        .keycloak_service
         .create_organization(
             &token,
             &request.name,
@@ -178,7 +212,9 @@ pub async fn create_organization(
         Ok(organization) => Ok((StatusCode::CREATED, Json(organization))),
         Err(e) => {
             tracing::error!("Failed to create organization: {}", e);
-            Err(ApiError::InternalServerError("Failed to create organization".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to create organization".to_string(),
+            ))
         }
     }
 }
@@ -188,7 +224,7 @@ pub async fn get_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -197,14 +233,20 @@ pub async fn get_organization(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service.get_organization(&token, &org_id).await {
+    match app_state
+        .keycloak_service
+        .get_organization(&token, &org_id)
+        .await
+    {
         Ok(organization) => {
             tracing::warn!("Single organization response: {:?}", organization);
             Ok((StatusCode::OK, Json(organization)))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get organization: {}", e);
-            Err(ApiError::InternalServerError("Failed to get organization".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get organization".to_string(),
+            ))
         }
     }
 }
@@ -228,7 +270,10 @@ pub async fn update_organization(
     let mut attributes = HashMap::new();
 
     // Add redirect URL
-    attributes.insert("redirect_url".to_string(), vec![request.redirect_url.clone()]);
+    attributes.insert(
+        "redirect_url".to_string(),
+        vec![request.redirect_url.clone()],
+    );
 
     // Add enabled status
     attributes.insert("enabled".to_string(), vec![request.enabled.clone()]);
@@ -240,14 +285,23 @@ pub async fn update_organization(
         }
     }
 
-    match app_state.keycloak_service
-        .update_organization(&token, &org_id, &request.name, request.domains.clone(), Some(attributes))
+    match app_state
+        .keycloak_service
+        .update_organization(
+            &token,
+            &org_id,
+            &request.name,
+            request.domains.clone(),
+            Some(attributes),
+        )
         .await
     {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             tracing::error!("Failed to update organization: {}", e);
-            Err(ApiError::InternalServerError("Failed to update organization".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to update organization".to_string(),
+            ))
         }
     }
 }
@@ -267,33 +321,59 @@ pub async fn delete_organization(
     }
 
     // First, get all members of the organization
-    let members = match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
+    let members = match app_state
+        .keycloak_service
+        .get_organization_members(&token, &org_id)
+        .await
+    {
         Ok(members) => members,
         Err(e) => {
             tracing::error!("Failed to get organization members for deletion: {}", e);
-            return Err(ApiError::InternalServerError("Failed to get organization members for deletion".to_string()));
+            return Err(ApiError::InternalServerError(
+                "Failed to get organization members for deletion".to_string(),
+            ));
         }
     };
 
     // Iterate and delete each member
     for member in members {
-        tracing::info!("Attempting to delete user {} from Keycloak as part of organization deletion", member.id);
-        if let Err(e) = app_state.keycloak_service.delete_user(&token, &member.id).await {
-            tracing::warn!("Failed to delete user {} from Keycloak: {}. Continuing with other users.", member.id, e);
+        tracing::info!(
+            "Attempting to delete user {} from Keycloak as part of organization deletion",
+            member.id
+        );
+        if let Err(e) = app_state
+            .keycloak_service
+            .delete_user(&token, &member.id)
+            .await
+        {
+            tracing::warn!(
+                "Failed to delete user {} from Keycloak: {}. Continuing with other users.",
+                member.id,
+                e
+            );
             // We log the error but continue to attempt deleting other users and the organization.
             // A full rollback/transaction is complex with external services like Keycloak.
         }
     }
 
     // Finally, delete the organization
-    match app_state.keycloak_service.delete_organization(&token, &org_id).await {
+    match app_state
+        .keycloak_service
+        .delete_organization(&token, &org_id)
+        .await
+    {
         Ok(()) => {
-            tracing::info!("Organization {} and all its associated users deleted successfully", org_id);
+            tracing::info!(
+                "Organization {} and all its associated users deleted successfully",
+                org_id
+            );
             Ok(StatusCode::NO_CONTENT)
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to delete organization {}: {}", org_id, e);
-            Err(ApiError::InternalServerError("Failed to delete organization".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to delete organization".to_string(),
+            ))
         }
     }
 }
@@ -314,15 +394,35 @@ pub async fn get_members(
     }
 
     // Get organization members filtered by org_admin role
-    match app_state.keycloak_service.get_organization_members_by_role(&token, &org_id, "org_admin").await {
+    match app_state
+        .keycloak_service
+        .get_organization_members_by_role(&token, &org_id, "org_admin")
+        .await
+    {
         Ok(mut members) => {
             // Apply search filtering if provided
             if let Some(search_term) = &params.search {
                 members.retain(|member| {
-                    let username_matches = member.username.to_lowercase().contains(&search_term.to_lowercase());
-                    let email_matches = member.email.to_lowercase().contains(&search_term.to_lowercase());
-                    let first_name_matches = member.first_name.as_deref().unwrap_or("").to_lowercase().contains(&search_term.to_lowercase());
-                    let last_name_matches = member.last_name.as_deref().unwrap_or("").to_lowercase().contains(&search_term.to_lowercase());
+                    let username_matches = member
+                        .username
+                        .to_lowercase()
+                        .contains(&search_term.to_lowercase());
+                    let email_matches = member
+                        .email
+                        .to_lowercase()
+                        .contains(&search_term.to_lowercase());
+                    let first_name_matches = member
+                        .first_name
+                        .as_deref()
+                        .unwrap_or("")
+                        .to_lowercase()
+                        .contains(&search_term.to_lowercase());
+                    let last_name_matches = member
+                        .last_name
+                        .as_deref()
+                        .unwrap_or("")
+                        .to_lowercase()
+                        .contains(&search_term.to_lowercase());
 
                     if params.exact.unwrap_or(false) {
                         username_matches || email_matches || first_name_matches || last_name_matches
@@ -345,10 +445,12 @@ pub async fn get_members(
             }
 
             Ok((StatusCode::OK, Json(members)))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get organization members: {}", e);
-            Err(ApiError::InternalServerError("Failed to get organization members".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get organization members".to_string(),
+            ))
         }
     }
 }
@@ -368,14 +470,17 @@ pub async fn add_member(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service
+    match app_state
+        .keycloak_service
         .add_user_to_organization(&token, &org_id, &request.email, request.roles.clone())
         .await
     {
         Ok(_) => Ok(StatusCode::CREATED),
         Err(e) => {
             tracing::error!("Failed to add member to organization: {}", e);
-            Err(ApiError::InternalServerError("Failed to add member to organization".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to add member to organization".to_string(),
+            ))
         }
     }
 }
@@ -395,14 +500,17 @@ pub async fn update_member_roles(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service
+    match app_state
+        .keycloak_service
         .update_user_roles(&token, &org_id, &member_id, request.roles)
         .await
     {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             tracing::error!("Failed to update member roles: {}", e);
-            Err(ApiError::InternalServerError("Failed to update member roles".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to update member roles".to_string(),
+            ))
         }
     }
 }
@@ -421,11 +529,17 @@ pub async fn get_invitations(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service.get_invitations(&token, &id).await {
+    match app_state
+        .keycloak_service
+        .get_invitations(&token, &id)
+        .await
+    {
         Ok(invitations) => Ok((StatusCode::OK, Json(invitations))),
         Err(e) => {
             tracing::error!("Failed to get invitations: {}", e);
-            Err(ApiError::InternalServerError("Failed to get invitations".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get invitations".to_string(),
+            ))
         }
     }
 }
@@ -445,14 +559,23 @@ pub async fn create_invitation(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service
-        .create_invitation(&token, &id, &request.email, request.roles, request.expiration)
+    match app_state
+        .keycloak_service
+        .create_invitation(
+            &token,
+            &id,
+            &request.email,
+            request.roles,
+            request.expiration,
+        )
         .await
     {
         Ok(invitation) => Ok((StatusCode::CREATED, Json(invitation))),
         Err(e) => {
             tracing::error!("Failed to create invitation: {}", e);
-            Err(ApiError::InternalServerError("Failed to create invitation".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to create invitation".to_string(),
+            ))
         }
     }
 }
@@ -471,14 +594,17 @@ pub async fn delete_invitation(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    match app_state.keycloak_service
+    match app_state
+        .keycloak_service
         .delete_invitation(&token, &org_id, &invitation_id)
         .await
     {
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             tracing::error!("Failed to delete invitation: {}", e);
-            Err(ApiError::InternalServerError("Failed to delete invitation".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to delete invitation".to_string(),
+            ))
         }
     }
 }
@@ -490,7 +616,7 @@ pub async fn get_organizations_count(
     Extension(_claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path(realm): Path<String>,
+    Path(_realm): Path<String>,
     Query(params): Query<OrganizationsCountQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -501,17 +627,34 @@ pub async fn get_organizations_count(
             // Apply search filtering if provided
             if let Some(search_term) = &params.search {
                 organizations.retain(|org| {
-                    let name_matches = org.name.to_lowercase().contains(&search_term.to_lowercase());
-                    let domain_matches = org.domains.as_ref()
-                        .map(|domains| domains.iter().any(|domain| 
-                            domain.name.to_lowercase().contains(&search_term.to_lowercase())))
+                    let name_matches = org
+                        .name
+                        .to_lowercase()
+                        .contains(&search_term.to_lowercase());
+                    let domain_matches = org
+                        .domains
+                        .as_ref()
+                        .map(|domains| {
+                            domains.iter().any(|domain| {
+                                domain
+                                    .name
+                                    .to_lowercase()
+                                    .contains(&search_term.to_lowercase())
+                            })
+                        })
                         .unwrap_or(false);
 
                     if params.exact.unwrap_or(false) {
-                        org.name.eq_ignore_ascii_case(search_term) || 
-                        org.domains.as_ref()
-                            .map(|domains| domains.iter().any(|domain| domain.name.eq_ignore_ascii_case(search_term)))
-                            .unwrap_or(false)
+                        org.name.eq_ignore_ascii_case(search_term)
+                            || org
+                                .domains
+                                .as_ref()
+                                .map(|domains| {
+                                    domains
+                                        .iter()
+                                        .any(|domain| domain.name.eq_ignore_ascii_case(search_term))
+                                })
+                                .unwrap_or(false)
                     } else {
                         name_matches || domain_matches
                     }
@@ -520,10 +663,12 @@ pub async fn get_organizations_count(
 
             let count = organizations.len() as i64;
             Ok((StatusCode::OK, Json(count)))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get organizations count: {}", e);
-            Err(ApiError::InternalServerError("Failed to get organizations count".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get organizations count".to_string(),
+            ))
         }
     }
 }
@@ -545,17 +690,21 @@ pub async fn get_member_organizations(
 
     // Get all organizations and filter for ones where the user is a member
     match app_state.keycloak_service.get_organizations(&token).await {
-        Ok(mut organizations) => {
+        Ok(organizations) => {
             let mut member_organizations = Vec::new();
 
             // For each organization, check if the user is a member
             for org in organizations {
-                match app_state.keycloak_service.get_organization_members(&token, &org.id).await {
+                match app_state
+                    .keycloak_service
+                    .get_organization_members(&token, &org.id)
+                    .await
+                {
                     Ok(members) => {
                         if members.iter().any(|member| member.id == member_id) {
                             member_organizations.push(org);
                         }
-                    },
+                    }
                     Err(_) => {
                         // Skip organizations we can't access
                         continue;
@@ -571,10 +720,12 @@ pub async fn get_member_organizations(
             }
 
             Ok((StatusCode::OK, Json(member_organizations)))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get member organizations: {}", e);
-            Err(ApiError::InternalServerError("Failed to get member organizations".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get member organizations".to_string(),
+            ))
         }
     }
 }
@@ -583,10 +734,10 @@ pub async fn get_member_organizations(
 pub async fn get_identity_providers(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !can_access_organization(&claims, &org_id) {
@@ -602,11 +753,11 @@ pub async fn get_identity_providers(
 pub async fn add_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_, org_id)): Path<(String, String)>,
     Json(request): Json<String>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
@@ -614,7 +765,7 @@ pub async fn add_identity_provider(
     }
 
     // Parse identity provider ID/alias from JSON string
-    let provider_id = request.trim().trim_matches('"');
+    let _provider_id = request.trim().trim_matches('"');
 
     // TODO: Implement logic to add identity provider to organization
     Ok(StatusCode::NO_CONTENT)
@@ -624,10 +775,10 @@ pub async fn add_identity_provider(
 pub async fn get_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
-    Path((_, org_id, alias)): Path<(String, String, String)>,
+    State(_app_state): State<AppState>,
+    Path((_, org_id, _alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !can_access_organization(&claims, &org_id) {
@@ -643,10 +794,10 @@ pub async fn get_identity_provider(
 pub async fn remove_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
-    Path((_, org_id, alias)): Path<(String, String, String)>,
+    State(_app_state): State<AppState>,
+    Path((_, org_id, _alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
@@ -672,14 +823,20 @@ pub async fn get_members_count(
     }
 
     // Get organization members filtered by org_admin role
-    match app_state.keycloak_service.get_organization_members_by_role(&token, &org_id, "org_admin").await {
+    match app_state
+        .keycloak_service
+        .get_organization_members_by_role(&token, &org_id, "org_admin")
+        .await
+    {
         Ok(members) => {
             let count = members.len() as i64;
             Ok((StatusCode::OK, Json(count)))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get organization members count: {}", e);
-            Err(ApiError::InternalServerError("Failed to get organization members count".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get organization members count".to_string(),
+            ))
         }
     }
 }
@@ -688,18 +845,20 @@ pub async fn get_members_count(
 pub async fn invite_existing_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    let user_id = form.get("id").ok_or_else(|| ApiError::BadRequest("Missing id parameter".to_string()))?;
+    let _user_id = form
+        .get("id")
+        .ok_or_else(|| ApiError::BadRequest("Missing id parameter".to_string()))?;
 
     // TODO: Implement logic to invite existing user
     Ok(StatusCode::NO_CONTENT)
@@ -709,19 +868,21 @@ pub async fn invite_existing_user(
 pub async fn invite_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    let email = form.get("email").ok_or_else(|| ApiError::BadRequest("Missing email parameter".to_string()))?;
-    let first_name = form.get("firstName");
+    let _email = form
+        .get("email")
+        .ok_or_else(|| ApiError::BadRequest("Missing email parameter".to_string()))?;
+    let _first_name = form.get("firstName");
     let _last_name = form.get("lastName");
 
     // TODO: Implement logic to invite user by email
@@ -743,18 +904,26 @@ pub async fn get_member(
     }
 
     // Get organization members filtered by org_admin role
-    match app_state.keycloak_service.get_organization_members_by_role(&token, &org_id, "org_admin").await {
+    match app_state
+        .keycloak_service
+        .get_organization_members_by_role(&token, &org_id, "org_admin")
+        .await
+    {
         Ok(members) => {
             // Find the specific member by ID
             if let Some(member) = members.iter().find(|m| m.id == member_id) {
                 Ok((StatusCode::OK, Json(member.clone())))
             } else {
-                Err(ApiError::BadRequest("Member not found in organization or does not have org_admin role".to_string()))
+                Err(ApiError::BadRequest(
+                    "Member not found in organization or does not have org_admin role".to_string(),
+                ))
             }
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get organization member: {}", e);
-            Err(ApiError::InternalServerError("Failed to get organization member".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get organization member".to_string(),
+            ))
         }
     }
 }
@@ -775,15 +944,23 @@ pub async fn get_member_organizations_in_org(
     }
 
     // First verify that the member exists in the specified organization
-    match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
+    match app_state
+        .keycloak_service
+        .get_organization_members(&token, &org_id)
+        .await
+    {
         Ok(members) => {
             if !members.iter().any(|m| m.id == member_id) {
-                return Err(ApiError::BadRequest("Member not found in organization".to_string()));
+                return Err(ApiError::BadRequest(
+                    "Member not found in organization".to_string(),
+                ));
             }
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get organization members: {}", e);
-            return Err(ApiError::InternalServerError("Failed to get organization members".to_string()));
+            return Err(ApiError::InternalServerError(
+                "Failed to get organization members".to_string(),
+            ));
         }
     }
 
@@ -794,12 +971,16 @@ pub async fn get_member_organizations_in_org(
 
             // For each organization, check if the user is a member
             for org in organizations {
-                match app_state.keycloak_service.get_organization_members(&token, &org.id).await {
+                match app_state
+                    .keycloak_service
+                    .get_organization_members(&token, &org.id)
+                    .await
+                {
                     Ok(members) => {
                         if members.iter().any(|member| member.id == member_id) {
                             member_organizations.push(org);
                         }
-                    },
+                    }
                     Err(_) => {
                         // Skip organizations we can't access
                         continue;
@@ -815,10 +996,12 @@ pub async fn get_member_organizations_in_org(
             }
 
             Ok((StatusCode::OK, Json(member_organizations)))
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get member organizations: {}", e);
-            Err(ApiError::InternalServerError("Failed to get member organizations".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to get member organizations".to_string(),
+            ))
         }
     }
 }
@@ -837,10 +1020,18 @@ pub async fn remove_member(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    tracing::info!("Attempting to remove member {} from organization {}", membership_id, org_id);
+    tracing::info!(
+        "Attempting to remove member {} from organization {}",
+        membership_id,
+        org_id
+    );
 
     // First, get the user's current roles to remove them
-    let user_roles = match app_state.keycloak_service.get_user_realm_roles(&token, &membership_id).await {
+    let user_roles = match app_state
+        .keycloak_service
+        .get_user_realm_roles(&token, &membership_id)
+        .await
+    {
         Ok(roles) => roles,
         Err(e) => {
             tracing::warn!("Failed to get user roles for removal: {}", e);
@@ -849,7 +1040,8 @@ pub async fn remove_member(
     };
 
     // Remove the user from the organization
-    match app_state.keycloak_service
+    match app_state
+        .keycloak_service
         .remove_user_from_organization(&token, &org_id, &membership_id)
         .await
     {
@@ -858,12 +1050,25 @@ pub async fn remove_member(
             for role_name in &user_roles {
                 // Skip the default role that should be preserved
                 if role_name == "default-roles-sustainability-realm" {
-                    tracing::info!("Preserving default role '{}' for user {}", role_name, membership_id);
+                    tracing::info!(
+                        "Preserving default role '{}' for user {}",
+                        role_name,
+                        membership_id
+                    );
                     continue;
                 }
-                
-                if let Err(e) = app_state.keycloak_service.remove_realm_role_from_user(&token, &membership_id, role_name).await {
-                    tracing::warn!("Failed to remove realm role '{}' from user {}: {}", role_name, membership_id, e);
+
+                if let Err(e) = app_state
+                    .keycloak_service
+                    .remove_realm_role_from_user(&token, &membership_id, role_name)
+                    .await
+                {
+                    tracing::warn!(
+                        "Failed to remove realm role '{}' from user {}: {}",
+                        role_name,
+                        membership_id,
+                        e
+                    );
                     // Continue removing other roles even if one fails
                 }
             }
@@ -872,18 +1077,32 @@ pub async fn remove_member(
             if user_roles.contains(&"org_admin".to_string()) {
                 let client_roles = vec![
                     "view-users",
-                    "query-users", 
+                    "query-users",
                     "manage-users",
                     "manage-organizations",
                     "manage-clients",
-                    "manage-realm"
+                    "manage-realm",
                 ];
                 // Use the correct UUID for the realm-management client
                 let client_id = "4c6be2d1-547f-4ecc-912d-facf2f52935a";
-                
+
                 for client_role in client_roles {
-                    if let Err(e) = app_state.keycloak_service.remove_client_role_from_user(&token, &membership_id, client_id, client_role).await {
-                        tracing::warn!("Failed to remove client role '{}' from user {}: {}", client_role, membership_id, e);
+                    if let Err(e) = app_state
+                        .keycloak_service
+                        .remove_client_role_from_user(
+                            &token,
+                            &membership_id,
+                            client_id,
+                            client_role,
+                        )
+                        .await
+                    {
+                        tracing::warn!(
+                            "Failed to remove client role '{}' from user {}: {}",
+                            client_role,
+                            membership_id,
+                            e
+                        );
                         // Continue removing other client roles even if one fails
                     }
                 }
@@ -891,10 +1110,17 @@ pub async fn remove_member(
 
             tracing::info!("Successfully removed member {} from organization {} and removed all associated roles", membership_id, org_id);
             Ok(StatusCode::NO_CONTENT)
-        },
+        }
         Err(e) => {
-            tracing::error!("Failed to remove member {} from organization {}: {}", membership_id, org_id, e);
-            Err(ApiError::InternalServerError(format!("Failed to remove member from organization: {}", e)))
+            tracing::error!(
+                "Failed to remove member {} from organization {}: {}",
+                membership_id,
+                org_id,
+                e
+            );
+            Err(ApiError::InternalServerError(format!(
+                "Failed to remove member from organization: {e}"
+            )))
         }
     }
 }
@@ -926,7 +1152,9 @@ pub async fn add_org_admin_member(
 ) -> Result<(StatusCode, Json<OrgAdminUserInvitationResponse>), ApiError> {
     // Check if user has org admin permissions for this organization
     if !claims.is_org_admin() {
-        return Err(ApiError::BadRequest("Insufficient permissions for this organization".to_string()));
+        return Err(ApiError::BadRequest(
+            "Insufficient permissions for this organization".to_string(),
+        ));
     }
 
     // Validate email format
@@ -935,20 +1163,36 @@ pub async fn add_org_admin_member(
     }
 
     // Validate required fields
-    if request.email.trim().is_empty() || 
-       request.first_name.as_ref().map_or(true, |name| name.trim().is_empty()) || 
-       request.last_name.as_ref().map_or(true, |name| name.trim().is_empty()) {
-        return Err(ApiError::BadRequest("Email, first name, and last name are required".to_string()));
+    if request.email.trim().is_empty()
+        || request
+            .first_name
+            .as_ref()
+            .is_none_or(|name| name.trim().is_empty())
+        || request
+            .last_name
+            .as_ref()
+            .is_none_or(|name| name.trim().is_empty())
+    {
+        return Err(ApiError::BadRequest(
+            "Email, first name, and last name are required".to_string(),
+        ));
     }
 
     // Validate roles
     if request.roles.is_empty() {
-        return Err(ApiError::BadRequest("At least one role must be assigned".to_string()));
+        return Err(ApiError::BadRequest(
+            "At least one role must be assigned".to_string(),
+        ));
     }
 
     // Generate username from email
-    let username = request.email.split('@').next().unwrap_or(&request.email).to_string();
-    
+    let username = request
+        .email
+        .split('@')
+        .next()
+        .unwrap_or(&request.email)
+        .to_string();
+
     // Create user request for Keycloak
     let create_user_request = crate::common::models::keycloak::CreateUserRequest {
         username: username.clone(),
@@ -967,65 +1211,90 @@ pub async fn add_org_admin_member(
         required_actions: Some(vec!["VERIFY_EMAIL".to_string()]),
     };
 
-    match app_state.keycloak_service.create_user_with_email_verification(&token, &create_user_request).await {
+    match app_state
+        .keycloak_service
+        .create_user_with_email_verification(&token, &create_user_request)
+        .await
+    {
         Ok(user) => {
             let user_id = user.id.clone();
             let user_email = user.email.clone();
-            
+
             // Send organization invitation immediately (regardless of email verification)
-            match app_state.keycloak_service.send_organization_invitation_immediate(&token, &org_id, &user_id, request.roles.clone()).await {
+            match app_state
+                .keycloak_service
+                .send_organization_invitation_immediate(
+                    &token,
+                    &org_id,
+                    &user_id,
+                    request.roles.clone(),
+                )
+                .await
+            {
                 Ok(_invitation) => {
                     tracing::info!(user_id = %user_id, org_id = %org_id, "Organization invitation sent immediately");
-                    
+
                     let response = OrgAdminUserInvitationResponse {
                         user_id: user.id,
                         email: user.email,
                         status: "active".to_string(),
                         message: "User created successfully and organization invitation sent. User can now access the system.".to_string(),
                     };
-                    
+
                     tracing::info!(user_id = %user_id, email = %user_email, "Org admin user invitation created successfully with immediate organization invitation");
                     Ok((StatusCode::CREATED, Json(response)))
-                },
+                }
                 Err(e) => {
                     tracing::warn!(user_id = %user_id, org_id = %org_id, error = %e, "Failed to send organization invitation immediately, but user was created");
-                    
+
                     let response = OrgAdminUserInvitationResponse {
                         user_id: user.id,
                         email: user.email,
                         status: "pending_org_invitation".to_string(),
                         message: "User created successfully and email verification sent. Organization invitation failed and will need to be sent manually.".to_string(),
                     };
-                    
+
                     Ok((StatusCode::CREATED, Json(response)))
                 }
             }
-        },
+        }
         Err(e) => {
             let error_message = e.to_string();
             tracing::error!(email = %request.email, error = %error_message, "Failed to create user for org admin invitation");
-            
+
             // Provide specific error messages based on the error type
-            if error_message.contains("already exists") || error_message.contains("duplicate") || error_message.contains("User exists with same email") || (error_message.contains("errorMessage") && error_message.contains("User exists with same email")) {
-                Err(ApiError::Conflict("A user with this email address already exists in the system".to_string()))
+            if error_message.contains("already exists")
+                || error_message.contains("duplicate")
+                || error_message.contains("User exists with same email")
+                || (error_message.contains("errorMessage")
+                    && error_message.contains("User exists with same email"))
+            {
+                Err(ApiError::Conflict(
+                    "A user with this email address already exists in the system".to_string(),
+                ))
             } else if error_message.contains("email") && error_message.contains("invalid") {
                 Err(ApiError::BadRequest("Invalid email format".to_string()))
-            } else if error_message.contains("organization") && error_message.contains("not found") {
+            } else if error_message.contains("organization") && error_message.contains("not found")
+            {
                 Err(ApiError::NotFound("Organization not found".to_string()))
             } else if error_message.contains("permission") || error_message.contains("access") {
-                Err(ApiError::Forbidden("You don't have permission to create users in this organization".to_string()))
+                Err(ApiError::Forbidden(
+                    "You don't have permission to create users in this organization".to_string(),
+                ))
             } else if error_message.contains("email service") || error_message.contains("mail") {
                 Err(ApiError::InternalServerError("Email service is temporarily unavailable. The user was created but verification email could not be sent".to_string()))
             } else if error_message.contains("network") || error_message.contains("connection") {
-                Err(ApiError::InternalServerError("Service temporarily unavailable. Please try again later".to_string()))
+                Err(ApiError::InternalServerError(
+                    "Service temporarily unavailable. Please try again later".to_string(),
+                ))
             } else {
-                Err(ApiError::InternalServerError("Failed to create user. Please try again later".to_string()))
+                Err(ApiError::InternalServerError(
+                    "Failed to create user. Please try again later".to_string(),
+                ))
             }
         }
     }
 }
-
-
 
 // GET /api/organizations/:org_id/org-admin/members
 pub async fn get_org_admin_members(
@@ -1035,19 +1304,29 @@ pub async fn get_org_admin_members(
     Path(org_id): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
-    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
+    if !claims.is_organization_admin()
+        || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id))
+    {
         tracing::error!(?claims, org_id = %org_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
     // Get only Org_User members (org admins should only see regular users, not other admins)
-    let members = app_state.keycloak_service.get_organization_members_by_role(&token, &org_id, "Org_User").await.map_err(|e| {
-        tracing::error!("Failed to get org members: {}", e);
-        ApiError::InternalServerError("Failed to get org members".to_string())
-    })?;
+    let members = app_state
+        .keycloak_service
+        .get_organization_members_by_role(&token, &org_id, "Org_User")
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get org members: {}", e);
+            ApiError::InternalServerError("Failed to get org members".to_string())
+        })?;
     // For each member, fetch categories from user attributes
     let mut members_with_categories = Vec::new();
     for member in members {
-        let categories = app_state.keycloak_service.get_user_categories_by_id(&token, &member.id).await.unwrap_or_default();
+        let categories = app_state
+            .keycloak_service
+            .get_user_categories_by_id(&token, &member.id)
+            .await
+            .unwrap_or_default();
         let mut member_json = serde_json::to_value(&member).unwrap_or_default();
         member_json["categories"] = serde_json::json!(categories);
         members_with_categories.push(member_json);
@@ -1063,13 +1342,19 @@ pub async fn remove_org_admin_member(
     Path((org_id, member_id)): Path<(String, String)>,
 ) -> Result<StatusCode, ApiError> {
     let token = get_token_from_extensions(&token)?;
-    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
+    if !claims.is_organization_admin()
+        || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id))
+    {
         tracing::error!(?claims, org_id = %org_id, member_id = %member_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
     // First, get the user's current roles to remove them
-    let user_roles = match app_state.keycloak_service.get_user_realm_roles(&token, &member_id).await {
+    let user_roles = match app_state
+        .keycloak_service
+        .get_user_realm_roles(&token, &member_id)
+        .await
+    {
         Ok(roles) => roles,
         Err(e) => {
             tracing::warn!("Failed to get user roles for removal: {}", e);
@@ -1078,21 +1363,38 @@ pub async fn remove_org_admin_member(
     };
 
     // Remove the user from the organization
-    app_state.keycloak_service.remove_user_from_organization(&token, &org_id, &member_id).await.map_err(|e| {
-        tracing::error!("Failed to remove org user: {}", e);
-        ApiError::InternalServerError("Failed to remove org user".to_string())
-    })?;
+    app_state
+        .keycloak_service
+        .remove_user_from_organization(&token, &org_id, &member_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to remove org user: {}", e);
+            ApiError::InternalServerError("Failed to remove org user".to_string())
+        })?;
 
     // Remove all realm roles from the user, except the default role
     for role_name in &user_roles {
         // Skip the default role that should be preserved
         if role_name == "default-roles-sustainability-realm" {
-            tracing::info!("Preserving default role '{}' for user {}", role_name, member_id);
+            tracing::info!(
+                "Preserving default role '{}' for user {}",
+                role_name,
+                member_id
+            );
             continue;
         }
-        
-        if let Err(e) = app_state.keycloak_service.remove_realm_role_from_user(&token, &member_id, role_name).await {
-            tracing::warn!("Failed to remove realm role '{}' from user {}: {}", role_name, member_id, e);
+
+        if let Err(e) = app_state
+            .keycloak_service
+            .remove_realm_role_from_user(&token, &member_id, role_name)
+            .await
+        {
+            tracing::warn!(
+                "Failed to remove realm role '{}' from user {}: {}",
+                role_name,
+                member_id,
+                e
+            );
             // Continue removing other roles even if one fails
         }
     }
@@ -1101,24 +1403,37 @@ pub async fn remove_org_admin_member(
     if user_roles.contains(&"org_admin".to_string()) {
         let client_roles = vec![
             "view-users",
-            "query-users", 
+            "query-users",
             "manage-users",
             "manage-organizations",
             "manage-clients",
-            "manage-realm"
+            "manage-realm",
         ];
         // Use the correct UUID for the realm-management client
         let client_id = "4c6be2d1-547f-4ecc-912d-facf2f52935a";
-        
+
         for client_role in client_roles {
-            if let Err(e) = app_state.keycloak_service.remove_client_role_from_user(&token, &member_id, client_id, client_role).await {
-                tracing::warn!("Failed to remove client role '{}' from user {}: {}", client_role, member_id, e);
+            if let Err(e) = app_state
+                .keycloak_service
+                .remove_client_role_from_user(&token, &member_id, client_id, client_role)
+                .await
+            {
+                tracing::warn!(
+                    "Failed to remove client role '{}' from user {}: {}",
+                    client_role,
+                    member_id,
+                    e
+                );
                 // Continue removing other client roles even if one fails
             }
         }
     }
 
-    tracing::info!("Successfully removed user {} from organization {} and removed all associated roles", member_id, org_id);
+    tracing::info!(
+        "Successfully removed user {} from organization {} and removed all associated roles",
+        member_id,
+        org_id
+    );
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -1136,13 +1451,19 @@ pub async fn update_org_admin_member_categories(
     Json(request): Json<OrgAdminMemberCategoryUpdateRequest>,
 ) -> Result<StatusCode, ApiError> {
     let token = get_token_from_extensions(&token)?;
-    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
+    if !claims.is_organization_admin()
+        || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id))
+    {
         tracing::error!(?claims, org_id = %org_id, member_id = %member_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
-    app_state.keycloak_service.set_user_categories_by_id(&token, &member_id, &request.categories).await.map_err(|e| {
-        tracing::error!("Failed to update user categories: {}", e);
-        ApiError::InternalServerError("Failed to update user categories".to_string())
-    })?;
+    app_state
+        .keycloak_service
+        .set_user_categories_by_id(&token, &member_id, &request.categories)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to update user categories: {}", e);
+            ApiError::InternalServerError("Failed to update user categories".to_string())
+        })?;
     Ok(StatusCode::NO_CONTENT)
 }

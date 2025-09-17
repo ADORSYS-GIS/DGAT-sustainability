@@ -8,9 +8,9 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
+use crate::web::routes::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct QuestionRevisionQuery {
@@ -280,10 +280,14 @@ pub async fn delete_question_revision_by_id(
         .questions_revisions
         .get_revision_by_id(revision_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revision: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to fetch question revision: {e}"))
+        })?;
 
     if revision_exists.is_none() {
-        return Err(ApiError::NotFound("Question revision not found".to_string()));
+        return Err(ApiError::NotFound(
+            "Question revision not found".to_string(),
+        ));
     }
 
     // Check if any assessment responses reference this question revision
@@ -292,7 +296,9 @@ pub async fn delete_question_revision_by_id(
         .assessments_response
         .has_responses_for_question_revision(revision_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to check assessment responses: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to check assessment responses: {e}"))
+        })?;
 
     if has_responses {
         return Err(ApiError::BadRequest(
@@ -306,8 +312,9 @@ pub async fn delete_question_revision_by_id(
         .questions_revisions
         .delete_revision(revision_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question revision: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to delete question revision: {e}"))
+        })?;
 
     Ok(StatusCode::NO_CONTENT)
-
 }

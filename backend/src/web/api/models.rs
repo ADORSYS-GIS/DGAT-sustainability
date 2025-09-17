@@ -115,20 +115,15 @@ pub struct QuestionRevisionListResponse {
 
 // =============== Assessment Models ===============
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum AssessmentStatus {
     #[serde(rename = "draft")]
+    #[default]
     Draft,
     #[serde(rename = "submitted")]
     Submitted,
     #[serde(rename = "reviewed")]
     Reviewed,
-}
-
-impl Default for AssessmentStatus {
-    fn default() -> Self {
-        AssessmentStatus::Draft
-    }
 }
 
 impl std::fmt::Display for AssessmentStatus {
@@ -407,7 +402,7 @@ pub struct Report {
 pub struct GenerateReportRequest {
     pub category: String,
     pub recommendation: String,
-    pub status: Option<String> // New field for action plan status
+    pub status: Option<String>, // New field for action plan status
 }
 
 #[derive(Debug, Serialize, Deserialize)]

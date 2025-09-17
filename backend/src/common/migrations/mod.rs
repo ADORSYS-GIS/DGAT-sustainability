@@ -1,5 +1,6 @@
 use sea_orm_migration::prelude::*;
 
+mod m20250123_000014_create_categories_table;
 mod m20250706_000001_create_questions_table;
 mod m20250706_000002_create_questions_revisions_table;
 mod m20250706_000003_create_assessments_table;
@@ -12,7 +13,6 @@ mod m20250706_000010_remove_assessment_submission_fk;
 mod m20250715_000011_add_status_to_assessments_submission;
 mod m20250715_000012_add_reviewed_at_to_assessments_submission;
 mod m20250715_000013_update_submission_reports_table;
-mod m20250123_000014_create_categories_table;
 mod m20250731_000001_add_assessment_name;
 mod m20250819_000015_create_temp_submission_table;
 

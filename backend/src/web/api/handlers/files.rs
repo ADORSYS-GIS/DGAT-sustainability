@@ -8,18 +8,25 @@ use axum::{
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
+use crate::web::routes::AppState;
 
 // Helper: check if user is member of org by org_id
+#[allow(dead_code)]
 fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
     // Application admins bypass organization membership checks
     if claims.is_application_admin() {
         return true;
     }
-    claims.organizations.as_ref()
-        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
+    claims
+        .organizations
+        .as_ref()
+        .map(|orgs| {
+            orgs.orgs
+                .values()
+                .any(|info| info.id.as_deref() == Some(org_id))
+        })
         .unwrap_or(false)
 }
 
@@ -167,7 +174,8 @@ pub async fn delete_file(
     Extension(claims): Extension<Claims>,
     Path(file_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch the file to verify ownership
@@ -291,7 +299,8 @@ pub async fn attach_file(
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<AttachFileRequest>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment
@@ -392,7 +401,8 @@ pub async fn remove_file(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id, file_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment
