@@ -5,7 +5,7 @@ use axum::{
     Json,
 };
 use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
-use serde::Deserialize;
+
 use uuid::Uuid;
 
 use crate::common::cache::cached_ops;
@@ -101,23 +101,27 @@ async fn fetch_files_for_response(
     Ok(files)
 }
 
-#[derive(Debug, Deserialize)]
-pub struct AssessmentQuery {
-    status: Option<String>,
-    language: Option<String>,
+// Use AssessmentQuery from models.rs instead of redefining it here
+// Add helper function for AssessmentQuery to parse status
+fn parse_assessment_status(status: &Option<String>) -> Option<AssessmentStatus> {
+    status.as_ref().and_then(|s| match s.as_str() {
+        "draft" => Some(AssessmentStatus::Draft),
+        "submitted" => Some(AssessmentStatus::Submitted),
+        "reviewed" => Some(AssessmentStatus::Reviewed),
+        _ => None,
+    })
 }
 
-impl AssessmentQuery {
-    fn parse_status(&self) -> Option<AssessmentStatus> {
-        self.status.as_ref().and_then(|s| match s.as_str() {
-            "draft" => Some(AssessmentStatus::Draft),
-            "submitted" => Some(AssessmentStatus::Submitted),
-            "reviewed" => Some(AssessmentStatus::Reviewed),
-            _ => None,
-        })
-    }
-}
-
+#[utoipa::path(
+    get,
+    path = "/assessments",
+    responses(
+        (status = 200, description = "List assessments", body = AssessmentListResponse)
+    ),
+    params(
+        AssessmentQuery
+    )
+)]
 pub async fn list_assessments(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -161,7 +165,7 @@ pub async fn list_assessments(
         };
 
         // Filter by status if specified
-        filtered_assessments = if let Some(parsed_status) = query.parse_status() {
+        filtered_assessments = if let Some(parsed_status) = parse_assessment_status(&query.status) {
             filtered_assessments
                 .into_iter()
                 .filter(|a| a.status == parsed_status)
@@ -175,11 +179,37 @@ pub async fn list_assessments(
         };
 
         Ok(Json(AssessmentListResponse {
-            assessments: filtered_assessments,
+            submissions: filtered_assessments
+                .iter()
+                .map(|a| AdminSubmissionDetail {
+                    submission_id: a.assessment_id,
+                    assessment_id: a.assessment_id,
+                    org_id: a.org_id.clone(),
+                    org_name: "Unknown".to_string(), // Placeholder, replace with actual logic
+                    content: AdminSubmissionContent {
+                        assessment: AdminAssessmentInfo {
+                            assessment_id: a.assessment_id,
+                            language: a.language.clone(),
+                        },
+                        responses: vec![], // Placeholder, replace with actual logic
+                    },
+                    review_status: a.status.to_string(),
+                    submitted_at: a.created_at.clone(),
+                    reviewed_at: None, // Placeholder, replace with actual logic
+                })
+                .collect(),
         }))
     })
 }
 
+#[utoipa::path(
+    post,
+    path = "/assessments",
+    request_body = CreateAssessmentRequest,
+    responses(
+        (status = 201, description = "Create assessment", body = AssessmentResponse)
+    )
+)]
 pub async fn create_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -283,6 +313,16 @@ pub async fn create_assessment(
     })
 }
 
+#[utoipa::path(
+    get,
+    path = "/assessments/{assessment_id}",
+    responses(
+        (status = 200, description = "Get assessment", body = AssessmentWithResponsesResponse)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn get_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -365,6 +405,17 @@ pub async fn get_assessment(
     })
 }
 
+#[utoipa::path(
+    put,
+    path = "/assessments/{assessment_id}",
+    request_body = UpdateAssessmentRequest,
+    responses(
+        (status = 200, description = "Update assessment", body = AssessmentResponse)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn update_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -450,6 +501,16 @@ pub async fn update_assessment(
     Ok(Json(AssessmentResponse { assessment }))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/assessments/{assessment_id}",
+    responses(
+        (status = 204, description = "Delete assessment")
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn delete_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -511,6 +572,16 @@ pub async fn delete_assessment(
 }
 
 /// API handler for user draft submission -- constructs content from live state and saves to temp_submission table
+#[utoipa::path(
+    post,
+    path = "/assessments/{assessment_id}/draft",
+    responses(
+        (status = 200, description = "Submit draft assessment", body = serde_json::Value)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn user_submit_draft_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -625,6 +696,16 @@ pub async fn user_submit_draft_assessment(
 }
 
 /// API handler to move a user's temp_submission to assessments_submission (approval/finalize)
+#[utoipa::path(
+    post,
+    path = "/assessments/{assessment_id}/submit",
+    responses(
+        (status = 200, description = "Submit assessment")
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn submit_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -662,7 +743,7 @@ pub async fn submit_assessment(
             status: Set(crate::common::database::entity::assessments_submission::SubmissionStatus::UnderReview),
             reviewed_at: Set(None),
         };
-        
+
         submission.insert(&txn)
             .await
             .map_err(|e| ApiError::InternalServerError(format!("Failed to create final submission: {e}")))?;

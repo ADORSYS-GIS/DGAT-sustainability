@@ -153,6 +153,15 @@ async fn generate_report_content(
 
 /// List all reports for the authenticated organization
 /// GET /user/reports
+#[utoipa::path(
+    get,
+    path = "/user/reports",
+    responses(
+        (status = 200, description = "List all reports for the authenticated organization", body = ReportListResponse),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    )
+)]
 pub async fn list_user_reports(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -208,6 +217,18 @@ pub async fn list_user_reports(
 
 /// List reports for a submission
 /// GET /submissions/{submission_id}/reports
+#[utoipa::path(
+    get,
+    path = "/submissions/{submission_id}/reports",
+    responses(
+        (status = 200, description = "List reports for a submission", body = ReportListResponse),
+        (status = 404, description = "Submission not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("submission_id" = Uuid, Path, description = "Submission ID")
+    )
+)]
 pub async fn list_reports(
     State(app_state): State<AppState>,
     Path(submission_id): Path<Uuid>,
@@ -246,6 +267,19 @@ pub async fn list_reports(
 
 /// Generate a new report for a submission
 /// POST /submissions/{submission_id}/reports
+#[utoipa::path(
+    post,
+    path = "/submissions/{submission_id}/reports",
+    request_body = Vec<GenerateReportRequest>,
+    responses(
+        (status = 201, description = "Generate a new report for a submission", body = ReportGenerationResponse),
+        (status = 404, description = "Submission not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("submission_id" = Uuid, Path, description = "Submission ID")
+    )
+)]
 pub async fn generate_report(
     State(app_state): State<AppState>,
     Path(submission_id): Path<Uuid>,
@@ -308,6 +342,18 @@ pub async fn generate_report(
 
 /// Get a specific report
 /// GET /reports/{report_id}
+#[utoipa::path(
+    get,
+    path = "/reports/{report_id}",
+    responses(
+        (status = 200, description = "Get a specific report", body = ReportResponse),
+        (status = 404, description = "Report not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("report_id" = Uuid, Path, description = "Report ID")
+    )
+)]
 pub async fn get_report(
     State(app_state): State<AppState>,
     Path(report_id): Path<Uuid>,
@@ -333,6 +379,18 @@ pub async fn get_report(
 
 /// Delete a report
 /// DELETE /reports/{report_id}
+#[utoipa::path(
+    delete,
+    path = "/reports/{report_id}",
+    responses(
+        (status = 204, description = "Delete a report"),
+        (status = 404, description = "Report not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("report_id" = Uuid, Path, description = "Report ID")
+    )
+)]
 pub async fn delete_report(
     State(app_state): State<AppState>,
     Path(report_id): Path<Uuid>,
@@ -359,6 +417,14 @@ pub async fn delete_report(
 
 /// Get all action plans for all organizations (DGRV admin view)
 /// GET /admin/action-plans
+#[utoipa::path(
+    get,
+    path = "/admin/action-plans",
+    responses(
+        (status = 200, description = "Get all action plans for all organizations", body = ActionPlanListResponse),
+        (status = 500, description = "Internal server error", body = ApiError)
+    )
+)]
 pub async fn list_all_action_plans(
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
@@ -464,6 +530,21 @@ pub async fn list_all_action_plans(
 
 /// Update recommendation status (for org admins)
 /// PATCH /reports/{report_id}/recommendations/{category}/status
+#[utoipa::path(
+    patch,
+    path = "/reports/{report_id}/recommendations/{category}/status",
+    request_body = UpdateRecommendationStatusRequest,
+    responses(
+        (status = 200, description = "Update recommendation status"),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 404, description = "Report not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("report_id" = Uuid, Path, description = "Report ID"),
+        ("category" = String, Path, description = "Category name")
+    )
+)]
 pub async fn update_recommendation_status(
     State(app_state): State<AppState>,
     Path((report_id, category)): Path<(Uuid, String)>,

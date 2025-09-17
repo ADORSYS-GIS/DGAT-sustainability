@@ -14,7 +14,7 @@ use crate::web::api::models::*;
 use crate::web::routes::AppState;
 
 // Query parameter structs for different endpoints
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::IntoParams)]
 pub struct OrganizationsQuery {
     #[serde(rename = "briefRepresentation")]
     pub brief_representation: Option<bool>,
@@ -92,6 +92,16 @@ fn is_member_of_org_by_id(claims: &Claims, org_id: &str) -> bool {
 }
 
 // Get all organizations filtered according to the specified parameters
+#[utoipa::path(
+    get,
+    path = "/organizations",
+    responses(
+        (status = 200, description = "Get all organizations", body = [Organization])
+    ),
+    params(
+        OrganizationsQuery
+    )
+)]
 pub async fn get_organizations(
     Extension(_claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -182,6 +192,14 @@ pub async fn get_organizations(
 }
 
 // Create a new organization
+#[utoipa::path(
+    post,
+    path = "/organizations",
+    request_body = OrganizationCreateRequest,
+    responses(
+        (status = 201, description = "Create a new organization", body = Organization)
+    )
+)]
 pub async fn create_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -220,6 +238,16 @@ pub async fn create_organization(
 }
 
 // Get a specific organization
+#[utoipa::path(
+    get,
+    path = "/organizations/{org_id}",
+    responses(
+        (status = 200, description = "Get a specific organization", body = Organization)
+    ),
+    params(
+        ("org_id" = String, Path, description = "Organization ID")
+    )
+)]
 pub async fn get_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -252,6 +280,17 @@ pub async fn get_organization(
 }
 
 // Update an organization
+#[utoipa::path(
+    put,
+    path = "/organizations/{org_id}",
+    request_body = OrganizationCreateRequest,
+    responses(
+        (status = 204, description = "Update an organization")
+    ),
+    params(
+        ("org_id" = String, Path, description = "Organization ID")
+    )
+)]
 pub async fn update_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -307,6 +346,16 @@ pub async fn update_organization(
 }
 
 // Delete an organization
+#[utoipa::path(
+    delete,
+    path = "/organizations/{org_id}",
+    responses(
+        (status = 204, description = "Delete an organization")
+    ),
+    params(
+        ("org_id" = String, Path, description = "Organization ID")
+    )
+)]
 pub async fn delete_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,

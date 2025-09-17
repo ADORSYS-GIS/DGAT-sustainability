@@ -88,6 +88,18 @@ async fn fetch_files_for_response(
     Ok(files)
 }
 
+#[utoipa::path(
+    get,
+    path = "/assessments/{assessment_id}/responses",
+    responses(
+        (status = 200, description = "List responses for an assessment", body = ResponseListResponse),
+        (status = 404, description = "Assessment not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn list_responses(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -154,6 +166,20 @@ pub async fn list_responses(
     Ok(Json(ResponseListResponse { responses }))
 }
 
+#[utoipa::path(
+    post,
+    path = "/assessments/{assessment_id}/responses",
+    request_body = Vec<CreateResponseRequest>,
+    responses(
+        (status = 201, description = "Create a new response for an assessment", body = ResponseListResponse),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 404, description = "Assessment not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn create_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -296,6 +322,19 @@ pub async fn create_response(
     ))
 }
 
+#[utoipa::path(
+    get,
+    path = "/assessments/{assessment_id}/responses/{response_id}",
+    responses(
+        (status = 200, description = "Get a specific response", body = ResponseResponse),
+        (status = 404, description = "Response not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
+        ("response_id" = Uuid, Path, description = "Response ID")
+    )
+)]
 pub async fn get_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -372,6 +411,22 @@ pub async fn get_response(
     Ok(Json(ResponseResponse { response }))
 }
 
+#[utoipa::path(
+    put,
+    path = "/assessments/{assessment_id}/responses/{response_id}",
+    request_body = UpdateResponseRequest,
+    responses(
+        (status = 200, description = "Update a response", body = ResponseResponse),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 404, description = "Response not found", body = ApiError),
+        (status = 409, description = "Version conflict", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
+        ("response_id" = Uuid, Path, description = "Response ID")
+    )
+)]
 pub async fn update_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -495,6 +550,19 @@ pub async fn update_response(
     Ok(Json(ResponseResponse { response }))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/assessments/{assessment_id}/responses/{response_id}",
+    responses(
+        (status = 204, description = "Delete a response"),
+        (status = 404, description = "Response not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
+        ("response_id" = Uuid, Path, description = "Response ID")
+    )
+)]
 pub async fn delete_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,

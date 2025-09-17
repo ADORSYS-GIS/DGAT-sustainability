@@ -12,10 +12,23 @@ use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
 use crate::web::routes::AppState;
 
-#[derive(Debug, Deserialize)]
+use utoipa::ToSchema;
+
+/// Query parameters for fetching a specific question revision
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct QuestionRevisionQuery {
     question_revision_id: Option<Uuid>,
 }
+
+/// List all questions
+#[utoipa::path(
+    get,
+    path = "/questions",
+    responses(
+        (status = 200, description = "List of questions", body = QuestionListResponse),
+        (status = 500, description = "Internal server error", body = ApiError)
+    )
+)]
 
 pub async fn list_questions(
     State(app_state): State<AppState>,

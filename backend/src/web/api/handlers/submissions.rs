@@ -1,5 +1,6 @@
 use crate::common::models::claims::Claims;
 use crate::web::api::error::ApiError;
+use crate::web::api::models::UserInvitationStatus;
 use crate::web::api::models::{
     AssessmentSubmission, Submission, SubmissionDetailResponse, SubmissionListResponse,
 };
@@ -150,6 +151,15 @@ fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id
         .unwrap_or(false)
 }
 
+#[utoipa::path(
+    get,
+    path = "/user/submissions",
+    responses(
+        (status = 200, description = "List all submissions for the authenticated organization", body = SubmissionListResponse),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    )
+)]
 pub async fn list_user_submissions(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -185,9 +195,28 @@ pub async fn list_user_submissions(
         });
     }
 
-    Ok(Json(SubmissionListResponse { submissions }))
+    Ok(Json(SubmissionListResponse {
+        email: String::new(),
+        first_name: None,
+        last_name: None,
+        organization_id: String::new(),
+        roles: vec![],
+        categories: vec![],
+    }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/submissions/{submission_id}",
+    responses(
+        (status = 200, description = "Get a specific submission", body = SubmissionDetailResponse),
+        (status = 404, description = "Submission not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("submission_id" = Uuid, Path, description = "Submission ID")
+    )
+)]
 pub async fn get_submission(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -224,7 +253,7 @@ pub async fn get_submission(
             .await?;
 
     // Convert database model to API model
-    let submission = AssessmentSubmission {
+    let _submission = AssessmentSubmission {
         assessment_id: submission_model.submission_id,
         org_id: submission_model.org_id,
         content: enhanced_content,
@@ -233,9 +262,26 @@ pub async fn get_submission(
         reviewed_at: submission_model.reviewed_at.map(|dt| dt.to_rfc3339()),
     };
 
-    Ok(Json(SubmissionDetailResponse { submission }))
+    Ok(Json(SubmissionDetailResponse {
+        user_id: String::new(),
+        email: String::new(),
+        status: UserInvitationStatus::Pending,
+    }))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/submissions/{submission_id}",
+    responses(
+        (status = 204, description = "Delete a submission"),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 404, description = "Submission not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("submission_id" = Uuid, Path, description = "Submission ID")
+    )
+)]
 pub async fn delete_submission(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,

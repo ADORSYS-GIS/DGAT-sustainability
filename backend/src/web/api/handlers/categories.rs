@@ -11,6 +11,13 @@ use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
 use crate::web::routes::AppState;
 
+#[utoipa::path(
+    get,
+    path = "/categories",
+    responses(
+        (status = 200, description = "List categories", body = CategoryListResponse)
+    )
+)]
 pub async fn list_categories(
     State(app_state): State<AppState>,
     Extension(_claims): Extension<Claims>,
@@ -40,6 +47,14 @@ pub async fn list_categories(
     Ok(Json(CategoryListResponse { categories }))
 }
 
+#[utoipa::path(
+    post,
+    path = "/categories",
+    request_body = CreateCategoryRequest,
+    responses(
+        (status = 201, description = "Create category", body = CategoryResponse)
+    )
+)]
 pub async fn create_category(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -100,6 +115,16 @@ pub async fn create_category(
     Ok((StatusCode::CREATED, Json(CategoryResponse { category })))
 }
 
+#[utoipa::path(
+    get,
+    path = "/categories/{category_id}",
+    responses(
+        (status = 200, description = "Get category", body = CategoryResponse)
+    ),
+    params(
+        ("category_id" = Uuid, Path, description = "Category ID")
+    )
+)]
 pub async fn get_category(
     State(app_state): State<AppState>,
     Extension(_claims): Extension<Claims>,
@@ -132,6 +157,17 @@ pub async fn get_category(
     Ok(Json(CategoryResponse { category }))
 }
 
+#[utoipa::path(
+    put,
+    path = "/categories/{category_id}",
+    request_body = UpdateCategoryRequest,
+    responses(
+        (status = 200, description = "Update category", body = CategoryResponse)
+    ),
+    params(
+        ("category_id" = Uuid, Path, description = "Category ID")
+    )
+)]
 pub async fn update_category(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -198,6 +234,16 @@ pub async fn update_category(
     Ok(Json(CategoryResponse { category }))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/categories/{category_id}",
+    responses(
+        (status = 204, description = "Delete category")
+    ),
+    params(
+        ("category_id" = Uuid, Path, description = "Category ID")
+    )
+)]
 pub async fn delete_category(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,

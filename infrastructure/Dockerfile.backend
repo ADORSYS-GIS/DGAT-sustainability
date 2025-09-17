@@ -29,5 +29,8 @@ RUN apt-get update && \
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/sustainability-tool /app/sustainability-tool
 
+# Copy the docs directory
+COPY docs/ /app/docs/
+
 # Set the entrypoint
 ENTRYPOINT ["/app/sustainability-tool"]

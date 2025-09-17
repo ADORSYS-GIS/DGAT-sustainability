@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeycloakToken {
@@ -109,7 +110,7 @@ pub struct KeycloakCredential {
     pub temporary: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct UserInvitationRequest {
     pub email: String,
     pub first_name: Option<String>,
@@ -119,7 +120,7 @@ pub struct UserInvitationRequest {
     pub categories: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct UserInvitationResponse {
     pub user_id: String,
     pub email: String,
@@ -127,7 +128,7 @@ pub struct UserInvitationResponse {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub enum UserInvitationStatus {
     #[serde(rename = "pending_email_verification")]
     PendingEmailVerification,

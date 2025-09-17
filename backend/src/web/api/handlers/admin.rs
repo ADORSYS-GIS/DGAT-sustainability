@@ -26,6 +26,13 @@ pub struct ListSubmissionsQuery {
     status: Option<String>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/admin/submissions",
+    responses(
+        (status = 200, description = "List all submissions", body = AdminSubmissionListResponse)
+    )
+)]
 pub async fn list_all_submissions(
     State(app_state): State<AppState>,
     Extension(_claims): Extension<Claims>,
@@ -228,9 +235,17 @@ pub async fn list_all_submissions(
         }
     }
 
+    // Return the list of submissions
     Ok(Json(AdminSubmissionListResponse { submissions }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/admin/temp_submissions",
+    responses(
+        (status = 200, description = "List temp submissions by assessment", body = AdminSubmissionListResponse)
+    )
+)]
 pub async fn list_temp_submissions_by_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -434,10 +449,19 @@ pub async fn list_temp_submissions_by_assessment(
         submissions.push(submission);
     }
 
+    // Return the list of submissions
     Ok(Json(AdminSubmissionListResponse { submissions }))
 }
 
 /// Create a new user invitation with email verification
+#[utoipa::path(
+    post,
+    path = "/admin/user_invitation",
+    request_body = UserInvitationRequest,
+    responses(
+        (status = 201, description = "Create user invitation", body = UserInvitationResponse)
+    )
+)]
 pub async fn create_user_invitation(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -592,6 +616,16 @@ pub async fn create_user_invitation(
 }
 
 /// Get user invitation status
+#[utoipa::path(
+    get,
+    path = "/admin/user_invitation/{user_id}",
+    responses(
+        (status = 200, description = "Get user invitation status", body = serde_json::Value)
+    ),
+    params(
+        ("user_id" = String, Path, description = "User ID")
+    )
+)]
 pub async fn get_user_invitation_status(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -631,6 +665,16 @@ pub async fn get_user_invitation_status(
 }
 
 /// Delete a user entirely from the system
+#[utoipa::path(
+    delete,
+    path = "/admin/user/{user_id}",
+    responses(
+        (status = 204, description = "Delete user")
+    ),
+    params(
+        ("user_id" = String, Path, description = "User ID")
+    )
+)]
 pub async fn delete_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,

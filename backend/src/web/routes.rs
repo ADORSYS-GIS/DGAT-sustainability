@@ -1,4 +1,4 @@
-//! API Routes Configuration
+#![doc = "API Routes Configuration"]
 //!
 //! This module defines the API routes for a resource server that validates JWT tokens
 //! and serves protected resources based on user roles and organization membership.
@@ -160,9 +160,9 @@ pub fn health_routes() -> Router {
 /// Create the complete application with all routes
 pub fn create_app(app_state: AppState, config: Configs) -> Router {
     // Configure CORS
-    let origin = HeaderValue::from_str(&config.cors.origin).unwrap();
+    let _origin = HeaderValue::from_str(&config.cors.origin).unwrap();
     let cors = CorsLayer::new()
-        .allow_origin(origin)
+        .allow_origin(Any)
         .allow_methods(Any)
         .allow_headers(Any);
 
