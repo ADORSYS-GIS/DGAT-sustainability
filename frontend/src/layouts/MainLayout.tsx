@@ -10,7 +10,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
-  
+
   // Routes that should not show the navbar (like login page if you have one)
   const routesWithoutNavbar = ["/login"];
   const shouldShowNavbar = !routesWithoutNavbar.includes(location.pathname);

@@ -28,7 +28,10 @@ import {
   CategoryScale,
   LinearScale,
 } from "chart.js";
-import type { Submission, OrganizationActionPlan } from "../../openapi-rq/requests/types.gen";
+import type {
+  Submission,
+  OrganizationActionPlan,
+} from "../../openapi-rq/requests/types.gen";
 import type { OfflineRecommendation } from "@/types/offline";
 import { toast } from "sonner";
 import { generateRadarChartData } from "@/utils/radarChart";
@@ -36,7 +39,7 @@ import { generateRecommendationChartData } from "@/utils/recommendationChart";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { OrgUserManageUsers } from "./OrgUserManageUsers";
-import { 
+import {
   useOfflineSubmissions,
   useOfflineReports,
   useOfflineAssessments,
@@ -51,64 +54,77 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const chartRef = React.useRef<ChartJS<"radar">>(null);
   const recommendationChartRef = React.useRef<ChartJS<"bar">>(null);
-  
+
   // Always call both hooks to avoid React hooks violation
-  const { data: userSubmissionsData, isLoading: userSubmissionsLoading, error: userSubmissionsError } = useOfflineSubmissions();
-  const { data: adminSubmissionsData, isLoading: adminSubmissionsLoading, error: adminSubmissionsError } = useOfflineAdminSubmissions();
+  const {
+    data: userSubmissionsData,
+    isLoading: userSubmissionsLoading,
+    error: userSubmissionsError,
+  } = useOfflineSubmissions();
+  const {
+    data: adminSubmissionsData,
+    isLoading: adminSubmissionsLoading,
+    error: adminSubmissionsError,
+  } = useOfflineAdminSubmissions();
   const { data: reportsData, isLoading: reportsLoading } = useOfflineReports();
   const { data: assessmentsData } = useOfflineAssessments();
   const { data: userRecommendations } = useOfflineUserRecommendations();
-  
+
   // Add initial data loading hook
   const { refreshData } = useInitialDataLoad();
-  
+
   // Both org_admin and Org_User use the same data source - no differentiation
   // All users load the same data to their local storage
   const submissionsData = userSubmissionsData;
   const submissionsLoading = userSubmissionsLoading;
   const submissionsError = userSubmissionsError;
-  
+
   // Filter assessments by organization and status
   const filteredAssessments = React.useMemo(() => {
     if (!assessmentsData?.assessments || !user?.organizations) {
       return [];
     }
-    
+
     // Get the user's organization ID
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length === 0) {
       return [];
     }
-    
-    const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+
+    const orgData = (
+      user.organizations as Record<string, { id: string; categories: string[] }>
+    )[orgKeys[0]];
     const organizationId = orgData?.id;
-    
+
     if (!organizationId) {
       return [];
     }
-    
+
     // Filter by organization and status
     const filtered = assessmentsData.assessments.filter((assessment) => {
-      const assessmentData = assessment as unknown as { 
+      const assessmentData = assessment as unknown as {
         assessment_id?: string;
-        status: string; 
+        status: string;
         organization_id?: string;
         org_id?: string;
       };
-      
+
       const isDraft = assessmentData.status === "draft";
       // Check both org_id and organization_id fields
-      const isInOrganization = assessmentData.organization_id === organizationId || 
-                              assessmentData.org_id === organizationId;
-      
+      const isInOrganization =
+        assessmentData.organization_id === organizationId ||
+        assessmentData.org_id === organizationId;
+
       return isDraft && isInOrganization;
     });
-    
+
     return filtered;
   }, [assessmentsData?.assessments, user?.organizations]);
-  
-  const submissions: Submission[] = submissionsData?.submissions?.slice(0, 5) || [];
-  const recommendations: OfflineRecommendation[] = reportsData?.recommendations || [];
+
+  const submissions: Submission[] =
+    submissionsData?.submissions?.slice(0, 5) || [];
+  const recommendations: OfflineRecommendation[] =
+    reportsData?.recommendations || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
 
   React.useEffect(() => {
@@ -119,17 +135,24 @@ export const Dashboard: React.FC = () => {
     } else if (submissionsData) {
       // Removed unnecessary success toast for loaded submissions
     }
-  }, [submissionsError, submissionsLoading, submissionsData, submissions.length, t]);
+  }, [
+    submissionsError,
+    submissionsLoading,
+    submissionsData,
+    submissions.length,
+    t,
+  ]);
 
   // Remove the offline status useEffect
 
   const dashboardActions = [
     // 1. Start Assessment (org_admin)
-    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
+    ...(user?.roles?.includes("org_admin") ||
+    user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
-            title: t('user.dashboard.startAssessment.title'),
-            description: t('user.dashboard.startAssessment.description'),
+            title: t("user.dashboard.startAssessment.title"),
+            description: t("user.dashboard.startAssessment.description"),
             icon: Leaf,
             color: "green" as const,
             onClick: () => navigate("/assessment/sustainability"),
@@ -137,11 +160,12 @@ export const Dashboard: React.FC = () => {
         ]
       : []),
     // Answer Assessment (Org_User)
-    ...(!user?.roles?.includes("org_admin") && !user?.realm_access?.roles?.includes("org_admin")
+    ...(!user?.roles?.includes("org_admin") &&
+    !user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
-            title: t('user.dashboard.answerAssessment.title'),
-            description: t('user.dashboard.answerAssessment.description'),
+            title: t("user.dashboard.answerAssessment.title"),
+            description: t("user.dashboard.answerAssessment.description"),
             icon: FileText,
             color: "blue" as const,
             onClick: () => navigate("/user/assessment-list"),
@@ -149,11 +173,12 @@ export const Dashboard: React.FC = () => {
         ]
       : []),
     // 2. Manage Users (org_admin)
-    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
+    ...(user?.roles?.includes("org_admin") ||
+    user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
-            title: t('user.dashboard.manageUsers.title'),
-            description: t('user.dashboard.manageUsers.description'),
+            title: t("user.dashboard.manageUsers.title"),
+            description: t("user.dashboard.manageUsers.description"),
             icon: Users,
             color: "blue" as const,
             onClick: () => navigate("/user/manage-users"),
@@ -161,11 +186,12 @@ export const Dashboard: React.FC = () => {
         ]
       : []),
     // 3. Draft Submissions (org_admin)
-    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
+    ...(user?.roles?.includes("org_admin") ||
+    user?.realm_access?.roles?.includes("org_admin")
       ? [
           {
-            title: t('user.dashboard.draftSubmissions.title'),
-            description: t('user.dashboard.draftSubmissions.description'),
+            title: t("user.dashboard.draftSubmissions.title"),
+            description: t("user.dashboard.draftSubmissions.description"),
             icon: CheckSquare,
             color: "green" as const,
             onClick: () => navigate("/user/draft-submissions"),
@@ -174,16 +200,16 @@ export const Dashboard: React.FC = () => {
       : []),
     // 4. View Assessments (all users)
     {
-      title: t('user.dashboard.viewAssessments.title'),
-      description: t('user.dashboard.viewAssessments.description'),
+      title: t("user.dashboard.viewAssessments.title"),
+      description: t("user.dashboard.viewAssessments.description"),
       icon: FileText,
       color: "blue" as const,
       onClick: () => navigate("/assessments"),
     },
     // 5. Action Plan (all users)
     {
-      title: t('user.dashboard.actionPlan.title'),
-      description: t('user.dashboard.actionPlan.description'),
+      title: t("user.dashboard.actionPlan.title"),
+      description: t("user.dashboard.actionPlan.description"),
       icon: CheckSquare,
       color: "blue" as const,
       onClick: () => navigate("/action-plan"),
@@ -212,19 +238,21 @@ export const Dashboard: React.FC = () => {
   const formatStatus = (status: string) => {
     switch (status) {
       case "approved":
-        return t('user.dashboard.status.approved');
+        return t("user.dashboard.status.approved");
       case "pending_review":
-        return t('user.dashboard.status.pendingReview');
+        return t("user.dashboard.status.pendingReview");
       case "under_review":
-        return t('user.dashboard.status.underReview');
+        return t("user.dashboard.status.underReview");
       case "rejected":
-        return t('user.dashboard.status.rejected');
+        return t("user.dashboard.status.rejected");
       case "revision_requested":
-        return t('user.dashboard.status.revisionRequested');
+        return t("user.dashboard.status.revisionRequested");
       case "reviewed":
-        return t('user.dashboard.status.reviewed', { defaultValue: 'Reviewed' });
+        return t("user.dashboard.status.reviewed", {
+          defaultValue: "Reviewed",
+        });
       default:
-        return t('user.dashboard.status.unknown');
+        return t("user.dashboard.status.unknown");
     }
   };
 
@@ -237,7 +265,7 @@ export const Dashboard: React.FC = () => {
       adminSubmissionsData?.submissions || [],
       userRecommendations?.recommendations || [],
       radarChartDataUrl,
-      recommendationChartDataUrl
+      recommendationChartDataUrl,
     );
   };
 
@@ -250,22 +278,30 @@ export const Dashboard: React.FC = () => {
       adminSubmissionsData?.submissions || [],
       userRecommendations?.recommendations || [],
       radarChartDataUrl,
-      recommendationChartDataUrl
+      recommendationChartDataUrl,
     );
   };
 
   // Get user name and organization name from user object (ID token)
   const userName =
-    user?.name || user?.preferred_username || user?.email || t('user.dashboard.user');
-  let orgName = t('user.dashboard.org');
+    user?.name ||
+    user?.preferred_username ||
+    user?.email ||
+    t("user.dashboard.user");
+  let orgName = t("user.dashboard.org");
   let orgId = "";
   let categories: string[] = [];
-  
+
   if (user?.organizations && typeof user.organizations === "object") {
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length > 0) {
       orgName = orgKeys[0]; // First organization name
-      const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgName];
+      const orgData = (
+        user.organizations as Record<
+          string,
+          { id: string; categories: string[] }
+        >
+      )[orgName];
       if (orgData) {
         orgId = orgData.id || "";
         categories = orgData.categories || [];
@@ -287,7 +323,7 @@ export const Dashboard: React.FC = () => {
     Legend,
     BarElement,
     CategoryScale,
-    LinearScale
+    LinearScale,
   );
 
   const radarChartData = React.useMemo(() => {
@@ -296,7 +332,6 @@ export const Dashboard: React.FC = () => {
     }
     return null;
   }, [reportsData]);
-
 
   const radarChartOptions = {
     maintainAspectRatio: false,
@@ -313,15 +348,25 @@ export const Dashboard: React.FC = () => {
 
   const recommendationChartInfo = React.useMemo(() => {
     if (userRecommendations?.recommendations) {
-      return generateRecommendationChartData(userRecommendations.recommendations);
+      return generateRecommendationChartData(
+        userRecommendations.recommendations,
+      );
     }
     return null;
   }, [userRecommendations]);
- 
+
   return (
     <div className="min-h-screen bg-gray-50">
       {recommendationChartInfo && (
-        <div style={{ width: '800px', height: '400px', position: 'absolute', zIndex: -1, opacity: 0 }}>
+        <div
+          style={{
+            width: "800px",
+            height: "400px",
+            position: "absolute",
+            zIndex: -1,
+            opacity: 0,
+          }}
+        >
           <Bar
             ref={recommendationChartRef}
             data={recommendationChartInfo.data}
@@ -336,12 +381,15 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <Star className="w-8 h-8 text-dgrv-green" />
                 <h1 className="text-3xl font-bold text-dgrv-blue">
-                  {t('user.dashboard.welcome', { user: userName, org: orgName })}
+                  {t("user.dashboard.welcome", {
+                    user: userName,
+                    org: orgName,
+                  })}
                 </h1>
               </div>
             </div>
             <p className="text-lg text-gray-600">
-              {t('user.dashboard.readyToContinue')}
+              {t("user.dashboard.readyToContinue")}
             </p>
           </div>
 
@@ -362,14 +410,14 @@ export const Dashboard: React.FC = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <History className="w-5 h-5 text-dgrv-blue" />
-                  <span>{t('user.dashboard.recentSubmissions')}</span>
+                  <span>{t("user.dashboard.recentSubmissions")}</span>
                 </CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/assessments")}
                 >
-                  {t('user.dashboard.viewAll')}
+                  {t("user.dashboard.viewAll")}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -377,7 +425,7 @@ export const Dashboard: React.FC = () => {
                   {submissionsLoading ? (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>{t('user.dashboard.loadingSubmissionsInline')}</p>
+                      <p>{t("user.dashboard.loadingSubmissionsInline")}</p>
                     </div>
                   ) : (
                     submissions.map((submission) => (
@@ -391,7 +439,7 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <h3 className="font-medium">
-                              {t('user.dashboard.sustainabilityAssessment')}
+                              {t("user.dashboard.sustainabilityAssessment")}
                             </h3>
                             <p className="text-sm text-gray-600">
                               {new Date(
@@ -413,9 +461,7 @@ export const Dashboard: React.FC = () => {
                   {submissions.length === 0 && !submissionsLoading && (
                     <div className="text-center py-8 text-gray-500">
                       <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>
-                        {t('user.dashboard.noSubmissions')}
-                      </p>
+                      <p>{t("user.dashboard.noSubmissions")}</p>
                     </div>
                   )}
                 </div>
@@ -430,12 +476,12 @@ export const Dashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Download className="w-5 h-5 text-dgrv-blue" />
-                    <span>{t('user.dashboard.exportReports')}</span>
+                    <span>{t("user.dashboard.exportReports")}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600 mb-4">
-                    {t('user.dashboard.downloadReportsDescription')}
+                    {t("user.dashboard.downloadReportsDescription")}
                   </p>
                   <div className="space-y-2">
                     <Button
@@ -445,7 +491,7 @@ export const Dashboard: React.FC = () => {
                       onClick={handleExportAllPDF}
                       disabled={reportsLoading}
                     >
-                      {t('user.dashboard.exportAsPDF')}
+                      {t("user.dashboard.exportAsPDF")}
                     </Button>
                     {/* <Button
                       variant="outline"
@@ -465,19 +511,21 @@ export const Dashboard: React.FC = () => {
                 style={{ animationDelay: "300ms" }}
               >
                 <CardHeader>
-                  <CardTitle className="text-dgrv-green">{t('user.dashboard.needHelp')}</CardTitle>
+                  <CardTitle className="text-dgrv-green">
+                    {t("user.dashboard.needHelp")}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600 mb-4">
-                    {t('user.dashboard.getSupport')}
+                    {t("user.dashboard.getSupport")}
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full bg-dgrv-green text-white hover:bg-green-700"
                     onClick={() => navigate("/user/guide")}
                   >
-                    {t('user.dashboard.viewUserGuide')}
+                    {t("user.dashboard.viewUserGuide")}
                   </Button>
                 </CardContent>
               </Card>
@@ -488,11 +536,17 @@ export const Dashboard: React.FC = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
               <Card className="animate-fade-in">
                 <CardHeader>
-                  <CardTitle>{t('user.dashboard.sustainabilityOverview')}</CardTitle>
+                  <CardTitle>
+                    {t("user.dashboard.sustainabilityOverview")}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div style={{ height: '400px' }}>
-                    <Radar ref={chartRef} data={radarChartData} options={radarChartOptions} />
+                  <div style={{ height: "400px" }}>
+                    <Radar
+                      ref={chartRef}
+                      data={radarChartData}
+                      options={radarChartOptions}
+                    />
                   </div>
                 </CardContent>
               </Card>

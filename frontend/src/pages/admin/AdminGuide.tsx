@@ -1,18 +1,18 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  BookOpen, 
-  Users, 
-  Building2, 
-  List, 
-  FileText, 
-  CheckSquare, 
+import {
+  BookOpen,
+  Users,
+  Building2,
+  List,
+  FileText,
+  CheckSquare,
   Star,
   Settings,
   AlertTriangle,
   HelpCircle,
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -26,58 +26,76 @@ export const AdminGuide: React.FC = () => {
   const guideSection = [
     {
       id: "overview",
-      title: t('adminGuide.sections.overview.title'),
+      title: t("adminGuide.sections.overview.title"),
       icon: BookOpen,
-      content: t('adminGuide.sections.overview.content', { returnObjects: true }) as string[]
+      content: t("adminGuide.sections.overview.content", {
+        returnObjects: true,
+      }) as string[],
     },
     {
       id: "organizations",
-      title: t('adminGuide.sections.organizations.title'),
+      title: t("adminGuide.sections.organizations.title"),
       icon: Building2,
-      content: t('adminGuide.sections.organizations.content', { returnObjects: true }) as string[]
+      content: t("adminGuide.sections.organizations.content", {
+        returnObjects: true,
+      }) as string[],
     },
     {
       id: "users",
-      title: t('adminGuide.sections.users.title'),
+      title: t("adminGuide.sections.users.title"),
       icon: Users,
-      content: t('adminGuide.sections.users.content', { returnObjects: true }) as string[]
+      content: t("adminGuide.sections.users.content", {
+        returnObjects: true,
+      }) as string[],
     },
     {
       id: "categories",
-      title: t('adminGuide.sections.categories.title'),
+      title: t("adminGuide.sections.categories.title"),
       icon: List,
-      content: t('adminGuide.sections.categories.content', { returnObjects: true }) as string[]
+      content: t("adminGuide.sections.categories.content", {
+        returnObjects: true,
+      }) as string[],
     },
     {
       id: "questions",
-      title: t('adminGuide.sections.questions.title'),
+      title: t("adminGuide.sections.questions.title"),
       icon: FileText,
-      content: t('adminGuide.sections.questions.content', { returnObjects: true }) as string[]
+      content: t("adminGuide.sections.questions.content", {
+        returnObjects: true,
+      }) as string[],
     },
     {
       id: "reviews",
-      title: t('adminGuide.sections.reviews.title'),
+      title: t("adminGuide.sections.reviews.title"),
       icon: CheckSquare,
-      content: t('adminGuide.sections.reviews.content', { returnObjects: true }) as string[]
+      content: t("adminGuide.sections.reviews.content", {
+        returnObjects: true,
+      }) as string[],
     },
     {
       id: "recommendations",
-      title: t('adminGuide.sections.recommendations.title'),
+      title: t("adminGuide.sections.recommendations.title"),
       icon: Star,
-      content: t('adminGuide.sections.recommendations.content', { returnObjects: true }) as string[]
+      content: t("adminGuide.sections.recommendations.content", {
+        returnObjects: true,
+      }) as string[],
     },
     {
       id: "systemHealth",
-      title: t('adminGuide.sections.systemHealth.title'),
+      title: t("adminGuide.sections.systemHealth.title"),
       icon: Settings,
-      content: t('adminGuide.sections.systemHealth.content', { returnObjects: true }) as string[]
+      content: t("adminGuide.sections.systemHealth.content", {
+        returnObjects: true,
+      }) as string[],
     },
     {
       id: "support",
-      title: t('adminGuide.sections.support.title'),
+      title: t("adminGuide.sections.support.title"),
       icon: HelpCircle,
-      content: t('adminGuide.sections.support.content', { returnObjects: true }) as string[]
-    }
+      content: t("adminGuide.sections.support.content", {
+        returnObjects: true,
+      }) as string[],
+    },
   ];
 
   return (
@@ -86,15 +104,19 @@ export const AdminGuide: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Offline Status Indicator */}
           <div className="mb-4 flex items-center justify-end">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-              isOnline 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
-              <span>{isOnline ? 'Online' : 'Offline'}</span>
+            <div
+              className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+                isOnline
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  isOnline ? "bg-green-500" : "bg-yellow-500"
+                }`}
+              ></div>
+              <span>{isOnline ? "Online" : "Offline"}</span>
             </div>
           </div>
 
@@ -107,18 +129,16 @@ export const AdminGuide: React.FC = () => {
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>{t('adminGuide.backToDashboard')}</span>
+                <span>{t("adminGuide.backToDashboard")}</span>
               </Button>
             </div>
             <div className="flex items-center space-x-3 mb-4">
               <BookOpen className="w-8 h-8 text-dgrv-blue" />
               <h1 className="text-3xl font-bold text-dgrv-blue">
-                {t('adminGuide.title')}
+                {t("adminGuide.title")}
               </h1>
             </div>
-            <p className="text-lg text-gray-600">
-              {t('adminGuide.subtitle')}
-            </p>
+            <p className="text-lg text-gray-600">{t("adminGuide.subtitle")}</p>
           </div>
 
           {/* Quick Start Card */}
@@ -126,16 +146,16 @@ export const AdminGuide: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-3">
                 <BookOpen className="w-6 h-6" />
-                <span>{t('adminGuide.quickStart.title')}</span>
+                <span>{t("adminGuide.quickStart.title")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p>{t('adminGuide.quickStart.step1')}</p>
-                <p>{t('adminGuide.quickStart.step2')}</p>
-                <p>{t('adminGuide.quickStart.step3')}</p>
-                <p>{t('adminGuide.quickStart.step4')}</p>
-                <p>{t('adminGuide.quickStart.step5')}</p>
+                <p>{t("adminGuide.quickStart.step1")}</p>
+                <p>{t("adminGuide.quickStart.step2")}</p>
+                <p>{t("adminGuide.quickStart.step3")}</p>
+                <p>{t("adminGuide.quickStart.step4")}</p>
+                <p>{t("adminGuide.quickStart.step5")}</p>
               </div>
             </CardContent>
           </Card>
@@ -172,23 +192,31 @@ export const AdminGuide: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-3">
                 <Star className="w-6 h-6" />
-                <span>{t('adminGuide.bestPractices.title')}</span>
+                <span>{t("adminGuide.bestPractices.title")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-semibold mb-2">{t('adminGuide.bestPractices.regularReviews.title')}</h4>
+                  <h4 className="font-semibold mb-2">
+                    {t("adminGuide.bestPractices.regularReviews.title")}
+                  </h4>
                   <ul className="space-y-1 text-sm">
-                    {t('adminGuide.bestPractices.regularReviews.items', { returnObjects: true }).map((item: string, index: number) => (
+                    {t("adminGuide.bestPractices.regularReviews.items", {
+                      returnObjects: true,
+                    }).map((item: string, index: number) => (
                       <li key={index}>{item}</li>
                     ))}
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2">{t('adminGuide.bestPractices.qualityAssurance.title')}</h4>
+                  <h4 className="font-semibold mb-2">
+                    {t("adminGuide.bestPractices.qualityAssurance.title")}
+                  </h4>
                   <ul className="space-y-1 text-sm">
-                    {t('adminGuide.bestPractices.qualityAssurance.items', { returnObjects: true }).map((item: string, index: number) => (
+                    {t("adminGuide.bestPractices.qualityAssurance.items", {
+                      returnObjects: true,
+                    }).map((item: string, index: number) => (
                       <li key={index}>{item}</li>
                     ))}
                   </ul>
@@ -202,18 +230,16 @@ export const AdminGuide: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-3 text-dgrv-blue">
                 <HelpCircle className="w-6 h-6" />
-                <span>{t('adminGuide.contactInfo.title')}</span>
+                <span>{t("adminGuide.contactInfo.title")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-4">
-                {t('adminGuide.contactInfo.description')}
-              </p>
+              <p className="mb-4">{t("adminGuide.contactInfo.description")}</p>
               <div className="space-y-2">
-                <p>{t('adminGuide.contactInfo.email')}</p>
-                <p>{t('adminGuide.contactInfo.phone')}</p>
-                <p>{t('adminGuide.contactInfo.website')}</p>
-                <p>{t('adminGuide.contactInfo.documentation')}</p>
+                <p>{t("adminGuide.contactInfo.email")}</p>
+                <p>{t("adminGuide.contactInfo.phone")}</p>
+                <p>{t("adminGuide.contactInfo.website")}</p>
+                <p>{t("adminGuide.contactInfo.documentation")}</p>
               </div>
             </CardContent>
           </Card>
@@ -221,4 +247,4 @@ export const AdminGuide: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};

@@ -773,11 +773,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "pending_approval",
-                "approved",
-                "rejected"
-              ]
+              "enum": ["pending_approval", "approved", "rejected"]
             }
           }
         ],
@@ -2644,11 +2640,13 @@
           }
         },
         "responses": {
-          "201": { 
+          "201": {
             "description": "User created and invited successfully",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/OrgAdminUserInvitationResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/OrgAdminUserInvitationResponse"
+                }
               }
             }
           },
@@ -2761,7 +2759,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/OrgAdminMemberCategoryUpdateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/OrgAdminMemberCategoryUpdateRequest"
+              }
             }
           }
         },
@@ -2828,7 +2828,9 @@
           }
         ],
         "responses": {
-          "200": { "description": "Organization invitation triggered successfully" },
+          "200": {
+            "description": "Organization invitation triggered successfully"
+          },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
@@ -2859,7 +2861,9 @@
           }
         ],
         "responses": {
-          "200": { "description": "Email verified and organization invitation sent successfully" },
+          "200": {
+            "description": "Email verified and organization invitation sent successfully"
+          },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
@@ -2905,7 +2909,12 @@
   "components": {
     "schemas": {
       "Question": {
-        "required": ["question_id", "category", "created_at", "latest_revision"],
+        "required": [
+          "question_id",
+          "category",
+          "created_at",
+          "latest_revision"
+        ],
         "type": "object",
         "properties": {
           "question_id": {
@@ -3057,7 +3066,15 @@
         }
       },
       "Assessment": {
-        "required": ["assessment_id", "created_at", "language", "org_id", "name", "status", "updated_at"],
+        "required": [
+          "assessment_id",
+          "created_at",
+          "language",
+          "org_id",
+          "name",
+          "status",
+          "updated_at"
+        ],
         "type": "object",
         "properties": {
           "assessment_id": {
@@ -3321,11 +3338,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending_approval",
-              "approved",
-              "rejected"
-            ],
+            "enum": ["pending_approval", "approved", "rejected"],
             "default": "pending_approval"
           },
           "submitted_at": {
@@ -4283,7 +4296,15 @@
         "required": ["language", "name"]
       },
       "Category": {
-        "required": ["category_id", "name", "weight", "order", "template_id", "created_at", "updated_at"],
+        "required": [
+          "category_id",
+          "name",
+          "weight",
+          "order",
+          "template_id",
+          "created_at",
+          "updated_at"
+        ],
         "type": "object",
         "properties": {
           "category_id": {
@@ -4424,7 +4445,13 @@
           },
           "status": {
             "type": "string",
-            "enum": ["pending_email_verification", "email_verified", "pending_org_invitation", "active", "error"],
+            "enum": [
+              "pending_email_verification",
+              "email_verified",
+              "pending_org_invitation",
+              "active",
+              "error"
+            ],
             "description": "Current invitation status"
           },
           "message": {
@@ -4434,7 +4461,13 @@
         }
       },
       "RecommendationWithStatus": {
-        "required": ["report_id", "category", "recommendation", "status", "created_at"],
+        "required": [
+          "report_id",
+          "category",
+          "recommendation",
+          "status",
+          "created_at"
+        ],
         "type": "object",
         "properties": {
           "report_id": {

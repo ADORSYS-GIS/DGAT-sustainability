@@ -32,10 +32,14 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
       <div className="text-center py-8">
         <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">
-          {t('assessment.noDraftAssessmentsAvailable', { defaultValue: 'No draft assessments available' })}
+          {t("assessment.noDraftAssessmentsAvailable", {
+            defaultValue: "No draft assessments available",
+          })}
         </h3>
         <p className="text-gray-600">
-          {t('assessment.noDraftAssessmentsDescription', { defaultValue: 'No draft assessments have been created yet.' })}
+          {t("assessment.noDraftAssessmentsDescription", {
+            defaultValue: "No draft assessments have been created yet.",
+          })}
         </p>
       </div>
     );
@@ -44,14 +48,20 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   return (
     <div className="space-y-4">
       {assessments.map((assessment) => (
-        <Card key={assessment.assessment_id} className="hover:shadow-md transition-shadow">
+        <Card
+          key={assessment.assessment_id}
+          className="hover:shadow-md transition-shadow"
+        >
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <FileText className="w-5 h-5 text-dgrv-blue" />
                 <div>
                   <CardTitle className="text-lg font-semibold">
-                    {assessment.name || t('assessment.untitled', { defaultValue: 'Untitled Assessment' })}
+                    {assessment.name ||
+                      t("assessment.untitled", {
+                        defaultValue: "Untitled Assessment",
+                      })}
                   </CardTitle>
                   <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                     <div className="flex items-center space-x-1">
@@ -71,13 +81,15 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
               </div>
               <div className="flex items-center space-x-2">
                 <Badge variant="secondary">
-                  {t('assessment.status.draft', { defaultValue: 'Draft' })}
+                  {t("assessment.status.draft", { defaultValue: "Draft" })}
                 </Badge>
                 <Button
                   onClick={() => onSelectAssessment(assessment.assessment_id)}
                   className="bg-dgrv-blue hover:bg-blue-700"
                 >
-                  {t('assessment.continueAssessment', { defaultValue: 'Continue' })}
+                  {t("assessment.continueAssessment", {
+                    defaultValue: "Continue",
+                  })}
                 </Button>
               </div>
             </div>
@@ -86,4 +98,4 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
       ))}
     </div>
   );
-}; 
+};

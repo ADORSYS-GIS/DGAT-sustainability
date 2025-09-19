@@ -66,7 +66,7 @@ const AdminActionPlans: React.FC = () => {
         setSelectedOrganization(null);
       }
     }
-  }, [organizations]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [organizations]);
   // Disable exhaustive-deps for `selectedOrganization` as we explicitly handle its update based on `organizations`
 
   // Refresh data when user returns to the tab

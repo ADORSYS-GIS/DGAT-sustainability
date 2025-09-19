@@ -14,10 +14,13 @@ export interface UserProfile {
   organisations?: Record<string, unknown>;
   organization_name?: string;
   organization?: string;
-  organizations?: Record<string, {
-    id: string;
-    categories: string[];
-  }>;
+  organizations?: Record<
+    string,
+    {
+      id: string;
+      categories: string[];
+    }
+  >;
   categories?: string[];
 }
 
@@ -38,18 +41,21 @@ export const initializeAuth = async (): Promise<boolean> => {
   try {
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("Keycloak initialization timeout")), 10000); // 10 second timeout
+      setTimeout(
+        () => reject(new Error("Keycloak initialization timeout")),
+        10000,
+      ); // 10 second timeout
     });
 
     const initPromise = keycloak.init(keycloakInitOptions);
     const authenticated = await Promise.race([initPromise, timeoutPromise]);
-    
+
     if (authenticated) {
       // Store tokens in IndexedDB
       await storeTokens();
       console.log("Keycloak initialized successfully");
     }
-    
+
     return authenticated;
   } catch (error) {
     console.error("Failed to initialize Keycloak:", error);
@@ -68,7 +74,7 @@ const storeTokens = async (): Promise<void> => {
       idToken: keycloak.idToken,
       expiresAt: keycloak.tokenParsed?.exp,
     };
-    
+
     await set("auth_tokens", tokens);
   } catch (error) {
     console.error("Failed to store tokens:", error);
@@ -136,13 +142,13 @@ export const getAccessToken = async (): Promise<string | null> => {
     if (keycloak.tokenParsed?.exp) {
       const now = Math.floor(Date.now() / 1000);
       const timeUntilExpiry = keycloak.tokenParsed.exp - now;
-      
+
       if (timeUntilExpiry <= 30) {
         await keycloak.updateToken(30);
         await storeTokens();
       }
     }
-    
+
     return keycloak.token || null;
   } catch (error) {
     console.error("Failed to get access token:", error);
@@ -156,9 +162,9 @@ export const getAccessToken = async (): Promise<string | null> => {
 export const getUserProfile = (): UserProfile | null => {
   try {
     if (!keycloak.tokenParsed) return null;
-    
+
     const token = keycloak.tokenParsed;
-    
+
     return {
       sub: token.sub || "",
       preferred_username: token.preferred_username,
@@ -185,7 +191,7 @@ export const getAuthState = (): AuthState => {
   const isAuthenticated = !!keycloak.authenticated;
   const user = getUserProfile();
   const roles = user?.roles || user?.realm_access?.roles || [];
-  
+
   return {
     isAuthenticated,
     user,
@@ -199,11 +205,9 @@ export const getAuthState = (): AuthState => {
  */
 export const hasRole = (requiredRoles: string[]): boolean => {
   const { roles } = getAuthState();
-  const userRoles = roles.map(role => role.toLowerCase());
-  
-  return requiredRoles.some(role => 
-    userRoles.includes(role.toLowerCase())
-  );
+  const userRoles = roles.map((role) => role.toLowerCase());
+
+  return requiredRoles.some((role) => userRoles.includes(role.toLowerCase()));
 };
 
 /**
@@ -245,19 +249,19 @@ export const setupTokenRefresh = (): void => {
  */
 export const fetchWithAuth = async (
   input: RequestInfo | URL,
-  init?: RequestInit
+  init?: RequestInit,
 ): Promise<Response> => {
   const token = await getAccessToken();
-  
+
   if (token) {
     const headers = new Headers(init?.headers);
     headers.set("Authorization", `Bearer ${token}`);
-    
+
     return fetch(input, {
       ...init,
       headers,
     });
   }
-  
+
   return fetch(input, init);
-}; 
+};

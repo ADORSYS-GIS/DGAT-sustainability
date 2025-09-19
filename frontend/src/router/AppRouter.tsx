@@ -28,7 +28,13 @@ const queryClient = new QueryClient({
 });
 
 // Helper function to render routes recursively
-const renderRoutes = (routes: any[]) => {
+type AppRoute = {
+  path: string;
+  element: React.ReactElement | React.ComponentType<unknown>;
+  children?: AppRoute[];
+};
+
+const renderRoutes = (routes: AppRoute[]) => {
   return routes.map(({ path, element, children }, idx) => (
     <Route
       key={idx}

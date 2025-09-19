@@ -16,7 +16,7 @@ import type {
   CreateResponseRequest,
   AdminSubmissionDetail,
   RecommendationWithStatus, // Import RecommendationWithStatus
-  OrganizationResponse // Import OrganizationResponse
+  OrganizationResponse, // Import OrganizationResponse
 } from "@/openapi-rq/requests/types.gen";
 
 import type {
@@ -30,7 +30,7 @@ import type {
   OfflineUser,
   OfflineInvitation,
   OfflineRecommendation, // Import OfflineRecommendation
-  ReportCategoryData // Import ReportCategoryData
+  ReportCategoryData, // Import ReportCategoryData
 } from "@/types/offline";
 
 export class DataTransformationService {
@@ -52,7 +52,7 @@ export class DataTransformationService {
       category_id: question.category, // Use category as category_id
       created_at: question.created_at,
       updated_at: question.created_at,
-      sync_status: 'synced',
+      sync_status: "synced",
       local_changes: false,
       last_synced: question.created_at,
     };
@@ -63,15 +63,15 @@ export class DataTransformationService {
    */
   static transformCategory(category: Category): OfflineCategory {
     const now = new Date().toISOString();
-    
+
     return {
       ...category,
       question_count: 0, // Will be calculated when questions are loaded
       is_active: true,
       updated_at: now,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
@@ -82,22 +82,22 @@ export class DataTransformationService {
     assessment: Assessment,
     userOrganizationId?: string,
     userEmail?: string,
-    userId?: string // Add userId parameter
+    userId?: string, // Add userId parameter
   ): OfflineAssessment {
     const now = new Date().toISOString();
-    
+
     return {
       ...assessment,
       organization_id: userOrganizationId,
       user_id: userId, // Populate user_id
       user_email: userEmail,
-      status: 'draft' as const, // Default status
+      status: "draft" as const, // Default status
       progress_percentage: 0,
       last_activity: assessment.created_at,
       updated_at: now,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
@@ -108,34 +108,43 @@ export class DataTransformationService {
     response: Response | CreateResponseRequest,
     questionText?: string,
     questionCategory?: string,
-    assessmentId?: string
+    assessmentId?: string,
   ): OfflineResponse {
     const now = new Date().toISOString();
-    
+
     // Handle both Response objects (from API) and CreateResponseRequest objects (for creation)
-    const responseId = 'response_id' in response ? response.response_id : crypto.randomUUID();
-    const assessmentIdValue = 'assessment_id' in response ? response.assessment_id : assessmentId;
-    const version = 'version' in response ? response.version : 1;
-    const updatedAt = 'updated_at' in response ? response.updated_at : now;
-    
+    const responseId =
+      "response_id" in response ? response.response_id : crypto.randomUUID();
+    const assessmentIdValue =
+      "assessment_id" in response ? response.assessment_id : assessmentId;
+    const version = "version" in response ? response.version : 1;
+    const updatedAt = "updated_at" in response ? response.updated_at : now;
+
     // Determine sync status based on whether this is a new response or from API
-    const isNewResponse = !('response_id' in response) || (typeof responseId === 'string' && responseId.startsWith('temp_'));
-    const syncStatus = isNewResponse ? 'pending' as const : 'synced' as const;
-    
+    const isNewResponse =
+      !("response_id" in response) ||
+      (typeof responseId === "string" && responseId.startsWith("temp_"));
+    const syncStatus = isNewResponse
+      ? ("pending" as const)
+      : ("synced" as const);
+
     return {
       response_id: responseId,
-      assessment_id: assessmentIdValue || '',
-      question_revision_id: typeof response.question_revision_id === 'string' ? response.question_revision_id : '',
-      response: typeof response.response === 'string' ? response.response : '',
+      assessment_id: assessmentIdValue || "",
+      question_revision_id:
+        typeof response.question_revision_id === "string"
+          ? response.question_revision_id
+          : "",
+      response: typeof response.response === "string" ? response.response : "",
       version: version,
       updated_at: updatedAt,
-      question_text: questionText || '',
-      question_category: questionCategory || '',
+      question_text: questionText || "",
+      question_category: questionCategory || "",
       files: [],
       is_draft: false,
       sync_status: syncStatus,
       local_changes: isNewResponse,
-      last_synced: isNewResponse ? undefined : now
+      last_synced: isNewResponse ? undefined : now,
     };
   }
 
@@ -145,21 +154,23 @@ export class DataTransformationService {
   static transformSubmission(
     submission: Submission,
     userOrganizationId?: string,
-    reviewerEmail?: string
+    reviewerEmail?: string,
   ): OfflineSubmission {
     const now = new Date().toISOString();
-    
+
     return {
       ...submission,
       organization_id: userOrganizationId,
-      reviewer_id: submission.reviewed_at ? submission.submission_id : undefined,
+      reviewer_id: submission.reviewed_at
+        ? submission.submission_id
+        : undefined,
       reviewer_email: reviewerEmail,
-      review_comments: '',
+      review_comments: "",
       files: [],
       updated_at: now,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
@@ -169,33 +180,36 @@ export class DataTransformationService {
   static transformAdminSubmission(
     adminSubmission: AdminSubmissionDetail,
     userOrganizationId?: string,
-    reviewerEmail?: string
+    reviewerEmail?: string,
   ): OfflineSubmission {
     const now = new Date().toISOString();
-    
+
     // Convert AdminSubmissionDetail to regular Submission format for IndexedDB
     const submission: Submission = {
       submission_id: adminSubmission.submission_id,
       assessment_id: adminSubmission.assessment_id,
       user_id: adminSubmission.user_id,
-      content: adminSubmission.content as Submission['content'], // Type assertion for compatibility
+      content: adminSubmission.content as Submission["content"], // Type assertion for compatibility
       review_status: adminSubmission.review_status,
       submitted_at: adminSubmission.submitted_at,
-      reviewed_at: adminSubmission.reviewed_at
+      reviewed_at: adminSubmission.reviewed_at,
     };
-    
+
     return {
       ...submission,
-      organization_id: userOrganizationId || (adminSubmission.org_id || 'unknown'),
-      org_name: (adminSubmission.org_name as string) || 'Unknown Organization', // Store organization name
-      reviewer_id: adminSubmission.reviewed_at ? adminSubmission.submission_id : undefined,
+      organization_id:
+        userOrganizationId || adminSubmission.org_id || "unknown",
+      org_name: (adminSubmission.org_name as string) || "Unknown Organization", // Store organization name
+      reviewer_id: adminSubmission.reviewed_at
+        ? adminSubmission.submission_id
+        : undefined,
       reviewer_email: reviewerEmail,
-      review_comments: '',
+      review_comments: "",
       files: [],
       updated_at: now,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
@@ -205,10 +219,10 @@ export class DataTransformationService {
   static transformReport(
     report: Report,
     userOrganizationId?: string,
-    userId?: string
+    userId?: string,
   ): OfflineReport {
     const now = new Date().toISOString();
-    
+
     return {
       ...report,
       organization_id: userOrganizationId,
@@ -216,18 +230,20 @@ export class DataTransformationService {
       file_path: undefined,
       is_downloaded: false,
       updated_at: now,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
   /**
    * Transform API Organization to OfflineOrganization
    */
-  static transformOrganization(organization: Organization): OfflineOrganization {
+  static transformOrganization(
+    organization: Organization,
+  ): OfflineOrganization {
     const now = new Date().toISOString();
-    
+
     return {
       ...organization,
       organization_id: organization.id, // Map API 'id' to IndexedDB 'organization_id'
@@ -236,27 +252,31 @@ export class DataTransformationService {
       submission_count: 0, // Will be calculated when submissions are loaded
       is_active: true,
       updated_at: now,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
   /**
    * Transform API OrganizationResponse to OfflineOrganization
    */
-  static transformOrganizationResponseToOffline(organizationResponse: OrganizationResponse): OfflineOrganization {
+  static transformOrganizationResponseToOffline(
+    organizationResponse: OrganizationResponse,
+  ): OfflineOrganization {
     const now = new Date().toISOString();
-    
+
     // Ensure 'id' is present, it should be for a valid organization response
     if (!organizationResponse.id) {
-      throw new Error('OrganizationResponse missing required id for transformation to OfflineOrganization');
+      throw new Error(
+        "OrganizationResponse missing required id for transformation to OfflineOrganization",
+      );
     }
 
     return {
       id: organizationResponse.id, // Add the 'id' property here
       organization_id: organizationResponse.id,
-      name: organizationResponse.name || 'Unknown Organization',
+      name: organizationResponse.name || "Unknown Organization",
       description: null, // Default as it's not in OrganizationResponse
       country: null, // Default
       attributes: organizationResponse.attributes || {},
@@ -265,9 +285,9 @@ export class DataTransformationService {
       assessment_count: 0,
       submission_count: 0,
       is_active: true,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
@@ -276,10 +296,10 @@ export class DataTransformationService {
    */
   static transformUser(
     user: OrganizationMember,
-    organizationId: string
+    organizationId: string,
   ): OfflineUser {
     const now = new Date().toISOString();
-    
+
     return {
       ...user,
       organization_id: organizationId,
@@ -288,9 +308,9 @@ export class DataTransformationService {
       last_login: user.joinedAt || now,
       permissions: this.generatePermissions(user.roles),
       updated_at: now,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
@@ -300,18 +320,18 @@ export class DataTransformationService {
   static transformInvitation(
     invitation: OrganizationInvitation,
     inviterEmail?: string,
-    organizationName?: string
+    organizationName?: string,
   ): OfflineInvitation {
     const now = new Date().toISOString();
-    
+
     return {
       ...invitation,
       inviter_email: inviterEmail,
       organization_name: organizationName,
       updated_at: now,
-      sync_status: 'synced' as const,
+      sync_status: "synced" as const,
       local_changes: false,
-      last_synced: now
+      last_synced: now,
     };
   }
 
@@ -321,19 +341,19 @@ export class DataTransformationService {
   static transformQuestionsWithCategories(
     questions: Question[],
     categories: Category[],
-    userOrganizationId?: string
+    userOrganizationId?: string,
   ): OfflineQuestion[] {
-    const categoryMap = new Map(categories.map(cat => [cat.name, cat]));
-    
-    return questions.map(question => {
+    const categoryMap = new Map(categories.map((cat) => [cat.name, cat]));
+
+    return questions.map((question) => {
       const category = categoryMap.get(question.category);
       const transformed = this.transformQuestion(question);
-      
+
       // Add category-specific information if available
       if (category) {
         transformed.category_id = category.category_id;
       }
-      
+
       return transformed;
     });
   }
@@ -344,10 +364,10 @@ export class DataTransformationService {
   static transformAssessmentsWithContext(
     assessments: Assessment[],
     userOrganizationId?: string,
-    userEmail?: string
+    userEmail?: string,
   ): OfflineAssessment[] {
-    return assessments.map(assessment => 
-      this.transformAssessment(assessment, userOrganizationId, userEmail)
+    return assessments.map((assessment) =>
+      this.transformAssessment(assessment, userOrganizationId, userEmail),
     );
   }
 
@@ -357,31 +377,41 @@ export class DataTransformationService {
   static transformResponsesWithContext(
     responses: Response[],
     questions: Question[],
-    language: string = "en"
+    language: string = "en",
   ): OfflineResponse[] {
     // Create a map of question_revision_id to question for quick lookup
     const questionRevisionMap = new Map<string, Question>();
-    questions.forEach(question => {
+    questions.forEach((question) => {
       if (question.latest_revision?.question_revision_id) {
-        questionRevisionMap.set(question.latest_revision.question_revision_id, question);
+        questionRevisionMap.set(
+          question.latest_revision.question_revision_id,
+          question,
+        );
       }
     });
-    
-    return responses.map(response => {
+
+    return responses.map((response) => {
       const question = questionRevisionMap.get(response.question_revision_id);
-      let questionText = '';
+      let questionText = "";
       if (question?.latest_revision?.text) {
         const text = question.latest_revision.text;
-        if (typeof text === 'object' && text !== null) {
-          questionText = (text as Record<string, unknown>)[language] as string || 
-                        (text as Record<string, unknown>).en as string || 
-                        Object.values(text).find(val => typeof val === 'string') as string || '';
-        } else if (typeof text === 'string') {
+        if (typeof text === "object" && text !== null) {
+          questionText =
+            ((text as Record<string, unknown>)[language] as string) ||
+            ((text as Record<string, unknown>).en as string) ||
+            (Object.values(text).find(
+              (val) => typeof val === "string",
+            ) as string) ||
+            "";
+        } else if (typeof text === "string") {
           questionText = text;
         }
       }
-      const questionCategory = question?.category && typeof question.category === 'string' ? question.category as string : '';
-      
+      const questionCategory =
+        question?.category && typeof question.category === "string"
+          ? (question.category as string)
+          : "";
+
       return this.transformResponse(response, questionText, questionCategory);
     });
   }
@@ -392,10 +422,10 @@ export class DataTransformationService {
   static transformSubmissionsWithContext(
     submissions: Submission[],
     userOrganizationId?: string,
-    reviewerEmail?: string
+    reviewerEmail?: string,
   ): OfflineSubmission[] {
-    return submissions.map(submission => 
-      this.transformSubmission(submission, userOrganizationId, reviewerEmail)
+    return submissions.map((submission) =>
+      this.transformSubmission(submission, userOrganizationId, reviewerEmail),
     );
   }
 
@@ -405,10 +435,14 @@ export class DataTransformationService {
   static transformAdminSubmissionsWithContext(
     adminSubmissions: AdminSubmissionDetail[],
     userOrganizationId?: string,
-    reviewerEmail?: string
+    reviewerEmail?: string,
   ): OfflineSubmission[] {
-    return adminSubmissions.map(submission => 
-      this.transformAdminSubmission(submission, userOrganizationId, reviewerEmail)
+    return adminSubmissions.map((submission) =>
+      this.transformAdminSubmission(
+        submission,
+        userOrganizationId,
+        reviewerEmail,
+      ),
     );
   }
 
@@ -418,10 +452,10 @@ export class DataTransformationService {
   static transformReportsWithContext(
     reports: Report[],
     userOrganizationId?: string,
-    userId?: string
+    userId?: string,
   ): OfflineReport[] {
-    return reports.map(report => 
-      this.transformReport(report, userOrganizationId, userId)
+    return reports.map((report) =>
+      this.transformReport(report, userOrganizationId, userId),
     );
   }
 
@@ -430,9 +464,9 @@ export class DataTransformationService {
    */
   static transformUsersWithContext(
     users: OrganizationMember[],
-    organizationId: string
+    organizationId: string,
   ): OfflineUser[] {
-    return users.map(user => this.transformUser(user, organizationId));
+    return users.map((user) => this.transformUser(user, organizationId));
   }
 
   /**
@@ -441,10 +475,10 @@ export class DataTransformationService {
   static transformInvitationsWithContext(
     invitations: OrganizationInvitation[],
     inviterEmail?: string,
-    organizationName?: string
+    organizationName?: string,
   ): OfflineInvitation[] {
-    return invitations.map(invitation => 
-      this.transformInvitation(invitation, inviterEmail, organizationName)
+    return invitations.map((invitation) =>
+      this.transformInvitation(invitation, inviterEmail, organizationName),
     );
   }
 
@@ -453,13 +487,13 @@ export class DataTransformationService {
    */
   private static generateSearchText(question: Question): string {
     const text = question.latest_revision?.text;
-    if (!text) return '';
-    
+    if (!text) return "";
+
     // Extract text from multilingual object
     const searchableText = Object.values(text)
-      .filter(val => typeof val === 'string')
-      .join(' ');
-    
+      .filter((val) => typeof val === "string")
+      .join(" ");
+
     return searchableText.toLowerCase();
   }
 
@@ -468,24 +502,36 @@ export class DataTransformationService {
    */
   private static generatePermissions(roles: string[] | undefined): string[] {
     const permissions: string[] = [];
-    
+
     if (!roles || !Array.isArray(roles)) {
-      console.warn('⚠️ No roles provided for user, using default permissions');
-      return ['view_own_data']; // Default minimal permissions
+      console.warn("⚠️ No roles provided for user, using default permissions");
+      return ["view_own_data"]; // Default minimal permissions
     }
-    
-    if (roles.includes('drgv_admin')) {
-      permissions.push('admin_all', 'manage_organizations', 'manage_users', 'manage_categories', 'manage_questions', 'review_submissions');
+
+    if (roles.includes("drgv_admin")) {
+      permissions.push(
+        "admin_all",
+        "manage_organizations",
+        "manage_users",
+        "manage_categories",
+        "manage_questions",
+        "review_submissions",
+      );
     }
-    
-    if (roles.includes('org_admin')) {
-      permissions.push('manage_Org_Users', 'create_assessments', 'view_org_data', 'manage_org_settings');
+
+    if (roles.includes("org_admin")) {
+      permissions.push(
+        "manage_Org_Users",
+        "create_assessments",
+        "view_org_data",
+        "manage_org_settings",
+      );
     }
-    
-    if (roles.includes('Org_User')) {
-      permissions.push('answer_assessments', 'view_own_data', 'export_reports');
+
+    if (roles.includes("Org_User")) {
+      permissions.push("answer_assessments", "view_own_data", "export_reports");
     }
-    
+
     return permissions;
   }
 
@@ -499,13 +545,16 @@ export class DataTransformationService {
     }
 
     for (const item of data) {
-      if (!item || typeof item !== 'object') {
+      if (!item || typeof item !== "object") {
         console.error(`Invalid ${entityType} item: not an object`);
         return false;
       }
 
       // Check for required offline fields
-      const offlineItem = item as { sync_status?: unknown; updated_at?: unknown };
+      const offlineItem = item as {
+        sync_status?: unknown;
+        updated_at?: unknown;
+      };
       if (!offlineItem.sync_status || !offlineItem.updated_at) {
         console.error(`Invalid ${entityType} item: missing offline fields`);
         return false;
@@ -522,17 +571,23 @@ export class DataTransformationService {
     organization: OfflineOrganization,
     users: OfflineUser[],
     assessments: OfflineAssessment[],
-    submissions: OfflineSubmission[]
+    submissions: OfflineSubmission[],
   ): OfflineOrganization {
-    const orgUsers = users.filter(user => user.organization_id === organization.id);
-    const orgAssessments = assessments.filter(assessment => assessment.organization_id === organization.id);
-    const orgSubmissions = submissions.filter(submission => submission.organization_id === organization.id);
+    const orgUsers = users.filter(
+      (user) => user.organization_id === organization.id,
+    );
+    const orgAssessments = assessments.filter(
+      (assessment) => assessment.organization_id === organization.id,
+    );
+    const orgSubmissions = submissions.filter(
+      (submission) => submission.organization_id === organization.id,
+    );
 
     return {
       ...organization,
       member_count: orgUsers.length,
       assessment_count: orgAssessments.length,
-      submission_count: orgSubmissions.length
+      submission_count: orgSubmissions.length,
     };
   }
 
@@ -542,15 +597,19 @@ export class DataTransformationService {
   static calculateUserStats(
     user: OfflineUser,
     assessments: OfflineAssessment[],
-    submissions: OfflineSubmission[]
+    submissions: OfflineSubmission[],
   ): OfflineUser {
-    const userAssessments = assessments.filter(assessment => assessment.user_id === user.id);
-    const userSubmissions = submissions.filter(submission => submission.user_id === user.id);
+    const userAssessments = assessments.filter(
+      (assessment) => assessment.user_id === user.id,
+    );
+    const userSubmissions = submissions.filter(
+      (submission) => submission.user_id === user.id,
+    );
 
     return {
       ...user,
       assessment_count: userAssessments.length,
-      submission_count: userSubmissions.length
+      submission_count: userSubmissions.length,
     };
   }
 
@@ -559,13 +618,15 @@ export class DataTransformationService {
    */
   static calculateCategoryStats(
     category: OfflineCategory,
-    questions: OfflineQuestion[]
+    questions: OfflineQuestion[],
   ): OfflineCategory {
-    const categoryQuestions = questions.filter(question => question.category_id === category.category_id);
+    const categoryQuestions = questions.filter(
+      (question) => question.category_id === category.category_id,
+    );
 
     return {
       ...category,
-      question_count: categoryQuestions.length
+      question_count: categoryQuestions.length,
     };
   }
 
@@ -575,24 +636,24 @@ export class DataTransformationService {
   static transformReportToOfflineRecommendations(
     report: Report,
     userOrganizationId?: string, // Optional: if we can derive from context
-    organizationName?: string // Optional: if we can derive from context
+    organizationName?: string, // Optional: if we can derive from context
   ): OfflineRecommendation[] {
     const recommendations: OfflineRecommendation[] = [];
     const now = new Date().toISOString();
 
     if (!report.data || !Array.isArray(report.data)) {
-      console.warn('Report data is missing or not an array:', report);
+      console.warn("Report data is missing or not an array:", report);
       return [];
     }
 
     report.data.forEach((catObj: ReportCategoryData) => {
-      if (catObj && typeof catObj === 'object') {
+      if (catObj && typeof catObj === "object") {
         Object.entries(catObj).forEach(([categoryName, value]) => {
           if (
             value &&
-            typeof value === 'object' &&
-            'recommendation' in value &&
-            typeof value.recommendation === 'string'
+            typeof value === "object" &&
+            "recommendation" in value &&
+            typeof value.recommendation === "string"
           ) {
             const recWithStatus = value as RecommendationWithStatus;
             recommendations.push({
@@ -600,12 +661,12 @@ export class DataTransformationService {
               report_id: report.report_id,
               category: categoryName,
               recommendation: recWithStatus.recommendation,
-              status: recWithStatus.status || 'todo', // Default to 'todo' if status is missing
+              status: recWithStatus.status || "todo", // Default to 'todo' if status is missing
               created_at: recWithStatus.created_at || now,
-              organization_id: userOrganizationId || 'unknown', // Removed report.org_id
-              organization_name: organizationName || 'Unknown Organization', // Attempt to get org_name
+              organization_id: userOrganizationId || "unknown", // Removed report.org_id
+              organization_name: organizationName || "Unknown Organization", // Attempt to get org_name
               updated_at: now,
-              sync_status: 'synced',
+              sync_status: "synced",
               local_changes: false,
               last_synced: now,
             });

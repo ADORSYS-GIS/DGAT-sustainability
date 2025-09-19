@@ -70,18 +70,18 @@ import { ProtectedRoute } from "@/router/ProtectedRoute";
 
 const ProtectedComponent = () => {
   const { user } = useAuth();
-  
+
   return <div>Hello, {user?.name}!</div>;
 };
 
 // In your routes
-<Route 
-  path="/dashboard" 
+<Route
+  path="/dashboard"
   element={
     <ProtectedRoute roles={["drgv_admin", "org_admin"]}>
       <ProtectedComponent />
     </ProtectedRoute>
-  } 
+  }
 />
 ```
 
@@ -96,11 +96,11 @@ function AdvancedComponent() {
   const handleLogin = async () => {
     await login();
   };
-  
+
   const handleLogout = async () => {
     await logout();
   };
-  
+
   return (
     <div>
       <button onClick={handleLogin}>Login</button>
@@ -151,17 +151,21 @@ The user object contains:
 
 ```typescript
 interface UserProfile {
-  sub: string;                    // User ID
-  preferred_username?: string;     // Username
-  name?: string;                  // Full name
-  email?: string;                 // Email address
-  roles?: string[];               // User roles
+  sub: string; // User ID
+  preferred_username?: string; // Username
+  name?: string; // Full name
+  email?: string; // Email address
+  roles?: string[]; // User roles
   realm_access?: { roles: string[] }; // Realm roles
-  organizations?: Record<string, {  // Organization data
-    id: string;
-    categories: string[];
-  }>;
-  categories?: string[];          // Personal categories
+  organizations?: Record<
+    string,
+    {
+      // Organization data
+      id: string;
+      categories: string[];
+    }
+  >;
+  categories?: string[]; // Personal categories
 }
 ```
 
@@ -181,4 +185,4 @@ This application was migrated from `oidc-spa` to `keycloak-js` for better:
 - **Compatibility**: Native Keycloak integration
 - **Performance**: Optimized token handling
 - **Features**: Better SSO and silent refresh support
-- **Maintenance**: Official Keycloak library 
+- **Maintenance**: Official Keycloak library

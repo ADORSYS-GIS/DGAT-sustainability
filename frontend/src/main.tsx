@@ -3,8 +3,12 @@ import App from "./App";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OpenAPI } from "@/openapi-rq/requests";
-import { initializeAuth, getAccessToken, setupTokenRefresh } from "@/services/shared/authService";
-import './i18n';
+import {
+  initializeAuth,
+  getAccessToken,
+  setupTokenRefresh,
+} from "@/services/shared/authService";
+import "./i18n";
 
 // Register OpenAPI request middleware to add Bearer token
 OpenAPI.interceptors.request.use(async (request) => {
@@ -60,10 +64,9 @@ const queryClient = new QueryClient({
 });
 
 // Service Worker Registration
-if ('serviceWorker' in navigator) {
+if ("serviceWorker" in navigator) {
   // Temporarily disable service worker registration for development
   // Uncomment the following lines when ready to enable PWA features
-  
   // window.addEventListener('load', () => {
   //   navigator.serviceWorker.register('/sw.js')
   //     .then((registration) => {
@@ -73,7 +76,6 @@ if ('serviceWorker' in navigator) {
   //       console.error('Service Worker registration failed:', error);
   //     });
   // });
-
   // Listen for service worker updates
   // navigator.serviceWorker.addEventListener('message', (event) => {
   //   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -90,15 +92,15 @@ const initializeApp = async () => {
   try {
     // Setup token refresh (only if Keycloak is already initialized)
     setupTokenRefresh();
-    
+
     // Initialize IndexedDB and other offline services
     // This ensures the database is ready when the app loads
     // await offlineDB.initialize();
-    
+
     // Initialize sync service
     // const syncService = new SyncService();
     // syncService.listenForOnlineStatus();
-    
+
     // Initialize API interceptor
     // apiInterceptor.setupNetworkListeners();
     // apiInterceptor.setupPeriodicSync();
@@ -111,7 +113,7 @@ const initializeApp = async () => {
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
     <App />
-  </QueryClientProvider>
+  </QueryClientProvider>,
 );
 
 // Initialize services in the background

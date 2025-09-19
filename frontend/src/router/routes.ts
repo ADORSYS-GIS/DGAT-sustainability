@@ -26,15 +26,20 @@ const routes = [
   // Public routes
   { path: "/", element: React.createElement(Welcome) },
   { path: "/unauthorized", element: React.createElement(Unauthorized) },
-  
+
   // Admin routes - require DGRV_Admin role
   {
     path: "/admin",
-    element: React.createElement(ProtectedRoute, { allowedRoles: [ROLES.ADMIN] }),
+    element: React.createElement(ProtectedRoute, {
+      allowedRoles: [ROLES.ADMIN],
+    }),
     children: [
       { path: "dashboard", element: React.createElement(AdminDashboard) },
       { path: "categories", element: React.createElement(ManageCategories) },
-      { path: "organizations", element: React.createElement(ManageOrganizations) },
+      {
+        path: "organizations",
+        element: React.createElement(ManageOrganizations),
+      },
       { path: "users", element: React.createElement(ManageUsers) },
       { path: "questions", element: React.createElement(ManageQuestions) },
       { path: "reviews", element: React.createElement(ReviewAssessments) },
@@ -46,7 +51,7 @@ const routes = [
   // User routes - require org_admin or Org_User role
   {
     path: "/dashboard",
-    element: React.createElement(ProtectedRoute, { 
+    element: React.createElement(ProtectedRoute, {
       allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User],
       requireOrganization: true,
     }),
@@ -56,8 +61,8 @@ const routes = [
   // Assessment routes - require org_admin or Org_User role
   {
     path: "/assessment",
-    element: React.createElement(ProtectedRoute, { 
-      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    element: React.createElement(ProtectedRoute, {
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User],
     }),
     children: [
       { path: "sustainability", element: React.createElement(Assessment) },
@@ -67,14 +72,23 @@ const routes = [
   // User assessment routes - require org_admin or Org_User role
   {
     path: "/user",
-    element: React.createElement(ProtectedRoute, { 
-      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    element: React.createElement(ProtectedRoute, {
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User],
     }),
     children: [
-      { path: "assessment/:assessmentId", element: React.createElement(Assessment) },
+      {
+        path: "assessment/:assessmentId",
+        element: React.createElement(Assessment),
+      },
       { path: "assessment-list", element: React.createElement(AssessmentList) },
-      { path: "draft-submissions", element: React.createElement(DraftSubmissions) },
-      { path: "manage-users", element: React.createElement(OrgUserManageUsers) },
+      {
+        path: "draft-submissions",
+        element: React.createElement(DraftSubmissions),
+      },
+      {
+        path: "manage-users",
+        element: React.createElement(OrgUserManageUsers),
+      },
       { path: "guide", element: React.createElement(UserGuide) },
     ],
   },
@@ -82,8 +96,8 @@ const routes = [
   // Assessment management routes - require org_admin or Org_User role
   {
     path: "/assessments",
-    element: React.createElement(ProtectedRoute, { 
-      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    element: React.createElement(ProtectedRoute, {
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User],
     }),
     children: [{ path: "", element: React.createElement(Assessments) }],
   },
@@ -91,8 +105,8 @@ const routes = [
   // Action plan routes - require org_admin or Org_User role
   {
     path: "/action-plan",
-    element: React.createElement(ProtectedRoute, { 
-      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    element: React.createElement(ProtectedRoute, {
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User],
     }),
     children: [
       { path: "", element: React.createElement(ActionPlan) },
@@ -103,8 +117,8 @@ const routes = [
   // Submission view routes - require org_admin or Org_User role
   {
     path: "/submission-view",
-    element: React.createElement(ProtectedRoute, { 
-      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    element: React.createElement(ProtectedRoute, {
+      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User],
     }),
     children: [
       { path: ":submissionId", element: React.createElement(SubmissionView) },

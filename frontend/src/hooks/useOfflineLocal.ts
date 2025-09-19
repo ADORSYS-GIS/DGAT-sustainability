@@ -110,7 +110,10 @@ export function useOfflineAssessmentMutation() {
 
 export function useOfflineResponseMutation() {
   return {
-    mutate: async (response: CreateResponseRequest, options?: { onSuccess?: (data: any) => void; onError?: (err: unknown) => void }) => {
+    mutate: async (
+      response: CreateResponseRequest,
+      options?: { onSuccess?: (data: unknown) => void; onError?: (err: unknown) => void }
+    ) => {
       try {
         // Transform response to offline format
         const offlineResponse: OfflineResponse = {
@@ -143,7 +146,10 @@ export function useOfflineResponseMutation() {
 
 export function useOfflineBatchResponseMutation() {
   return {
-    mutate: async (data: { assessmentId: string; responses: CreateResponseRequest[] }, options?: { onSuccess?: (data: any) => void; onError?: (err: unknown) => void }) => {
+    mutate: async (
+      data: { assessmentId: string; responses: CreateResponseRequest[] },
+      options?: { onSuccess?: (data: unknown) => void; onError?: (err: unknown) => void }
+    ) => {
       try {
         // Transform responses to offline format
         const offlineResponses: OfflineResponse[] = data.responses.map(response => {

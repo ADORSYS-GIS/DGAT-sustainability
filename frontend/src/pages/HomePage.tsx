@@ -21,10 +21,7 @@ export const Welcome: React.FC = () => {
     const isOrgUser = roles.includes("Org_User");
     if (isDrgvAdmin && window.location.pathname !== "/admin/") {
       navigate("/admin/dashboard", { replace: true });
-    } else if (
-      isOrgAdmin &&
-      window.location.pathname !== "/dashboard"
-    ) {
+    } else if (isOrgAdmin && window.location.pathname !== "/dashboard") {
       navigate("/dashboard", { replace: true });
     } else if (
       isOrgUser &&
@@ -38,14 +35,14 @@ export const Welcome: React.FC = () => {
 
   const features = [
     {
-      title: t('homePage.features.items.0.title'),
-      description: t('homePage.features.items.0.description'),
+      title: t("homePage.features.items.0.title"),
+      description: t("homePage.features.items.0.description"),
       icon: Leaf,
       color: "green" as const,
     },
     {
-      title: t('homePage.features.items.1.title'),
-      description: t('homePage.features.items.1.description'),
+      title: t("homePage.features.items.1.title"),
+      description: t("homePage.features.items.1.description"),
       icon: CheckSquare,
       color: "blue" as const,
     },
@@ -53,18 +50,18 @@ export const Welcome: React.FC = () => {
 
   const benefits = [
     {
-      title: t('homePage.benefits.items.0.title'),
-      description: t('homePage.benefits.items.0.description'),
+      title: t("homePage.benefits.items.0.title"),
+      description: t("homePage.benefits.items.0.description"),
       icon: Users,
     },
     {
-      title: t('homePage.benefits.items.1.title'),
-      description: t('homePage.benefits.items.1.description'),
+      title: t("homePage.benefits.items.1.title"),
+      description: t("homePage.benefits.items.1.description"),
       icon: Globe,
     },
     {
-      title: t('homePage.benefits.items.2.title'),
-      description: t('homePage.benefits.items.2.description'),
+      title: t("homePage.benefits.items.2.title"),
+      description: t("homePage.benefits.items.2.description"),
       icon: Shield,
     },
   ];
@@ -76,9 +73,7 @@ export const Welcome: React.FC = () => {
         await login();
       } catch (error) {
         console.error("Failed to redirect to authentication:", error);
-        toast.error(
-          "Failed to redirect to authentication. Please try again.",
-        );
+        toast.error("Failed to redirect to authentication. Please try again.");
       }
       return;
     }
@@ -100,9 +95,7 @@ export const Welcome: React.FC = () => {
         await login();
       } catch (error) {
         console.error("Failed to redirect to authentication:", error);
-        toast.error(
-          "Failed to redirect to authentication. Please try again.",
-        );
+        toast.error("Failed to redirect to authentication. Please try again.");
       }
       return;
     }
@@ -126,26 +119,26 @@ export const Welcome: React.FC = () => {
           <div className="text-center mb-16 animate-fade-in">
             <div className="mb-8">
               <div className="w-32 h-32 flex items-center justify-center mx-auto mb-6">
-                <img 
-                  src="/dgrv-logo.png" 
-                  alt="DGRV Logo" 
+                <img
+                  src="/dgrv-logo.png"
+                  alt="DGRV Logo"
                   className="w-full h-full object-contain"
                 />
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-dgrv-blue mb-4 animate-scale-in">
-                {t('homePage.hero.title')}
+                {t("homePage.hero.title")}
               </h1>
               <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
-                {t('homePage.hero.subtitle')}
+                {t("homePage.hero.subtitle")}
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-                {t('homePage.hero.description')}
+                {t("homePage.hero.description")}
               </p>
               <Button
                 className="mt-4 px-8 py-3 text-lg font-semibold bg-dgrv-green text-white rounded shadow hover:bg-dgrv-blue transition"
                 onClick={handleStartAssessment}
               >
-                {t('homePage.hero.cta')}
+                {t("homePage.hero.cta")}
               </Button>
             </div>
           </div>
