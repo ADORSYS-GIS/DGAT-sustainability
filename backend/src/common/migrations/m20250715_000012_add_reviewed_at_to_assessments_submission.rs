@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .add_column(
                         ColumnDef::new(AssessmentsSubmission::ReviewedAt)
                             .timestamp_with_time_zone()
-                            .null()
+                            .null(),
                     )
                     .to_owned(),
             )

@@ -27,10 +27,14 @@ export const SubmissionView: React.FC = () => {
     isLoading: submissionLoading,
     error: submissionError,
   } = useOfflineSubmissions();
-  
+
   // Find the specific submission by ID
-  const submission = submissionsData?.submissions?.find(s => s.submission_id === submissionId);
-  const responses = submission?.content?.responses as SubmissionResponseWithCategory[] | undefined;
+  const submission = submissionsData?.submissions?.find(
+    (s) => s.submission_id === submissionId,
+  );
+  const responses = submission?.content?.responses as
+    | SubmissionResponseWithCategory[]
+    | undefined;
 
   // Group responses by category
   const groupedByCategory = React.useMemo(() => {
@@ -75,7 +79,9 @@ export const SubmissionView: React.FC = () => {
         }
         if (
           typeof parsed === "string" ||
-          (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed))
+          (typeof parsed === "object" &&
+            parsed !== null &&
+            !Array.isArray(parsed))
         ) {
           answer = parsed as string | Record<string, unknown>;
         } else {
@@ -102,7 +108,9 @@ export const SubmissionView: React.FC = () => {
     const files: { name?: string; url?: string }[] =
       typeof answer === "object" &&
       answer !== null &&
-      Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
+      Array.isArray(
+        (answer as { files?: { name?: string; url?: string }[] }).files,
+      )
         ? (answer as { files: { name?: string; url?: string }[] }).files
         : [];
     return (
@@ -228,7 +236,7 @@ export const SubmissionView: React.FC = () => {
       <Navbar />
       <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Remove online status indicator */}
-        
+
         <div className="mb-6">
           <Card className="shadow-md bg-white/90 border-0">
             <CardHeader className="border-b pb-2 mb-2">
@@ -269,10 +277,17 @@ export const SubmissionView: React.FC = () => {
               </div>
               {/* Grouped by category with dropdown */}
               <div className="mt-6">
-                <Accordion type="multiple" className="w-full divide-y divide-gray-100">
+                <Accordion
+                  type="multiple"
+                  className="w-full divide-y divide-gray-100"
+                >
                   {categories.length > 0 ? (
                     categories.map((category) => (
-                      <AccordionItem key={category} value={category} className="bg-white/80">
+                      <AccordionItem
+                        key={category}
+                        value={category}
+                        className="bg-white/80"
+                      >
                         <AccordionTrigger className="text-left text-lg font-semibold text-dgrv-blue px-6 py-4 hover:bg-dgrv-blue/5 focus:bg-dgrv-blue/10 rounded-md justify-start items-start">
                           {category}
                         </AccordionTrigger>
@@ -294,7 +309,9 @@ export const SubmissionView: React.FC = () => {
                                   })()}
                                 </CardTitle>
                               </CardHeader>
-                              <CardContent>{renderReadOnlyAnswer(response)}</CardContent>
+                              <CardContent>
+                                {renderReadOnlyAnswer(response)}
+                              </CardContent>
                             </Card>
                           ))}
                         </AccordionContent>

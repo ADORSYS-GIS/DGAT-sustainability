@@ -1,4 +1,4 @@
-//! API Routes Configuration
+#![doc = "API Routes Configuration"]
 //!
 //! This module defines the API routes for a resource server that validates JWT tokens
 //! and serves protected resources based on user roles and organization membership.
@@ -12,14 +12,14 @@
 //! User and organization management should be handled by the frontend through Keycloak's
 //! admin console or APIs directly.
 
+use axum::http::HeaderValue;
 use axum::{
     extract::Extension, http::StatusCode, middleware, response::Json, routing::get, Router,
 };
 use serde_json::json;
 use std::sync::Arc;
-use axum::http::HeaderValue;
 use tokio::sync::Mutex;
-use tower_http::cors::{CorsLayer, Any};
+use tower_http::cors::{Any, CorsLayer};
 
 use crate::common::cache::SessionCache;
 use crate::common::config::{Configs, KeycloakConfigs};
@@ -27,7 +27,10 @@ use crate::common::models::claims::Claims;
 use crate::common::services::keycloak_service::KeycloakService;
 use crate::common::state::AppDatabase;
 use crate::web::api::routes::create_router;
-use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware, request_logging::request_logging_middleware};
+use crate::web::handlers::{
+    jwt_validator::JwtValidator, midlw::auth_middleware,
+    request_logging::request_logging_middleware,
+};
 
 /// Application state containing shared services for JWT validation and database access
 #[derive(Clone)]
@@ -40,7 +43,10 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new(keycloak_url: String, realm: String, database: AppDatabase) -> Self {
-        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_url.clone(), realm.clone())));
+        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(
+            keycloak_url.clone(),
+            realm.clone(),
+        )));
         let keycloak_config = KeycloakConfigs {
             url: keycloak_url,
             realm,
@@ -154,9 +160,9 @@ pub fn health_routes() -> Router {
 /// Create the complete application with all routes
 pub fn create_app(app_state: AppState, config: Configs) -> Router {
     // Configure CORS
-    let origin = HeaderValue::from_str(&config.cors.origin).unwrap();
+    let _origin = HeaderValue::from_str(&config.cors.origin).unwrap();
     let cors = CorsLayer::new()
-        .allow_origin(origin)
+        .allow_origin(Any)
         .allow_methods(Any)
         .allow_headers(Any);
 

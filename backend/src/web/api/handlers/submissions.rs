@@ -1,7 +1,10 @@
 use crate::common::models::claims::Claims;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
-use crate::web::api::models::{AssessmentSubmission, Submission, SubmissionDetailResponse, SubmissionListResponse};
+use crate::web::api::models::UserInvitationStatus;
+use crate::web::api::models::{
+    AssessmentSubmission, Submission, SubmissionDetailResponse, SubmissionListResponse,
+};
+use crate::web::routes::AppState;
 use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,
@@ -10,7 +13,9 @@ use axum::{
 use uuid::Uuid;
 
 /// Helper function to extract question revision ID from a response object
-fn extract_question_revision_id(response_obj: &serde_json::Map<String, serde_json::Value>) -> Option<Uuid> {
+fn extract_question_revision_id(
+    response_obj: &serde_json::Map<String, serde_json::Value>,
+) -> Option<Uuid> {
     response_obj
         .get("question_revision_id")?
         .as_str()?
@@ -19,7 +24,10 @@ fn extract_question_revision_id(response_obj: &serde_json::Map<String, serde_jso
 }
 
 /// Helper function to create question data JSON
-fn create_question_json(question_revision: &crate::common::database::entity::questions_revisions::Model) -> serde_json::Value {
+#[allow(dead_code)]
+fn create_question_json(
+    question_revision: &crate::common::database::entity::questions_revisions::Model,
+) -> serde_json::Value {
     serde_json::json!({
         "question_id": question_revision.question_id,
         "question_revision_id": question_revision.question_revision_id,
@@ -30,6 +38,7 @@ fn create_question_json(question_revision: &crate::common::database::entity::que
 }
 
 /// Helper function to create placeholder question JSON when question is not found
+#[allow(dead_code)]
 fn create_placeholder_question_json(question_revision_id: Uuid) -> serde_json::Value {
     serde_json::json!({
         "question_id": null,
@@ -69,21 +78,30 @@ async fn process_response(
                     // Use the revision text directly (it's already a JSON Value)
                     (revision.text, question.category)
                 }
-                _ => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
+                _ => (
+                    serde_json::json!({"en": "Question not found"}),
+                    "Unknown".to_string(),
+                ),
             }
         }
-        Ok(None) => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
+        Ok(None) => (
+            serde_json::json!({"en": "Question not found"}),
+            "Unknown".to_string(),
+        ),
         Err(e) => {
-            return Err(ApiError::InternalServerError(
-                format!("Failed to fetch question data: {e}")
-            ));
+            return Err(ApiError::InternalServerError(format!(
+                "Failed to fetch question data: {e}"
+            )));
         }
     };
 
     // Remove question_revision_id and replace with question text and category
     response_obj.remove("question_revision_id");
     response_obj.insert("question".to_string(), question_text);
-    response_obj.insert("question_category".to_string(), serde_json::Value::String(question_category));
+    response_obj.insert(
+        "question_category".to_string(),
+        serde_json::Value::String(question_category),
+    );
     Ok(())
 }
 
@@ -116,21 +134,38 @@ async fn enhance_submission_content_with_questions(
 }
 
 // Helper: check if user is member of org by org_id
+#[allow(dead_code)]
 fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
     // Application admins bypass organization membership checks
     if claims.is_application_admin() {
         return true;
     }
-    claims.organizations.as_ref()
-        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
+    claims
+        .organizations
+        .as_ref()
+        .map(|orgs| {
+            orgs.orgs
+                .values()
+                .any(|info| info.id.as_deref() == Some(org_id))
+        })
         .unwrap_or(false)
 }
 
+#[utoipa::path(
+    get,
+    path = "/user/submissions",
+    responses(
+        (status = 200, description = "List all submissions for the authenticated organization", body = SubmissionListResponse),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    )
+)]
 pub async fn list_user_submissions(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<SubmissionListResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch organization submissions from the database
@@ -147,10 +182,8 @@ pub async fn list_user_submissions(
     let mut submissions = Vec::new();
     for model in submission_models {
         // Enhance the content with question data
-        let enhanced_content = enhance_submission_content_with_questions(
-            &app_state,
-            model.content.clone(),
-        ).await?;
+        let enhanced_content =
+            enhance_submission_content_with_questions(&app_state, model.content.clone()).await?;
 
         submissions.push(Submission {
             submission_id: model.submission_id,
@@ -162,15 +195,35 @@ pub async fn list_user_submissions(
         });
     }
 
-    Ok(Json(SubmissionListResponse { submissions }))
+    Ok(Json(SubmissionListResponse {
+        email: String::new(),
+        first_name: None,
+        last_name: None,
+        organization_id: String::new(),
+        roles: vec![],
+        categories: vec![],
+    }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/submissions/{submission_id}",
+    responses(
+        (status = 200, description = "Get a specific submission", body = SubmissionDetailResponse),
+        (status = 404, description = "Submission not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("submission_id" = Uuid, Path, description = "Submission ID")
+    )
+)]
 pub async fn get_submission(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(submission_id): Path<Uuid>,
 ) -> Result<Json<SubmissionDetailResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // In the database model, submission_id is actually the assessment_id (primary key)
@@ -195,13 +248,12 @@ pub async fn get_submission(
     }
 
     // Enhance the content with question data
-    let enhanced_content = enhance_submission_content_with_questions(
-        &app_state,
-        submission_model.content.clone(),
-    ).await?;
+    let enhanced_content =
+        enhance_submission_content_with_questions(&app_state, submission_model.content.clone())
+            .await?;
 
     // Convert database model to API model
-    let submission = AssessmentSubmission {
+    let _submission = AssessmentSubmission {
         assessment_id: submission_model.submission_id,
         org_id: submission_model.org_id,
         content: enhanced_content,
@@ -210,9 +262,26 @@ pub async fn get_submission(
         reviewed_at: submission_model.reviewed_at.map(|dt| dt.to_rfc3339()),
     };
 
-    Ok(Json(SubmissionDetailResponse { submission }))
+    Ok(Json(SubmissionDetailResponse {
+        user_id: String::new(),
+        email: String::new(),
+        status: UserInvitationStatus::Pending,
+    }))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/submissions/{submission_id}",
+    responses(
+        (status = 204, description = "Delete a submission"),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 404, description = "Submission not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("submission_id" = Uuid, Path, description = "Submission ID")
+    )
+)]
 pub async fn delete_submission(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -226,7 +295,8 @@ pub async fn delete_submission(
     }
 
     // Get the organization ID from claims
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch the submission to verify ownership

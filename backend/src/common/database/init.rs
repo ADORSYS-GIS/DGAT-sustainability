@@ -1,9 +1,9 @@
+use crate::common::migrations::Migrator;
 use dotenv::dotenv;
 use sea_orm::{Database, DatabaseConnection, DbErr};
 use sea_orm_migration::prelude::*;
 use std::env;
 use std::sync::Arc;
-use crate::common::migrations::Migrator;
 
 /// Initialize the database connection and run migrations
 ///

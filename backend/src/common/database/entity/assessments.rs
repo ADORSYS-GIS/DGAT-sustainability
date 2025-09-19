@@ -1,10 +1,10 @@
+use super::assessments_submission::AssessmentsSubmissionService;
 use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
 use std::sync::Arc;
-use super::assessments_submission::AssessmentsSubmissionService;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "assessments")]
@@ -57,7 +57,8 @@ impl AssessmentsService {
         });
 
         // Set up the circular dependency by updating the submission service
-        let updated_submission_service = assessments_service.submission_service
+        let updated_submission_service = assessments_service
+            .submission_service
             .clone()
             .with_assessments_service(assessments_service.clone());
 
@@ -120,7 +121,10 @@ impl AssessmentsService {
 
     pub async fn delete_assessment(&self, id: Uuid) -> Result<DeleteResult, DbErr> {
         // Check if a submission exists for this assessment
-        let submission = self.submission_service.get_submission_by_assessment_id(id).await?;
+        let submission = self
+            .submission_service
+            .get_submission_by_assessment_id(id)
+            .await?;
 
         if submission.is_none() {
             return Err(DbErr::Custom(
@@ -140,7 +144,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_assessments_service() -> Result<(), Box<dyn std::error::Error>> {
-        use crate::common::database::entity::assessments_submission::{Model as SubmissionModel, SubmissionStatus};
+        use crate::common::database::entity::assessments_submission::{
+            Model as SubmissionModel, SubmissionStatus,
+        };
         use serde_json::json;
 
         let mock_assessment = Model {
@@ -194,7 +200,11 @@ mod tests {
 
         // Test create
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
+            .create_assessment(
+                "test_org".to_string(),
+                "en".to_string(),
+                "Test Assessment".to_string(),
+            )
             .await?;
 
         assert_eq!(assessment.org_id, "test_org");
@@ -255,7 +265,9 @@ mod tests {
         use crate::common::database::entity::assessments_response::{
             AssessmentsResponseService, Model as ResponseModel,
         };
-        use crate::common::database::entity::assessments_submission::{Model as SubmissionModel, SubmissionStatus};
+        use crate::common::database::entity::assessments_submission::{
+            Model as SubmissionModel, SubmissionStatus,
+        };
         use serde_json::json;
 
         let assessment_id = Uuid::new_v4();
@@ -340,7 +352,11 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
+            .create_assessment(
+                "test_org".to_string(),
+                "en".to_string(),
+                "Test Assessment".to_string(),
+            )
             .await?;
 
         // Create some responses for this assessment
@@ -385,7 +401,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_delete_assessment_without_submission_fails() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_delete_assessment_without_submission_fails(
+    ) -> Result<(), Box<dyn std::error::Error>> {
         use crate::common::database::entity::assessments_submission::Model as SubmissionModel;
 
         let assessment_id = Uuid::new_v4();
@@ -418,7 +435,11 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
+            .create_assessment(
+                "test_org".to_string(),
+                "en".to_string(),
+                "Test Assessment".to_string(),
+            )
             .await?;
 
         // Try to delete the assessment without creating a submission - this should fail

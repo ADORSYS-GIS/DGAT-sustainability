@@ -8,21 +8,36 @@ use axum::{
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
+use crate::web::routes::AppState;
 
 // Helper: check if user is member of org by org_id
+#[allow(dead_code)]
 fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
     // Application admins bypass organization membership checks
     if claims.is_application_admin() {
         return true;
     }
-    claims.organizations.as_ref()
-        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
+    claims
+        .organizations
+        .as_ref()
+        .map(|orgs| {
+            orgs.orgs
+                .values()
+                .any(|info| info.id.as_deref() == Some(org_id))
+        })
         .unwrap_or(false)
 }
 
+#[utoipa::path(
+    post,
+    path = "/files",
+    request_body = Multipart,
+    responses(
+        (status = 201, description = "Upload file")
+    )
+)]
 pub async fn upload_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -112,6 +127,16 @@ pub async fn upload_file(
     Ok(StatusCode::CREATED)
 }
 
+#[utoipa::path(
+    get,
+    path = "/files/{file_id}",
+    responses(
+        (status = 200, description = "Download file")
+    ),
+    params(
+        ("file_id" = Uuid, Path, description = "File ID")
+    )
+)]
 pub async fn download_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -162,12 +187,23 @@ pub async fn download_file(
     Ok((headers, file_model.content))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/files/{file_id}",
+    responses(
+        (status = 204, description = "Delete file")
+    ),
+    params(
+        ("file_id" = Uuid, Path, description = "File ID")
+    )
+)]
 pub async fn delete_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(file_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch the file to verify ownership
@@ -226,6 +262,16 @@ pub async fn delete_file(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[utoipa::path(
+    get,
+    path = "/files/{file_id}/metadata",
+    responses(
+        (status = 200, description = "Get file metadata", body = FileMetadataResponse)
+    ),
+    params(
+        ("file_id" = Uuid, Path, description = "File ID")
+    )
+)]
 pub async fn get_file_metadata(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -285,13 +331,26 @@ pub async fn get_file_metadata(
     Ok(Json(FileMetadataResponse { metadata }))
 }
 
+#[utoipa::path(
+    post,
+    path = "/files/{assessment_id}/{response_id}/attach",
+    request_body = AttachFileRequest,
+    responses(
+        (status = 204, description = "Attach file to response")
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
+        ("response_id" = Uuid, Path, description = "Response ID")
+    )
+)]
 pub async fn attach_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<AttachFileRequest>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment
@@ -387,12 +446,25 @@ pub async fn attach_file(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[utoipa::path(
+    delete,
+    path = "/files/{assessment_id}/{response_id}/{file_id}",
+    responses(
+        (status = 204, description = "Remove file from response")
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
+        ("response_id" = Uuid, Path, description = "Response ID"),
+        ("file_id" = Uuid, Path, description = "File ID")
+    )
+)]
 pub async fn remove_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id, file_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment

@@ -2,7 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
+import {
+  useOfflineSubmissions,
+  useOfflineSubmissionsMutation,
+} from "@/hooks/useOfflineApi";
 import { offlineDB } from "@/services/indexeddb";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
 import type { Submission } from "@/openapi-rq/requests/types.gen";
@@ -40,7 +43,8 @@ export const Assessments: React.FC = () => {
   const submissions = data?.submissions || [];
 
   // Delete submission mutation
-  const { deleteSubmission, isPending: isDeleting } = useOfflineSubmissionsMutation();
+  const { deleteSubmission, isPending: isDeleting } =
+    useOfflineSubmissionsMutation();
 
   useEffect(() => {
     setIsLoading(remoteLoading);
@@ -52,14 +56,14 @@ export const Assessments: React.FC = () => {
       // Extract responses from submission content
       const responses = submission?.content?.responses || [];
       const completed = responses.length;
-      
+
       // For total categories, we need to get the assessment details
       // For now, we'll use a reasonable estimate or fetch from assessment
       const total = completed > 0 ? Math.max(completed, 3) : 0; // Default to at least 3 categories
-      
+
       return { completed, total };
     } catch (error) {
-      console.warn('Error calculating category counts:', error);
+      console.warn("Error calculating category counts:", error);
       return { completed: 0, total: 0 };
     }
   };
@@ -67,7 +71,7 @@ export const Assessments: React.FC = () => {
   // Helper function to check if user is org_admin
   const isOrgAdmin = () => {
     if (!user?.roles) return false;
-    return user.roles.includes('org_admin');
+    return user.roles.includes("org_admin");
   };
 
   // Handle delete submission
@@ -75,20 +79,26 @@ export const Assessments: React.FC = () => {
     try {
       await deleteSubmission(submissionId, {
         onSuccess: () => {
-          toast.success(t('submission.deleted', { defaultValue: 'Submission deleted successfully' }));
+          toast.success(
+            t("submission.deleted", {
+              defaultValue: "Submission deleted successfully",
+            }),
+          );
           refetch(); // Refresh the list
         },
         onError: (error) => {
-          toast.error(t('submission.deleteError', { defaultValue: 'Failed to delete submission' }));
-          console.error('Delete submission error:', error);
-        }
+          toast.error(
+            t("submission.deleteError", {
+              defaultValue: "Failed to delete submission",
+            }),
+          );
+          console.error("Delete submission error:", error);
+        },
       });
     } catch (error) {
-      console.error('Delete submission error:', error);
+      console.error("Delete submission error:", error);
     }
   };
-
-
 
   if (isLoading) {
     return (
@@ -109,9 +119,17 @@ export const Assessments: React.FC = () => {
     onDelete: (submissionId: string) => void;
     isDeleting: boolean;
     isOrgAdmin: boolean;
-  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin }) => {
+  }> = ({
+    submission,
+    user,
+    navigate,
+    index,
+    onDelete,
+    isDeleting,
+    isOrgAdmin,
+  }) => {
     const { completed, total } = getCategoryCounts(submission);
-    
+
     return (
       <Card
         key={submission.submission_id}
@@ -126,13 +144,17 @@ export const Assessments: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  {t("sustainability")} {t("assessment")} {t("submission", { defaultValue: "Submission" })}
+                  {t("sustainability")} {t("assessment")}{" "}
+                  {t("submission", { defaultValue: "Submission" })}
                 </h3>
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
                     <span>
-                      {t("submittedAt")}: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "-"}
+                      {t("submittedAt")}:{" "}
+                      {submission.submitted_at
+                        ? new Date(submission.submitted_at).toLocaleDateString()
+                        : "-"}
                     </span>
                   </div>
                 </div>
@@ -144,15 +166,15 @@ export const Assessments: React.FC = () => {
                   submission.review_status === "approved"
                     ? "bg-dgrv-green text-white"
                     : submission.review_status === "rejected"
-                    ? "bg-red-500 text-white"
-                    : submission.review_status === "under_review"
-                    ? "bg-yellow-500 text-white"
-                    : "bg-gray-500 text-white"
+                      ? "bg-red-500 text-white"
+                      : submission.review_status === "under_review"
+                        ? "bg-yellow-500 text-white"
+                        : "bg-gray-500 text-white"
                 }
               >
                 {submission.review_status
                   ? submission.review_status.charAt(0).toUpperCase() +
-                    submission.review_status.slice(1).replace('_', ' ')
+                    submission.review_status.slice(1).replace("_", " ")
                   : "-"}
               </Badge>
             </div>
@@ -162,7 +184,8 @@ export const Assessments: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               <p>
-                {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}/{total}
+                {t("category")} {t("completed", { defaultValue: "Completed" })}:{" "}
+                {completed}/{total}
               </p>
             </div>
             <div className="flex space-x-2">
@@ -184,7 +207,9 @@ export const Assessments: React.FC = () => {
                   disabled={isDeleting}
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
-                  {isDeleting ? t("deleting", { defaultValue: "Deleting..." }) : t("delete", { defaultValue: "Delete" })}
+                  {isDeleting
+                    ? t("deleting", { defaultValue: "Deleting..." })
+                    : t("delete", { defaultValue: "Delete" })}
                 </Button>
               )}
             </div>
@@ -206,7 +231,10 @@ export const Assessments: React.FC = () => {
             </h1>
           </div>
           <p className="text-lg text-gray-600">
-            {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
+            {t("dashboard.assessments.subtitle", {
+              defaultValue:
+                "View and manage all your sustainability submissions",
+            })}
           </p>
         </div>
 
@@ -232,7 +260,10 @@ export const Assessments: React.FC = () => {
                   {t("noSubmissions", { defaultValue: "No Submissions" })}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
+                  {t("dashboard.assessments.emptyState", {
+                    defaultValue:
+                      "Start your first sustainability assessment to track your cooperative's progress.",
+                  })}
                 </p>
               </CardContent>
             </Card>

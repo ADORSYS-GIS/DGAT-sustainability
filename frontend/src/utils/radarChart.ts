@@ -15,12 +15,18 @@ interface RadarChartData {
   }[];
 }
 
-export const generateRadarChartData = (apiResponse: ReportData): RadarChartData => {
+export const generateRadarChartData = (
+  apiResponse: ReportData,
+): RadarChartData => {
   const categories: { [key: string]: number } = {};
   const report = apiResponse.reports[apiResponse.reports.length - 1];
 
   if (report && report.data && Array.isArray(report.data)) {
-    const reportData = report.data as { [key: string]: { questions: { answer?: { percentage?: number; yesNo?: boolean } }[] } }[];
+    const reportData = report.data as {
+      [key: string]: {
+        questions: { answer?: { percentage?: number; yesNo?: boolean } }[];
+      };
+    }[];
 
     reportData.forEach((item) => {
       Object.keys(item).forEach((categoryName) => {
@@ -31,7 +37,11 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
         const category = item[categoryName];
         let sustainabilityScore = 0;
 
-        if (category && category.questions && Array.isArray(category.questions)) {
+        if (
+          category &&
+          category.questions &&
+          Array.isArray(category.questions)
+        ) {
           category.questions.forEach((question) => {
             if (question.answer) {
               const percentage = (question.answer.percentage || 0) / 100;
@@ -54,17 +64,17 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
     labels,
     datasets: [
       {
-        label: 'Sustainability Score',
+        label: "Sustainability Score",
         data: sustainabilityScores,
-        backgroundColor: 'rgba(66, 165, 245, 0.2)',
-        borderColor: 'rgba(66, 165, 245, 1)',
+        backgroundColor: "rgba(66, 165, 245, 0.2)",
+        borderColor: "rgba(66, 165, 245, 1)",
         borderWidth: 1,
       },
       {
-        label: 'Maximum Score per Section',
+        label: "Maximum Score per Section",
         data: labels.map(() => maxRadarValue),
-        backgroundColor: 'rgba(255, 167, 38, 0.2)',
-        borderColor: 'rgba(255, 167, 38, 1)',
+        backgroundColor: "rgba(255, 167, 38, 0.2)",
+        borderColor: "rgba(255, 167, 38, 1)",
         borderWidth: 1,
       },
     ],

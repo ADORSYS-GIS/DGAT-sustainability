@@ -13,16 +13,16 @@ import {
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, List } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { 
-  useOfflineCategories, 
+import {
+  useOfflineCategories,
   useOfflineCategoriesMutation,
-  useOfflineSyncStatus 
+  useOfflineSyncStatus,
 } from "@/hooks/useOfflineApi";
-import type { 
-  GetCategoriesResponse, 
-  PostCategoriesData, 
+import type {
+  GetCategoriesResponse,
+  PostCategoriesData,
   PutCategoriesByCategoryIdData,
-  DeleteCategoriesByCategoryIdData 
+  DeleteCategoriesByCategoryIdData,
 } from "@/openapi-rq/requests/types.gen";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
@@ -53,7 +53,12 @@ export const ManageCategories: React.FC = () => {
   const [showDialogWeightError, setShowDialogWeightError] = useState(false);
 
   // Use offline hooks for all data fetching
-  const { data: categoriesData, isLoading, error, refetch } = useOfflineCategories();
+  const {
+    data: categoriesData,
+    isLoading,
+    error,
+    refetch,
+  } = useOfflineCategories();
 
   const categories = categoriesData?.categories || [];
 
@@ -62,7 +67,10 @@ export const ManageCategories: React.FC = () => {
   const createCategory = mutationHooks.createCategory.mutate;
   const updateCategory = mutationHooks.updateCategory.mutate;
   const deleteCategory = mutationHooks.deleteCategory.mutate;
-  const isPending = mutationHooks.createCategory.isPending || mutationHooks.updateCategory.isPending || mutationHooks.deleteCategory.isPending;
+  const isPending =
+    mutationHooks.createCategory.isPending ||
+    mutationHooks.updateCategory.isPending ||
+    mutationHooks.deleteCategory.isPending;
 
   const { isOnline } = useOfflineSyncStatus();
 
@@ -81,19 +89,22 @@ export const ManageCategories: React.FC = () => {
   const calculateDefaultWeight = () => {
     if (sortedCategories.length === 0) return 100;
     const remainingWeight = 100 - totalWeight;
-    return Math.max(1, Math.floor(remainingWeight / (sortedCategories.length + 1)));
+    return Math.max(
+      1,
+      Math.floor(remainingWeight / (sortedCategories.length + 1)),
+    );
   };
 
   // Evenly redistribute weights, optionally including a new category
   const redistributeWeights = async (includeNewCategory = false) => {
     let cats = sortedCategories;
-    
+
     if (includeNewCategory && !editingCategory) {
       // For redistribution including new category, we just calculate the weight
       // but don't actually create the category yet
       const tempCat = {
         category_id: "temp",
-        name: formData.name || t('manageCategories.newCategory'),
+        name: formData.name || t("manageCategories.newCategory"),
         weight: 0,
         order: 1, // Default order for temp category
         template_id: SUSTAINABILITY_TEMPLATE_ID,
@@ -117,25 +128,31 @@ export const ManageCategories: React.FC = () => {
     // Update each category
     for (const cat of updatedCategories) {
       if (cat.category_id !== "temp") {
-        await updateCategory(cat.category_id, {
-          name: cat.name,
-          weight: cat.weight,
-          order: 1, // Default order value for API compatibility
-        }, {
-          onSuccess: () => {
-            // Category updated successfully
+        await updateCategory(
+          cat.category_id,
+          {
+            name: cat.name,
+            weight: cat.weight,
+            order: 1, // Default order value for API compatibility
           },
-          onError: (error) => {
-            console.error(`Failed to update category ${cat.name}:`, error);
-          }
-        });
+          {
+            onSuccess: () => {
+              // Category updated successfully
+            },
+            onError: (error) => {
+              console.error(`Failed to update category ${cat.name}:`, error);
+            },
+          },
+        );
       }
     }
 
     // Update form data if redistributing for new category
     if (includeNewCategory && !editingCategory) {
-      const newCatWeight = updatedCategories.find(cat => cat.category_id === "temp")?.weight || 25;
-      setFormData(prev => ({ ...prev, weight: newCatWeight }));
+      const newCatWeight =
+        updatedCategories.find((cat) => cat.category_id === "temp")?.weight ||
+        25;
+      setFormData((prev) => ({ ...prev, weight: newCatWeight }));
     }
 
     await refetch();
@@ -145,7 +162,8 @@ export const ManageCategories: React.FC = () => {
     e.preventDefault();
 
     // Check if total weight would exceed 100
-    const newTotalWeight = totalWeight + formData.weight - (editingCategory?.weight || 0);
+    const newTotalWeight =
+      totalWeight + formData.weight - (editingCategory?.weight || 0);
     if (newTotalWeight > 100) {
       setShowDialogWeightError(true);
       return;
@@ -153,48 +171,74 @@ export const ManageCategories: React.FC = () => {
 
     // Check if total weight is exactly 100% (only for new categories, not edits)
     if (!editingCategory && newTotalWeight !== 100) {
-      toast.error(t('manageCategories.totalWeightMustBe100', { 
-        defaultValue: 'Total weight must equal 100%. Please adjust the weights or use the redistribute button.' 
-      }));
+      toast.error(
+        t("manageCategories.totalWeightMustBe100", {
+          defaultValue:
+            "Total weight must equal 100%. Please adjust the weights or use the redistribute button.",
+        }),
+      );
       return;
     }
 
     if (editingCategory) {
       // Update existing category
-      await updateCategory(editingCategory.category_id, {
-        name: formData.name,
-        weight: formData.weight,
-        order: 1, // Default order value for API compatibility
-      }, {
-        onSuccess: () => {
-          toast.success(t('manageCategories.updateSuccess', { defaultValue: 'Category updated successfully' }));
-          setIsDialogOpen(false);
-          setEditingCategory(null);
-          setFormData({ name: "", weight: 25 });
-          refetch();
+      await updateCategory(
+        editingCategory.category_id,
+        {
+          name: formData.name,
+          weight: formData.weight,
+          order: 1, // Default order value for API compatibility
         },
-        onError: (error) => {
-          toast.error(t('manageCategories.updateError', { defaultValue: 'Failed to update category' }));
-        }
-      });
+        {
+          onSuccess: () => {
+            toast.success(
+              t("manageCategories.updateSuccess", {
+                defaultValue: "Category updated successfully",
+              }),
+            );
+            setIsDialogOpen(false);
+            setEditingCategory(null);
+            setFormData({ name: "", weight: 25 });
+            refetch();
+          },
+          onError: (error) => {
+            toast.error(
+              t("manageCategories.updateError", {
+                defaultValue: "Failed to update category",
+              }),
+            );
+          },
+        },
+      );
     } else {
       // Create new category
-      await createCategory({
-        name: formData.name,
-        weight: formData.weight,
-        order: categories.length + 1, // Default order value for API compatibility
-        template_id: SUSTAINABILITY_TEMPLATE_ID,
-      }, {
-        onSuccess: () => {
-          toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
-          setIsDialogOpen(false);
-          setFormData({ name: "", weight: 25 });
-          refetch();
+      await createCategory(
+        {
+          name: formData.name,
+          weight: formData.weight,
+          order: categories.length + 1, // Default order value for API compatibility
+          template_id: SUSTAINABILITY_TEMPLATE_ID,
         },
-        onError: (error) => {
-          toast.error(t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
-        }
-      });
+        {
+          onSuccess: () => {
+            toast.success(
+              t("manageCategories.createSuccess", {
+                defaultValue: "Category created successfully",
+              }),
+            );
+            setIsDialogOpen(false);
+            setFormData({ name: "", weight: 25 });
+            refetch();
+          },
+          onError: (error) => {
+            toast.error(
+              t("manageCategories.createError", {
+                defaultValue: "Failed to create category",
+              }),
+            );
+          },
+        },
+      );
     }
   };
 
@@ -208,19 +252,32 @@ export const ManageCategories: React.FC = () => {
   };
 
   const handleDelete = async (categoryId: string) => {
-    if (!window.confirm(t('manageCategories.confirmDelete', { 
-      defaultValue: 'Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.' 
-    })))
+    if (
+      !window.confirm(
+        t("manageCategories.confirmDelete", {
+          defaultValue:
+            "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
+        }),
+      )
+    )
       return;
-    
+
     await deleteCategory(categoryId, {
       onSuccess: () => {
-        toast.success(t('manageCategories.deleteSuccess', { defaultValue: 'Category deleted successfully' }));
+        toast.success(
+          t("manageCategories.deleteSuccess", {
+            defaultValue: "Category deleted successfully",
+          }),
+        );
         refetch();
       },
       onError: (error) => {
-        toast.error(t('manageCategories.deleteError', { defaultValue: 'Failed to delete category' }));
-      }
+        toast.error(
+          t("manageCategories.deleteError", {
+            defaultValue: "Failed to delete category",
+          }),
+        );
+      },
     });
   };
 
@@ -240,16 +297,22 @@ export const ManageCategories: React.FC = () => {
         <div className="pt-20 pb-8 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-red-600 mb-4">
-              {t('manageCategories.loadError', { defaultValue: 'Error Loading Categories' })}
+              {t("manageCategories.loadError", {
+                defaultValue: "Error Loading Categories",
+              })}
             </h2>
             <p className="text-gray-600 mb-4">
-              {error instanceof Error ? error.message : t('manageCategories.unknownError', { defaultValue: 'An unknown error occurred' })}
+              {error instanceof Error
+                ? error.message
+                : t("manageCategories.unknownError", {
+                    defaultValue: "An unknown error occurred",
+                  })}
             </p>
             <Button
               onClick={() => refetch()}
               className="bg-dgrv-blue hover:bg-blue-700"
             >
-              {t('manageCategories.retry', { defaultValue: 'Retry' })}
+              {t("manageCategories.retry", { defaultValue: "Retry" })}
             </Button>
           </div>
         </div>
@@ -263,31 +326,35 @@ export const ManageCategories: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Offline Status Indicator */}
           <div className="mb-4 flex items-center justify-end">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-              isOnline 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
-              <span>{isOnline ? 'Online' : 'Offline'}</span>
+            <div
+              className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+                isOnline
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  isOnline ? "bg-green-500" : "bg-yellow-500"
+                }`}
+              ></div>
+              <span>{isOnline ? "Online" : "Offline"}</span>
             </div>
           </div>
 
           <div className="mb-8 animate-fade-in">
             <div className="mb-4">
               <h1 className="text-3xl font-bold text-dgrv-blue mb-6">
-                {t('manageCategories.title')}
+                {t("manageCategories.title")}
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              {t('manageCategories.configureCategories')}
+              {t("manageCategories.configureCategories")}
             </p>
           </div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{t('manageCategories.categories')}</CardTitle>
+              <CardTitle>{t("manageCategories.categories")}</CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -303,18 +370,22 @@ export const ManageCategories: React.FC = () => {
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {t('manageCategories.addCategory')}
+                    {t("manageCategories.addCategory")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
-                      {editingCategory ? t('manageCategories.editCategory') : t('manageCategories.addCategory')}
+                      {editingCategory
+                        ? t("manageCategories.editCategory")
+                        : t("manageCategories.addCategory")}
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <Label htmlFor="name">{t('manageCategories.categoryName')}</Label>
+                      <Label htmlFor="name">
+                        {t("manageCategories.categoryName")}
+                      </Label>
                       <Input
                         id="name"
                         value={formData.name}
@@ -324,12 +395,16 @@ export const ManageCategories: React.FC = () => {
                             name: e.target.value,
                           }))
                         }
-                        placeholder={t('manageCategories.categoryNamePlaceholder')}
+                        placeholder={t(
+                          "manageCategories.categoryNamePlaceholder",
+                        )}
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="weight">{t('manageCategories.weight')}</Label>
+                      <Label htmlFor="weight">
+                        {t("manageCategories.weight")}
+                      </Label>
                       <Input
                         id="weight"
                         type="number"
@@ -346,19 +421,17 @@ export const ManageCategories: React.FC = () => {
                       />
                       {!editingCategory && (
                         <p className="text-sm text-gray-600 mt-1">
-                          {t('manageCategories.currentTotal', { 
-                            current: totalWeight, 
+                          {t("manageCategories.currentTotal", {
+                            current: totalWeight,
                             new: totalWeight + formData.weight,
-                            defaultValue: `Current total: ${totalWeight}% | New total: ${totalWeight + formData.weight}%`
+                            defaultValue: `Current total: ${totalWeight}% | New total: ${totalWeight + formData.weight}%`,
                           })}
                         </p>
                       )}
                     </div>
                     {showDialogWeightError && (
                       <div className="text-red-600 text-center space-y-2">
-                        <p>
-                          {t('manageCategories.weightExceedsError')}
-                        </p>
+                        <p>{t("manageCategories.weightExceedsError")}</p>
                         <Button
                           type="button"
                           variant="outline"
@@ -368,40 +441,49 @@ export const ManageCategories: React.FC = () => {
                             setShowDialogWeightError(false);
                           }}
                         >
-                          {t('manageCategories.redistributeWeights')}
+                          {t("manageCategories.redistributeWeights")}
                         </Button>
                       </div>
                     )}
-                    {!showDialogWeightError && !editingCategory && totalWeight + formData.weight !== 100 && (
-                      <div className="text-yellow-600 text-center space-y-2">
-                        <p>
-                          {t('manageCategories.totalWeightNot100ForNew', { 
-                            total: totalWeight + formData.weight,
-                            defaultValue: `Total weight will be ${totalWeight + formData.weight}%. Must equal 100%.`
-                          })}
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="bg-dgrv-blue text-white hover:bg-blue-700"
-                          onClick={() => {
-                            redistributeWeights(true); // include new category
-                          }}
-                        >
-                          {t('manageCategories.redistributeWeights')}
-                        </Button>
-                      </div>
-                    )}
+                    {!showDialogWeightError &&
+                      !editingCategory &&
+                      totalWeight + formData.weight !== 100 && (
+                        <div className="text-yellow-600 text-center space-y-2">
+                          <p>
+                            {t("manageCategories.totalWeightNot100ForNew", {
+                              total: totalWeight + formData.weight,
+                              defaultValue: `Total weight will be ${totalWeight + formData.weight}%. Must equal 100%.`,
+                            })}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="bg-dgrv-blue text-white hover:bg-blue-700"
+                            onClick={() => {
+                              redistributeWeights(true); // include new category
+                            }}
+                          >
+                            {t("manageCategories.redistributeWeights")}
+                          </Button>
+                        </div>
+                      )}
                     <Button
                       type="submit"
                       className="w-full bg-dgrv-blue hover:bg-blue-700"
-                      disabled={showDialogWeightError || isPending || (!editingCategory && totalWeight + formData.weight !== 100)}
+                      disabled={
+                        showDialogWeightError ||
+                        isPending ||
+                        (!editingCategory &&
+                          totalWeight + formData.weight !== 100)
+                      }
                     >
                       {isPending
-                        ? t('manageCategories.saving', { defaultValue: 'Saving...' })
-                        : editingCategory 
-                          ? t('manageCategories.updateCategory') 
-                          : t('manageCategories.createCategory')}
+                        ? t("manageCategories.saving", {
+                            defaultValue: "Saving...",
+                          })
+                        : editingCategory
+                          ? t("manageCategories.updateCategory")
+                          : t("manageCategories.createCategory")}
                     </Button>
                   </form>
                 </DialogContent>
@@ -445,7 +527,7 @@ export const ManageCategories: React.FC = () => {
                 {weightExceeds && (
                   <div className="text-center py-4 text-red-600">
                     <p className="mb-2">
-                      {t('manageCategories.totalWeightExceeds')}
+                      {t("manageCategories.totalWeightExceeds")}
                     </p>
                     <Button
                       variant="outline"
@@ -453,7 +535,7 @@ export const ManageCategories: React.FC = () => {
                       className="bg-dgrv-blue text-white hover:bg-blue-700"
                       disabled={isPending}
                     >
-                      {t('manageCategories.redistributeWeights')}
+                      {t("manageCategories.redistributeWeights")}
                     </Button>
                   </div>
                 )}
@@ -462,15 +544,15 @@ export const ManageCategories: React.FC = () => {
                   sortedCategories.length > 0 && (
                     <div className="text-center py-4 text-yellow-600">
                       <p>
-                        {t('manageCategories.totalWeightNot100', { total: totalWeight })}
+                        {t("manageCategories.totalWeightNot100", {
+                          total: totalWeight,
+                        })}
                       </p>
                     </div>
                   )}
                 {sortedCategories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    <p>
-                      {t('manageCategories.noCategoriesYet')}
-                    </p>
+                    <p>{t("manageCategories.noCategoriesYet")}</p>
                   </div>
                 )}
               </div>

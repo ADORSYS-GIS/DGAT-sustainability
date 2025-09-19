@@ -8,9 +8,9 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
+use crate::web::routes::AppState;
 
 #[derive(Debug, Serialize)]
 pub struct ResponseHistoryResponse {
@@ -88,12 +88,25 @@ async fn fetch_files_for_response(
     Ok(files)
 }
 
+#[utoipa::path(
+    get,
+    path = "/assessments/{assessment_id}/responses",
+    responses(
+        (status = 200, description = "List responses for an assessment", body = ResponseListResponse),
+        (status = 404, description = "Assessment not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn list_responses(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<ResponseListResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment
@@ -153,13 +166,28 @@ pub async fn list_responses(
     Ok(Json(ResponseListResponse { responses }))
 }
 
+#[utoipa::path(
+    post,
+    path = "/assessments/{assessment_id}/responses",
+    request_body = Vec<CreateResponseRequest>,
+    responses(
+        (status = 201, description = "Create a new response for an assessment", body = ResponseListResponse),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 404, description = "Assessment not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+    )
+)]
 pub async fn create_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
     Json(requests): Json<Vec<CreateResponseRequest>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate requests
@@ -220,14 +248,19 @@ pub async fn create_response(
         .assessments_response
         .get_latest_responses_by_assessment(assessment_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}")))?;
+        .map_err(|e| {
+            ApiError::InternalServerError(format!("Failed to fetch existing responses: {e}"))
+        })?;
 
     let mut updated_responses = Vec::new();
 
     // Process each request
     for request in requests {
         // Check if a response already exists for this question_revision_id
-        if let Some(_existing) = existing_responses.iter().find(|r| r.question_revision_id == request.question_revision_id) {
+        if let Some(_existing) = existing_responses
+            .iter()
+            .find(|r| r.question_revision_id == request.question_revision_id)
+        {
             // Replace existing response with new one instead of appending
             let updated_response = app_state
                 .database
@@ -238,7 +271,9 @@ pub async fn create_response(
                     request.response,
                 )
                 .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to update response: {e}")))?;
+                .map_err(|e| {
+                    ApiError::InternalServerError(format!("Failed to update response: {e}"))
+                })?;
 
             updated_responses.push(updated_response);
         } else {
@@ -253,7 +288,9 @@ pub async fn create_response(
                     1,
                 )
                 .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to create response: {e}")))?;
+                .map_err(|e| {
+                    ApiError::InternalServerError(format!("Failed to create response: {e}"))
+                })?;
 
             updated_responses.push(new_response);
         }
@@ -279,15 +316,32 @@ pub async fn create_response(
         responses.push(response);
     }
 
-    Ok((StatusCode::CREATED, Json(ResponseListResponse { responses })))
+    Ok((
+        StatusCode::CREATED,
+        Json(ResponseListResponse { responses }),
+    ))
 }
 
+#[utoipa::path(
+    get,
+    path = "/assessments/{assessment_id}/responses/{response_id}",
+    responses(
+        (status = 200, description = "Get a specific response", body = ResponseResponse),
+        (status = 404, description = "Response not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
+        ("response_id" = Uuid, Path, description = "Response ID")
+    )
+)]
 pub async fn get_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment
@@ -357,13 +411,30 @@ pub async fn get_response(
     Ok(Json(ResponseResponse { response }))
 }
 
+#[utoipa::path(
+    put,
+    path = "/assessments/{assessment_id}/responses/{response_id}",
+    request_body = UpdateResponseRequest,
+    responses(
+        (status = 200, description = "Update a response", body = ResponseResponse),
+        (status = 400, description = "Bad request", body = ApiError),
+        (status = 404, description = "Response not found", body = ApiError),
+        (status = 409, description = "Version conflict", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
+        ("response_id" = Uuid, Path, description = "Response ID")
+    )
+)]
 pub async fn update_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<UpdateResponseRequest>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate request
@@ -479,12 +550,26 @@ pub async fn update_response(
     Ok(Json(ResponseResponse { response }))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/assessments/{assessment_id}/responses/{response_id}",
+    responses(
+        (status = 204, description = "Delete a response"),
+        (status = 404, description = "Response not found", body = ApiError),
+        (status = 500, description = "Internal server error", body = ApiError)
+    ),
+    params(
+        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
+        ("response_id" = Uuid, Path, description = "Response ID")
+    )
+)]
 pub async fn delete_response(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment

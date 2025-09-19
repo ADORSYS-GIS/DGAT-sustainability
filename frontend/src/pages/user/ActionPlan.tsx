@@ -12,7 +12,10 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import * as React from "react";
-import { useOfflineUserRecommendations, useOfflineRecommendationStatusMutation } from "../../hooks/useOfflineApi";
+import {
+  useOfflineUserRecommendations,
+  useOfflineRecommendationStatusMutation,
+} from "../../hooks/useOfflineApi";
 import { OfflineRecommendation } from "@/types/offline";
 import { useAuth } from "../../hooks/shared/useAuth"; // Import useAuth hook
 
@@ -20,16 +23,19 @@ export const ActionPlan: React.FC = () => {
   const { t } = useTranslation();
   // Fetch all user reports
   const { data, isLoading } = useOfflineUserRecommendations();
-  const { updateRecommendationStatus } = useOfflineRecommendationStatusMutation();
+  const { updateRecommendationStatus } =
+    useOfflineRecommendationStatusMutation();
   const { roles } = useAuth(); // Get user roles
   const isAdmin = roles.includes("org_admin"); // Check if user is an organization admin
 
   // Flat recommendation type for Kanban with status
   // Type for Kanban recommendations
   type KanbanRecommendation = OfflineRecommendation & { id: string }; // Add a local 'id' for React keys
-  
+
   // Extract and flatten recommendations from all reports (fixed for actual data structure)
-  const extractRecommendations = (recommendations: OfflineRecommendation[]): KanbanRecommendation[] => {
+  const extractRecommendations = (
+    recommendations: OfflineRecommendation[],
+  ): KanbanRecommendation[] => {
     return recommendations.map((rec) => ({
       ...rec,
       id: rec.recommendation_id, // Use recommendation_id as the unique key
@@ -48,17 +54,35 @@ export const ActionPlan: React.FC = () => {
 
   // Columns for Kanban
   const columns = [
-    { id: "todo", title: t("user.dashboard.actionPlan.kanban.todo", { defaultValue: "To Do" }), icon: AlertCircle, color: "text-gray-600" },
+    {
+      id: "todo",
+      title: t("user.dashboard.actionPlan.kanban.todo", {
+        defaultValue: "To Do",
+      }),
+      icon: AlertCircle,
+      color: "text-gray-600",
+    },
     {
       id: "in_progress",
-      title: t("user.dashboard.actionPlan.kanban.inProgress", { defaultValue: "In Progress" }),
+      title: t("user.dashboard.actionPlan.kanban.inProgress", {
+        defaultValue: "In Progress",
+      }),
       icon: PlayCircle,
       color: "text-blue-600",
     },
-    { id: "done", title: t("user.dashboard.actionPlan.kanban.done", { defaultValue: "Done" }), icon: CheckCircle, color: "text-green-600" },
+    {
+      id: "done",
+      title: t("user.dashboard.actionPlan.kanban.done", {
+        defaultValue: "Done",
+      }),
+      icon: CheckCircle,
+      color: "text-green-600",
+    },
     {
       id: "approved",
-      title: t("user.dashboard.actionPlan.kanban.approved", { defaultValue: "Approved" }),
+      title: t("user.dashboard.actionPlan.kanban.approved", {
+        defaultValue: "Approved",
+      }),
       icon: ThumbsUp,
       color: "text-emerald-600",
     },
@@ -69,7 +93,10 @@ export const ActionPlan: React.FC = () => {
     kanbanRecs.filter((rec) => rec.status === status);
 
   // Move a recommendation to a new status
-  const moveRecommendation = async (id: string, newStatus: "todo" | "in_progress" | "done" | "approved") => {
+  const moveRecommendation = async (
+    id: string,
+    newStatus: "todo" | "in_progress" | "done" | "approved",
+  ) => {
     // Update local state immediately for better UX
     setKanbanRecs((prev) =>
       prev.map((rec) => (rec.id === id ? { ...rec, status: newStatus } : rec)),
@@ -78,13 +105,13 @@ export const ActionPlan: React.FC = () => {
     // Extract report_id and category from the id
     // The `id` here is actually the `recommendation_id` from OfflineRecommendation
     // We need to find the full recommendation object to get report_id and category
-    const recommendationToUpdate = kanbanRecs.find(rec => rec.id === id);
+    const recommendationToUpdate = kanbanRecs.find((rec) => rec.id === id);
 
     if (!recommendationToUpdate) {
-      toast.error('Recommendation not found.');
+      toast.error("Recommendation not found.");
       return;
     }
-    
+
     try {
       await updateRecommendationStatus(
         recommendationToUpdate.recommendation_id,
@@ -94,18 +121,18 @@ export const ActionPlan: React.FC = () => {
         {
           onSuccess: () => {
             // No need to manually update local state here, as useOfflineRecommendationStatusMutation does it optimistically
-            toast.success('Status updated successfully');
+            toast.success("Status updated successfully");
           },
           onError: (error) => {
-            console.error('Failed to update status:', error);
+            console.error("Failed to update status:", error);
             // The mutation hook should handle reverting the optimistic update or marking as failed
-            toast.error('Failed to update status');
-          }
-        }
+            toast.error("Failed to update status");
+          },
+        },
       );
     } catch (error) {
-      console.error('Unhandled error in moveRecommendation:', error);
-      toast.error('Failed to update status');
+      console.error("Unhandled error in moveRecommendation:", error);
+      toast.error("Failed to update status");
     }
   };
 
@@ -156,7 +183,7 @@ export const ActionPlan: React.FC = () => {
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Remove online status indicator */}
-          
+
           {/* Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -164,11 +191,15 @@ export const ActionPlan: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <Kanban className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    {t("user.actionPlan.title", { defaultValue: "Action Plan" })}
+                    {t("user.actionPlan.title", {
+                      defaultValue: "Action Plan",
+                    })}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  {t("user.dashboard.actionPlan.subtitle", { defaultValue: "Track your sustainability improvement tasks" })}
+                  {t("user.dashboard.actionPlan.subtitle", {
+                    defaultValue: "Track your sustainability improvement tasks",
+                  })}
                 </p>
               </div>
             </div>
@@ -197,7 +228,10 @@ export const ActionPlan: React.FC = () => {
                       <div className="text-center py-8 text-gray-500">
                         <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">
-                          {t("user.actionPlan.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
+                          {t("user.actionPlan.kanban.noTasks", {
+                            status: column.id,
+                            defaultValue: `No tasks in ${column.title.toLowerCase()}`,
+                          })}
                         </p>
                       </div>
                     ) : (
@@ -222,7 +256,10 @@ export const ActionPlan: React.FC = () => {
                                       moveRecommendation(task.id, "in_progress")
                                     }
                                   >
-                                    {t("user.actionPlan.kanban.moveToInProgress", { defaultValue: "Move to In Progress" })}
+                                    {t(
+                                      "user.actionPlan.kanban.moveToInProgress",
+                                      { defaultValue: "Move to In Progress" },
+                                    )}
                                   </button>
                                 )}
                                 {isAdmin && task.status === "in_progress" && (
@@ -233,7 +270,9 @@ export const ActionPlan: React.FC = () => {
                                         moveRecommendation(task.id, "todo")
                                       }
                                     >
-                                      {t("user.actionPlan.kanban.backToTodo", { defaultValue: "Back to To Do" })}
+                                      {t("user.actionPlan.kanban.backToTodo", {
+                                        defaultValue: "Back to To Do",
+                                      })}
                                     </button>
                                     <button
                                       className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
@@ -241,7 +280,9 @@ export const ActionPlan: React.FC = () => {
                                         moveRecommendation(task.id, "done")
                                       }
                                     >
-                                      {t("user.actionPlan.kanban.moveToDone", { defaultValue: "Move to Done" })}
+                                      {t("user.actionPlan.kanban.moveToDone", {
+                                        defaultValue: "Move to Done",
+                                      })}
                                     </button>
                                   </>
                                 )}
@@ -256,7 +297,10 @@ export const ActionPlan: React.FC = () => {
                                         )
                                       }
                                     >
-                                      {t("user.actionPlan.kanban.backToInProgress", { defaultValue: "Back to In Progress" })}
+                                      {t(
+                                        "user.actionPlan.kanban.backToInProgress",
+                                        { defaultValue: "Back to In Progress" },
+                                      )}
                                     </button>
                                     <button
                                       className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"
@@ -275,7 +319,9 @@ export const ActionPlan: React.FC = () => {
                                       moveRecommendation(task.id, "done")
                                     }
                                   >
-                                    {t("user.actionPlan.kanban.backToDone", { defaultValue: "Back to Done" })}
+                                    {t("user.actionPlan.kanban.backToDone", {
+                                      defaultValue: "Back to Done",
+                                    })}
                                   </button>
                                 )}
                               </div>

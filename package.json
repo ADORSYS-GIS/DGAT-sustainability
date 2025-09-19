@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "dependencies": {
     "jspdf-autotable": "^5.0.2"
   }

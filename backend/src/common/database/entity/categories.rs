@@ -107,4 +107,4 @@ impl CategoriesService {
     pub async fn delete_category(&self, category_id: Uuid) -> Result<DeleteResult, DbErr> {
         self.db_service.delete(category_id).await
     }
-} 
+}

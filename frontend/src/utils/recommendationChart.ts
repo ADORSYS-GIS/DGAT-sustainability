@@ -2,7 +2,7 @@ import type { ChartData, ChartOptions } from "chart.js";
 import type { RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 
 export const generateRecommendationChartData = (
-  recommendations: RecommendationWithStatus[]
+  recommendations: RecommendationWithStatus[],
 ): { data: ChartData<"bar">; options: ChartOptions<"bar"> } | null => {
   if (!recommendations || recommendations.length === 0) {
     return null;
@@ -25,7 +25,7 @@ export const generateRecommendationChartData = (
   const percentages = {
     todo: (statusCounts.todo / total) * 100,
     in_progress: (statusCounts.in_progress / total) * 100,
-    done: (statusCounts.done + statusCounts.approved) / total * 100,
+    done: ((statusCounts.done + statusCounts.approved) / total) * 100,
   };
 
   const data: ChartData<"bar"> = {

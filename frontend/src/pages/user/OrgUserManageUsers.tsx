@@ -14,9 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Users, Edit, Trash2, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { 
-  useOfflineUsers
-} from "@/hooks/useOfflineApi";
+import { useOfflineUsers } from "@/hooks/useOfflineApi";
 import type {
   OrganizationMember,
   OrgAdminMemberRequest,
@@ -35,156 +33,174 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 function getOrgAndCategoriesAndId(user: Record<string, unknown>) {
   if (!user || !user.organizations)
     return { orgName: "", orgId: "", categories: [] };
-  
-  const organizations = user.organizations as Record<string, { id: string; categories: string[] }>;
+
+  const organizations = user.organizations as Record<
+    string,
+    { id: string; categories: string[] }
+  >;
   const orgKeys = Object.keys(organizations);
-  
-  if (orgKeys.length === 0) 
-    return { orgName: "", orgId: "", categories: [] };
-  
+
+  if (orgKeys.length === 0) return { orgName: "", orgId: "", categories: [] };
+
   const orgName = orgKeys[0]; // First organization
   const orgData = organizations[orgName];
-  
-  return { 
-    orgName, 
-    orgId: orgData?.id || "", 
-    categories: orgData?.categories || [] 
+
+  return {
+    orgName,
+    orgId: orgData?.id || "",
+    categories: orgData?.categories || [],
   };
 }
 
 // Offline-first user mutation hooks
 function useUserMutations() {
   const [isPending, setIsPending] = useState(false);
-  
-  const createUser = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
+
+  const createUser = async (data: {
+    id: string;
+    requestBody: OrgAdminMemberRequest;
+  }) => {
     setIsPending(true);
     try {
       // Generate a temporary ID for optimistic updates
       const tempId = `temp_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
-      
+
       // Create a temporary user object for local storage
       const tempUser: OfflineUser = {
         id: tempId,
         email: data.requestBody.email,
-        username: data.requestBody.email.split('@')[0], // Use email prefix as username
-        firstName: '',
-        lastName: '',
+        username: data.requestBody.email.split("@")[0], // Use email prefix as username
+        firstName: "",
+        lastName: "",
         emailVerified: false,
         roles: data.requestBody.roles,
         updated_at: now,
-        sync_status: 'pending',
+        sync_status: "pending",
         organization_id: data.id,
       };
-      
+
       // Save to IndexedDB immediately for optimistic UI updates
       await offlineDB.saveUser(tempUser);
-      
+
       // Try to sync with backend if online
       try {
-        const result = await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
-          id: data.id,
-          requestBody: data.requestBody
-        });
-        
+        const result =
+          await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers(
+            {
+              id: data.id,
+              requestBody: data.requestBody,
+            },
+          );
+
         // If successful, replace the temporary user with the real one
-        if (result && typeof result === 'object' && 'id' in result) {
+        if (result && typeof result === "object" && "id" in result) {
           const realUserId = (result as { id: string }).id;
-          
+
           // Delete the temporary user first
           await offlineDB.deleteUser(tempId);
-          
+
           // Verify deletion by checking if user still exists
           const deletedUser = await offlineDB.getUser(tempId);
           if (deletedUser) {
-            console.error('❌ Failed to delete temporary user:', tempId);
+            console.error("❌ Failed to delete temporary user:", tempId);
             // Try to delete again
             await offlineDB.deleteUser(tempId);
           }
-          
+
           // Save the real user with proper ID
           const realUser: OfflineUser = {
             id: realUserId,
             email: data.requestBody.email,
-            username: data.requestBody.email.split('@')[0],
-            firstName: '', // Default empty since not provided in response
-            lastName: '', // Default empty since not provided in response
+            username: data.requestBody.email.split("@")[0],
+            firstName: "", // Default empty since not provided in response
+            lastName: "", // Default empty since not provided in response
             emailVerified: false, // Default false since not provided in response
             roles: data.requestBody.roles,
             organization_id: data.id,
             updated_at: new Date().toISOString(),
-            sync_status: 'synced',
+            sync_status: "synced",
             local_changes: false,
-            last_synced: new Date().toISOString()
+            last_synced: new Date().toISOString(),
           };
-          
+
           await offlineDB.saveUser(realUser);
           toast.success("User created successfully");
         }
       } catch (apiError) {
-        console.warn('API call failed, user saved locally for sync:', apiError);
+        console.warn("API call failed, user saved locally for sync:", apiError);
         // Removed offline sync toast
       }
-      
+
       return { success: true };
     } catch (error) {
-      console.error('❌ Error in createUser:', error);
+      console.error("❌ Error in createUser:", error);
       toast.error("Failed to create user");
       throw error;
     } finally {
       setIsPending(false);
     }
   };
-  
-  const updateUser = async (data: { id: string; memberId: string; requestBody: OrgAdminMemberCategoryUpdateRequest }) => {
+
+  const updateUser = async (data: {
+    id: string;
+    memberId: string;
+    requestBody: OrgAdminMemberCategoryUpdateRequest;
+  }) => {
     setIsPending(true);
     try {
       // Get existing user from IndexedDB
       const existingUser = await offlineDB.getUser(data.memberId);
       if (!existingUser) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
-      
+
       // Update user locally - categories are stored separately in the API response
       const updatedUser: OfflineUser = {
         ...existingUser,
-        sync_status: 'pending',
-        updated_at: new Date().toISOString()
+        sync_status: "pending",
+        updated_at: new Date().toISOString(),
       };
-      
+
       await offlineDB.saveUser(updatedUser);
-      
+
       // Attempt API call
       try {
-        await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories({
-          id: data.id,
-          memberId: data.memberId,
-          requestBody: data.requestBody
-        });
-        
+        await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories(
+          {
+            id: data.id,
+            memberId: data.memberId,
+            requestBody: data.requestBody,
+          },
+        );
+
         // API call succeeded, mark as synced
         await offlineDB.saveUser({
           ...updatedUser,
-          sync_status: 'synced',
-          updated_at: new Date().toISOString()
+          sync_status: "synced",
+          updated_at: new Date().toISOString(),
         });
-        
+
         toast.success("User updated successfully");
         return { success: true };
       } catch (apiError) {
         // API call failed, queue for sync
         await offlineDB.addToSyncQueue({
           id: crypto.randomUUID(),
-          operation: 'update',
-          entity_type: 'user',
+          operation: "update",
+          entity_type: "user",
           entity_id: data.memberId,
-          data: { organizationId: data.id, memberId: data.memberId, userData: data.requestBody },
+          data: {
+            organizationId: data.id,
+            memberId: data.memberId,
+            userData: data.requestBody,
+          },
           retry_count: 0,
           max_retries: 3,
-          priority: 'normal',
-          created_at: new Date().toISOString()
+          priority: "normal",
+          created_at: new Date().toISOString(),
         });
-        
+
         // Removed offline mode toast
         return { success: true };
       }
@@ -195,49 +211,51 @@ function useUserMutations() {
       setIsPending(false);
     }
   };
-  
+
   const deleteUser = async (data: { id: string; memberId: string }) => {
     setIsPending(true);
     try {
       // Get existing user from IndexedDB
       const existingUser = await offlineDB.getUser(data.memberId);
       if (!existingUser) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
-      
+
       // Mark as deleted locally
       await offlineDB.saveUser({
         ...existingUser,
-        sync_status: 'pending',
-        updated_at: new Date().toISOString()
+        sync_status: "pending",
+        updated_at: new Date().toISOString(),
       });
-      
+
       // Attempt API call
       try {
-        await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId({
-          id: data.id,
-          memberId: data.memberId
-        });
-        
+        await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId(
+          {
+            id: data.id,
+            memberId: data.memberId,
+          },
+        );
+
         // API call succeeded, actually delete from IndexedDB
         await offlineDB.deleteUser(data.memberId);
-        
+
         toast.success("User deleted successfully");
         return { success: true };
       } catch (apiError) {
         // API call failed, queue for sync
         await offlineDB.addToSyncQueue({
           id: crypto.randomUUID(),
-          operation: 'delete',
-          entity_type: 'user',
+          operation: "delete",
+          entity_type: "user",
           entity_id: data.memberId,
           data: { organizationId: data.id, memberId: data.memberId },
           retry_count: 0,
           max_retries: 3,
-          priority: 'normal',
-          created_at: new Date().toISOString()
+          priority: "normal",
+          created_at: new Date().toISOString(),
         });
-        
+
         // Removed offline mode toast
         return { success: true };
       }
@@ -248,11 +266,11 @@ function useUserMutations() {
       setIsPending(false);
     }
   };
-  
+
   return {
     createUser: { mutate: createUser, isPending },
     updateUser: { mutate: updateUser, isPending },
-    deleteUser: { mutate: deleteUser, isPending }
+    deleteUser: { mutate: deleteUser, isPending },
   };
 }
 
@@ -260,9 +278,9 @@ export const OrgUserManageUsers: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+
   const { orgName, orgId, categories } = getOrgAndCategoriesAndId(user);
-  
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
@@ -275,21 +293,23 @@ export const OrgUserManageUsers: React.FC = () => {
 
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(null);
+  const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(
+    null,
+  );
 
   // Cleanup function to remove any stuck temporary users
   const cleanupTemporaryUsers = useCallback(async () => {
     try {
       const allUsers = await offlineDB.getAllUsers();
-      const tempUsers = allUsers.filter(u => u.id.startsWith('temp_'));
-      
+      const tempUsers = allUsers.filter((u) => u.id.startsWith("temp_"));
+
       if (tempUsers.length > 0) {
         for (const tempUser of tempUsers) {
           await offlineDB.deleteUser(tempUser.id);
         }
       }
     } catch (error) {
-      console.error('Error cleaning up temporary users:', error);
+      console.error("Error cleaning up temporary users:", error);
     }
   }, []);
 
@@ -305,7 +325,7 @@ export const OrgUserManageUsers: React.FC = () => {
     error,
     refetch,
   } = useOfflineUsers(orgId);
-  
+
   const { createUser, updateUser, deleteUser } = useUserMutations();
   // Remove useOfflineSyncStatus, useOfflineSync, sync, isSyncing
 
@@ -323,36 +343,42 @@ export const OrgUserManageUsers: React.FC = () => {
       toast.error("Organization not found");
       return;
     }
-    
+
     if (editingUser) {
       // Only update categories for existing user
       const req: OrgAdminMemberCategoryUpdateRequest = {
         categories: formData.categories,
       };
-      updateUser.mutate({
-        id: orgId,
-        memberId: editingUser.id,
-        requestBody: req,
-      }).then(() => {
-        refetch();
-        setShowAddDialog(false);
-        resetForm();
-      }).catch(() => {
-        // Error already handled in mutation
-      });
+      updateUser
+        .mutate({
+          id: orgId,
+          memberId: editingUser.id,
+          requestBody: req,
+        })
+        .then(() => {
+          refetch();
+          setShowAddDialog(false);
+          resetForm();
+        })
+        .catch(() => {
+          // Error already handled in mutation
+        });
     } else {
       const memberReq: OrgAdminMemberRequest = {
         email: formData.email,
         roles: ["Org_User"],
         categories: formData.categories,
       };
-      createUser.mutate({ id: orgId, requestBody: memberReq }).then(() => {
-        refetch();
-        setShowAddDialog(false);
-        resetForm();
-      }).catch(() => {
-        // Error already handled in mutation
-      });
+      createUser
+        .mutate({ id: orgId, requestBody: memberReq })
+        .then(() => {
+          refetch();
+          setShowAddDialog(false);
+          resetForm();
+        })
+        .catch(() => {
+          // Error already handled in mutation
+        });
     }
   };
 
@@ -373,16 +399,19 @@ export const OrgUserManageUsers: React.FC = () => {
 
   const confirmDelete = () => {
     if (!userToDelete || !orgId) return;
-    
-    deleteUser.mutate({ id: orgId, memberId: userToDelete.id }).then(() => {
-      refetch();
-      setShowDeleteConfirmation(false);
-      setUserToDelete(null);
-    }).catch(() => {
-      // Error already handled in mutation
-      setShowDeleteConfirmation(false);
-      setUserToDelete(null);
-    });
+
+    deleteUser
+      .mutate({ id: orgId, memberId: userToDelete.id })
+      .then(() => {
+        refetch();
+        setShowDeleteConfirmation(false);
+        setUserToDelete(null);
+      })
+      .catch(() => {
+        // Error already handled in mutation
+        setShowDeleteConfirmation(false);
+        setUserToDelete(null);
+      });
   };
 
   const resetForm = () => {
@@ -411,7 +440,7 @@ export const OrgUserManageUsers: React.FC = () => {
       <Navbar />
       <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Remove Offline Status Indicator and Manual Sync Button */}
-        
+
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="outline"
@@ -442,7 +471,7 @@ export const OrgUserManageUsers: React.FC = () => {
           <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>
-                {editingUser ? t('manageUsers.editUser') : 'Invite New User'}
+                {editingUser ? t("manageUsers.editUser") : "Invite New User"}
               </DialogTitle>
             </DialogHeader>
             {editingUser ? (
@@ -455,7 +484,10 @@ export const OrgUserManageUsers: React.FC = () => {
                     type="email"
                     value={formData.email}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, email: e.target.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
                     }
                     placeholder="Enter email"
                   />
@@ -486,7 +518,7 @@ export const OrgUserManageUsers: React.FC = () => {
                   <Label htmlFor="role">Role</Label>
                   <Input
                     id="role"
-                    value={t('manageUsers.orgUser')}
+                    value={t("manageUsers.orgUser")}
                     readOnly
                     className="bg-gray-100 cursor-not-allowed"
                   />
@@ -497,12 +529,15 @@ export const OrgUserManageUsers: React.FC = () => {
                     className="bg-dgrv-green hover:bg-green-700"
                     disabled={createUser.isPending || updateUser.isPending}
                   >
-                    {createUser.isPending || updateUser.isPending 
-                      ? t('common.processing') 
-                      : editingUser ? t('common.update') : t('common.create')} {t('manageUsers.user')}
+                    {createUser.isPending || updateUser.isPending
+                      ? t("common.processing")
+                      : editingUser
+                        ? t("common.update")
+                        : t("common.create")}{" "}
+                    {t("manageUsers.user")}
                   </Button>
                   <Button variant="outline" onClick={resetForm}>
-                    {t('common.cancel')}
+                    {t("common.cancel")}
                   </Button>
                 </div>
               </div>
@@ -511,7 +546,7 @@ export const OrgUserManageUsers: React.FC = () => {
               <OrgAdminUserInvitationForm
                 organizationId={orgId}
                 organizationName={orgName}
-                categories={categories.map(cat => ({ id: cat, name: cat }))}
+                categories={categories.map((cat) => ({ id: cat, name: cat }))}
                 onInvitationCreated={() => {
                   setShowAddDialog(false);
                   refetch();
@@ -555,7 +590,9 @@ export const OrgUserManageUsers: React.FC = () => {
                           : "bg-red-500 text-white"
                       }
                     >
-                      {user.emailVerified ? t('manageUsers.verified') : t('manageUsers.notVerified')}
+                      {user.emailVerified
+                        ? t("manageUsers.verified")
+                        : t("manageUsers.notVerified")}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -586,7 +623,7 @@ export const OrgUserManageUsers: React.FC = () => {
                         disabled={false}
                       >
                         <Edit className="w-4 h-4 mr-1" />
-                        {t('common.edit')}
+                        {t("common.edit")}
                       </Button>
                       <Button
                         size="sm"
@@ -608,16 +645,16 @@ export const OrgUserManageUsers: React.FC = () => {
               <CardContent>
                 <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t('manageUsers.noUsersYet')}
+                  {t("manageUsers.noUsersYet")}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  {t('manageUsers.addFirstUserDesc')}
+                  {t("manageUsers.addFirstUserDesc")}
                 </p>
                 <Button
                   onClick={() => setShowAddDialog(true)}
                   className="bg-dgrv-green hover:bg-green-700"
                 >
-                  {t('manageUsers.addFirstUser')}
+                  {t("manageUsers.addFirstUser")}
                 </Button>
               </CardContent>
             </Card>
@@ -632,15 +669,16 @@ export const OrgUserManageUsers: React.FC = () => {
             setUserToDelete(null);
           }}
           onConfirm={confirmDelete}
-          title={t('manageUsers.confirmDeleteTitle')}
-          description={t('manageUsers.confirmDeleteDescription', { 
-            email: userToDelete?.email || '',
-            name: userToDelete?.firstName && userToDelete?.lastName 
-              ? `${userToDelete.firstName} ${userToDelete.lastName}`
-              : userToDelete?.email || ''
+          title={t("manageUsers.confirmDeleteTitle")}
+          description={t("manageUsers.confirmDeleteDescription", {
+            email: userToDelete?.email || "",
+            name:
+              userToDelete?.firstName && userToDelete?.lastName
+                ? `${userToDelete.firstName} ${userToDelete.lastName}`
+                : userToDelete?.email || "",
           })}
-          confirmText={t('manageUsers.deleteUser')}
-          cancelText={t('manageUsers.cancel')}
+          confirmText={t("manageUsers.deleteUser")}
+          cancelText={t("manageUsers.cancel")}
           variant="destructive"
           isLoading={deleteUser.isPending}
         />

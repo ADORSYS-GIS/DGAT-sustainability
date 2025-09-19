@@ -18,11 +18,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(TempSubmission::OrgId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(TempSubmission::OrgId).string().not_null())
                     .col(
                         ColumnDef::new(TempSubmission::Content)
                             .json_binary()
@@ -47,10 +43,7 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_temp_submission_assessment")
-                            .from(
-                                TempSubmission::Table,
-                                TempSubmission::TempId,
-                            )
+                            .from(TempSubmission::Table, TempSubmission::TempId)
                             .to(Assessments::Table, Assessments::AssessmentId)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
