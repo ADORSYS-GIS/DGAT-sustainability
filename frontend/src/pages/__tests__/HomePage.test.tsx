@@ -9,7 +9,7 @@ describe("HomePage", () => {
     render(
       <MemoryRouter>
         <Welcome />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
   });
 });

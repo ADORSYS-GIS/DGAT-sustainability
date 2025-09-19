@@ -40,9 +40,7 @@ const renderRoutes = (routes: AppRoute[]) => {
       key={idx}
       path={path}
       element={
-        React.isValidElement(element)
-          ? element
-          : React.createElement(element)
+        React.isValidElement(element) ? element : React.createElement(element)
       }
     >
       {children && renderRoutes(children)}
@@ -54,9 +52,7 @@ const AppRouter = () => (
   <QueryClientProvider client={queryClient}>
     <Router>
       <MainLayout>
-        <Routes>
-          {renderRoutes(routes)}
-        </Routes>
+        <Routes>{renderRoutes(routes)}</Routes>
       </MainLayout>
     </Router>
   </QueryClientProvider>
