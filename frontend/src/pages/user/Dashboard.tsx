@@ -44,6 +44,24 @@ import {
   useOfflineUserRecommendations,
 } from "@/hooks/useOfflineApi";
 import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
+import { ReportSelectionDialog } from "@/components/shared/ReportSelectionDialog";
+import type { Report, AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
+
+// Local types to map report.data into existing export inputs
+interface ReportAnswer {
+  yesNo?: boolean;
+  percentage?: number;
+  text?: string;
+}
+interface ReportQuestionItem {
+  question?: string;
+  answer?: ReportAnswer;
+}
+interface ReportCategoryData {
+  questions?: ReportQuestionItem[];
+  recommendation?: string;
+  status?: "todo" | "in_progress" | "done" | "approved" | string;
+}
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -110,6 +128,87 @@ export const Dashboard: React.FC = () => {
   const submissions: Submission[] = submissionsData?.submissions?.slice(0, 5) || [];
   const recommendations: OfflineRecommendation[] = reportsData?.recommendations || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = React.useState(false);
+
+  const handleOpenReportDialog = () => {
+    setIsReportDialogOpen(true);
+  };
+
+  const mapReportToExportInputs = (
+    report: Report
+  ): { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
+    const categoriesObj: Record<string, ReportCategoryData> =
+      Array.isArray(report.data) && report.data.length > 0
+        ? (report.data[0] as unknown as Record<string, ReportCategoryData>)
+        : {};
+
+    // Build a pseudo AdminSubmissionDetail with responses shaped for drawTable
+    const responses = Object.entries(categoriesObj).flatMap(
+      ([category, categoryData]) => {
+        const questions = Array.isArray(categoryData?.questions)
+          ? categoryData.questions!
+          : [];
+        return questions.map((q): { question_category: string; question_text: string; response: string } => ({
+          question_category: category,
+          question_text: q?.question ?? "",
+          response: JSON.stringify(q?.answer ?? {}),
+        }));
+      }
+    );
+
+    const submissions: AdminSubmissionDetail[] = [
+      ({
+        submission_id: report.submission_id,
+        assessment_id: "",
+        user_id: "",
+        org_id: "",
+        org_name: "",
+        content: {
+          assessment: { assessment_id: "" },
+          responses,
+        },
+        review_status: "reviewed",
+        submitted_at: report.generated_at,
+        reviewed_at: report.generated_at,
+      } as unknown) as AdminSubmissionDetail,
+    ];
+
+    const recommendations: RecommendationWithStatus[] = Object.entries(
+      categoriesObj
+    ).map(([category, categoryData]) => ({
+      report_id: report.report_id,
+      category,
+      recommendation: categoryData?.recommendation ?? "",
+      status: (categoryData?.status as RecommendationWithStatus["status"]) || "todo",
+      created_at: report.generated_at,
+    }));
+
+    return { submissions, recommendations };
+  };
+
+  const handleSelectReportToExport = async (report: { report_id: string }) => {
+    try {
+      const fullReport = reportsData?.reports?.find(
+        (r) => r.report_id === report.report_id
+      );
+      if (!fullReport) return;
+
+      const { submissions: singleSubmissions, recommendations: singleRecs } =
+        mapReportToExportInputs(fullReport as Report);
+
+      const radarChartDataUrl = chartRef.current?.toBase64Image();
+      const recommendationChartDataUrl = recommendationChartRef.current?.toBase64Image();
+
+      await exportAllAssessmentsPDF(
+        singleSubmissions,
+        singleRecs,
+        radarChartDataUrl,
+        recommendationChartDataUrl
+      );
+    } finally {
+      setIsReportDialogOpen(false);
+    }
+  };
 
   React.useEffect(() => {
     if (submissionsError) {
@@ -442,12 +541,13 @@ export const Dashboard: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={handleExportAllPDF}
+                      onClick={handleOpenReportDialog}
                       disabled={reportsLoading}
                     >
                       {t('user.dashboard.exportAsPDF')}
                     </Button>
-                    {/* <Button
+                    {/* Keep bulk export available if needed */}
+                    <Button
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
@@ -455,7 +555,7 @@ export const Dashboard: React.FC = () => {
                       disabled={reportsLoading}
                     >
                       {t('user.dashboard.exportAsDOCX')}
-                    </Button> */}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -500,6 +600,13 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ReportSelectionDialog
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        reports={reportsData?.reports || []}
+        onReportSelect={handleSelectReportToExport}
+      />
     </div>
   );
 };

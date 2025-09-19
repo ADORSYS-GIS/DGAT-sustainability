@@ -14,14 +14,12 @@ import { Badge } from '../ui/badge';
 interface OrgAdminUserInvitationFormProps {
   organizationId: string;
   organizationName: string;
-  categories: Array<{ id: string; name: string }>;
   onInvitationCreated?: () => void;
 }
 
 export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProps> = ({
   organizationId,
   organizationName,
-  categories,
   onInvitationCreated
 }) => {
   const { t } = useTranslation();
@@ -30,7 +28,6 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
     first_name: '',
     last_name: '',
     roles: ['Org_User'], // Default to Org_User for org admin
-    categories: []
   });
   const [createdInvitation, setCreatedInvitation] = useState<OrgAdminUserInvitationResponse | null>(null);
 
@@ -56,7 +53,6 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
         first_name: '',
         last_name: '',
         roles: ['Org_User'], // Default to Org_User for org admin
-        categories: []
       });
 
       onInvitationCreated?.();
@@ -322,27 +318,6 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
             <p className="text-xs text-gray-500">Organization Admin can only create Organization User accounts</p>
           </div>
 
-          <div className="space-y-2">
-            <Label>{t('userInvitation.categories')}</Label>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <Button
-                  key={category.id}
-                  type="button"
-                  variant={formData.categories.includes(category.id) ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    const newCategories = formData.categories.includes(category.id)
-                      ? formData.categories.filter(c => c !== category.id)
-                      : [...formData.categories, category.id];
-                    setFormData({ ...formData, categories: newCategories });
-                  }}
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-          </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">{t('userInvitation.flowInfo.title')}</h4>

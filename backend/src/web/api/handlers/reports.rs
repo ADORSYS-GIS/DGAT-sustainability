@@ -411,6 +411,80 @@ pub async fn list_all_action_plans(
     Ok(Json(ActionPlanListResponse { organizations: action_plans }))
 }
 
+/// Get all reports for all organizations (DGRV admin view)
+/// GET /admin/reports
+pub async fn list_all_reports(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    // Only DGRV admins can access this endpoint
+    if !claims.is_application_admin() {
+        return Err(ApiError::Forbidden("Only DGRV admins can access all reports".to_string()));
+    }
+
+    // Get all reports from the database
+    let all_reports = app_state
+        .database
+        .submission_reports
+        .get_all_reports()
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch all reports: {e}")))?;
+
+    // Get all organizations from Keycloak to map org_id to org_name
+    let organizations = app_state
+        .keycloak_service
+        .get_organizations(&token)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organizations: {e}")))?;
+
+    // Create a mapping from org_id to org_name
+    let org_name_map: std::collections::HashMap<String, String> = organizations
+        .into_iter()
+        .map(|org| (org.id, org.name))
+        .collect();
+
+    // Get all submissions to map report submission_id to org_id
+    let all_submissions = app_state
+        .database
+        .assessments_submission
+        .get_all_submissions()
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch all submissions: {e}")))?;
+
+    // Create a mapping from submission_id to org_id
+    let submission_org_map: std::collections::HashMap<Uuid, String> = all_submissions
+        .into_iter()
+        .map(|submission| (submission.submission_id, submission.org_id))
+        .collect();
+
+    // Convert database models to AdminReport models with organization information
+    let mut admin_reports = Vec::new();
+
+    for report_model in all_reports {
+        let submission_id = report_model.submission_id;
+        let org_id = submission_org_map.get(&submission_id)
+            .cloned()
+            .unwrap_or_else(|| "unknown".to_string());
+        
+        let org_name = org_name_map.get(&org_id)
+            .cloned()
+            .unwrap_or_else(|| "Unknown Organization".to_string());
+
+        admin_reports.push(AdminReport {
+            report_id: report_model.report_id,
+            submission_id,
+            org_id,
+            org_name,
+            status: report_model.status,
+            generated_at: report_model.generated_at.to_rfc3339(),
+            data: report_model.data,
+        });
+    }
+
+    Ok(Json(AdminReportListResponse { reports: admin_reports }))
+}
+
 /// Update recommendation status (for org admins)
 /// PATCH /reports/{report_id}/recommendations/{category}/status
 pub async fn update_recommendation_status(

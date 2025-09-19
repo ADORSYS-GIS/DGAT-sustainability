@@ -1,5 +1,6 @@
 backend/target
 .env
+.roo
 .cursor/
 # Logs
 logs

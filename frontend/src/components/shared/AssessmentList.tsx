@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
-import { Calendar, Clock, FileText } from "lucide-react";
-import type { OfflineAssessment } from "@/types/offline";
+import { Calendar, Clock, FileText, Tag } from "lucide-react";
+import type { OfflineAssessment, OfflineCategory } from "@/types/offline";
+import { useOfflineCategories } from "@/hooks/useOfflineApi";
 
 interface AssessmentListProps {
   assessments: OfflineAssessment[];
@@ -18,6 +19,23 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   isLoading = false,
 }) => {
   const { t } = useTranslation();
+  const { data: categoriesData } = useOfflineCategories();
+
+  // Create a map of category IDs to category names for easy lookup
+  const categoriesMap = React.useMemo(() => {
+    if (!categoriesData?.categories) return new Map<string, string>();
+    return new Map(
+      categoriesData.categories.map((cat) => [cat.category_id, cat.name])
+    );
+  }, [categoriesData?.categories]);
+
+  // Function to get category names from category UUIDs
+  const getCategoryNames = (categoryIds?: string[]) => {
+    if (!categoryIds || categoryIds.length === 0) return [];
+    return categoryIds
+      .map((id) => categoriesMap.get(id))
+      .filter((name): name is string => !!name);
+  };
 
   if (isLoading) {
     return (
@@ -49,7 +67,7 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <FileText className="w-5 h-5 text-dgrv-blue" />
-                <div>
+                <div className="flex-1 min-w-0">
                   <CardTitle className="text-lg font-semibold">
                     {assessment.name || t('assessment.untitled', { defaultValue: 'Untitled Assessment' })}
                   </CardTitle>
@@ -67,6 +85,27 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Display assigned categories */}
+                  {assessment.categories && assessment.categories.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex items-center space-x-1 text-xs text-gray-500">
+                        <Tag className="w-3 h-3" />
+                        <span>{t('assessment.assignedCategories', { defaultValue: 'Assigned categories' })}:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {getCategoryNames(assessment.categories).map((categoryName) => (
+                          <Badge
+                            key={categoryName}
+                            variant="outline"
+                            className="text-xs bg-dgrv-green/10 text-dgrv-green border-dgrv-green/20"
+                          >
+                            {categoryName}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center space-x-2">

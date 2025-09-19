@@ -164,6 +164,35 @@ export const Assessment: React.FC = () => {
     return { orgId, categories: userCategories };
   }, [user]);
 
+  // Extract assessment categories from assessment detail and map IDs to names
+  const assessmentCategories = React.useMemo(() => {
+    if (!assessmentDetail || !categoriesData?.categories) return [];
+    
+    let actualAssessment: AssessmentType;
+    if (isAssessmentDetailResponse(assessmentDetail)) {
+      actualAssessment = assessmentDetail.assessment;
+    } else {
+      actualAssessment = assessmentDetail as AssessmentType;
+    }
+    
+    // Get category names from assessment categories array by mapping IDs to names
+    if (actualAssessment.categories && Array.isArray(actualAssessment.categories)) {
+      return actualAssessment.categories.map(cat => {
+        if (typeof cat === 'string') {
+          // This is a category ID, find the corresponding category name
+          const categoryObj = categoriesData.categories.find(c => c.category_id === cat);
+          return categoryObj?.name || cat; // Return name if found, otherwise fall back to ID
+        }
+        if (typeof cat === 'object' && cat !== null && 'name' in cat) {
+          return (cat as { name: string }).name;
+        }
+        return '';
+      }).filter(Boolean);
+    }
+    
+    return [];
+  }, [assessmentDetail, categoriesData?.categories]);
+
   // Assessment creation logic
   useEffect(() => {
     if (!user) return;
@@ -183,7 +212,7 @@ export const Assessment: React.FC = () => {
   };
 
   // Handle assessment creation from modal
-  const handleCreateAssessment = async (assessmentName: string) => {
+  const handleCreateAssessment = async (assessmentName: string, categories?: string[]) => {
     if (creationAttempts >= 3) {
       toast.error(t("assessment.maxRetriesExceeded", { defaultValue: "Failed to create assessment after multiple attempts. Please try again later." }));
       setShowCreateModal(false);
@@ -195,9 +224,14 @@ export const Assessment: React.FC = () => {
     setHasCreatedAssessment(true);
     setCreationAttempts((prev) => prev + 1);
     
-    const newAssessment: CreateAssessmentRequest = { 
+    const newAssessment: CreateAssessmentRequest = {
       language: currentLanguage,
       name: assessmentName,
+      categories: categories?.map(cat => {
+        // Find category ID by name from available categories
+        const categoryObj = categoriesData?.categories.find(c => c.name === cat);
+        return categoryObj?.category_id || cat;
+      }),
     };
     
     createAssessment(newAssessment, {
@@ -331,7 +365,7 @@ export const Assessment: React.FC = () => {
     }
   };
 
-  // Group questions by category
+  // Group questions by category - use intersection of assessment categories and user categories
   const groupedQuestions = React.useMemo(() => {
     if (!questionsData?.questions) return {};
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
@@ -342,15 +376,25 @@ export const Assessment: React.FC = () => {
     });
 
     const filtered: typeof groups = {};
-    for (const userCat of orgInfo.categories) {
-      const normalizedUserCat = userCat.toLowerCase();
-      const matchingCategory = Object.keys(groups).find((cat) => cat.toLowerCase() === normalizedUserCat);
+    
+    // First filter by assessment categories
+    for (const assessmentCat of assessmentCategories) {
+      const normalizedAssessmentCat = assessmentCat.toLowerCase();
+      const matchingCategory = Object.keys(groups).find((cat) => cat.toLowerCase() === normalizedAssessmentCat);
       if (matchingCategory && groups[matchingCategory]) {
-        filtered[matchingCategory] = groups[matchingCategory];
+        // Then check if this category is also assigned to the user
+        const normalizedUserCat = normalizedAssessmentCat;
+        const userHasCategory = orgInfo.categories.some(userCat =>
+          userCat.toLowerCase() === normalizedUserCat
+        );
+        
+        if (userHasCategory) {
+          filtered[matchingCategory] = groups[matchingCategory];
+        }
       }
     }
     return filtered;
-  }, [questionsData?.questions, orgInfo.categories]);
+  }, [questionsData?.questions, assessmentCategories, orgInfo.categories]);
 
   const categories = Object.keys(groupedQuestions);
 
@@ -358,7 +402,7 @@ export const Assessment: React.FC = () => {
   const allRoles = [...(user?.roles || []), ...(user?.realm_access?.roles || [])].map((r) => r.toLowerCase());
   const isOrgUser = allRoles.includes("org_user") && !allRoles.includes("org_admin");
   
-  if (categories.length === 0 && isOrgUser) {
+  if (assessmentCategories.length === 0 && isOrgUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -368,7 +412,7 @@ export const Assessment: React.FC = () => {
           </h2>
           <p className="text-gray-600 mb-4">
             {t("assessment.noCategoriesDescription", {
-              defaultValue: "No assessment categories have been assigned to your account. Please contact your organization administrator.",
+              defaultValue: "This assessment doesn't have any categories assigned to you, or there are no matching categories between your assigned categories and the assessment's categories. Please contact your organization administrator.",
             })}
           </p>
           <Button onClick={() => navigate("/dashboard")}>{t("assessment.backToDashboard", { defaultValue: "Back to Dashboard" })}</Button>
@@ -419,6 +463,8 @@ export const Assessment: React.FC = () => {
               onClose={() => setShowCreateModal(false)}
               onSubmit={handleCreateAssessment}
               isLoading={isCreatingAssessment}
+              isOrgAdmin={allRoles.includes("org_admin")}
+              availableCategories={categoriesData?.categories.map(c => c.name) || []}
             />
           </div>
         </div>
@@ -858,6 +904,8 @@ export const Assessment: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateAssessment}
         isLoading={isCreatingAssessment}
+        isOrgAdmin={allRoles.includes("org_admin")}
+        availableCategories={categoriesData?.categories.map(c => c.name) || []}
       />
     </div>
   );

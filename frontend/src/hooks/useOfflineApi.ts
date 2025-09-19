@@ -1289,7 +1289,17 @@ export function useOfflineSubmissions() {
     fetchSubmissions();
   }, [fetchSubmissions]);
 
-  return { data, isLoading, error, refetch: fetchSubmissions };
+  const deleteSubmission = useCallback(async (submissionId: string) => {
+    try {
+      await offlineDB.deleteSubmission(submissionId);
+      await fetchSubmissions(); // Refetch submissions after deletion
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to delete submission');
+      setError(error);
+    }
+  }, [fetchSubmissions]);
+
+  return { data, isLoading, error, refetch: fetchSubmissions, deleteSubmission };
 }
 
 export function useOfflineSubmissionsMutation() {

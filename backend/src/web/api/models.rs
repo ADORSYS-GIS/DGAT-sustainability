@@ -147,6 +147,7 @@ pub struct Assessment {
     pub org_id: String,
     pub language: String,
     pub name: String,
+    pub categories: Vec<Uuid>,
     pub status: AssessmentStatus,
     pub created_at: String,
     pub updated_at: String,
@@ -156,6 +157,8 @@ pub struct Assessment {
 pub struct CreateAssessmentRequest {
     pub language: String,
     pub name: String,
+    #[serde(default)]
+    pub categories: Vec<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -452,6 +455,22 @@ pub struct ReportResponse {
 #[derive(Debug, Serialize)]
 pub struct ReportListResponse {
     pub reports: Vec<Report>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminReport {
+    pub report_id: Uuid,
+    pub submission_id: Uuid,
+    pub org_id: String,
+    pub org_name: String,
+    pub status: String,
+    pub generated_at: String,
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminReportListResponse {
+    pub reports: Vec<AdminReport>,
 }
 
 // =============== Organization Models ===============

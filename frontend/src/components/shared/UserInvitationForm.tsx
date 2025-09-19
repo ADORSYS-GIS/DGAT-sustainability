@@ -13,14 +13,12 @@ import { Badge } from '../ui/badge';
 
 interface UserInvitationFormProps {
   organizations: Array<{ id: string; name: string }>;
-  categories: Array<{ id: string; name: string }>;
   onInvitationCreated?: () => void;
   defaultOrganizationId?: string; // Add optional default organization
 }
 
 export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
   organizations,
-  categories,
   onInvitationCreated,
   defaultOrganizationId
 }) => {
@@ -31,7 +29,6 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
       last_name: '',
       organization_id: defaultOrganizationId || '',
               roles: ['org_admin'], // Default to org_admin for DRGV admin
-      categories: [] // Default to empty array
     });
   const [createdInvitation, setCreatedInvitation] = useState<UserInvitationResponse | null>(null);
 
@@ -55,7 +52,6 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
         last_name: '',
         organization_id: defaultOrganizationId || '',
         roles: ['org_admin'],
-        categories: [] // Clear categories after successful invitation
       });
 
       onInvitationCreated?.();
@@ -342,27 +338,6 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
             <p className="text-xs text-gray-500">DRGV Admin can only create Organization Admin users</p>
           </div>
 
-          <div className="space-y-2">
-            <Label>{t('userInvitation.categories')}</Label>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <Button
-                  key={category.id}
-                  type="button"
-                  variant={formData.categories.includes(category.id) ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    const newCategories = formData.categories.includes(category.id)
-                      ? formData.categories.filter(c => c !== category.id)
-                      : [...formData.categories, category.id];
-                    setFormData({ ...formData, categories: newCategories });
-                  }}
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-          </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">{t('userInvitation.flowInfo.title')}</h4>

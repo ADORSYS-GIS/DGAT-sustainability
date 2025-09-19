@@ -54,6 +54,8 @@
   "noSubmissions": "Aucune soumission pour le moment",
   "submissionDeleted": "Soumission supprimée avec succès",
   "failedToDeleteSubmission": "Échec de la suppression de la soumission",
+  "confirmDeletion": "Confirmer la suppression",
+  "confirmDeletionDescription": "Êtes-vous sûr de vouloir supprimer cette soumission ? Cette action ne peut pas être annulée.",
   "syncData": "Synchroniser les données",
   "startAssessment": "Démarrer l'évaluation",
   "status": "Statut",
@@ -469,6 +471,24 @@
         "exportAsPDF": "Exporter en PDF",
         "exportAsWord": "Exporter en Word",
         "exportAsCSV": "Exporter en CSV",
+        "selectReport": "Sélectionnez un rapport à exporter",
+        "selectReportDescription": "Choisissez l'un de vos rapports d'évaluation générés à exporter en PDF.",
+        "statusLabel": "Statut",
+        "reportTypes": {
+          "durability": "Durabilité",
+          "compliance": "Conformité",
+          "summary": "Résumé",
+          "detailed": "Détaillé"
+        },
+        "reportStatus": {
+          "completed": "Terminé",
+          "generating": "Génération",
+          "failed": "Échec"
+        },
+        "submissionId": "Soumission",
+        "generatedAt": "Généré",
+        "select": "Sélectionner",
+        "noReportsAvailable": "Aucun rapport disponible",
         "needHelp": "Besoin d'aide ?",
         "getSupport": "Obtenez du support et des matériels de formation pour tirer le meilleur parti de vos évaluations.",
         "viewUserGuide": "Voir le guide de l'utilisateur",
@@ -984,5 +1004,29 @@
     "reviewSavedLocally": "Examen enregistré localement. Sera synchronisé lorsque vous serez en ligne.",
     "failedToSubmitReview": "Échec de la soumission de l'examen",
     "manualSyncFailed": "Échec de la synchronisation manuelle"
+  }
+  ,
+  "reportHistory": {
+    "title": "Historique des rapports",
+    "subtitle": "Voir et gérer tous les rapports des organisations",
+    "refresh": "Rafraîchir",
+    "offlineError": "Impossible de charger les rapports hors ligne",
+    "loadError": "Échec du chargement des rapports",
+    "downloadSuccess": "Rapport téléchargé avec succès",
+    "downloadError": "Échec du téléchargement du rapport",
+    "searchPlaceholder": "Rechercher par organisation ou ID de rapport...",
+    "statusFilter": "Statut",
+    "allStatuses": "Tous les statuts",
+    "completed": "Terminé",
+    "generating": "Génération",
+    "failed": "Échec",
+    "reportsFound": "rapports trouvés",
+    "noReports": "Aucun rapport trouvé",
+    "reportId": "Rapport",
+    "view": "Voir",
+    "download": "Télécharger",
+    "organizations": "Organisations",
+    "backToOrganizations": "Retour aux organisations",
+    "exportAsPDF": "Exporter en PDF"
   }
 }
