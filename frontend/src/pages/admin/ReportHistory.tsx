@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
@@ -289,8 +288,6 @@ export const ReportHistory: React.FC = () => {
             )}
           </div>
 
-          {/* Filters removed as per request */}
-
           {/* Reports Grid */}
           <div className="grid gap-6">
             {selectedOrgId && filteredReports.length === 0 && (
@@ -377,96 +374,105 @@ export const ReportHistory: React.FC = () => {
             return (
               <>
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold text-dgrv-blue">{report.org_name}</DialogTitle>
-                  <p className="text-sm text-gray-500">
-                    {t('reportHistory.reportId', { defaultValue: 'Report' })}: {report.report_id}
-                  </p>
+                  <DialogTitle className="text-2xl font-bold text-dgrv-blue flex items-center gap-2">
+                    <Building2 className="w-6 h-6" />
+                    {report.org_name} - Report Details
+                  </DialogTitle>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(report.generated_at).toLocaleDateString()}
+                    </Badge>
+                    {getStatusBadge(report.status)}
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <FileText className="w-3 h-3" />
+                      ID: {report.report_id}
+                    </Badge>
+                  </div>
                 </DialogHeader>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                    <Building2 className="w-5 h-5 text-dgrv-blue" />
-                    <div>
-                      <p className="font-semibold">{t('reportHistory.organization', { defaultValue: 'Organization' })}</p>
-                      <p className="text-gray-600">{report.org_name}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                    <Calendar className="w-5 h-5 text-dgrv-blue" />
-                    <div>
-                      <p className="font-semibold">{t('reportHistory.generatedOn', { defaultValue: 'Generated on' })}</p>
-                      <p className="text-gray-600">{new Date(report.generated_at).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                    <Award className="w-5 h-5 text-dgrv-blue" />
-                    <div>
-                      <p className="font-semibold">{t('reportHistory.status', { defaultValue: 'Status' })}</p>
-                      {getStatusBadge(report.status)}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="mt-6 space-y-6">
+                <div className="mt-6 space-y-3">
                   {categories.length > 0 ? (
                     categories.map(category => {
                       const recsForCategory = recommendations.filter(r => r.category === category);
                       const responsesForCategory = responses.filter(r => r.question_category === category);
-                      
+                      const isExpanded = expandedCategories.has(category);
+                       
                       return (
-                        <Card key={category} className="border-l-4 border-blue-500">
-                          <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors rounded-t-lg" onClick={() => {
-                            const newExpanded = new Set(expandedCategories);
-                            if (newExpanded.has(category)) {
-                              newExpanded.delete(category);
-                            } else {
-                              newExpanded.add(category);
-                            }
-                            setExpandedCategories(newExpanded);
-                          }}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className="p-2 rounded-full bg-blue-100">
-                                  <Award className="w-5 h-5 text-blue-600" />
-                                </div>
-                                <div>
-                                  <CardTitle className="text-lg">{category}</CardTitle>
-                                  <p className="text-sm text-gray-600">
-                                    {responsesForCategory.length} {responsesForCategory.length === 1 ? t('reportHistory.question', { defaultValue: 'question' }) : 'questions'}
-                                  </p>
-                                </div>
+                        <div key={category} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm transition-all duration-200 hover:shadow-md">
+                          {/* Category Header - Clickable to expand/collapse */}
+                          <div
+                            className="p-5 bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 cursor-pointer flex justify-between items-center transition-all duration-200 group hover:shadow-md border border-transparent hover:border-gray-200"
+                            onClick={() => {
+                              const newExpanded = new Set(expandedCategories);
+                              if (isExpanded) {
+                                newExpanded.delete(category);
+                              } else {
+                                newExpanded.add(category);
+                              }
+                              setExpandedCategories(newExpanded);
+                            }}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                                <ChevronDown className="w-6 h-6 text-dgrv-blue" />
                               </div>
-                              <div className="flex items-center space-x-1 text-gray-600 hover:text-gray-800">
-                                {expandedCategories.has(category) ? (
-                                  <ChevronDown className="w-4 h-4" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4" />
-                                )}
-                                <span className="text-sm">
-                                  {expandedCategories.has(category) ? t('reportHistory.collapse', { defaultValue: 'Collapse' }) : t('reportHistory.expand', { defaultValue: 'Expand' })}
-                                </span>
+                              <div>
+                                <h3 className="text-xl font-bold text-dgrv-blue">{category}</h3>
+                                <div className="flex items-center gap-4 mt-1">
+                                  <span className="text-sm text-gray-600">
+                                    {responsesForCategory.length} questions
+                                  </span>
+                                  {recsForCategory.length > 0 && (
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                      <Award className="w-3 h-3 mr-1" />
+                                      {recsForCategory.length} recommendation{recsForCategory.length !== 1 ? 's' : ''}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </CardHeader>
-                          
-                          {expandedCategories.has(category) && (
-                            <CardContent>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full transition-colors duration-200 ${isExpanded ? 'bg-dgrv-blue' : 'bg-gray-300'}`}></div>
+                            </div>
+                          </div>
+
+                          {/* Expanded Content */}
+                          {isExpanded && (
+                            <div className="p-6 border-t border-gray-100 bg-gray-50">
+                              {/* Recommendations Section */}
                               {recsForCategory.length > 0 && (
-                                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-400 rounded-lg">
-                                  <div className="flex items-center space-x-2 mb-3">
-                                    <Award className="w-4 h-4 text-blue-600" />
-                                    <p className="text-sm font-medium text-gray-900">{t('reportHistory.recommendations', { defaultValue: 'Recommendations:' })}</p>
+                                <div className="mb-8">
+                                  <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-blue-100 rounded-lg">
+                                      <Award className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-blue-800">Recommendations</h4>
                                   </div>
-                                  <div className="space-y-3">
+                                  <div className="grid gap-4">
                                     {recsForCategory.map((rec, idx) => (
-                                      <div key={idx} className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
-                                        <p className="text-sm text-gray-700">{rec.recommendation}</p>
+                                      <div key={idx} className="bg-white p-4 rounded-lg border-l-4 border-blue-400 shadow-sm">
+                                        <div className="flex items-start gap-3">
+                                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span className="text-blue-600 text-xs font-bold">{idx + 1}</span>
+                                          </div>
+                                          <p className="text-gray-800 leading-relaxed">{rec.recommendation}</p>
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
                                 </div>
                               )}
                               
-                              <div className="space-y-4">
+                              {/* Questions and Responses */}
+                              <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-green-100 rounded-lg">
+                                    <FileText className="w-5 h-5 text-green-600" />
+                                  </div>
+                                  <h4 className="text-lg font-semibold text-green-800">Questions & Responses</h4>
+                                </div>
+                                
                                 {responsesForCategory.map((res, idx) => {
                                   let responseData: { yesNo?: boolean; percentage?: number; text?: string; files?: FileAttachment[] };
                                   try {
@@ -474,79 +480,219 @@ export const ReportHistory: React.FC = () => {
                                   } catch {
                                     responseData = { text: res.response };
                                   }
+                                  
                                   return (
-                                    <div key={idx} className="bg-gray-50 p-4 rounded-lg">
-                                      <div className="mb-3">
-                                        <h4 className="font-medium text-gray-900 mb-2">{res.question_text}</h4>
-                                        <div className="space-y-2">
+                                    <div key={idx} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                      {/* Question Header */}
+                                      <div className="p-4 bg-gradient-to-r from-green-50 to-white border-b border-gray-100">
+                                        <div className="flex items-start gap-3">
+                                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <span className="text-green-600 text-sm font-bold">{idx + 1}</span>
+                                          </div>
+                                          <h5 className="text-base font-semibold text-gray-900 leading-relaxed">{res.question_text}</h5>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Response Content */}
+                                      <div className="p-5 space-y-4">
+                                        {/* Response Types Grid */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                          {/* Yes/No Response */}
                                           {responseData.yesNo !== undefined && (
-                                            <div className="flex items-center space-x-2">
-                                              <span className="text-sm font-medium text-gray-700">{t('reportHistory.yesNo', { defaultValue: 'Yes/No:' })}</span>
-                                              <Badge variant={responseData.yesNo ? "default" : "secondary"}>
-                                                {responseData.yesNo ? t('reportHistory.yes', { defaultValue: 'Yes' }) : t('reportHistory.no', { defaultValue: 'No' })}
+                                            <div className="bg-gray-50 rounded-lg p-4">
+                                              <div className="flex items-center gap-2 mb-2">
+                                                <div className={`w-3 h-3 rounded-full ${responseData.yesNo ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                                                <span className="text-sm font-medium text-gray-700">Yes/No</span>
+                                              </div>
+                                              <Badge
+                                                variant={responseData.yesNo ? "default" : "secondary"}
+                                                className={`text-sm ${responseData.yesNo ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}`}
+                                              >
+                                                {responseData.yesNo ? 'Yes' : 'No'}
                                               </Badge>
                                             </div>
                                           )}
+                                          
+                                          {/* Percentage Response */}
                                           {responseData.percentage !== undefined && (
-                                            <div className="flex items-center space-x-2">
-                                              <span className="text-sm font-medium text-gray-700">{t('reportHistory.percentage', { defaultValue: 'Percentage:' })}</span>
-                                              <Badge variant="outline">{responseData.percentage}%</Badge>
+                                            <div className="bg-gray-50 rounded-lg p-4">
+                                              <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                                                <span className="text-sm font-medium text-gray-700">Percentage</span>
+                                              </div>
+                                              <div className="flex items-center gap-3">
+                                                <div className="flex-1 bg-gray-200 rounded-full h-3">
+                                                  <div
+                                                    className="bg-gradient-to-r from-blue-400 to-blue-600 h-3 rounded-full transition-all duration-500"
+                                                    style={{ width: `${responseData.percentage}%` }}
+                                                  ></div>
+                                                </div>
+                                                <span className="text-sm font-bold text-blue-600">{responseData.percentage}%</span>
+                                              </div>
                                             </div>
                                           )}
+                                          
+                                          {/* Text Response Indicator */}
                                           {responseData.text && (
-                                            <div>
-                                              <span className="text-sm font-medium text-gray-700">{t('reportHistory.response', { defaultValue: 'Response:' })}</span>
-                                              <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{responseData.text}</p>
+                                            <div className="bg-gray-50 rounded-lg p-4">
+                                              <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                                                <span className="text-sm font-medium text-gray-700">Text Response</span>
+                                              </div>
+                                              <div className="text-xs text-gray-500">Available below</div>
                                             </div>
-                                          )}
-                                          {/* Files in responseData */}
-                                          {responseData.files && Array.isArray(responseData.files) && responseData.files.length > 0 && (
-                                            <FileDisplay
-                                              files={responseData.files as FileAttachment[]}
-                                              title={t('reportHistory.attachments', { defaultValue: 'Attachments' })}
-                                            />
                                           )}
                                         </div>
                                         
-                                        {/* Files attached to the response itself */}
-                                        {res.files && Array.isArray(res.files) && res.files.length > 0 && (
-                                          <FileDisplay
-                                            files={res.files as FileAttachment[]}
-                                            title={t('reportHistory.attachments', { defaultValue: 'Attachments' })}
-                                          />
+                                        {/* Detailed Text Response */}
+                                        {responseData.text && (
+                                          <div className="bg-gray-50 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 mb-3">
+                                              <FileText className="w-4 h-4 text-purple-600" />
+                                              <span className="text-sm font-medium text-gray-700">Detailed Response</span>
+                                            </div>
+                                            <div className="bg-white rounded-md border border-gray-200 p-4">
+                                              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{responseData.text}</p>
+                                            </div>
+                                          </div>
                                         )}
+                                        
+                                        {/* Files Section */}
+                                        {(responseData.files && Array.isArray(responseData.files) && responseData.files.length > 0) || (res.files && Array.isArray(res.files) && res.files.length > 0) ? (
+                                          <div className="bg-blue-50 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 mb-3">
+                                              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                                              <span className="text-sm font-medium text-blue-700">Attachments</span>
+                                            </div>
+                                            
+                                            {/* Files in responseData */}
+                                            {responseData.files && Array.isArray(responseData.files) && responseData.files.length > 0 && (
+                                              <div className="mb-4">
+                                                <FileDisplay
+                                                  files={responseData.files as FileAttachment[]}
+                                                  title="Response Attachments"
+                                                />
+                                              </div>
+                                            )}
+                                            
+                                            {/* Files attached to the response itself */}
+                                            {res.files && Array.isArray(res.files) && res.files.length > 0 && (
+                                              <div>
+                                                <FileDisplay
+                                                  files={res.files as FileAttachment[]}
+                                                  title="Additional Attachments"
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : null}
                                       </div>
                                     </div>
                                   );
                                 })}
                               </div>
-                            </CardContent>
+                            </div>
                           )}
-                        </Card>
+                        </div>
                       );
                     })
                   ) : genericCategories.length > 0 ? (
-                    genericCategories.map(cat => (
-                      <div key={cat.name}>
-                        <h3 className="text-lg font-semibold text-dgrv-blue mb-2">{cat.name}</h3>
-                        {cat.recommendationText && (
-                          <div className="p-3 bg-blue-50 border-l-4 border-dgrv-blue rounded-r-lg mb-2">
-                            <p className="font-semibold">{t('reportHistory.recommendation', { defaultValue: 'Recommendation' })}</p>
-                            <p className="text-gray-700">{cat.recommendationText}</p>
-                          </div>
-                        )}
-                        {cat.responses.map((res, idx) => (
-                          <div key={idx} className="p-3 bg-gray-50 rounded-lg mb-2">
-                            <p className="font-semibold">{res.question_text}</p>
-                            <div className="text-gray-700">
-                              {res.response.text && <p>{res.response.text}</p>}
-                              {res.response.yesNo !== undefined && <p>{t('reportHistory.answer', { defaultValue: 'Answer' })}: {res.response.yesNo ? 'Yes' : 'No'}</p>}
-                              {res.response.percentage !== undefined && <p>{t('reportHistory.percentage', { defaultValue: 'Percentage' })}: {res.response.percentage}%</p>}
+                    <div className="space-y-4">
+                      {genericCategories.map((cat, catIdx) => (
+                        <div key={cat.name} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                          {/* Generic Category Header */}
+                          <div className="p-5 bg-gradient-to-r from-purple-50 to-white border-b border-gray-100">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                <span className="text-purple-600 font-bold">{catIdx + 1}</span>
+                              </div>
+                              <div>
+                                <h3 className="text-xl font-bold text-purple-800">{cat.name}</h3>
+                                <span className="text-sm text-gray-600">{cat.responses.length} questions</span>
+                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ))
+                          
+                          {/* Generic Category Content */}
+                          <div className="p-6 bg-gray-50 space-y-6">
+                            {/* Generic Recommendation */}
+                            {cat.recommendationText && (
+                              <div className="bg-white rounded-lg p-4 border-l-4 border-purple-400">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Award className="w-5 h-5 text-purple-600" />
+                                  <span className="font-semibold text-purple-800">Recommendation</span>
+                                </div>
+                                <p className="text-gray-700 leading-relaxed">{cat.recommendationText}</p>
+                              </div>
+                            )}
+                            
+                            {/* Generic Questions */}
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 mb-4">
+                                <FileText className="w-5 h-5 text-purple-600" />
+                                <span className="font-semibold text-purple-800">Questions & Answers</span>
+                              </div>
+                              
+                              {cat.responses.map((res, idx) => (
+                                <div key={idx} className="bg-white rounded-lg border border-gray-200 p-4">
+                                  <div className="flex items-start gap-3 mb-3">
+                                    <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                      <span className="text-purple-600 text-xs font-bold">{idx + 1}</span>
+                                    </div>
+                                    <h5 className="font-semibold text-gray-900">{res.question_text}</h5>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    {res.response.text && (
+                                      <div className="bg-gray-50 rounded-lg p-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                                          <span className="text-xs font-medium text-gray-600">Text</span>
+                                        </div>
+                                        <p className="text-sm text-gray-800">{res.response.text}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {res.response.yesNo !== undefined && (
+                                      <div className="bg-gray-50 rounded-lg p-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className={`w-2 h-2 rounded-full ${res.response.yesNo ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                                          <span className="text-xs font-medium text-gray-600">Answer</span>
+                                        </div>
+                                        <Badge
+                                          variant={res.response.yesNo ? "default" : "secondary"}
+                                          className={`text-xs ${res.response.yesNo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                        >
+                                          {res.response.yesNo ? 'Yes' : 'No'}
+                                        </Badge>
+                                      </div>
+                                    )}
+                                    
+                                    {res.response.percentage !== undefined && (
+                                      <div className="bg-gray-50 rounded-lg p-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                          <span className="text-xs font-medium text-gray-600">Percentage</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                            <div
+                                              className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full"
+                                              style={{ width: `${res.response.percentage}%` }}
+                                            ></div>
+                                          </div>
+                                          <span className="text-sm font-bold text-blue-600">{res.response.percentage}%</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="text-center text-gray-500 py-8">
                       {t('reportHistory.noDetails', { defaultValue: 'No details available for this report.' })}
@@ -554,9 +700,22 @@ export const ReportHistory: React.FC = () => {
                   )}
                 </div>
                 
-                <div className="mt-6 flex justify-end">
-                  <Button onClick={() => handleDownloadReport(report.report_id, report.org_name)} variant="outline">
-                    <Download className="w-4 h-4 mr-2" /> {t('reportHistory.exportAsPDF', { defaultValue: 'Export as PDF' })}
+                <div className="mt-6 flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setViewReportId(null);
+                      setExpandedCategories(new Set());
+                    }}
+                  >
+                    {t('reportHistory.close', { defaultValue: 'Close' })}
+                  </Button>
+                  <Button 
+                    onClick={() => handleDownloadReport(report.report_id, report.org_name)}
+                    className="bg-dgrv-blue hover:bg-dgrv-blue-dark"
+                  >
+                    <Download className="w-4 h-4 mr-2" /> 
+                    {t('reportHistory.exportAsPDF', { defaultValue: 'Export as PDF' })}
                   </Button>
                 </div>
               </>
