@@ -571,6 +571,31 @@ export class DataTransformationService {
   }
 
   /**
+   * Generate a deterministic ID for a recommendation based on its content
+   * This ensures the same recommendation always gets the same ID across syncs
+   */
+  private static generateDeterministicRecommendationId(
+    reportId: string,
+    category: string,
+    recommendationText: string
+  ): string {
+    // Create a deterministic string based on the recommendation content
+    const contentString = `${reportId}|${category}|${recommendationText}`;
+    
+    // Simple hash function to generate a consistent ID
+    let hash = 0;
+    for (let i = 0; i < contentString.length; i++) {
+      const char = contentString.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Convert to positive hex string and ensure it's a valid UUID format
+    const positiveHash = Math.abs(hash).toString(16).padStart(8, '0');
+    return `${positiveHash.substring(0, 8)}-${positiveHash.substring(0, 4)}-${positiveHash.substring(0, 4)}-${positiveHash.substring(0, 4)}-${positiveHash.substring(0, 12)}`;
+  }
+
+  /**
    * Transform API Report data to OfflineRecommendation objects
    */
   static transformReportToOfflineRecommendations(
@@ -596,8 +621,16 @@ export class DataTransformationService {
             typeof value.recommendation === 'string'
           ) {
             const recWithStatus = value as RecommendationWithStatus;
+            // Generate deterministic ID based on report_id, category, and recommendation content
+            // This ensures the same recommendation always gets the same ID
+            const deterministicId = this.generateDeterministicRecommendationId(
+              report.report_id,
+              categoryName,
+              recWithStatus.recommendation
+            );
+            
             recommendations.push({
-              recommendation_id: crypto.randomUUID(), // Generate a unique ID for IndexedDB
+              recommendation_id: deterministicId,
               report_id: report.report_id,
               category: categoryName,
               recommendation: recWithStatus.recommendation,

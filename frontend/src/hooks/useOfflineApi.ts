@@ -74,7 +74,7 @@ const invalidateAndRefetch = async (queryClient: QueryClient, queryKeys: string[
 // ===== QUESTIONS =====
 
 export function useOfflineQuestions() {
-  const [data, setData] = useState<{ questions: Question[] }>({ questions: [] });
+  const [data, setData] = useState<{ questions: QuestionWithRevisionsResponse[] }>({ questions: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -85,11 +85,28 @@ export function useOfflineQuestions() {
 
       const result = await apiInterceptor.interceptGet(
         () => QuestionsService.getQuestions(),
-        () => offlineDB.getAllQuestions().then(qs => ({ questions: qs })),
+        async () => {
+          console.log('🔍 useOfflineQuestions: Using offline fallback');
+          const questions = await offlineDB.getAllQuestions();
+          console.log(`🔍 useOfflineQuestions: Found ${questions.length} questions in IndexedDB`);
+          
+          // Transform OfflineQuestion to QuestionWithRevisionsResponse format
+          const transformedQuestions = questions.map(q => ({
+            question: {
+              question_id: q.question_id,
+              category: q.category,
+              created_at: q.created_at,
+              latest_revision: q.latest_revision
+            },
+            revisions: [q.latest_revision] // Include all revisions if available
+          }));
+          
+          return { questions: transformedQuestions };
+        },
         'questions'
       );
 
-      setData(result as { questions: Question[] });
+      setData(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch questions'));
     } finally {
@@ -297,7 +314,24 @@ export function useOfflineCategories() {
 
       const result = await apiInterceptor.interceptGet(
         () => CategoriesService.getCategories(),
-        () => offlineDB.getAllCategories().then(cats => ({ categories: cats })),
+        async () => {
+          console.log('🔍 useOfflineCategories: Using offline fallback');
+          const categories = await offlineDB.getAllCategories();
+          console.log(`🔍 useOfflineCategories: Found ${categories.length} categories in IndexedDB`);
+          
+          // Transform OfflineCategory to Category format
+          const transformedCategories = categories.map(cat => ({
+            category_id: cat.category_id,
+            name: cat.name,
+            weight: cat.weight,
+            order: cat.order,
+            template_id: cat.template_id,
+            created_at: cat.created_at,
+            updated_at: cat.updated_at
+          }));
+          
+          return { categories: transformedCategories };
+        },
         'categories'
       );
 
@@ -635,17 +669,24 @@ export function useOfflineAssessment(assessmentId: string) {
       setIsLoading(true);
       setError(null);
       
+      console.log(`🔍 useOfflineAssessment: Loading assessment ${assessmentId}`);
+      
       const result = await apiInterceptor.interceptGet(
         () => {
+          console.log(`🔍 useOfflineAssessment: Making API call for assessment ${assessmentId}`);
           return AssessmentsService.getAssessmentsByAssessmentId({ assessmentId });
         },
         async () => {
+          console.log(`🔍 useOfflineAssessment: Using offline fallback for assessment ${assessmentId}`);
+          
           // For offline fallback, get assessment and construct AssessmentDetailResponse
           const offlineAssessment = await offlineDB.getAssessment(assessmentId);
+          console.log(`🔍 useOfflineAssessment: Retrieved from IndexedDB:`, offlineAssessment);
+          
           if (!offlineAssessment) {
-            // Check if this might be a temporary assessment that was just created
+            console.log(`🔍 useOfflineAssessment: Assessment ${assessmentId} not found in IndexedDB`);
             
-            // If it starts with 'temp_', it might be a temporary assessment
+            // Check if this might be a temporary assessment that was just created
             if (assessmentId.startsWith('temp_')) {
               // Return a more user-friendly error that indicates waiting
               throw new Error('Assessment is being created, please wait...');
@@ -657,19 +698,22 @@ export function useOfflineAssessment(assessmentId: string) {
           
           // Get responses for this assessment
           const responses = await offlineDB.getResponsesByAssessment(assessmentId);
+          console.log(`🔍 useOfflineAssessment: Found ${responses.length} responses for assessment ${assessmentId}`);
           
           // Get questions (we'll need to get all questions and filter by category)
           const allQuestions = await offlineDB.getAllQuestions();
+          console.log(`🔍 useOfflineAssessment: Found ${allQuestions.length} total questions`);
           
           // Convert OfflineAssessment back to Assessment format
           const assessment: Assessment = {
             assessment_id: offlineAssessment.assessment_id,
-            org_id: offlineAssessment.org_id,
-            language: offlineAssessment.language,
-            name: offlineAssessment.name,
-            status: offlineAssessment.status,
-            created_at: offlineAssessment.created_at,
-            updated_at: offlineAssessment.updated_at,
+            org_id: offlineAssessment.org_id || '',
+            language: offlineAssessment.language || 'en',
+            name: offlineAssessment.name || 'Untitled Assessment',
+            status: offlineAssessment.status || 'draft',
+            created_at: offlineAssessment.created_at || new Date().toISOString(),
+            updated_at: offlineAssessment.updated_at || new Date().toISOString(),
+            categories: offlineAssessment.categories || [],
           };
           
           // Convert OfflineResponse back to Response format
@@ -685,23 +729,30 @@ export function useOfflineAssessment(assessmentId: string) {
           // For questions, we'll return empty array as we don't store question revisions separately
           const questions: QuestionRevision[] = [];
           
-          return {
+          const assessmentDetailResponse: AssessmentDetailResponse = {
             assessment,
             questions,
             responses: apiResponses,
-          } as AssessmentDetailResponse;
+          };
+          
+          console.log(`🔍 useOfflineAssessment: Constructed AssessmentDetailResponse:`, assessmentDetailResponse);
+          return assessmentDetailResponse;
         },
         'assessments',
         assessmentId
       );
 
+      console.log(`🔍 useOfflineAssessment: Received result:`, result);
+
       // Handle the case where the API returns AssessmentDetailResponse directly
       if (result && typeof result === 'object') {
         if ('assessment' in result && 'questions' in result && 'responses' in result) {
           // This is already an AssessmentDetailResponse
+          console.log(`🔍 useOfflineAssessment: Setting AssessmentDetailResponse data`);
           setData(result as AssessmentDetailResponse);
         } else if ('assessment' in result) {
           // This is just an Assessment object, wrap it in AssessmentDetailResponse
+          console.log(`🔍 useOfflineAssessment: Wrapping Assessment in AssessmentDetailResponse`);
           const assessment = (result as Record<string, unknown>).assessment as Assessment;
           setData({
             assessment,
@@ -709,15 +760,15 @@ export function useOfflineAssessment(assessmentId: string) {
             responses: []
           } as AssessmentDetailResponse);
         } else {
-          console.error('❌ Unexpected API response format:', result);
+          console.error('❌ useOfflineAssessment: Unexpected API response format:', result);
           setError(new Error('Unexpected API response format'));
         }
       } else {
-        console.error('❌ Invalid API response:', result);
+        console.error('❌ useOfflineAssessment: Invalid API response:', result);
         setError(new Error('Invalid API response'));
       }
     } catch (err) {
-      console.error('❌ Error fetching assessment:', err);
+      console.error('❌ useOfflineAssessment: Error fetching assessment:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch assessment'));
     } finally {
       setIsLoading(false);
@@ -736,8 +787,8 @@ export function useOfflineAssessmentsMutation() {
 
   const createAssessment = useCallback(async (
     assessment: CreateAssessmentRequest,
-    options?: { 
-      onSuccess?: (data: Record<string, unknown>) => void; 
+    options?: {
+      onSuccess?: (data: Record<string, unknown>) => void;
       onError?: (err: Error) => void;
       organizationId?: string;
       userEmail?: string;
@@ -749,14 +800,6 @@ export function useOfflineAssessmentsMutation() {
       // Get organization context from options or use default
       const organizationId = options?.organizationId;
       const userEmail = options?.userEmail;
-
-      // Delete all draft assessments (we'll let the server handle user-specific filtering)
-      const allAssessments = await offlineDB.getAllAssessments();
-      const draftAssessments = allAssessments.filter(a => a.status === 'draft');
-      
-      for (const draftAssessment of draftAssessments) {
-        await offlineDB.deleteAssessment(draftAssessment.assessment_id);
-      }
 
       const tempId = `temp_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
@@ -772,8 +815,8 @@ export function useOfflineAssessmentsMutation() {
       };
 
       const offlineAssessment = DataTransformationService.transformAssessment(
-        tempAssessmentForTransform, 
-        organizationId, 
+        tempAssessmentForTransform,
+        organizationId,
         userEmail
       );
       offlineAssessment.sync_status = 'pending';
@@ -802,8 +845,8 @@ export function useOfflineAssessmentsMutation() {
           
           // Save the real assessment with organization context
           const finalOfflineAssessment = DataTransformationService.transformAssessment(
-            realAssessment, 
-            organizationId, 
+            realAssessment,
+            organizationId,
             userEmail
           );
           await offlineDB.saveAssessment(finalOfflineAssessment);
@@ -814,12 +857,9 @@ export function useOfflineAssessmentsMutation() {
         'create'
       );
 
-      // Only call onSuccess if we got a valid API response
-      if (result && typeof result === 'object' && 'assessment' in result) {
-        options?.onSuccess?.(result);
-      } else {
-        // This is request data, not API response - don't call onSuccess
-      }
+      // Always call onSuccess for offline-first behavior
+      // The result will be the temporary assessment data when offline
+      options?.onSuccess?.(result);
       return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to create assessment');

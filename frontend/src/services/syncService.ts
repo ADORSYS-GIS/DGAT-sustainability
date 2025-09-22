@@ -28,7 +28,9 @@ import type {
   OrganizationResponse // Add OrganizationResponse import
 } from "@/openapi-rq/requests/types.gen";
 import type {
-  OfflineOrganization // Import OfflineOrganization
+  OfflineOrganization, // Import OfflineOrganization
+  OfflineRecommendation, // Import OfflineRecommendation
+  ReportCategoryData // Import ReportCategoryData
 } from "@/types/offline";
 import { getAuthState } from "./shared/authService";
 
@@ -49,6 +51,8 @@ export interface FullSyncResult {
   reports: SyncResult;
   organizations: SyncResult;
   users: SyncResult;
+  recommendations: SyncResult;
+  pending_assessments: SyncResult;
 }
 
 export class SyncService {
@@ -111,6 +115,7 @@ export class SyncService {
       // Only sync assessments, submissions, and reports for non-DGRV admin users
       if (!isDrgvAdmin) {
         syncTasks.push(
+          this.syncPendingAssessments(), // Sync pending assessments first
           this.syncAssessments(),
           this.syncSubmissions(),
           this.syncReports()
@@ -120,6 +125,7 @@ export class SyncService {
       // Always sync organizations for DGRV admin
       if (isDrgvAdmin) {
         syncTasks.push(this.syncOrganizations());
+        syncTasks.push(this.syncRecommendations());
       }
 
       // Sync all data types in parallel
@@ -147,6 +153,14 @@ export class SyncService {
 
       // Assessments, submissions, and reports only for non-DGRV admin
       if (!isDrgvAdmin) {
+        const pendingAssessmentsResult = syncResults[taskIndex];
+        if (pendingAssessmentsResult?.status === 'fulfilled') {
+          results.pending_assessments = pendingAssessmentsResult.value;
+        } else if (pendingAssessmentsResult?.status === 'rejected') {
+          results.pending_assessments.errors.push(pendingAssessmentsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+
         const assessmentsResult = syncResults[taskIndex];
         if (assessmentsResult?.status === 'fulfilled') {
           results.assessments = assessmentsResult.value;
@@ -180,6 +194,17 @@ export class SyncService {
         } else if (organizationsResult?.status === 'rejected') {
           results.organizations.errors.push(organizationsResult.reason?.toString() || 'Unknown error');
         }
+      }
+
+      // Recommendations only for DGRV admin
+      if (isDrgvAdmin) {
+        const recommendationsResult = syncResults[taskIndex];
+        if (recommendationsResult?.status === 'fulfilled') {
+          results.recommendations = recommendationsResult.value;
+        } else if (recommendationsResult?.status === 'rejected') {
+          results.recommendations.errors.push(recommendationsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
       }
 
       console.log('✅ Full sync completed:', results);
@@ -367,6 +392,63 @@ export class SyncService {
   }
 
   /**
+   * Sync pending assessments (created offline) to server
+   */
+  private async syncPendingAssessments(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'pending_assessments', added: 0, updated: 0, deleted: 0, errors: [] };
+
+    try {
+      // Get all pending assessments (created offline)
+      const allAssessments = await offlineDB.getAllAssessments();
+      const pendingAssessments = allAssessments.filter(a => a.sync_status === 'pending' && a.assessment_id.startsWith('temp_'));
+
+      console.log(`🔄 Found ${pendingAssessments.length} pending assessments to sync`);
+
+      for (const pendingAssessment of pendingAssessments) {
+        try {
+          // Create assessment request from offline assessment
+          const createAssessmentRequest = {
+            name: pendingAssessment.name,
+            language: pendingAssessment.language || 'en',
+            // Add any other required fields
+          };
+
+          // Call the API to create the assessment
+          const response = await AssessmentsService.postAssessments({ requestBody: createAssessmentRequest });
+
+          if (response && response.assessment) {
+            const realAssessment = response.assessment;
+
+            // Delete the temporary assessment
+            await offlineDB.deleteAssessment(pendingAssessment.assessment_id);
+
+            // Save the real assessment with proper context
+            const finalOfflineAssessment = DataTransformationService.transformAssessment(
+              realAssessment,
+              pendingAssessment.organization_id,
+              pendingAssessment.user_email
+            );
+            await offlineDB.saveAssessment(finalOfflineAssessment);
+
+            result.added++;
+            console.log(`✅ Successfully synced pending assessment: ${pendingAssessment.name} -> ${realAssessment.assessment_id}`);
+          } else {
+            throw new Error('API did not return a valid assessment');
+          }
+        } catch (error) {
+          console.error(`❌ Failed to sync pending assessment ${pendingAssessment.assessment_id}:`, error);
+          result.errors.push(`Failed to sync assessment ${pendingAssessment.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+
+  /**
    * Sync submissions from server to local
    */
   private async syncSubmissions(): Promise<SyncResult> {
@@ -540,6 +622,105 @@ export class SyncService {
   /**
    * Get empty sync result
    */
+  /**
+   * Sync recommendations from server to local (DGRV admin only)
+   */
+  private async syncRecommendations(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'recommendations', added: 0, updated: 0, deleted: 0, errors: [] };
+
+    try {
+      // Get server action plans (which contain recommendations)
+      const serverActionPlansResponse = await AdminService.getAdminActionPlans();
+      const serverOrganizations = serverActionPlansResponse.organizations;
+
+      // If server returns no organizations with recommendations, clear the local store completely
+      if (serverOrganizations.length === 0) {
+        const currentLocalRecommendations = await offlineDB.getAllRecommendations();
+        await offlineDB.clearStore('recommendations');
+        result.deleted = currentLocalRecommendations.length;
+        return result;
+      }
+
+      // Extract all server recommendations
+      const serverRecommendations: OfflineRecommendation[] = [];
+      const serverRecommendationIds = new Set<string>();
+
+      for (const org of serverOrganizations) {
+        for (const serverRec of org.recommendations) {
+          // Create a proper Report object structure
+          const reportData = {
+            report_id: serverRec.report_id,
+            data: {
+              [serverRec.category]: {
+                recommendation: serverRec.recommendation,
+                status: serverRec.status,
+                created_at: serverRec.created_at
+              }
+            }
+          } as Report;
+
+          const offlineRecs = DataTransformationService.transformReportToOfflineRecommendations(
+            reportData,
+            org.organization_id,
+            org.organization_name
+          );
+
+          if (offlineRecs.length > 0) {
+            const offlineRec = offlineRecs[0];
+            serverRecommendations.push(offlineRec);
+            serverRecommendationIds.add(offlineRec.recommendation_id);
+          }
+        }
+      }
+
+      // Get local recommendations
+      const localRecommendations = await offlineDB.getAllRecommendations();
+      const localRecommendationIds = new Set(localRecommendations.map(r => r.recommendation_id));
+
+      // Find recommendations to add/update
+      for (const serverRec of serverRecommendations) {
+        const localRec = localRecommendations.find(r => r.recommendation_id === serverRec.recommendation_id);
+        
+        if (!localRec) {
+          // Add new recommendation
+          await offlineDB.saveRecommendation(serverRec);
+          result.added++;
+        } else {
+          // Update existing recommendation if different
+          // Check if any fields have changed
+          const hasChanges = localRec.status !== serverRec.status ||
+                           localRec.recommendation !== serverRec.recommendation ||
+                           localRec.category !== serverRec.category ||
+                           localRec.report_id !== serverRec.report_id ||
+                           localRec.organization_id !== serverRec.organization_id;
+
+          if (hasChanges) {
+            // Preserve the local recommendation_id but update all other fields
+            const updatedRec = {
+              ...serverRec,
+              recommendation_id: localRec.recommendation_id // Keep the existing ID
+            };
+            await offlineDB.saveRecommendation(updatedRec);
+            result.updated++;
+          }
+        }
+      }
+
+      // Find recommendations to delete (local recommendations not on server)
+      for (const localRec of localRecommendations) {
+        if (!serverRecommendationIds.has(localRec.recommendation_id) && !localRec.recommendation_id.startsWith('temp_')) {
+          await offlineDB.deleteRecommendation(localRec.recommendation_id);
+          result.deleted++;
+        }
+      }
+
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+
   private getEmptySyncResult(): FullSyncResult {
     return {
       questions: { entityType: 'questions', added: 0, updated: 0, deleted: 0, errors: [] },
@@ -549,7 +730,9 @@ export class SyncService {
       submissions: { entityType: 'submissions', added: 0, updated: 0, deleted: 0, errors: [] },
       reports: { entityType: 'reports', added: 0, updated: 0, deleted: 0, errors: [] },
       organizations: { entityType: 'organizations', added: 0, updated: 0, deleted: 0, errors: [] },
-      users: { entityType: 'users', added: 0, updated: 0, deleted: 0, errors: [] }
+      users: { entityType: 'users', added: 0, updated: 0, deleted: 0, errors: [] },
+      recommendations: { entityType: 'recommendations', added: 0, updated: 0, deleted: 0, errors: [] },
+      pending_assessments: { entityType: 'pending_assessments', added: 0, updated: 0, deleted: 0, errors: [] }
     };
   }
 
