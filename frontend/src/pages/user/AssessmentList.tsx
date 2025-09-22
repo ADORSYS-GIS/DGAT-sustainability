@@ -16,7 +16,7 @@ export const AssessmentList: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { data: assessmentsData, isLoading: assessmentsLoading } = useOfflineDraftAssessments();
+  const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineDraftAssessments();
 
   // Filter assessments by organization for Org_User
   const availableAssessments = React.useMemo(() => {
@@ -98,6 +98,7 @@ export const AssessmentList: React.FC = () => {
               assessments={availableAssessments}
               onSelectAssessment={handleSelectAssessment}
               isLoading={assessmentsLoading}
+              onAssessmentDeleted={refetchAssessments}
             />
           )}
         </div>

@@ -455,6 +455,7 @@ export const Assessment: React.FC = () => {
               assessments={assessmentsData?.assessments || []}
               onSelectAssessment={handleSelectAssessment}
               isLoading={assessmentsLoading}
+              onAssessmentDeleted={refetchAssessments}
             />
 
             {/* Create Assessment Modal */}

@@ -579,8 +579,20 @@ export class DataTransformationService {
     category: string,
     recommendationText: string
   ): string {
+    // Normalize the content to avoid duplicates due to minor formatting differences
+    const normalizeText = (text: string): string => {
+      return text
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .replace(/[^\w\s]/g, '') // Remove punctuation
+        .substring(0, 100); // Limit length for consistency
+    };
+
     // Create a deterministic string based on the recommendation content
-    const contentString = `${reportId}|${category}|${recommendationText}`;
+    const normalizedCategory = normalizeText(category);
+    const normalizedText = normalizeText(recommendationText);
+    const contentString = `${reportId}|${normalizedCategory}|${normalizedText}`;
     
     // Simple hash function to generate a consistent ID
     let hash = 0;
@@ -628,6 +640,8 @@ export class DataTransformationService {
               categoryName,
               recWithStatus.recommendation
             );
+            
+            console.log(`🔄 Generated recommendation ID: ${deterministicId} for category: ${categoryName}, report: ${report.report_id}`);
             
             recommendations.push({
               recommendation_id: deterministicId,

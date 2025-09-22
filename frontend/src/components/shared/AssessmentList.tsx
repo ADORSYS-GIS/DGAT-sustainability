@@ -3,23 +3,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
-import { Calendar, Clock, FileText, Tag } from "lucide-react";
+import { Calendar, Clock, FileText, Tag, Trash2 } from "lucide-react";
 import type { OfflineAssessment, OfflineCategory } from "@/types/offline";
-import { useOfflineCategories } from "@/hooks/useOfflineApi";
+import { useOfflineCategories, useOfflineAssessmentsMutation } from "@/hooks/useOfflineApi";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { toast } from "sonner";
 
 interface AssessmentListProps {
   assessments: OfflineAssessment[];
   onSelectAssessment: (assessmentId: string) => void;
   isLoading?: boolean;
+  onAssessmentDeleted?: () => void;
 }
 
 export const AssessmentList: React.FC<AssessmentListProps> = ({
   assessments,
   onSelectAssessment,
   isLoading = false,
+  onAssessmentDeleted,
 }) => {
   const { t } = useTranslation();
   const { data: categoriesData } = useOfflineCategories();
+  const { deleteAssessment, isPending } = useOfflineAssessmentsMutation();
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [assessmentToDelete, setAssessmentToDelete] = React.useState<string | null>(null);
 
   // Create a map of category IDs to category names for easy lookup
   const categoriesMap = React.useMemo(() => {
@@ -35,6 +42,30 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
     return categoryIds
       .map((id) => categoriesMap.get(id))
       .filter((name): name is string => !!name);
+  };
+
+  const handleDeleteAssessment = async (assessmentId: string) => {
+    try {
+      await deleteAssessment(assessmentId, {
+        onSuccess: () => {
+          toast.success(t('assessment.deletedSuccessfully', { defaultValue: 'Assessment deleted successfully' }));
+          onAssessmentDeleted?.();
+        },
+        onError: (error) => {
+          toast.error(t('assessment.deleteFailed', { defaultValue: 'Failed to delete assessment' }) + ': ' + error.message);
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to delete assessment:', error);
+    } finally {
+      setDeleteDialogOpen(false);
+      setAssessmentToDelete(null);
+    }
+  };
+
+  const confirmDelete = (assessmentId: string) => {
+    setAssessmentToDelete(assessmentId);
+    setDeleteDialogOpen(true);
   };
 
   if (isLoading) {
@@ -118,11 +149,39 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                 >
                   {t('assessment.continueAssessment', { defaultValue: 'Continue' })}
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => confirmDelete(assessment.assessment_id)}
+                  disabled={isPending}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  {t('assessment.delete', { defaultValue: 'Delete' })}
+                </Button>
               </div>
             </div>
           </CardHeader>
         </Card>
       ))}
+      
+      <ConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setAssessmentToDelete(null);
+        }}
+        onConfirm={() => {
+          if (assessmentToDelete) {
+            handleDeleteAssessment(assessmentToDelete);
+          }
+        }}
+        title={t('assessment.confirmDeleteTitle', { defaultValue: 'Delete Assessment' })}
+        description={t('assessment.confirmDeleteDescription', { defaultValue: 'Are you sure you want to delete this draft assessment? This action cannot be undone.' })}
+        confirmText={t('assessment.confirmDelete', { defaultValue: 'Delete' })}
+        cancelText={t('assessment.cancel', { defaultValue: 'Cancel' })}
+        variant="destructive"
+      />
     </div>
   );
-}; 
+};

@@ -318,6 +318,15 @@ export class ApiInterceptor {
             }
           }
           break;
+        case 'admin_submissions':
+          // Handle admin submissions - these are transformed and stored as regular submissions
+          if (data.submissions && Array.isArray(data.submissions)) {
+            for (const submission of data.submissions as Submission[]) {
+              const offlineSubmission = DataTransformationService.transformSubmission(submission);
+              await offlineDB.saveSubmission(offlineSubmission);
+            }
+          }
+          break;
         default:
           console.warn(`Unknown entity type for local storage: ${entityType}`);
       }

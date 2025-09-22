@@ -1064,6 +1064,8 @@
     "download": "Download",
     "organizations": "Organizations",
     "backToOrganizations": "Back to organizations",
-    "exportAsPDF": "Export as PDF"
+    "exportAsPDF": "Export as PDF",
+    "assessmentName": "Assessment",
+    "unknownAssessment": "Unknown Assessment"
   }
 }

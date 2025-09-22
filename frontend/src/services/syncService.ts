@@ -677,12 +677,29 @@ export class SyncService {
       const localRecommendations = await offlineDB.getAllRecommendations();
       const localRecommendationIds = new Set(localRecommendations.map(r => r.recommendation_id));
 
+      console.log(`🔄 Syncing ${serverRecommendations.length} server recommendations with ${localRecommendations.length} local recommendations`);
+
       // Find recommendations to add/update
       for (const serverRec of serverRecommendations) {
-        const localRec = localRecommendations.find(r => r.recommendation_id === serverRec.recommendation_id);
+        // First try to find by exact recommendation_id match
+        let localRec = localRecommendations.find(r => r.recommendation_id === serverRec.recommendation_id);
+        
+        // If not found by ID, try to find by content match to avoid duplicates
+        if (!localRec) {
+          localRec = localRecommendations.find(r =>
+            r.report_id === serverRec.report_id &&
+            r.category === serverRec.category &&
+            r.recommendation === serverRec.recommendation
+          );
+          
+          if (localRec) {
+            console.log(`🔄 Found content match for recommendation: ${serverRec.recommendation_id} -> ${localRec.recommendation_id}`);
+          }
+        }
         
         if (!localRec) {
           // Add new recommendation
+          console.log(`🔄 Adding new recommendation: ${serverRec.recommendation_id}`);
           await offlineDB.saveRecommendation(serverRec);
           result.added++;
         } else {
@@ -695,6 +712,7 @@ export class SyncService {
                            localRec.organization_id !== serverRec.organization_id;
 
           if (hasChanges) {
+            console.log(`🔄 Updating recommendation: ${localRec.recommendation_id} (preserving ID)`);
             // Preserve the local recommendation_id but update all other fields
             const updatedRec = {
               ...serverRec,

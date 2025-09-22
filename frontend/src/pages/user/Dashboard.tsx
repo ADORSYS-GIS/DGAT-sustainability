@@ -606,6 +606,8 @@ export const Dashboard: React.FC = () => {
         onOpenChange={setIsReportDialogOpen}
         reports={reportsData?.reports || []}
         onReportSelect={handleSelectReportToExport}
+        assessments={assessmentsData?.assessments || []}
+        submissions={submissionsData?.submissions || []}
       />
     </div>
   );
