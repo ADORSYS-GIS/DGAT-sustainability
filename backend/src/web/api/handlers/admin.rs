@@ -473,7 +473,7 @@ pub async fn create_user_invitation(
         attributes: Some(serde_json::json!({
             "organization_id": request.organization_id,
             "pending_roles": request.roles,
-            "pending_categories": request.categories,
+            "pending_categories": request.categories.unwrap_or_default(),
             "invitation_status": "pending_email_verification"
         })),
         credentials: None,

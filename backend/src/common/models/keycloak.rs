@@ -118,7 +118,7 @@ pub struct UserInvitationRequest {
     pub last_name: Option<String>,
     pub organization_id: String,
     pub roles: Vec<String>,
-    pub categories: Vec<String>,
+    pub categories: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

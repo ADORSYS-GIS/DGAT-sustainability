@@ -4265,10 +4265,10 @@
           "categories": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Categories to assign to the user"
+            "description": "Categories to assign to the user (optional)"
           }
         },
-        "required": ["email", "roles", "categories"]
+        "required": ["email", "roles"]
       },
       "OrgAdminMemberCategoryUpdateRequest": {
         "type": "object",
@@ -4276,7 +4276,7 @@
           "categories": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Categories to assign to the user"
+            "description": "Categories to assign to the user (optional)"
           }
         },
         "required": ["categories"]
@@ -4474,7 +4474,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Categories to assign to the user"
+            "description": "Categories to assign to the user (optional)"
           }
         }
       },

@@ -905,7 +905,7 @@ pub struct OrgAdminMemberRequest {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub roles: Vec<String>,
-    pub categories: Vec<String>,
+    pub categories: Option<Vec<String>>,
 }
 
 #[derive(serde::Serialize)]
@@ -960,7 +960,7 @@ pub async fn add_org_admin_member(
         attributes: Some(serde_json::json!({
             "organization_id": org_id,
             "pending_roles": request.roles,
-            "pending_categories": request.categories,
+            "pending_categories": request.categories.unwrap_or_default(),
             "invitation_status": "pending_email_verification"
         })),
         credentials: None,
