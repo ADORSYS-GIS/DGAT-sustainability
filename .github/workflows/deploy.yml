@@ -1,4 +1,4 @@
-name: Create and publish a Docker image
+name: Deploy
 
 on:
   push:
@@ -7,29 +7,347 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: adorsys-gis/dgat-sustainability
 
 jobs:
-  build-and-push-image:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
+    outputs:
+      git-sha: ${{ steps.vars.outputs.GIT_SHA }}
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.DGAT_ONLINE_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/frontend
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=main-{{sha}},enable={{is_default_branch}}
+
+      - name: Compute variables (lowercase repo + short SHA)
+        id: vars
+        run: |
+          GIT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "GIT_SHA=$GIT_SHA" >> $GITHUB_OUTPUT
+          echo "GIT_SHA=$GIT_SHA" >> $GITHUB_ENV
+          echo "REPO_LOWER=$REPO_LOWER" >> $GITHUB_ENV
+          echo "IMAGE_NAME_FRONTEND=$REPO_LOWER/frontend" >> $GITHUB_ENV
+          echo "IMAGE_NAME_BACKEND=$REPO_LOWER/backend" >> $GITHUB_ENV
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
         with:
           context: ./frontend
+          file: ./frontend/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ env.GIT_SHA }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:${{ env.GIT_SHA }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set lowercase variables again
+        run: |
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO_LOWER=$REPO_LOWER" >> $GITHUB_ENV
+          echo "IMAGE_NAME_FRONTEND=$REPO_LOWER/frontend" >> $GITHUB_ENV
+          echo "IMAGE_NAME_BACKEND=$REPO_LOWER/backend" >> $GITHUB_ENV
+          echo "GIT_SHA=${{ needs.build-and-push.outputs.git-sha }}" >> $GITHUB_ENV
+
+      - name: Generate docker-compose.prod.yml
+        run: |
+          # Use latest tag for main branch, SHA tag for other branches
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            IMAGE_TAG="latest"
+          else
+            IMAGE_TAG="${{ env.GIT_SHA }}"
+          fi
+          
+          cat > docker-compose.prod.yml <<EOF
+          version: "3.9"
+          services:
+            frontend:
+              image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${IMAGE_TAG}
+              restart: unless-stopped
+              ports:
+                - "80:80"
+                - "443:443"
+              environment:
+                - BACKEND_URL=http://backend:8000
+                - VITE_API_URL=${{ secrets.FRONTEND_API_URL || 'https://rustcameroon.com/api' }}
+                - NGINX_CONFIG=https
+              volumes:
+                - /root/certs/rustcameroon.com-0001:/etc/letsencrypt/live/rustcameroon.com-0001:ro
+              user: "0:0"
+              depends_on:
+                - backend
+                - minio
+              restart: unless-stopped
+              ulimits:
+                nofile:
+                  soft: 65536
+                  hard: 65536
+
+            backend:
+              image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:${IMAGE_TAG}
+              restart: unless-stopped
+              environment:
+                - RUST_LOG=info
+                - PORT=8000
+                - DATABASE_URL=${{ secrets.DATABASE_URL || 'postgres://user:password@localhost:5432/rustcameroon' }}
+                - MINIO_ENDPOINT=http://minio:9000
+                - MINIO_ACCESS_KEY=${{ secrets.MINIO_ACCESS_KEY || 'minioadmin' }}
+                - MINIO_SECRET_KEY=${{ secrets.MINIO_SECRET_KEY || 'minioadmin123' }}
+                - MINIO_BUCKET=${{ secrets.MINIO_BUCKET || 'rust-cameroon-images' }}
+              volumes:
+                - ./backend/posts.json:/app/posts.json:rw
+              depends_on:
+                - minio
+              restart: unless-stopped
+
+            minio:
+              image: minio/minio:latest
+              ports:
+                - "9000:9000"
+                - "9001:9001"
+              volumes:
+                - minio_data:/data
+              environment:
+                - MINIO_ROOT_USER=${{ secrets.MINIO_ACCESS_KEY || 'minioadmin' }}
+                - MINIO_ROOT_PASSWORD=${{ secrets.MINIO_SECRET_KEY || 'minioadmin123' }}
+              command: server /data --console-address ":9001"
+              restart: unless-stopped
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+                interval: 30s
+                timeout: 20s
+                retries: 3
+
+          volumes:
+            minio_data:
+          EOF
+
+      - name: Validate deployment environment
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Set application directory
+            APP_DIR="${EC2_APP_DIR:-Newsletter}"
+            
+            echo "=== DEBUGGING INFORMATION ==="
+            echo "Current user: $(whoami)"
+            echo "Current directory: $(pwd)"
+            echo "Home directory: $HOME"
+            echo "Application directory: $APP_DIR"
+            echo "Full path to app: $(pwd)/$APP_DIR"
+            echo "Root home contents:"
+            sudo ls -la /root/ || echo "Cannot access /root directory"
+            echo "=============================="
+            
+            echo "Validating deployment environment..."
+            
+            # Run validation as root since the app directory is in /root
+            sudo bash -c '
+              echo "Running validation as root..."
+              echo "Root current directory: $(pwd)"
+              echo "Root home directory: $HOME"
+            
+              # Navigate to root home directory first
+              cd /root
+              echo "Changed to /root directory: $(pwd)"
+              echo "Looking for app directory: '"$APP_DIR"'"
+              echo "Full path: $(pwd)/'"$APP_DIR"'"
+            
+              # Check if directory exists
+              if [ ! -d "'"$APP_DIR"'" ]; then
+                echo "Error: Application directory '"$APP_DIR"' does not exist in /root"
+                echo "Available directories in /root:"
+                ls -la
+                exit 1
+              fi
+            
+              echo "Application directory found: '"$APP_DIR"'"
+              echo "Directory contents:"
+              ls -la "'"$APP_DIR"'"
+            
+              # Check if Docker is running
+              if ! docker info > /dev/null 2>&1; then
+                echo "Error: Docker is not running"
+                exit 1
+              fi
+            
+              echo "Docker is running"
+            
+              # Check disk space (at least 1GB free)
+              AVAILABLE=$(df "'"$APP_DIR"'" | tail -1 | awk "{print \$4}")
+              if [ "$AVAILABLE" -lt 1000000 ]; then
+                echo "Error: Insufficient disk space. Available: ${AVAILABLE}KB"
+                exit 1
+              fi
+            
+              echo "Disk space check passed. Available: ${AVAILABLE}KB"
+              echo "Environment validation passed!"
+            '
+
+      - name: Save current deployment state
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR="${EC2_APP_DIR:-Newsletter}"
+            
+            sudo bash -c '
+              # Navigate to root home directory first
+              cd /root
+              echo "Changed to /root directory: $(pwd)"
+              echo "Now navigating to app directory: '"$APP_DIR"'"
+            
+              cd "'"$APP_DIR"'"
+              echo "Changed to app directory: $(pwd)"
+            
+              # Pull latest changes from git
+              echo "Pulling latest changes from git..."
+              git pull origin main
+              echo "Git pull completed"
+            
+              # Save current deployment state for rollback
+              if [ -f "docker-compose.prod.yml" ]; then
+                echo "Saving current deployment state..."
+                cp docker-compose.prod.yml docker-compose.rollback.yml
+                echo "Current state saved for rollback"
+              else
+                echo "No existing deployment found, skipping rollback preparation"
+              fi
+            '
+
+      - name: Deploy with proper rollback
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR="${EC2_APP_DIR:-Newsletter}"
+            HEALTH_CHECK_URL="${{ secrets.HEALTH_CHECK_URL || 'https://rustcameroon.com/api' }}"
+            
+            sudo bash -c '
+              echo "=== DEPLOYMENT DEBUGGING ==="
+              echo "Running as user: $(whoami)"
+              echo "Current directory: $(pwd)"
+              echo "Home directory: $HOME"
+              echo "Target app directory: '"$APP_DIR"'"
+              echo "============================="
+            
+              # Navigate to root home directory first
+              cd /root
+              echo "Changed to /root directory: $(pwd)"
+              echo "Now navigating to app directory: '"$APP_DIR"'"
+            
+              cd "'"$APP_DIR"'"
+            
+              echo "Changed to app directory: $(pwd)"
+              echo "Directory contents:"
+              ls -la
+            
+              echo "Pulling latest images..."
+              docker compose -f docker-compose.prod.yml pull
+            
+              echo "Stopping old containers..."
+              docker compose -f docker-compose.prod.yml down
+            
+              echo "Starting new containers..."
+              docker compose -f docker-compose.prod.yml up -d --no-deps
+            
+              # Health check with proper rollback
+              echo "Waiting for services to start..."
+              sleep 30
+            
+              echo "Performing health check on: '"$HEALTH_CHECK_URL"'"
+              if ! curl -f -s --max-time 10 "'"$HEALTH_CHECK_URL"'" > /dev/null; then
+                echo "Health check failed! Attempting rollback..."
+                docker compose -f docker-compose.prod.yml down
+            
+                if [ -f "docker-compose.rollback.yml" ]; then
+                  echo "Rolling back to previous deployment..."
+                  docker compose -f docker-compose.rollback.yml up -d --no-deps
+            
+                  # Wait and check if rollback was successful
+                  sleep 30
+                  if curl -f -s --max-time 10 "'"$HEALTH_CHECK_URL"'" > /dev/null; then
+                    echo "Rollback successful!"
+                    exit 0
+                  else
+                    echo "Rollback also failed!"
+                    exit 1
+                  fi
+                else
+                  echo "No rollback file found. Trying to restart with latest images..."
+                  # Try to restart with the same compose file but force pull latest
+                  docker compose -f docker-compose.prod.yml pull
+                  docker compose -f docker-compose.prod.yml up -d --no-deps
+            
+                  # Wait and check again
+                  sleep 30
+                  if curl -f -s --max-time 10 "'"$HEALTH_CHECK_URL"'" > /dev/null; then
+                    echo "Restart with latest images successful!"
+                    exit 0
+                  else
+                    echo "All recovery attempts failed!"
+                    exit 1
+                  fi
+                fi
+              fi
+            
+              echo "Deployment successful!"
+              echo "Saving successful deployment SHA: ${{ env.GIT_SHA }}"
+              echo "${{ env.GIT_SHA }}" > .last-successful-deploy
+            '
+      
