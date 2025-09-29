@@ -74,6 +74,22 @@ pub fn routers(app_state: AppState) -> Router {
         ))
 }
 
+/// Create the complete application with all routes
+pub fn create_app(app_state: AppState, config: Configs) -> Router {
+    // Configure CORS
+    let _origin = HeaderValue::from_str(&config.cors.origin).unwrap();
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
+    Router::new()
+        .merge(routers(app_state.clone()))
+        .merge(health_routes())
+        .layer(cors)
+        .layer(middleware::from_fn(request_logging_middleware))
+}
+
 /// Protected routes that require JWT authentication
 ///
 /// These routes demonstrate how to create protected endpoints that:
@@ -157,21 +173,6 @@ pub fn health_routes() -> Router {
     Router::new().route("/health", get(health_check))
 }
 
-/// Create the complete application with all routes
-pub fn create_app(app_state: AppState, config: Configs) -> Router {
-    // Configure CORS
-    let _origin = HeaderValue::from_str(&config.cors.origin).unwrap();
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
-
-    Router::new()
-        .merge(routers(app_state.clone()))
-        .merge(health_routes())
-        .layer(cors)
-        .layer(middleware::from_fn(request_logging_middleware))
-}
 
 #[cfg(test)]
 mod tests {
