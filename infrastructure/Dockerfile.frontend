@@ -1,4 +1,4 @@
-FROM node:20-slim as builder
+FROM node:alpine as build
 
 WORKDIR /app
 
@@ -48,7 +48,7 @@ FROM nginx:alpine
 RUN apk add --no-cache curl openssl bash
 
 # Copy the built app to nginx's serve directory
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy .env file for runtime environment variables
 COPY .env /usr/share/nginx/html/.env

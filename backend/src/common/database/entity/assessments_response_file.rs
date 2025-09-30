@@ -147,7 +147,7 @@ mod tests {
         };
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)
-            .append_query_results([vec![mock_response_file.clone()]]) // link_file_to_response result
+            .append_query_results([vec![mock_response_file.clone()]]) // Correct mock setup with assessments_response_file::Model
             .append_query_results([vec![mock_file.clone()]]) // get_files_for_response result
             .append_query_results([vec![mock_response.clone()]]) // get_responses_for_file result
             .append_exec_results([
@@ -163,11 +163,17 @@ mod tests {
             .into_connection();
 
         let service = AssessmentsResponseFileService::new(Arc::new(db));
+        println!("Mock database setup initialized.");
 
         // Test link file to response
         let link = service
             .link_file_to_response(mock_response_file.response_id, mock_response_file.file_id)
             .await?;
+        println!("Testing link_file_to_response with response_id: {:?}, file_id: {:?}", mock_response_file.response_id, mock_response_file.file_id);
+        println!("Mock response_id: {:?}", mock_response.response_id);
+        println!("Mock file_id: {:?}", mock_file.id);
+        println!("Mock response_id: {:?}", mock_response.response_id);
+        println!("Mock file_id: {:?}", mock_file.id);
 
         assert_eq!(link.response_id, mock_response_file.response_id);
         assert_eq!(link.file_id, mock_response_file.file_id);
