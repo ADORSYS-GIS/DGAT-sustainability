@@ -27,7 +27,7 @@ import {
   useOrganizationsServicePostOrganizations,
   useOrganizationsServicePutOrganizationsByOrganizationId,
   useOrganizationsServiceDeleteOrganizationsByOrganizationId,
-} from "@/openapi-rq/queries/queries";
+} from "@/services/openapiQueries";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
 import { OrganizationCategoryManager } from "@/components/admin/OrganizationCategoryManager";

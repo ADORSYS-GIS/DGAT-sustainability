@@ -33,7 +33,8 @@ import {
   useOrganizationsServiceGetOrganizationsByOrganizationIdMembers,
   useOrganizationsServicePostOrganizationsByOrganizationIdMembers,
   useOrganizationsServiceDeleteOrganizationsByOrganizationIdMembersByUserId,
-} from "@/openapi-rq/queries/queries";
+  useAdminServiceDeleteAdminUsersByUserId,
+} from "@/services/openapiQueries";
 import type {
   OrganizationMember,
   MemberRequest,
