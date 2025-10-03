@@ -85,16 +85,17 @@ services:
       KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
-      KEYCLOAK_FRONTEND_URL: "{KEYCLOAK_FRONTEND_URL:-https://localhost/keycloak}"
+      KEYCLOAK_FRONTEND_URL: "${KEYCLOAK_FRONTEND_URL:-https://localhost/keycloak}"
       KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-https://localhost}"
-      KC_PROXY_HEADERS: "forwarded"
+      KC_PROXY_HEADERS: "xforwarded"
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
       # Hostname v2 configuration (replaces deprecated v1 options)
-      KC_HOSTNAME: "${KC_HOSTNAME:-localhost}"
-      KC_HOSTNAME_URL: "${KC_HOSTNAME_URL:-https://localhost/keycloak}"
+      KC_HOSTNAME: "${KC_HOSTNAME:-ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+      KC_HOSTNAME_URL: "${KC_HOSTNAME_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak}"
       KC_HOSTNAME_PATH: "/keycloak"
       KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME_STRICT_HTTPS: "true"
       KC_HTTP_ENABLED: "true"
       KC_HTTPS_PORT: 8443
       # if you also want to allow HTTP, for debugging only
