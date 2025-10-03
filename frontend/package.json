@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run codegen",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
