@@ -1,6 +1,9 @@
 use sea_orm_migration::prelude::*;
 
 mod m20250123_000014_create_categories_table;
+mod m20250124_000016_create_category_catalog_table;
+mod m20250124_000017_create_organization_categories_table;
+mod m20250124_000018_migrate_categories_to_catalog;
 mod m20250706_000001_create_questions_table;
 mod m20250706_000002_create_questions_revisions_table;
 mod m20250706_000003_create_assessments_table;
@@ -35,6 +38,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20250715_000012_add_reviewed_at_to_assessments_submission::Migration),
             Box::new(m20250715_000013_update_submission_reports_table::Migration),
             Box::new(m20250123_000014_create_categories_table::Migration),
+            Box::new(m20250124_000016_create_category_catalog_table::Migration),
+            Box::new(m20250124_000017_create_organization_categories_table::Migration),
+            Box::new(m20250124_000018_migrate_categories_to_catalog::Migration),
             Box::new(m20250731_000001_add_assessment_name::Migration),
             Box::new(m20250819_000015_create_temp_submission_table::Migration),
         ]

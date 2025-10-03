@@ -227,7 +227,71 @@ pub async fn create_organization(
         )
         .await
     {
-        Ok(organization) => Ok((StatusCode::CREATED, Json(organization))),
+        Ok(organization) => {
+            // If categories are provided in attributes, assign them to the organization
+            if let Some(attributes) = &request.attributes {
+                if let Some(categories) = attributes.get("categories") {
+                    // categories is already a Vec<String>
+                    let category_names = categories.clone();
+                    
+                    if !category_names.is_empty() {
+                        // Convert category names to category catalog IDs and assign with equal weights
+                        let category_catalog_service = &app_state.database.category_catalog;
+                        let organization_categories_service = &app_state.database.organization_categories;
+                        
+                        let mut category_catalog_ids = Vec::new();
+                        for name in category_names {
+                            // Find category catalog by name
+                            let all_catalogs = category_catalog_service
+                                .get_all_active_categories()
+                                .await
+                                .map_err(|e| {
+                                    tracing::error!("Failed to get category catalogs: {}", e);
+                                    ApiError::InternalServerError("Failed to get category catalogs".to_string())
+                                })?;
+                            
+                            if let Some(catalog) = all_catalogs.iter().find(|cat| cat.name == name) {
+                                category_catalog_ids.push(catalog.category_catalog_id);
+                            }
+                        }
+                        
+                        if !category_catalog_ids.is_empty() {
+                            // Calculate equal weights
+                            let category_count = category_catalog_ids.len() as i32;
+                            let equal_weight = 100 / category_count;
+                            let remainder = 100 % category_count;
+                            
+                            // Create organization categories with equal weights
+                            for (index, category_catalog_id) in category_catalog_ids.iter().enumerate() {
+                                let organization_category_id = uuid::Uuid::new_v4();
+                                let mut weight = equal_weight;
+                                // Add remainder to first category
+                                if index == 0 && remainder > 0 {
+                                    weight += remainder;
+                                }
+                                let order = (index + 1) as i32;
+                                
+                                if let Err(e) = organization_categories_service
+                                    .create_organization_category(
+                                        organization_category_id,
+                                        organization.id.clone(),
+                                        *category_catalog_id,
+                                        weight,
+                                        order,
+                                    )
+                                    .await
+                                {
+                                    tracing::error!("Failed to create organization category: {}", e);
+                                    // Don't fail the entire operation, just log the error
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Ok((StatusCode::CREATED, Json(organization)))
+        },
         Err(e) => {
             tracing::error!("Failed to create organization: {}", e);
             Err(ApiError::InternalServerError(

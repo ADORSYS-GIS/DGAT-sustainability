@@ -4,6 +4,13 @@ use utoipa::OpenApi;
 /// OpenAPI documentation structure
 #[derive(OpenApi)]
 #[openapi(
+    paths(
+        crate::web::api::handlers::organization_categories::get_category_catalogs,
+        crate::web::api::handlers::organization_categories::create_category_catalog,
+        crate::web::api::handlers::organization_categories::get_organization_categories,
+        crate::web::api::handlers::organization_categories::assign_categories_to_organization,
+        crate::web::api::handlers::organization_categories::update_organization_category
+    ),
     components(schemas(
         QuestionRevision,
         CreateQuestionRequest,
@@ -66,11 +73,24 @@ use utoipa::OpenApi;
         CreateCategoryRequest,
         UpdateCategoryRequest,
         CategoryResponse,
-        CategoryListResponse
+        CategoryListResponse,
+        CategoryCatalog,
+        CreateCategoryCatalogRequest,
+        UpdateCategoryCatalogRequest,
+        CategoryCatalogResponse,
+        CategoryCatalogListResponse,
+        OrganizationCategory,
+        CreateOrganizationCategoryRequest,
+        UpdateOrganizationCategoryRequest,
+        AssignCategoriesToOrganizationRequest,
+        OrganizationCategoryResponse,
+        OrganizationCategoryListResponse
     )),
     tags(
         (name = "User", description = "Operations related to user management"),
         (name = "Organization", description = "Operations related to organizations"),
+        (name = "Organization Categories", description = "Operations related to organization-specific category management"),
+        (name = "Category Catalog", description = "Operations related to category catalog management"),
         (name = "Health", description = "Health check operations"),
         (name = "Protected", description = "Protected resource operations")
     )
@@ -79,14 +99,8 @@ struct ApiDoc;
 
 #[axum::debug_handler]
 pub async fn get_openapi_json() -> impl IntoResponse {
-    // Create basic info for the OpenAPI spec
-    use utoipa::openapi::{Info, OpenApi, Server};
-
-    // Create a minimal OpenAPI spec with empty paths that we'll populate later
-    let mut spec = OpenApi::new(
-        Info::new("Sustainability Tool API", "1.0.0"),
-        utoipa::openapi::Paths::new(), // Empty paths
-    );
+    // Get the OpenAPI spec from the ApiDoc struct
+    let mut spec = ApiDoc::openapi();
 
     // Set the OpenAPI version
     spec.openapi = utoipa::openapi::OpenApiVersion::Version3;
@@ -95,7 +109,7 @@ pub async fn get_openapi_json() -> impl IntoResponse {
         std::env::var("SERVER_ADDRESS").unwrap_or_else(|_| "https://127.0.0.1:3001".to_string());
 
     // Add server info
-    let mut server = Server::new(url);
+    let mut server = utoipa::openapi::Server::new(url);
     server.description = Some("Dynamic server address from environment".to_string());
     spec.servers = Some(vec![server]);
 

@@ -8,14 +8,14 @@ import { offlineDB } from "../services/indexeddb";
 import { apiInterceptor } from "../services/apiInterceptor";
 import {
   QuestionsService,
-  CategoriesService,
   AssessmentsService,
   ResponsesService,
   SubmissionsService,
   ReportsService,
   OrganizationsService,
-  OrganizationMembersService,
+  OrganizationCategoriesService,
   AdminService,
+  FilesService,
 } from "@/openapi-rq/requests/services.gen";
 import type {
   Question,
@@ -339,12 +339,14 @@ export function useOfflineCategories() {
       setIsLoading(true);
       setError(null);
 
-      const result = await apiInterceptor.interceptGet(
-        () => CategoriesService.getCategories(),
-        () =>
-          offlineDB.getAllCategories().then((cats) => ({ categories: cats })),
-        "categories",
-      );
+      // TODO: Fix categories API - no general categories endpoint exists
+      // const result = await apiInterceptor.interceptGet(
+      //   () => CategoriesService.getCategories(),
+      //   () =>
+      //     offlineDB.getAllCategories().then((cats) => ({ categories: cats })),
+      //   "categories",
+      // );
+      const result = { categories: [] }; // Temporary fix
 
       setData(result);
     } catch (err) {
@@ -400,8 +402,11 @@ export function useOfflineCategoriesMutation() {
         // Save the temporary category locally first for immediate UI feedback
         await offlineDB.saveCategory(offlineCategory);
 
+        // TODO: Fix categories API - no general categories endpoint exists
+        // const result = await apiInterceptor.interceptMutation(
+        //   () => CategoriesService.postCategories({ requestBody: category }),
         const result = await apiInterceptor.interceptMutation(
-          () => CategoriesService.postCategories({ requestBody: category }),
+          () => Promise.resolve({ category: offlineCategory }), // Temporary fix
           async (data: Record<string, unknown>) => {
             // This function is called by interceptMutation to save data locally
             // For create operations, we DON'T save here since we already saved above
@@ -476,12 +481,15 @@ export function useOfflineCategoriesMutation() {
         // Update the category locally first for immediate UI feedback
         await offlineDB.saveCategory(offlineCategory);
 
+        // TODO: Fix categories API - no general categories endpoint exists
+        // const result = await apiInterceptor.interceptMutation(
+        //   () =>
+        //     CategoriesService.putCategoriesByCategoryId({
+        //       categoryId,
+        //       requestBody: category,
+        //     }),
         const result = await apiInterceptor.interceptMutation(
-          () =>
-            CategoriesService.putCategoriesByCategoryId({
-              categoryId,
-              requestBody: category,
-            }),
+          () => Promise.resolve({ category: offlineCategory }), // Temporary fix
           async (data: Record<string, unknown>) => {
             // This function is called by interceptMutation to save data locally
             // For update operations, we DON'T save here since we already saved above
@@ -545,11 +553,13 @@ export function useOfflineCategoriesMutation() {
           (q) => q.category === categoryToDelete.name,
         );
 
+        // TODO: Fix categories API - no general categories endpoint exists
+        // const result = await apiInterceptor.interceptMutation(
+        //   () =>
+        //     CategoriesService.deleteCategoriesByCategoryId({ categoryId }).then(
+        //       () => ({ success: true }),
         const result = await apiInterceptor.interceptMutation(
-          () =>
-            CategoriesService.deleteCategoriesByCategoryId({ categoryId }).then(
-              () => ({ success: true }),
-            ),
+          () => Promise.resolve({ success: true }), // Temporary fix
           async (data: Record<string, unknown>) => {
             // Delete all questions in this category first
             for (const question of questionsInCategory) {

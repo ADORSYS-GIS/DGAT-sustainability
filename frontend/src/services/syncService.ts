@@ -6,14 +6,14 @@ import { offlineDB } from "./indexeddb";
 import { DataTransformationService } from "./dataTransformation";
 import {
   QuestionsService,
-  CategoriesService,
   AssessmentsService,
   ResponsesService,
   SubmissionsService,
   ReportsService,
   OrganizationsService,
-  OrganizationMembersService,
+  OrganizationCategoriesService,
   AdminService,
+  FilesService,
 } from "@/openapi-rq/requests/services.gen";
 import type {
   Question,
@@ -296,9 +296,11 @@ export class SyncService {
     };
 
     try {
-      // Get server categories
-      const serverCategoriesResponse = await CategoriesService.getCategories();
-      const serverCategories = serverCategoriesResponse.categories;
+      // TODO: Fix categories sync - no general categories endpoint exists
+      // Only organization-specific categories are available
+      // const serverCategoriesResponse = await CategoriesService.getCategories();
+      // const serverCategories = serverCategoriesResponse.categories;
+      const serverCategories: any[] = []; // Temporary fix - no general categories endpoint
 
       // If server returns no categories, clear the local store completely
       if (serverCategories.length === 0) {

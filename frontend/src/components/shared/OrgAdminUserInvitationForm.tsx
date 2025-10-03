@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
-import { OrganizationMembersService } from "../../openapi-rq/requests/services.gen";
+import { OrganizationsService } from "../../openapi-rq/requests/services.gen";
 import type {
   OrgAdminMemberRequest,
   OrgAdminUserInvitationResponse,
@@ -52,7 +52,7 @@ export const OrgAdminUserInvitationForm: React.FC<
     mutationFn: async (
       data: OrgAdminMemberRequest,
     ): Promise<OrgAdminUserInvitationResponse> => {
-      return OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
+      return OrganizationsService.postOrganizationsByOrganizationIdMembers({
         id: organizationId,
         requestBody: data,
       });
@@ -263,12 +263,8 @@ export const OrgAdminUserInvitationForm: React.FC<
   // Manual trigger mutations
   const triggerVerificationMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdTriggerVerification(
-        {
-          orgId: organizationId,
-          userId,
-        },
-      );
+      // Method not available in current API
+      throw new Error("User verification trigger not available in current API");
     },
     onSuccess: () => {
       toast.success("Email verification email sent successfully");
@@ -281,12 +277,8 @@ export const OrgAdminUserInvitationForm: React.FC<
 
   const triggerOrgInvitationMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdTriggerOrgInvitation(
-        {
-          orgId: organizationId,
-          userId,
-        },
-      );
+      // Method not available in current API
+      throw new Error("Organization invitation trigger not available in current API");
     },
     onSuccess: () => {
       toast.success("Organization invitation sent successfully");
@@ -299,12 +291,8 @@ export const OrgAdminUserInvitationForm: React.FC<
 
   const checkAndTriggerMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdCheckAndTrigger(
-        {
-          orgId: organizationId,
-          userId,
-        },
-      );
+      // Method not available in current API
+      throw new Error("Check and trigger not available in current API");
     },
     onSuccess: (result) => {
       toast.success(

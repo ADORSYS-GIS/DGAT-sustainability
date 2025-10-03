@@ -3,15 +3,14 @@
 
 import {
   QuestionsService,
-  CategoriesService,
   AssessmentsService,
   ResponsesService,
   SubmissionsService,
   ReportsService,
   OrganizationsService,
-  OrganizationMembersService,
-  OrganizationInvitationsService,
+  OrganizationCategoriesService,
   AdminService,
+  FilesService,
 } from "@/openapi-rq/requests/services.gen";
 
 import { DataTransformationService } from "./dataTransformation";
@@ -153,22 +152,22 @@ export class InitialDataLoader {
     try {
       this.updateProgress("Loading categories...", 1);
 
-      // Load categories first
-      const categoriesData = await CategoriesService.getCategories();
-      if (categoriesData?.categories) {
-        const transformedCategories = categoriesData.categories.map(
-          DataTransformationService.transformCategory,
-        );
-
-        if (
-          DataTransformationService.validateTransformedData(
-            transformedCategories,
-            "categories",
-          )
-        ) {
-          await offlineDB.saveCategories(transformedCategories);
-        }
-      }
+      // TODO: Fix categories loading - no general categories endpoint exists
+      // Only organization-specific categories are available
+      // const categoriesData = await CategoriesService.getCategories();
+      // if (categoriesData?.categories) {
+      //   const transformedCategories = categoriesData.categories.map(
+      //     DataTransformationService.transformCategory,
+      //   );
+      //   if (
+      //     DataTransformationService.validateTransformedData(
+      //       transformedCategories,
+      //       "categories",
+      //     )
+      //   ) {
+      //     await offlineDB.saveCategories(transformedCategories);
+      //   }
+      // }
 
       this.updateProgress("Loading questions...", 1);
 

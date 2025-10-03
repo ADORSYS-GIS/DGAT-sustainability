@@ -29,12 +29,10 @@ import {
   UserPlus,
 } from "lucide-react";
 import {
-  useOrganizationsServiceGetAdminOrganizations,
-  useOrganizationMembersServiceGetOrganizationsByIdMembers,
-  useOrganizationMembersServicePostOrganizationsByIdMembers,
-  useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles,
-  useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId,
-  useAdminServiceDeleteAdminUsersByUserId,
+  useOrganizationsServiceGetOrganizations,
+  useOrganizationsServiceGetOrganizationsByOrganizationIdMembers,
+  useOrganizationsServicePostOrganizationsByOrganizationIdMembers,
+  useOrganizationsServiceDeleteOrganizationsByOrganizationIdMembersByUserId,
 } from "@/openapi-rq/queries/queries";
 import type {
   OrganizationMember,
@@ -86,7 +84,7 @@ export const ManageUsers: React.FC = () => {
 
   // Use direct React Query hooks for data fetching
   const { data: organizations, isLoading: orgsLoading } =
-    useOrganizationsServiceGetAdminOrganizations();
+    useOrganizationsServiceGetOrganizations();
   const {
     data: { categories },
     isLoading: categoriesLoading,
@@ -106,7 +104,7 @@ export const ManageUsers: React.FC = () => {
     data: users,
     isLoading: usersLoading,
     refetch,
-  } = useOrganizationMembersServiceGetOrganizationsByIdMembers(
+  } = useOrganizationsServiceGetOrganizationsByOrganizationIdMembers(
     { id: selectedOrg ? selectedOrg.id : "" },
     undefined,
     { enabled: !!selectedOrg?.id },
@@ -114,7 +112,7 @@ export const ManageUsers: React.FC = () => {
 
   // Use the generated mutation hooks
   const createUserMutation =
-    useOrganizationMembersServicePostOrganizationsByIdMembers({
+    useOrganizationsServicePostOrganizationsByOrganizationIdMembers({
       onSuccess: (result) => {
         toast.success("User created successfully");
         refetch();
@@ -129,24 +127,16 @@ export const ManageUsers: React.FC = () => {
       },
     });
 
-  const updateUserMutation =
-    useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles(
-      {
-        onSuccess: () => {
-          toast.success("User updated successfully");
-          refetch();
-          setShowAddDialog(false);
-          resetForm();
-        },
-        onError: (error) => {
-          console.error("Failed to update user:", error);
-          toast.error("Failed to update user");
-        },
-      },
-    );
+  // Role update function not available in current API
+  const updateUserMutation = {
+    mutate: () => {
+      toast.error("User role updates are not currently supported");
+    },
+    isPending: false,
+  };
 
   const deleteUserMutation =
-    useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId(
+    useOrganizationsServiceDeleteOrganizationsByOrganizationIdMembersByUserId(
       {
         onSuccess: () => {
           toast.success("User removed from organization successfully");

@@ -14,9 +14,9 @@ import type {
 } from "@/openapi-rq/requests/types.gen";
 import { DataTransformationService } from "../services/dataTransformation";
 import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
-import { AssessmentsService } from "@/openapi-rq/requests";
+// import { AssessmentsService } from "@/openapi-rq/requests";
 import { v4 as uuidv4 } from "uuid";
-import { ResponsesService } from "@/openapi-rq/requests/services.gen";
+// import { ResponsesService } from "@/openapi-rq/requests/services.gen";
 
 export function useOfflineQuestions() {
   const [data, setData] = useState<{ questions: Question[] }>({

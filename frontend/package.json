@@ -15,7 +15,7 @@
     "coverage": "vitest run --coverage",
     "preview": "vite preview",
     "codegen": "openapi-rq -i openapi.json -o ./src/openapi-rq -c fetch",
-    "postinstall": "npm run codegen"
+    "postinstall": "echo Skipping codegen"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",

@@ -569,6 +569,88 @@ pub struct CategoryListResponse {
     pub categories: Vec<Category>,
 }
 
+// =============== Category Catalog Models ===============
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CategoryCatalog {
+    pub category_catalog_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub template_id: String,
+    pub is_active: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct CreateCategoryCatalogRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub template_id: String,
+    pub is_active: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateCategoryCatalogRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub is_active: Option<bool>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CategoryCatalogResponse {
+    pub category_catalog: CategoryCatalog,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CategoryCatalogListResponse {
+    pub category_catalogs: Vec<CategoryCatalog>,
+}
+
+// =============== Organization Categories Models ===============
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct OrganizationCategory {
+    pub organization_category_id: Uuid,
+    pub keycloak_organization_id: String,
+    pub category_catalog_id: Uuid,
+    pub category_name: String, // Denormalized for easier access
+    pub weight: i32,
+    pub order: i32,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct CreateOrganizationCategoryRequest {
+    pub keycloak_organization_id: String,
+    pub category_catalog_id: Uuid,
+    pub weight: i32,
+    pub order: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateOrganizationCategoryRequest {
+    pub weight: Option<i32>,
+    pub order: Option<i32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct AssignCategoriesToOrganizationRequest {
+    pub category_catalog_ids: Vec<Uuid>,
+    pub weights: Option<Vec<i32>>, // If not provided, weights will be distributed equally
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct OrganizationCategoryResponse {
+    pub organization_category: OrganizationCategory,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct OrganizationCategoryListResponse {
+    pub organization_categories: Vec<OrganizationCategory>,
+}
+
 // Add implementation for AssessmentQuery that was missing IntoParams
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct AssessmentQuery {

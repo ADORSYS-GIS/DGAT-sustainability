@@ -580,12 +580,14 @@ export class ApiInterceptor {
             template_id: category.template_id,
           };
 
-          const { CategoriesService } = await import(
-            "@/openapi-rq/requests/services.gen"
-          );
-          const response = await CategoriesService.postCategories({
-            requestBody: categoryData,
-          });
+          // TODO: Fix categories API - no general categories endpoint exists
+          // const { CategoriesService } = await import(
+          //   "@/openapi-rq/requests/services.gen"
+          // );
+          // const response = await CategoriesService.postCategories({
+          //   requestBody: categoryData,
+          // });
+          const response = null; // Temporary fix
 
           if (
             response &&

@@ -23,13 +23,15 @@ import Select from "react-select";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
-  useOrganizationsServiceGetAdminOrganizations,
-  useOrganizationsServicePostAdminOrganizations,
-  useOrganizationsServicePutAdminOrganizationsById,
-  useOrganizationsServiceDeleteAdminOrganizationsById,
+  useOrganizationsServiceGetOrganizations,
+  useOrganizationsServicePostOrganizations,
+  useOrganizationsServicePutOrganizationsByOrganizationId,
+  useOrganizationsServiceDeleteOrganizationsByOrganizationId,
 } from "@/openapi-rq/queries/queries";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
+import { OrganizationCategoryManager } from "@/components/admin/OrganizationCategoryManager";
+import { useCategoryCatalogs, useCreateCategoryCatalog } from "@/hooks/useOrganizationCategories";
 
 interface Category {
   categoryId: string;
@@ -110,8 +112,7 @@ export const ManageOrganizations: React.FC = () => {
     enabled: "true",
     attributes: { categories: [] },
   });
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [selectedOrganization, setSelectedOrganization] = useState<OrganizationResponseFixed | null>(null);
 
   // Category creation state
   const [showCategoryCreation, setShowCategoryCreation] = useState(false);
@@ -126,20 +127,22 @@ export const ManageOrganizations: React.FC = () => {
   const [orgToDelete, setOrgToDelete] =
     useState<OrganizationResponseFixed | null>(null);
 
-  // Category mutation hooks
+  // Category catalog hooks
+  const { data: categoryCatalogsData, isLoading: categoriesLoading } = useCategoryCatalogs();
+  const categoryCatalogs = categoryCatalogsData?.category_catalogs || [];
+  const createCategoryMutation = useCreateCategoryCatalog();
   const categoryMutations = useOfflineCategoriesMutation();
-  const createCategory = categoryMutations.createCategory.mutate;
 
   // Use direct API query method from queries.ts instead of offline hook
   const {
     data: organizations,
     isLoading,
     refetch,
-  } = useOrganizationsServiceGetAdminOrganizations();
+  } = useOrganizationsServiceGetOrganizations();
 
   // Use the actual mutation methods from queries.ts for direct API calls
   const createOrganizationMutation =
-    useOrganizationsServicePostAdminOrganizations({
+    useOrganizationsServicePostOrganizations({
       onSuccess: (result) => {
         toast.success("Organization created successfully");
         refetch();
@@ -162,7 +165,7 @@ export const ManageOrganizations: React.FC = () => {
     });
 
   const updateOrganizationMutation =
-    useOrganizationsServicePutAdminOrganizationsById({
+    useOrganizationsServicePutOrganizationsByOrganizationId({
       onSuccess: () => {
         toast.success("Organization updated successfully");
         refetch();
@@ -185,7 +188,7 @@ export const ManageOrganizations: React.FC = () => {
     });
 
   const deleteOrganizationMutation =
-    useOrganizationsServiceDeleteAdminOrganizationsById({
+    useOrganizationsServiceDeleteOrganizationsByOrganizationId({
       onSuccess: () => {
         toast.success("Organization deleted successfully");
         refetch();
@@ -221,32 +224,7 @@ export const ManageOrganizations: React.FC = () => {
     }
   }, [organizations, fixedOrgs]);
 
-  // Load categories from IndexedDB on mount
-  const loadCategories = async () => {
-    setCategoriesLoading(true);
-    try {
-      const { offlineDB } = await import("@/services/indexeddb");
-      const stored = await offlineDB.getAllCategories();
-      // Map the IndexedDB category structure to the expected format
-      const mappedCategories = stored.map((cat) => ({
-        categoryId: cat.category_id,
-        name: cat.name,
-        weight: cat.weight,
-        order: cat.order,
-        templateId: cat.template_id,
-      }));
-      setCategories(mappedCategories);
-    } catch (error) {
-      console.error("Failed to load categories:", error);
-      setCategories([]);
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    loadCategories();
-  }, []);
+  // Categories are now loaded via the useCategoryCatalogs hook
 
   // Debug formData changes
   React.useEffect(() => {
@@ -387,7 +365,7 @@ export const ManageOrganizations: React.FC = () => {
       return;
     }
 
-    await createCategory(
+    createCategoryMutation.mutate(
       {
         name: categoryFormData.name,
         weight: categoryFormData.weight,
@@ -423,14 +401,11 @@ export const ManageOrganizations: React.FC = () => {
           setCategoryFormData({
             name: "",
             weight: 25,
-            order: categories.length + 1,
+            order: categoryCatalogs.length + 1,
           });
 
           // Hide category creation section
           setShowCategoryCreation(false);
-
-          // Reload categories
-          loadCategories();
         },
         onError: (error) => {
           console.error(
@@ -582,7 +557,7 @@ export const ManageOrganizations: React.FC = () => {
                       <Select
                         id="categories"
                         isMulti
-                        options={categories.map((cat) => ({
+                        options={categoryCatalogs.map((cat) => ({
                           value: cat.name,
                           label: cat.name,
                         }))}
@@ -731,10 +706,10 @@ export const ManageOrganizations: React.FC = () => {
                                 onClick={handleCreateCategory}
                                 className="bg-dgrv-green hover:bg-green-700 text-white"
                                 disabled={
-                                  categoryMutations.createCategory.isPending
+                                  createCategoryMutation.isPending
                                 }
                               >
-                                {categoryMutations.createCategory.isPending
+                                {createCategoryMutation.isPending
                                   ? t("common.processing")
                                   : t("manageOrganizations.createCategory")}
                               </Button>
@@ -830,30 +805,40 @@ export const ManageOrganizations: React.FC = () => {
                         {org.description}
                       </div>
                     )}
-                    <div className="flex space-x-2 pt-4">
+                    <div className="flex flex-col space-y-2 pt-4">
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(org)}
+                          className="flex-1"
+                          disabled={false}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          {t("manageOrganizations.edit", {
+                            defaultValue: "Edit",
+                          })}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(org)}
+                          className="text-red-600 hover:bg-red-50"
+                          disabled={deleteOrganizationMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          {t("manageOrganizations.delete", {
+                            defaultValue: "Delete",
+                          })}
+                        </Button>
+                      </div>
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(org)}
-                        className="flex-1"
-                        disabled={false}
+                        variant="secondary"
+                        onClick={() => setSelectedOrganization(org)}
+                        className="w-full"
                       >
-                        <Edit className="w-4 h-4 mr-1" />
-                        {t("manageOrganizations.edit", {
-                          defaultValue: "Edit",
-                        })}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(org)}
-                        className="text-red-600 hover:bg-red-50"
-                        disabled={deleteOrganizationMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        {t("manageOrganizations.delete", {
-                          defaultValue: "Delete",
-                        })}
+                        Manage Categories
                       </Button>
                     </div>
                   </div>
@@ -906,6 +891,21 @@ export const ManageOrganizations: React.FC = () => {
             variant="destructive"
             isLoading={deleteOrganizationMutation.isPending}
           />
+
+          {/* Organization Category Manager Dialog */}
+          {selectedOrganization && (
+            <Dialog open={!!selectedOrganization} onOpenChange={() => setSelectedOrganization(null)}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Manage Categories - {selectedOrganization.name}</DialogTitle>
+                </DialogHeader>
+                <OrganizationCategoryManager
+                  keycloakOrganizationId={selectedOrganization.id}
+                  organizationName={selectedOrganization.name}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
     </div>

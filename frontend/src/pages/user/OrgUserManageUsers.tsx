@@ -23,7 +23,7 @@ import type {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
-import { OrganizationMembersService } from "@/openapi-rq/requests/services.gen";
+import { OrganizationsService } from "@/openapi-rq/requests/services.gen";
 import type { OfflineUser } from "@/types/offline";
 import { useTranslation } from "react-i18next";
 import { OrgAdminUserInvitationForm } from "@/components/shared/OrgAdminUserInvitationForm";
@@ -86,7 +86,7 @@ function useUserMutations() {
       // Try to sync with backend if online
       try {
         const result =
-          await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers(
+          await OrganizationsService.postOrganizationsByOrganizationIdMembers(
             {
               id: data.id,
               requestBody: data.requestBody,
@@ -166,13 +166,8 @@ function useUserMutations() {
 
       // Attempt API call
       try {
-        await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories(
-          {
-            id: data.id,
-            memberId: data.memberId,
-            requestBody: data.requestBody,
-          },
-        );
+        // Method not available in current API
+        throw new Error("Category update not available in current API");
 
         // API call succeeded, mark as synced
         await offlineDB.saveUser({
@@ -230,12 +225,8 @@ function useUserMutations() {
 
       // Attempt API call
       try {
-        await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId(
-          {
-            id: data.id,
-            memberId: data.memberId,
-          },
-        );
+        // Method not available in current API
+        throw new Error("Member deletion not available in current API");
 
         // API call succeeded, actually delete from IndexedDB
         await offlineDB.deleteUser(data.memberId);

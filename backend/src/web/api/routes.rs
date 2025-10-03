@@ -12,6 +12,10 @@ use crate::web::api::handlers::{
     },
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
+    organization_categories::{
+        assign_categories_to_organization, create_category_catalog, get_category_catalogs,
+        get_organization_categories, update_organization_category,
+    },
     organizations::{
         add_identity_provider, add_member, add_org_admin_member, create_organization,
         delete_organization, get_identity_provider, get_identity_providers, get_member,
@@ -125,6 +129,13 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/categories/:category_id", get(get_category))
         .route("/api/categories/:category_id", put(update_category))
         .route("/api/categories/:category_id", delete(delete_category))
+        // Category Catalog endpoints
+        .route("/api/category-catalog", get(get_category_catalogs))
+        .route("/api/category-catalog", post(create_category_catalog))
+        // Organization Categories endpoints
+        .route("/api/organizations/:keycloak_organization_id/categories", get(get_organization_categories))
+        .route("/api/organizations/:keycloak_organization_id/categories/assign", post(assign_categories_to_organization))
+        .route("/api/organizations/:keycloak_organization_id/categories/:organization_category_id", put(update_organization_category))
         // Assessment endpoints (org-scoped)
         .route("/api/assessments", get(list_assessments))
         .route("/api/assessments", post(create_assessment))
