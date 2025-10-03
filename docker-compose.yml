@@ -179,15 +179,16 @@ services:
       - "443:443"
     volumes:
       - ./ssl:/etc/nginx/ssl:ro
-      - openapi-volume:/usr/share/nginx/html
+      - openapi-volume:/openapi
       - ./openapi.json:/app/openapi.json
       - ./infrastructure/frontend-entrypoint.sh:/docker-entrypoint.d/40-check-network.sh:ro
     entrypoint: >
       /bin/sh -c "
-        while [ ! -f /usr/share/nginx/html/openapi.json ]; do
+        while [ ! -f /openapi/openapi.json ]; do
           echo 'Waiting for openapi.json...';
           sleep 2;
         done;
+        cp /openapi/openapi.json /usr/share/nginx/html/openapi.json;
         nginx -g 'daemon off;'
       "
     networks: [tool-net]
