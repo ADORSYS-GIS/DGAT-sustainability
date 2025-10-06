@@ -109,12 +109,20 @@ const initializeApp = async () => {
   }
 };
 
-// Render app immediately, initialize services in background
-createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <App />
-  </QueryClientProvider>,
-);
+// Initialize authentication first, then render the app to ensure tokens are available for API calls
+(async () => {
+  try {
+    await initializeAuth();
+  } catch (e) {
+    console.warn("App startup: Keycloak init failed (continuing without auth)", e);
+  }
 
-// Initialize services in the background
-initializeApp();
+  createRoot(document.getElementById("root")!).render(
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>,
+  );
+
+  // Initialize services in the background
+  initializeApp();
+})();

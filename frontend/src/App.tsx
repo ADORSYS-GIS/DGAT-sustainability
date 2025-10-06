@@ -42,9 +42,6 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Temporary: Show a test page when authentication fails
-  // In production/non-auth flows, allow access to the router even if not authenticated
-
   // Render different components based on authentication status
   return isAuthenticated ? <AuthenticatedUserApp /> : <UnauthenticatedApp />;
 };
