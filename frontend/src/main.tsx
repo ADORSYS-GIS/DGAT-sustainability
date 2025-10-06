@@ -10,27 +10,26 @@ import {
 } from "@/services/shared/authService";
 import "./i18n";
 
-// Register OpenAPI request middleware to add Bearer token
-OpenAPI.interceptors.request.use(async (request) => {
-  try {
-    const token = await getAccessToken();
-    if (token) {
-      if (!request.headers) request.headers = {};
-      // If headers is a Headers object, convert to plain object
-      if (
-        typeof Headers !== "undefined" &&
-        request.headers instanceof Headers
-      ) {
-        request.headers.set("Authorization", `Bearer ${token}`);
-      } else {
-        request.headers["Authorization"] = `Bearer ${token}`;
-      }
+// Ensure OpenAPI generated client sends Bearer tokens
+const configureOpenApiAuth = () => {
+  // Some generators support TOKEN/HEADERS rather than interceptors
+  OpenAPI.TOKEN = async () => {
+    try {
+      const token = await getAccessToken();
+      return token ?? undefined;
+    } catch {
+      return undefined;
     }
-  } catch (error) {
-    console.warn("Failed to get Keycloak token for request:", error);
-  }
-  return request;
-});
+  };
+  OpenAPI.HEADERS = async () => {
+    try {
+      const token = await getAccessToken();
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch {
+      return {};
+    }
+  };
+};
 
 // Configure QueryClient for offline-first behavior
 const queryClient = new QueryClient({
@@ -115,6 +114,13 @@ const initializeApp = async () => {
     await initializeAuth();
   } catch (e) {
     console.warn("App startup: Keycloak init failed (continuing without auth)", e);
+  }
+
+  // Configure OpenAPI auth after Keycloak init so TOKEN/HEADERS can read the token
+  try {
+    configureOpenApiAuth();
+  } catch (e) {
+    console.warn("Failed to configure OpenAPI auth", e);
   }
 
   createRoot(document.getElementById("root")!).render(
