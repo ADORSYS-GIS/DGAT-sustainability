@@ -7,6 +7,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 /// Helper function to extract question revision ID from a response object
@@ -133,11 +134,12 @@ pub async fn list_user_submissions(
     let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Fetch organization submissions from the database
-    let submission_models = app_state
-        .database
-        .assessments_submission
-        .get_submissions_by_org(&org_id)
+    // Fetch organization submissions from the database, joining with assessments to get the name
+    let submission_models = crate::common::database::entity::assessments_submission::Entity::find()
+        .filter(crate::common::database::entity::assessments_submission::Column::OrgId.eq(&org_id))
+        .left_join(crate::common::database::entity::assessments::Entity)
+        .select_also(crate::common::database::entity::assessments::Entity)
+        .all(app_state.database.get_connection())
         .await
         .map_err(|e| {
             ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}"))
@@ -145,20 +147,37 @@ pub async fn list_user_submissions(
 
     // Convert database models to API models
     let mut submissions = Vec::new();
-    for model in submission_models {
+    for (submission_model, assessment_model) in submission_models {
+        // First try to get assessment name from the joined assessment table
+        let mut assessment_name = assessment_model
+            .map(|a| a.name)
+            .unwrap_or_else(|| "Unknown Assessment".to_string());
+
+        // If assessment was not found (deleted), try to get it from the submission content
+        if assessment_name == "Unknown Assessment" {
+            if let Some(content_obj) = submission_model.content.as_object() {
+                if let Some(assessment_name_from_content) = content_obj.get("assessment_name")
+                    .and_then(|v| v.as_str())
+                {
+                    assessment_name = assessment_name_from_content.to_string();
+                }
+            }
+        }
+
         // Enhance the content with question data
         let enhanced_content = enhance_submission_content_with_questions(
             &app_state,
-            model.content.clone(),
+            submission_model.content.clone(),
         ).await?;
 
         submissions.push(Submission {
-            submission_id: model.submission_id,
-            org_id: model.org_id,
+            submission_id: submission_model.submission_id,
+            org_id: submission_model.org_id,
+            assessment_name,
             content: enhanced_content,
-            submitted_at: model.submitted_at.to_rfc3339(),
-            review_status: model.status.to_string(),
-            reviewed_at: model.reviewed_at.map(|dt| dt.to_rfc3339()),
+            submitted_at: submission_model.submitted_at.to_rfc3339(),
+            review_status: submission_model.status.to_string(),
+            reviewed_at: submission_model.reviewed_at.map(|dt| dt.to_rfc3339()),
         });
     }
 
@@ -173,19 +192,15 @@ pub async fn get_submission(
     let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // In the database model, submission_id is actually the assessment_id (primary key)
-    // Fetch the specific submission from the database
-    let submission_model = app_state
-        .database
-        .assessments_submission
-        .get_submission_by_assessment_id(submission_id)
+    // Fetch the specific submission from the database, joining with assessments to get the name
+    let (submission_model, assessment_model) = crate::common::database::entity::assessments_submission::Entity::find_by_id(submission_id)
+        .left_join(crate::common::database::entity::assessments::Entity)
+        .select_also(crate::common::database::entity::assessments::Entity)
+        .one(app_state.database.get_connection())
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
 
-    let submission_model = match submission_model {
-        Some(s) => s,
-        None => return Err(ApiError::NotFound("Submission not found".to_string())),
-    };
 
     // Verify that the current organization is the owner of the submission
     if submission_model.org_id != org_id {
@@ -200,10 +215,27 @@ pub async fn get_submission(
         submission_model.content.clone(),
     ).await?;
 
+    // First try to get assessment name from the joined assessment table
+    let mut assessment_name = assessment_model
+        .map(|a| a.name)
+        .unwrap_or_else(|| "Unknown Assessment".to_string());
+
+    // If assessment was not found (deleted), try to get it from the submission content
+    if assessment_name == "Unknown Assessment" {
+        if let Some(content_obj) = submission_model.content.as_object() {
+            if let Some(assessment_name_from_content) = content_obj.get("assessment_name")
+                .and_then(|v| v.as_str())
+            {
+                assessment_name = assessment_name_from_content.to_string();
+            }
+        }
+    }
+
     // Convert database model to API model
     let submission = AssessmentSubmission {
         assessment_id: submission_model.submission_id,
         org_id: submission_model.org_id,
+        assessment_name,
         content: enhanced_content,
         submitted_at: submission_model.submitted_at.to_rfc3339(),
         review_status: submission_model.status.to_string(),

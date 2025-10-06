@@ -75,7 +75,12 @@ export const ReportSelectionDialog: React.FC<ReportSelectionDialogProps> = ({
       return t("reportHistory.unknownAssessment");
     }
     
-    // Find the assessment that matches this submission's assessment_id
+    // Prioritize submission.assessment_name if available
+    if (submission.assessment_name) {
+      return submission.assessment_name;
+    }
+
+    // Fallback to finding the assessment by ID if assessment_name is not directly on submission
     const assessment = assessments.find(ass => ass.assessment_id === submission.assessment_id);
     
     return assessment?.name || t("reportHistory.unknownAssessment");

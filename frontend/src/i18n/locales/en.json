@@ -564,7 +564,11 @@
       "noDraftAssessment": "No draft assessment available to answer.",
       "sustainabilityAssessment": "Sustainability Assessment",
       "noSubmissionsMessage": "No submissions yet. Start your first assessment above!",
-      "sustainabilityOverview": "Sustainability Overview"
+      "sustainabilityOverview": "Sustainability Overview",
+      "reviewAssessments": {
+        "title": "Review Assessments",
+        "description": "Review and approve draft assessments submitted by organization users."
+      }
     }
   },
   "manageUsers.selectOrganization": "Select an Organization",

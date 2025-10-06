@@ -152,13 +152,6 @@ export const AdminDashboard: React.FC = () => {
       onClick: () => navigate("/admin/questions"),
     },
     {
-      title: t('adminDashboard.reviewAssessments'),
-      description: t('adminDashboard.reviewAssessmentsDesc'),
-      icon: CheckSquare,
-      color: "green" as const,
-      onClick: () => navigate("/admin/reviews"),
-    },
-    {
       title: t('adminDashboard.actionPlans', { defaultValue: 'Manage Action Plans' }),
       description: t('adminDashboard.actionPlansDesc', { defaultValue: 'View and manage action plans for all organizations' }),
       icon: Kanban,
@@ -202,7 +195,6 @@ export const AdminDashboard: React.FC = () => {
   const systemStats = [
     { label: t('adminDashboard.numCategories'), value: categoryCount, color: "blue", loading: categoriesLoading },
     { label: t('adminDashboard.numQuestions'), value: questionCount, color: "green", loading: questionsLoading },
-    { label: t('adminDashboard.pendingReviews'), value: pendingReviewsCount, color: "yellow", loading: submissionsLoading },
     {
       label: t('adminDashboard.completedAssessments'),
       value: completedCount,
@@ -268,80 +260,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Dashboard Content */}
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Pending Reviews */}
-            <Card className="lg:col-span-2 animate-fade-in">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center space-x-2">
-                  <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <span>{t('adminDashboard.pendingReviewsCard')}</span>
-                </CardTitle>
-                <Badge className="bg-orange-500 text-white">
-                  {submissionsLoading ? (
-                    <div className="flex items-center space-x-1">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b border-white"></div>
-                      <span>...</span>
-                    </div>
-                  ) : (
-                    `${pendingReviewsCount} ${t('adminDashboard.pendingCount', { count: pendingReviewsCount })}`
-                  )}
-                </Badge>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {submissionsLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
-                      <p className="text-gray-600">{t('adminDashboard.loadingSubmissions', { defaultValue: 'Loading submissions...' })}</p>
-                    </div>
-                  ) : (
-                    <>
-                      {pendingReviews.map((review) => (
-                        <div
-                          key={review.id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                          onClick={() => navigate(`/admin/reviews`)}
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="p-2 rounded-full bg-gray-100">
-                              {/* Assuming type is derived from submission or can be inferred */}
-                              <Star className="w-5 h-5 text-dgrv-green" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium">
-                                Sustainability Assessment
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {review.organization}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-gray-600">
-                              {review.submittedAt}
-                            </p>
-                            <Badge variant="outline" className="text-xs">
-                              {review.reviewStatus === "under_review"
-                                ? t('adminDashboard.underReview')
-                                : t('adminDashboard.reviewRequired')}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                      {pendingReviews.length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p>{t('adminDashboard.allUpToDate')}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid lg:grid-cols-1 gap-8">
             {/* Admin Guide */}
-            <div className="space-y-6">
+            <div className="space-y-6 lg:col-span-1">
               <Card
                 className="animate-fade-in cursor-pointer hover:shadow-lg transition-shadow"
                 style={{ animationDelay: "200ms" }}

@@ -622,11 +622,24 @@ pub async fn submit_assessment(
             .map_err(|e| ApiError::InternalServerError(format!("Failed to read temp_submission: {e}")))?
             .ok_or_else(|| ApiError::BadRequest("No temp submission to finalize".to_string()))?;
 
-        // Create final submission using the content from temp submission
+        // Fetch the assessment to get its name before we delete it
+        let assessment = app_state.database.assessments
+            .get_assessment_by_id(assessment_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?
+            .ok_or_else(|| ApiError::NotFound("Assessment not found".to_string()))?;
+
+        // Enhance the temp submission content with assessment name
+        let mut enhanced_content = temp_submission.content.clone();
+        if let Some(content_obj) = enhanced_content.as_object_mut() {
+            content_obj.insert("assessment_name".to_string(), serde_json::Value::String(assessment.name.clone()));
+        }
+
+        // Create final submission using the enhanced content with assessment name
         let submission = crate::common::database::entity::assessments_submission::ActiveModel {
             submission_id: Set(assessment_id),
             org_id: Set(temp_submission.org_id.clone()),
-            content: Set(temp_submission.content.clone()),
+            content: Set(enhanced_content),
             submitted_at: Set(chrono::Utc::now()),
             status: Set(crate::common::database::entity::assessments_submission::SubmissionStatus::UnderReview),
             reviewed_at: Set(None),

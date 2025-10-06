@@ -8,7 +8,7 @@ import { Welcome } from "../pages/HomePage";
 import { ROLES } from "@/constants/roles";
 import { ManageCategories } from "../pages/admin/ManageCategories";
 import { ManageQuestions } from "../pages/admin/ManageQuestions";
-import ReviewAssessments from "../pages/admin/ReviewAssessments";
+import ReviewAssessments from "../pages/user/ReviewAssessments";
 import AdminActionPlans from "../pages/admin/AdminActionPlans";
 import { Assessment } from "../pages/user/Assesment";
 import { AssessmentList } from "../pages/user/AssessmentList";
@@ -38,7 +38,6 @@ const routes = [
       { path: "organizations", element: React.createElement(ManageOrganizations) },
       { path: "users", element: React.createElement(ManageUsers) },
       { path: "questions", element: React.createElement(ManageQuestions) },
-      { path: "reviews", element: React.createElement(ReviewAssessments) },
       { path: "action-plans", element: React.createElement(AdminActionPlans) },
       { path: "report-history", element: React.createElement(ReportHistory) },
       { path: "guide", element: React.createElement(AdminGuide) },
@@ -78,6 +77,7 @@ const routes = [
       { path: "draft-submissions", element: React.createElement(DraftSubmissions) },
       { path: "manage-users", element: React.createElement(OrgUserManageUsers) },
       { path: "guide", element: React.createElement(UserGuide) },
+      { path: "reviews", element: React.createElement(ReviewAssessments) },
     ],
   },
 

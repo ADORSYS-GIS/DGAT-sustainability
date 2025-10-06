@@ -124,11 +124,20 @@ impl AssessmentsSubmissionService {
         assessment_id: Uuid,
         org_id: String,
         content: Value,
+        assessment_name: Option<String>,
     ) -> Result<Model, DbErr> {
+        // Store assessment name in the content if provided
+        let mut enhanced_content = content;
+        if let Some(name) = assessment_name {
+            if let Some(content_obj) = enhanced_content.as_object_mut() {
+                content_obj.insert("assessment_name".to_string(), serde_json::Value::String(name));
+            }
+        }
+
         let submission = ActiveModel {
             submission_id: Set(assessment_id),
             org_id: Set(org_id),
-            content: Set(content),
+            content: Set(enhanced_content),
             submitted_at: Set(Utc::now()),
             status: Set(SubmissionStatus::UnderReview),
             reviewed_at: Set(None),

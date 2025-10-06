@@ -223,6 +223,7 @@ pub struct ResponseListResponse {
 pub struct AssessmentSubmission {
     pub assessment_id: Uuid,
     pub org_id: String,
+    pub assessment_name: String, // Added assessment name
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,
@@ -232,6 +233,7 @@ pub struct AssessmentSubmission {
 pub struct Submission {
     pub submission_id: Uuid,
     pub org_id: String,
+    pub assessment_name: String, // Added assessment name
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,

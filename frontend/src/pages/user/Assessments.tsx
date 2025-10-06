@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
+import { useOfflineSubmissions, useOfflineSubmissionsMutation, useOfflineQuestions } from "@/hooks/useOfflineApi";
 import { offlineDB } from "@/services/indexeddb";
 import type { Assessment } from "@/openapi-rq/requests/types.gen";
 import type { Submission } from "@/openapi-rq/requests/types.gen";
@@ -42,6 +42,22 @@ export const Assessments: React.FC = () => {
   const { data, isLoading: remoteLoading, refetch } = useOfflineSubmissions();
   const submissions = data?.submissions || [];
 
+  const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
+
+  const questionsMap = React.useMemo(() => {
+    if (!questionsData?.questions) return new Map();
+    const map = new Map<string, { text: string; category: string }>();
+    questionsData.questions.forEach(q => {
+      if (q.question?.latest_revision) {
+        map.set(q.question.latest_revision.question_revision_id, {
+          text: q.question.latest_revision.text as unknown as string,
+          category: q.question.category,
+        });
+      }
+    });
+    return map;
+  }, [questionsData]);
+
   // Delete submission mutation
   const { deleteSubmission, isPending: isDeleting } = useOfflineSubmissionsMutation();
 
@@ -49,21 +65,27 @@ export const Assessments: React.FC = () => {
     setIsLoading(remoteLoading);
   }, [remoteLoading]);
 
-  // Helper function to count unique categories completed and total for a submission
-  const getCategoryCounts = (submission: Submission) => {
+  // Helper function to count unique categories completed for a submission
+  const getCategoryCounts = (submission: Submission, questionsMap: Map<string, { text: string; category: string }>) => {
     try {
-      // Extract responses from submission content
       const responses = submission?.content?.responses || [];
-      const completed = responses.length;
+      const completedCategories = new Set<string>();
+
+      responses.forEach(response => {
+        const customResponse = response as unknown as { question_revision_id?: string; question_category?: string };
+        const questionDetails = customResponse.question_revision_id
+          ? questionsMap.get(customResponse.question_revision_id)
+          : undefined;
+        const category = customResponse.question_category || questionDetails?.category;
+        if (category) {
+          completedCategories.add(category);
+        }
+      });
       
-      // For total categories, we need to get the assessment details
-      // For now, we'll use a reasonable estimate or fetch from assessment
-      const total = completed > 0 ? Math.max(completed, 3) : 0; // Default to at least 3 categories
-      
-      return { completed, total };
+      return { completed: completedCategories.size };
     } catch (error) {
       console.warn('Error calculating category counts:', error);
-      return { completed: 0, total: 0 };
+      return { completed: 0 };
     }
   };
 
@@ -127,8 +149,9 @@ export const Assessments: React.FC = () => {
     onDelete: (submissionId: string) => void;
     isDeleting: boolean;
     isOrgAdmin: boolean;
-  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin }) => {
-    const { completed, total } = getCategoryCounts(submission);
+    questionsMap: Map<string, { text: string; category: string }>;
+  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin, questionsMap }) => {
+    const { completed } = getCategoryCounts(submission, questionsMap);
     
     return (
       <Card
@@ -180,7 +203,7 @@ export const Assessments: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               <p>
-                {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}/{total}
+                {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}
               </p>
             </div>
             <div className="flex space-x-2">
@@ -239,6 +262,7 @@ export const Assessments: React.FC = () => {
               onDelete={handleDeleteSubmission}
               isDeleting={isDeleting}
               isOrgAdmin={isOrgAdmin()}
+              questionsMap={questionsMap}
             />
           ))}
 

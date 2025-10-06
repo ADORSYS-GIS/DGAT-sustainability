@@ -169,6 +169,7 @@ export class DataTransformationService {
    */
   static transformAdminSubmission(
     adminSubmission: AdminSubmissionDetail,
+    assessmentName: string,
     userOrganizationId?: string,
     reviewerEmail?: string
   ): OfflineSubmission {
@@ -178,6 +179,7 @@ export class DataTransformationService {
     const submission: Submission = {
       submission_id: adminSubmission.submission_id,
       assessment_id: adminSubmission.assessment_id,
+      assessment_name: assessmentName,
       user_id: adminSubmission.user_id,
       content: adminSubmission.content as Submission['content'], // Type assertion for compatibility
       review_status: adminSubmission.review_status,
@@ -405,12 +407,15 @@ export class DataTransformationService {
    */
   static transformAdminSubmissionsWithContext(
     adminSubmissions: AdminSubmissionDetail[],
+    assessments: { assessment_id: string; name: string }[],
     userOrganizationId?: string,
     reviewerEmail?: string
   ): OfflineSubmission[] {
-    return adminSubmissions.map(submission => 
-      this.transformAdminSubmission(submission, userOrganizationId, reviewerEmail)
-    );
+    const assessmentMap = new Map(assessments.map(a => [a.assessment_id, a.name]));
+    return adminSubmissions.map(submission => {
+      const assessmentName = assessmentMap.get(submission.assessment_id) || 'Unknown Assessment';
+      return this.transformAdminSubmission(submission, assessmentName, userOrganizationId, reviewerEmail);
+    });
   }
 
   /**

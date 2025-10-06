@@ -30,6 +30,7 @@ interface SubmissionResponseWithCategory extends Submission_content_responses {
 interface DraftSubmission {
   submission_id: string;
   assessment_id: string;
+  assessment_name: string; // Added assessment_name
   org_id: string;
   org_name: string;
   content: {
@@ -317,7 +318,7 @@ export default function DraftSubmissions() {
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    {t("user.draftSubmissions.assessment", { defaultValue: "Assessment" })} #{selectedSubmission.assessment_id.slice(0, 8)}
+                    {selectedSubmission.assessment_name || t("user.draftSubmissions.assessment", { defaultValue: "Assessment" })}
                   </h1>
                   <p className="text-gray-600">
                     {t("user.draftSubmissions.reviewAndApprove", { defaultValue: "Review and approve this draft submission" })}
@@ -479,7 +480,7 @@ export default function DraftSubmissions() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                         <div className="flex items-center space-x-2">
                           <FileText className="h-4 w-4" />
-                          <span>{t("user.draftSubmissions.assessment", { defaultValue: "Assessment" })} #{submission.assessment_id.slice(0, 8)}</span>
+                          <span>{submission.assessment_name || t("user.draftSubmissions.assessment", { defaultValue: "Assessment" })}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4" />

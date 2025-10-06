@@ -39,7 +39,8 @@ import type {
   QuestionRevision,
   ActionPlanListResponse, // Import ActionPlanListResponse
   RecommendationWithStatus, // Import RecommendationWithStatus
-  OrganizationActionPlan // Import OrganizationActionPlan
+  OrganizationActionPlan, // Import OrganizationActionPlan
+  QuestionWithRevisionsResponse
 } from "@/openapi-rq/requests/types.gen";
 import type { 
   OfflineQuestion,
@@ -812,6 +813,7 @@ export function useOfflineAssessmentsMutation() {
         status: "draft",
         created_at: now,
         updated_at: now,
+        categories: assessment.categories,
       };
 
       const offlineAssessment = DataTransformationService.transformAssessment(
@@ -825,40 +827,34 @@ export function useOfflineAssessmentsMutation() {
 
       const result = await apiInterceptor.interceptMutation(
         () => AssessmentsService.postAssessments({ requestBody: assessment }),
-        async (apiResponse: Record<string, unknown>) => {
-          
-          // Check if this is a valid API response or request data
-          if (!apiResponse.assessment) {
-            // This is the request data, not the API response
-            console.warn('Received request data instead of API response - API call may have failed');
-            return;
-          }
-          
-          const realAssessment = apiResponse.assessment as Assessment;
-          if (!realAssessment || !realAssessment.assessment_id) {
-            console.error('API did not return a valid assessment:', apiResponse);
-            throw new Error('API did not return a valid assessment');
-          }
-          
-          // Delete the temporary assessment
-          await offlineDB.deleteAssessment(tempId);
-          
-          // Save the real assessment with organization context
-          const finalOfflineAssessment = DataTransformationService.transformAssessment(
-            realAssessment,
-            organizationId,
-            userEmail
-          );
-          await offlineDB.saveAssessment(finalOfflineAssessment);
-          
+        async () => {
+          // The optimistic update (saving the temp assessment) is already done.
+          // The real data will be saved by the interceptor's updateLocalData method.
         },
         assessment as Record<string, unknown>,
         'assessments',
         'create'
       );
 
+      // After the API call, if successful, we clean up the temporary assessment.
+      type AssessmentResponse = { assessment: Assessment };
+      const isAssessmentResponse = (res: unknown): res is AssessmentResponse => {
+        return (
+            typeof res === 'object' &&
+            res !== null &&
+            'assessment' in res &&
+            typeof (res as { assessment: { assessment_id: unknown } }).assessment.assessment_id === 'string'
+        );
+      }
+
+      if (isAssessmentResponse(result)) {
+        // This was a successful online request, the interceptor saved the real assessment.
+        // Now we can safely delete the temporary one.
+        await offlineDB.deleteAssessment(tempId);
+      }
+
       // Always call onSuccess for offline-first behavior
-      // The result will be the temporary assessment data when offline
+      // The result will be the temporary assessment data when offline, or the real one when online.
       options?.onSuccess?.(result);
       return result;
     } catch (err) {
@@ -979,6 +975,7 @@ export function useOfflineAssessmentsMutation() {
         const offlineSubmission = DataTransformationService.transformSubmission({
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
+          assessment_name: 'Unknown Assessment',
           review_status: 'pending_review',
         });
         await offlineDB.saveSubmission(offlineSubmission);
@@ -1025,6 +1022,7 @@ export function useOfflineAssessmentsMutation() {
         const offlineSubmission = DataTransformationService.transformSubmission({
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
+          assessment_name: 'Unknown Assessment',
           review_status: 'pending_review',
         });
         options?.onSuccess?.({ submission: offlineSubmission });
@@ -1033,6 +1031,7 @@ export function useOfflineAssessmentsMutation() {
         const offlineSubmission = DataTransformationService.transformSubmission({
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
+          assessment_name: 'Unknown Assessment',
           review_status: 'pending_review',
         });
         options?.onSuccess?.({ submission: offlineSubmission });
@@ -1310,20 +1309,53 @@ export function useOfflineSubmissions() {
   const [data, setData] = useState<{ submissions: Submission[] }>({ submissions: [] });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth();
 
   const fetchSubmissions = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const submissions = await offlineDB.getAllSubmissions();
-      setData({ submissions });
+
+      const result = await apiInterceptor.interceptGet(
+        () => SubmissionsService.getSubmissions(),
+        async () => {
+          if (user?.organization) {
+            const offlineSubmissions = await offlineDB.getSubmissionsByOrganization(user.organization);
+            const transformedSubmissions: Submission[] = offlineSubmissions.map(s => ({
+              submission_id: s.submission_id,
+              assessment_id: s.assessment_id,
+              user_id: s.user_id || 'unknown', // Ensure user_id is present
+              content: {
+                assessment: s.content?.assessment || { assessment_id: s.assessment_id },
+                responses: s.content?.responses?.map(r => ({
+                  response_id: r.response_id,
+                  question_revision_id: r.question_revision_id,
+                  response: r.response,
+                  version: r.version,
+                  updated_at: r.updated_at,
+                })) || [],
+              },
+              review_status: s.review_status === 'pending_review' ? 'pending_review' : (s.review_status as Submission['review_status']),
+              submitted_at: s.submitted_at,
+              reviewed_at: s.reviewed_at,
+              organization_id: s.organization_id,
+              assessment_name: s.assessment_name || 'Unknown Assessment',
+            }));
+            return { submissions: transformedSubmissions };
+          }
+          return { submissions: [] };
+        },
+        'submissions'
+      );
+
+      setData(result as { submissions: Submission[] });
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch submissions');
       setError(error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user?.organization]);
 
   useEffect(() => {
     fetchSubmissions();
@@ -1432,7 +1464,13 @@ export function useOfflineAdminSubmissions() {
             org_name: submission.org_name || 'Offline Data - Organization Name Unavailable', // Use stored org_name
             content: {
               assessment: submission.content?.assessment || { assessment_id: submission.assessment_id },
-              responses: submission.content?.responses || []
+              responses: submission.content?.responses?.map(r => ({
+                response_id: r.response_id,
+                question_revision_id: r.question_revision_id,
+                response: r.response,
+                version: r.version,
+                updated_at: r.updated_at,
+              })) || []
             },
             review_status: submission.review_status,
             submitted_at: submission.submitted_at,

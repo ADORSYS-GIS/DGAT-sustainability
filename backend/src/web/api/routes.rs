@@ -121,6 +121,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/drafts", get(list_temp_submissions_by_assessment))
         // User submission endpoints
         .route("/api/submissions", get(list_user_submissions))
+        .route("/api/org_admin/submissions", get(list_user_submissions))
         .route("/api/submissions/:submission_id", get(get_submission))
         .route("/api/submissions/:submission_id", delete(delete_submission))
         // User report endpoints

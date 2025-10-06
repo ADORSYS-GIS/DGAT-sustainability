@@ -29,7 +29,8 @@ import type {
   UpdateResponseRequest,
   OrgAdminMemberRequest,
   OrgAdminMemberCategoryUpdateRequest,
-  OrganizationCreateRequest
+  OrganizationCreateRequest,
+  AdminSubmissionDetail
 } from "@/openapi-rq/requests/types.gen";
 
 export interface InterceptorConfig {
@@ -286,6 +287,19 @@ export class ApiInterceptor {
             await offlineDB.saveSubmission(offlineSubmission);
           }
           break;
+        case 'admin_submissions':
+          // Handle admin submissions - these are transformed and stored as regular submissions
+          if (data.submissions && Array.isArray(data.submissions)) {
+            const assessments = await offlineDB.getAllAssessments();
+            const transformedSubmissions = DataTransformationService.transformAdminSubmissionsWithContext(
+              data.submissions as AdminSubmissionDetail[],
+              assessments
+            );
+            for (const submission of transformedSubmissions) {
+              await offlineDB.saveSubmission(submission);
+            }
+          }
+          break;
         case 'drafts_endpoint':
           // Handle draft submissions from the /drafts endpoint
           if (data.draft_submissions && Array.isArray(data.draft_submissions)) {
@@ -315,15 +329,6 @@ export class ApiInterceptor {
             for (const organization of data.organizations as Organization[]) {
               const offlineOrganization = DataTransformationService.transformOrganization(organization);
               await offlineDB.saveOrganization(offlineOrganization);
-            }
-          }
-          break;
-        case 'admin_submissions':
-          // Handle admin submissions - these are transformed and stored as regular submissions
-          if (data.submissions && Array.isArray(data.submissions)) {
-            for (const submission of data.submissions as Submission[]) {
-              const offlineSubmission = DataTransformationService.transformSubmission(submission);
-              await offlineDB.saveSubmission(offlineSubmission);
             }
           }
           break;
@@ -525,44 +530,39 @@ export class ApiInterceptor {
       const allAssessments = await offlineDB.getAllAssessments();
       const pendingAssessments = allAssessments.filter(a => a.sync_status === 'pending');
 
-      for (const assessment of pendingAssessments) {
-        try {
-          
-          // Skip if this is a temporary assessment that might have already been processed
-          if (assessment.assessment_id.startsWith('temp_')) {
+      for (const tempAssessment of pendingAssessments) {
+        if (!tempAssessment.assessment_id.startsWith('temp_')) {
             continue;
-          }
-          
-          // Create the request data from the offline assessment
-          const assessmentData = {
-            language: assessment.language
-          };
+        }
 
-          const { AssessmentsService } = await import('@/openapi-rq/requests/services.gen');
-          const response = await AssessmentsService.postAssessments({ requestBody: assessmentData });
-          
-          if (response && typeof response === 'object' && 'assessment' in response) {
-            const realAssessment = (response as { assessment: { assessment_id: string } }).assessment;
-            const realAssessmentId = realAssessment.assessment_id;
+        try {
+            const assessmentData: CreateAssessmentRequest = {
+                name: tempAssessment.name,
+                language: tempAssessment.language,
+                categories: tempAssessment.categories,
+            };
+
+            const { AssessmentsService } = await import('@/openapi-rq/requests/services.gen');
+            const response = await AssessmentsService.postAssessments({ requestBody: assessmentData });
             
-            // Delete the temporary assessment first
-            await offlineDB.deleteAssessment(assessment.assessment_id);
-            
-            // Check if an assessment with the same properties already exists (to prevent duplicates)
-            const existingAssessments = await offlineDB.getAllAssessments();
-            const duplicateAssessment = existingAssessments.find(a => 
-              a.language === assessment.language && a.assessment_id !== assessment.assessment_id
-            );
-            if (duplicateAssessment) {
-              console.warn('⚠️ Found duplicate assessment, deleting:', duplicateAssessment.assessment_id);
-              await offlineDB.deleteAssessment(duplicateAssessment.assessment_id);
+            if (response && typeof response === 'object' && 'assessment' in response) {
+                const realAssessment = (response as { assessment: Assessment }).assessment;
+                
+                await offlineDB.deleteAssessment(tempAssessment.assessment_id);
+                
+                const finalOfflineAssessment = DataTransformationService.transformAssessment(
+                    realAssessment,
+                    tempAssessment.org_id,
+                    undefined,
+                    'synced'
+                );
+                await offlineDB.saveAssessment(finalOfflineAssessment);
+                
+                successCount++;
             }
-            
-            successCount++;
-          }
         } catch (error) {
-          console.error(`❌ Failed to sync assessment ${assessment.assessment_id}:`, error);
-          failureCount++;
+            console.error(`❌ Failed to sync assessment ${tempAssessment.assessment_id}:`, error);
+            failureCount++;
         }
       }
 

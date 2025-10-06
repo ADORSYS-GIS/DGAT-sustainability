@@ -271,15 +271,27 @@ export const Dashboard: React.FC = () => {
           },
         ]
       : []),
-    // 4. View Assessments (all users)
+    // 4. Review Assessments (org_admin)
+    ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
+      ? [
+          {
+            title: t('user.dashboard.reviewAssessments.title'),
+            description: t('user.dashboard.reviewAssessments.description'),
+            icon: CheckSquare,
+            color: "blue" as const,
+            onClick: () => navigate("/user/reviews"),
+          },
+        ]
+      : []),
+    // 5. View Assessments (all users)
     {
       title: t('user.dashboard.viewAssessments.title'),
       description: t('user.dashboard.viewAssessments.description'),
       icon: FileText,
-      color: "blue" as const,
+      color: "green" as const,
       onClick: () => navigate("/assessments"),
     },
-    // 5. Action Plan (all users)
+    // 6. Action Plan (all users)
     {
       title: t('user.dashboard.actionPlan.title'),
       description: t('user.dashboard.actionPlan.description'),

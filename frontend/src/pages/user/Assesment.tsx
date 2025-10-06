@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { Navbar } from "@/components/shared/Navbar";
-import { AssessmentSuccessModal } from "@/components/shared/AssessmentSuccessModal";
 import { CreateAssessmentModal } from "@/components/shared/CreateAssessmentModal";
 import { AssessmentList } from "@/components/shared/AssessmentList";
 import { Button } from "@/components/ui/button";
@@ -45,6 +44,11 @@ type LocalAnswer = {
   files?: FileData[];
 };
 
+type QuestionWithCategory = Question & {
+  category: string;
+  latest_revision: QuestionRevision;
+};
+
 // Type guard for AssessmentDetailResponse
 function isAssessmentDetailResponse(
   data: AssessmentType | AssessmentDetailResponse | undefined
@@ -77,7 +81,6 @@ export const Assessment: React.FC = () => {
   const [hasCreatedAssessment, setHasCreatedAssessment] = useState(false);
   const [creationAttempts, setCreationAttempts] = useState(0);
   const [pendingSubmissions, setPendingSubmissions] = useState<OfflineSubmission[]>([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreatingAssessment, setIsCreatingAssessment] = useState(false);
   const [hasExistingResponses, setHasExistingResponses] = useState(false);
@@ -164,6 +167,16 @@ export const Assessment: React.FC = () => {
     return { orgId, categories: userCategories };
   }, [user]);
 
+  const organizationCategories = React.useMemo(() => {
+    if (!categoriesData?.categories || !orgInfo.categories) {
+      return [];
+    }
+    const orgCategoryNames = new Set(orgInfo.categories.map(c => c.toLowerCase()));
+    return categoriesData.categories
+      .filter(c => orgCategoryNames.has(c.name.toLowerCase()))
+      .map(c => c.name);
+  }, [categoriesData, orgInfo.categories]);
+
   // Extract assessment categories from assessment detail and map IDs to names
   const assessmentCategories = React.useMemo(() => {
     if (!assessmentDetail || !categoriesData?.categories) return [];
@@ -239,7 +252,6 @@ export const Assessment: React.FC = () => {
         if (result && isAssessmentResult(result) && result.assessment?.assessment_id) {
           const realAssessmentId = result.assessment.assessment_id;
           if (!realAssessmentId.startsWith("temp_")) {
-            setShowSuccessModal(true);
             // Refresh the assessments list
             refetchAssessments();
             const waitForAssessment = async () => {
@@ -369,7 +381,7 @@ export const Assessment: React.FC = () => {
   const groupedQuestions = React.useMemo(() => {
     if (!questionsData?.questions) return {};
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
-    questionsData.questions.forEach((question) => {
+    (questionsData.questions as unknown as QuestionWithCategory[]).forEach((question) => {
       const category = question.category;
       if (!groups[category]) groups[category] = [];
       groups[category].push({ question, revision: question.latest_revision });
@@ -465,7 +477,7 @@ export const Assessment: React.FC = () => {
               onSubmit={handleCreateAssessment}
               isLoading={isCreatingAssessment}
               isOrgAdmin={allRoles.includes("org_admin")}
-              availableCategories={categoriesData?.categories.map(c => c.name) || []}
+              availableCategories={organizationCategories}
             />
           </div>
         </div>
@@ -703,14 +715,6 @@ export const Assessment: React.FC = () => {
             )}
           </div>
         </div>
-        <AssessmentSuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-          onReturnToDashboard={() => {
-            setShowSuccessModal(false);
-            navigate("/dashboard");
-          }}
-        />
       </>
     );
   }
@@ -724,14 +728,6 @@ export const Assessment: React.FC = () => {
             <p className="text-gray-600">{t("loading")}</p>
           </div>
         </div>
-        <AssessmentSuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-          onReturnToDashboard={() => {
-            setShowSuccessModal(false);
-            navigate("/dashboard");
-          }}
-        />
       </>
     );
   }
@@ -891,14 +887,6 @@ export const Assessment: React.FC = () => {
           </div>
         </div>
       </div>
-      <AssessmentSuccessModal
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        onReturnToDashboard={() => {
-          setShowSuccessModal(false);
-          navigate("/dashboard");
-        }}
-      />
 
       <CreateAssessmentModal
         isOpen={showCreateModal}
@@ -906,7 +894,7 @@ export const Assessment: React.FC = () => {
         onSubmit={handleCreateAssessment}
         isLoading={isCreatingAssessment}
         isOrgAdmin={allRoles.includes("org_admin")}
-        availableCategories={categoriesData?.categories.map(c => c.name) || []}
+        availableCategories={organizationCategories}
       />
     </div>
   );
