@@ -9,25 +9,19 @@ import {
   AssignCategoriesToOrganizationRequest,
   UpdateOrganizationCategoryRequest,
 } from '@/types/organization-categories';
+import { fetchWithAuth } from '@/services/shared/authService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-// Helper function to get auth headers
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('keycloak_token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-  };
-};
+// All requests go through fetchWithAuth to ensure Bearer token is attached
 
 // Category Catalog API functions
 export const categoryCatalogApi = {
   // Get all active category catalogs
   async getCategoryCatalogs(): Promise<CategoryCatalogListResponse> {
-    const response = await fetch(`${API_BASE_URL}/category-catalog`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/category-catalog`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -39,9 +33,9 @@ export const categoryCatalogApi = {
 
   // Create a new category catalog entry
   async createCategoryCatalog(request: CreateCategoryCatalogRequest): Promise<CategoryCatalogResponse> {
-    const response = await fetch(`${API_BASE_URL}/category-catalog`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/category-catalog`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
 
@@ -57,9 +51,9 @@ export const categoryCatalogApi = {
 export const organizationCategoriesApi = {
   // Get organization categories by Keycloak organization ID
   async getOrganizationCategories(keycloakOrganizationId: string): Promise<OrganizationCategoryListResponse> {
-    const response = await fetch(`${API_BASE_URL}/organizations/${keycloakOrganizationId}/categories`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/organizations/${keycloakOrganizationId}/categories`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -74,9 +68,9 @@ export const organizationCategoriesApi = {
     keycloakOrganizationId: string,
     request: AssignCategoriesToOrganizationRequest
   ): Promise<OrganizationCategoryListResponse> {
-    const response = await fetch(`${API_BASE_URL}/organizations/${keycloakOrganizationId}/categories/assign`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/organizations/${keycloakOrganizationId}/categories/assign`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
 
@@ -93,11 +87,11 @@ export const organizationCategoriesApi = {
     organizationCategoryId: string,
     request: UpdateOrganizationCategoryRequest
   ): Promise<OrganizationCategoryResponse> {
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `${API_BASE_URL}/organizations/${keycloakOrganizationId}/categories/${organizationCategoryId}`,
       {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       }
     );
