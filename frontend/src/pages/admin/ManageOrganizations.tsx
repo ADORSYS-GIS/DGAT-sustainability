@@ -264,7 +264,7 @@ export const ManageOrganizations: React.FC = () => {
     const requestBody: CreateOrganizationRequest = {
       name: formData.name,
       domains: cleanDomains,
-      redirect_url:
+      redirectUrl:
         formData.redirectUrl ||
         import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
         "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
