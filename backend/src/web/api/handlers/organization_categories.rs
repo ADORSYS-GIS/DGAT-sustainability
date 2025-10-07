@@ -107,6 +107,46 @@ pub async fn create_category_catalog(
     Ok((StatusCode::CREATED, Json(CategoryCatalogResponse { category_catalog })))
 }
 
+/// Delete a category catalog entry by id (soft delete by marking inactive if supported by repository)
+#[utoipa::path(
+    delete,
+    path = "/category-catalog/{category_catalog_id}",
+    responses(
+        (status = 204, description = "Category catalog deleted successfully")
+    ),
+    params(
+        ("category_catalog_id" = Uuid, Path, description = "Category Catalog ID")
+    )
+)]
+pub async fn delete_category_catalog(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(category_catalog_id): Path<Uuid>,
+) -> Result<StatusCode, ApiError> {
+    // Only super users can delete catalog entries
+    if !claims.is_super_user() {
+        return Err(ApiError::BadRequest(
+            "Only system administrators can delete category catalogs".to_string(),
+        ));
+    }
+
+    let category_catalog_service = &app_state.database.category_catalog;
+    category_catalog_service
+        .delete_category_catalog(category_catalog_id)
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("not found") {
+                ApiError::NotFound("Category catalog not found".to_string())
+            } else {
+                ApiError::InternalServerError(format!(
+                    "Failed to delete category catalog: {e}"
+                ))
+            }
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
 // =============== Organization Categories Handlers ===============
 
 /// Get organization categories by Keycloak organization ID
