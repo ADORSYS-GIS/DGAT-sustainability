@@ -189,7 +189,7 @@ const AdminActionPlans: React.FC = () => {
   // Show organization selection if no organization is selected
   if (!selectedOrganization) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 pt-24">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
@@ -318,7 +318,7 @@ const AdminActionPlans: React.FC = () => {
 
   // Show selected organization's action plan
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 pt-24">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
