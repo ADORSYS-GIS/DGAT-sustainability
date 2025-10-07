@@ -33,10 +33,11 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   useOrganizationsServiceGetOrganizations,
-  useOrganizationsServicePostOrganizations,
   useOrganizationsServicePutOrganizationsByOrganizationId,
   useOrganizationsServiceDeleteOrganizationsByOrganizationId,
 } from "@/services/openapiQueries";
+import { useMutation } from "@tanstack/react-query";
+import { OrganizationsService } from "@/openapi-rq/requests/services.gen";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { OrganizationCategoryManager } from "@/components/admin/OrganizationCategoryManager";
 
@@ -136,35 +137,35 @@ export const ManageOrganizations: React.FC = () => {
   } = useOrganizationsServiceGetOrganizations();
 
   // Use the actual mutation methods from queries.ts for direct API calls
-  const createOrganizationMutation =
-    useOrganizationsServicePostOrganizations({
-      onSuccess: (result) => {
-        toast.success("Organization created successfully");
-        refetch();
-        setShowAddDialog(false);
-        setEditingOrg(null);
-        
-        // Find the newly created organization and open category manager
-        if (result && typeof result === 'object' && 'id' in result) {
-          const newOrg = toFixedOrg(result);
-          setSelectedOrganization(newOrg);
-        }
-        
-        setFormData({
-          name: "",
-          domains: [{ name: "" }],
-          redirectUrl:
-            import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-            "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-          enabled: "true",
-          attributes: { categories: [] },
-        });
-      },
-      onError: (error) => {
-        console.error("Failed to create organization:", error);
-        toast.error("Failed to create organization");
-      },
-    });
+  const createOrganizationMutation = useMutation({
+    mutationFn: (variables: { requestBody: CreateOrganizationRequest }) =>
+      OrganizationsService.postOrganizations(variables),
+    onSuccess: (result) => {
+      toast.success("Organization created successfully");
+      refetch();
+      setShowAddDialog(false);
+      setEditingOrg(null);
+
+      if (result && typeof result === "object" && "id" in result) {
+        const newOrg = toFixedOrg(result);
+        setSelectedOrganization(newOrg);
+      }
+
+      setFormData({
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl:
+          import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
+          "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to create organization:", error);
+      toast.error("Failed to create organization");
+    },
+  });
 
   const updateOrganizationMutation =
     useOrganizationsServicePutOrganizationsByOrganizationId({
