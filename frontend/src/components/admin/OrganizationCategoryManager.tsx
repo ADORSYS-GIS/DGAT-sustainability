@@ -31,11 +31,13 @@ import {
 interface OrganizationCategoryManagerProps {
   keycloakOrganizationId: string;
   organizationName: string;
+  autoOpenAssign?: boolean;
 }
 
 export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerProps> = ({
   keycloakOrganizationId,
   organizationName,
+  autoOpenAssign = false,
 }) => {
   const { t } = useTranslation();
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
@@ -79,6 +81,12 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
 
   const categoryCatalogs = categoryCatalogsData?.category_catalogs || [];
   const organizationCategories = orgCategoriesData?.organization_categories || [];
+  // Auto-open assign dialog when requested (e.g., right after organization creation)
+  useEffect(() => {
+    if (autoOpenAssign) {
+      setIsAssignDialogOpen(true);
+    }
+  }, [autoOpenAssign]);
 
   // Calculate total weight
   const totalWeight = getTotalWeight(organizationCategories.map(cat => cat.weight));

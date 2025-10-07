@@ -683,6 +683,7 @@ export const ManageOrganizations: React.FC = () => {
                   <OrganizationCategoryManagerLazy
                     keycloakOrganizationId={selectedOrganization.id}
                     organizationName={selectedOrganization.name}
+                    autoOpenAssign={true}
                   />
                 </React.Suspense>
               </DialogContent>
