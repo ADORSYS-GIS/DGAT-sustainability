@@ -121,7 +121,7 @@ export const ManageCategories: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 pt-24">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -223,98 +223,26 @@ export const ManageCategories: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Categories Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {categoryCatalogs.map((category, index) => (
-          <Card
-            key={category.category_catalog_id}
-            className="animate-fade-in hover:shadow-lg transition-shadow"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-3">
-                <div className="p-2 rounded-full bg-dgrv-blue/10">
-                  <List className="w-5 h-5 text-dgrv-blue" />
-                </div>
-                <span className="text-lg">{category.name}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {category.description && (
-                  <div className="text-sm text-gray-600">
-                    <b>
-                      {t("manageCategories.description", { defaultValue: "Description" })}:
-                    </b>{" "}
-                    {category.description}
-                  </div>
-                )}
-                <div className="text-sm text-gray-600">
-                  <b>
-                    {t("manageCategories.template", { defaultValue: "Template" })}:
-                  </b>{" "}
-                  {category.template_id}
-                </div>
-                <div className="text-sm text-gray-600">
-                  <b>
-                    {t("manageCategories.status", { defaultValue: "Status" })}:
-                  </b>{" "}
-                  <span className={category.is_active ? "text-green-600" : "text-red-600"}>
-                    {category.is_active
-                      ? t("manageCategories.active", { defaultValue: "Active" })
-                      : t("manageCategories.inactive", { defaultValue: "Inactive" })}
-                  </span>
-                </div>
-                <div className="flex space-x-2 pt-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(category)}
-                    className="flex-1"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    {t("manageCategories.edit", { defaultValue: "Edit" })}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(category.category_catalog_id)}
-                    className="text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    {t("manageCategories.delete", { defaultValue: "Delete" })}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Categories Plain List */}
+      <div className="space-y-2">
+        {categoryCatalogs.map((category) => (
+          <div key={category.category_catalog_id} className="text-gray-900">
+            {category.name}
+          </div>
         ))}
 
         {categoryCatalogs.length === 0 && (
-          <Card className="md:col-span-2 lg:col-span-3 text-center py-12">
-            <CardContent>
-              <List className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {t("manageCategories.noCategories", {
-                  defaultValue: "No categories yet",
-                })}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {t("manageCategories.getStarted", {
-                  defaultValue:
-                    "Create your first category to get started. Categories can then be assigned to organizations with custom weights.",
-                })}
-              </p>
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                className="bg-dgrv-green hover:bg-green-700"
-              >
-                {t("manageCategories.addFirstCategory", {
-                  defaultValue: "Add First Category",
-                })}
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12">
+            <p className="text-gray-600 mb-4">
+              {t("manageCategories.noCategories", { defaultValue: "No categories yet" })}
+            </p>
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="bg-dgrv-green hover:bg-green-700"
+            >
+              {t("manageCategories.addFirstCategory", { defaultValue: "Add First Category" })}
+            </Button>
+          </div>
         )}
       </div>
     </div>

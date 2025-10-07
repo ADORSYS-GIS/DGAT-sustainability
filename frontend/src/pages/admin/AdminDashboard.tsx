@@ -22,8 +22,8 @@ import { Button } from "@/components/ui/button";
 import {
   useOfflineAdminSubmissions,
   useOfflineQuestions,
-  useOfflineCategories,
 } from "@/hooks/useOfflineApi";
+import { useCategoryCatalogs } from "@/hooks/useOrganizationCategories";
 import { useAuth } from "@/hooks/shared/useAuth";
 
 type Organization = { organizationId: string; name: string };
@@ -186,10 +186,10 @@ export const AdminDashboard: React.FC = () => {
   // Dynamic counts for categories and questions using offline hooks
   const [questionCount, setQuestionCount] = useState<number>(0);
 
-  // Fetch categories count from offline data
-  const { data: categoriesData, isLoading: categoriesLoading } =
-    useOfflineCategories();
-  const categoryCount = categoriesData?.categories?.length || 0;
+  // Fetch categories count from catalog API
+  const { data: categoriesCatalogData, isLoading: categoriesLoading } =
+    useCategoryCatalogs();
+  const categoryCount = categoriesCatalogData?.category_catalogs?.length || 0;
 
   // Fetch questions count from offline data
   const { data: questionsData, isLoading: questionsLoading } =
