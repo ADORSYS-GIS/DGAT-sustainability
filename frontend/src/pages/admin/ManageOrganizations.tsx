@@ -37,7 +37,7 @@ import {
   useOrganizationsServiceDeleteOrganizationsByOrganizationId,
 } from "@/services/openapiQueries";
 import { useMutation } from "@tanstack/react-query";
-import { OrganizationsService } from "@/openapi-rq/requests/services.gen";
+import { fetchWithAuth } from "@/services/shared/authService";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { OrganizationCategoryManager } from "@/components/admin/OrganizationCategoryManager";
 
@@ -138,8 +138,21 @@ export const ManageOrganizations: React.FC = () => {
 
   // Use the actual mutation methods from queries.ts for direct API calls
   const createOrganizationMutation = useMutation({
-    mutationFn: (variables: { requestBody: CreateOrganizationRequest }) =>
-      OrganizationsService.postOrganizations(variables),
+    mutationFn: async (variables: { requestBody: CreateOrganizationRequest }) => {
+      const resp = await fetchWithAuth(
+        `${import.meta.env.VITE_API_BASE_URL || "/api"}/organizations`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(variables.requestBody),
+        },
+      );
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`Create organization failed: ${resp.status} ${text}`);
+      }
+      return resp.json();
+    },
     onSuccess: (result) => {
       toast.success("Organization created successfully");
       refetch();
@@ -253,7 +266,7 @@ export const ManageOrganizations: React.FC = () => {
     };
 
     if (editingOrg) {
-      updateOrganizationMutation.mutate({
+      (updateOrganizationMutation.mutate as unknown as (v: unknown) => void)({
         organizationId: editingOrg.id,
         requestBody,
       });
@@ -285,7 +298,7 @@ export const ManageOrganizations: React.FC = () => {
   const confirmDelete = () => {
     if (!orgToDelete) return;
 
-    deleteOrganizationMutation.mutate({ organizationId: orgToDelete.id });
+    (deleteOrganizationMutation.mutate as unknown as (v: unknown) => void)({ organizationId: orgToDelete.id });
   };
 
   const resetForm = () => {
