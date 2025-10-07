@@ -13,8 +13,8 @@ use crate::web::api::handlers::{
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
     organization_categories::{
-        assign_categories_to_organization, create_category_catalog, get_category_catalogs,
-        get_organization_categories, update_organization_category,
+        assign_categories_to_organization, create_category_catalog, delete_category_catalog,
+        get_category_catalogs, get_organization_categories, update_organization_category,
     },
     organizations::{
         add_identity_provider, add_member, add_org_admin_member, create_organization,
