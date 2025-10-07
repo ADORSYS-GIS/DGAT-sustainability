@@ -45,6 +45,16 @@ export const categoryCatalogApi = {
 
     return response.json();
   },
+  // Delete a category catalog by id
+  async deleteCategoryCatalog(categoryCatalogId: string): Promise<void> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/category-catalog/${categoryCatalogId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to delete category catalog: ${response.statusText}`);
+    }
+  },
 };
 
 // Organization Categories API functions

@@ -43,6 +43,21 @@ export const useCreateCategoryCatalog = () => {
   });
 };
 
+export const useDeleteCategoryCatalog = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (categoryCatalogId: string) => categoryCatalogApi.deleteCategoryCatalog(categoryCatalogId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.categoryCatalogs });
+      toast.success('Category catalog deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete category catalog: ${error.message}`);
+    },
+  });
+};
+
 // Organization Categories hooks
 export const useOrganizationCategories = (keycloakOrganizationId: string) => {
   return useQuery({

@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import {
   useCategoryCatalogs,
   useCreateCategoryCatalog,
+  useDeleteCategoryCatalog,
 } from "@/hooks/useOrganizationCategories";
 import {
   CategoryCatalog,
@@ -37,6 +38,7 @@ export const ManageCategories: React.FC = () => {
   // Use category catalog hooks
   const { data: categoryCatalogsData, isLoading, error, refetch } = useCategoryCatalogs();
   const createCategoryCatalogMutation = useCreateCategoryCatalog();
+  const deleteCategoryCatalogMutation = useDeleteCategoryCatalog();
 
   const categoryCatalogs = categoryCatalogsData?.category_catalogs || [];
 
@@ -90,8 +92,11 @@ export const ManageCategories: React.FC = () => {
     )
       return;
 
-    // TODO: Implement delete functionality when backend supports it
-    toast.info("Delete functionality will be implemented in the next phase");
+    try {
+      await deleteCategoryCatalogMutation.mutateAsync(categoryId);
+    } catch (error) {
+      // handled in mutation
+    }
   };
 
   const resetForm = () => {
