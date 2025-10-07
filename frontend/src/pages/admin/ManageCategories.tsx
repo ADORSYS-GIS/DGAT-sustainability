@@ -58,7 +58,6 @@ export const ManageCategories: React.FC = () => {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         template_id: SUSTAINABILITY_TEMPLATE_ID,
-        is_active: true,
       };
 
       try {

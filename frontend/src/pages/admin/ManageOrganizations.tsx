@@ -208,19 +208,30 @@ export const ManageOrganizations: React.FC = () => {
       },
     });
 
-  const deleteOrganizationMutation =
-    useOrganizationsServiceDeleteOrganizationsByOrganizationId({
-      onSuccess: () => {
-        toast.success("Organization deleted successfully");
-        refetch();
-        setShowDeleteConfirmation(false); // Close the dialog
-        setOrgToDelete(null); // Clear the organization to delete
-      },
-      onError: (error) => {
-        console.error("Failed to delete organization:", error);
-        toast.error("Failed to delete organization");
-      },
-    });
+  const deleteOrganizationMutation = useMutation({
+    mutationFn: async (variables: { organizationId: string }) => {
+      const base = import.meta.env.VITE_API_BASE_URL || "/api";
+      const resp = await fetchWithAuth(
+        `${base}/admin/organizations/${variables.organizationId}`,
+        { method: "DELETE" },
+      );
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`Delete organization failed: ${resp.status} ${text}`);
+      }
+      return resp.text();
+    },
+    onSuccess: () => {
+      toast.success("Organization deleted successfully");
+      refetch();
+      setShowDeleteConfirmation(false);
+      setOrgToDelete(null);
+    },
+    onError: (error) => {
+      console.error("Failed to delete organization:", error);
+      toast.error("Failed to delete organization");
+    },
+  });
 
   // Transform the organizations data from the direct API call
   const fixedOrgs = organizations
