@@ -136,6 +136,25 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
     }
   };
 
+  // Initialize selection and weights from existing assignments when opening the dialog
+  useEffect(() => {
+    if (isAssignDialogOpen) {
+      const preselectedIds = organizationCategories.map((c) => c.category_catalog_id);
+      setSelectedCategoryIds(preselectedIds);
+      if (preselectedIds.length > 0) {
+        const weights = preselectedIds.map((id) => {
+          const found = organizationCategories.find((c) => c.category_catalog_id === id);
+          return found ? found.weight : 0;
+        });
+        // If all zero or invalid, fallback to equal weights
+        const total = getTotalWeight(weights);
+        setCustomWeights(total > 0 ? weights : calculateEqualWeights(preselectedIds.length));
+      } else {
+        setCustomWeights([]);
+      }
+    }
+  }, [isAssignDialogOpen, organizationCategories, calculateEqualWeights, getTotalWeight]);
+
   // Update custom weights when category selection changes
   useEffect(() => {
     if (selectedCategoryIds.length > 0) {

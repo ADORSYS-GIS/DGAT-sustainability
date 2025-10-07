@@ -61,12 +61,39 @@ export const useAssignCategoriesToOrganization = () => {
       keycloakOrganizationId: string;
       request: AssignCategoriesToOrganizationRequest;
     }) => organizationCategoriesApi.assignCategoriesToOrganization(keycloakOrganizationId, request),
+    onMutate: async ({ keycloakOrganizationId, request }) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.organizationCategories(keycloakOrganizationId) });
+      const previous = queryClient.getQueryData(QUERY_KEYS.organizationCategories(keycloakOrganizationId));
+      // Optimistically update cache
+      const nowList = (previous as any)?.organization_categories ?? [];
+      const newList = (request.category_catalog_ids || []).map((id, idx) => {
+        const existing = nowList.find((c: any) => c.category_catalog_id === id);
+        const weight = request.weights?.[idx] ?? existing?.weight ?? 0;
+        return existing ?? {
+          organization_category_id: `${id}-temp`,
+          keycloak_organization_id: keycloakOrganizationId,
+          category_catalog_id: id,
+          category_name: (undefined as unknown) as string, // name will be resolved on server
+          weight,
+          order: idx + 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      });
+      queryClient.setQueryData(QUERY_KEYS.organizationCategories(keycloakOrganizationId), {
+        organization_categories: newList,
+      });
+      return { previous };
+    },
+    onError: (_err, { keycloakOrganizationId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(QUERY_KEYS.organizationCategories(keycloakOrganizationId), context.previous);
+      }
+      toast.error('Failed to assign categories');
+    },
     onSuccess: (_, { keycloakOrganizationId }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.organizationCategories(keycloakOrganizationId) });
       toast.success('Categories assigned to organization successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to assign categories: ${error.message}`);
     },
   });
 };
