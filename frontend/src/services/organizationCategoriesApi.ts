@@ -47,7 +47,7 @@ export const categoryCatalogApi = {
   },
   // Delete a category catalog by id
   async deleteCategoryCatalog(categoryCatalogId: string): Promise<void> {
-    const response = await fetchWithAuth(`${API_BASE_URL}/category-catalog/${categoryCatalogId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/categories/${categoryCatalogId}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });
