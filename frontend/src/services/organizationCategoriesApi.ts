@@ -57,9 +57,11 @@ export const categoryCatalogApi = {
     }
     const listJson = await listResp.json();
     const categories = (listJson?.categories ?? listJson ?? []) as Array<{ category_id: string; name: string }>;
-    const match = categories.find((c) => c.name === categoryName);
+    const needle = (categoryName || "").trim().toLowerCase();
+    const match = categories.find((c) => (c.name || "").trim().toLowerCase() === needle) ||
+                  categories.find((c) => (c.name || "").toLowerCase().includes(needle));
     if (!match) {
-      throw new Error(`Category with name "${categoryName}" not found`);
+      throw new Error(`Category with name "${categoryName}" not found in /categories list`);
     }
     // 2) Delete by real category_id
     const delResp = await fetchWithAuth(`${API_BASE_URL}/categories/${match.category_id}`, {
