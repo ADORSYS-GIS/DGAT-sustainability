@@ -95,7 +95,7 @@ export const ManageCategories: React.FC = () => {
     try {
       // We delete by name → map to real category id server-side
       const nameToDelete = categoryName || categoryCatalogs.find(c => c.category_catalog_id === categoryId)?.name || "";
-      await deleteCategoryCatalogMutation.mutateAsync(nameToDelete);
+      await deleteCategoryCatalogMutation.mutateAsync({ id: categoryId, name: nameToDelete });
     } catch (error) {
       // handled in mutation
     }

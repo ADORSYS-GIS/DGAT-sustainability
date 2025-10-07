@@ -45,9 +45,26 @@ export const categoryCatalogApi = {
 
     return response.json();
   },
-  // Delete a category catalog by matching its name to the real category id
-  async deleteCategoryCatalogByName(categoryName: string): Promise<void> {
-    // 1) Load real categories to map name -> category_id
+  // Robust delete: try catalog endpoint first; on 404 fall back to name→category_id mapping
+  async deleteCategoryCatalog(catalogId: string, categoryName: string): Promise<void> {
+    // Attempt 1: direct catalog delete if backend supports it
+    try {
+      const resp = await fetchWithAuth(`${API_BASE_URL}/category-catalog/${catalogId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (resp.ok) return; // done
+      if (resp.status !== 404) {
+        // Non-404 error from catalog endpoint; throw
+        const text = await resp.text();
+        throw new Error(`Catalog delete failed: ${resp.status} ${text}`);
+      }
+      // else 404 → fall through to mapping
+    } catch (e) {
+      // Network or other error: continue to fallback
+    }
+
+    // Attempt 2: map by name to real categories endpoint
     const listResp = await fetchWithAuth(`${API_BASE_URL}/categories`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
@@ -61,15 +78,15 @@ export const categoryCatalogApi = {
     const match = categories.find((c) => (c.name || "").trim().toLowerCase() === needle) ||
                   categories.find((c) => (c.name || "").toLowerCase().includes(needle));
     if (!match) {
-      throw new Error(`Category with name "${categoryName}" not found in /categories list`);
+      throw new Error(`Category with name "${categoryName}" not found`);
     }
-    // 2) Delete by real category_id
     const delResp = await fetchWithAuth(`${API_BASE_URL}/categories/${match.category_id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });
     if (!delResp.ok) {
-      throw new Error(`Failed to delete category: ${delResp.status} ${delResp.statusText}`);
+      const text = await delResp.text();
+      throw new Error(`Failed to delete category: ${delResp.status} ${text}`);
     }
   },
 };
