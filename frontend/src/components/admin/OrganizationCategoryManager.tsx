@@ -153,7 +153,8 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
         setCustomWeights([]);
       }
     }
-  }, [isAssignDialogOpen, organizationCategories, calculateEqualWeights, getTotalWeight]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAssignDialogOpen, organizationCategories]);
 
   // Toggle selection and recalc weights
   const handleToggleCategory = (categoryCatalogId: string) => {
@@ -220,16 +221,24 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
               <div className="space-y-4">
                 <div>
                   <Label>Select Categories</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto select-none">
                     {categoryCatalogs.map((catalog) => (
                       <div
                         key={catalog.category_catalog_id}
-                        className={`p-2 border rounded cursor-pointer transition-colors ${
+                        className={`p-2 border rounded cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
                           selectedCategoryIds.includes(catalog.category_catalog_id)
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-muted'
                         }`}
                         onClick={() => handleToggleCategory(catalog.category_catalog_id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleToggleCategory(catalog.category_catalog_id);
+                          }
+                        }}
                       >
                         {catalog.name}
                       </div>
