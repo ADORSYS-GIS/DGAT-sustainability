@@ -16,7 +16,7 @@ export function useOrganizationsServiceGetOrganizations(
 ) {
   return useQuery({
     queryKey: ["organizations"],
-    queryFn: () => OrganizationsService.getOrganizations(),
+    queryFn: () => OrganizationsService.getAdminOrganizations(),
     ...(queryOptions as any),
   });
 }

@@ -16,9 +16,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Building2, Plus, Edit, Trash2, MapPin, Mail } from "lucide-react";
 
 import type {
-  OrganizationResponse,
-  OrganizationCreateRequest,
+  Organization,
+  CreateOrganizationRequest,
 } from "@/openapi-rq/requests/types.gen";
+
+// Custom interface for organization form data
+interface OrganizationFormData {
+  name: string;
+  domains: { name: string }[];
+  redirectUrl: string;
+  enabled: string;
+  attributes: { categories: string[] };
+}
 import Select from "react-select";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -29,9 +38,7 @@ import {
   useOrganizationsServiceDeleteOrganizationsByOrganizationId,
 } from "@/services/openapiQueries";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
 import { OrganizationCategoryManager } from "@/components/admin/OrganizationCategoryManager";
-import { useCategoryCatalogs, useCreateCategoryCatalog } from "@/hooks/useOrganizationCategories";
 
 interface Category {
   categoryId: string;
@@ -103,7 +110,7 @@ export const ManageOrganizations: React.FC = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingOrg, setEditingOrg] =
     useState<OrganizationResponseFixed | null>(null);
-  const [formData, setFormData] = useState<OrganizationCreateRequest>({
+  const [formData, setFormData] = useState<OrganizationFormData>({
     name: "",
     domains: [{ name: "" }],
     redirectUrl:
@@ -114,24 +121,12 @@ export const ManageOrganizations: React.FC = () => {
   });
   const [selectedOrganization, setSelectedOrganization] = useState<OrganizationResponseFixed | null>(null);
 
-  // Category creation state
-  const [showCategoryCreation, setShowCategoryCreation] = useState(false);
-  const [categoryFormData, setCategoryFormData] = useState({
-    name: "",
-    weight: 25,
-    order: 1,
-  });
 
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [orgToDelete, setOrgToDelete] =
     useState<OrganizationResponseFixed | null>(null);
 
-  // Category catalog hooks
-  const { data: categoryCatalogsData, isLoading: categoriesLoading } = useCategoryCatalogs();
-  const categoryCatalogs = categoryCatalogsData?.category_catalogs || [];
-  const createCategoryMutation = useCreateCategoryCatalog();
-  const categoryMutations = useOfflineCategoriesMutation();
 
   // Use direct API query method from queries.ts instead of offline hook
   const {
@@ -148,6 +143,13 @@ export const ManageOrganizations: React.FC = () => {
         refetch();
         setShowAddDialog(false);
         setEditingOrg(null);
+        
+        // Find the newly created organization and open category manager
+        if (result && typeof result === 'object' && 'id' in result) {
+          const newOrg = toFixedOrg(result);
+          setSelectedOrganization(newOrg);
+        }
+        
         setFormData({
           name: "",
           domains: [{ name: "" }],
@@ -243,25 +245,15 @@ export const ManageOrganizations: React.FC = () => {
       toast.error("At least one domain is required");
       return;
     }
-    // Check if at least one category is selected
-    const selectedCategories =
-      (formData.attributes?.categories as string[]) || [];
-    if (selectedCategories.length === 0) {
-      toast.error("At least one category is required");
-      return;
-    }
-    const requestBody: OrganizationCreateRequest = {
-      ...formData,
-      domains: cleanDomains,
-      enabled: "true",
-      attributes: {
-        categories: selectedCategories,
-      },
+    // Categories will be assigned through the category manager after creation
+    const requestBody: CreateOrganizationRequest = {
+      name: formData.name,
+      description: null,
     };
 
     if (editingOrg) {
       updateOrganizationMutation.mutate({
-        id: editingOrg.id,
+        organizationId: editingOrg.id,
         requestBody,
       });
     } else {
@@ -279,15 +271,9 @@ export const ManageOrganizations: React.FC = () => {
         import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
         "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
       enabled: org.enabled ? "true" : "false",
-      attributes: org.attributes || { categories: [] },
+      attributes: { categories: [], ...(org.attributes || {}) },
     });
     setShowAddDialog(true);
-    setShowCategoryCreation(false);
-    setCategoryFormData({
-      name: "",
-      weight: 25,
-      order: 1,
-    });
   };
 
   const handleDelete = (org: OrganizationResponseFixed) => {
@@ -298,7 +284,7 @@ export const ManageOrganizations: React.FC = () => {
   const confirmDelete = () => {
     if (!orgToDelete) return;
 
-    deleteOrganizationMutation.mutate({ id: orgToDelete.id });
+    deleteOrganizationMutation.mutate({ organizationId: orgToDelete.id });
   };
 
   const resetForm = () => {
@@ -313,12 +299,6 @@ export const ManageOrganizations: React.FC = () => {
     });
     setEditingOrg(null);
     setShowAddDialog(false);
-    setShowCategoryCreation(false);
-    setCategoryFormData({
-      name: "",
-      weight: 25,
-      order: 1,
-    });
   };
 
   // --- Domains UI helpers ---
@@ -346,83 +326,8 @@ export const ManageOrganizations: React.FC = () => {
     });
   };
 
-  const handleCreateCategory = async () => {
-    if (!categoryFormData.name.trim()) {
-      toast.error(
-        t("manageCategories.textRequired", {
-          defaultValue: "Category name is required",
-        }),
-      );
-      return;
-    }
 
-    if (categoryFormData.weight <= 0 || categoryFormData.weight > 100) {
-      toast.error(
-        t("manageCategories.weightRangeError", {
-          defaultValue: "Weight must be between 1 and 100",
-        }),
-      );
-      return;
-    }
-
-    createCategoryMutation.mutate(
-      {
-        name: categoryFormData.name,
-        weight: categoryFormData.weight,
-        order: categoryFormData.order,
-        template_id: "sustainability_template_1", // Match the template ID used in ManageCategories
-      },
-      {
-        onSuccess: (result) => {
-          console.log(
-            "✅ Category creation onSuccess called with result:",
-            result,
-          );
-          toast.success(
-            t("manageCategories.createSuccess", {
-              defaultValue: "Category created successfully",
-            }),
-          );
-
-          // Add the new category to the form data
-          const newCategoryName = categoryFormData.name;
-          setFormData((prev) => ({
-            ...prev,
-            attributes: {
-              ...prev.attributes,
-              categories: [
-                ...(prev.attributes?.categories || []),
-                newCategoryName,
-              ],
-            },
-          }));
-
-          // Reset category form
-          setCategoryFormData({
-            name: "",
-            weight: 25,
-            order: categoryCatalogs.length + 1,
-          });
-
-          // Hide category creation section
-          setShowCategoryCreation(false);
-        },
-        onError: (error) => {
-          console.error(
-            "❌ Category creation onError called with error:",
-            error,
-          );
-          toast.error(
-            t("manageCategories.createError", {
-              defaultValue: "Failed to create category",
-            }),
-          );
-        },
-      },
-    );
-  };
-
-  if (isLoading || categoriesLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -547,185 +452,22 @@ export const ManageOrganizations: React.FC = () => {
                         + Add Domain
                       </Button>
                     </div>
-                    <div>
-                      <Label
-                        htmlFor="categories"
-                        className="font-semibold text-dgrv-blue"
-                      >
-                        Categories <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        id="categories"
-                        isMulti
-                        options={categoryCatalogs.map((cat) => ({
-                          value: cat.name,
-                          label: cat.name,
-                        }))}
-                        value={(formData.attributes?.categories || []).map(
-                          (catName) => ({ value: catName, label: catName }),
-                        )}
-                        onChange={(selected) => {
-                          console.log(
-                            "Categories selected in Select:",
-                            selected,
-                          );
-                          setFormData((prev) => ({
-                            ...prev,
-                            attributes: {
-                              ...prev.attributes,
-                              categories: selected.map((opt) => opt.value),
-                            },
-                            enabled: "true",
-                          }));
-                        }}
-                        classNamePrefix="react-select"
-                        placeholder="Select categories..."
-                        styles={{
-                          control: (base) => ({
-                            ...base,
-                            borderColor: "#2563eb",
-                            minHeight: "44px",
-                            boxShadow: "none",
-                            "&:hover": { borderColor: "#2563eb" },
-                          }),
-                          multiValue: (base) => ({
-                            ...base,
-                            backgroundColor: "#e0f2fe",
-                            color: "#0369a1",
-                          }),
-                          multiValueLabel: (base) => ({
-                            ...base,
-                            color: "#0369a1",
-                          }),
-                          multiValueRemove: (base) => ({
-                            ...base,
-                            color: "#0369a1",
-                            ":hover": {
-                              backgroundColor: "#bae6fd",
-                              color: "#0ea5e9",
-                            },
-                          }),
-                        }}
-                      />
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <div className="text-blue-600 mt-0.5">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-blue-900">Category Assignment</h3>
+                          <p className="text-blue-700 text-sm mt-1">
+                            After creating the organization, you'll be able to assign categories with custom weights through the category manager.
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Category Creation Section */}
-                    {!editingOrg && (
-                      <div className="border-t pt-4 mt-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <h4 className="font-semibold text-dgrv-blue">
-                              {t("manageOrganizations.createCategoryWithOrg")}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {t(
-                                "manageOrganizations.createCategoryWithOrgDesc",
-                              )}
-                            </p>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              setShowCategoryCreation(!showCategoryCreation)
-                            }
-                            className="text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue hover:text-white"
-                          >
-                            {showCategoryCreation
-                              ? t("manageOrganizations.skipCategoryCreation")
-                              : t("manageOrganizations.createCategory")}
-                          </Button>
-                        </div>
-
-                        {showCategoryCreation && (
-                          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                            <div>
-                              <Label className="font-semibold text-dgrv-blue">
-                                {t("manageOrganizations.newCategoryName")}{" "}
-                                <span className="text-red-500">*</span>
-                              </Label>
-                              <Input
-                                value={categoryFormData.name}
-                                onChange={(e) =>
-                                  setCategoryFormData((prev) => ({
-                                    ...prev,
-                                    name: e.target.value,
-                                  }))
-                                }
-                                placeholder={t(
-                                  "manageOrganizations.newCategoryNamePlaceholder",
-                                )}
-                                className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <Label className="font-semibold text-dgrv-blue">
-                                  {t("manageOrganizations.categoryWeight")}{" "}
-                                  <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max="100"
-                                  value={categoryFormData.weight}
-                                  onChange={(e) =>
-                                    setCategoryFormData((prev) => ({
-                                      ...prev,
-                                      weight: parseInt(e.target.value) || 25,
-                                    }))
-                                  }
-                                  className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
-                                />
-                              </div>
-                              <div>
-                                <Label className="font-semibold text-dgrv-blue">
-                                  {t(
-                                    "manageOrganizations.categoryDisplayOrder",
-                                  )}
-                                </Label>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={categoryFormData.order}
-                                  onChange={(e) =>
-                                    setCategoryFormData((prev) => ({
-                                      ...prev,
-                                      order: parseInt(e.target.value) || 1,
-                                    }))
-                                  }
-                                  className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
-                                />
-                              </div>
-                            </div>
-                            <div className="flex space-x-2 pt-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={handleCreateCategory}
-                                className="bg-dgrv-green hover:bg-green-700 text-white"
-                                disabled={
-                                  createCategoryMutation.isPending
-                                }
-                              >
-                                {createCategoryMutation.isPending
-                                  ? t("common.processing")
-                                  : t("manageOrganizations.createCategory")}
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setShowCategoryCreation(false)}
-                              >
-                                {t("manageOrganizations.skipCategoryCreation")}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     <div className="flex space-x-2 pt-4">
                       <Button

@@ -48,6 +48,7 @@ import {
   useOfflineQuestionsMutation,
   useOfflineSyncStatus,
 } from "../../hooks/useOfflineApi";
+import { useCategoryCatalogs } from "@/hooks/useOrganizationCategories";
 import type {
   Question,
   CreateQuestionRequest,
@@ -366,14 +367,23 @@ export const ManageQuestions = () => {
     cleanupTemporaryItems();
   }, []);
 
-  // Use offline hooks for all data fetching
+  // Use category catalog for categories (since offline categories is not implemented)
   const {
-    data: categoriesData,
+    data: categoryCatalogsData,
     isLoading: categoriesLoading,
     error: categoriesError,
-  } = useOfflineCategories();
+  } = useCategoryCatalogs();
 
-  const categories = categoriesData?.categories || [];
+  // Transform category catalogs to Category format for compatibility
+  const categories = (categoryCatalogsData?.category_catalogs || []).map(catalog => ({
+    category_id: catalog.category_catalog_id,
+    name: catalog.name,
+    weight: 0, // Default weight for catalog categories
+    order: 0, // Default order for catalog categories
+    template_id: catalog.template_id,
+    created_at: catalog.created_at,
+    updated_at: catalog.updated_at,
+  }));
 
   const {
     data: questionsData,

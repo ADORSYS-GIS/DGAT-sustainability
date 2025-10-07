@@ -223,28 +223,98 @@ export const ManageCategories: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Categories Plain List */}
-      <div className="space-y-2">
-        {categoryCatalogs.map((category) => (
-          <div key={category.category_catalog_id} className="text-gray-900">
-            {category.name}
+      {/* Categories Compact Table */}
+      {categoryCatalogs.length > 0 ? (
+        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Category Name
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {categoryCatalogs.map((category) => (
+                  <tr key={category.category_catalog_id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8 bg-dgrv-blue/10 rounded-full flex items-center justify-center">
+                          <List className="h-4 w-4 text-dgrv-blue" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{category.name}</div>
+                          {category.description && (
+                            <div className="text-sm text-gray-500">{category.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        category.is_active
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}>
+                        {category.is_active
+                          ? t("manageCategories.active", { defaultValue: "Active" })
+                          : t("manageCategories.inactive", { defaultValue: "Inactive" })}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEdit(category)}
+                          className="text-dgrv-blue hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(category.category_catalog_id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-
-        {categoryCatalogs.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-600 mb-4">
-              {t("manageCategories.noCategories", { defaultValue: "No categories yet" })}
-            </p>
-            <Button
-              onClick={() => setIsDialogOpen(true)}
-              className="bg-dgrv-green hover:bg-green-700"
-            >
-              {t("manageCategories.addFirstCategory", { defaultValue: "Add First Category" })}
-            </Button>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+            <List className="w-8 h-8 text-gray-400" />
           </div>
-        )}
-      </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {t("manageCategories.noCategories", { defaultValue: "No categories yet" })}
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {t("manageCategories.getStarted", {
+              defaultValue: "Create your first category to get started. Categories can then be assigned to organizations with custom weights.",
+            })}
+          </p>
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            className="bg-dgrv-green hover:bg-green-700"
+          >
+            {t("manageCategories.addFirstCategory", { defaultValue: "Add First Category" })}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
