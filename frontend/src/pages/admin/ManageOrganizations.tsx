@@ -141,7 +141,7 @@ export const ManageOrganizations: React.FC = () => {
     mutationFn: async (variables: { requestBody: CreateOrganizationRequest }) => {
       const base = import.meta.env.VITE_API_BASE_URL || "/api";
       const resp = await fetchWithAuth(
-        `${base}/api/admin/organizations`,
+        `${base}/admin/organizations`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
