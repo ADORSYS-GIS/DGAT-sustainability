@@ -30,7 +30,8 @@ import type {
   OfflineUser,
   OfflineInvitation,
   OfflineRecommendation, // Import OfflineRecommendation
-  ReportCategoryData // Import ReportCategoryData
+  ReportCategoryData, // Import ReportCategoryData
+  DetailedReport
 } from "@/types/offline";
 
 export class DataTransformationService {
@@ -616,9 +617,9 @@ export class DataTransformationService {
    * Transform API Report data to OfflineRecommendation objects
    */
   static transformReportToOfflineRecommendations(
-    report: Report,
-    userOrganizationId?: string, // Optional: if we can derive from context
-    organizationName?: string // Optional: if we can derive from context
+    report: DetailedReport,
+    userOrganizationId?: string,
+    organizationName?: string
   ): OfflineRecommendation[] {
     const recommendations: OfflineRecommendation[] = [];
     const now = new Date().toISOString();
@@ -628,44 +629,35 @@ export class DataTransformationService {
       return [];
     }
 
-    report.data.forEach((catObj: ReportCategoryData) => {
-      if (catObj && typeof catObj === 'object') {
-        Object.entries(catObj).forEach(([categoryName, value]) => {
-          if (
-            value &&
-            typeof value === 'object' &&
-            'recommendation' in value &&
-            typeof value.recommendation === 'string'
-          ) {
-            const recWithStatus = value as RecommendationWithStatus;
-            // Generate deterministic ID based on report_id, category, and recommendation content
-            // This ensures the same recommendation always gets the same ID
+    report.data.forEach((categoryData: ReportCategoryData) => {
+      Object.entries(categoryData).forEach(([categoryName, categoryContent]) => {
+        if (categoryContent?.recommendations && Array.isArray(categoryContent.recommendations)) {
+          categoryContent.recommendations.forEach(rec => {
             const deterministicId = this.generateDeterministicRecommendationId(
               report.report_id,
               categoryName,
-              recWithStatus.recommendation
+              rec.text
             );
-            
-            console.log(`🔄 Generated recommendation ID: ${deterministicId} for category: ${categoryName}, report: ${report.report_id}`);
-            
+
             recommendations.push({
               recommendation_id: deterministicId,
               report_id: report.report_id,
               category: categoryName,
-              recommendation: recWithStatus.recommendation,
-              status: recWithStatus.status || 'todo', // Default to 'todo' if status is missing
-              created_at: recWithStatus.created_at || now,
-              organization_id: userOrganizationId || 'unknown', // Removed report.org_id
-              organization_name: organizationName || 'Unknown Organization', // Attempt to get org_name
+              recommendation: rec.text,
+              status: rec.status,
+              created_at: now,
+              organization_id: userOrganizationId || 'unknown',
+              organization_name: organizationName || 'Unknown Organization',
               updated_at: now,
               sync_status: 'synced',
               local_changes: false,
               last_synced: now,
             });
-          }
-        });
-      }
+          });
+        }
+      });
     });
+
     return recommendations;
   }
 }

@@ -409,7 +409,7 @@ export const OrgUserManageUsers: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Remove Offline Status Indicator and Manual Sync Button */}
         
         <div className="flex items-center justify-between mb-6">

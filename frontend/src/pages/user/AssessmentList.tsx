@@ -1,15 +1,13 @@
-import * as React from "react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/shared/Navbar";
 import { AssessmentList as AssessmentListComponent } from "@/components/shared/AssessmentList";
+import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useOfflineDraftAssessments } from "../../hooks/useOfflineApi";
-import { toast } from "sonner";
-import { ArrowLeft, FileText } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
+import { ArrowLeft, FileText } from "lucide-react";
+import * as React from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { useOfflineDraftAssessments } from "../../hooks/useOfflineApi";
 
 export const AssessmentList: React.FC = () => {
   const { t } = useTranslation();
@@ -56,7 +54,7 @@ export const AssessmentList: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <Button

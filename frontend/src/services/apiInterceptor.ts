@@ -716,9 +716,16 @@ export class ApiInterceptor {
             
             // Handle report generation
             const { ReportsService } = await import('@/openapi-rq/requests/services.gen');
+            const recommendationsWithIds = (queueItem.data.categoryRecommendations as { category: string; recommendation: string }[]).map(
+              (rec: { category: string; recommendation: string }) => ({
+                ...rec,
+                recommendation_id: crypto.randomUUID(), // Generate a unique ID for each recommendation
+              })
+            );
+
             const result = await ReportsService.postSubmissionsBySubmissionIdReports({
               submissionId: submissionId,
-              requestBody: queueItem.data.categoryRecommendations as { category: string; recommendation: string }[]
+              requestBody: recommendationsWithIds,
             });
             
             console.log(`✅ Report generation successful: ${result.report_id}`);

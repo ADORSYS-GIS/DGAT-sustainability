@@ -209,14 +209,6 @@ impl UserSessionCache {
         self.touch();
     }
 
-    /// Invalidate specific assessment-related caches
-    pub fn invalidate_assessment(&mut self, assessment_id: &Uuid) {
-        self.user_submissions.remove(assessment_id);
-        self.user_temp_submissions.remove(assessment_id);
-        // Clear all user assessments as they might be affected
-        self.user_assessments.clear();
-        self.touch();
-    }
 }
 
 /// Global session cache manager
@@ -443,21 +435,9 @@ pub mod cached_ops {
     /// Get user assessments with session-level caching
     pub async fn get_user_assessments_with_session(
         app_state: &AppState,
-        claims: &Claims,
+        _claims: &Claims,
         org_id: &str,
     ) -> Result<Vec<AssessmentModel>, ApiError> {
-        let user_id = &claims.sub;
-        let jwt_exp = claims.exp;
-
-        // Check session cache first
-        if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
-            if let Some(assessments) = user_cache.get_user_assessments(org_id) {
-                // Update the session cache with the touched timestamp
-                app_state.session_cache.update_user_cache(user_id, user_cache);
-                return Ok(assessments);
-            }
-        }
-
         // Fetch from database
         let assessments = app_state
             .database
@@ -465,12 +445,6 @@ pub mod cached_ops {
             .get_assessments_by_org(org_id)
             .await
             .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessments: {e}")))?;
-
-        // Cache in session cache
-        if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
-            user_cache.cache_user_assessments(org_id.to_string(), assessments.clone());
-            app_state.session_cache.update_user_cache(user_id, user_cache);
-        }
 
         Ok(assessments)
     }
@@ -535,24 +509,6 @@ pub mod cached_ops {
         Ok(temp_submission)
     }
 
-    /// Invalidate session cache for a user when data changes
-    pub fn invalidate_user_session_cache(
-        app_state: &AppState,
-        claims: &Claims,
-        assessment_id: Option<Uuid>,
-    ) {
-        let user_id = &claims.sub;
-        let jwt_exp = claims.exp;
-
-        if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
-            if let Some(assessment_id) = assessment_id {
-                user_cache.invalidate_assessment(&assessment_id);
-            } else {
-                user_cache.clear();
-            }
-            app_state.session_cache.update_user_cache(user_id, user_cache);
-        }
-    }
 
     /// Cleanup expired session caches (should be called periodically)
     pub fn cleanup_expired_sessions(app_state: &AppState) {

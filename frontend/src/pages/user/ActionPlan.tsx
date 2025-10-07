@@ -1,20 +1,19 @@
 import { Navbar } from "@/components/shared/Navbar";
-import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { DetailedReport, OfflineRecommendation } from "@/types/offline"; // Import DetailedReport
 import {
   AlertCircle,
-  Calendar,
   CheckCircle,
   Kanban,
   PlayCircle,
-  ThumbsUp,
+  ThumbsUp
 } from "lucide-react";
 import * as React from "react";
-import { useOfflineUserRecommendations, useOfflineRecommendationStatusMutation } from "../../hooks/useOfflineApi";
-import { OfflineRecommendation } from "@/types/offline";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useAuth } from "../../hooks/shared/useAuth"; // Import useAuth hook
+import { useOfflineRecommendationStatusMutation, useOfflineUserRecommendations } from "../../hooks/useOfflineApi";
 
 export const ActionPlan: React.FC = () => {
   const { t } = useTranslation();
@@ -29,20 +28,46 @@ export const ActionPlan: React.FC = () => {
   type KanbanRecommendation = OfflineRecommendation & { id: string }; // Add a local 'id' for React keys
   
   // Extract and flatten recommendations from all reports (fixed for actual data structure)
-  const extractRecommendations = (recommendations: OfflineRecommendation[]): KanbanRecommendation[] => {
-    return recommendations.map((rec) => ({
-      ...rec,
-      id: rec.recommendation_id, // Use recommendation_id as the unique key
-    }));
+  const extractRecommendations = (reports: DetailedReport[]): KanbanRecommendation[] => {
+    const allRecommendations: KanbanRecommendation[] = [];
+
+    if (!reports || !Array.isArray(reports)) {
+      return allRecommendations;
+    }
+
+    reports.forEach((report) => {
+      if (report.data && Array.isArray(report.data)) {
+        report.data.forEach((categoryData) => {
+          Object.keys(categoryData).forEach((category) => {
+            const recommendations = categoryData[category]?.recommendations;
+            if (recommendations && Array.isArray(recommendations)) {
+              recommendations.forEach((rec) => {
+                allRecommendations.push({
+                  recommendation_id: rec.id,
+                  report_id: report.report_id,
+                  category,
+                  recommendation: rec.text,
+                  status: rec.status,
+                  id: rec.id, // For React key
+                } as KanbanRecommendation);
+              });
+            }
+          });
+        });
+      }
+    });
+
+    return allRecommendations;
   };
   // State for Kanban recommendations
   const [kanbanRecs, setKanbanRecs] = React.useState<KanbanRecommendation[]>(
     [],
   );
   // On data load, initialize state (only once)
+  // On data load, initialize state (only once)
   React.useEffect(() => {
-    if (data?.recommendations) {
-      setKanbanRecs(extractRecommendations(data.recommendations));
+    if (data?.reports) {
+      setKanbanRecs(extractRecommendations(data.reports));
     }
   }, [data]); // Depend on data to re-run when recommendations change
 
@@ -87,9 +112,9 @@ export const ActionPlan: React.FC = () => {
     
     try {
       await updateRecommendationStatus(
-        recommendationToUpdate.recommendation_id,
         recommendationToUpdate.report_id,
         recommendationToUpdate.category,
+        recommendationToUpdate.recommendation_id,
         newStatus,
         {
           onSuccess: () => {
@@ -143,7 +168,7 @@ export const ActionPlan: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
+        <div className="pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
       </div>
@@ -153,7 +178,7 @@ export const ActionPlan: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Remove online status indicator */}
           

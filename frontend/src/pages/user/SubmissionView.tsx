@@ -220,7 +220,7 @@ export const SubmissionView: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
+        <div className="pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
       </div>
@@ -230,7 +230,7 @@ export const SubmissionView: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
+        <div className="pb-8 flex items-center justify-center">
           <div className="text-red-600">Error loading submission details.</div>
         </div>
       </div>
@@ -240,7 +240,7 @@ export const SubmissionView: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Remove online status indicator */}
         
         <div className="mb-6">

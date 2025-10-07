@@ -86,7 +86,7 @@ export const UserGuide: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 animate-fade-in">
@@ -170,7 +170,7 @@ export const UserGuide: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-2">{t('userGuide.tipsForSuccess.beforeStarting.title')}</h4>
                   <ul className="space-y-1 text-sm">
-                    {t('userGuide.tipsForSuccess.beforeStarting.items', { returnObjects: true }).map((item: string, index: number) => (
+                    {(t('userGuide.tipsForSuccess.beforeStarting.items', { returnObjects: true }) as string[]).map((item: string, index: number) => (
                       <li key={index}>{item}</li>
                     ))}
                   </ul>
@@ -178,7 +178,7 @@ export const UserGuide: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-2">{t('userGuide.tipsForSuccess.duringAssessment.title')}</h4>
                   <ul className="space-y-1 text-sm">
-                    {t('userGuide.tipsForSuccess.duringAssessment.items', { returnObjects: true }).map((item: string, index: number) => (
+                    {(t('userGuide.tipsForSuccess.duringAssessment.items', { returnObjects: true }) as string[]).map((item: string, index: number) => (
                       <li key={index}>{item}</li>
                     ))}
                   </ul>

@@ -59,8 +59,7 @@ interface ReportQuestionItem {
 }
 interface ReportCategoryData {
   questions?: ReportQuestionItem[];
-  recommendation?: string;
-  status?: "todo" | "in_progress" | "done" | "approved" | string;
+  recommendations?: { id: string; text: string; status: "todo" | "in_progress" | "done" | "approved" | string }[];
 }
 
 export const Dashboard: React.FC = () => {
@@ -173,15 +172,21 @@ export const Dashboard: React.FC = () => {
       } as unknown) as AdminSubmissionDetail,
     ];
 
-    const recommendations: RecommendationWithStatus[] = Object.entries(
-      categoriesObj
-    ).map(([category, categoryData]) => ({
-      report_id: report.report_id,
-      category,
-      recommendation: categoryData?.recommendation ?? "",
-      status: (categoryData?.status as RecommendationWithStatus["status"]) || "todo",
-      created_at: report.generated_at,
-    }));
+    const recommendations: RecommendationWithStatus[] = Object.entries(categoriesObj).flatMap(
+      ([category, categoryData]) => {
+        const categoryRecommendations = Array.isArray(categoryData?.recommendations)
+          ? categoryData.recommendations
+          : [];
+        return categoryRecommendations.map((rec) => ({
+          recommendation_id: rec.id,
+          report_id: report.report_id,
+          category,
+          recommendation: rec.text,
+          status: (rec.status as RecommendationWithStatus["status"]) || "todo",
+          created_at: report.generated_at,
+        }));
+      }
+    );
 
     return { submissions, recommendations };
   };
@@ -344,9 +349,15 @@ export const Dashboard: React.FC = () => {
     const recommendationChartDataUrl =
       recommendationChartRef.current?.toBase64Image();
 
+    const allRecommendations = userRecommendations?.reports.flatMap(report => {
+      const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
+      return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
+        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+      );
+    }) || [];
     await exportAllAssessmentsPDF(
       adminSubmissionsData?.submissions || [],
-      userRecommendations?.recommendations || [],
+      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })),
       radarChartDataUrl,
       recommendationChartDataUrl
     );
@@ -357,9 +368,15 @@ export const Dashboard: React.FC = () => {
     const recommendationChartDataUrl =
       recommendationChartRef.current?.toBase64Image();
 
+    const allRecommendations = userRecommendations?.reports.flatMap(report => {
+      const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
+      return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
+        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+      );
+    }) || [];
     await exportAllAssessmentsDOCX(
       adminSubmissionsData?.submissions || [],
-      userRecommendations?.recommendations || [],
+      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })),
       radarChartDataUrl,
       recommendationChartDataUrl
     );
@@ -423,8 +440,14 @@ export const Dashboard: React.FC = () => {
   };
 
   const recommendationChartInfo = React.useMemo(() => {
-    if (userRecommendations?.recommendations) {
-      return generateRecommendationChartData(userRecommendations.recommendations);
+    if (userRecommendations?.reports) {
+      const allRecommendations = userRecommendations.reports.flatMap(report => {
+        const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
+        return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
+          (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+        );
+      });
+      return generateRecommendationChartData(allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })));
     }
     return null;
   }, [userRecommendations]);
@@ -440,7 +463,7 @@ export const Dashboard: React.FC = () => {
           />
         </div>
       )}
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between mb-4">

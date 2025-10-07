@@ -37,18 +37,19 @@ import type {
   AdminSubmissionDetail,
   AssessmentDetailResponse,
   QuestionRevision,
-  ActionPlanListResponse, // Import ActionPlanListResponse
-  RecommendationWithStatus, // Import RecommendationWithStatus
-  OrganizationActionPlan, // Import OrganizationActionPlan
+  ActionPlanListResponse,
+  RecommendationWithStatus,
+  OrganizationActionPlan,
   QuestionWithRevisionsResponse
 } from "@/openapi-rq/requests/types.gen";
-import type { 
+import type {
   OfflineQuestion,
   OfflineCategory,
   OfflineAssessment,
   OfflineResponse,
   OfflineSubmission,
-  OfflineRecommendation // Import OfflineRecommendation
+  OfflineRecommendation,
+  DetailedReport // Import DetailedReport
 } from "@/types/offline";
 import { DataTransformationService } from "../services/dataTransformation";
 import { syncService } from "../services/syncService";
@@ -56,7 +57,7 @@ import { toast } from "sonner";
 import { useAuth } from "./shared/useAuth";
 
 // Utility function to invalidate and refetch queries
-const invalidateAndRefetch = async (queryClient: QueryClient, queryKeys: string[]) => {
+export const invalidateAndRefetch = async (queryClient: QueryClient, queryKeys: string[]) => {
   try {
     // Invalidate all specified query keys
     await Promise.all(
@@ -1328,11 +1329,7 @@ export function useOfflineSubmissions() {
               content: {
                 assessment: s.content?.assessment || { assessment_id: s.assessment_id },
                 responses: s.content?.responses?.map(r => ({
-                  response_id: r.response_id,
-                  question_revision_id: r.question_revision_id,
                   response: r.response,
-                  version: r.version,
-                  updated_at: r.updated_at,
                 })) || [],
               },
               review_status: s.review_status === 'pending_review' ? 'pending_review' : (s.review_status as Submission['review_status']),
@@ -1465,11 +1462,7 @@ export function useOfflineAdminSubmissions() {
             content: {
               assessment: submission.content?.assessment || { assessment_id: submission.assessment_id },
               responses: submission.content?.responses?.map(r => ({
-                response_id: r.response_id,
-                question_revision_id: r.question_revision_id,
                 response: r.response,
-                version: r.version,
-                updated_at: r.updated_at,
               })) || []
             },
             review_status: submission.review_status,
@@ -1528,6 +1521,7 @@ export function useOfflineAdminActionPlans() {
               });
             }
             organizationsMap.get(rec.organization_id)?.recommendations.push({
+              recommendation_id: rec.recommendation_id,
               report_id: rec.report_id,
               category: rec.category,
               recommendation: rec.recommendation,
@@ -1574,7 +1568,7 @@ export function useOfflineReports() {
           const allOfflineRecommendations: OfflineRecommendation[] = [];
           for (const report of reports.reports) {
             const transformedRecs = DataTransformationService.transformReportToOfflineRecommendations(
-              report,
+              report as unknown as DetailedReport,
               user?.organization, // Access organization_id correctly
               user?.organization_name // Access organization_name correctly
             );
@@ -1613,7 +1607,7 @@ export function useOfflineReports() {
 }
 
 export function useOfflineUserRecommendations() {
-  const [data, setData] = useState<{ recommendations: OfflineRecommendation[] }>({ recommendations: [] });
+  const [data, setData] = useState<{ reports: DetailedReport[] }>({ reports: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
@@ -1625,9 +1619,11 @@ export function useOfflineUserRecommendations() {
 
       const result = await apiInterceptor.interceptGet(
         async () => {
-          const reports = await ReportsService.getUserReports();
+          const reportsResponse = await ReportsService.getUserReports();
+          const reports = (reportsResponse.reports || []) as unknown as DetailedReport[];
+
           const allOfflineRecommendations: OfflineRecommendation[] = [];
-          for (const report of reports.reports) {
+          for (const report of reports) {
             const transformedRecs = DataTransformationService.transformReportToOfflineRecommendations(
               report,
               user?.organization,
@@ -1636,19 +1632,53 @@ export function useOfflineUserRecommendations() {
             allOfflineRecommendations.push(...transformedRecs);
           }
           await offlineDB.saveRecommendations(allOfflineRecommendations);
-          return { recommendations: allOfflineRecommendations };
+          
+          return { reports };
         },
         async () => {
           const offlineRecommendations = await offlineDB.getAllRecommendations();
-          return {
-            recommendations: user?.organization
-              ? offlineRecommendations.filter(rec => rec.organization_id === user.organization)
-              : offlineRecommendations
-          };
+          const userRecommendations = user?.organization
+            ? offlineRecommendations.filter(rec => rec.organization_id === user.organization)
+            : offlineRecommendations;
+
+          const reportsMap = new Map<string, DetailedReport>();
+
+          for (const rec of userRecommendations) {
+            if (!reportsMap.has(rec.report_id)) {
+              reportsMap.set(rec.report_id, {
+                report_id: rec.report_id,
+                submission_id: '',
+                report_type: 'sustainability',
+                status: 'completed',
+                generated_at: new Date().toISOString(),
+                data: [],
+              });
+            }
+        
+            const report = reportsMap.get(rec.report_id)!;
+            
+            let categoryObj = report.data.find(d => d[rec.category]);
+            if (!categoryObj) {
+              categoryObj = { [rec.category]: { recommendations: [] } };
+              report.data.push(categoryObj);
+            }
+        
+            const categoryContent = categoryObj[rec.category];
+            if (categoryContent && categoryContent.recommendations) {
+              categoryContent.recommendations.push({
+                id: rec.recommendation_id,
+                status: rec.status as "todo" | "in_progress" | "done" | "approved",
+                text: rec.recommendation,
+              });
+            }
+          }
+          
+          const reconstructedReports = Array.from(reportsMap.values());
+          return { reports: reconstructedReports };
         },
         'user_recommendations'
       );
-      setData(result);
+      setData(result as { reports: DetailedReport[] });
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch user recommendations'));
     } finally {
@@ -1669,9 +1699,9 @@ export function useOfflineRecommendationStatusMutation() {
   const queryClient = useQueryClient();
 
   const updateRecommendationStatus = useCallback(async (
-    recommendationId: string,
     reportId: string,
     category: string,
+    recommendationId: string,
     newStatus: "todo" | "in_progress" | "done" | "approved", // Use literal union type
     options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
   ) => {
@@ -1679,7 +1709,7 @@ export function useOfflineRecommendationStatusMutation() {
       setIsPending(true);
 
       // Optimistically update the local state first
-      await offlineDB.updateRecommendationStatus(recommendationId, newStatus);
+      await offlineDB.updateRecommendationStatus(reportId, category, recommendationId, newStatus);
       
       // Invalidate relevant queries for immediate UI feedback
       await invalidateAndRefetch(queryClient, ['user_recommendations', 'admin_action_plans']);
@@ -1691,6 +1721,7 @@ export function useOfflineRecommendationStatusMutation() {
           requestBody: {
             report_id: reportId,
             category: category,
+            recommendation_id: recommendationId,
             status: newStatus,
           },
         }) as Promise<Record<string, unknown>>, // Cast to Promise<Record<string, unknown>>

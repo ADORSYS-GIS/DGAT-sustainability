@@ -1,52 +1,69 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  FileText,
-  Search,
-  Download,
-  Eye,
-  Building2,
-  Calendar,
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  Award,
-  ArrowLeft,
-  Wifi,
-  WifiOff,
-  Clock
-} from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
 import { AdminService } from "@/openapi-rq/requests/services.gen";
 import type {
   AdminReport,
   AdminSubmissionDetail,
+  AdminSubmissionDetail_content_responses,
   RecommendationWithStatus,
-  AdminSubmissionDetail_content_responses
+  Report
 } from "@/openapi-rq/requests/types.gen";
+import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  RadialLinearScale,
+  Tooltip,
+} from "chart.js";
+import {
+  Award,
+  Building2,
+  Calendar,
+  ChevronDown,
+  Download,
+  Eye,
+  FileText,
+  RefreshCw
+} from "lucide-react";
+import * as React from "react";
+import { useEffect, useState } from "react";
+import { Bar, Radar } from "react-chartjs-2";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import FileDisplay from "@/components/shared/FileDisplay";
+
+// Local types to map report.data into existing export inputs
+interface ReportAnswer {
+  yesNo?: boolean;
+  percentage?: number;
+  text?: string;
+}
+interface ReportQuestionItem {
+  question?: string;
+  answer?: ReportAnswer;
+}
+interface ReportCategoryData {
+  questions?: ReportQuestionItem[];
+  recommendations?: { id: string; text: string; status: "todo" | "in_progress" | "done" | "approved" | string }[];
+}
 
 // Type for file attachments
 interface FileAttachment {
@@ -56,71 +73,6 @@ interface FileAttachment {
   [key: string]: unknown;
 }
 // Using generated AdminReport type
-
-export const ReportHistory: React.FC = () => {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const { isOnline } = useOfflineSyncStatus();
-  const navigate = useNavigate();
-  
-  const [reports, setReports] = useState<AdminReport[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
-  const [viewReportId, setViewReportId] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-
-  const loadReports = React.useCallback(async () => {
-    if (!isOnline) {
-      toast.error(t('reportHistory.offlineError', { defaultValue: 'Cannot load reports while offline' }));
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await AdminService.getAdminReports();
-        setReports(data.reports || []);
-    } catch (error) {
-      console.error('Failed to load reports:', error);
-      toast.error(t('reportHistory.loadError', { defaultValue: 'Failed to load reports' }));
-    } finally {
-      setLoading(false);
-    }
-  }, [isOnline, t]);
-
-  useEffect(() => {
-    loadReports();
-  }, [loadReports]);
-
-  const filteredReports = reports.filter(report => {
-    const matchesSearch = 
-      report.org_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.report_id.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || report.status === statusFilter;
-    const matchesOrg = !selectedOrgId || report.org_id === selectedOrgId;
-    
-    return matchesSearch && matchesStatus && matchesOrg;
-  });
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>;
-      case 'generating':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Generating</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const handleViewReport = (reportId: string) => {
-    setViewReportId(reportId);
-  };
 
   const isAdminReportData = (obj: unknown): obj is { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
     if (!obj || typeof obj !== 'object') return false;
@@ -161,6 +113,220 @@ export const ReportHistory: React.FC = () => {
     return categories;
   };
 
+export const ReportHistory: React.FC = () => {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const { isOnline } = useOfflineSyncStatus();
+  const navigate = useNavigate();
+  const chartRef = React.useRef<ChartJS<"radar">>(null);
+  const recommendationChartRef = React.useRef<ChartJS<"bar">>(null);
+  
+  const [reports, setReports] = useState<AdminReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [viewReportId, setViewReportId] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    ChartJS.register(
+      RadialLinearScale,
+      PointElement,
+      LineElement,
+      Filler,
+      Tooltip,
+      Legend,
+      BarElement,
+      CategoryScale,
+      LinearScale
+    );
+  }, []);
+
+  const radarChartOptions = {
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        pointLabels: {
+          font: {
+            size: 14, // Increase font size for category labels
+          },
+        },
+      },
+    },
+  };
+
+  const radarChartData = React.useMemo(() => {
+    const currentReport = reports.find(r => r.report_id === viewReportId);
+    if (currentReport && currentReport.data && !isAdminReportData(currentReport.data)) {
+      const normalizedData = normalizeGenericReportData(currentReport.data);
+      const categories = normalizedData.map(cat => cat.name);
+      const scores = normalizedData.map(cat => {
+        const totalQuestions = cat.responses.length;
+        const yesCount = cat.responses.filter(res => res.response.yesNo === true).length;
+        return totalQuestions > 0 ? (yesCount / totalQuestions) * 100 : 0;
+      });
+
+      return {
+        labels: categories,
+        datasets: [
+          {
+            label: 'Category Score',
+            data: scores,
+            backgroundColor: 'rgba(34, 197, 94, 0.2)',
+            borderColor: 'rgba(34, 197, 94, 1)',
+            borderWidth: 1,
+          },
+        ],
+      };
+    }
+    return null;
+  }, [reports, viewReportId]);
+
+  const recommendationChartInfo = React.useMemo(() => {
+    const currentReport = reports.find(r => r.report_id === viewReportId);
+    if (currentReport && currentReport.data && !isAdminReportData(currentReport.data)) {
+      const normalizedData = normalizeGenericReportData(currentReport.data);
+      const categories = normalizedData.map(cat => cat.name);
+      const recommendationCounts = normalizedData.map(cat => cat.recommendationText ? 1 : 0); // Simple count for now
+
+      return {
+        data: {
+          labels: categories,
+          datasets: [
+            {
+              label: 'Recommendations',
+              data: recommendationCounts,
+              backgroundColor: 'rgba(59, 130, 246, 0.5)',
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top' as const,
+            },
+            title: {
+              display: true,
+              text: 'Recommendations per Category',
+            },
+          },
+        },
+      };
+    }
+    return null;
+  }, [reports, viewReportId]);
+
+  const mapReportToExportInputs = (
+    report: Report
+  ): { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
+    const categoriesObj: Record<string, ReportCategoryData> =
+      Array.isArray(report.data) && report.data.length > 0
+        ? (report.data[0] as unknown as Record<string, ReportCategoryData>)
+        : {};
+
+    // Build a pseudo AdminSubmissionDetail with responses shaped for drawTable
+    const responses = Object.entries(categoriesObj).flatMap(
+      ([category, categoryData]) => {
+        const questions = Array.isArray(categoryData?.questions)
+          ? categoryData.questions!
+          : [];
+        return questions.map((q): { question_category: string; question_text: string; response: string } => ({
+          question_category: category,
+          question_text: q?.question ?? "",
+          response: JSON.stringify(q?.answer ?? {}),
+        }));
+      }
+    );
+
+    const submissions: AdminSubmissionDetail[] = [
+      ({
+        submission_id: report.report_id, // Use report_id as submission_id for AdminReport
+        assessment_id: "",
+        user_id: "",
+        org_id: "",
+        org_name: "",
+        content: {
+          assessment: { assessment_id: "" },
+          responses,
+        },
+        review_status: "reviewed",
+        submitted_at: report.generated_at,
+        reviewed_at: report.generated_at,
+      } as unknown) as AdminSubmissionDetail,
+    ];
+
+    const recommendations: RecommendationWithStatus[] = Object.entries(categoriesObj).flatMap(
+      ([category, categoryData]) => {
+        const categoryRecommendations = Array.isArray(categoryData?.recommendations)
+          ? categoryData.recommendations
+          : [];
+        return categoryRecommendations.map((rec) => ({
+          recommendation_id: rec.id,
+          report_id: report.report_id,
+          category,
+          recommendation: rec.text,
+          status: (rec.status as RecommendationWithStatus["status"]) || "todo",
+          created_at: report.generated_at,
+        }));
+      }
+    );
+
+    return { submissions, recommendations };
+  };
+
+  const loadReports = React.useCallback(async () => {
+    if (!isOnline) {
+      toast.error(t('reportHistory.offlineError', { defaultValue: 'Cannot load reports while offline' }));
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const data = await AdminService.getAdminReports();
+        setReports(data.reports || []);
+    } catch (error) {
+      console.error('Failed to load reports:', error);
+      toast.error(t('reportHistory.loadError', { defaultValue: 'Failed to load reports' }));
+    } finally {
+      setLoading(false);
+    }
+  }, [isOnline, t]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
+
+  const filteredReports = reports.filter(report => {
+    const matchesSearch =
+      report.org_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.report_id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || report.status === statusFilter;
+    const matchesOrg = !selectedOrgId || report.org_id === selectedOrgId;
+    
+    return matchesSearch && matchesStatus && matchesOrg;
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>;
+      case 'generating':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Generating</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Failed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const handleViewReport = (reportId: string) => {
+    setViewReportId(reportId);
+  };
+
   const renderReadable = (value: unknown): React.ReactNode => {
     if (value === null || value === undefined) return <span className="text-gray-500">—</span>;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -196,13 +362,35 @@ export const ReportHistory: React.FC = () => {
       const report = reports.find(r => r.report_id === reportId);
       if (!report || !report.data) throw new Error('No data available for this report');
 
-      if (isAdminReportData(report.data)) {
-        const { exportAllAssessmentsPDF } = await import('@/utils/exportPDF');
-        await exportAllAssessmentsPDF(report.data.submissions, report.data.recommendations);
-          toast.success(t('reportHistory.downloadSuccess', { defaultValue: 'Report downloaded successfully' }));
-        return;
+      let submissionId: string = report.report_id;
+      // Assuming report.data might contain submissions if it's an AdminReportData structure
+      if (isAdminReportData(report.data) && report.data.submissions.length > 0) {
+        submissionId = report.data.submissions[0].submission_id || report.report_id;
       }
-      toast.error(t('reportHistory.downloadError', { defaultValue: 'Failed to download report' }));
+
+      const reportToExport: Report = {
+        report_id: report.report_id,
+        submission_id: submissionId,
+        report_type: "sustainability", // Defaulting to a common report type
+        generated_at: report.generated_at,
+        status: report.status as "generating" | "completed" | "failed", // Cast to the correct literal type
+        data: report.data,
+      };
+
+      const { submissions: singleSubmissions, recommendations: singleRecs } =
+        mapReportToExportInputs(reportToExport);
+
+      // Generate chart data URLs (if charts are present in this view)
+      const radarChartDataUrl = chartRef.current?.toBase64Image();
+      const recommendationChartDataUrl = recommendationChartRef.current?.toBase64Image();
+
+      await exportAllAssessmentsPDF(
+        singleSubmissions,
+        singleRecs,
+        radarChartDataUrl,
+        recommendationChartDataUrl
+      );
+      toast.success(t('reportHistory.downloadSuccess', { defaultValue: 'Report downloaded successfully' }));
     } catch (error) {
       console.error('Failed to download report:', error);
       toast.error(t('reportHistory.downloadError', { defaultValue: 'Failed to download report' }));
@@ -213,7 +401,7 @@ export const ReportHistory: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
+        <div className="pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
       </div>
@@ -222,9 +410,23 @@ export const ReportHistory: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {recommendationChartInfo && (
+        <div style={{ width: '800px', height: '400px', position: 'absolute', zIndex: -1, opacity: 0 }}>
+          <Bar
+            ref={recommendationChartRef}
+            data={recommendationChartInfo.data}
+            options={recommendationChartInfo.options}
+          />
+        </div>
+      )}
+      {radarChartData && (
+        <div style={{ width: '800px', height: '400px', position: 'absolute', zIndex: -1, opacity: 0 }}>
+          <Radar ref={chartRef} data={radarChartData} options={radarChartOptions} />
+        </div>
+      )}
       <Navbar />
 
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 animate-fade-in">

@@ -1766,12 +1766,7 @@
               "schema": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "category": { "type": "string" },
-                    "recommendation": { "type": "string" }
-                  },
-                  "required": ["category", "recommendation"]
+                  "$ref": "#/components/schemas/GenerateReportRequest"
                 }
               }
             }
@@ -3676,6 +3671,11 @@
       "GenerateReportRequest": {
         "type": "object",
         "properties": {
+          "recommendation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the recommendation"
+          },
           "category": {
             "type": "string",
             "description": "Category name"
@@ -3691,7 +3691,7 @@
             "default": "todo"
           }
         },
-        "required": ["category", "recommendation"]
+        "required": ["recommendation_id", "category", "recommendation"]
       },
       "ReportGenerationResponse": {
         "required": ["report_id", "status"],
@@ -4507,9 +4507,14 @@
         }
       },
       "RecommendationWithStatus": {
-        "required": ["report_id", "category", "recommendation", "status", "created_at"],
+        "required": ["recommendation_id", "report_id", "category", "recommendation", "status", "created_at"],
         "type": "object",
         "properties": {
+          "recommendation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the recommendation"
+          },
           "report_id": {
             "type": "string",
             "format": "uuid",
@@ -4571,7 +4576,7 @@
         }
       },
       "UpdateRecommendationStatusRequest": {
-        "required": ["report_id", "category", "status"],
+        "required": ["report_id", "category", "recommendation_id", "status"],
         "type": "object",
         "properties": {
           "report_id": {
@@ -4582,6 +4587,11 @@
           "category": {
             "type": "string",
             "description": "Category name"
+          },
+          "recommendation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the recommendation to update"
           },
           "status": {
             "type": "string",

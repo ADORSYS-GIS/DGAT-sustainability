@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { UserInvitationForm } from "@/components/shared/UserInvitationForm";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   Dialog,
   DialogContent,
@@ -12,33 +13,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Edit, Trash2, Mail, Building2, UserPlus } from "lucide-react";
-import { 
-  useOrganizationsServiceGetAdminOrganizations,
+  useAdminServiceDeleteAdminUsersByUserId,
+  useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId,
   useOrganizationMembersServiceGetOrganizationsByIdMembers,
   useOrganizationMembersServicePostOrganizationsByIdMembers,
   useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles,
-  useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId,
-  useAdminServiceDeleteAdminUsersByUserId
+  useOrganizationsServiceGetAdminOrganizations
 } from "@/openapi-rq/queries/queries";
 import type {
-  OrganizationMember,
-  MemberRequest,
-  OrganizationResponse,
   OrgAdminMemberRequest,
-  RoleAssignment,
+  OrganizationMember,
+  OrganizationResponse,
+  RoleAssignment
 } from "@/openapi-rq/requests/types.gen";
-import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
-import { UserInvitationForm } from "@/components/shared/UserInvitationForm";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { Building2, Edit, Mail, Trash2, UserPlus, Users } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 // Helper to extract domain names
 function getDomainNames(domains: unknown): string[] {
@@ -397,7 +389,7 @@ export const ManageUsers: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

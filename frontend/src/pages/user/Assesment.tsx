@@ -1,39 +1,41 @@
-import * as React from "react";
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
-import { Navbar } from "@/components/shared/Navbar";
-import { CreateAssessmentModal } from "@/components/shared/CreateAssessmentModal";
 import { AssessmentList } from "@/components/shared/AssessmentList";
+import { CreateAssessmentModal } from "@/components/shared/CreateAssessmentModal";
+import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  useOfflineQuestions,
-  useOfflineAssessment,
-  useOfflineAssessmentsMutation,
-  useOfflineResponsesMutation,
-  useOfflineResponses,
-  useOfflineSyncStatus,
-  useOfflineDraftAssessments,
-  useOfflineCategories,
-} from "../../hooks/useOfflineApi";
-import { toast } from "sonner";
-import { Info, Paperclip, ChevronLeft, ChevronRight, Send, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
+import i18n from "@/i18n";
 import type {
+  AssessmentDetailResponse,
+  Assessment as AssessmentType,
+  CreateAssessmentRequest,
+  CreateResponseRequest,
   Question,
   QuestionRevision,
-  Assessment as AssessmentType,
-  AssessmentDetailResponse,
 } from "@/openapi-rq/requests/types.gen";
-import { offlineDB } from "../../services/indexeddb";
-import type { CreateResponseRequest, CreateAssessmentRequest } from "@/openapi-rq/requests/types.gen";
-import { useTranslation } from "react-i18next";
-import i18n from "@/i18n";
 import type { OfflineSubmission } from "@/types/offline";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, FileText, Info, Paperclip, Send } from "lucide-react";
+import * as React from "react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import {
+  invalidateAndRefetch,
+  useOfflineAssessment,
+  useOfflineAssessmentsMutation,
+  useOfflineCategories,
+  useOfflineDraftAssessments,
+  useOfflineQuestions,
+  useOfflineResponses,
+  useOfflineResponsesMutation,
+  useOfflineSyncStatus,
+} from "../../hooks/useOfflineApi";
+import { offlineDB } from "../../services/indexeddb";
 
 type FileData = { name: string; url: string };
 
@@ -71,6 +73,7 @@ export const Assessment: React.FC = () => {
   const { assessmentId } = useParams<{ assessmentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
   const { isOnline } = useOfflineSyncStatus();
@@ -252,8 +255,10 @@ export const Assessment: React.FC = () => {
         if (result && isAssessmentResult(result) && result.assessment?.assessment_id) {
           const realAssessmentId = result.assessment.assessment_id;
           if (!realAssessmentId.startsWith("temp_")) {
-            // Refresh the assessments list
-            refetchAssessments();
+            // Invalidate and refetch the assessments query to ensure immediate visibility
+            invalidateAndRefetch(queryClient, ['assessments']);
+            // The existing refetchAssessments() is redundant if invalidateAndRefetch is used
+            // refetchAssessments();
             const waitForAssessment = async () => {
               let attempts = 0;
               const maxAttempts = 10;
@@ -441,7 +446,7 @@ export const Assessment: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="pt-20 pb-8">
+        <div className="pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
@@ -741,7 +746,7 @@ export const Assessment: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl font-bold text-dgrv-blue mb-2">{toolName}</h1>
           <p className="text-lg text-gray-600">

@@ -1,22 +1,21 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  BookOpen, 
-  Users, 
-  Building2, 
-  List, 
-  FileText, 
-  CheckSquare, 
-  Star,
-  Settings,
-  AlertTriangle,
-  HelpCircle,
-  ArrowLeft
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
+import {
+  ArrowLeft,
+  BookOpen,
+  Building2,
+  CheckSquare,
+  FileText,
+  HelpCircle,
+  List,
+  Settings,
+  Star,
+  Users
+} from "lucide-react";
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 export const AdminGuide: React.FC = () => {
   const { t } = useTranslation();
@@ -82,7 +81,7 @@ export const AdminGuide: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Offline Status Indicator */}
           <div className="mb-4 flex items-center justify-end">
@@ -180,7 +179,7 @@ export const AdminGuide: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-2">{t('adminGuide.bestPractices.regularReviews.title')}</h4>
                   <ul className="space-y-1 text-sm">
-                    {t('adminGuide.bestPractices.regularReviews.items', { returnObjects: true }).map((item: string, index: number) => (
+                    {(t('adminGuide.bestPractices.regularReviews.items', { returnObjects: true }) as string[]).map((item: string, index: number) => (
                       <li key={index}>{item}</li>
                     ))}
                   </ul>
@@ -188,7 +187,7 @@ export const AdminGuide: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-2">{t('adminGuide.bestPractices.qualityAssurance.title')}</h4>
                   <ul className="space-y-1 text-sm">
-                    {t('adminGuide.bestPractices.qualityAssurance.items', { returnObjects: true }).map((item: string, index: number) => (
+                    {(t('adminGuide.bestPractices.qualityAssurance.items', { returnObjects: true }) as string[]).map((item: string, index: number) => (
                       <li key={index}>{item}</li>
                     ))}
                   </ul>

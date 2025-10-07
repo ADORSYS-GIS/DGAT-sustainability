@@ -37,12 +37,18 @@ async fn generate_report_content(
 
     // Collect all requested categories and recommendations
     let mut requested_categories: std::collections::HashSet<String> = std::collections::HashSet::new();
-    let mut recommendations: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut recommendations: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
 
     for request in requests {
         if !request.category.is_empty() {
             requested_categories.insert(request.category.clone());
-            recommendations.insert(request.category.clone(), request.recommendation.clone());
+            recommendations.entry(request.category.clone())
+                .or_insert_with(Vec::new)
+                .push(json!({
+                    "id": request.recommendation_id,
+                    "text": request.recommendation,
+                    "status": request.status.clone().unwrap_or_else(|| "todo".to_string()),
+                }));
         }
     }
 
@@ -122,16 +128,15 @@ async fn generate_report_content(
     let mut result_object = serde_json::Map::new();
 
     for (category, questions) in categories {
-        // Get the recommendation for this category
-        let recommendation = recommendations.get(&category)
+        // Get the recommendations for this category
+        let category_recommendations = recommendations.get(&category)
             .cloned()
-            .unwrap_or_else(|| "No recommendation provided".to_string());
+            .unwrap_or_else(|| vec![json!({"id": Uuid::new_v4(), "text": "No recommendation provided", "status": "todo"})]);
 
-        // Create category object with questions, recommendation, and status
+        // Create category object with questions, recommendations, and status
         let category_data = serde_json::json!({
             "questions": questions,
-            "recommendation": recommendation,
-            "status": "todo" // Default status for new recommendations
+            "recommendations": category_recommendations,
         });
 
         result_object.insert(category, category_data);
@@ -373,21 +378,32 @@ pub async fn list_all_action_plans(
                             if let Some(category_map) = category_obj.as_object() {
                                 for (category_name, category_data) in category_map {
                                     if let Some(category_obj) = category_data.as_object() {
-                                        if let Some(recommendation) = category_obj.get("recommendation") {
-                                            if let Some(recommendation_str) = recommendation.as_str() {
-                                                // Get the status from the category data, default to "todo" if not present
-                                                let status = category_obj.get("status")
-                                                    .and_then(|s| s.as_str())
-                                                    .unwrap_or("todo")
-                                                    .to_string();
-                                                
-                                                org_recommendations.push(RecommendationWithStatus {
-                                                    report_id: report.report_id,
-                                                    category: category_name.clone(),
-                                                    recommendation: recommendation_str.to_string(),
-                                                    status: status,
-                                                    created_at: report.generated_at.to_rfc3339(),
-                                                });
+                                        if let Some(recommendations_array) = category_obj.get("recommendations").and_then(|r| r.as_array()) {
+                                            for recommendation_value in recommendations_array {
+                                                if let Some(recommendation_map) = recommendation_value.as_object() {
+                                                    if let (Some(id_value), Some(text_value), Some(status_value)) = (
+                                                        recommendation_map.get("id"),
+                                                        recommendation_map.get("text"),
+                                                        recommendation_map.get("status")
+                                                    ) {
+                                                        if let (Some(id_str), Some(text_str), Some(status_str)) = (
+                                                            id_value.as_str(),
+                                                            text_value.as_str(),
+                                                            status_value.as_str()
+                                                        ) {
+                                                            if let Ok(recommendation_id) = Uuid::parse_str(id_str) {
+                                                                org_recommendations.push(RecommendationWithStatus {
+                                                                    recommendation_id,
+                                                                    report_id: report.report_id,
+                                                                    category: category_name.clone(),
+                                                                    recommendation: text_str.to_string(),
+                                                                    status: status_str.to_string(),
+                                                                    created_at: report.generated_at.to_rfc3339(),
+                                                                });
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -498,6 +514,11 @@ pub async fn update_recommendation_status(
         return Err(ApiError::BadRequest(format!("Invalid status: {}. Must be one of: {:?}", request.status, valid_statuses)));
     }
 
+    // Parse recommendation_id from string to Uuid
+    let recommendation_id_uuid = match Uuid::parse_str(&request.recommendation_id) {
+        Ok(uuid) => uuid,
+        Err(_) => return Err(ApiError::BadRequest("Invalid recommendation_id format".to_string())),
+    };
     // Get the report
     let report = app_state
         .database
@@ -507,30 +528,46 @@ pub async fn update_recommendation_status(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch report: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Report not found".to_string()))?;
 
-    // Update the report data to include the status
+    // Update the report data to include the status for the specific recommendation
     if let Some(mut data) = report.data {
-        if let Some(categories) = data.as_array_mut() {
-            for category_obj in categories {
+        if let Some(categories_array) = data.as_array_mut() {
+            for category_obj in categories_array {
                 if let Some(category_map) = category_obj.as_object_mut() {
                     if let Some(category_data) = category_map.get_mut(&category) {
-                        if let Some(category_obj) = category_data.as_object_mut() {
-                            category_obj.insert("status".to_string(), serde_json::Value::String(request.status.clone()));
+                        if let Some(category_obj_inner) = category_data.as_object_mut() {
+                            if let Some(recommendations_array) = category_obj_inner.get_mut("recommendations").and_then(|r| r.as_array_mut()) {
+                                for recommendation_value in recommendations_array {
+                                    if let Some(recommendation_map) = recommendation_value.as_object_mut() {
+                                        if let Some(id_value) = recommendation_map.get("id") {
+                                            if let Some(id_str) = id_value.as_str() {
+                                                if let Ok(id_uuid) = Uuid::parse_str(id_str) {
+                                                    if id_uuid == recommendation_id_uuid {
+                                                        recommendation_map.insert("status".to_string(), serde_json::Value::String(request.status.clone()));
+                                                        // Update the report in the database
+                                                        app_state
+                                                            .database
+                                                            .submission_reports
+                                                            .update_report_status(report_id, report.status, Some(data))
+                                                            .await
+                                                            .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))?;
+                                                        return Ok(StatusCode::OK); // Found and updated
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-
-        // Update the report in the database
-        app_state
-            .database
-            .submission_reports
-            .update_report_status(report_id, report.status, Some(data))
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))?;
+        // If we reach here, the specific recommendation was not found
+        return Err(ApiError::NotFound("Recommendation not found within the specified category".to_string()));
     }
 
-    Ok(StatusCode::OK)
+    Err(ApiError::InternalServerError("Report data is missing or malformed".to_string()))
 }
 
 #[cfg(test)]

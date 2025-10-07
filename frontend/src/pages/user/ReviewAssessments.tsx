@@ -1,61 +1,52 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  Eye,
-  FileText,
-  AlertTriangle,
-  ArrowLeft,
-  Send,
-  Wifi,
-  WifiOff,
-  Plus,
-  Trash2,
-  MessageSquare,
-  Award,
-  ChevronDown,
-  ChevronRight,
-  RefreshCw,
-  Kanban
-} from 'lucide-react';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/shared/useAuth';
 import {
-  useOfflineSubmissions,
-  useOfflineSyncStatus,
-  useOfflineQuestions,
   useOfflineCategories,
-  useOfflineOrganizations
+  useOfflineOrganizations,
+  useOfflineQuestions,
+  useOfflineSubmissions,
+  useOfflineSyncStatus
 } from '@/hooks/useOfflineApi';
 import { ReportsService } from '@/openapi-rq/requests/services.gen';
 import { Submission, Submission_content_responses } from '@/openapi-rq/requests/types.gen';
 import { offlineDB } from '@/services/indexeddb';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Award,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Eye,
+  FileText,
+  Plus,
+  Send,
+  Trash2,
+  XCircle
+} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+
+interface ReviewSubmission extends Submission {
+  org_id: string;
+}
 
 import FileDisplay from '@/components/shared/FileDisplay';
 
@@ -102,7 +93,7 @@ const ReviewAssessments: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<ReviewSubmission | null>(null);
   const [categoryRecommendations, setCategoryRecommendations] = useState<CategoryRecommendation[]>([]);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [currentComment, setCurrentComment] = useState('');
@@ -168,7 +159,7 @@ const ReviewAssessments: React.FC = () => {
     return map;
   }, [organizationsData]);
 
-  const submissionsForReview = submissionsData?.submissions.filter(
+  const submissionsForReview = (submissionsData?.submissions as ReviewSubmission[])?.filter(
     submission => submission.review_status === 'under_review'
   ) || [];
 
@@ -234,8 +225,10 @@ const ReviewAssessments: React.FC = () => {
       const result = await ReportsService.postSubmissionsBySubmissionIdReports({
         submissionId: selectedSubmission.submission_id,
         requestBody: categoryRecommendations.map(rec => ({
+          recommendation_id: rec.id,
           category: rec.category,
-          recommendation: rec.recommendation
+          recommendation: rec.recommendation,
+          status: 'todo'
         }))
       });
 
@@ -338,40 +331,6 @@ const ReviewAssessments: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/action-plan')}
-            className="flex items-center space-x-2"
-          >
-            <Kanban className="w-4 h-4" />
-            <span>{t('reviewAssessments.viewActionPlans', { defaultValue: 'View Action Plans' })}</span>
-          </Button>
-        </div>
-
-        {/* Status Indicators */}
-        <div className="flex items-center space-x-4">
-          {/* Manual Sync Button */}
-          <Button 
-            onClick={handleManualSync}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>{t('reviewAssessments.syncData', { defaultValue: 'Sync Data' })}</span>
-          </Button>
-
-          {/* Online/Offline Status */}
-          <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-            isOnline 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-yellow-100 text-yellow-800'
-          }`}>
-            {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-            <span>{isOnline ? 'Online' : 'Offline'}</span>
-          </div>
-
           {/* Pending Reviews Count */}
           {pendingReviews.length > 0 && (
             <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">

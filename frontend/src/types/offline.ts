@@ -17,16 +17,24 @@ import type {
   RecommendationWithStatus, // Import the type
 } from "@/openapi-rq/requests/types.gen";
 
-// Define ReportCategoryData and ReportData based on usage in ActionPlan.tsx (local definitions)
-export interface ReportCategoryData {
-  [key: string]: {
-    recommendation: string;
-    status?: string;
-    created_at?: string;
-  };
+// New types for report data structure, aligning with the actual API response
+export interface ReportRecommendation {
+  id: string;
+  status: "todo" | "in_progress" | "done" | "approved";
+  text: string;
 }
 
-export interface ReportData {
+export interface ReportCategoryContent {
+  recommendations: ReportRecommendation[];
+  questions?: { answer: unknown; question: string }[];
+}
+
+export interface ReportCategoryData {
+  [category: string]: ReportCategoryContent;
+}
+
+// Create a more specific report type that aligns with the actual API response
+export interface DetailedReport extends Omit<Report, 'data'> {
   data: ReportCategoryData[];
 }
 

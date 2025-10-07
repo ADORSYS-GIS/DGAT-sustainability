@@ -1,32 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useOfflineAdminActionPlans } from '@/hooks/useOfflineApi';
 import {
-  ArrowLeft,
-  Kanban,
-  Building2,
-  Users,
-  Clock,
-  CheckCircle,
-  PlayCircle,
-  ThumbsUp,
-  AlertCircle,
-  RefreshCw
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useTranslation } from 'react-i18next';
-import {
-  RecommendationWithStatus,
   OrganizationActionPlan
 } from '@/openapi-rq/requests/types.gen';
-import { useOfflineAdminActionPlans } from '@/hooks/useOfflineApi';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Building2,
+  CheckCircle,
+  PlayCircle,
+  RefreshCw,
+  ThumbsUp
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 const AdminActionPlans: React.FC = () => {
   const { t } = useTranslation();

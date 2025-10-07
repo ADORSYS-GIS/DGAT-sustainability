@@ -1,19 +1,17 @@
+import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSubmissions, useOfflineSubmissionsMutation, useOfflineQuestions } from "@/hooks/useOfflineApi";
-import { offlineDB } from "@/services/indexeddb";
-import type { Assessment } from "@/openapi-rq/requests/types.gen";
-import type { Submission } from "@/openapi-rq/requests/types.gen";
+import { useOfflineQuestions, useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
+import type { Assessment, Submission } from "@/openapi-rq/requests/types.gen";
 import { Calendar, Eye, FileText, Trash2 } from "lucide-react";
 import * as React from "react";
-import { useNavigate, NavigateFunction } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NavigateFunction, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Navbar } from "@/components/shared/Navbar";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 type AuthUser = {
   sub?: string;
@@ -133,7 +131,7 @@ export const Assessments: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="pt-20 pb-8 flex items-center justify-center">
+        <div className="pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
       </div>
@@ -238,7 +236,7 @@ export const Assessments: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <div className="flex items-center space-x-3 mb-4">
             <FileText className="w-8 h-8 text-dgrv-blue" />

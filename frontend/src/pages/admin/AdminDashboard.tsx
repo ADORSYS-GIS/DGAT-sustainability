@@ -1,30 +1,25 @@
-import * as React from "react";
-import { useMemo, useEffect, useState } from "react";
 import { FeatureCard } from "@/components/shared/FeatureCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  Settings,
-  List,
-  BookOpen,
-  Star,
-  CheckSquare,
-  TrendingUp,
-  AlertCircle,
-  Kanban,
-} from "lucide-react";
-import type { AdminSubmissionDetail } from "../../openapi-rq/requests/types.gen";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { 
-  useOfflineAdminSubmissions, 
-  useOfflineQuestions, 
-  useOfflineCategories
-} from "@/hooks/useOfflineApi";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
+import {
+  useOfflineAdminSubmissions,
+  useOfflineCategories,
+  useOfflineOrganizations,
+  useOfflineQuestions
+} from "@/hooks/useOfflineApi";
+import {
+  BookOpen,
+  Kanban,
+  List,
+  Settings,
+  TrendingUp,
+  Users
+} from "lucide-react";
+import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 type Organization = { organizationId: string; name: string };
 
@@ -189,12 +184,17 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [questionsData]);
 
+  // Fetch organizations count from offline data
+  const { data: organizationsData, isLoading: organizationsLoading } = useOfflineOrganizations();
+  const organizationCount = organizationsData?.organizations?.length || 0;
+
   // Check if any data is still loading
-  const isDataLoading = submissionsLoading || categoriesLoading || questionsLoading;
+  const isDataLoading = submissionsLoading || categoriesLoading || questionsLoading || organizationsLoading;
 
   const systemStats = [
     { label: t('adminDashboard.numCategories'), value: categoryCount, color: "blue", loading: categoriesLoading },
     { label: t('adminDashboard.numQuestions'), value: questionCount, color: "green", loading: questionsLoading },
+    { label: t('adminDashboard.numOrganizations'), value: organizationCount, color: "purple", loading: organizationsLoading },
     {
       label: t('adminDashboard.completedAssessments'),
       value: completedCount,
@@ -205,7 +205,7 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Welcome Header */}
           <div className="mb-8 animate-fade-in">

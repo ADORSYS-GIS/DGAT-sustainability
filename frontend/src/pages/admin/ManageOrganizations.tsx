@@ -1,5 +1,3 @@
-import * as React from "react";
-import { useState } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,24 +10,24 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Building2, Plus, Edit, Trash2, MapPin, Mail } from "lucide-react";
+import { Building2, Edit, Plus, Trash2 } from "lucide-react";
+import * as React from "react";
+import { useState } from "react";
 
-import type {
-  OrganizationResponse,
-  OrganizationCreateRequest,
-} from "@/openapi-rq/requests/types.gen";
-import Select from "react-select";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import {
-  useOrganizationsServiceGetAdminOrganizations,
-  useOrganizationsServicePostAdminOrganizations,
-  useOrganizationsServicePutAdminOrganizationsById,
-  useOrganizationsServiceDeleteAdminOrganizationsById
-} from "@/openapi-rq/queries/queries";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
+import {
+  useOrganizationsServiceDeleteAdminOrganizationsById,
+  useOrganizationsServiceGetAdminOrganizations,
+  useOrganizationsServicePostAdminOrganizations,
+  useOrganizationsServicePutAdminOrganizationsById
+} from "@/openapi-rq/queries/queries";
+import type {
+  OrganizationCreateRequest
+} from "@/openapi-rq/requests/types.gen";
+import { useTranslation } from "react-i18next";
+import Select from "react-select";
+import { toast } from "sonner";
 
 interface Category {
   categoryId: string;
@@ -414,7 +412,7 @@ export const ManageOrganizations: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
 

@@ -29,7 +29,7 @@ import type {
 class OfflineDB {
   private dbPromise: Promise<IDBPDatabase<OfflineDatabaseSchema>>;
   private readonly DB_NAME = "dgat-offline-db";
-  private readonly DB_VERSION = 4; // Increment DB_VERSION
+  private readonly DB_VERSION = 5; // Increment DB_VERSION
 
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
@@ -1001,7 +1001,7 @@ class OfflineDB {
     return index.getAll(reportId);
   }
 
-  async updateRecommendationStatus(recommendationId: string, status: string): Promise<void> {
+  async updateRecommendationStatus(reportId: string, category: string, recommendationId: string, status: string): Promise<void> {
     const db = await this.dbPromise;
     const tx = db.transaction("recommendations", "readwrite");
     const store = tx.objectStore("recommendations");

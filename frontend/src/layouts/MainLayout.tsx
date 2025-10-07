@@ -18,7 +18,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
     <>
       {shouldShowNavbar && <Navbar />}
-      {children}
+      <main className={shouldShowNavbar ? "pt-16" : ""}>
+        <div className="py-8 px-4 sm:px-6 lg:px-8">{children}</div>
+      </main>
       <Toaster />
       <SyncStatusIndicator />
     </>

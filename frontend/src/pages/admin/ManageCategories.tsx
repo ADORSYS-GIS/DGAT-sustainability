@@ -1,7 +1,4 @@
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -10,20 +7,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { Plus, Edit, Trash2, List } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { 
-  useOfflineCategories, 
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  useOfflineCategories,
   useOfflineCategoriesMutation,
-  useOfflineSyncStatus 
+  useOfflineSyncStatus
 } from "@/hooks/useOfflineApi";
-import type { 
-  GetCategoriesResponse, 
-  PostCategoriesData, 
-  PutCategoriesByCategoryIdData,
-  DeleteCategoriesByCategoryIdData 
-} from "@/openapi-rq/requests/types.gen";
+import { Edit, Plus, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
 
@@ -259,7 +253,7 @@ export const ManageCategories: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Offline Status Indicator */}
           <div className="mb-4 flex items-center justify-end">

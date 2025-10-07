@@ -264,7 +264,6 @@ pub async fn create_assessment(
         };
 
         // Invalidate user's session cache since we created/deleted assessments
-        cached_ops::invalidate_user_session_cache(&app_state, &claims, None);
 
         Ok((StatusCode::CREATED, Json(AssessmentResponse { assessment })))
     })
@@ -433,7 +432,6 @@ pub async fn update_assessment(
     };
 
     // Invalidate user's session cache since we updated an assessment
-    cached_ops::invalidate_user_session_cache(&app_state, &claims, Some(assessment_id));
 
     Ok(Json(AssessmentResponse { assessment }))
 }
@@ -492,7 +490,6 @@ pub async fn delete_assessment(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to delete assessment: {e}")))?;
 
     // Invalidate user's session cache since we deleted an assessment
-    cached_ops::invalidate_user_session_cache(&app_state, &claims, Some(assessment_id));
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -673,7 +670,6 @@ pub async fn submit_assessment(
                 .map_err(|e| ApiError::InternalServerError(format!("Failed to commit transaction: {e}")))?;
             
             // Invalidate user's session cache since we submitted an assessment
-            cached_ops::invalidate_user_session_cache(&app_state, &claims, Some(assessment_id));
             
             Ok(StatusCode::OK)
         }

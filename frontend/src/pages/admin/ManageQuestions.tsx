@@ -1,18 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTitle
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -20,40 +16,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  BookOpen, 
-  FileText, 
-  Settings, 
-  Globe,
+  BookOpen,
   ChevronDown,
   ChevronRight,
+  Edit,
+  FileText,
+  Globe,
+  Layers,
+  Plus,
+  Settings,
   Sparkles,
   Target,
-  Layers
+  Trash2
 } from "lucide-react";
-import { 
-  useOfflineQuestions, 
-  useOfflineCategories, 
-  useOfflineQuestionsMutation,
-  useOfflineSyncStatus
+import { useCallback, useEffect, useState as useLocalState, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import {
+  useOfflineCategories,
+  useOfflineQuestions,
+  useOfflineQuestionsMutation
 } from "../../hooks/useOfflineApi";
 import type {
-  Question,
   CreateQuestionRequest,
-  UpdateQuestionRequest,
+  UpdateQuestionRequest
 } from "../../openapi-rq/requests/types.gen";
-import { useState as useLocalState } from "react";
 import { offlineDB } from "../../services/indexeddb";
 
 // Extended types to match actual API response
@@ -360,7 +350,10 @@ export const ManageQuestions = () => {
   } = useOfflineQuestions();
 
   // Cast the response to match the actual API structure
-  const questions = (questionsData?.questions || []) as QuestionWithLatestRevision[];
+  const questions: QuestionWithLatestRevision[] = useMemo(
+    () => (questionsData?.questions || []) as unknown as QuestionWithLatestRevision[],
+    [questionsData]
+  );
 
   // Use enhanced offline mutation hooks
   const { createQuestion, updateQuestion, deleteQuestion, isPending } = useOfflineQuestionsMutation();
@@ -578,7 +571,7 @@ export const ManageQuestions = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header Section */}
           <div className="mb-8">

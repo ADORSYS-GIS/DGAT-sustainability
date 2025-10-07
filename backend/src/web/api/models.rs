@@ -410,15 +410,17 @@ pub struct Report {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateReportRequest {
+    pub recommendation_id: Uuid, // Added recommendation_id
     pub category: String,
     pub recommendation: String,
-    pub status: Option<String> // New field for action plan status
+    pub status: Option<String>, // New field for action plan status
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateRecommendationStatusRequest {
     pub report_id: Uuid,
     pub category: String,
+    pub recommendation_id: String,
     pub status: String,
 }
 
@@ -431,6 +433,7 @@ pub struct OrganizationActionPlan {
 
 #[derive(Debug, Serialize)]
 pub struct RecommendationWithStatus {
+    pub recommendation_id: Uuid, // Added recommendation_id
     pub report_id: Uuid,
     pub category: String,
     pub recommendation: String,
