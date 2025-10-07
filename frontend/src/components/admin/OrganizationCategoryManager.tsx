@@ -13,14 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Plus, Edit, Trash2, Weight, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Weight, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useCategoryCatalogs,
