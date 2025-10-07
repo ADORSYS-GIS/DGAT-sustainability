@@ -260,11 +260,19 @@ export const ManageOrganizations: React.FC = () => {
       toast.error("At least one domain is required");
       return;
     }
-    // Categories will be assigned through the category manager after creation
+    // Build payload as expected by backend
     const requestBody: CreateOrganizationRequest = {
       name: formData.name,
-      description: null,
-    };
+      domains: cleanDomains,
+      redirect_url:
+        formData.redirectUrl ||
+        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
+        "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      enabled: "true",
+      attributes: {
+        categories: (formData.attributes?.categories as string[]) || [],
+      },
+    } as unknown as CreateOrganizationRequest;
 
     if (editingOrg) {
       (updateOrganizationMutation.mutate as unknown as (v: unknown) => void)({
