@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -144,9 +144,11 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
     }
   };
 
-  // Initialize selection and weights from existing assignments when opening the dialog
+  // Initialize selection and weights from existing assignments only once per open
+  const initializedOnOpenRef = useRef(false);
   useEffect(() => {
-    if (isAssignDialogOpen) {
+    if (isAssignDialogOpen && !initializedOnOpenRef.current) {
+      initializedOnOpenRef.current = true;
       const preselectedIds = organizationCategories.map((c) => c.category_catalog_id);
       setSelectedCategoryIds(preselectedIds);
       if (preselectedIds.length > 0) {
@@ -154,15 +156,17 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
           const found = organizationCategories.find((c) => c.category_catalog_id === id);
           return found ? found.weight : 0;
         });
-        // If all zero or invalid, fallback to equal weights
         const total = getTotalWeight(weights);
         setCustomWeights(total > 0 ? weights : calculateEqualWeights(preselectedIds.length));
       } else {
         setCustomWeights([]);
       }
     }
+    if (!isAssignDialogOpen) {
+      initializedOnOpenRef.current = false;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAssignDialogOpen, organizationCategories]);
+  }, [isAssignDialogOpen]);
 
   // Toggle selection and recalc weights
   const handleToggleCategory = (categoryCatalogId: string) => {
