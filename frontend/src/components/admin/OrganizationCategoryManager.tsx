@@ -52,6 +52,29 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
   const [customWeights, setCustomWeights] = useState<number[]>([]);
   const [useCustomWeights, setUseCustomWeights] = useState(false);
 
+  // Derived helpers for pending weights
+  const pendingWeights = useCustomWeights
+    ? customWeights
+    : calculateEqualWeights(selectedCategoryIds.length);
+
+  const normalizeCustomWeights = () => {
+    const total = getTotalWeight(customWeights);
+    if (total === 0) return;
+    const scaled = customWeights.map((w) => Math.max(0, Math.round((w * 100) / total)));
+    // Fix any rounding drift
+    let drift = 100 - getTotalWeight(scaled);
+    for (let i = 0; drift !== 0 && i < scaled.length; i++) {
+      if (drift > 0) {
+        scaled[i] += 1;
+        drift--;
+      } else if (scaled[i] > 0) {
+        scaled[i] -= 1;
+        drift++;
+      }
+    }
+    setCustomWeights(scaled);
+  };
+
   const { calculateEqualWeights, validateTotalWeight, getTotalWeight } = useWeightManagement();
 
   // API hooks
@@ -74,7 +97,7 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
       return;
     }
 
-    const weights = useCustomWeights ? customWeights : calculateEqualWeights(selectedCategoryIds.length);
+    const weights = pendingWeights;
 
     if (!validateTotalWeight(weights)) {
       toast.error('Total weight must equal 100%');
@@ -190,39 +213,59 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
                     type="checkbox"
                     id="customWeights"
                     checked={useCustomWeights}
-                    onChange={(e) => setUseCustomWeights(e.target.checked)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setUseCustomWeights(checked);
+                      if (checked && customWeights.length !== selectedCategoryIds.length) {
+                        setCustomWeights(calculateEqualWeights(selectedCategoryIds.length));
+                      }
+                    }}
                   />
                   <Label htmlFor="customWeights">Use custom weights</Label>
                 </div>
 
-                {useCustomWeights && selectedCategoryIds.length > 0 && (
+                {selectedCategoryIds.length > 0 && (
                   <div>
-                    <Label>Custom Weights</Label>
+                    <Label>{useCustomWeights ? 'Custom Weights' : 'Equal Weights (preview)'}</Label>
                     <div className="space-y-2 mt-2">
                       {selectedCategoryIds.map((categoryId, index) => {
                         const catalog = categoryCatalogs.find(c => c.category_catalog_id === categoryId);
+                        const value = useCustomWeights ? (customWeights[index] || 0) : (pendingWeights[index] || 0);
                         return (
                           <div key={categoryId} className="flex items-center space-x-2">
-                            <Label className="w-32 text-sm">{catalog?.name}</Label>
-                            <Input
-                              type="number"
-                              min="1"
-                              max="100"
-                              value={customWeights[index] || 0}
-                              onChange={(e) => {
-                                const newWeights = [...customWeights];
-                                newWeights[index] = parseInt(e.target.value) || 0;
-                                setCustomWeights(newWeights);
-                              }}
-                              className="w-20"
-                            />
+                            <Label className="w-48 text-sm truncate" title={catalog?.name}>{catalog?.name}</Label>
+                            {useCustomWeights ? (
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={value}
+                                onChange={(e) => {
+                                  const newVal = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                                  const newWeights = [...customWeights];
+                                  newWeights[index] = newVal;
+                                  setCustomWeights(newWeights);
+                                }}
+                                className="w-24"
+                              />
+                            ) : (
+                              <div className="w-24 px-3 py-2 border rounded text-sm bg-muted">{value}</div>
+                            )}
                             <span className="text-sm text-muted-foreground">%</span>
                           </div>
                         );
                       })}
-                      <div className="text-sm text-muted-foreground">
-                        Total: {getTotalWeight(customWeights)}%
+                      <div className={`text-sm ${validateTotalWeight(pendingWeights) ? 'text-muted-foreground' : 'text-red-600'}`}>
+                        Total: {getTotalWeight(pendingWeights)}%
                       </div>
+                      {useCustomWeights && !validateTotalWeight(customWeights) && (
+                        <div className="flex items-center space-x-2">
+                          <Button type="button" variant="outline" size="sm" onClick={normalizeCustomWeights}>
+                            Normalize to 100%
+                          </Button>
+                          <span className="text-xs text-muted-foreground">Scales your weights proportionally to total 100%</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -231,7 +274,7 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
                   <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAssignCategories} disabled={assignCategoriesMutation.isPending}>
+                  <Button onClick={handleAssignCategories} disabled={assignCategoriesMutation.isPending || (useCustomWeights && !validateTotalWeight(customWeights))}>
                     Assign Categories
                   </Button>
                 </div>
