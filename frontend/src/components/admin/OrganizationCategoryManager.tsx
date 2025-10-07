@@ -155,6 +155,29 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
     }
   }, [isAssignDialogOpen, organizationCategories, calculateEqualWeights, getTotalWeight]);
 
+  // Toggle selection and recalc weights
+  const handleToggleCategory = (categoryCatalogId: string) => {
+    setSelectedCategoryIds((prev) => {
+      const existsIndex = prev.indexOf(categoryCatalogId);
+      if (existsIndex !== -1) {
+        // Remove selection and corresponding weight, then rebalance equally
+        const newIds = prev.filter((id) => id !== categoryCatalogId);
+        const filteredWeights = customWeights.filter((_, idx) => idx !== existsIndex);
+        setCustomWeights(
+          newIds.length > 0
+            ? calculateEqualWeights(newIds.length)
+            : []
+        );
+        return newIds;
+      } else {
+        // Add selection and rebalance equally
+        const newIds = [...prev, categoryCatalogId];
+        setCustomWeights(calculateEqualWeights(newIds.length));
+        return newIds;
+      }
+    });
+  };
+
   // Update custom weights when category selection changes
   useEffect(() => {
     if (selectedCategoryIds.length > 0) {
@@ -206,13 +229,7 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
                             ? 'bg-primary text-primary-foreground'
                             : 'hover:bg-muted'
                         }`}
-                        onClick={() => {
-                          if (selectedCategoryIds.includes(catalog.category_catalog_id)) {
-                            setSelectedCategoryIds(prev => prev.filter(id => id !== catalog.category_catalog_id));
-                          } else {
-                            setSelectedCategoryIds(prev => [...prev, catalog.category_catalog_id]);
-                          }
-                        }}
+                        onClick={() => handleToggleCategory(catalog.category_catalog_id)}
                       >
                         {catalog.name}
                       </div>
