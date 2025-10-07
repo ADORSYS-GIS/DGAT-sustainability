@@ -45,14 +45,29 @@ export const categoryCatalogApi = {
 
     return response.json();
   },
-  // Delete a category catalog by id
-  async deleteCategoryCatalog(categoryCatalogId: string): Promise<void> {
-    const response = await fetchWithAuth(`${API_BASE_URL}/categories/${categoryCatalogId}`, {
+  // Delete a category catalog by matching its name to the real category id
+  async deleteCategoryCatalogByName(categoryName: string): Promise<void> {
+    // 1) Load real categories to map name -> category_id
+    const listResp = await fetchWithAuth(`${API_BASE_URL}/categories`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!listResp.ok) {
+      throw new Error(`Failed to fetch categories: ${listResp.statusText}`);
+    }
+    const listJson = await listResp.json();
+    const categories = (listJson?.categories ?? listJson ?? []) as Array<{ category_id: string; name: string }>;
+    const match = categories.find((c) => c.name === categoryName);
+    if (!match) {
+      throw new Error(`Category with name "${categoryName}" not found`);
+    }
+    // 2) Delete by real category_id
+    const delResp = await fetchWithAuth(`${API_BASE_URL}/categories/${match.category_id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });
-    if (!response.ok) {
-      throw new Error(`Failed to delete category catalog: ${response.statusText}`);
+    if (!delResp.ok) {
+      throw new Error(`Failed to delete category: ${delResp.status} ${delResp.statusText}`);
     }
   },
 };

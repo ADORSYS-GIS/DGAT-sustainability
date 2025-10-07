@@ -47,7 +47,8 @@ export const useDeleteCategoryCatalog = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (categoryCatalogId: string) => categoryCatalogApi.deleteCategoryCatalog(categoryCatalogId),
+    // For deletion from catalog table, we get name and delete by underlying category id
+    mutationFn: (categoryName: string) => categoryCatalogApi.deleteCategoryCatalogByName(categoryName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.categoryCatalogs });
       toast.success('Category catalog deleted successfully');

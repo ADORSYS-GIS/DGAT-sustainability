@@ -81,7 +81,7 @@ export const ManageCategories: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (categoryId: string) => {
+  const handleDelete = async (categoryId: string, categoryName?: string) => {
     if (
       !window.confirm(
         t("manageCategories.confirmDelete", {
@@ -93,7 +93,9 @@ export const ManageCategories: React.FC = () => {
       return;
 
     try {
-      await deleteCategoryCatalogMutation.mutateAsync(categoryId);
+      // We delete by name → map to real category id server-side
+      const nameToDelete = categoryName || categoryCatalogs.find(c => c.category_catalog_id === categoryId)?.name || "";
+      await deleteCategoryCatalogMutation.mutateAsync(nameToDelete);
     } catch (error) {
       // handled in mutation
     }
@@ -272,7 +274,7 @@ export const ManageCategories: React.FC = () => {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleDelete(category.category_catalog_id)}
+                          onClick={() => handleDelete(category.category_catalog_id, category.name)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="w-4 h-4" />
