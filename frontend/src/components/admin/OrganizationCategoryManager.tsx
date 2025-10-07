@@ -45,6 +45,9 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
   const [customWeights, setCustomWeights] = useState<number[]>([]);
   const [useCustomWeights, setUseCustomWeights] = useState(false);
 
+  // Weight helpers must be initialized before use
+  const { calculateEqualWeights, validateTotalWeight, getTotalWeight } = useWeightManagement();
+
   // Derived helpers for pending weights
   const pendingWeights = useCustomWeights
     ? customWeights
@@ -68,7 +71,7 @@ export const OrganizationCategoryManager: React.FC<OrganizationCategoryManagerPr
     setCustomWeights(scaled);
   };
 
-  const { calculateEqualWeights, validateTotalWeight, getTotalWeight } = useWeightManagement();
+  // moved above
 
   // API hooks
   const { data: categoryCatalogsData, isLoading: catalogsLoading } = useCategoryCatalogs();

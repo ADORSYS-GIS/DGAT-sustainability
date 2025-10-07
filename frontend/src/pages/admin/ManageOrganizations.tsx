@@ -39,7 +39,11 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { fetchWithAuth } from "@/services/shared/authService";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { OrganizationCategoryManager } from "@/components/admin/OrganizationCategoryManager";
+const OrganizationCategoryManagerLazy = React.lazy(() =>
+  import("@/components/admin/OrganizationCategoryManager").then((m) => ({
+    default: m.OrganizationCategoryManager,
+  })),
+);
 
 interface Category {
   categoryId: string;
@@ -664,10 +668,12 @@ export const ManageOrganizations: React.FC = () => {
                 <DialogHeader>
                   <DialogTitle>Manage Categories - {selectedOrganization.name}</DialogTitle>
                 </DialogHeader>
-                <OrganizationCategoryManager
-                  keycloakOrganizationId={selectedOrganization.id}
-                  organizationName={selectedOrganization.name}
-                />
+                <React.Suspense fallback={<div className="p-4">Loading categories...</div>}>
+                  <OrganizationCategoryManagerLazy
+                    keycloakOrganizationId={selectedOrganization.id}
+                    organizationName={selectedOrganization.name}
+                  />
+                </React.Suspense>
               </DialogContent>
             </Dialog>
           )}
