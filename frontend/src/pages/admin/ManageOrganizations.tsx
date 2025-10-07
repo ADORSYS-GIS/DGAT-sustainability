@@ -139,8 +139,9 @@ export const ManageOrganizations: React.FC = () => {
   // Use the actual mutation methods from queries.ts for direct API calls
   const createOrganizationMutation = useMutation({
     mutationFn: async (variables: { requestBody: CreateOrganizationRequest }) => {
+      const base = import.meta.env.VITE_API_BASE_URL || "/api";
       const resp = await fetchWithAuth(
-        `${import.meta.env.VITE_API_BASE_URL || "/api"}/organizations`,
+        `${base}/api/admin/organizations`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
