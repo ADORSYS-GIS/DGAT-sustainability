@@ -1,9 +1,9 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::cell::RefCell;
 use std::sync::{Arc, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::task_local;
 use uuid::Uuid;
+use tokio::task_local;
 
 use crate::common::database::entity::assessments::Model as AssessmentModel;
 use crate::common::database::entity::assessments_submission::Model as SubmissionModel;
@@ -21,11 +21,9 @@ pub struct RequestCache {
     /// Cache for files by response_id
     response_files: RefCell<HashMap<Uuid, Vec<FileModel>>>,
     /// Cache for assessment responses by assessment_id
-    assessment_responses:
-        RefCell<HashMap<Uuid, Vec<crate::common::database::entity::assessments_response::Model>>>,
+    assessment_responses: RefCell<HashMap<Uuid, Vec<crate::common::database::entity::assessments_response::Model>>>,
     /// Cache for temp submissions by assessment_id
-    temp_submissions:
-        RefCell<HashMap<Uuid, Option<crate::common::database::entity::temp_submission::Model>>>,
+    temp_submissions: RefCell<HashMap<Uuid, Option<crate::common::database::entity::temp_submission::Model>>>,
 }
 
 impl RequestCache {
@@ -39,9 +37,7 @@ impl RequestCache {
     }
 
     pub fn cache_assessment(&self, assessment_id: Uuid, assessment: AssessmentModel) {
-        self.assessments
-            .borrow_mut()
-            .insert(assessment_id, assessment);
+        self.assessments.borrow_mut().insert(assessment_id, assessment);
     }
 
     // Submission caching methods
@@ -50,9 +46,7 @@ impl RequestCache {
     }
 
     pub fn cache_submission(&self, assessment_id: Uuid, submission: Option<SubmissionModel>) {
-        self.submissions
-            .borrow_mut()
-            .insert(assessment_id, submission);
+        self.submissions.borrow_mut().insert(assessment_id, submission);
     }
 
     // File caching methods
@@ -74,42 +68,21 @@ impl RequestCache {
     }
 
     // Assessment responses caching methods
-    pub fn get_assessment_responses(
-        &self,
-        assessment_id: &Uuid,
-    ) -> Option<Vec<crate::common::database::entity::assessments_response::Model>> {
-        self.assessment_responses
-            .borrow()
-            .get(assessment_id)
-            .cloned()
+    pub fn get_assessment_responses(&self, assessment_id: &Uuid) -> Option<Vec<crate::common::database::entity::assessments_response::Model>> {
+        self.assessment_responses.borrow().get(assessment_id).cloned()
     }
 
-    pub fn cache_assessment_responses(
-        &self,
-        assessment_id: Uuid,
-        responses: Vec<crate::common::database::entity::assessments_response::Model>,
-    ) {
-        self.assessment_responses
-            .borrow_mut()
-            .insert(assessment_id, responses);
+    pub fn cache_assessment_responses(&self, assessment_id: Uuid, responses: Vec<crate::common::database::entity::assessments_response::Model>) {
+        self.assessment_responses.borrow_mut().insert(assessment_id, responses);
     }
 
     // Temp submission caching methods
-    pub fn get_temp_submission(
-        &self,
-        assessment_id: &Uuid,
-    ) -> Option<Option<crate::common::database::entity::temp_submission::Model>> {
+    pub fn get_temp_submission(&self, assessment_id: &Uuid) -> Option<Option<crate::common::database::entity::temp_submission::Model>> {
         self.temp_submissions.borrow().get(assessment_id).cloned()
     }
 
-    pub fn cache_temp_submission(
-        &self,
-        assessment_id: Uuid,
-        temp_submission: Option<crate::common::database::entity::temp_submission::Model>,
-    ) {
-        self.temp_submissions
-            .borrow_mut()
-            .insert(assessment_id, temp_submission);
+    pub fn cache_temp_submission(&self, assessment_id: Uuid, temp_submission: Option<crate::common::database::entity::temp_submission::Model>) {
+        self.temp_submissions.borrow_mut().insert(assessment_id, temp_submission);
     }
 
     /// Clear all cached data (useful for testing or manual cache invalidation)
@@ -138,8 +111,7 @@ pub struct UserSessionCache {
     /// Cache for user's submission statuses by assessment_id
     user_submissions: HashMap<Uuid, Option<SubmissionModel>>,
     /// Cache for user's temp submissions by assessment_id
-    user_temp_submissions:
-        HashMap<Uuid, Option<crate::common::database::entity::temp_submission::Model>>,
+    user_temp_submissions: HashMap<Uuid, Option<crate::common::database::entity::temp_submission::Model>>,
     /// Cache expiration timestamp (based on JWT expiration)
     expires_at: u64,
     /// Last access timestamp for cleanup purposes
@@ -152,7 +124,7 @@ impl UserSessionCache {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-
+        
         Self {
             user_assessments: HashMap::new(),
             user_organizations: HashMap::new(),
@@ -211,33 +183,21 @@ impl UserSessionCache {
     }
 
     /// Cache submission status
-    pub fn cache_user_submission(
-        &mut self,
-        assessment_id: Uuid,
-        submission: Option<SubmissionModel>,
-    ) {
+    pub fn cache_user_submission(&mut self, assessment_id: Uuid, submission: Option<SubmissionModel>) {
         self.touch();
         self.user_submissions.insert(assessment_id, submission);
     }
 
     /// Get cached temp submission
-    pub fn get_user_temp_submission(
-        &mut self,
-        assessment_id: &Uuid,
-    ) -> Option<Option<crate::common::database::entity::temp_submission::Model>> {
+    pub fn get_user_temp_submission(&mut self, assessment_id: &Uuid) -> Option<Option<crate::common::database::entity::temp_submission::Model>> {
         self.touch();
         self.user_temp_submissions.get(assessment_id).cloned()
     }
 
     /// Cache temp submission
-    pub fn cache_user_temp_submission(
-        &mut self,
-        assessment_id: Uuid,
-        temp_submission: Option<crate::common::database::entity::temp_submission::Model>,
-    ) {
+    pub fn cache_user_temp_submission(&mut self, assessment_id: Uuid, temp_submission: Option<crate::common::database::entity::temp_submission::Model>) {
         self.touch();
-        self.user_temp_submissions
-            .insert(assessment_id, temp_submission);
+        self.user_temp_submissions.insert(assessment_id, temp_submission);
     }
 
     /// Clear all cached data for this user
@@ -249,14 +209,6 @@ impl UserSessionCache {
         self.touch();
     }
 
-    /// Invalidate specific assessment-related caches
-    pub fn invalidate_assessment(&mut self, assessment_id: &Uuid) {
-        self.user_submissions.remove(assessment_id);
-        self.user_temp_submissions.remove(assessment_id);
-        // Clear all user assessments as they might be affected
-        self.user_assessments.clear();
-        self.touch();
-    }
 }
 
 /// Global session cache manager
@@ -275,8 +227,10 @@ impl SessionCache {
     pub fn get_user_cache(&self, user_id: &str, jwt_exp: u64) -> Option<UserSessionCache> {
         // Try to read first
         if let Ok(users) = self.users.read() {
-            if let Some(cache) = users.get(user_id).filter(|c| !c.is_expired()) {
-                return Some(cache.clone());
+            if let Some(cache) = users.get(user_id) {
+                if !cache.is_expired() {
+                    return Some(cache.clone());
+                }
             }
         }
 
@@ -330,9 +284,9 @@ impl Clone for SessionCache {
 /// Cached wrapper functions for common database operations
 pub mod cached_ops {
     use super::*;
-    use crate::common::models::claims::Claims;
-    use crate::web::api::error::ApiError;
     use crate::web::routes::AppState;
+    use crate::web::api::error::ApiError;
+    use crate::common::models::claims::Claims;
 
     /// Get assessment by ID with caching
     pub async fn get_assessment_by_id(
@@ -352,9 +306,7 @@ pub mod cached_ops {
             .assessments
             .get_assessment_by_id(assessment_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to fetch assessment: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?;
 
         // Cache the result if found and cache is available
         if let Some(ref assessment_model) = assessment {
@@ -384,9 +336,7 @@ pub mod cached_ops {
             .assessments_submission
             .get_submission_by_assessment_id(assessment_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to check submission status: {e}")))?;
 
         // Cache the result if cache is available
         let _ = REQUEST_CACHE.try_with(|cache| {
@@ -414,9 +364,7 @@ pub mod cached_ops {
             .assessments_response_file
             .get_files_for_response(response_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to fetch files for response: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch files for response: {e}")))?;
 
         // Cache the result if cache is available
         let _ = REQUEST_CACHE.try_with(|cache| {
@@ -432,9 +380,7 @@ pub mod cached_ops {
         assessment_id: Uuid,
     ) -> Result<Vec<crate::common::database::entity::assessments_response::Model>, ApiError> {
         // Check cache first
-        if let Ok(cached) =
-            REQUEST_CACHE.try_with(|cache| cache.get_assessment_responses(&assessment_id))
-        {
+        if let Ok(cached) = REQUEST_CACHE.try_with(|cache| cache.get_assessment_responses(&assessment_id)) {
             if let Some(responses) = cached {
                 return Ok(responses);
             }
@@ -446,9 +392,7 @@ pub mod cached_ops {
             .assessments_response
             .get_latest_responses_by_assessment(assessment_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to fetch responses: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch responses: {e}")))?;
 
         // Cache the result if cache is available
         let _ = REQUEST_CACHE.try_with(|cache| {
@@ -464,9 +408,7 @@ pub mod cached_ops {
         assessment_id: Uuid,
     ) -> Result<Option<crate::common::database::entity::temp_submission::Model>, ApiError> {
         // Check cache first
-        if let Ok(cached) =
-            REQUEST_CACHE.try_with(|cache| cache.get_temp_submission(&assessment_id))
-        {
+        if let Ok(cached) = REQUEST_CACHE.try_with(|cache| cache.get_temp_submission(&assessment_id)) {
             if let Some(temp_submission) = cached {
                 return Ok(temp_submission);
             }
@@ -478,9 +420,7 @@ pub mod cached_ops {
             .temp_submission
             .get_temp_submission_by_assessment_id(assessment_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to query temp submission: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to query temp submission: {e}")))?;
 
         // Cache the result if cache is available
         let _ = REQUEST_CACHE.try_with(|cache| {
@@ -491,43 +431,20 @@ pub mod cached_ops {
     }
 
     /// Session-aware cached operations that utilize both session and request level caching
+    
     /// Get user assessments with session-level caching
     pub async fn get_user_assessments_with_session(
         app_state: &AppState,
-        claims: &Claims,
+        _claims: &Claims,
         org_id: &str,
     ) -> Result<Vec<AssessmentModel>, ApiError> {
-        let user_id = &claims.sub;
-        let jwt_exp = claims.exp;
-
-        // Check session cache first
-        if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
-            if let Some(assessments) = user_cache.get_user_assessments(org_id) {
-                // Update the session cache with the touched timestamp
-                app_state
-                    .session_cache
-                    .update_user_cache(user_id, user_cache);
-                return Ok(assessments);
-            }
-        }
-
         // Fetch from database
         let assessments = app_state
             .database
             .assessments
             .get_assessments_by_org(org_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to fetch assessments: {e}"))
-            })?;
-
-        // Cache in session cache
-        if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
-            user_cache.cache_user_assessments(org_id.to_string(), assessments.clone());
-            app_state
-                .session_cache
-                .update_user_cache(user_id, user_cache);
-        }
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessments: {e}")))?;
 
         Ok(assessments)
     }
@@ -545,9 +462,7 @@ pub mod cached_ops {
         if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
             if let Some(submission) = user_cache.get_user_submission(&assessment_id) {
                 // Update the session cache with the touched timestamp
-                app_state
-                    .session_cache
-                    .update_user_cache(user_id, user_cache);
+                app_state.session_cache.update_user_cache(user_id, user_cache);
                 return Ok(submission);
             }
         }
@@ -558,9 +473,7 @@ pub mod cached_ops {
         // Cache in session cache
         if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
             user_cache.cache_user_submission(assessment_id, submission.clone());
-            app_state
-                .session_cache
-                .update_user_cache(user_id, user_cache);
+            app_state.session_cache.update_user_cache(user_id, user_cache);
         }
 
         Ok(submission)
@@ -579,48 +492,23 @@ pub mod cached_ops {
         if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
             if let Some(temp_submission) = user_cache.get_user_temp_submission(&assessment_id) {
                 // Update the session cache with the touched timestamp
-                app_state
-                    .session_cache
-                    .update_user_cache(user_id, user_cache);
+                app_state.session_cache.update_user_cache(user_id, user_cache);
                 return Ok(temp_submission);
             }
         }
 
         // Fall back to request-level cache and database
-        let temp_submission =
-            get_temp_submission_by_assessment_id(app_state, assessment_id).await?;
+        let temp_submission = get_temp_submission_by_assessment_id(app_state, assessment_id).await?;
 
         // Cache in session cache
         if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
             user_cache.cache_user_temp_submission(assessment_id, temp_submission.clone());
-            app_state
-                .session_cache
-                .update_user_cache(user_id, user_cache);
+            app_state.session_cache.update_user_cache(user_id, user_cache);
         }
 
         Ok(temp_submission)
     }
 
-    /// Invalidate session cache for a user when data changes
-    pub fn invalidate_user_session_cache(
-        app_state: &AppState,
-        claims: &Claims,
-        assessment_id: Option<Uuid>,
-    ) {
-        let user_id = &claims.sub;
-        let jwt_exp = claims.exp;
-
-        if let Some(mut user_cache) = app_state.session_cache.get_user_cache(user_id, jwt_exp) {
-            if let Some(assessment_id) = assessment_id {
-                user_cache.invalidate_assessment(&assessment_id);
-            } else {
-                user_cache.clear();
-            }
-            app_state
-                .session_cache
-                .update_user_cache(user_id, user_cache);
-        }
-    }
 
     /// Cleanup expired session caches (should be called periodically)
     pub fn cleanup_expired_sessions(app_state: &AppState) {
@@ -632,11 +520,9 @@ pub mod cached_ops {
 #[macro_export]
 macro_rules! with_request_cache {
     ($body:expr) => {
-        $crate::common::cache::REQUEST_CACHE
-            .scope(
-                $crate::common::cache::RequestCache::new(),
-                async move { $body },
-            )
-            .await
+        $crate::common::cache::REQUEST_CACHE.scope(
+            $crate::common::cache::RequestCache::new(),
+            async move { $body }
+        ).await
     };
 }

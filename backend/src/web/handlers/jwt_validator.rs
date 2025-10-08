@@ -4,7 +4,7 @@ use reqwest::Client;
 use serde_json::Value;
 use std::collections::HashMap;
 use thiserror::Error;
-use tracing::error;
+use tracing::{error, info};
 
 #[derive(Error, Debug)]
 pub enum JwtError {

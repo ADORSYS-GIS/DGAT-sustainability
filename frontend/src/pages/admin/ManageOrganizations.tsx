@@ -1,5 +1,3 @@
-import * as React from "react";
-import { useState } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,24 +10,24 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Building2, Plus, Edit, Trash2, MapPin, Mail } from "lucide-react";
+import { Building2, Edit, Plus, Trash2 } from "lucide-react";
+import * as React from "react";
+import { useState } from "react";
 
-import type {
-  OrganizationResponse,
-  OrganizationCreateRequest,
-} from "@/openapi-rq/requests/types.gen";
-import Select from "react-select";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import {
-  useOrganizationsServiceGetAdminOrganizations,
-  useOrganizationsServicePostAdminOrganizations,
-  useOrganizationsServicePutAdminOrganizationsById,
-  useOrganizationsServiceDeleteAdminOrganizationsById,
-} from "@/openapi-rq/queries/queries";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
+import {
+  useOrganizationsServiceDeleteAdminOrganizationsById,
+  useOrganizationsServiceGetAdminOrganizations,
+  useOrganizationsServicePostAdminOrganizations,
+  useOrganizationsServicePutAdminOrganizationsById
+} from "@/openapi-rq/queries/queries";
+import type {
+  OrganizationCreateRequest
+} from "@/openapi-rq/requests/types.gen";
+import { useTranslation } from "react-i18next";
+import Select from "react-select";
+import { toast } from "sonner";
 
 interface Category {
   categoryId: string;
@@ -58,25 +56,21 @@ interface OrganizationResponseFixed {
 // Helper to map OrganizationResponse to OrganizationResponseFixed
 function toFixedOrg(org: unknown): OrganizationResponseFixed {
   const o = org as Record<string, unknown>;
-
+  
   // Convert attributes from serde_json::Value to HashMap<string, string[]>
   const attributes: { [key: string]: string[] } = {};
-  if (
-    o.attributes &&
-    typeof o.attributes === "object" &&
-    o.attributes !== null
-  ) {
+  if (o.attributes && typeof o.attributes === 'object' && o.attributes !== null) {
     const attrsObj = o.attributes as Record<string, unknown>;
     for (const [key, value] of Object.entries(attrsObj)) {
       if (Array.isArray(value)) {
         const stringValues: string[] = value
-          .filter((v) => typeof v === "string")
-          .map((v) => v as string);
+          .filter(v => typeof v === 'string')
+          .map(v => v as string);
         attributes[key] = stringValues;
       }
     }
   }
-
+  
   return {
     id: o.id as string,
     name: o.name as string,
@@ -104,15 +98,13 @@ export const ManageOrganizations: React.FC = () => {
   const [formData, setFormData] = useState<OrganizationCreateRequest>({
     name: "",
     domains: [{ name: "" }],
-    redirectUrl:
-      import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-      "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
     enabled: "true",
     attributes: { categories: [] },
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-
+  
   // Category creation state
   const [showCategoryCreation, setShowCategoryCreation] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState({
@@ -120,102 +112,94 @@ export const ManageOrganizations: React.FC = () => {
     weight: 25,
     order: 1,
   });
-
+  
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [orgToDelete, setOrgToDelete] =
-    useState<OrganizationResponseFixed | null>(null);
-
+  const [orgToDelete, setOrgToDelete] = useState<OrganizationResponseFixed | null>(null);
+  
   // Category mutation hooks
   const categoryMutations = useOfflineCategoriesMutation();
   const createCategory = categoryMutations.createCategory.mutate;
-
+  
   // Use direct API query method from queries.ts instead of offline hook
   const {
     data: organizations,
     isLoading,
     refetch,
   } = useOrganizationsServiceGetAdminOrganizations();
-
+  
   // Use the actual mutation methods from queries.ts for direct API calls
-  const createOrganizationMutation =
-    useOrganizationsServicePostAdminOrganizations({
-      onSuccess: (result) => {
-        toast.success("Organization created successfully");
-        refetch();
-        setShowAddDialog(false);
-        setEditingOrg(null);
-        setFormData({
-          name: "",
-          domains: [{ name: "" }],
-          redirectUrl:
-            import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-            "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-          enabled: "true",
-          attributes: { categories: [] },
-        });
-      },
-      onError: (error) => {
-        console.error("Failed to create organization:", error);
-        toast.error("Failed to create organization");
-      },
-    });
+  const createOrganizationMutation = useOrganizationsServicePostAdminOrganizations({
+    onSuccess: (result) => {
+      toast.success("Organization created successfully");
+      refetch();
+      setShowAddDialog(false);
+      setEditingOrg(null);
+      setFormData({
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to create organization:', error);
+      toast.error("Failed to create organization");
+    }
+  });
 
-  const updateOrganizationMutation =
-    useOrganizationsServicePutAdminOrganizationsById({
-      onSuccess: () => {
-        toast.success("Organization updated successfully");
-        refetch();
-        setShowAddDialog(false);
-        setEditingOrg(null);
-        setFormData({
-          name: "",
-          domains: [{ name: "" }],
-          redirectUrl:
-            import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-            "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-          enabled: "true",
-          attributes: { categories: [] },
-        });
-      },
-      onError: (error) => {
-        console.error("Failed to update organization:", error);
-        toast.error("Failed to update organization");
-      },
-    });
+  const updateOrganizationMutation = useOrganizationsServicePutAdminOrganizationsById({
+    onSuccess: () => {
+      toast.success("Organization updated successfully");
+      refetch();
+      setShowAddDialog(false);
+      setEditingOrg(null);
+      setFormData({
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to update organization:', error);
+      toast.error("Failed to update organization");
+    }
+  });
 
-  const deleteOrganizationMutation =
-    useOrganizationsServiceDeleteAdminOrganizationsById({
-      onSuccess: () => {
-        toast.success("Organization deleted successfully");
-        refetch();
-        setShowDeleteConfirmation(false); // Close the dialog
-        setOrgToDelete(null); // Clear the organization to delete
-      },
-      onError: (error) => {
-        console.error("Failed to delete organization:", error);
-        toast.error("Failed to delete organization");
-      },
-    });
+  const deleteOrganizationMutation = useOrganizationsServiceDeleteAdminOrganizationsById({
+    onSuccess: () => {
+      toast.success("Organization deleted successfully");
+      refetch();
+      setShowDeleteConfirmation(false); // Close the dialog
+      setOrgToDelete(null); // Clear the organization to delete
+    },
+    onError: (error) => {
+      console.error('Failed to delete organization:', error);
+      toast.error("Failed to delete organization");
+    }
+  });
+
+
 
   // Transform the organizations data from the direct API call
-  const fixedOrgs = organizations
-    ? (Array.isArray(organizations) ? organizations : [organizations]).map(
-        toFixedOrg,
-      )
+  const fixedOrgs = organizations ? 
+    (Array.isArray(organizations) ? organizations : [organizations]).map(toFixedOrg) 
     : [];
 
   // Log organization details for debugging
   React.useEffect(() => {
     if (organizations) {
-      console.log("Raw organizations from API:", organizations);
-      console.log("Fixed organizations:", fixedOrgs);
+      console.log('Raw organizations from API:', organizations);
+      console.log('Fixed organizations:', fixedOrgs);
       fixedOrgs.forEach((org, index) => {
         console.log(`Organization ${index + 1}:`, {
           id: org.id,
           name: org.name,
           attributes: org.attributes,
-          categories: org.attributes?.categories,
+          categories: org.attributes?.categories
         });
       });
     }
@@ -225,19 +209,19 @@ export const ManageOrganizations: React.FC = () => {
   const loadCategories = async () => {
     setCategoriesLoading(true);
     try {
-      const { offlineDB } = await import("@/services/indexeddb");
+      const { offlineDB } = await import('@/services/indexeddb');
       const stored = await offlineDB.getAllCategories();
       // Map the IndexedDB category structure to the expected format
-      const mappedCategories = stored.map((cat) => ({
+      const mappedCategories = stored.map(cat => ({
         categoryId: cat.category_id,
         name: cat.name,
         weight: cat.weight,
         order: cat.order,
-        templateId: cat.template_id,
+        templateId: cat.template_id
       }));
       setCategories(mappedCategories);
     } catch (error) {
-      console.error("Failed to load categories:", error);
+      console.error('Failed to load categories:', error);
       setCategories([]);
     } finally {
       setCategoriesLoading(false);
@@ -250,8 +234,8 @@ export const ManageOrganizations: React.FC = () => {
 
   // Debug formData changes
   React.useEffect(() => {
-    console.log("FormData changed:", formData);
-    console.log("FormData categories:", formData.attributes?.categories);
+    console.log('FormData changed:', formData);
+    console.log('FormData categories:', formData.attributes?.categories);
   }, [formData]);
 
   const handleSubmit = () => {
@@ -266,8 +250,7 @@ export const ManageOrganizations: React.FC = () => {
       return;
     }
     // Check if at least one category is selected
-    const selectedCategories =
-      (formData.attributes?.categories as string[]) || [];
+    const selectedCategories = (formData.attributes?.categories as string[]) || [];
     if (selectedCategories.length === 0) {
       toast.error("At least one category is required");
       return;
@@ -280,11 +263,11 @@ export const ManageOrganizations: React.FC = () => {
         categories: selectedCategories,
       },
     };
-
+    
     if (editingOrg) {
-      updateOrganizationMutation.mutate({
-        id: editingOrg.id,
-        requestBody,
+      updateOrganizationMutation.mutate({ 
+        id: editingOrg.id, 
+        requestBody 
       });
     } else {
       createOrganizationMutation.mutate({ requestBody });
@@ -296,10 +279,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({
       name: org.name,
       domains: org.domains || [{ name: "" }],
-      redirectUrl:
-        org.redirectUrl ||
-        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-        "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      redirectUrl: org.redirectUrl || import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
       enabled: org.enabled ? "true" : "false",
       attributes: org.attributes || { categories: [] },
     });
@@ -319,7 +299,7 @@ export const ManageOrganizations: React.FC = () => {
 
   const confirmDelete = () => {
     if (!orgToDelete) return;
-
+    
     deleteOrganizationMutation.mutate({ id: orgToDelete.id });
   };
 
@@ -327,9 +307,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({
       name: "",
       domains: [{ name: "" }],
-      redirectUrl:
-        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-        "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
       enabled: "true",
       attributes: { categories: [] },
     });
@@ -370,81 +348,53 @@ export const ManageOrganizations: React.FC = () => {
 
   const handleCreateCategory = async () => {
     if (!categoryFormData.name.trim()) {
-      toast.error(
-        t("manageCategories.textRequired", {
-          defaultValue: "Category name is required",
-        }),
-      );
+      toast.error(t('manageCategories.textRequired', { defaultValue: 'Category name is required' }));
       return;
     }
 
     if (categoryFormData.weight <= 0 || categoryFormData.weight > 100) {
-      toast.error(
-        t("manageCategories.weightRangeError", {
-          defaultValue: "Weight must be between 1 and 100",
-        }),
-      );
+      toast.error(t('manageCategories.weightRangeError', { defaultValue: 'Weight must be between 1 and 100' }));
       return;
     }
 
-    await createCategory(
-      {
-        name: categoryFormData.name,
-        weight: categoryFormData.weight,
-        order: categoryFormData.order,
-        template_id: "sustainability_template_1", // Match the template ID used in ManageCategories
+    await createCategory({
+      name: categoryFormData.name,
+      weight: categoryFormData.weight,
+      order: categoryFormData.order,
+      template_id: "sustainability_template_1", // Match the template ID used in ManageCategories
+    }, {
+      onSuccess: (result) => {
+        console.log('✅ Category creation onSuccess called with result:', result);
+        toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
+        
+        // Add the new category to the form data
+        const newCategoryName = categoryFormData.name;
+        setFormData((prev) => ({
+          ...prev,
+          attributes: {
+            ...prev.attributes,
+            categories: [...(prev.attributes?.categories || []), newCategoryName],
+          },
+        }));
+        
+        // Reset category form
+        setCategoryFormData({
+          name: "",
+          weight: 25,
+          order: categories.length + 1,
+        });
+        
+        // Hide category creation section
+        setShowCategoryCreation(false);
+        
+        // Reload categories
+        loadCategories();
       },
-      {
-        onSuccess: (result) => {
-          console.log(
-            "✅ Category creation onSuccess called with result:",
-            result,
-          );
-          toast.success(
-            t("manageCategories.createSuccess", {
-              defaultValue: "Category created successfully",
-            }),
-          );
-
-          // Add the new category to the form data
-          const newCategoryName = categoryFormData.name;
-          setFormData((prev) => ({
-            ...prev,
-            attributes: {
-              ...prev.attributes,
-              categories: [
-                ...(prev.attributes?.categories || []),
-                newCategoryName,
-              ],
-            },
-          }));
-
-          // Reset category form
-          setCategoryFormData({
-            name: "",
-            weight: 25,
-            order: categories.length + 1,
-          });
-
-          // Hide category creation section
-          setShowCategoryCreation(false);
-
-          // Reload categories
-          loadCategories();
-        },
-        onError: (error) => {
-          console.error(
-            "❌ Category creation onError called with error:",
-            error,
-          );
-          toast.error(
-            t("manageCategories.createError", {
-              defaultValue: "Failed to create category",
-            }),
-          );
-        },
-      },
-    );
+      onError: (error) => {
+        console.error('❌ Category creation onError called with error:', error);
+        toast.error(t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
+      }
+    });
   };
 
   if (isLoading || categoriesLoading) {
@@ -462,8 +412,10 @@ export const ManageOrganizations: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+
           {/* Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -471,16 +423,11 @@ export const ManageOrganizations: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <Building2 className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    {t("manageOrganizations.title", {
-                      defaultValue: "Manage Organizations",
-                    })}
+                    {t('manageOrganizations.title', { defaultValue: 'Manage Organizations' })}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  {t("manageOrganizations.subtitle", {
-                    defaultValue:
-                      "Create and manage organizations for sustainability assessments",
-                  })}
+                  {t('manageOrganizations.subtitle', { defaultValue: 'Create and manage organizations for sustainability assessments' })}
                 </p>
               </div>
 
@@ -492,21 +439,19 @@ export const ManageOrganizations: React.FC = () => {
                 }}
               >
                 <DialogTrigger asChild>
-                  <Button
+                  <Button 
                     className="bg-dgrv-green hover:bg-green-700"
                     onClick={() => setShowAddDialog(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {t("manageOrganizations.addOrganization", {
-                      defaultValue: "Add Organization",
-                    })}
+                    {t('manageOrganizations.addOrganization', { defaultValue: 'Add Organization' })}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
                       {editingOrg
-                        ? t("manageOrganizations.editOrganization")
+                        ? t('manageOrganizations.editOrganization')
                         : "Add New Organization"}
                     </DialogTitle>
                   </DialogHeader>
@@ -590,10 +535,7 @@ export const ManageOrganizations: React.FC = () => {
                           (catName) => ({ value: catName, label: catName }),
                         )}
                         onChange={(selected) => {
-                          console.log(
-                            "Categories selected in Select:",
-                            selected,
-                          );
+                          console.log('Categories selected in Select:', selected);
                           setFormData((prev) => ({
                             ...prev,
                             attributes: {
@@ -633,42 +575,35 @@ export const ManageOrganizations: React.FC = () => {
                         }}
                       />
                     </div>
-
+                    
                     {/* Category Creation Section */}
                     {!editingOrg && (
                       <div className="border-t pt-4 mt-4">
                         <div className="flex items-center justify-between mb-3">
                           <div>
                             <h4 className="font-semibold text-dgrv-blue">
-                              {t("manageOrganizations.createCategoryWithOrg")}
+                              {t('manageOrganizations.createCategoryWithOrg')}
                             </h4>
                             <p className="text-sm text-gray-600">
-                              {t(
-                                "manageOrganizations.createCategoryWithOrgDesc",
-                              )}
+                              {t('manageOrganizations.createCategoryWithOrgDesc')}
                             </p>
                           </div>
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            onClick={() =>
-                              setShowCategoryCreation(!showCategoryCreation)
-                            }
+                            onClick={() => setShowCategoryCreation(!showCategoryCreation)}
                             className="text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue hover:text-white"
                           >
-                            {showCategoryCreation
-                              ? t("manageOrganizations.skipCategoryCreation")
-                              : t("manageOrganizations.createCategory")}
+                            {showCategoryCreation ? t('manageOrganizations.skipCategoryCreation') : t('manageOrganizations.createCategory')}
                           </Button>
                         </div>
-
+                        
                         {showCategoryCreation && (
                           <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                             <div>
                               <Label className="font-semibold text-dgrv-blue">
-                                {t("manageOrganizations.newCategoryName")}{" "}
-                                <span className="text-red-500">*</span>
+                                {t('manageOrganizations.newCategoryName')} <span className="text-red-500">*</span>
                               </Label>
                               <Input
                                 value={categoryFormData.name}
@@ -678,17 +613,14 @@ export const ManageOrganizations: React.FC = () => {
                                     name: e.target.value,
                                   }))
                                 }
-                                placeholder={t(
-                                  "manageOrganizations.newCategoryNamePlaceholder",
-                                )}
+                                placeholder={t('manageOrganizations.newCategoryNamePlaceholder')}
                                 className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
                               />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <Label className="font-semibold text-dgrv-blue">
-                                  {t("manageOrganizations.categoryWeight")}{" "}
-                                  <span className="text-red-500">*</span>
+                                  {t('manageOrganizations.categoryWeight')} <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                   type="number"
@@ -706,9 +638,7 @@ export const ManageOrganizations: React.FC = () => {
                               </div>
                               <div>
                                 <Label className="font-semibold text-dgrv-blue">
-                                  {t(
-                                    "manageOrganizations.categoryDisplayOrder",
-                                  )}
+                                  {t('manageOrganizations.categoryDisplayOrder')}
                                 </Label>
                                 <Input
                                   type="number"
@@ -730,13 +660,11 @@ export const ManageOrganizations: React.FC = () => {
                                 size="sm"
                                 onClick={handleCreateCategory}
                                 className="bg-dgrv-green hover:bg-green-700 text-white"
-                                disabled={
-                                  categoryMutations.createCategory.isPending
-                                }
+                                disabled={categoryMutations.createCategory.isPending}
                               >
-                                {categoryMutations.createCategory.isPending
-                                  ? t("common.processing")
-                                  : t("manageOrganizations.createCategory")}
+                                {categoryMutations.createCategory.isPending 
+                                  ? t('common.processing') 
+                                  : t('manageOrganizations.createCategory')}
                               </Button>
                               <Button
                                 type="button"
@@ -744,44 +672,32 @@ export const ManageOrganizations: React.FC = () => {
                                 variant="outline"
                                 onClick={() => setShowCategoryCreation(false)}
                               >
-                                {t("manageOrganizations.skipCategoryCreation")}
+                                {t('manageOrganizations.skipCategoryCreation')}
                               </Button>
                             </div>
                           </div>
                         )}
                       </div>
                     )}
-
+                    
                     <div className="flex space-x-2 pt-4">
                       <Button
                         onClick={handleSubmit}
                         className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow"
-                        disabled={
-                          createOrganizationMutation.isPending ||
-                          updateOrganizationMutation.isPending
-                        }
+                        disabled={createOrganizationMutation.isPending || updateOrganizationMutation.isPending}
                       >
-                        {createOrganizationMutation.isPending ||
-                        updateOrganizationMutation.isPending
-                          ? t("manageOrganizations.saving", {
-                              defaultValue: "Saving...",
-                            })
-                          : editingOrg
-                            ? t("manageOrganizations.update", {
-                                defaultValue: "Update",
-                              })
-                            : t("manageOrganizations.create", {
-                                defaultValue: "Create",
-                              })}
+                        {createOrganizationMutation.isPending || updateOrganizationMutation.isPending
+                          ? t('manageOrganizations.saving', { defaultValue: 'Saving...' })
+                          : editingOrg 
+                            ? t('manageOrganizations.update', { defaultValue: 'Update' }) 
+                            : t('manageOrganizations.create', { defaultValue: 'Create' })}
                       </Button>
                       <Button
                         variant="outline"
                         onClick={resetForm}
                         className="px-6 py-2 text-base font-semibold rounded shadow"
                       >
-                        {t("manageOrganizations.cancel", {
-                          defaultValue: "Cancel",
-                        })}
+                        {t('manageOrganizations.cancel', { defaultValue: 'Cancel' })}
                       </Button>
                     </div>
                   </div>
@@ -810,24 +726,13 @@ export const ManageOrganizations: React.FC = () => {
                   <div className="space-y-3">
                     {org.domains && org.domains.length > 0 && (
                       <div className="text-sm text-gray-600">
-                        <b>
-                          {t("manageOrganizations.domains", {
-                            defaultValue: "Domains",
-                          })}
-                          :
-                        </b>{" "}
+                        <b>{t('manageOrganizations.domains', { defaultValue: 'Domains' })}:</b>{" "}
                         {org.domains.map((d) => d.name).join(", ")}
                       </div>
                     )}
                     {org.description && (
                       <div className="text-sm text-gray-600">
-                        <b>
-                          {t("manageOrganizations.description", {
-                            defaultValue: "Description",
-                          })}
-                          :
-                        </b>{" "}
-                        {org.description}
+                        <b>{t('manageOrganizations.description', { defaultValue: 'Description' })}:</b> {org.description}
                       </div>
                     )}
                     <div className="flex space-x-2 pt-4">
@@ -839,9 +744,7 @@ export const ManageOrganizations: React.FC = () => {
                         disabled={false}
                       >
                         <Edit className="w-4 h-4 mr-1" />
-                        {t("manageOrganizations.edit", {
-                          defaultValue: "Edit",
-                        })}
+                        {t('manageOrganizations.edit', { defaultValue: 'Edit' })}
                       </Button>
                       <Button
                         size="sm"
@@ -851,9 +754,7 @@ export const ManageOrganizations: React.FC = () => {
                         disabled={deleteOrganizationMutation.isPending}
                       >
                         <Trash2 className="w-4 h-4" />
-                        {t("manageOrganizations.delete", {
-                          defaultValue: "Delete",
-                        })}
+                        {t('manageOrganizations.delete', { defaultValue: 'Delete' })}
                       </Button>
                     </div>
                   </div>
@@ -866,23 +767,16 @@ export const ManageOrganizations: React.FC = () => {
                 <CardContent>
                   <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {t("manageOrganizations.noOrganizations", {
-                      defaultValue: "No organizations yet",
-                    })}
+                    {t('manageOrganizations.noOrganizations', { defaultValue: 'No organizations yet' })}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    {t("manageOrganizations.getStarted", {
-                      defaultValue:
-                        "Create your first organization to get started.",
-                    })}
+                    {t('manageOrganizations.getStarted', { defaultValue: 'Create your first organization to get started.' })}
                   </p>
                   <Button
                     onClick={() => setShowAddDialog(true)}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    {t("manageOrganizations.addFirstOrganization", {
-                      defaultValue: "Add First Organization",
-                    })}
+                    {t('manageOrganizations.addFirstOrganization', { defaultValue: 'Add First Organization' })}
                   </Button>
                 </CardContent>
               </Card>
@@ -897,12 +791,12 @@ export const ManageOrganizations: React.FC = () => {
               setOrgToDelete(null);
             }}
             onConfirm={confirmDelete}
-            title={t("manageOrganizations.confirmDeleteTitle")}
-            description={t("manageOrganizations.confirmDeleteDescription", {
-              name: orgToDelete?.name || "",
+            title={t('manageOrganizations.confirmDeleteTitle')}
+            description={t('manageOrganizations.confirmDeleteDescription', { 
+              name: orgToDelete?.name || ''
             })}
-            confirmText={t("manageOrganizations.deleteOrganization")}
-            cancelText={t("manageOrganizations.cancel")}
+            confirmText={t('manageOrganizations.deleteOrganization')}
+            cancelText={t('manageOrganizations.cancel')}
             variant="destructive"
             isLoading={deleteOrganizationMutation.isPending}
           />

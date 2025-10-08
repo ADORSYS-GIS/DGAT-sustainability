@@ -1,21 +1,17 @@
+import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
-import {
-  useOfflineSubmissions,
-  useOfflineSubmissionsMutation,
-} from "@/hooks/useOfflineApi";
-import { offlineDB } from "@/services/indexeddb";
-import type { Assessment } from "@/openapi-rq/requests/types.gen";
-import type { Submission } from "@/openapi-rq/requests/types.gen";
+import { useOfflineQuestions, useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
+import type { Assessment, Submission } from "@/openapi-rq/requests/types.gen";
 import { Calendar, Eye, FileText, Trash2 } from "lucide-react";
 import * as React from "react";
-import { useNavigate, NavigateFunction } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NavigateFunction, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Navbar } from "@/components/shared/Navbar";
 
 type AuthUser = {
   sub?: string;
@@ -37,41 +33,64 @@ export const Assessments: React.FC = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
 
   // Fetch all submissions for the current user/org
   const { data, isLoading: remoteLoading, refetch } = useOfflineSubmissions();
   const submissions = data?.submissions || [];
 
+  const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
+
+  const questionsMap = React.useMemo(() => {
+    if (!questionsData?.questions) return new Map();
+    const map = new Map<string, { text: string; category: string }>();
+    questionsData.questions.forEach(q => {
+      if (q.question?.latest_revision) {
+        map.set(q.question.latest_revision.question_revision_id, {
+          text: q.question.latest_revision.text as unknown as string,
+          category: q.question.category,
+        });
+      }
+    });
+    return map;
+  }, [questionsData]);
+
   // Delete submission mutation
-  const { deleteSubmission, isPending: isDeleting } =
-    useOfflineSubmissionsMutation();
+  const { deleteSubmission, isPending: isDeleting } = useOfflineSubmissionsMutation();
 
   useEffect(() => {
     setIsLoading(remoteLoading);
   }, [remoteLoading]);
 
-  // Helper function to count unique categories completed and total for a submission
-  const getCategoryCounts = (submission: Submission) => {
+  // Helper function to count unique categories completed for a submission
+  const getCategoryCounts = (submission: Submission, questionsMap: Map<string, { text: string; category: string }>) => {
     try {
-      // Extract responses from submission content
       const responses = submission?.content?.responses || [];
-      const completed = responses.length;
+      const completedCategories = new Set<string>();
 
-      // For total categories, we need to get the assessment details
-      // For now, we'll use a reasonable estimate or fetch from assessment
-      const total = completed > 0 ? Math.max(completed, 3) : 0; // Default to at least 3 categories
-
-      return { completed, total };
+      responses.forEach(response => {
+        const customResponse = response as unknown as { question_revision_id?: string; question_category?: string };
+        const questionDetails = customResponse.question_revision_id
+          ? questionsMap.get(customResponse.question_revision_id)
+          : undefined;
+        const category = customResponse.question_category || questionDetails?.category;
+        if (category) {
+          completedCategories.add(category);
+        }
+      });
+      
+      return { completed: completedCategories.size };
     } catch (error) {
-      console.warn("Error calculating category counts:", error);
-      return { completed: 0, total: 0 };
+      console.warn('Error calculating category counts:', error);
+      return { completed: 0 };
     }
   };
 
   // Helper function to check if user is org_admin
   const isOrgAdmin = () => {
     if (!user?.roles) return false;
-    return user.roles.includes("org_admin");
+    return user.roles.includes('org_admin');
   };
 
   // Handle delete submission
@@ -79,31 +98,40 @@ export const Assessments: React.FC = () => {
     try {
       await deleteSubmission(submissionId, {
         onSuccess: () => {
-          toast.success(
-            t("submission.deleted", {
-              defaultValue: "Submission deleted successfully",
-            }),
-          );
+          toast.success(t('submission.deleted', { defaultValue: 'Submission deleted successfully' }));
           refetch(); // Refresh the list
         },
         onError: (error) => {
-          toast.error(
-            t("submission.deleteError", {
-              defaultValue: "Failed to delete submission",
-            }),
-          );
-          console.error("Delete submission error:", error);
-        },
+          toast.error(t('submission.deleteError', { defaultValue: 'Failed to delete submission' }));
+          console.error('Delete submission error:', error);
+        }
       });
     } catch (error) {
-      console.error("Delete submission error:", error);
+      console.error('Delete submission error:', error);
     }
   };
+
+  // Handle delete confirmation
+  const confirmDelete = (submissionId: string) => {
+    setSubmissionToDelete(submissionId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Execute deletion after confirmation
+  const executeDelete = async () => {
+    if (submissionToDelete) {
+      await handleDeleteSubmission(submissionToDelete);
+    }
+    setIsDeleteDialogOpen(false);
+    setSubmissionToDelete(null);
+  };
+
+
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="pt-20 pb-8 flex items-center justify-center">
+        <div className="pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
       </div>
@@ -119,17 +147,10 @@ export const Assessments: React.FC = () => {
     onDelete: (submissionId: string) => void;
     isDeleting: boolean;
     isOrgAdmin: boolean;
-  }> = ({
-    submission,
-    user,
-    navigate,
-    index,
-    onDelete,
-    isDeleting,
-    isOrgAdmin,
-  }) => {
-    const { completed, total } = getCategoryCounts(submission);
-
+    questionsMap: Map<string, { text: string; category: string }>;
+  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin, questionsMap }) => {
+    const { completed } = getCategoryCounts(submission, questionsMap);
+    
     return (
       <Card
         key={submission.submission_id}
@@ -144,17 +165,13 @@ export const Assessments: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  {t("sustainability")} {t("assessment")}{" "}
-                  {t("submission", { defaultValue: "Submission" })}
+                  {t("sustainability")} {t("assessment")} {t("submission", { defaultValue: "Submission" })}
                 </h3>
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
                     <span>
-                      {t("submittedAt")}:{" "}
-                      {submission.submitted_at
-                        ? new Date(submission.submitted_at).toLocaleDateString()
-                        : "-"}
+                      {t("submittedAt")}: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "-"}
                     </span>
                   </div>
                 </div>
@@ -166,15 +183,15 @@ export const Assessments: React.FC = () => {
                   submission.review_status === "approved"
                     ? "bg-dgrv-green text-white"
                     : submission.review_status === "rejected"
-                      ? "bg-red-500 text-white"
-                      : submission.review_status === "under_review"
-                        ? "bg-yellow-500 text-white"
-                        : "bg-gray-500 text-white"
+                    ? "bg-red-500 text-white"
+                    : submission.review_status === "under_review"
+                    ? "bg-yellow-500 text-white"
+                    : "bg-gray-500 text-white"
                 }
               >
                 {submission.review_status
                   ? submission.review_status.charAt(0).toUpperCase() +
-                    submission.review_status.slice(1).replace("_", " ")
+                    submission.review_status.slice(1).replace('_', ' ')
                   : "-"}
               </Badge>
             </div>
@@ -184,8 +201,7 @@ export const Assessments: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               <p>
-                {t("category")} {t("completed", { defaultValue: "Completed" })}:{" "}
-                {completed}/{total}
+                {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}
               </p>
             </div>
             <div className="flex space-x-2">
@@ -203,13 +219,11 @@ export const Assessments: React.FC = () => {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => onDelete(submission.submission_id)}
+                  onClick={() => confirmDelete(submission.submission_id)}
                   disabled={isDeleting}
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
-                  {isDeleting
-                    ? t("deleting", { defaultValue: "Deleting..." })
-                    : t("delete", { defaultValue: "Delete" })}
+                  {isDeleting ? t("deleting", { defaultValue: "Deleting..." }) : t("delete", { defaultValue: "Delete" })}
                 </Button>
               )}
             </div>
@@ -222,7 +236,7 @@ export const Assessments: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <div className="flex items-center space-x-3 mb-4">
             <FileText className="w-8 h-8 text-dgrv-blue" />
@@ -231,10 +245,7 @@ export const Assessments: React.FC = () => {
             </h1>
           </div>
           <p className="text-lg text-gray-600">
-            {t("dashboard.assessments.subtitle", {
-              defaultValue:
-                "View and manage all your sustainability submissions",
-            })}
+            {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
           </p>
         </div>
 
@@ -249,6 +260,7 @@ export const Assessments: React.FC = () => {
               onDelete={handleDeleteSubmission}
               isDeleting={isDeleting}
               isOrgAdmin={isOrgAdmin()}
+              questionsMap={questionsMap}
             />
           ))}
 
@@ -260,16 +272,20 @@ export const Assessments: React.FC = () => {
                   {t("noSubmissions", { defaultValue: "No Submissions" })}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  {t("dashboard.assessments.emptyState", {
-                    defaultValue:
-                      "Start your first sustainability assessment to track your cooperative's progress.",
-                  })}
+                  {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
                 </p>
               </CardContent>
             </Card>
           )}
         </div>
       </div>
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={executeDelete}
+        title={t("confirmDeletion")}
+        description={t("confirmDeletionDescription")}
+      />
     </div>
   );
 };

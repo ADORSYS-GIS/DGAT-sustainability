@@ -2,11 +2,12 @@ use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
-use sea_orm::prelude::StringLen;
 use sea_orm::{DeleteResult, Set};
+use sea_orm::prelude::StringLen;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
@@ -56,15 +57,16 @@ impl std::fmt::Display for SubmissionStatus {
     }
 }
 
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "assessments_submission")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub submission_id: Uuid, // Also FK to assessments
-    pub org_id: String,                     // Keycloak organization id
-    pub content: Value,                     // JSON blob with all answers
-    pub submitted_at: DateTime<Utc>,        // When the submission was created
-    pub status: SubmissionStatus,           // Review status (under_review, reviewed, etc.)
+    pub org_id: String,             // Keycloak organization id
+    pub content: Value,              // JSON blob with all answers
+    pub submitted_at: DateTime<Utc>, // When the submission was created
+    pub status: SubmissionStatus,    // Review status (under_review, reviewed, etc.)
     pub reviewed_at: Option<DateTime<Utc>>, // When the submission was reviewed
 }
 
@@ -112,10 +114,7 @@ impl AssessmentsSubmissionService {
         }
     }
 
-    pub fn with_assessments_service(
-        mut self,
-        assessments_service: Arc<super::assessments::AssessmentsService>,
-    ) -> Self {
+    pub fn with_assessments_service(mut self, assessments_service: Arc<super::assessments::AssessmentsService>) -> Self {
         self.assessments_service = Some(assessments_service);
         self
     }
@@ -125,11 +124,20 @@ impl AssessmentsSubmissionService {
         assessment_id: Uuid,
         org_id: String,
         content: Value,
+        assessment_name: Option<String>,
     ) -> Result<Model, DbErr> {
+        // Store assessment name in the content if provided
+        let mut enhanced_content = content;
+        if let Some(name) = assessment_name {
+            if let Some(content_obj) = enhanced_content.as_object_mut() {
+                content_obj.insert("assessment_name".to_string(), serde_json::Value::String(name));
+            }
+        }
+
         let submission = ActiveModel {
             submission_id: Set(assessment_id),
             org_id: Set(org_id),
-            content: Set(content),
+            content: Set(enhanced_content),
             submitted_at: Set(Utc::now()),
             status: Set(SubmissionStatus::UnderReview),
             reviewed_at: Set(None),
@@ -144,14 +152,11 @@ impl AssessmentsSubmissionService {
             match assessments_service.delete_assessment(assessment_id).await {
                 Ok(_) => {
                     // Assessment deleted successfully
-                    tracing::warn!(
-                        "Assessment {} automatically deleted after successful submission",
-                        assessment_id
-                    );
+                    tracing::warn!("Assessment {} automatically deleted after successful submission", assessment_id);
                 }
                 Err(e) => {
                     // Log the error but don't fail the submission creation
-                    eprintln!("Warning: Failed to auto-delete assessment {assessment_id}: {e}");
+                    eprintln!("Warning: Failed to auto-delete assessment {}: {}", assessment_id, e);
                 }
             }
         }
@@ -194,11 +199,8 @@ impl AssessmentsSubmissionService {
         let mut submission: ActiveModel = submission.into();
 
         // Set reviewed_at timestamp when status changes to a reviewed state
-        let should_set_reviewed_at = matches!(
-            status,
-            SubmissionStatus::Approved
-                | SubmissionStatus::Rejected
-                | SubmissionStatus::RevisionRequested
+        let should_set_reviewed_at = matches!(status, 
+            SubmissionStatus::Approved | SubmissionStatus::Rejected | SubmissionStatus::RevisionRequested
         );
 
         submission.status = Set(status);
@@ -249,12 +251,10 @@ impl AssessmentsSubmissionService {
 
     fn merge_submission_content(&self, existing: &Value, new: &Value) -> Result<Value, DbErr> {
         // Both should be objects with "assessment" and "responses" fields
-        let existing_obj = existing.as_object().ok_or(DbErr::Custom(
-            "Existing content is not a valid object".to_string(),
-        ))?;
-        let new_obj = new.as_object().ok_or(DbErr::Custom(
-            "New content is not a valid object".to_string(),
-        ))?;
+        let existing_obj = existing.as_object()
+            .ok_or(DbErr::Custom("Existing content is not a valid object".to_string()))?;
+        let new_obj = new.as_object()
+            .ok_or(DbErr::Custom("New content is not a valid object".to_string()))?;
 
         // Get a new responses array - this should replace the existing ones
         let new_responses = new_obj
@@ -287,11 +287,8 @@ mod tests {
     use serde_json::json;
 
     #[tokio::test]
-    async fn test_automatic_assessment_deletion_after_submission(
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        use crate::common::database::entity::assessments::{
-            AssessmentsService, Model as AssessmentModel,
-        };
+    async fn test_automatic_assessment_deletion_after_submission() -> Result<(), Box<dyn std::error::Error>> {
+        use crate::common::database::entity::assessments::{AssessmentsService, Model as AssessmentModel};
 
         let assessment_id = Uuid::new_v4();
 

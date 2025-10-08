@@ -29,12 +29,7 @@ async fn startup() -> Result<(), Box<dyn std::error::Error>> {
     let app_db = initialize_app().await?;
 
     // Initialize application state
-    let app_state = AppState::new(
-        config.keycloak.url.clone(),
-        config.keycloak.realm.clone(),
-        app_db,
-    )
-    .await;
+    let app_state = AppState::new(config.keycloak.url.clone(), config.keycloak.realm.clone(), app_db).await;
 
     // Create the application with all routes and middleware
     let app = create_app(app_state, config.clone());

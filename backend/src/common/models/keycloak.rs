@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use std::collections::HashMap;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeycloakToken {
@@ -110,17 +111,17 @@ pub struct KeycloakCredential {
     pub temporary: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInvitationRequest {
     pub email: String,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub organization_id: String,
     pub roles: Vec<String>,
-    pub categories: Vec<String>,
+    pub categories: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInvitationResponse {
     pub user_id: String,
     pub email: String,
@@ -128,7 +129,7 @@ pub struct UserInvitationResponse {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UserInvitationStatus {
     #[serde(rename = "pending_email_verification")]
     PendingEmailVerification,
@@ -141,3 +142,5 @@ pub enum UserInvitationStatus {
     #[serde(rename = "error")]
     Error,
 }
+
+

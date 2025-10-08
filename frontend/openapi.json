@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Production server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Staging server"
     },
     {
-      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
+      "url": "http://localhost:3001/api",
       "description": "Development server"
     }
   ],
@@ -33,6 +33,29 @@
     }
   ],
   "paths": {
+    "/admin/reports": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Get all reports across organizations",
+        "description": "Get all reports for all organizations (DGRV admin only)",
+        "operationId": "list_all_reports",
+        "responses": {
+          "200": {
+            "description": "List of all organization reports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReportListResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": ["Health"],
@@ -773,7 +796,11 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["pending_approval", "approved", "rejected"]
+              "enum": [
+                "pending_approval",
+                "approved",
+                "rejected"
+              ]
             }
           }
         ],
@@ -1739,12 +1766,7 @@
               "schema": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "category": { "type": "string" },
-                    "recommendation": { "type": "string" }
-                  },
-                  "required": ["category", "recommendation"]
+                  "$ref": "#/components/schemas/GenerateReportRequest"
                 }
               }
             }
@@ -2640,13 +2662,11 @@
           }
         },
         "responses": {
-          "201": {
+          "201": { 
             "description": "User created and invited successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrgAdminUserInvitationResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/OrgAdminUserInvitationResponse" }
               }
             }
           },
@@ -2759,9 +2779,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrgAdminMemberCategoryUpdateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/OrgAdminMemberCategoryUpdateRequest" }
             }
           }
         },
@@ -2828,9 +2846,7 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Organization invitation triggered successfully"
-          },
+          "200": { "description": "Organization invitation triggered successfully" },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
@@ -2861,9 +2877,7 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Email verified and organization invitation sent successfully"
-          },
+          "200": { "description": "Email verified and organization invitation sent successfully" },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
@@ -2908,13 +2922,38 @@
   },
   "components": {
     "schemas": {
-      "Question": {
+      "AdminReport": {
+        "type": "object",
+        "properties": {
+          "report_id": { "type": "string", "format": "uuid" },
+          "submission_id": { "type": "string", "format": "uuid" },
+          "org_id": { "type": "string" },
+          "org_name": { "type": "string" },
+          "status": { "type": "string" },
+          "generated_at": { "type": "string", "format": "date-time" },
+          "data": { "type": "object", "nullable": true }
+        },
         "required": [
-          "question_id",
-          "category",
-          "created_at",
-          "latest_revision"
-        ],
+          "report_id",
+          "submission_id",
+          "org_id",
+          "org_name",
+          "status",
+          "generated_at"
+        ]
+      },
+      "AdminReportListResponse": {
+        "type": "object",
+        "properties": {
+          "reports": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminReport" }
+          }
+        },
+        "required": ["reports"]
+      },
+      "Question": {
+        "required": ["question_id", "category", "created_at", "latest_revision"],
         "type": "object",
         "properties": {
           "question_id": {
@@ -3066,15 +3105,7 @@
         }
       },
       "Assessment": {
-        "required": [
-          "assessment_id",
-          "created_at",
-          "language",
-          "org_id",
-          "name",
-          "status",
-          "updated_at"
-        ],
+        "required": ["assessment_id", "created_at", "language", "org_id", "name", "status", "updated_at"],
         "type": "object",
         "properties": {
           "assessment_id": {
@@ -3093,6 +3124,14 @@
           },
           "status": {
             "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "List of category UUIDs assigned to this assessment"
           },
           "created_at": {
             "type": "string",
@@ -3269,6 +3308,7 @@
       "Submission": {
         "required": [
           "assessment_id",
+          "assessment_name",
           "content",
           "review_status",
           "submission_id",
@@ -3284,6 +3324,9 @@
           "assessment_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "assessment_name": {
+            "type": "string"
           },
           "user_id": {
             "type": "string"
@@ -3338,7 +3381,11 @@
           },
           "status": {
             "type": "string",
-            "enum": ["pending_approval", "approved", "rejected"],
+            "enum": [
+              "pending_approval",
+              "approved",
+              "rejected"
+            ],
             "default": "pending_approval"
           },
           "submitted_at": {
@@ -3624,6 +3671,11 @@
       "GenerateReportRequest": {
         "type": "object",
         "properties": {
+          "recommendation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the recommendation"
+          },
           "category": {
             "type": "string",
             "description": "Category name"
@@ -3639,7 +3691,7 @@
             "default": "todo"
           }
         },
-        "required": ["category", "recommendation"]
+        "required": ["recommendation_id", "category", "recommendation"]
       },
       "ReportGenerationResponse": {
         "required": ["report_id", "status"],
@@ -4217,10 +4269,10 @@
           "categories": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Categories to assign to the user"
+            "description": "Categories to assign to the user (optional)"
           }
         },
-        "required": ["email", "roles", "categories"]
+        "required": ["email", "roles"]
       },
       "OrgAdminMemberCategoryUpdateRequest": {
         "type": "object",
@@ -4228,7 +4280,7 @@
           "categories": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Categories to assign to the user"
+            "description": "Categories to assign to the user (optional)"
           }
         },
         "required": ["categories"]
@@ -4291,20 +4343,20 @@
           "name": {
             "type": "string",
             "description": "Name of the assessment"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "List of category UUIDs to assign to this assessment (org_admin only)"
           }
         },
         "required": ["language", "name"]
       },
       "Category": {
-        "required": [
-          "category_id",
-          "name",
-          "weight",
-          "order",
-          "template_id",
-          "created_at",
-          "updated_at"
-        ],
+        "required": ["category_id", "name", "weight", "order", "template_id", "created_at", "updated_at"],
         "type": "object",
         "properties": {
           "category_id": {
@@ -4426,7 +4478,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Categories to assign to the user"
+            "description": "Categories to assign to the user (optional)"
           }
         }
       },
@@ -4445,13 +4497,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending_email_verification",
-              "email_verified",
-              "pending_org_invitation",
-              "active",
-              "error"
-            ],
+            "enum": ["pending_email_verification", "email_verified", "pending_org_invitation", "active", "error"],
             "description": "Current invitation status"
           },
           "message": {
@@ -4461,15 +4507,14 @@
         }
       },
       "RecommendationWithStatus": {
-        "required": [
-          "report_id",
-          "category",
-          "recommendation",
-          "status",
-          "created_at"
-        ],
+        "required": ["recommendation_id", "report_id", "category", "recommendation", "status", "created_at"],
         "type": "object",
         "properties": {
+          "recommendation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the recommendation"
+          },
           "report_id": {
             "type": "string",
             "format": "uuid",
@@ -4531,7 +4576,7 @@
         }
       },
       "UpdateRecommendationStatusRequest": {
-        "required": ["report_id", "category", "status"],
+        "required": ["report_id", "category", "recommendation_id", "status"],
         "type": "object",
         "properties": {
           "report_id": {
@@ -4542,6 +4587,11 @@
           "category": {
             "type": "string",
             "description": "Category name"
+          },
+          "recommendation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the recommendation to update"
           },
           "status": {
             "type": "string",

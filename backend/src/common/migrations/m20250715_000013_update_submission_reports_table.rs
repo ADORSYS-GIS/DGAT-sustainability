@@ -11,10 +11,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(SubmissionReports::Table)
-                    .rename_column(
-                        SubmissionReports::AssessmentId,
-                        SubmissionReports::SubmissionId,
-                    )
+                    .rename_column(SubmissionReports::AssessmentId, SubmissionReports::SubmissionId)
                     .to_owned(),
             )
             .await?;
@@ -28,7 +25,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(SubmissionReports::ReportType)
                             .string()
                             .not_null()
-                            .default("summary"),
+                            .default("summary")
                     )
                     .to_owned(),
             )
@@ -43,7 +40,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(SubmissionReports::Status)
                             .string()
                             .not_null()
-                            .default("completed"),
+                            .default("completed")
                     )
                     .to_owned(),
             )
@@ -58,7 +55,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(SubmissionReports::GeneratedAt)
                             .timestamp_with_time_zone()
                             .not_null()
-                            .default(Expr::current_timestamp()),
+                            .default(Expr::current_timestamp())
                     )
                     .to_owned(),
             )
@@ -69,7 +66,11 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(SubmissionReports::Table)
-                    .modify_column(ColumnDef::new(SubmissionReports::Data).json_binary().null())
+                    .modify_column(
+                        ColumnDef::new(SubmissionReports::Data)
+                            .json_binary()
+                            .null()
+                    )
                     .to_owned(),
             )
             .await?;
@@ -86,7 +87,7 @@ impl MigrationTrait for Migration {
                     .modify_column(
                         ColumnDef::new(SubmissionReports::Data)
                             .json_binary()
-                            .not_null(),
+                            .not_null()
                     )
                     .to_owned(),
             )
@@ -127,10 +128,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(SubmissionReports::Table)
-                    .rename_column(
-                        SubmissionReports::SubmissionId,
-                        SubmissionReports::AssessmentId,
-                    )
+                    .rename_column(SubmissionReports::SubmissionId, SubmissionReports::AssessmentId)
                     .to_owned(),
             )
             .await?;

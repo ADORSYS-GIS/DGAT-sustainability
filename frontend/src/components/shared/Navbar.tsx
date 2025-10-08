@@ -27,7 +27,7 @@ export const Navbar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState(() => {
     // Get the saved language from localStorage or use i18n's current language
-    return localStorage.getItem("i18n_language") || i18n.language || "en";
+    return localStorage.getItem('i18n_language') || i18n.language || "en";
   });
   const { isAuthenticated, user, login, logout } = useAuth();
   const navigate = useNavigate();
@@ -38,7 +38,12 @@ export const Navbar = () => {
   // Helper to get user display name
   const getUserDisplay = () => {
     if (!user) return t("profile");
-    return user.name || user.preferred_username || user.email || t("profile");
+    return (
+      user.name ||
+      user.preferred_username ||
+      user.email ||
+      t("profile")
+    );
   };
 
   // Helper to determine the appropriate home route based on user role
@@ -46,18 +51,19 @@ export const Navbar = () => {
     if (!isAuthenticated || !user) {
       return "/";
     }
-
+    
     // Check if user has drgv_admin role
-    const hasDgrvAdminRole =
-      user.roles?.some((role) => role.toLowerCase() === "drgv_admin") ||
-      user.realm_access?.roles?.some(
-        (role) => role.toLowerCase() === "drgv_admin",
-      );
-
+    const hasDgrvAdminRole = user.roles?.some(role => 
+      role.toLowerCase() === 'drgv_admin'
+    ) || user.realm_access?.roles?.some(role => 
+      role.toLowerCase() === 'drgv_admin'
+    );
+    
     if (hasDgrvAdminRole) {
       return "/admin/dashboard";
     }
-
+    
+    
     // For org_user, org_admin, or any other authenticated user
     return "/dashboard";
   };
@@ -81,10 +87,10 @@ export const Navbar = () => {
       setCurrentLanguage(i18n.language);
     };
 
-    i18n.on("languageChanged", handleLanguageChange);
-
+    i18n.on('languageChanged', handleLanguageChange);
+    
     return () => {
-      i18n.off("languageChanged", handleLanguageChange);
+      i18n.off('languageChanged', handleLanguageChange);
     };
   }, []);
 
@@ -96,9 +102,9 @@ export const Navbar = () => {
             {/* Logo */}
             <div className="flex items-center space-x-3">
               <div className="w-28 h-28 flex items-center justify-center">
-                <img
-                  src="/dgrv.jpg"
-                  alt="DGRV Logo"
+                <img 
+                  src="/dgrv.jpg" 
+                  alt="DGRV Logo" 
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -115,6 +121,7 @@ export const Navbar = () => {
                 <span>{t("home")}</span>
               </Button>
             </div>
+
 
             {/* Right side */}
             <div className="flex items-center space-x-4">
@@ -165,9 +172,7 @@ export const Navbar = () => {
                         className="flex items-center space-x-2 ml-2"
                       >
                         <User className="w-4 h-4" />
-                        <span className="hidden sm:inline">
-                          {getUserDisplay()}
-                        </span>
+                        <span className="hidden sm:inline">{getUserDisplay()}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
@@ -214,26 +219,24 @@ export const Navbar = () => {
 
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div
+        <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={closeSidebar}
         />
       )}
 
       {/* Mobile Sidebar */}
-      <div
-        className={`fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-blue-50 to-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
+      <div className={`fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-blue-50 to-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between p-6 border-b border-blue-100 bg-white">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 flex items-center justify-center">
-                <img
-                  src="/dgrv.jpg"
-                  alt="DGRV Logo"
+                <img 
+                  src="/dgrv.jpg" 
+                  alt="DGRV Logo" 
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -259,7 +262,7 @@ export const Navbar = () => {
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
                 Navigation
               </h3>
-
+              
               {/* Home Button */}
               <Button
                 variant="ghost"
@@ -280,7 +283,7 @@ export const Navbar = () => {
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
                 Account
               </h3>
-
+              
               {!isAuthenticated ? (
                 <Button
                   variant="outline"
@@ -314,7 +317,7 @@ export const Navbar = () => {
                       </div>
                     </div>
                   </div>
-
+                  
                   <Button
                     variant="outline"
                     size="lg"

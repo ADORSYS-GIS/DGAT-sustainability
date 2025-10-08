@@ -57,4 +57,4 @@ enum Categories {
     TemplateId,
     CreatedAt,
     UpdatedAt,
-}
+} 

@@ -13,7 +13,7 @@ import {
   ReportsService,
   OrganizationsService,
   OrganizationMembersService,
-  AdminService,
+  AdminService
 } from "@/openapi-rq/requests/services.gen";
 import type {
   Question,
@@ -25,10 +25,12 @@ import type {
   Organization,
   OrganizationMember,
   AdminSubmissionDetail,
-  OrganizationResponse, // Add OrganizationResponse import
+  OrganizationResponse // Add OrganizationResponse import
 } from "@/openapi-rq/requests/types.gen";
 import type {
   OfflineOrganization, // Import OfflineOrganization
+  OfflineRecommendation, // Import OfflineRecommendation
+  ReportCategoryData // Import ReportCategoryData
 } from "@/types/offline";
 import { getAuthState } from "./shared/authService";
 
@@ -49,6 +51,8 @@ export interface FullSyncResult {
   reports: SyncResult;
   organizations: SyncResult;
   users: SyncResult;
+  recommendations: SyncResult;
+  pending_assessments: SyncResult;
 }
 
 export class SyncService {
@@ -60,12 +64,12 @@ export class SyncService {
   }
 
   private setupNetworkListeners(): void {
-    window.addEventListener("online", () => {
+    window.addEventListener('online', () => {
       this.isOnline = true;
       this.performFullSync();
     });
 
-    window.addEventListener("offline", () => {
+    window.addEventListener('offline', () => {
       this.isOnline = false;
     });
   }
@@ -84,7 +88,7 @@ export class SyncService {
   async performFullSync(): Promise<FullSyncResult> {
     // Don't sync if not authenticated
     if (!this.isAuthenticated()) {
-      console.log("🔄 Skipping sync - user not authenticated");
+      console.log('🔄 Skipping sync - user not authenticated');
       return this.getEmptySyncResult();
     }
 
@@ -96,11 +100,11 @@ export class SyncService {
     const results: FullSyncResult = this.getEmptySyncResult();
 
     try {
-      console.log("🔄 Starting full sync...");
+      console.log('🔄 Starting full sync...');
 
       // Get user roles to determine what to sync
       const authState = getAuthState();
-      const isDrgvAdmin = authState.roles.includes("drgv_admin");
+      const isDrgvAdmin = authState.roles.includes('drgv_admin');
 
       // Define sync tasks based on user role
       const syncTasks: Promise<SyncResult>[] = [
@@ -111,15 +115,17 @@ export class SyncService {
       // Only sync assessments, submissions, and reports for non-DGRV admin users
       if (!isDrgvAdmin) {
         syncTasks.push(
+          this.syncPendingAssessments(), // Sync pending assessments first
           this.syncAssessments(),
           this.syncSubmissions(),
-          this.syncReports(),
+          this.syncReports()
         );
       }
 
       // Always sync organizations for DGRV admin
       if (isDrgvAdmin) {
         syncTasks.push(this.syncOrganizations());
+        syncTasks.push(this.syncRecommendations());
       }
 
       // Sync all data types in parallel
@@ -127,57 +133,55 @@ export class SyncService {
 
       // Collect results
       let taskIndex = 0;
-
+      
       // Questions and categories are always synced
       const questionsResult = syncResults[taskIndex];
-      if (questionsResult?.status === "fulfilled") {
+      if (questionsResult?.status === 'fulfilled') {
         results.questions = questionsResult.value;
-      } else if (questionsResult?.status === "rejected") {
-        results.questions.errors.push(
-          questionsResult.reason?.toString() || "Unknown error",
-        );
+      } else if (questionsResult?.status === 'rejected') {
+        results.questions.errors.push(questionsResult.reason?.toString() || 'Unknown error');
       }
       taskIndex++;
 
       const categoriesResult = syncResults[taskIndex];
-      if (categoriesResult?.status === "fulfilled") {
+      if (categoriesResult?.status === 'fulfilled') {
         results.categories = categoriesResult.value;
-      } else if (categoriesResult?.status === "rejected") {
-        results.categories.errors.push(
-          categoriesResult.reason?.toString() || "Unknown error",
-        );
+      } else if (categoriesResult?.status === 'rejected') {
+        results.categories.errors.push(categoriesResult.reason?.toString() || 'Unknown error');
       }
       taskIndex++;
 
       // Assessments, submissions, and reports only for non-DGRV admin
       if (!isDrgvAdmin) {
+        const pendingAssessmentsResult = syncResults[taskIndex];
+        if (pendingAssessmentsResult?.status === 'fulfilled') {
+          results.pending_assessments = pendingAssessmentsResult.value;
+        } else if (pendingAssessmentsResult?.status === 'rejected') {
+          results.pending_assessments.errors.push(pendingAssessmentsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+
         const assessmentsResult = syncResults[taskIndex];
-        if (assessmentsResult?.status === "fulfilled") {
+        if (assessmentsResult?.status === 'fulfilled') {
           results.assessments = assessmentsResult.value;
-        } else if (assessmentsResult?.status === "rejected") {
-          results.assessments.errors.push(
-            assessmentsResult.reason?.toString() || "Unknown error",
-          );
+        } else if (assessmentsResult?.status === 'rejected') {
+          results.assessments.errors.push(assessmentsResult.reason?.toString() || 'Unknown error');
         }
         taskIndex++;
 
         const submissionsResult = syncResults[taskIndex];
-        if (submissionsResult?.status === "fulfilled") {
+        if (submissionsResult?.status === 'fulfilled') {
           results.submissions = submissionsResult.value;
-        } else if (submissionsResult?.status === "rejected") {
-          results.submissions.errors.push(
-            submissionsResult.reason?.toString() || "Unknown error",
-          );
+        } else if (submissionsResult?.status === 'rejected') {
+          results.submissions.errors.push(submissionsResult.reason?.toString() || 'Unknown error');
         }
         taskIndex++;
 
         const reportsResult = syncResults[taskIndex];
-        if (reportsResult?.status === "fulfilled") {
+        if (reportsResult?.status === 'fulfilled') {
           results.reports = reportsResult.value;
-        } else if (reportsResult?.status === "rejected") {
-          results.reports.errors.push(
-            reportsResult.reason?.toString() || "Unknown error",
-          );
+        } else if (reportsResult?.status === 'rejected') {
+          results.reports.errors.push(reportsResult.reason?.toString() || 'Unknown error');
         }
         taskIndex++;
       }
@@ -185,18 +189,28 @@ export class SyncService {
       // Organizations only for DGRV admin
       if (isDrgvAdmin) {
         const organizationsResult = syncResults[taskIndex];
-        if (organizationsResult?.status === "fulfilled") {
+        if (organizationsResult?.status === 'fulfilled') {
           results.organizations = organizationsResult.value;
-        } else if (organizationsResult?.status === "rejected") {
-          results.organizations.errors.push(
-            organizationsResult.reason?.toString() || "Unknown error",
-          );
+        } else if (organizationsResult?.status === 'rejected') {
+          results.organizations.errors.push(organizationsResult.reason?.toString() || 'Unknown error');
         }
       }
 
-      console.log("✅ Full sync completed:", results);
+      // Recommendations only for DGRV admin
+      if (isDrgvAdmin) {
+        const recommendationsResult = syncResults[taskIndex];
+        if (recommendationsResult?.status === 'fulfilled') {
+          results.recommendations = recommendationsResult.value;
+        } else if (recommendationsResult?.status === 'rejected') {
+          results.recommendations.errors.push(recommendationsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+      }
+
+      console.log('✅ Full sync completed:', results);
+
     } catch (error) {
-      console.error("❌ Full sync failed:", error);
+      console.error('❌ Full sync failed:', error);
     } finally {
       this.isSyncing = false;
     }
@@ -208,57 +222,41 @@ export class SyncService {
    * Sync questions from server to local
    */
   private async syncQuestions(): Promise<SyncResult> {
-    const result: SyncResult = {
-      entityType: "questions",
-      added: 0,
-      updated: 0,
-      deleted: 0,
-      errors: [],
-    };
+    const result: SyncResult = { entityType: 'questions', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
       // Get server questions
       const serverQuestionsResponse = await QuestionsService.getQuestions();
-      const serverQuestions: Question[] = serverQuestionsResponse.questions.map(
-        (q) => q.question,
-      ); // Extract Question from QuestionWithRevisionsResponse
+      const serverQuestions: Question[] = serverQuestionsResponse.questions.map(q => q.question); // Extract Question from QuestionWithRevisionsResponse
 
       // If server returns no questions, clear the local store completely
       if (serverQuestions.length === 0) {
         // Need to get the current count of local questions before clearing for the result.deleted count
         const currentLocalQuestions = await offlineDB.getAllQuestions();
-        await offlineDB.clearStore("questions");
+        await offlineDB.clearStore('questions');
         result.deleted = currentLocalQuestions.length; // All local questions are considered deleted
         return result;
       }
-
-      const serverQuestionIds = new Set(
-        serverQuestions.map((q) => q.question_id),
-      );
+      
+      const serverQuestionIds = new Set(serverQuestions.map(q => q.question_id));
 
       // Get local questions
       const localQuestions = await offlineDB.getAllQuestions();
-      const localQuestionIds = new Set(
-        localQuestions.map((q) => q.question_id),
-      );
+      const localQuestionIds = new Set(localQuestions.map(q => q.question_id));
 
       // Find questions to add/update
       for (const serverQuestion of serverQuestions) {
-        const localQuestion = localQuestions.find(
-          (q) => q.question_id === serverQuestion.question_id,
-        );
-
+        const localQuestion = localQuestions.find(q => q.question_id === serverQuestion.question_id);
+        
         if (!localQuestion) {
           // Add new question
-          const offlineQuestion =
-            DataTransformationService.transformQuestion(serverQuestion);
+          const offlineQuestion = DataTransformationService.transformQuestion(serverQuestion);
           await offlineDB.saveQuestion(offlineQuestion);
           result.added++;
         } else {
           // Check if the server version is more recent or if local has no pending changes
           // For now, we'll always update if the server version exists to ensure consistency
-          const offlineQuestion =
-            DataTransformationService.transformQuestion(serverQuestion);
+          const offlineQuestion = DataTransformationService.transformQuestion(serverQuestion);
           await offlineDB.saveQuestion(offlineQuestion);
           result.updated++;
         }
@@ -266,18 +264,14 @@ export class SyncService {
 
       // Find questions to delete (local questions not on server)
       for (const localQuestion of localQuestions) {
-        if (
-          !serverQuestionIds.has(localQuestion.question_id) &&
-          !localQuestion.question_id.startsWith("temp_")
-        ) {
+        if (!serverQuestionIds.has(localQuestion.question_id) && !localQuestion.question_id.startsWith('temp_')) {
           await offlineDB.deleteQuestion(localQuestion.question_id);
           result.deleted++;
         }
       }
+
     } catch (error) {
-      result.errors.push(
-        error instanceof Error ? error.message : "Unknown error",
-      );
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
 
     return result;
@@ -287,53 +281,39 @@ export class SyncService {
    * Sync categories from server to local
    */
   private async syncCategories(): Promise<SyncResult> {
-    const result: SyncResult = {
-      entityType: "categories",
-      added: 0,
-      updated: 0,
-      deleted: 0,
-      errors: [],
-    };
+    const result: SyncResult = { entityType: 'categories', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
       // Get server categories
       const serverCategoriesResponse = await CategoriesService.getCategories();
       const serverCategories = serverCategoriesResponse.categories;
-
+      
       // If server returns no categories, clear the local store completely
       if (serverCategories.length === 0) {
         const currentLocalCategories = await offlineDB.getAllCategories();
-        await offlineDB.clearStore("categories");
+        await offlineDB.clearStore('categories');
         result.deleted = currentLocalCategories.length;
         return result;
       }
 
-      const serverCategoryIds = new Set(
-        serverCategories.map((c) => c.category_id),
-      );
+      const serverCategoryIds = new Set(serverCategories.map(c => c.category_id));
 
       // Get local categories
       const localCategories = await offlineDB.getAllCategories();
-      const localCategoryIds = new Set(
-        localCategories.map((c) => c.category_id),
-      );
+      const localCategoryIds = new Set(localCategories.map(c => c.category_id));
 
       // Find categories to add/update
       for (const serverCategory of serverCategories) {
-        const localCategory = localCategories.find(
-          (c) => c.category_id === serverCategory.category_id,
-        );
-
+        const localCategory = localCategories.find(c => c.category_id === serverCategory.category_id);
+        
         if (!localCategory) {
           // Add new category
-          const offlineCategory =
-            DataTransformationService.transformCategory(serverCategory);
+          const offlineCategory = DataTransformationService.transformCategory(serverCategory);
           await offlineDB.saveCategory(offlineCategory);
           result.added++;
         } else {
           // Update existing category if different
-          const offlineCategory =
-            DataTransformationService.transformCategory(serverCategory);
+          const offlineCategory = DataTransformationService.transformCategory(serverCategory);
           await offlineDB.saveCategory(offlineCategory);
           result.updated++;
         }
@@ -341,18 +321,14 @@ export class SyncService {
 
       // Find categories to delete (local categories not on server)
       for (const localCategory of localCategories) {
-        if (
-          !serverCategoryIds.has(localCategory.category_id) &&
-          !localCategory.category_id.startsWith("temp_")
-        ) {
+        if (!serverCategoryIds.has(localCategory.category_id) && !localCategory.category_id.startsWith('temp_')) {
           await offlineDB.deleteCategory(localCategory.category_id);
           result.deleted++;
         }
       }
+
     } catch (error) {
-      result.errors.push(
-        error instanceof Error ? error.message : "Unknown error",
-      );
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
 
     return result;
@@ -362,54 +338,39 @@ export class SyncService {
    * Sync assessments from server to local
    */
   private async syncAssessments(): Promise<SyncResult> {
-    const result: SyncResult = {
-      entityType: "assessments",
-      added: 0,
-      updated: 0,
-      deleted: 0,
-      errors: [],
-    };
+    const result: SyncResult = { entityType: 'assessments', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
       // Get server assessments
-      const serverAssessmentsResponse =
-        await AssessmentsService.getAssessments();
+      const serverAssessmentsResponse = await AssessmentsService.getAssessments();
       const serverAssessments = serverAssessmentsResponse.assessments;
-
+      
       // If server returns no assessments, clear the local store completely
       if (serverAssessments.length === 0) {
         const currentLocalAssessments = await offlineDB.getAllAssessments();
-        await offlineDB.clearStore("assessments");
+        await offlineDB.clearStore('assessments');
         result.deleted = currentLocalAssessments.length;
         return result;
       }
 
-      const serverAssessmentIds = new Set(
-        serverAssessments.map((a) => a.assessment_id),
-      );
+      const serverAssessmentIds = new Set(serverAssessments.map(a => a.assessment_id));
 
       // Get local assessments
       const localAssessments = await offlineDB.getAllAssessments();
-      const localAssessmentIds = new Set(
-        localAssessments.map((a) => a.assessment_id),
-      );
+      const localAssessmentIds = new Set(localAssessments.map(a => a.assessment_id));
 
       // Find assessments to add/update
       for (const serverAssessment of serverAssessments) {
-        const localAssessment = localAssessments.find(
-          (a) => a.assessment_id === serverAssessment.assessment_id,
-        );
-
+        const localAssessment = localAssessments.find(a => a.assessment_id === serverAssessment.assessment_id);
+        
         if (!localAssessment) {
           // Add new assessment
-          const offlineAssessment =
-            DataTransformationService.transformAssessment(serverAssessment);
+          const offlineAssessment = DataTransformationService.transformAssessment(serverAssessment);
           await offlineDB.saveAssessment(offlineAssessment);
           result.added++;
         } else {
           // Update existing assessment if different
-          const offlineAssessment =
-            DataTransformationService.transformAssessment(serverAssessment);
+          const offlineAssessment = DataTransformationService.transformAssessment(serverAssessment);
           await offlineDB.saveAssessment(offlineAssessment);
           result.updated++;
         }
@@ -417,18 +378,71 @@ export class SyncService {
 
       // Find assessments to delete (local assessments not on server)
       for (const localAssessment of localAssessments) {
-        if (
-          !serverAssessmentIds.has(localAssessment.assessment_id) &&
-          !localAssessment.assessment_id.startsWith("temp_")
-        ) {
+        if (!serverAssessmentIds.has(localAssessment.assessment_id) && !localAssessment.assessment_id.startsWith('temp_')) {
           await offlineDB.deleteAssessment(localAssessment.assessment_id);
           result.deleted++;
         }
       }
+
+      } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+
+  /**
+   * Sync pending assessments (created offline) to server
+   */
+  private async syncPendingAssessments(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'pending_assessments', added: 0, updated: 0, deleted: 0, errors: [] };
+
+    try {
+      // Get all pending assessments (created offline)
+      const allAssessments = await offlineDB.getAllAssessments();
+      const pendingAssessments = allAssessments.filter(a => a.sync_status === 'pending' && a.assessment_id.startsWith('temp_'));
+
+      console.log(`🔄 Found ${pendingAssessments.length} pending assessments to sync`);
+
+      for (const pendingAssessment of pendingAssessments) {
+        try {
+          // Create assessment request from offline assessment
+          const createAssessmentRequest = {
+            name: pendingAssessment.name,
+            language: pendingAssessment.language || 'en',
+            // Add any other required fields
+          };
+
+          // Call the API to create the assessment
+          const response = await AssessmentsService.postAssessments({ requestBody: createAssessmentRequest });
+
+          if (response && response.assessment) {
+            const realAssessment = response.assessment;
+
+            // Delete the temporary assessment
+            await offlineDB.deleteAssessment(pendingAssessment.assessment_id);
+
+            // Save the real assessment with proper context
+            const finalOfflineAssessment = DataTransformationService.transformAssessment(
+              realAssessment,
+              pendingAssessment.organization_id,
+              pendingAssessment.user_email
+            );
+            await offlineDB.saveAssessment(finalOfflineAssessment);
+
+            result.added++;
+            console.log(`✅ Successfully synced pending assessment: ${pendingAssessment.name} -> ${realAssessment.assessment_id}`);
+          } else {
+            throw new Error('API did not return a valid assessment');
+          }
+        } catch (error) {
+          console.error(`❌ Failed to sync pending assessment ${pendingAssessment.assessment_id}:`, error);
+          result.errors.push(`Failed to sync assessment ${pendingAssessment.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
     } catch (error) {
-      result.errors.push(
-        error instanceof Error ? error.message : "Unknown error",
-      );
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
 
     return result;
@@ -438,54 +452,39 @@ export class SyncService {
    * Sync submissions from server to local
    */
   private async syncSubmissions(): Promise<SyncResult> {
-    const result: SyncResult = {
-      entityType: "submissions",
-      added: 0,
-      updated: 0,
-      deleted: 0,
-      errors: [],
-    };
+    const result: SyncResult = { entityType: 'submissions', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
       // Get server submissions (user submissions)
-      const serverSubmissionsResponse =
-        await SubmissionsService.getSubmissions();
+      const serverSubmissionsResponse = await SubmissionsService.getSubmissions();
       const serverSubmissions = serverSubmissionsResponse.submissions;
-
+      
       // If server returns no submissions, clear the local store completely
       if (serverSubmissions.length === 0) {
         const currentLocalSubmissions = await offlineDB.getAllSubmissions();
-        await offlineDB.clearStore("submissions");
+        await offlineDB.clearStore('submissions');
         result.deleted = currentLocalSubmissions.length;
         return result;
       }
-
-      const serverSubmissionIds = new Set(
-        serverSubmissions.map((s) => s.submission_id),
-      );
+      
+      const serverSubmissionIds = new Set(serverSubmissions.map(s => s.submission_id));
 
       // Get local submissions
       const localSubmissions = await offlineDB.getAllSubmissions();
-      const localSubmissionIds = new Set(
-        localSubmissions.map((s) => s.submission_id),
-      );
+      const localSubmissionIds = new Set(localSubmissions.map(s => s.submission_id));
 
       // Find submissions to add/update
       for (const serverSubmission of serverSubmissions) {
-        const localSubmission = localSubmissions.find(
-          (s) => s.submission_id === serverSubmission.submission_id,
-        );
-
+        const localSubmission = localSubmissions.find(s => s.submission_id === serverSubmission.submission_id);
+        
         if (!localSubmission) {
           // Add new submission
-          const offlineSubmission =
-            DataTransformationService.transformSubmission(serverSubmission);
+          const offlineSubmission = DataTransformationService.transformSubmission(serverSubmission);
           await offlineDB.saveSubmission(offlineSubmission);
           result.added++;
         } else {
           // Update existing submission if different
-          const offlineSubmission =
-            DataTransformationService.transformSubmission(serverSubmission);
+          const offlineSubmission = DataTransformationService.transformSubmission(serverSubmission);
           await offlineDB.saveSubmission(offlineSubmission);
           result.updated++;
         }
@@ -493,18 +492,14 @@ export class SyncService {
 
       // Find submissions to delete (local submissions not on server)
       for (const localSubmission of localSubmissions) {
-        if (
-          !serverSubmissionIds.has(localSubmission.submission_id) &&
-          !localSubmission.submission_id.startsWith("temp_")
-        ) {
+        if (!serverSubmissionIds.has(localSubmission.submission_id) && !localSubmission.submission_id.startsWith('temp_')) {
           await offlineDB.deleteSubmission(localSubmission.submission_id);
           result.deleted++;
         }
       }
+
     } catch (error) {
-      result.errors.push(
-        error instanceof Error ? error.message : "Unknown error",
-      );
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
 
     return result;
@@ -514,13 +509,7 @@ export class SyncService {
    * Sync reports from server to local
    */
   private async syncReports(): Promise<SyncResult> {
-    const result: SyncResult = {
-      entityType: "reports",
-      added: 0,
-      updated: 0,
-      deleted: 0,
-      errors: [],
-    };
+    const result: SyncResult = { entityType: 'reports', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
       // Get server reports
@@ -530,33 +519,29 @@ export class SyncService {
       // If server returns no reports, clear the local store completely
       if (serverReports.length === 0) {
         const currentLocalReports = await offlineDB.getAllReports();
-        await offlineDB.clearStore("reports");
+        await offlineDB.clearStore('reports');
         result.deleted = currentLocalReports.length;
         return result;
       }
-
-      const serverReportIds = new Set(serverReports.map((r) => r.report_id));
+      
+      const serverReportIds = new Set(serverReports.map(r => r.report_id));
 
       // Get local reports
       const localReports = await offlineDB.getAllReports();
-      const localReportIds = new Set(localReports.map((r) => r.report_id));
+      const localReportIds = new Set(localReports.map(r => r.report_id));
 
       // Find reports to add/update
       for (const serverReport of serverReports) {
-        const localReport = localReports.find(
-          (r) => r.report_id === serverReport.report_id,
-        );
-
+        const localReport = localReports.find(r => r.report_id === serverReport.report_id);
+        
         if (!localReport) {
           // Add new report
-          const offlineReport =
-            DataTransformationService.transformReport(serverReport);
+          const offlineReport = DataTransformationService.transformReport(serverReport);
           await offlineDB.saveReport(offlineReport);
           result.added++;
         } else {
           // Update existing report if different
-          const offlineReport =
-            DataTransformationService.transformReport(serverReport);
+          const offlineReport = DataTransformationService.transformReport(serverReport);
           await offlineDB.saveReport(offlineReport);
           result.updated++;
         }
@@ -564,18 +549,14 @@ export class SyncService {
 
       // Find reports to delete (local reports not on server)
       for (const localReport of localReports) {
-        if (
-          !serverReportIds.has(localReport.report_id) &&
-          !localReport.report_id.startsWith("temp_")
-        ) {
+        if (!serverReportIds.has(localReport.report_id) && !localReport.report_id.startsWith('temp_')) {
           await offlineDB.deleteReport(localReport.report_id);
           result.deleted++;
         }
       }
+
     } catch (error) {
-      result.errors.push(
-        error instanceof Error ? error.message : "Unknown error",
-      );
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
 
     return result;
@@ -585,55 +566,39 @@ export class SyncService {
    * Sync organizations from server to local
    */
   private async syncOrganizations(): Promise<SyncResult> {
-    const result: SyncResult = {
-      entityType: "organizations",
-      added: 0,
-      updated: 0,
-      deleted: 0,
-      errors: [],
-    };
+    const result: SyncResult = { entityType: 'organizations', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
       // Get server organizations (admin organizations)
-      const serverOrganizationsResponse =
-        await OrganizationsService.getAdminOrganizations();
-      const serverOrganizations: OfflineOrganization[] =
-        serverOrganizationsResponse.map((o) =>
-          DataTransformationService.transformOrganizationResponseToOffline(o),
-        );
+      const serverOrganizationsResponse = await OrganizationsService.getAdminOrganizations();
+      const serverOrganizations: OfflineOrganization[] = serverOrganizationsResponse.map(o => DataTransformationService.transformOrganizationResponseToOffline(o));
 
       // If server returns no organizations, clear the local store completely
       if (serverOrganizations.length === 0) {
         const currentLocalOrganizations = await offlineDB.getAllOrganizations();
-        await offlineDB.clearStore("organizations");
+        await offlineDB.clearStore('organizations');
         result.deleted = currentLocalOrganizations.length;
         return result;
       }
-
-      const serverOrgIds = new Set(serverOrganizations.map((o) => o.id));
+      
+      const serverOrgIds = new Set(serverOrganizations.map(o => o.id));
 
       // Get local organizations
       const localOrganizations = await offlineDB.getAllOrganizations();
-      const localOrgIds = new Set(localOrganizations.map((o) => o.id));
+      const localOrgIds = new Set(localOrganizations.map(o => o.id));
 
       // Find organizations to add/update
       for (const serverOrg of serverOrganizations) {
-        const localOrg = localOrganizations.find((o) => o.id === serverOrg.id);
-
+        const localOrg = localOrganizations.find(o => o.id === serverOrg.id);
+        
         if (!localOrg) {
           // Add new organization
-          const offlineOrg =
-            DataTransformationService.transformOrganizationResponseToOffline(
-              serverOrg,
-            );
+          const offlineOrg = DataTransformationService.transformOrganizationResponseToOffline(serverOrg);
           await offlineDB.saveOrganization(offlineOrg);
           result.added++;
         } else {
           // Update existing organization if different
-          const offlineOrg =
-            DataTransformationService.transformOrganizationResponseToOffline(
-              serverOrg,
-            );
+          const offlineOrg = DataTransformationService.transformOrganizationResponseToOffline(serverOrg);
           await offlineDB.saveOrganization(offlineOrg);
           result.updated++;
         }
@@ -641,18 +606,14 @@ export class SyncService {
 
       // Find organizations to delete (local organizations not on server)
       for (const localOrg of localOrganizations) {
-        if (
-          !serverOrgIds.has(localOrg.id) &&
-          !localOrg.id.startsWith("temp_")
-        ) {
+        if (!serverOrgIds.has(localOrg.id) && !localOrg.id.startsWith('temp_')) {
           await offlineDB.deleteOrganization(localOrg.id);
           result.deleted++;
         }
       }
+
     } catch (error) {
-      result.errors.push(
-        error instanceof Error ? error.message : "Unknown error",
-      );
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
 
     return result;
@@ -661,64 +622,135 @@ export class SyncService {
   /**
    * Get empty sync result
    */
+  /**
+   * Sync recommendations from server to local (DGRV admin only)
+   */
+  private async syncRecommendations(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'recommendations', added: 0, updated: 0, deleted: 0, errors: [] };
+
+    try {
+      // Get server action plans (which contain recommendations)
+      const serverActionPlansResponse = await AdminService.getAdminActionPlans();
+      const serverOrganizations = serverActionPlansResponse.organizations;
+
+      // If server returns no organizations with recommendations, clear the local store completely
+      if (serverOrganizations.length === 0) {
+        const currentLocalRecommendations = await offlineDB.getAllRecommendations();
+        await offlineDB.clearStore('recommendations');
+        result.deleted = currentLocalRecommendations.length;
+        return result;
+      }
+
+      // Extract all server recommendations
+      const serverRecommendations: OfflineRecommendation[] = [];
+      const serverRecommendationIds = new Set<string>();
+
+      for (const org of serverOrganizations) {
+        for (const serverRec of org.recommendations) {
+          // Create a proper Report object structure
+          const reportData = {
+            report_id: serverRec.report_id,
+            data: {
+              [serverRec.category]: {
+                recommendation: serverRec.recommendation,
+                status: serverRec.status,
+                created_at: serverRec.created_at
+              }
+            }
+          } as Report;
+
+          const offlineRecs = DataTransformationService.transformReportToOfflineRecommendations(
+            reportData,
+            org.organization_id,
+            org.organization_name
+          );
+
+          if (offlineRecs.length > 0) {
+            const offlineRec = offlineRecs[0];
+            serverRecommendations.push(offlineRec);
+            serverRecommendationIds.add(offlineRec.recommendation_id);
+          }
+        }
+      }
+
+      // Get local recommendations
+      const localRecommendations = await offlineDB.getAllRecommendations();
+      const localRecommendationIds = new Set(localRecommendations.map(r => r.recommendation_id));
+
+      console.log(`🔄 Syncing ${serverRecommendations.length} server recommendations with ${localRecommendations.length} local recommendations`);
+
+      // Find recommendations to add/update
+      for (const serverRec of serverRecommendations) {
+        // First try to find by exact recommendation_id match
+        let localRec = localRecommendations.find(r => r.recommendation_id === serverRec.recommendation_id);
+        
+        // If not found by ID, try to find by content match to avoid duplicates
+        if (!localRec) {
+          localRec = localRecommendations.find(r =>
+            r.report_id === serverRec.report_id &&
+            r.category === serverRec.category &&
+            r.recommendation === serverRec.recommendation
+          );
+          
+          if (localRec) {
+            console.log(`🔄 Found content match for recommendation: ${serverRec.recommendation_id} -> ${localRec.recommendation_id}`);
+          }
+        }
+        
+        if (!localRec) {
+          // Add new recommendation
+          console.log(`🔄 Adding new recommendation: ${serverRec.recommendation_id}`);
+          await offlineDB.saveRecommendation(serverRec);
+          result.added++;
+        } else {
+          // Update existing recommendation if different
+          // Check if any fields have changed
+          const hasChanges = localRec.status !== serverRec.status ||
+                           localRec.recommendation !== serverRec.recommendation ||
+                           localRec.category !== serverRec.category ||
+                           localRec.report_id !== serverRec.report_id ||
+                           localRec.organization_id !== serverRec.organization_id;
+
+          if (hasChanges) {
+            console.log(`🔄 Updating recommendation: ${localRec.recommendation_id} (preserving ID)`);
+            // Preserve the local recommendation_id but update all other fields
+            const updatedRec = {
+              ...serverRec,
+              recommendation_id: localRec.recommendation_id // Keep the existing ID
+            };
+            await offlineDB.saveRecommendation(updatedRec);
+            result.updated++;
+          }
+        }
+      }
+
+      // Find recommendations to delete (local recommendations not on server)
+      for (const localRec of localRecommendations) {
+        if (!serverRecommendationIds.has(localRec.recommendation_id) && !localRec.recommendation_id.startsWith('temp_')) {
+          await offlineDB.deleteRecommendation(localRec.recommendation_id);
+          result.deleted++;
+        }
+      }
+
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+
   private getEmptySyncResult(): FullSyncResult {
     return {
-      questions: {
-        entityType: "questions",
-        added: 0,
-        updated: 0,
-        deleted: 0,
-        errors: [],
-      },
-      categories: {
-        entityType: "categories",
-        added: 0,
-        updated: 0,
-        deleted: 0,
-        errors: [],
-      },
-      assessments: {
-        entityType: "assessments",
-        added: 0,
-        updated: 0,
-        deleted: 0,
-        errors: [],
-      },
-      responses: {
-        entityType: "responses",
-        added: 0,
-        updated: 0,
-        deleted: 0,
-        errors: [],
-      },
-      submissions: {
-        entityType: "submissions",
-        added: 0,
-        updated: 0,
-        deleted: 0,
-        errors: [],
-      },
-      reports: {
-        entityType: "reports",
-        added: 0,
-        updated: 0,
-        deleted: 0,
-        errors: [],
-      },
-      organizations: {
-        entityType: "organizations",
-        added: 0,
-        updated: 0,
-        deleted: 0,
-        errors: [],
-      },
-      users: {
-        entityType: "users",
-        added: 0,
-        updated: 0,
-        deleted: 0,
-        errors: [],
-      },
+      questions: { entityType: 'questions', added: 0, updated: 0, deleted: 0, errors: [] },
+      categories: { entityType: 'categories', added: 0, updated: 0, deleted: 0, errors: [] },
+      assessments: { entityType: 'assessments', added: 0, updated: 0, deleted: 0, errors: [] },
+      responses: { entityType: 'responses', added: 0, updated: 0, deleted: 0, errors: [] },
+      submissions: { entityType: 'submissions', added: 0, updated: 0, deleted: 0, errors: [] },
+      reports: { entityType: 'reports', added: 0, updated: 0, deleted: 0, errors: [] },
+      organizations: { entityType: 'organizations', added: 0, updated: 0, deleted: 0, errors: [] },
+      users: { entityType: 'users', added: 0, updated: 0, deleted: 0, errors: [] },
+      recommendations: { entityType: 'recommendations', added: 0, updated: 0, deleted: 0, errors: [] },
+      pending_assessments: { entityType: 'pending_assessments', added: 0, updated: 0, deleted: 0, errors: [] }
     };
   }
 

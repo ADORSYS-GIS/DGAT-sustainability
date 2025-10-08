@@ -122,7 +122,10 @@ mod tests {
 
         // Test update metadata
         let updated = service
-            .update_file_metadata(file.id, json!({"filename": "updated.pdf", "size": 2048}))
+            .update_file_metadata(
+                file.id,
+                json!({"filename": "updated.pdf", "size": 2048}),
+            )
             .await?;
         assert_eq!(updated.id, file.id);
 

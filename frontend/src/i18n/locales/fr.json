@@ -54,6 +54,8 @@
   "noSubmissions": "Aucune soumission pour le moment",
   "submissionDeleted": "Soumission supprimée avec succès",
   "failedToDeleteSubmission": "Échec de la suppression de la soumission",
+  "confirmDeletion": "Confirmer la suppression",
+  "confirmDeletionDescription": "Êtes-vous sûr de vouloir supprimer cette soumission ? Cette action ne peut pas être annulée.",
   "syncData": "Synchroniser les données",
   "startAssessment": "Démarrer l'évaluation",
   "status": "Statut",
@@ -86,6 +88,7 @@
     "intro": "Gérez la plateforme d'évaluation DGRV et soutenez les coopératives à travers l'Afrique australe.",
     "numCategories": "Nombre de catégories",
     "numQuestions": "Nombre de questions",
+    "numOrganizations": "Nombre d'organisations",
     "pendingReviews": "Examens en attente",
     "completedAssessments": "Évaluations terminées",
     "manageOrganizations": "Gérer les organisations",
@@ -184,8 +187,8 @@
     "numQuestions": "Nombre de questions",
     "pendingReviews": "Examens en attente",
     "completedAssessments": "Évaluations terminées"
-  },
-  "actions": {
+    },
+    "actions": {
     "manageOrganizations": "Gérer les organisations",
     "manageOrganizationsDesc": "Ajouter, modifier et gérer les organisations coopératives dans le système.",
     "manageUsers": "Gérer les utilisateurs",
@@ -198,8 +201,8 @@
     "reviewAssessmentsDesc": "Examiner les évaluations soumises et fournir des recommandations.",
     "standardRecommendations": "Recommandations standard",
     "standardRecommendationsDesc": "Gérer les recommandations réutilisables pour les scénarios d'évaluation courants."
-  },
-  "guide": {
+    },
+    "guide": {
     "title": "Guide de l'administrateur",
     "intro": "Bienvenue dans le tableau de bord de l'administrateur DGRV ! Voici quelques conseils pour vous aider à gérer la plateforme :",
     "orgsUsers": "Utilisez les sections Gérer les organisations et Gérer les utilisateurs pour contrôler l'accès et l'adhésion.",
@@ -207,7 +210,7 @@
     "categoriesQuestions": "Configurez les catégories et les questions pour adapter le processus d'évaluation à vos besoins.",
     "docs": "Pour une documentation détaillée, visitez la Documentation de l'administrateur.",
     "support": "Si vous avez besoin d'aide, contactez support@dgrv.org."
-  },
+    },
   "questions": {
     "manage": {
       "title": "Gérer les questions",
@@ -447,7 +450,7 @@
         "subtitle": "Suivez et gérez les tâches d'amélioration de la durabilité de votre coopérative."
       },
       "actionPlan": {
-        "kanban": {
+  "kanban": {
           "todo": "À faire",
           "inProgress": "En cours",
           "done": "Terminé",
@@ -469,6 +472,24 @@
         "exportAsPDF": "Exporter en PDF",
         "exportAsWord": "Exporter en Word",
         "exportAsCSV": "Exporter en CSV",
+        "selectReport": "Sélectionnez un rapport à exporter",
+        "selectReportDescription": "Choisissez l'un de vos rapports d'évaluation générés à exporter en PDF.",
+        "statusLabel": "Statut",
+        "reportTypes": {
+          "durability": "Durabilité",
+          "compliance": "Conformité",
+          "summary": "Résumé",
+          "detailed": "Détaillé"
+        },
+        "reportStatus": {
+          "completed": "Terminé",
+          "generating": "Génération",
+          "failed": "Échec"
+        },
+        "submissionId": "Soumission",
+        "generatedAt": "Généré",
+        "select": "Sélectionner",
+        "noReportsAvailable": "Aucun rapport disponible",
         "needHelp": "Besoin d'aide ?",
         "getSupport": "Obtenez du support et des matériels de formation pour tirer le meilleur parti de vos évaluations.",
         "viewUserGuide": "Voir le guide de l'utilisateur",
@@ -984,5 +1005,29 @@
     "reviewSavedLocally": "Examen enregistré localement. Sera synchronisé lorsque vous serez en ligne.",
     "failedToSubmitReview": "Échec de la soumission de l'examen",
     "manualSyncFailed": "Échec de la synchronisation manuelle"
+  }
+  ,
+  "reportHistory": {
+    "title": "Historique des rapports",
+    "subtitle": "Voir et gérer tous les rapports des organisations",
+    "refresh": "Rafraîchir",
+    "offlineError": "Impossible de charger les rapports hors ligne",
+    "loadError": "Échec du chargement des rapports",
+    "downloadSuccess": "Rapport téléchargé avec succès",
+    "downloadError": "Échec du téléchargement du rapport",
+    "searchPlaceholder": "Rechercher par organisation ou ID de rapport...",
+    "statusFilter": "Statut",
+    "allStatuses": "Tous les statuts",
+    "completed": "Terminé",
+    "generating": "Génération",
+    "failed": "Échec",
+    "reportsFound": "rapports trouvés",
+    "noReports": "Aucun rapport trouvé",
+    "reportId": "Rapport",
+    "view": "Voir",
+    "download": "Télécharger",
+    "organizations": "Organisations",
+    "backToOrganizations": "Retour aux organisations",
+    "exportAsPDF": "Exporter en PDF"
   }
 }

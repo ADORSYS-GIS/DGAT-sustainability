@@ -43,4 +43,4 @@ impl MigrationTrait for Migration {
 enum Assessments {
     Table,
     Name,
-}
+} 

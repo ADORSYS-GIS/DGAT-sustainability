@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(AssessmentsSubmission::Status)
                             .string()
                             .not_null()
-                            .default("under_review"),
+                            .default("under_review")
                     )
                     .to_owned(),
             )

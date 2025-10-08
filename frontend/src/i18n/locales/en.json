@@ -54,6 +54,8 @@
   "noSubmissions": "No submissions yet",
   "submissionDeleted": "Submission deleted successfully",
   "failedToDeleteSubmission": "Failed to delete submission",
+  "confirmDeletion": "Confirm Deletion",
+  "confirmDeletionDescription": "Are you sure you want to delete this submission? This action cannot be undone.",
   "syncData": "Sync Data",
   "startAssessment": "Start Assessment",
   "status": "Status",
@@ -86,6 +88,7 @@
     "intro": "Manage the DGRV assessment platform and support cooperatives across Southern Africa.",
     "numCategories": "Number of Categories",
     "numQuestions": "Number of Questions",
+    "numOrganizations": "Number of Organizations",
     "pendingReviews": "Pending Reviews",
     "completedAssessments": "Completed Assessments",
     "manageOrganizations": "Manage Organizations",
@@ -180,34 +183,34 @@
       "subtitle": "View and manage all your sustainability submissions",
       "emptyState": "Start your first sustainability assessment to track your cooperative's progress."
     },
-    "numCategories": "Number of Categories",
-    "numQuestions": "Number of Questions",
-    "pendingReviews": "Pending Reviews",
-    "completedAssessments": "Completed Assessments"
-  },
-  "actions": {
-    "manageOrganizations": "Manage Organizations",
-    "manageOrganizationsDesc": "Add, edit, and manage cooperative organizations in the system.",
-    "manageUsers": "Manage Users",
-    "manageUsersDesc": "Control user access and roles across all organizations.",
-    "manageCategories": "Manage Categories",
-    "manageCategoriesDesc": "Configure assessment categories for sustainability tools.",
-    "manageQuestions": "Manage Questions",
-    "manageQuestionsDesc": "Create and edit questions within each assessment category.",
-    "reviewAssessments": "Review Assessments",
-    "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
-    "standardRecommendations": "Standard Recommendations",
-    "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios."
-  },
-  "guide": {
-    "title": "Admin Guide",
-    "intro": "Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:",
-    "orgsUsers": "Use the Manage Organizations and Manage Users sections to control access and membership.",
-    "review": "Review and approve assessments in the Review Assessments section.",
-    "categoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
-    "docs": "For detailed documentation, visit the Admin Documentation.",
-    "support": "If you need help, contact support@dgrv.org."
-  },
+      "numCategories": "Number of Categories",
+      "numQuestions": "Number of Questions",
+      "pendingReviews": "Pending Reviews",
+      "completedAssessments": "Completed Assessments"
+    },
+    "actions": {
+      "manageOrganizations": "Manage Organizations",
+      "manageOrganizationsDesc": "Add, edit, and manage cooperative organizations in the system.",
+      "manageUsers": "Manage Users",
+      "manageUsersDesc": "Control user access and roles across all organizations.",
+      "manageCategories": "Manage Categories",
+      "manageCategoriesDesc": "Configure assessment categories for sustainability tools.",
+      "manageQuestions": "Manage Questions",
+      "manageQuestionsDesc": "Create and edit questions within each assessment category.",
+      "reviewAssessments": "Review Assessments",
+      "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
+      "standardRecommendations": "Standard Recommendations",
+      "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios."
+    },
+    "guide": {
+      "title": "Admin Guide",
+      "intro": "Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:",
+      "orgsUsers": "Use the Manage Organizations and Manage Users sections to control access and membership.",
+      "review": "Review and approve assessments in the Review Assessments section.",
+      "categoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
+      "docs": "For detailed documentation, visit the Admin Documentation.",
+      "support": "If you need help, contact support@dgrv.org."
+    },
   "questions": {
     "manage": {
       "title": "Manage Questions",
@@ -450,18 +453,18 @@
         "subtitle": "Track and manage your cooperative's sustainability improvement tasks."
       },
       "actionPlan": {
-        "kanban": {
-          "todo": "To Do",
-          "inProgress": "In Progress",
-          "done": "Done",
-          "approved": "Approved",
-          "approve": "Approve",
-          "moveToInProgress": "Move to In Progress",
-          "backToTodo": "Back to To Do",
-          "moveToDone": "Move to Done",
-          "backToInProgress": "Back to In Progress",
-          "backToDone": "Back to Done"
-        },
+  "kanban": {
+    "todo": "To Do",
+    "inProgress": "In Progress",
+    "done": "Done",
+    "approved": "Approved",
+    "approve": "Approve",
+    "moveToInProgress": "Move to In Progress",
+    "backToTodo": "Back to To Do",
+    "moveToDone": "Move to Done",
+    "backToInProgress": "Back to In Progress",
+    "backToDone": "Back to Done"
+  },
         "title": "Action Plan",
         "description": "Track and manage your cooperative's sustainability improvement tasks.",
         "recentSubmissions": "Recent Submissions",
@@ -472,31 +475,24 @@
         "exportAsPDF": "Export as PDF",
         "exportAsWord": "Export as Word",
         "exportAsCSV": "Export as CSV",
-        "needHelp": "Need Help?",
-        "getSupport": "Get support and training materials to make the most of your assessments.",
-        "viewUserGuide": "View User Guide",
-        "manageUsers": {
-          "title": "Manage Users",
-          "description": "Add and manage users in your organization."
+        "selectReport": "Select a report to export",
+        "selectReportDescription": "Choose one of your generated assessment reports to export as PDF.",
+        "statusLabel": "Status",
+        "reportTypes": {
+          "sustainability": "Sustainability",
+          "compliance": "Compliance",
+          "summary": "Summary",
+          "detailed": "Detailed"
         },
-        "status": {
-          "approved": "Approved",
-          "pendingReview": "Pending Review",
-          "underReview": "Under Review",
-          "rejected": "Rejected",
-          "revisionRequested": "Revision Requested",
-          "unknown": "Unknown"
+        "reportStatus": {
+          "completed": "Completed",
+          "generating": "Generating",
+          "failed": "Failed"
         },
-        "loadingSubmissionsInline": "Loading submissions...",
-        "user": "User",
-        "org": "your organisation",
-        "startAssessment": {
-          "title": "Start Sustainability Assessment",
-          "description": "Assess environmental, social, and governance practices for sustainable growth."
-        },
-        "noDraftAssessment": "No draft assessment available to answer.",
-        "sustainabilityAssessment": "Sustainability Assessment",
-        "noSubmissionsMessage": "No submissions yet. Start your first assessment above!"
+        "submissionId": "Submission",
+        "generatedAt": "Generated",
+        "select": "Select",
+        "noReportsAvailable": "No reports available"
       },
       "recentSubmissions": "Recent Submissions",
       "viewAll": "View All",
@@ -569,7 +565,11 @@
       "noDraftAssessment": "No draft assessment available to answer.",
       "sustainabilityAssessment": "Sustainability Assessment",
       "noSubmissionsMessage": "No submissions yet. Start your first assessment above!",
-      "sustainabilityOverview": "Sustainability Overview"
+      "sustainabilityOverview": "Sustainability Overview",
+      "reviewAssessments": {
+        "title": "Review Assessments",
+        "description": "Review and approve draft assessments submitted by organization users."
+      }
     }
   },
   "manageUsers.selectOrganization": "Select an Organization",
@@ -1046,5 +1046,31 @@
     "reviewSavedLocally": "Review saved locally. Will sync when online.",
     "failedToSubmitReview": "Failed to submit review",
     "manualSyncFailed": "Manual sync failed"
+  }
+  ,
+  "reportHistory": {
+    "title": "Report History",
+    "subtitle": "View and manage all organization reports",
+    "refresh": "Refresh",
+    "offlineError": "Cannot load reports while offline",
+    "loadError": "Failed to load reports",
+    "downloadSuccess": "Report downloaded successfully",
+    "downloadError": "Failed to download report",
+    "searchPlaceholder": "Search by organization or report ID...",
+    "statusFilter": "Status",
+    "allStatuses": "All Statuses",
+    "completed": "Completed",
+    "generating": "Generating",
+    "failed": "Failed",
+    "reportsFound": "reports found",
+    "noReports": "No reports found",
+    "reportId": "Report",
+    "view": "View",
+    "download": "Download",
+    "organizations": "Organizations",
+    "backToOrganizations": "Back to organizations",
+    "exportAsPDF": "Export as PDF",
+    "assessmentName": "Assessment",
+    "unknownAssessment": "Unknown Assessment"
   }
 }

@@ -19,9 +19,6 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      // Disable exhaustive-deps to avoid noisy warnings that break CI
-      // when using zero-warning policy. We rely on code reviews/tests.
-      "react-hooks/exhaustive-deps": "off",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },

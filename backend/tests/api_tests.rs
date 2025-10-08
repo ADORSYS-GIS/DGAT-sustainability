@@ -10,9 +10,9 @@ use std::sync::Arc;
 
 use sustainability_tool::common::migrations::Migrator;
 use sustainability_tool::common::models::claims::Claims;
+use sustainability_tool::web::routes::AppState;
 use sustainability_tool::common::state::AppDatabase;
 use sustainability_tool::web::api::routes::create_router;
-use sustainability_tool::web::routes::AppState;
 use tower::ServiceExt;
 
 // Mock authentication middleware for testing
@@ -381,7 +381,7 @@ async fn test_get_submission() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/submissions/{submission_id}"))
+                .uri(&format!("/api/submissions/{submission_id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -439,7 +439,7 @@ async fn test_get_question_success() {
     let get_response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/questions/{question_id}"))
+                .uri(&format!("/api/questions/{question_id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -473,7 +473,8 @@ async fn test_get_question_success() {
         .unwrap();
     assert!(
         (weight - 0.8).abs() < 0.001,
-        "Expected weight ~0.8, got {weight}"
+        "Expected weight ~0.8, got {}",
+        weight
     );
 }
 
@@ -486,7 +487,7 @@ async fn test_get_question_not_found() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/questions/{non_existent_id}"))
+                .uri(&format!("/api/questions/{non_existent_id}"))
                 .body(Body::empty())
                 .unwrap(),
         )

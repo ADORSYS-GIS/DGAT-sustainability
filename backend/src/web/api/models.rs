@@ -1,78 +1,6 @@
 use serde::{Deserialize, Serialize};
-
-use utoipa::ToSchema;
-
-#[derive(serde::Serialize, ToSchema)]
-pub struct AdminSubmissionListResponse {
-    pub submissions: Vec<AdminSubmissionDetail>,
-}
-
-// These models will be properly implemented for UserInvitationRequest/Response
-// in the common models keycloak module
-
-#[derive(serde::Serialize, ToSchema)]
-pub struct AssessmentListResponse {
-    pub submissions: Vec<AdminSubmissionDetail>,
-}
-
-#[derive(serde::Serialize, ToSchema)]
-pub struct SubmissionListResponse {
-    pub email: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub organization_id: String,
-    pub roles: Vec<String>,
-    pub categories: Vec<String>,
-}
-
-#[derive(serde::Serialize, ToSchema)]
-pub struct SubmissionDetailResponse {
-    pub user_id: String,
-    pub email: String,
-    pub status: UserInvitationStatus,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub enum UserInvitationStatus {
-    Pending,
-    Active,
-    Expired,
-}
-
-#[derive(serde::Serialize, ToSchema)]
-pub struct Organization {
-    pub name: String,
-    pub attributes: Option<serde_json::Value>,
-}
-
 use std::collections::HashMap;
 use uuid::Uuid;
-
-// Create wrapper type for Uuid to avoid orphan rules
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct UuidWrapper(pub Uuid);
-
-// Create wrapper type for ApiError to avoid orphan rules
-#[derive(Debug, Clone, Serialize, ToSchema)]
-pub struct ApiErrorWrapper {
-    pub error: String,
-}
-
-// Define conversion between ApiError and ApiErrorWrapper
-impl From<crate::web::api::error::ApiError> for ApiErrorWrapper {
-    fn from(err: crate::web::api::error::ApiError) -> Self {
-        match err {
-            crate::web::api::error::ApiError::BadRequest(msg) => Self { error: msg },
-            crate::web::api::error::ApiError::NotFound(msg) => Self { error: msg },
-            crate::web::api::error::ApiError::Forbidden(msg) => Self { error: msg },
-            crate::web::api::error::ApiError::Conflict(msg) => Self { error: msg },
-            crate::web::api::error::ApiError::InternalServerError(msg) => Self { error: msg },
-            crate::web::api::error::ApiError::DatabaseError(msg) => Self {
-                error: format!("Database error: {msg}"),
-            },
-        }
-    }
-}
 
 // =============== Common Models ===============
 
@@ -136,7 +64,7 @@ pub struct Question {
     pub latest_revision: QuestionRevision,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuestionRevision {
     pub question_revision_id: Uuid,
     pub question_id: Uuid,
@@ -145,57 +73,62 @@ pub struct QuestionRevision {
     pub created_at: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateQuestionRequest {
     pub category: String,
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateQuestionRequest {
     pub category: String,
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct QuestionResponse {
     pub question: Question,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct QuestionWithRevisionsResponse {
     pub question: Question,
     pub revisions: Vec<QuestionRevision>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct QuestionRevisionResponse {
     pub revision: QuestionRevision,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct QuestionListResponse {
     pub questions: Vec<Question>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct QuestionRevisionListResponse {
     pub revisions: Vec<QuestionRevision>,
 }
 
 // =============== Assessment Models ===============
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum AssessmentStatus {
     #[serde(rename = "draft")]
-    #[default]
     Draft,
     #[serde(rename = "submitted")]
     Submitted,
     #[serde(rename = "reviewed")]
     Reviewed,
+}
+
+impl Default for AssessmentStatus {
+    fn default() -> Self {
+        AssessmentStatus::Draft
+    }
 }
 
 impl std::fmt::Display for AssessmentStatus {
@@ -208,34 +141,42 @@ impl std::fmt::Display for AssessmentStatus {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Assessment {
     pub assessment_id: Uuid,
     pub org_id: String,
     pub language: String,
     pub name: String,
+    pub categories: Vec<Uuid>,
     pub status: AssessmentStatus,
     pub created_at: String,
     pub updated_at: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateAssessmentRequest {
     pub language: String,
     pub name: String,
+    #[serde(default)]
+    pub categories: Vec<Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateAssessmentRequest {
     pub language: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AssessmentResponse {
     pub assessment: Assessment,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
+pub struct AssessmentListResponse {
+    pub assessments: Vec<Assessment>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct AssessmentWithResponsesResponse {
     pub assessment: Assessment,
     pub responses: Vec<Response>,
@@ -243,7 +184,7 @@ pub struct AssessmentWithResponsesResponse {
 
 // =============== Response Models ===============
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Response {
     pub response_id: Uuid,
     pub assessment_id: Uuid,
@@ -254,57 +195,69 @@ pub struct Response {
     pub files: Vec<FileMetadata>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateResponseRequest {
     pub question_revision_id: Uuid,
     pub response: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateResponseRequest {
     pub response: Vec<String>,
     pub version: i32,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ResponseResponse {
     pub response: Response,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ResponseListResponse {
     pub responses: Vec<Response>,
 }
 
 // =============== Submission Models ===============
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AssessmentSubmission {
     pub assessment_id: Uuid,
     pub org_id: String,
+    pub assessment_name: String, // Added assessment name
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,
     pub reviewed_at: Option<String>,
 }
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct Submission {
     pub submission_id: Uuid,
     pub org_id: String,
+    pub assessment_name: String, // Added assessment name
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,
     pub reviewed_at: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AssessmentSubmissionResponse {
+    pub submission: AssessmentSubmission,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SubmissionListResponse {
+    pub submissions: Vec<Submission>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SubmissionDetailResponse {
     pub submission: AssessmentSubmission,
 }
 
 // =============== Admin Submission Models ===============
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AdminSubmissionDetail {
     pub submission_id: Uuid,
     pub assessment_id: Uuid,
@@ -316,19 +269,19 @@ pub struct AdminSubmissionDetail {
     pub reviewed_at: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AdminSubmissionContent {
     pub assessment: AdminAssessmentInfo,
     pub responses: Vec<AdminResponseDetail>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AdminAssessmentInfo {
     pub assessment_id: Uuid,
     pub language: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AdminResponseDetail {
     pub question_text: String,
     pub question_category: String,
@@ -337,9 +290,14 @@ pub struct AdminResponseDetail {
     pub files: Vec<FileMetadata>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct AdminSubmissionListResponse {
+    pub submissions: Vec<AdminSubmissionDetail>,
+}
+
 // =============== Review Models ===============
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Review {
     pub review_id: Uuid,
     pub submission_id: Uuid,
@@ -352,36 +310,36 @@ pub struct Review {
     pub completed_at: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateReviewRequest {
     pub decision: String,
     pub comments: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateReviewRequest {
     pub status: Option<String>,
     pub decision: Option<String>,
     pub comments: Option<String>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ReviewResponse {
     pub review: Review,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ReviewListResponse {
     pub reviews: Vec<Review>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ReviewDetailResponse {
     pub review: Review,
     pub submission: AssessmentSubmission,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AdminReview {
     pub review_id: Uuid,
     pub submission_id: Uuid,
@@ -393,18 +351,18 @@ pub struct AdminReview {
     pub created_at: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct AdminReviewListResponse {
     pub reviews: Vec<AdminReview>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AssignReviewerRequest {
     pub submission_id: Uuid,
     pub reviewer_id: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ReviewAssignmentResponse {
     pub review_id: Uuid,
     pub submission_id: Uuid,
@@ -414,7 +372,7 @@ pub struct ReviewAssignmentResponse {
 
 // =============== File Models ===============
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FileMetadata {
     pub file_id: Uuid,
     pub filename: String,
@@ -424,24 +382,24 @@ pub struct FileMetadata {
     pub metadata: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct FileUploadResponse {
     pub file: FileMetadata,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct FileMetadataResponse {
     pub metadata: FileMetadata,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AttachFileRequest {
     pub file_id: Uuid,
 }
 
 // =============== Report Models ===============
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Report {
     pub report_id: Uuid,
     pub submission_id: Uuid,
@@ -450,29 +408,32 @@ pub struct Report {
     pub data: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateReportRequest {
+    pub recommendation_id: Uuid, // Added recommendation_id
     pub category: String,
     pub recommendation: String,
     pub status: Option<String>, // New field for action plan status
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateRecommendationStatusRequest {
     pub report_id: Uuid,
     pub category: String,
+    pub recommendation_id: String,
     pub status: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct OrganizationActionPlan {
     pub organization_id: Uuid,
     pub organization_name: String,
     pub recommendations: Vec<RecommendationWithStatus>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct RecommendationWithStatus {
+    pub recommendation_id: Uuid, // Added recommendation_id
     pub report_id: Uuid,
     pub category: String,
     pub recommendation: String,
@@ -480,35 +441,51 @@ pub struct RecommendationWithStatus {
     pub created_at: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ActionPlanListResponse {
     pub organizations: Vec<OrganizationActionPlan>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ReportGenerationResponse {
     pub report_id: Uuid,
     pub status: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ReportResponse {
     pub report: Report,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct ReportListResponse {
     pub reports: Vec<Report>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct AdminReport {
+    pub report_id: Uuid,
+    pub submission_id: Uuid,
+    pub org_id: String,
+    pub org_name: String,
+    pub status: String,
+    pub generated_at: String,
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminReportListResponse {
+    pub reports: Vec<AdminReport>,
+}
+
 // =============== Organization Models ===============
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OrganizationDomainRequest {
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OrganizationCreateRequest {
     pub name: String,
     pub domains: Vec<OrganizationDomainRequest>,
@@ -518,13 +495,13 @@ pub struct OrganizationCreateRequest {
     pub attributes: Option<HashMap<String, Vec<String>>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MemberRequest {
     pub user_id: String,
     pub roles: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct InvitationRequest {
     pub email: String,
     pub roles: Vec<String>,
@@ -533,7 +510,7 @@ pub struct InvitationRequest {
 
 // =============== Category Models ===============
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Category {
     pub category_id: Uuid,
     pub name: String,
@@ -544,7 +521,7 @@ pub struct Category {
     pub updated_at: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateCategoryRequest {
     pub name: String,
     pub weight: i32,
@@ -552,52 +529,19 @@ pub struct CreateCategoryRequest {
     pub template_id: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateCategoryRequest {
     pub name: Option<String>,
     pub weight: Option<i32>,
     pub order: Option<i32>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct CategoryResponse {
     pub category: Category,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
 pub struct CategoryListResponse {
     pub categories: Vec<Category>,
-}
-
-// Add implementation for AssessmentQuery that was missing IntoParams
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct AssessmentQuery {
-    pub status: Option<String>,
-    pub language: Option<String>,
-}
-
-// Properly implement IntoParams without using 'self'
-impl utoipa::IntoParams for AssessmentQuery {
-    fn into_params(
-        parameter_in_provider: impl Fn() -> Option<utoipa::openapi::path::ParameterIn>,
-    ) -> Vec<utoipa::openapi::path::Parameter> {
-        use utoipa::openapi::path::{ParameterBuilder, ParameterIn};
-
-        let parameter_in = parameter_in_provider().unwrap_or(ParameterIn::Query);
-
-        vec![
-            ParameterBuilder::new()
-                .name("status")
-                .description(Some("Filter assessments by status"))
-                .parameter_in(parameter_in.clone())
-                .required(utoipa::openapi::Required::False)
-                .build(),
-            ParameterBuilder::new()
-                .name("language")
-                .description(Some("Filter assessments by language"))
-                .parameter_in(parameter_in)
-                .required(utoipa::openapi::Required::False)
-                .build(),
-        ]
-    }
 }

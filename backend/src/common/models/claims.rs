@@ -3,17 +3,17 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,                          // Keycloak user ID
+    pub sub: String,                       // Keycloak user ID
     pub organizations: Option<Organizations>, // Organizations with roles and metadata (optional for application_admin)
-    pub realm_access: Option<RealmAccess>,    // Realm roles
-    pub preferred_username: String,           // Username
-    pub email: Option<String>,                // Email
-    pub given_name: Option<String>,           // First name
-    pub family_name: Option<String>,          // Last name
-    pub exp: u64,                             // Expiration time
-    pub iat: u64,                             // Issued at time
-    pub aud: serde_json::Value,               // Audience
-    pub iss: String,                          // Issuer
+    pub realm_access: Option<RealmAccess>, // Realm roles
+    pub preferred_username: String,        // Username
+    pub email: Option<String>,             // Email
+    pub given_name: Option<String>,        // First name
+    pub family_name: Option<String>,       // Last name
+    pub exp: u64,                          // Expiration time
+    pub iat: u64,                          // Issued at time
+    pub aud: serde_json::Value,            // Audience
+    pub iss: String,                       // Issuer
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,44 +52,27 @@ impl Claims {
     pub fn can_manage_organization(&self, organization_id: &str) -> bool {
         self.is_application_admin()
             || (self.is_organization_admin()
-                && self
-                    .organizations
-                    .as_ref()
-                    .map(|orgs| orgs.orgs.contains_key(organization_id))
-                    .unwrap_or(false))
+                && self.organizations.as_ref().map(|orgs| orgs.orgs.contains_key(organization_id)).unwrap_or(false))
     }
 
     /// Get the first organization ID (for backward compatibility)
     pub fn get_primary_organization_id(&self) -> Option<String> {
-        self.organizations
-            .as_ref()
-            .and_then(|orgs| orgs.orgs.keys().next().cloned())
+        self.organizations.as_ref().and_then(|orgs| orgs.orgs.keys().next().cloned())
     }
 
     /// Get the organization name (for backward compatibility)
     pub fn get_organization_name(&self) -> Option<String> {
-        self.organizations
-            .as_ref()
-            .and_then(|orgs| orgs.orgs.keys().next().cloned())
+        self.organizations.as_ref().and_then(|orgs| orgs.orgs.keys().next().cloned())
     }
 
     /// Get all organization IDs
     pub fn get_organization_ids(&self) -> Vec<String> {
-        self.organizations
-            .as_ref()
-            .map(|orgs| orgs.orgs.keys().cloned().collect())
-            .unwrap_or_default()
+        self.organizations.as_ref().map(|orgs| orgs.orgs.keys().cloned().collect()).unwrap_or_default()
     }
 
     /// Get the organization ID from the first organization (for database operations)
     pub fn get_org_id(&self) -> Option<String> {
-        self.organizations
-            .as_ref()?
-            .orgs
-            .values()
-            .next()?
-            .id
-            .clone()
+        self.organizations.as_ref()?.orgs.values().next()?.id.clone()
     }
 
     /// Check if user is a super user (application admin)
@@ -102,9 +85,8 @@ impl Claims {
         self.has_role("org_admin")
     }
 
-    #[warn(non_snake_case)]
     /// Check if user has Org_User role
-    pub fn is_org_user(&self) -> bool {
+    pub fn is_Org_User(&self) -> bool {
         self.has_role("Org_User")
     }
 
@@ -115,7 +97,7 @@ impl Claims {
 
     /// Check if user can answer assessments (Org_User or org_admin)
     pub fn can_answer_assessments(&self) -> bool {
-        self.is_org_user() || self.is_org_admin() || self.is_application_admin()
+        self.is_Org_User() || self.is_org_admin() || self.is_application_admin()
     }
 
     /// Check if user has a specific role in a specific organization

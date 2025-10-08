@@ -6,7 +6,7 @@ export const getTableStyles = (): Partial<UserOptions> => ({
     font: "helvetica",
     overflow: "linebreak",
     cellPadding: 3,
-    valign: "middle",
+    valign: 'middle',
     lineWidth: 0.1,
     lineColor: [44, 62, 80], // Dark gray border
   },
@@ -14,7 +14,7 @@ export const getTableStyles = (): Partial<UserOptions> => ({
     fillColor: [41, 128, 185], // A nice blue color
     textColor: 255,
     fontStyle: "bold",
-    halign: "center",
+    halign: 'center',
     fontSize: 10,
   },
   alternateRowStyles: {
@@ -30,7 +30,7 @@ export const getTableStyles = (): Partial<UserOptions> => ({
     1: { cellWidth: 20 }, // Answer
     2: { cellWidth: 25 }, // Percentage
     3: { cellWidth: 60 }, // Text Answer
-    4: { cellWidth: "auto" }, // Recommendations
+    4: { cellWidth: 'auto' }, // Recommendations
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   didDrawPage: (data: any) => {
