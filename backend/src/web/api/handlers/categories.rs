@@ -379,4 +379,101 @@ pub async fn delete_category(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to delete category: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
-} 
+}
+
+/// Get a specific category catalog by ID
+#[utoipa::path(
+    get,
+    path = "/api/category-catalog/{category_catalog_id}",
+    tag = "Category Catalog",
+    params(
+        ("category_catalog_id" = uuid::Uuid, Path, description = "Category Catalog ID")
+    ),
+    responses(
+        (status = 200, description = "Category catalog found", body = CategoryCatalogResponse),
+        (status = 404, description = "Category catalog not found")
+    )
+)]
+pub async fn get_specific_category_catalog(
+    State(app_state): State<AppState>,
+    Path(category_catalog_id): Path<Uuid>,
+) -> Result<Json<CategoryCatalogResponse>, ApiError> {
+    let catalog = app_state
+        .database
+        .category_catalog
+        .get_category_catalog_by_id(category_catalog_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(e.to_string()))?
+        .ok_or_else(|| ApiError::NotFound("Category catalog not found".to_string()))?;
+
+    Ok(Json(CategoryCatalogResponse {
+        category_catalog: CategoryCatalog {
+            category_catalog_id: catalog.category_catalog_id,
+            name: catalog.name,
+            description: catalog.description,
+            template_id: catalog.template_id,
+            is_active: catalog.is_active,
+            created_at: catalog.created_at.to_rfc3339(),
+            updated_at: catalog.updated_at.to_rfc3339(),
+        },
+    }))
+}
+
+/// Update a category catalog
+#[utoipa::path(
+    put,
+    path = "/api/category-catalog/{category_catalog_id}",
+    tag = "Category Catalog",
+    params(
+        ("category_catalog_id" = uuid::Uuid, Path, description = "Category Catalog ID")
+    ),
+    request_body = UpdateCategoryCatalogRequest,
+    responses(
+        (status = 200, description = "Category catalog updated", body = CategoryCatalogResponse),
+        (status = 400, description = "Bad request"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Category catalog not found")
+    )
+)]
+pub async fn update_category_catalog(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(category_catalog_id): Path<Uuid>,
+    Json(request): Json<UpdateCategoryCatalogRequest>,
+) -> Result<Json<CategoryCatalogResponse>, ApiError> {
+    if !claims.is_super_user() {
+        return Err(ApiError::Forbidden(
+            "Only system administrators can update category catalogs".to_string(),
+        ));
+    }
+
+    let updated_catalog = app_state
+        .database
+        .category_catalog
+        .update_category_catalog(
+            category_catalog_id,
+            request.name,
+            request.description,
+            request.is_active,
+        )
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("not found") {
+                ApiError::NotFound("Category catalog not found".to_string())
+            } else {
+                ApiError::InternalServerError(e.to_string())
+            }
+        })?;
+
+    Ok(Json(CategoryCatalogResponse {
+        category_catalog: CategoryCatalog {
+            category_catalog_id: updated_catalog.category_catalog_id,
+            name: updated_catalog.name,
+            description: updated_catalog.description,
+            template_id: updated_catalog.template_id,
+            is_active: updated_catalog.is_active,
+            created_at: updated_catalog.created_at.to_rfc3339(),
+            updated_at: updated_catalog.updated_at.to_rfc3339(),
+        },
+    }))
+}

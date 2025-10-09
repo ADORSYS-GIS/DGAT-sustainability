@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 import { Calendar, Clock, FileText, Tag, Trash2 } from "lucide-react";
-import type { OfflineAssessment, OfflineCategory } from "@/types/offline";
-import { useOfflineCategories, useOfflineAssessmentsMutation } from "@/hooks/useOfflineApi";
+import type { OfflineAssessment } from "@/types/offline";
+import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
+import { useOfflineAssessmentsMutation } from "@/hooks/useOfflineApi";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
 
@@ -23,18 +24,18 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   onAssessmentDeleted,
 }) => {
   const { t } = useTranslation();
-  const { data: categoriesData } = useOfflineCategories();
+  const { data: categoriesData } = useOfflineCategoryCatalogs();
   const { deleteAssessment, isPending } = useOfflineAssessmentsMutation();
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = React.useState<string | null>(null);
 
   // Create a map of category IDs to category names for easy lookup
   const categoriesMap = React.useMemo(() => {
-    if (!categoriesData?.categories) return new Map<string, string>();
+    if (!categoriesData) return new Map<string, string>();
     return new Map(
-      categoriesData.categories.map((cat) => [cat.category_id, cat.name])
+      categoriesData.map((cat) => [cat.category_catalog_id, cat.name])
     );
-  }, [categoriesData?.categories]);
+  }, [categoriesData]);
 
   // Function to get category names from category UUIDs
   const getCategoryNames = (categoryIds?: string[]) => {

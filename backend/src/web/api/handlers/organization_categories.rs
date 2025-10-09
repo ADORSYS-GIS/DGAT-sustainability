@@ -5,7 +5,7 @@ use crate::web::api::models::{
     AssignCategoriesToOrganizationRequest, CategoryCatalog, CategoryCatalogListResponse,
     CategoryCatalogResponse, CreateCategoryCatalogRequest, OrganizationCategory,
     OrganizationCategoryListResponse, OrganizationCategoryResponse,
-    UpdateOrganizationCategoryRequest,
+    UpdateOrganizationCategoryRequest, UpdateCategoryCatalogRequest,
 };
 use axum::{
     extract::{Path, State},
@@ -145,6 +145,101 @@ pub async fn delete_category_catalog(
         })?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Get a specific category catalog by ID
+#[utoipa::path(
+    get,
+    path = "/category-catalog/{category_catalog_id}",
+    responses(
+        (status = 200, description = "Category catalog found", body = CategoryCatalogResponse),
+        (status = 404, description = "Category catalog not found")
+    ),
+    params(
+        ("category_catalog_id" = Uuid, Path, description = "Category Catalog ID")
+    )
+)]
+pub async fn get_category_catalog(
+    State(app_state): State<AppState>,
+    Path(category_catalog_id): Path<Uuid>,
+) -> Result<impl IntoResponse, ApiError> {
+    let category_catalog_service = &app_state.database.category_catalog;
+
+    let category_catalog_model = category_catalog_service
+        .get_category_catalog_by_id(category_catalog_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to get category catalog: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Category catalog not found".to_string()))?;
+
+    let category_catalog = CategoryCatalog {
+        category_catalog_id: category_catalog_model.category_catalog_id,
+        name: category_catalog_model.name,
+        description: category_catalog_model.description,
+        template_id: category_catalog_model.template_id,
+        is_active: category_catalog_model.is_active,
+        created_at: category_catalog_model.created_at.to_rfc3339(),
+        updated_at: category_catalog_model.updated_at.to_rfc3339(),
+    };
+
+    Ok((StatusCode::OK, Json(CategoryCatalogResponse { category_catalog })))
+}
+
+
+/// Update a category catalog entry
+#[utoipa::path(
+    put,
+    path = "/category-catalog/{category_catalog_id}",
+    request_body = UpdateCategoryCatalogRequest,
+    responses(
+        (status = 200, description = "Category catalog updated successfully", body = CategoryCatalogResponse),
+        (status = 404, description = "Category catalog not found")
+    ),
+    params(
+        ("category_catalog_id" = Uuid, Path, description = "Category Catalog ID")
+    )
+)]
+pub async fn update_category_catalog(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(category_catalog_id): Path<Uuid>,
+    Json(request): Json<UpdateCategoryCatalogRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    // Only super users can update catalog entries
+    if !claims.is_super_user() {
+        return Err(ApiError::BadRequest(
+            "Only system administrators can update category catalogs".to_string(),
+        ));
+    }
+
+    let category_catalog_service = &app_state.database.category_catalog;
+
+    let updated_model = category_catalog_service
+        .update_category_catalog(
+            category_catalog_id,
+            request.name,
+            request.description,
+            request.is_active,
+        )
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("not found") {
+                ApiError::NotFound("Category catalog not found".to_string())
+            } else {
+                ApiError::InternalServerError(format!("Failed to update category catalog: {e}"))
+            }
+        })?;
+
+    let category_catalog = CategoryCatalog {
+        category_catalog_id: updated_model.category_catalog_id,
+        name: updated_model.name,
+        description: updated_model.description,
+        template_id: updated_model.template_id,
+        is_active: updated_model.is_active,
+        created_at: updated_model.created_at.to_rfc3339(),
+        updated_at: updated_model.updated_at.to_rfc3339(),
+    };
+
+    Ok((StatusCode::OK, Json(CategoryCatalogResponse { category_catalog })))
 }
 
 // =============== Organization Categories Handlers ===============

@@ -3,7 +3,6 @@
 
 import type {
   Question,
-  Category,
   Assessment,
   Response,
   Submission,
@@ -16,6 +15,7 @@ import type {
   Review,
   RecommendationWithStatus, // Import the type
 } from "@/openapi-rq/requests/types.gen";
+import type { CategoryCatalog } from "@/openapi-rq/requests/types.gen";
 
 // New types for report data structure, aligning with the actual API response
 export interface ReportRecommendation {
@@ -72,10 +72,9 @@ export interface OfflineResponse extends Response, OfflineEntity {
   is_draft?: boolean;
 }
 
-// Enhanced Category with offline fields
-export interface OfflineCategory extends Category, OfflineEntity {
+// Enhanced CategoryCatalog with offline fields
+export interface OfflineCategoryCatalog extends CategoryCatalog, OfflineEntity {
   question_count?: number;
-  is_active?: boolean;
 }
 
 // Enhanced Submission with offline fields
@@ -133,7 +132,7 @@ export interface SyncQueueItem {
   entity_type:
     | "question"
     | "assessment"
-    | "category"
+    | "category_catalog"
     | "response"
     | "submission"
     | "report"
@@ -229,9 +228,9 @@ export interface OfflineDatabaseSchema {
     key: string; // response_id
     value: OfflineResponse;
   };
-  categories: {
-    key: string; // category_id
-    value: OfflineCategory;
+  category_catalogs: {
+    key: string; // category_catalog_id
+    value: OfflineCategoryCatalog;
   };
   submissions: {
     key: string; // submission_id

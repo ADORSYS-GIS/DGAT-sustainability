@@ -6,7 +6,7 @@ import { offlineDB } from "./indexeddb";
 import { DataTransformationService } from "./dataTransformation";
 import {
   QuestionsService,
-  CategoriesService,
+  CategoryCatalogService,
   AssessmentsService,
   ResponsesService,
   SubmissionsService,
@@ -17,7 +17,7 @@ import {
 } from "@/openapi-rq/requests/services.gen";
 import type {
   Question,
-  Category,
+  CategoryCatalog,
   Assessment,
   Response,
   Submission,
@@ -30,7 +30,8 @@ import type {
 import type {
   OfflineOrganization, // Import OfflineOrganization
   OfflineRecommendation, // Import OfflineRecommendation
-  ReportCategoryData // Import ReportCategoryData
+  ReportCategoryData, // Import ReportCategoryData
+  DetailedReport
 } from "@/types/offline";
 import { getAuthState } from "./shared/authService";
 
@@ -281,48 +282,47 @@ export class SyncService {
    * Sync categories from server to local
    */
   private async syncCategories(): Promise<SyncResult> {
-    const result: SyncResult = { entityType: 'categories', added: 0, updated: 0, deleted: 0, errors: [] };
+    const result: SyncResult = { entityType: 'category_catalogs', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
       // Get server categories
-      const serverCategoriesResponse = await CategoriesService.getCategories();
-      const serverCategories = serverCategoriesResponse.categories;
+      const serverCategoriesResponse = await CategoryCatalogService.getCategoryCatalog();
+      const serverCategories = serverCategoriesResponse.category_catalogs;
       
       // If server returns no categories, clear the local store completely
       if (serverCategories.length === 0) {
-        const currentLocalCategories = await offlineDB.getAllCategories();
-        await offlineDB.clearStore('categories');
+        const currentLocalCategories = await offlineDB.getAllCategoryCatalogs();
+        await offlineDB.clearStore('category_catalogs');
         result.deleted = currentLocalCategories.length;
         return result;
       }
 
-      const serverCategoryIds = new Set(serverCategories.map(c => c.category_id));
+      const serverCategoryIds = new Set(serverCategories.map(c => c.category_catalog_id));
 
       // Get local categories
-      const localCategories = await offlineDB.getAllCategories();
-      const localCategoryIds = new Set(localCategories.map(c => c.category_id));
+      const localCategories = await offlineDB.getAllCategoryCatalogs();
 
       // Find categories to add/update
       for (const serverCategory of serverCategories) {
-        const localCategory = localCategories.find(c => c.category_id === serverCategory.category_id);
+        const localCategory = localCategories.find(c => c.category_catalog_id === serverCategory.category_catalog_id);
         
         if (!localCategory) {
           // Add new category
-          const offlineCategory = DataTransformationService.transformCategory(serverCategory);
-          await offlineDB.saveCategory(offlineCategory);
+          const offlineCategory = DataTransformationService.transformCategoryCatalog(serverCategory);
+          await offlineDB.saveCategoryCatalog(offlineCategory);
           result.added++;
         } else {
           // Update existing category if different
-          const offlineCategory = DataTransformationService.transformCategory(serverCategory);
-          await offlineDB.saveCategory(offlineCategory);
+          const offlineCategory = DataTransformationService.transformCategoryCatalog(serverCategory);
+          await offlineDB.saveCategoryCatalog(offlineCategory);
           result.updated++;
         }
       }
 
       // Find categories to delete (local categories not on server)
       for (const localCategory of localCategories) {
-        if (!serverCategoryIds.has(localCategory.category_id) && !localCategory.category_id.startsWith('temp_')) {
-          await offlineDB.deleteCategory(localCategory.category_id);
+        if (!serverCategoryIds.has(localCategory.category_catalog_id) && !localCategory.category_catalog_id.startsWith('temp_')) {
+          await offlineDB.deleteCategoryCatalog(localCategory.category_catalog_id);
           result.deleted++;
         }
       }
@@ -650,14 +650,15 @@ export class SyncService {
           // Create a proper Report object structure
           const reportData = {
             report_id: serverRec.report_id,
-            data: {
+            data: [{
               [serverRec.category]: {
-                recommendation: serverRec.recommendation,
-                status: serverRec.status,
-                created_at: serverRec.created_at
+                recommendations: [{
+                  text: serverRec.recommendation,
+                  status: serverRec.status,
+                }],
               }
-            }
-          } as Report;
+            }]
+          } as DetailedReport;
 
           const offlineRecs = DataTransformationService.transformReportToOfflineRecommendations(
             reportData,

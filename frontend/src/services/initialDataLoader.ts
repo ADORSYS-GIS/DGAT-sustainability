@@ -3,7 +3,7 @@
 
 import { 
   QuestionsService,
-  CategoriesService,
+  CategoryCatalogService,
   AssessmentsService,
   ResponsesService,
   SubmissionsService,
@@ -155,14 +155,14 @@ export class InitialDataLoader {
       this.updateProgress('Loading categories...', 1);
       
       // Load categories first
-      const categoriesData = await CategoriesService.getCategories();
-      if (categoriesData?.categories) {
-        const transformedCategories = categoriesData.categories.map(
-          DataTransformationService.transformCategory
+      const categoriesData = await CategoryCatalogService.getCategoryCatalog();
+      if (categoriesData?.category_catalogs) {
+        const transformedCategories = categoriesData.category_catalogs.map(
+          DataTransformationService.transformCategoryCatalog
         );
         
-        if (DataTransformationService.validateTransformedData(transformedCategories, 'categories')) {
-          await offlineDB.saveCategories(transformedCategories);
+        if (DataTransformationService.validateTransformedData(transformedCategories, 'category_catalogs')) {
+          await offlineDB.saveCategoryCatalogs(transformedCategories);
         }
       }
 
@@ -436,7 +436,7 @@ export class InitialDataLoader {
         offlineDB.getAllUsers(),
         offlineDB.getAllAssessments(),
         offlineDB.getAllSubmissions(),
-        offlineDB.getAllCategories(),
+        offlineDB.getAllCategoryCatalogs(),
         offlineDB.getAllQuestions()
       ]);
 
@@ -467,7 +467,7 @@ export class InitialDataLoader {
           category,
           questions
         );
-        await offlineDB.saveCategory(updatedCategory);
+        await offlineDB.saveCategoryCatalog(updatedCategory);
       }
 
     } catch (error) {

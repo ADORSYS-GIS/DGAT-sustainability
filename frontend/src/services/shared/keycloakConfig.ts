@@ -23,8 +23,7 @@ export const keycloak = new Keycloak({
  */
 export const keycloakInitOptions = {
   onLoad: "check-sso" as const,
-  // Remove silentCheckSsoRedirectUri to avoid 3p-cookies endpoint
-  // silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
+  silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
   pkceMethod: "S256" as const,
   checkLoginIframe: false,
   enableLogging: import.meta.env.DEV,

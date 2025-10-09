@@ -1,18 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTitle
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -20,42 +16,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import {
-  Plus,
-  Edit,
-  Trash2,
   BookOpen,
-  FileText,
-  Settings,
-  Globe,
   ChevronDown,
   ChevronRight,
+  Edit,
+  FileText,
+  Globe,
+  Layers,
+  Plus,
+  Settings,
   Sparkles,
   Target,
-  Layers,
+  Trash2
 } from "lucide-react";
+import { useCallback, useEffect, useState as useLocalState, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
   useOfflineQuestions,
-  useOfflineCategories,
-  useOfflineQuestionsMutation,
-  useOfflineSyncStatus,
+  useOfflineQuestionsMutation
 } from "../../hooks/useOfflineApi";
-import { useCategoryCatalogs } from "@/hooks/useOrganizationCategories";
+import { useOfflineCategoryCatalogs } from "../../hooks/useCategoryCatalogs";
 import type {
-  Question,
   CreateQuestionRequest,
-  UpdateQuestionRequest,
+  UpdateQuestionRequest
 } from "../../openapi-rq/requests/types.gen";
-import { useState as useLocalState } from "react";
 import { offlineDB } from "../../services/indexeddb";
+import type { OfflineCategoryCatalog } from "../../types/offline";
 
 // Extended types to match actual API response
 interface QuestionRevision {
@@ -71,17 +61,6 @@ interface QuestionWithLatestRevision {
   category: string;
   created_at: string;
   latest_revision: QuestionRevision;
-}
-
-// Updated Category interface to match API response
-interface Category {
-  category_id: string;
-  name: string;
-  weight: number;
-  order: number;
-  template_id: string;
-  created_at: string;
-  updated_at: string;
 }
 
 const LANGUAGES = [
@@ -101,7 +80,7 @@ interface QuestionFormData {
 }
 
 const QuestionForm: React.FC<{
-  categories: Category[];
+  categories: OfflineCategoryCatalog[];
   selectedCategory?: string;
   formData: QuestionFormData;
   setFormData: React.Dispatch<React.SetStateAction<QuestionFormData>>;
@@ -131,16 +110,11 @@ const QuestionForm: React.FC<{
           <FileText className="w-6 h-6 text-blue-600" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900">
-          {editingQuestion
-            ? t("manageQuestions.editQuestion")
-            : t("manageQuestions.addNewQuestion")}
+          {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
         </h3>
         {selectedCategory && (
           <p className="text-sm text-gray-500 mt-1">
-            Adding to category:{" "}
-            <span className="font-medium text-blue-600">
-              {selectedCategory}
-            </span>
+            Adding to category: <span className="font-medium text-blue-600">{selectedCategory}</span>
           </p>
         )}
       </div>
@@ -148,8 +122,7 @@ const QuestionForm: React.FC<{
       {/* Category Selection */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">
-          {t("manageQuestions.category")}{" "}
-          <span className="text-red-500">*</span>
+          {t('manageQuestions.category')} <span className="text-red-500">*</span>
         </Label>
         <Select
           value={formData.categoryName}
@@ -161,13 +134,11 @@ const QuestionForm: React.FC<{
           }
         >
           <SelectTrigger className="w-full">
-            <SelectValue
-              placeholder={t("manageQuestions.selectCategoryPlaceholder")}
-            />
+            <SelectValue placeholder={t('manageQuestions.selectCategoryPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
-              <SelectItem key={category.category_id} value={category.name}>
+              <SelectItem key={category.category_catalog_id} value={category.name}>
                 <div className="flex items-center space-x-2">
                   <Layers className="w-4 h-4 text-gray-500" />
                   <span>{category.name}</span>
@@ -231,12 +202,9 @@ const QuestionForm: React.FC<{
       {/* Weight and Order */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label
-            htmlFor="weight"
-            className="text-sm font-medium text-gray-700 flex items-center space-x-1"
-          >
+          <Label htmlFor="weight" className="text-sm font-medium text-gray-700 flex items-center space-x-1">
             <Target className="w-4 h-4" />
-            <span>{t("manageQuestions.weightLabel")}</span>
+            <span>{t('manageQuestions.weightLabel')}</span>
           </Label>
           <Input
             id="weight"
@@ -253,13 +221,11 @@ const QuestionForm: React.FC<{
             className="text-center"
             required
           />
-          <p className="text-xs text-gray-500">
-            Higher weight = more important
-          </p>
+          <p className="text-xs text-gray-500">Higher weight = more important</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="order" className="text-sm font-medium text-gray-700">
-            {t("manageQuestions.displayOrder")}
+            {t('manageQuestions.displayOrder')}
           </Label>
           <Input
             id="order"
@@ -290,11 +256,11 @@ const QuestionForm: React.FC<{
         >
           Cancel
         </Button>
-        <Button
-          type="submit"
+      <Button
+        type="submit"
           className="flex-1 bg-blue-600 hover:bg-blue-700"
-          disabled={isPending}
-        >
+        disabled={isPending}
+      >
           {isPending ? (
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -303,12 +269,10 @@ const QuestionForm: React.FC<{
           ) : (
             <div className="flex items-center space-x-2">
               <Sparkles className="w-4 h-4" />
-              <span>
-                {editingQuestion ? "Update Question" : "Create Question"}
-              </span>
+              <span>{editingQuestion ? 'Update Question' : 'Create Question'}</span>
             </div>
           )}
-        </Button>
+      </Button>
       </div>
     </form>
   );
@@ -318,14 +282,10 @@ export const ManageQuestions = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
-    undefined,
-  );
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [editingQuestion, setEditingQuestion] =
     useState<QuestionWithLatestRevision | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(),
-  );
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<QuestionFormData>({
     text: LANGUAGES.reduce(
       (acc, lang) => ({ ...acc, [lang.code]: "" }),
@@ -342,23 +302,20 @@ export const ManageQuestions = () => {
       try {
         // Clean up temporary questions
         const allQuestions = await offlineDB.getAllQuestions();
-        const tempQuestions = allQuestions.filter((q) =>
-          q.question_id.startsWith("temp_"),
-        );
-
+        const tempQuestions = allQuestions.filter(q => q.question_id.startsWith('temp_'));
+        
         for (const tempQuestion of tempQuestions) {
           await offlineDB.deleteQuestion(tempQuestion.question_id);
         }
-
+        
         // Clean up temporary categories
-        const allCategories = await offlineDB.getAllCategories();
-        const tempCategories = allCategories.filter((c) =>
-          c.category_id.startsWith("temp_"),
-        );
-
+        const allCategories = await offlineDB.getAllCategoryCatalogs();
+        const tempCategories = allCategories.filter(c => c.category_catalog_id.startsWith('temp_'));
+        
         for (const tempCategory of tempCategories) {
-          await offlineDB.deleteCategory(tempCategory.category_id);
+          await offlineDB.deleteCategoryCatalog(tempCategory.category_catalog_id);
         }
+        
       } catch (error) {
         // Silently handle cleanup errors
       }
@@ -367,37 +324,29 @@ export const ManageQuestions = () => {
     cleanupTemporaryItems();
   }, []);
 
-  // Use category catalog for categories (since offline categories is not implemented)
-  const {
-    data: categoryCatalogsData,
+  // Use offline hooks for all data fetching
+  const { 
+    data: categoriesData,
     isLoading: categoriesLoading,
-    error: categoriesError,
-  } = useCategoryCatalogs();
+    error: categoriesError
+  } = useOfflineCategoryCatalogs();
 
-  // Transform category catalogs to Category format for compatibility
-  const categories = (categoryCatalogsData?.category_catalogs || []).map(catalog => ({
-    category_id: catalog.category_catalog_id,
-    name: catalog.name,
-    weight: 0, // Default weight for catalog categories
-    order: 0, // Default order for catalog categories
-    template_id: catalog.template_id,
-    created_at: catalog.created_at,
-    updated_at: catalog.updated_at,
-  }));
+  const categories = categoriesData || [];
 
-  const {
+  const { 
     data: questionsData,
     isLoading: questionsLoading,
     refetch: refetchQuestions,
   } = useOfflineQuestions();
 
   // Cast the response to match the actual API structure
-  const questions = (questionsData?.questions ||
-    []) as QuestionWithLatestRevision[];
+  const questions: QuestionWithLatestRevision[] = useMemo(
+    () => (questionsData?.questions || []) as unknown as QuestionWithLatestRevision[],
+    [questionsData]
+  );
 
   // Use enhanced offline mutation hooks
-  const { createQuestion, updateQuestion, deleteQuestion, isPending } =
-    useOfflineQuestionsMutation();
+  const { createQuestion, updateQuestion, deleteQuestion, isPending } = useOfflineQuestionsMutation();
 
   function getErrorMessage(error: unknown): string {
     if (
@@ -415,21 +364,21 @@ export const ManageQuestions = () => {
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!formData.text.en.trim()) {
-        toast.error(t("manageQuestions.textRequired"));
+        toast.error(t('manageQuestions.textRequired'));
         return;
       }
       if (!formData.categoryName && !selectedCategory) {
-        toast.error(t("manageQuestions.categoryRequired"));
+        toast.error(t('manageQuestions.categoryRequired'));
         return;
       }
       if (formData.weight < 1 || formData.weight > 10) {
-        toast.error(t("manageQuestions.weightRangeError"));
+        toast.error(t('manageQuestions.weightRangeError'));
         return;
       }
-
+      
       // Use selected category if available, otherwise use form category
       const categoryName = selectedCategory || formData.categoryName;
-
+      
       // Remove empty language fields
       const text: Record<string, string> = {};
       for (const code of Object.keys(formData.text)) {
@@ -437,7 +386,7 @@ export const ManageQuestions = () => {
           text[code] = formData.text[code].trim();
         }
       }
-
+      
       if (editingQuestion) {
         const updateBody: UpdateQuestionRequest = {
           category: categoryName,
@@ -446,7 +395,7 @@ export const ManageQuestions = () => {
         };
         await updateQuestion(editingQuestion.question_id, updateBody, {
           onSuccess: () => {
-            toast.success(t("manageQuestions.updateSuccess"));
+            toast.success(t('manageQuestions.updateSuccess'));
             refetchQuestions();
             setIsDialogOpen(false);
             setEditingQuestion(null);
@@ -462,7 +411,7 @@ export const ManageQuestions = () => {
         };
         await createQuestion(createBody, {
           onSuccess: () => {
-            toast.success(t("manageQuestions.createSuccess"));
+            toast.success(t('manageQuestions.createSuccess'));
             refetchQuestions();
             setIsDialogOpen(false);
             setSelectedCategory(undefined);
@@ -471,37 +420,23 @@ export const ManageQuestions = () => {
         });
       }
     },
-    [
-      formData,
-      editingQuestion,
-      selectedCategory,
-      createQuestion,
-      updateQuestion,
-      refetchQuestions,
-      setIsDialogOpen,
-      setEditingQuestion,
-      setSelectedCategory,
-      t,
-    ],
+    [formData, editingQuestion, selectedCategory, createQuestion, updateQuestion, refetchQuestions, setIsDialogOpen, setEditingQuestion, setSelectedCategory, t],
   );
 
-  const handleAddQuestion = useCallback(
-    (categoryName: string) => {
-      setSelectedCategory(categoryName);
-      setEditingQuestion(null);
-      setFormData({
-        text: LANGUAGES.reduce(
-          (acc, lang) => ({ ...acc, [lang.code]: "" }),
-          {} as Record<string, string>,
-        ),
-        weight: 5,
-        categoryName: categoryName,
-        order: questions.filter((q) => q.category === categoryName).length + 1,
-      });
-      setIsDialogOpen(true);
-    },
-    [questions],
-  );
+  const handleAddQuestion = useCallback((categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setEditingQuestion(null);
+    setFormData({
+      text: LANGUAGES.reduce(
+        (acc, lang) => ({ ...acc, [lang.code]: "" }),
+        {} as Record<string, string>,
+      ),
+      weight: 5,
+      categoryName: categoryName,
+      order: questions.filter(q => q.category === categoryName).length + 1,
+    });
+    setIsDialogOpen(true);
+  }, [questions]);
 
   const handleEdit = useCallback((question: QuestionWithLatestRevision) => {
     setEditingQuestion(question);
@@ -525,11 +460,12 @@ export const ManageQuestions = () => {
 
   const handleDelete = useCallback(
     async (questionId: string) => {
-      if (!window.confirm(t("manageQuestions.confirmDelete"))) return;
-
+      if (!window.confirm(t('manageQuestions.confirmDelete')))
+        return;
+      
       await deleteQuestion(questionId, {
         onSuccess: () => {
-          toast.success(t("manageQuestions.deleteSuccess"));
+          toast.success(t('manageQuestions.deleteSuccess'));
           refetchQuestions();
         },
         onError: (error: unknown) => toast.error(getErrorMessage(error)),
@@ -545,7 +481,7 @@ export const ManageQuestions = () => {
   }, []);
 
   const toggleCategoryExpansion = useCallback((categoryName: string) => {
-    setExpandedCategories((prev) => {
+    setExpandedCategories(prev => {
       const newSet = new Set(prev);
       if (newSet.has(categoryName)) {
         newSet.delete(categoryName);
@@ -560,10 +496,7 @@ export const ManageQuestions = () => {
     (categoryName: string) => {
       return questions
         .filter((q: QuestionWithLatestRevision) => q.category === categoryName)
-        .sort(
-          (a, b) =>
-            (a.latest_revision?.weight || 0) - (b.latest_revision?.weight || 0),
-        );
+        .sort((a, b) => (a.latest_revision?.weight || 0) - (b.latest_revision?.weight || 0));
     },
     [questions],
   );
@@ -591,20 +524,14 @@ export const ManageQuestions = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
                 <BookOpen className="w-8 h-8 text-red-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Failed to Load Categories
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {t("manageQuestions.categoriesLoadError")}
-              </p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Categories</h3>
+              <p className="text-gray-600 mb-6">{t('manageQuestions.categoriesLoadError')}</p>
               <Button
-                onClick={() =>
-                  queryClient.invalidateQueries({ queryKey: ["categories"] })
-                }
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["categories"] })}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 <Settings className="w-4 h-4 mr-2" />
-                {t("manageQuestions.retry")}
+                {t('manageQuestions.retry')}
               </Button>
             </div>
           </div>
@@ -623,9 +550,7 @@ export const ManageQuestions = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                 <BookOpen className="w-8 h-8 text-gray-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No Questions Available
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Questions Available</h3>
               <p className="text-gray-600">No questions data available.</p>
             </div>
           </div>
@@ -636,7 +561,7 @@ export const ManageQuestions = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header Section */}
           <div className="mb-8">
@@ -655,10 +580,10 @@ export const ManageQuestions = () => {
                 <BookOpen className="w-8 h-8 text-blue-600" />
               </div>
               <h1 className="text-4xl font-bold text-gray-900 mb-3">
-                {t("manageQuestions.title")}
+                {t('manageQuestions.title')}
               </h1>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                {t("manageQuestions.subtitle")}
+                {t('manageQuestions.subtitle')}
               </p>
             </div>
           </div>
@@ -668,12 +593,9 @@ export const ManageQuestions = () => {
             {categories.map((category) => {
               const categoryQuestions = getQuestionsByCategory(category.name);
               const questionCount = categoryQuestions.length;
-
+              
               return (
-                <Card
-                  key={category.category_id}
-                  className="overflow-hidden border shadow-lg bg-white"
-                >
+                <Card key={category.category_catalog_id} className="overflow-hidden border shadow-lg bg-white">
                   <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
@@ -685,12 +607,8 @@ export const ManageQuestions = () => {
                             {category.name}
                           </CardTitle>
                           <div className="flex items-center space-x-3 mt-1">
-                            <Badge
-                              variant="secondary"
-                              className="bg-blue-100 text-blue-800"
-                            >
-                              {questionCount}{" "}
-                              {questionCount === 1 ? "Question" : "Questions"}
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                              {questionCount} {questionCount === 1 ? 'Question' : 'Questions'}
                             </Badge>
                             <span className="text-sm text-gray-500">
                               Weight: {category.weight}
@@ -711,28 +629,25 @@ export const ManageQuestions = () => {
                             <ChevronRight className="w-4 h-4" />
                           )}
                         </Button>
-                        <Button
+                  <Button
                           onClick={() => handleAddQuestion(category.name)}
                           className="bg-blue-600 hover:bg-blue-700 text-white"
                           size="sm"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
                           Add Question
-                        </Button>
+                  </Button>
                       </div>
                     </div>
-                  </CardHeader>
-
+            </CardHeader>
+                  
                   <CardContent className="p-0">
                     {expandedCategories.has(category.name) && (
                       <>
                         {questionCount > 0 ? (
                           <div className="divide-y divide-gray-100">
                             {categoryQuestions.map((question, index) => (
-                              <div
-                                key={question.question_id}
-                                className="p-6 hover:bg-gray-50 transition-colors"
-                              >
+                              <div key={question.question_id} className="p-6 hover:bg-gray-50 transition-colors">
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-start space-x-3">
@@ -740,23 +655,16 @@ export const ManageQuestions = () => {
                                         {index + 1}
                                       </div>
                                       <div className="flex-1">
-                                        <QuestionText question={question} />
+                                      <QuestionText question={question} />
                                         <div className="flex items-center space-x-4 mt-3">
-                                          <Badge
-                                            variant="outline"
-                                            className="text-xs"
-                                          >
-                                            Weight:{" "}
-                                            {question.latest_revision?.weight ||
-                                              5}
+                                          <Badge variant="outline" className="text-xs">
+                                            Weight: {question.latest_revision?.weight || 5}
                                           </Badge>
                                           <span className="text-xs text-gray-500">
-                                            {new Date(
-                                              question.created_at,
-                                            ).toLocaleDateString()}
+                                            {new Date(question.created_at).toLocaleDateString()}
                                           </span>
                                         </div>
-                                      </div>
+                                    </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center space-x-2 ml-4">
@@ -768,16 +676,14 @@ export const ManageQuestions = () => {
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Button>
-                                    <Button
+                                        <Button
                                       variant="ghost"
-                                      size="sm"
-                                      onClick={() =>
-                                        handleDelete(question.question_id)
-                                      }
+                                          size="sm"
+                                      onClick={() => handleDelete(question.question_id)}
                                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
                                   </div>
                                 </div>
                               </div>
@@ -788,12 +694,8 @@ export const ManageQuestions = () => {
                             <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                               <FileText className="w-8 h-8 text-gray-400" />
                             </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                              No Questions Yet
-                            </h3>
-                            <p className="text-gray-500 mb-4">
-                              {t("manageQuestions.noQuestionsInCategory")}
-                            </p>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Questions Yet</h3>
+                            <p className="text-gray-500 mb-4">{t('manageQuestions.noQuestionsInCategory')}</p>
                             <Button
                               onClick={() => handleAddQuestion(category.name)}
                               className="bg-blue-600 hover:bg-blue-700"
@@ -807,22 +709,18 @@ export const ManageQuestions = () => {
                     )}
                   </CardContent>
                 </Card>
-              );
-            })}
-
-            {categories.length === 0 && (
+                  );
+                })}
+            
+                {categories.length === 0 && (
               <Card className="text-center py-12 border shadow-lg bg-white">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                   <BookOpen className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No Categories Available
-                </h3>
-                <p className="text-gray-500">
-                  {t("manageQuestions.noCategories")}
-                </p>
+                  </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories Available</h3>
+                <p className="text-gray-500">{t('manageQuestions.noCategories')}</p>
               </Card>
-            )}
+                )}
           </div>
         </div>
       </div>
@@ -832,9 +730,7 @@ export const ManageQuestions = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="sr-only">
-              {editingQuestion
-                ? t("manageQuestions.editQuestion")
-                : t("manageQuestions.addNewQuestion")}
+              {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
             </DialogTitle>
           </DialogHeader>
           <QuestionForm
@@ -860,16 +756,14 @@ const QuestionText = ({
 }) => {
   const { t } = useTranslation();
   if (!question.latest_revision || !question.latest_revision.text) {
-    return <em className="text-gray-500">{t("manageQuestions.noText")}</em>;
+    return <em className="text-gray-500">{t('manageQuestions.noText')}</em>;
   }
 
   const text = question.latest_revision.text;
-  const languages = Object.keys(text).filter(
-    (lang) => text[lang] && text[lang].trim(),
-  );
+  const languages = Object.keys(text).filter(lang => text[lang] && text[lang].trim());
 
   if (languages.length === 0) {
-    return <em className="text-gray-500">{t("manageQuestions.noText")}</em>;
+    return <em className="text-gray-500">{t('manageQuestions.noText')}</em>;
   }
 
   return (
@@ -884,28 +778,24 @@ const QuestionText = ({
           <p className="text-gray-900 leading-relaxed">{text.en}</p>
         </div>
       )}
-
+      
       {/* Other languages */}
-      {languages
-        .filter((lang) => lang !== "en")
-        .map((lang) => {
-          const langText = text[lang];
-          if (!langText) return null;
+      {languages.filter(lang => lang !== 'en').map((lang) => {
+        const langText = text[lang];
+        if (!langText) return null;
 
-          const langInfo = LANGUAGES.find((l) => l.code === lang);
+        const langInfo = LANGUAGES.find(l => l.code === lang);
 
-          return (
-            <div key={lang} className="space-y-1">
-              <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
-                <span>{langInfo?.flag || "🌐"}</span>
-                <span>{langInfo?.name || lang}</span>
-              </span>
-              <p className="text-gray-700 leading-relaxed text-sm">
-                {langText}
-              </p>
-            </div>
-          );
-        })}
+        return (
+          <div key={lang} className="space-y-1">
+            <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
+              <span>{langInfo?.flag || '🌐'}</span>
+              <span>{langInfo?.name || lang}</span>
+            </span>
+            <p className="text-gray-700 leading-relaxed text-sm">{langText}</p>
+          </div>
+        );
+      })}
     </div>
   );
 };

@@ -8,9 +8,9 @@ import { Welcome } from "../pages/HomePage";
 import { ROLES } from "@/constants/roles";
 import { ManageCategories } from "../pages/admin/ManageCategories";
 import { ManageQuestions } from "../pages/admin/ManageQuestions";
-import ReviewAssessments from "../pages/user/ReviewAssessments";
+// import ReviewAssessments from "../pages/user/ReviewAssessments";
 import AdminActionPlans from "../pages/admin/AdminActionPlans";
-import { Assessment } from "../pages/user/Assesment";
+// import { Assessment } from "../pages/user/Assesment";
 import { AssessmentList } from "../pages/user/AssessmentList";
 import { Assessments } from "../pages/user/Assessments";
 import { ActionPlan } from "../pages/user/ActionPlan";
@@ -55,15 +55,15 @@ const routes = [
   },
 
   // Assessment routes - require org_admin or Org_User role
-  {
-    path: "/assessment",
-    element: React.createElement(ProtectedRoute, { 
-      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
-    }),
-    children: [
-      { path: "sustainability", element: React.createElement(Assessment) },
-    ],
-  },
+  // {
+  //   path: "/assessment",
+  //   element: React.createElement(ProtectedRoute, { 
+  //     allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+  //   }),
+  //   children: [
+  //     { path: "sustainability", element: React.createElement(Assessment) },
+  //   ],
+  // },
 
   // User assessment routes - require org_admin or Org_User role
   {
@@ -72,12 +72,12 @@ const routes = [
       allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
     }),
     children: [
-      { path: "assessment/:assessmentId", element: React.createElement(Assessment) },
+      // { path: "assessment/:assessmentId", element: React.createElement(Assessment) },
       { path: "assessment-list", element: React.createElement(AssessmentList) },
       { path: "draft-submissions", element: React.createElement(DraftSubmissions) },
       { path: "manage-users", element: React.createElement(OrgUserManageUsers) },
       { path: "guide", element: React.createElement(UserGuide) },
-      { path: "reviews", element: React.createElement(ReviewAssessments) },
+      // { path: "reviews", element: React.createElement(ReviewAssessments) },
     ],
   },
 

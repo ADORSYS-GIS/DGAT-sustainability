@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
 import {
   useOfflineAdminSubmissions,
-  useOfflineCategories,
   useOfflineOrganizations,
   useOfflineQuestions
 } from "@/hooks/useOfflineApi";
@@ -16,6 +15,7 @@ import {
   TrendingUp,
   Users
 } from "lucide-react";
+import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -166,8 +166,8 @@ export const AdminDashboard: React.FC = () => {
   const [questionCount, setQuestionCount] = useState<number>(0);
 
   // Fetch categories count from offline data
-  const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategories();
-  const categoryCount = categoriesData?.categories?.length || 0;
+  const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategoryCatalogs();
+  const categoryCount = categoriesData?.length || 0;
 
   // Fetch questions count from offline data
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();

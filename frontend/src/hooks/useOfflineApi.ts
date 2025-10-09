@@ -8,7 +8,6 @@ import { offlineDB } from "../services/indexeddb";
 import { apiInterceptor } from "../services/apiInterceptor";
 import {
   QuestionsService,
-  CategoriesService,
   AssessmentsService,
   ResponsesService,
   SubmissionsService,
@@ -18,18 +17,15 @@ import {
   AdminService
 } from "@/openapi-rq/requests/services.gen";
 import type { 
-  Question, 
-  Category, 
-  Assessment, 
-  Response, 
+  Question,
+  Assessment,
+  Response,
   Submission,
   Report,
   Organization,
   OrganizationMember,
   CreateQuestionRequest,
   UpdateQuestionRequest,
-  CreateCategoryRequest,
-  UpdateCategoryRequest,
   CreateAssessmentRequest,
   UpdateAssessmentRequest,
   CreateResponseRequest,
@@ -44,7 +40,6 @@ import type {
 } from "@/openapi-rq/requests/types.gen";
 import type {
   OfflineQuestion,
-  OfflineCategory,
   OfflineAssessment,
   OfflineResponse,
   OfflineSubmission,
@@ -300,248 +295,6 @@ export function useOfflineQuestionsMutation() {
   }, []);
 
   return { createQuestion, updateQuestion, deleteQuestion, isPending };
-}
-
-// ===== CATEGORIES =====
-
-export function useOfflineCategories() {
-  const [data, setData] = useState<{ categories: Category[] }>({ categories: [] });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const result = await apiInterceptor.interceptGet(
-        () => CategoriesService.getCategories(),
-        async () => {
-          console.log('🔍 useOfflineCategories: Using offline fallback');
-          const categories = await offlineDB.getAllCategories();
-          console.log(`🔍 useOfflineCategories: Found ${categories.length} categories in IndexedDB`);
-          
-          // Transform OfflineCategory to Category format
-          const transformedCategories = categories.map(cat => ({
-            category_id: cat.category_id,
-            name: cat.name,
-            weight: cat.weight,
-            order: cat.order,
-            template_id: cat.template_id,
-            created_at: cat.created_at,
-            updated_at: cat.updated_at
-          }));
-          
-          return { categories: transformedCategories };
-        },
-        'categories'
-      );
-
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch categories'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return { data, isLoading, error, refetch: fetchData };
-}
-
-export function useOfflineCategoriesMutation() {
-  const [isPending, setIsPending] = useState(false);
-  const queryClient = useQueryClient();
-
-  const createCategory = useCallback(async (
-    category: CreateCategoryRequest,
-    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
-  ) => {
-    try {
-      setIsPending(true);
-
-      const tempId = `temp_${crypto.randomUUID()}`;
-      const now = new Date().toISOString();
-
-      const tempCategoryForTransform: Category = {
-        category_id: tempId,
-        name: category.name,
-        weight: category.weight,
-        order: category.order,
-        template_id: category.template_id,
-        created_at: now,
-        updated_at: now,
-      };
-
-      const offlineCategory = DataTransformationService.transformCategory(tempCategoryForTransform);
-      offlineCategory.sync_status = 'pending';
-      offlineCategory.local_changes = true;
-
-      // Save the temporary category locally first for immediate UI feedback
-      await offlineDB.saveCategory(offlineCategory);
-
-      const result = await apiInterceptor.interceptMutation(
-        () => CategoriesService.postCategories({ requestBody: category }),
-        async (data: Record<string, unknown>) => {
-          // This function is called by interceptMutation to save data locally
-          // For create operations, we DON'T save here since we already saved above
-          // The API response will be handled by updateLocalData
-        },
-        category as Record<string, unknown>,
-        'categories',
-        'create'
-      );
-
-      // Check if this is a valid API response (has category property) or request data (offline)
-      if (result && typeof result === 'object' && 'category' in result) {
-        // This is a valid API response - the category was created successfully
-        
-        // Delete the temporary category and save the real one
-        await offlineDB.deleteCategory(tempId);
-        
-        // The real category should be saved by updateLocalData in interceptMutation
-        options?.onSuccess?.(result);
-      } else {
-        // This is request data (offline scenario) - still call onSuccess for immediate feedback
-        options?.onSuccess?.(result);
-      }
-
-      // Invalidate and refetch categories data to update UI
-      await invalidateAndRefetch(queryClient, ["categories"]);
-
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to create category');
-      console.error('❌ createCategory error:', error);
-      options?.onError?.(error);
-      // Don't throw the error since we've already called onError callback
-    } finally {
-      setIsPending(false);
-    }
-  }, []);
-
-  const updateCategory = useCallback(async (
-    categoryId: string,
-    category: UpdateCategoryRequest,
-    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
-  ) => {
-    try {
-      setIsPending(true);
-
-      const now = new Date().toISOString();
-
-      const tempCategoryForTransform: Category = {
-        category_id: categoryId,
-        name: category.name,
-        weight: category.weight,
-        order: category.order,
-        template_id: '', // Default template_id since it's not in UpdateCategoryRequest
-        created_at: now,
-        updated_at: now,
-      };
-
-      const offlineCategory = DataTransformationService.transformCategory(tempCategoryForTransform);
-      offlineCategory.sync_status = 'pending';
-      offlineCategory.local_changes = true;
-
-      // Update the category locally first for immediate UI feedback
-      await offlineDB.saveCategory(offlineCategory);
-
-      const result = await apiInterceptor.interceptMutation(
-        () => CategoriesService.putCategoriesByCategoryId({ categoryId, requestBody: category }),
-        async (data: Record<string, unknown>) => {
-          // This function is called by interceptMutation to save data locally
-          // For update operations, we DON'T save here since we already saved above
-          // The API response will be handled by updateLocalData
-        },
-        category as Record<string, unknown>,
-        'categories',
-        'update'
-      );
-
-      // Check if this is a valid API response or request data (offline)
-      if (result && typeof result === 'object' && 'category' in result) {
-        // This is a valid API response - the category was updated successfully
-        options?.onSuccess?.(result);
-      } else {
-        // This is request data (offline scenario) - still call onSuccess for immediate feedback
-        options?.onSuccess?.(result);
-      }
-
-      // Invalidate and refetch categories data to update UI
-      await invalidateAndRefetch(queryClient, ["categories"]);
-
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to update category');
-      console.error('❌ updateCategory error:', error);
-      options?.onError?.(error);
-      // Don't throw the error since we've already called onError callback
-    } finally {
-      setIsPending(false);
-    }
-  }, []);
-
-  const deleteCategory = useCallback(async (
-    categoryId: string,
-    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
-  ) => {
-    try {
-      setIsPending(true);
-
-      // Get the category name before deleting it
-      const categories = await offlineDB.getAllCategories();
-      const categoryToDelete = categories.find(cat => cat.category_id === categoryId);
-      
-      if (!categoryToDelete) {
-        throw new Error('Category not found');
-      }
-
-      // Get all questions in this category
-      const questions = await offlineDB.getAllQuestions();
-      const questionsInCategory = questions.filter(q => q.category === categoryToDelete.name);
-
-      const result = await apiInterceptor.interceptMutation(
-        () => CategoriesService.deleteCategoriesByCategoryId({ categoryId }).then(() => ({ success: true })),
-        async (data: Record<string, unknown>) => {
-          // Delete all questions in this category first
-          for (const question of questionsInCategory) {
-            // Delete the question (revisions are stored as part of the question object)
-            await offlineDB.deleteQuestion(question.question_id);
-          }
-
-          // Delete the category locally
-          await offlineDB.deleteCategory(categoryId);
-        },
-        { categoryId } as Record<string, unknown>,
-        'categories',
-        'delete'
-      );
-
-      options?.onSuccess?.(result);
-
-      // Invalidate and refetch categories data to update UI
-      await invalidateAndRefetch(queryClient, ["categories"]);
-
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to delete category');
-      console.error('❌ deleteCategory error:', error);
-      options?.onError?.(error);
-      // Don't throw the error since we've already called onError callback
-    } finally {
-      setIsPending(false);
-    }
-  }, []);
-
-  return {
-    createCategory: { mutate: createCategory, isPending },
-    updateCategory: { mutate: updateCategory, isPending },
-    deleteCategory: { mutate: deleteCategory, isPending }
-  };
 }
 
 // ===== ASSESSMENTS =====

@@ -1,8 +1,4 @@
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -11,106 +7,128 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { Plus, Edit, Trash2, List, Info } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  useOfflineSyncStatus
+} from "@/hooks/useOfflineApi";
+import { useOfflineCategoryCatalogs, useOfflineCategoryCatalogsMutation } from "@/hooks/useCategoryCatalogs";
+import { Edit, Plus, Trash2 } from "lucide-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useCategoryCatalogs,
-  useCreateCategoryCatalog,
-  useDeleteCategoryCatalog,
-} from "@/hooks/useOrganizationCategories";
-import {
-  CategoryCatalog,
-  CreateCategoryCatalogRequest,
-} from "@/types/organization-categories";
+import { toast } from "sonner";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
+
+import { OfflineCategoryCatalog } from "@/types/offline";
+
+interface ApiError {
+  message?: string;
+  detail?: string;
+}
 
 export const ManageCategories: React.FC = () => {
   const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<CategoryCatalog | null>(null);
+  const [editingCategory, setEditingCategory] = useState<OfflineCategoryCatalog | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
   });
+  // State for add/edit dialog weight error
+  const [showDialogWeightError, setShowDialogWeightError] = useState(false);
 
-  // Use category catalog hooks
-  const { data: categoryCatalogsData, isLoading, error, refetch } = useCategoryCatalogs();
-  const createCategoryCatalogMutation = useCreateCategoryCatalog();
-  const deleteCategoryCatalogMutation = useDeleteCategoryCatalog();
+  // Use offline hooks for all data fetching
+  const { data: categoriesData, isLoading, error, refetch } = useOfflineCategoryCatalogs();
 
-  const categoryCatalogs = categoryCatalogsData?.category_catalogs || [];
+  const categories = categoriesData || [];
+
+  // Use enhanced offline mutation hooks
+  const mutationHooks = useOfflineCategoryCatalogsMutation();
+  const createOrUpdateCategory = mutationHooks.createOrUpdate;
+  const deleteCategory = mutationHooks.delete;
+  const isPending = mutationHooks.isCreatingOrUpdating || mutationHooks.isDeleting;
+
+  const { isOnline } = useOfflineSyncStatus();
+
+  // Use categories as is (no sorting needed)
+  const sortedCategories = [...categories];
+
+  // Calculate total weight
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim()) {
-      toast.error("Category name is required");
-      return;
-    }
-
     if (editingCategory) {
-      // TODO: Implement update functionality when backend supports it
-      toast.info("Update functionality will be implemented in the next phase");
-      return;
+      // Update existing category
+      await createOrUpdateCategory({
+        ...editingCategory,
+        name: formData.name,
+        description: formData.description,
+      }, {
+        onSuccess: () => {
+          toast.success(t('manageCategories.updateSuccess', { defaultValue: 'Category updated successfully' }));
+          setIsDialogOpen(false);
+          setEditingCategory(null);
+          setFormData({ name: "", description: "" });
+          refetch();
+        },
+        onError: (error) => {
+          toast.error(t('manageCategories.updateError', { defaultValue: 'Failed to update category' }));
+        }
+      });
     } else {
-      // Create new category catalog entry
-      const request: CreateCategoryCatalogRequest = {
-        name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
+      // Create new category
+      await createOrUpdateCategory({
+        name: formData.name,
+        description: formData.description,
         template_id: SUSTAINABILITY_TEMPLATE_ID,
-      };
-
-      try {
-        await createCategoryCatalogMutation.mutateAsync(request);
-        setIsDialogOpen(false);
-        setFormData({ name: "", description: "" });
-      } catch (error) {
-        // Error is handled by the mutation hook
-      }
+        is_active: true,
+      } as OfflineCategoryCatalog, {
+        onSuccess: () => {
+          toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
+          setIsDialogOpen(false);
+          setFormData({ name: "", description: "" });
+          refetch();
+        },
+        onError: (error) => {
+          toast.error(t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
+        }
+      });
     }
   };
 
-  const handleEdit = (category: CategoryCatalog) => {
+  const handleEdit = (category: OfflineCategoryCatalog) => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
-      description: category.description || "",
+      description: category.description ?? "",
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (categoryId: string, categoryName?: string) => {
-    if (
-      !window.confirm(
-        t("manageCategories.confirmDelete", {
-          defaultValue:
-            "Are you sure you want to delete this category? This will remove it from the catalog and may affect organizations that use it.",
-        }),
-      )
-    )
+  const handleDelete = async (categoryId: string) => {
+    if (!window.confirm(t('manageCategories.confirmDelete', { 
+      defaultValue: 'Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.' 
+    })))
       return;
-
-    try {
-      // We delete by name → map to real category id server-side
-      const nameToDelete = categoryName || categoryCatalogs.find(c => c.category_catalog_id === categoryId)?.name || "";
-      await deleteCategoryCatalogMutation.mutateAsync({ id: categoryId, name: nameToDelete });
-    } catch (error) {
-      // handled in mutation
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({ name: "", description: "" });
-    setEditingCategory(null);
+    
+    await deleteCategory(categoryId, {
+      onSuccess: () => {
+        toast.success(t('manageCategories.deleteSuccess', { defaultValue: 'Category deleted successfully' }));
+        refetch();
+      },
+      onError: (error) => {
+        toast.error(t('manageCategories.deleteError', { defaultValue: 'Failed to delete category' }));
+      }
+    });
   };
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">Loading categories...</div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="pt-20 pb-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
       </div>
     );
@@ -118,196 +136,173 @@ export const ManageCategories: React.FC = () => {
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-red-500">Error loading categories: {error.message}</div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="pt-20 pb-8 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">
+              {t('manageCategories.loadError', { defaultValue: 'Error Loading Categories' })}
+            </h2>
+            <p className="text-gray-600 mb-4">
+              {error instanceof Error ? error.message : t('manageCategories.unknownError', { defaultValue: 'An unknown error occurred' })}
+            </p>
+            <Button
+              onClick={() => refetch()}
+              className="bg-dgrv-blue hover:bg-blue-700"
+            >
+              {t('manageCategories.retry', { defaultValue: 'Retry' })}
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 pt-24">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {t("manageCategories.title", { defaultValue: "Manage Categories" })}
-          </h1>
-          <p className="text-gray-600 mt-2">
-            {t("manageCategories.subtitle", {
-              defaultValue: "Manage the category catalog. Categories can be assigned to organizations with custom weights.",
-            })}
-          </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={resetForm}
-              className="bg-dgrv-green hover:bg-green-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {t("manageCategories.addCategory", { defaultValue: "Add Category" })}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingCategory
-                  ? t("manageCategories.editCategory", { defaultValue: "Edit Category" })
-                  : t("manageCategories.addCategory", { defaultValue: "Add Category" })}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">
-                  {t("manageCategories.name", { defaultValue: "Name" })}{" "}
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder={t("manageCategories.namePlaceholder", {
-                    defaultValue: "Enter category name",
-                  })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">
-                  {t("manageCategories.description", { defaultValue: "Description" })}
-                </Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder={t("manageCategories.descriptionPlaceholder", {
-                    defaultValue: "Enter category description (optional)",
-                  })}
-                  rows={3}
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  {t("manageCategories.cancel", { defaultValue: "Cancel" })}
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createCategoryCatalogMutation.isPending}
-                >
-                  {editingCategory
-                    ? t("manageCategories.update", { defaultValue: "Update" })
-                    : t("manageCategories.create", { defaultValue: "Create" })}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Info Card */}
-      <Card className="mb-6 border-blue-200 bg-blue-50">
-        <CardContent className="pt-6">
-          <div className="flex items-start space-x-3">
-            <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-blue-900">
-                {t("manageCategories.infoTitle", { defaultValue: "Category Catalog" })}
-              </h3>
-              <p className="text-blue-700 text-sm mt-1">
-                {t("manageCategories.infoDescription", {
-                  defaultValue:
-                    "This is the master catalog of available categories. Organizations can select from these categories and assign custom weights to them. Weights are managed at the organization level, not here.",
-                })}
-              </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Offline Status Indicator */}
+          <div className="mb-4 flex items-center justify-end">
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+              isOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                isOnline ? 'bg-green-500' : 'bg-yellow-500'
+              }`}></div>
+              <span>{isOnline ? 'Online' : 'Offline'}</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Categories Compact Table */}
-      {categoryCatalogs.length > 0 ? (
-        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category Name
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {categoryCatalogs.map((category) => (
-                  <tr key={category.category_catalog_id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8 bg-dgrv-blue/10 rounded-full flex items-center justify-center">
-                          <List className="h-4 w-4 text-dgrv-blue" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{category.name}</div>
-                          {category.description && (
-                            <div className="text-sm text-gray-500">{category.description}</div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEdit(category)}
-                          className="text-dgrv-blue hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(category.category_catalog_id, category.name)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
+          <div className="mb-8 animate-fade-in">
+            <div className="mb-4">
+              <h1 className="text-3xl font-bold text-dgrv-blue mb-6">
+                {t('manageCategories.title')}
+              </h1>
+            </div>
+            <p className="text-lg text-gray-600">
+              {t('manageCategories.configureCategories')}
+            </p>
+          </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{t('manageCategories.categories')}</CardTitle>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="bg-dgrv-blue hover:bg-blue-700"
+                    onClick={() => {
+                      setEditingCategory(null);
+                      setFormData({
+                        name: "",
+                        description: "",
+                      });
+                      setShowDialogWeightError(false);
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t('manageCategories.addCategory')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingCategory ? t('manageCategories.editCategory') : t('manageCategories.addCategory')}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">{t('manageCategories.categoryName')}</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        placeholder={t('manageCategories.categoryNamePlaceholder')}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="description">{t('manageCategories.categoryDescription')}</Label>
+                      <Input
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                        placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full bg-dgrv-blue hover:bg-blue-700"
+                      disabled={isPending}
+                    >
+                      {isPending
+                        ? t('manageCategories.saving', { defaultValue: 'Saving...' })
+                        : editingCategory 
+                          ? t('manageCategories.updateCategory') 
+                          : t('manageCategories.createCategory')}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {sortedCategories.map((category) => (
+                  <div
+                    key={category.category_catalog_id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
+                    <div>
+                      <h3 className="font-medium text-lg">{category.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {category.description}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(category)}
+                        disabled={isPending}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(category.category_catalog_id)}
+                        className="text-red-600 hover:text-red-700"
+                        disabled={isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                {/* Show error and redistribute button if needed */}
+                {sortedCategories.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>
+                      {t('manageCategories.noCategoriesYet')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-            <List className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {t("manageCategories.noCategories", { defaultValue: "No categories yet" })}
-          </h3>
-          <p className="text-gray-600 mb-6">
-            {t("manageCategories.getStarted", {
-              defaultValue: "Create your first category to get started. Categories can then be assigned to organizations with custom weights.",
-            })}
-          </p>
-          <Button
-            onClick={() => setIsDialogOpen(true)}
-            className="bg-dgrv-green hover:bg-green-700"
-          >
-            {t("manageCategories.addFirstCategory", { defaultValue: "Add First Category" })}
-          </Button>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

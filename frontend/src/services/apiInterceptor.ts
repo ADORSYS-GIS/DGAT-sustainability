@@ -10,8 +10,8 @@ import { DataTransformationService } from "./dataTransformation";
 import { syncService } from "./syncService";
 import type { 
   Question,
-  QuestionRevision, 
-  Category,
+  QuestionRevision,
+  CategoryCatalog,
   Assessment,
   Response,
   Submission,
@@ -21,8 +21,8 @@ import type {
   OrganizationInvitation,
   CreateQuestionRequest,
   UpdateQuestionRequest,
-  CreateCategoryRequest,
-  UpdateCategoryRequest,
+  CreateCategoryCatalogRequest,
+  UpdateCategoryCatalogRequest,
   CreateAssessmentRequest,
   UpdateAssessmentRequest,
   CreateResponseRequest,
@@ -238,12 +238,18 @@ export class ApiInterceptor {
             }
           }
           break;
-        case 'categories':
-          if (data.categories && Array.isArray(data.categories)) {
-            for (const category of data.categories as Category[]) {
-              const offlineCategory = DataTransformationService.transformCategory(category);
-              await offlineDB.saveCategory(offlineCategory);
+        case 'category_catalogs':
+          if (data.category_catalogs && Array.isArray(data.category_catalogs)) {
+            for (const catalog of data.category_catalogs as CategoryCatalog[]) {
+              const offlineCatalog = DataTransformationService.transformCategoryCatalog(catalog);
+              await offlineDB.saveCategoryCatalog(offlineCatalog);
             }
+          }
+          break;
+        case 'category_catalog':
+          if (data) {
+            const offlineCatalog = DataTransformationService.transformCategoryCatalog(data as unknown as CategoryCatalog);
+            await offlineDB.saveCategoryCatalog(offlineCatalog);
           }
           break;
         case 'assessments':
@@ -356,7 +362,7 @@ export class ApiInterceptor {
     try {
       const queueItem: SyncQueueItem = {
         id: crypto.randomUUID(),
-        entity_type: (entityType === 'drafts_endpoint' || entityType === 'draft_submission' ? 'submission' : entityType) as 'submission' | 'assessment' | 'question' | 'category' | 'response' | 'report' | 'organization' | 'user' | 'invitation',
+        entity_type: (entityType === 'drafts_endpoint' || entityType === 'draft_submission' ? 'submission' : entityType) as 'submission' | 'assessment' | 'question' | 'category_catalog' | 'response' | 'report' | 'organization' | 'user' | 'invitation',
         operation,
         data,
         created_at: new Date().toISOString(),
@@ -381,8 +387,8 @@ export class ApiInterceptor {
     // High: assessments, responses (user work)
     if (entityType === 'assessments' || entityType === 'responses') return 'high';
     
-    // Normal: questions, categories (reference data)
-    if (entityType === 'questions' || entityType === 'categories') return 'normal';
+    // Normal: questions, category_catalogs (reference data)
+    if (entityType === 'questions' || entityType === 'category_catalogs') return 'normal';
     
     // Low: reports, organizations (admin data)
     return 'low';
@@ -478,53 +484,6 @@ export class ApiInterceptor {
         }
       }
 
-      // Scan categories table for pending items
-      const allCategories = await offlineDB.getAllCategories();
-      const pendingCategories = allCategories.filter(c => c.sync_status === 'pending');
-
-      for (const category of pendingCategories) {
-        try {
-          
-          // Skip if this is a temporary category that might have already been processed
-          if (category.category_id.startsWith('temp_')) {
-            continue;
-          }
-          
-          // Create the request data from the offline category
-          const categoryData = {
-            name: category.name,
-            weight: category.weight,
-            order: category.order,
-            template_id: category.template_id
-          };
-
-          const { CategoriesService } = await import('@/openapi-rq/requests/services.gen');
-          const response = await CategoriesService.postCategories({ requestBody: categoryData });
-          
-          if (response && typeof response === 'object' && 'category' in response) {
-            const realCategory = (response as { category: { category_id: string } }).category;
-            const realCategoryId = realCategory.category_id;
-            
-            // Delete the temporary category first
-            await offlineDB.deleteCategory(category.category_id);
-            
-            // Check if a category with the same name already exists (to prevent duplicates)
-            const existingCategories = await offlineDB.getAllCategories();
-            const duplicateCategory = existingCategories.find(c => 
-              c.name === category.name && c.category_id !== category.category_id
-            );
-            if (duplicateCategory) {
-              console.warn('⚠️ Found duplicate category, deleting:', duplicateCategory.category_id);
-              await offlineDB.deleteCategory(duplicateCategory.category_id);
-            }
-            
-            successCount++;
-          }
-        } catch (error) {
-          console.error(`❌ Failed to sync category ${category.category_id}:`, error);
-          failureCount++;
-        }
-      }
 
       // Scan assessments table for pending items
       const allAssessments = await offlineDB.getAllAssessments();

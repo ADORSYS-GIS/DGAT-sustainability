@@ -1,10 +1,11 @@
 import { openDB, DBSchema, IDBPDatabase, deleteDB } from "idb";
+import { toast } from "sonner";
 import type {
   OfflineDatabaseSchema,
   OfflineQuestion,
   OfflineAssessment,
   OfflineResponse,
-  OfflineCategory,
+  OfflineCategoryCatalog,
   OfflineSubmission,
   OfflineReport,
   OfflineOrganization,
@@ -29,20 +30,27 @@ import type {
 class OfflineDB {
   private dbPromise: Promise<IDBPDatabase<OfflineDatabaseSchema>>;
   private readonly DB_NAME = "dgat-offline-db";
-  private readonly DB_VERSION = 5; // Increment DB_VERSION
+  private readonly DB_VERSION = 7; // Increment DB_VERSION to trigger upgrade
 
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
       upgrade: (db, oldVersion, newVersion) => {
-        
-        // Create all object stores with proper indexing
+        console.log(`Upgrading database from version ${oldVersion} to ${newVersion}`);
+        // The createObjectStores function is idempotent and will create any missing stores.
+        // Calling it on every upgrade is a safe way to ensure all stores are present.
         this.createObjectStores(db);
       },
       blocked: () => {
+        console.warn("IndexedDB upgrade is blocked. Please close other tabs.");
+        toast.warning("A database update is pending. Please close any other open tabs of this application.");
       },
       blocking: () => {
+        // This is on the old connection. The user will see the 'blocked' message in the new tab.
+        console.warn("This connection is blocking a database upgrade.");
       },
       terminated: () => {
+        console.error("IndexedDB connection was terminated.");
+        toast.error("Database connection was lost. Please refresh the page.");
       }
     });
   }
@@ -68,14 +76,14 @@ class OfflineDB {
       questionsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
-    // Categories store with indexes
-    if (!existingStores.includes("categories")) {
-      const categoriesStore = db.createObjectStore("categories", { keyPath: "category_id" });
-      categoriesStore.createIndex("template_id", "template_id", { unique: false });
-      categoriesStore.createIndex("sync_status", "sync_status", { unique: false });
-      categoriesStore.createIndex("updated_at", "updated_at", { unique: false });
+    // Category Catalogs store with indexes
+    if (!existingStores.includes("category_catalogs")) {
+      const categoryCatalogsStore = db.createObjectStore("category_catalogs", { keyPath: "category_catalog_id" });
+      categoryCatalogsStore.createIndex("template_id", "template_id", { unique: false });
+      categoryCatalogsStore.createIndex("sync_status", "sync_status", { unique: false });
+      categoryCatalogsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
-
+    
     // Assessments store with indexes
     if (!existingStores.includes("assessments")) {
       const assessmentsStore = db.createObjectStore("assessments", { keyPath: "assessment_id" });
@@ -321,42 +329,35 @@ class OfflineDB {
     await db.delete("responses", responseId);
   }
 
-  // ===== CATEGORIES =====
-  async saveCategory(category: OfflineCategory): Promise<string> {
+  // ===== CATEGORY CATALOGS =====
+  async saveCategoryCatalog(categoryCatalog: OfflineCategoryCatalog): Promise<string> {
     const db = await this.dbPromise;
-    const result = await db.put("categories", category);
+    const result = await db.put("category_catalogs", categoryCatalog);
     return result as string;
   }
-
-  async saveCategories(categories: OfflineCategory[]): Promise<void> {
+  
+  async saveCategoryCatalogs(categoryCatalogs: OfflineCategoryCatalog[]): Promise<void> {
     const db = await this.dbPromise;
-    const tx = db.transaction("categories", "readwrite");
-    await Promise.all(categories.map(c => tx.store.put(c)));
+    const tx = db.transaction("category_catalogs", "readwrite");
+    await Promise.all(categoryCatalogs.map(c => tx.store.put(c)));
     await tx.done;
   }
-
-  async getCategory(categoryId: string): Promise<OfflineCategory | undefined> {
+  
+  async getCategoryCatalog(categoryCatalogId: string): Promise<OfflineCategoryCatalog | undefined> {
     const db = await this.dbPromise;
-    return db.get("categories", categoryId);
+    return db.get("category_catalogs", categoryCatalogId);
   }
-
-  async getAllCategories(): Promise<OfflineCategory[]> {
+  
+  async getAllCategoryCatalogs(): Promise<OfflineCategoryCatalog[]> {
     const db = await this.dbPromise;
-    return db.getAll("categories");
+    return db.getAll("category_catalogs");
   }
-
-  async getCategoriesByTemplate(templateId: string): Promise<OfflineCategory[]> {
+  
+  async deleteCategoryCatalog(categoryCatalogId: string): Promise<void> {
     const db = await this.dbPromise;
-    const tx = db.transaction("categories", "readonly");
-    const index = tx.store.index("template_id");
-    return index.getAll(templateId);
+    await db.delete("category_catalogs", categoryCatalogId);
   }
-
-  async deleteCategory(categoryId: string): Promise<void> {
-    const db = await this.dbPromise;
-    await db.delete("categories", categoryId);
-  }
-
+  
   // ===== SUBMISSIONS =====
   async saveSubmission(submission: OfflineSubmission): Promise<string> {
     const db = await this.dbPromise;
@@ -659,7 +660,7 @@ class OfflineDB {
       questions,
       assessments,
       responses,
-      categories,
+      categoryCatalogs,
       submissions,
       reports,
       organizations,
@@ -671,7 +672,7 @@ class OfflineDB {
       db.getAll("questions"),
       db.getAll("assessments"),
       db.getAll("responses"),
-      db.getAll("categories"),
+      db.getAll("category_catalogs"),
       db.getAll("submissions"),
       db.getAll("reports"),
       db.getAll("organizations"),
@@ -685,7 +686,7 @@ class OfflineDB {
       questions_count: questions.length,
       assessments_count: assessments.length,
       responses_count: responses.length,
-      categories_count: categories.length,
+      categories_count: categoryCatalogs.length,
       submissions_count: submissions.length,
       reports_count: reports.length,
       organizations_count: organizations.length,

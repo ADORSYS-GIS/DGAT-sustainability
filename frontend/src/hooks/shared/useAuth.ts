@@ -31,7 +31,6 @@ export const useAuth = (): AuthHookState => {
   React.useEffect(() => {
     const updateAuthState = () => {
       const state = getAuthState();
-      console.log("Auth state updated:", state);
       setAuthState(state);
     };
 
@@ -46,10 +45,8 @@ export const useAuth = (): AuthHookState => {
 
       // Check if Keycloak is in the process of initializing
       if (keycloak.authenticated === undefined) {
-        console.log("Initializing Keycloak...");
         try {
-          const authResult = await initializeAuth();
-          console.log("Keycloak initialization result:", authResult);
+          await initializeAuth();
           // Setup token refresh after successful initialization
           setupTokenRefresh();
         } catch (error) {
@@ -70,18 +67,6 @@ export const useAuth = (): AuthHookState => {
 
     // Initialize and get initial state
     initializeKeycloak();
-
-    // Add a timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (authState.loading) {
-        console.warn("Authentication timeout - setting loading to false");
-        setAuthState(prev => ({ ...prev, loading: false }));
-      }
-    }, 15000); // 15 second timeout
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
 
     // Listen for Keycloak events
     const onTokenExpired = () => {

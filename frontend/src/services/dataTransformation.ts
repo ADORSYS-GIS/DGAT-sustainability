@@ -8,7 +8,6 @@ import type {
   Response,
   Submission,
   Report,
-  Category,
   Organization,
   OrganizationMember,
   OrganizationInvitation,
@@ -18,12 +17,13 @@ import type {
   RecommendationWithStatus, // Import RecommendationWithStatus
   OrganizationResponse // Import OrganizationResponse
 } from "@/openapi-rq/requests/types.gen";
+import type { CategoryCatalog } from "@/openapi-rq/requests/types.gen";
 
 import type {
   OfflineQuestion,
   OfflineAssessment,
   OfflineResponse,
-  OfflineCategory,
+  OfflineCategoryCatalog,
   OfflineSubmission,
   OfflineReport,
   OfflineOrganization,
@@ -59,21 +59,29 @@ export class DataTransformationService {
     };
   }
 
+
   /**
-   * Transform API Category to OfflineCategory
+   * Transform API CategoryCatalog to OfflineCategoryCatalog
    */
-  static transformCategory(category: Category): OfflineCategory {
+  static transformCategoryCatalog(categoryCatalog: CategoryCatalog): OfflineCategoryCatalog {
     const now = new Date().toISOString();
     
     return {
-      ...category,
+      ...categoryCatalog,
       question_count: 0, // Will be calculated when questions are loaded
-      is_active: true,
       updated_at: now,
       sync_status: 'synced' as const,
       local_changes: false,
       last_synced: now
     };
+  }
+
+  /**
+   * Transform OfflineCategoryCatalog to API CategoryCatalog
+   */
+  static transformOfflineCategoryCatalogToApi(offlineCategoryCatalog: OfflineCategoryCatalog): CategoryCatalog {
+    const { question_count, sync_status, local_changes, last_synced, ...categoryCatalog } = offlineCategoryCatalog;
+    return categoryCatalog;
   }
 
   /**
@@ -322,25 +330,6 @@ export class DataTransformationService {
   /**
    * Transform multiple questions with category information
    */
-  static transformQuestionsWithCategories(
-    questions: Question[],
-    categories: Category[],
-    userOrganizationId?: string
-  ): OfflineQuestion[] {
-    const categoryMap = new Map(categories.map(cat => [cat.name, cat]));
-    
-    return questions.map(question => {
-      const category = categoryMap.get(question.category);
-      const transformed = this.transformQuestion(question);
-      
-      // Add category-specific information if available
-      if (category) {
-        transformed.category_id = category.category_id;
-      }
-      
-      return transformed;
-    });
-  }
 
   /**
    * Transform assessments with user and organization information
@@ -565,10 +554,10 @@ export class DataTransformationService {
    * Calculate derived statistics for categories
    */
   static calculateCategoryStats(
-    category: OfflineCategory,
+    category: OfflineCategoryCatalog,
     questions: OfflineQuestion[]
-  ): OfflineCategory {
-    const categoryQuestions = questions.filter(question => question.category_id === category.category_id);
+  ): OfflineCategoryCatalog {
+    const categoryQuestions = questions.filter(question => question.category_id === category.category_catalog_id);
 
     return {
       ...category,

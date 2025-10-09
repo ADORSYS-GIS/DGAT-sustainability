@@ -383,6 +383,8 @@
     "editCategory": "Edit Category",
     "categoryName": "Category Name",
     "categoryNamePlaceholder": "Enter category name...",
+    "categoryDescription": "Category Description",
+    "categoryDescriptionPlaceholder": "Enter category description...",
     "weight": "Weight (%)",
     "displayOrder": "Display Order",
     "createCategory": "Create Category",

@@ -1,8 +1,6 @@
-import * as React from "react";
-import { useState } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -12,256 +10,141 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Building2, Plus, Edit, Trash2, MapPin, Mail } from "lucide-react";
+import { Building2, Edit, Plus, Trash2, ListTree } from "lucide-react";
+import * as React from "react";
+import { useState } from "react";
 
-import type {
-  Organization,
-  CreateOrganizationRequest,
-} from "@/openapi-rq/requests/types.gen";
-
-// Custom interface for organization form data
-interface OrganizationFormData {
-  name: string;
-  domains: { name: string }[];
-  redirectUrl: string;
-  enabled: string;
-  attributes: { categories: string[] };
-}
-import Select from "react-select";
-import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import {
-  useOrganizationsServiceGetOrganizations,
-  useOrganizationsServicePutOrganizationsByOrganizationId,
-  useOrganizationsServiceDeleteOrganizationsByOrganizationId,
-} from "@/services/openapiQueries";
-import { useMutation } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/services/shared/authService";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-const OrganizationCategoryManagerLazy = React.lazy(() =>
-  import("@/components/admin/OrganizationCategoryManager").then((m) => ({
-    default: m.OrganizationCategoryManager,
-  })),
-);
+import {
+  useOrganizationsServiceDeleteAdminOrganizationsById,
+  useOrganizationsServiceGetAdminOrganizations,
+  useOrganizationsServicePostAdminOrganizations,
+  useOrganizationsServicePutAdminOrganizationsById
+} from "@/openapi-rq/queries/queries";
+import type {
+  OrganizationCreateRequest,
+  OrganizationResponse,
+} from "@/openapi-rq/requests/types.gen";
+import { useTranslation } from "react-i18next";
+import Select from "react-select";
+import { toast } from "sonner";
+import AssignCategories from "./AssignCategories";
 
-interface Category {
-  categoryId: string;
-  name: string;
-  weight: number;
-  order: number;
-  templateId: string;
-}
-
-// Update the OrganizationResponse type for local use
-interface OrganizationDomain {
-  name: string;
-  verified?: boolean;
-}
-interface OrganizationResponseFixed {
-  id: string;
-  name: string;
-  alias?: string;
-  enabled: boolean;
-  description?: string | null;
-  redirectUrl?: string | null;
-  domains?: OrganizationDomain[];
-  attributes?: { [key: string]: string[] };
-}
-
-// Helper to map OrganizationResponse to OrganizationResponseFixed
-function toFixedOrg(org: unknown): OrganizationResponseFixed {
-  const o = org as Record<string, unknown>;
-
-  // Convert attributes from serde_json::Value to HashMap<string, string[]>
-  const attributes: { [key: string]: string[] } = {};
-  if (
-    o.attributes &&
-    typeof o.attributes === "object" &&
-    o.attributes !== null
-  ) {
-    const attrsObj = o.attributes as Record<string, unknown>;
-    for (const [key, value] of Object.entries(attrsObj)) {
-      if (Array.isArray(value)) {
-        const stringValues: string[] = value
-          .filter((v) => typeof v === "string")
-          .map((v) => v as string);
-        attributes[key] = stringValues;
-      }
-    }
-  }
-
-  return {
-    id: o.id as string,
-    name: o.name as string,
-    alias: o.alias as string | undefined,
-    enabled: (o.enabled as boolean) ?? false,
-    description: o.description as string | null,
-    redirectUrl: o.redirectUrl as string | null,
-    domains: Array.isArray(o.domains)
-      ? (o.domains as unknown[]).map((d) => ({
-          name: (d as Record<string, unknown>).name as string,
-          verified: (d as Record<string, unknown>).verified as
-            | boolean
-            | undefined,
-        }))
-      : [],
-    attributes: attributes,
-  };
-}
+import type { OfflineCategoryCatalog } from "@/types/offline";
 
 export const ManageOrganizations: React.FC = () => {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingOrg, setEditingOrg] =
-    useState<OrganizationResponseFixed | null>(null);
-  const [formData, setFormData] = useState<OrganizationFormData>({
+    useState<OrganizationResponse | null>(null);
+  const [assigningOrg, setAssigningOrg] =
+    useState<OrganizationResponse | null>(null);
+  const [formData, setFormData] = useState<OrganizationCreateRequest>({
     name: "",
     domains: [{ name: "" }],
-    redirectUrl:
-      import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-      "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
     enabled: "true",
     attributes: { categories: [] },
   });
-  const [selectedOrganization, setSelectedOrganization] = useState<OrganizationResponseFixed | null>(null);
-
-
+  const [categories, setCategories] = useState<OfflineCategoryCatalog[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // Category creation state
+  
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [orgToDelete, setOrgToDelete] =
-    useState<OrganizationResponseFixed | null>(null);
-
-
+  const [orgToDelete, setOrgToDelete] = useState<OrganizationResponse | null>(null);
+  
+  // Category mutation hooks
+  
   // Use direct API query method from queries.ts instead of offline hook
   const {
     data: organizations,
     isLoading,
     refetch,
-  } = useOrganizationsServiceGetOrganizations();
-
+  } = useOrganizationsServiceGetAdminOrganizations();
+  
   // Use the actual mutation methods from queries.ts for direct API calls
-  const createOrganizationMutation = useMutation({
-    mutationFn: async (variables: { requestBody: CreateOrganizationRequest }) => {
-      const base = import.meta.env.VITE_API_BASE_URL || "/api";
-      const resp = await fetchWithAuth(
-        `${base}/admin/organizations`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(variables.requestBody),
-        },
-      );
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(`Create organization failed: ${resp.status} ${text}`);
-      }
-      return resp.json();
-    },
+  const createOrganizationMutation = useOrganizationsServicePostAdminOrganizations({
     onSuccess: (result) => {
       toast.success("Organization created successfully");
       refetch();
       setShowAddDialog(false);
       setEditingOrg(null);
-
-      if (result && typeof result === "object" && "id" in result) {
-        const newOrg = toFixedOrg(result);
-        setSelectedOrganization(newOrg);
-      }
-
       setFormData({
         name: "",
         domains: [{ name: "" }],
-        redirectUrl:
-          import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-          "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
         enabled: "true",
         attributes: { categories: [] },
       });
     },
     onError: (error) => {
-      console.error("Failed to create organization:", error);
+      console.error('Failed to create organization:', error);
       toast.error("Failed to create organization");
-    },
+    }
   });
 
-  const updateOrganizationMutation =
-    useOrganizationsServicePutOrganizationsByOrganizationId({
-      onSuccess: () => {
-        toast.success("Organization updated successfully");
-        refetch();
-        setShowAddDialog(false);
-        setEditingOrg(null);
-        setFormData({
-          name: "",
-          domains: [{ name: "" }],
-          redirectUrl:
-            import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-            "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-          enabled: "true",
-          attributes: { categories: [] },
-        });
-      },
-      onError: (error) => {
-        console.error("Failed to update organization:", error);
-        toast.error("Failed to update organization");
-      },
-    });
-
-  const deleteOrganizationMutation = useMutation({
-    mutationFn: async (variables: { organizationId: string }) => {
-      const base = import.meta.env.VITE_API_BASE_URL || "/api";
-      const resp = await fetchWithAuth(
-        `${base}/admin/organizations/${variables.organizationId}`,
-        { method: "DELETE" },
-      );
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(`Delete organization failed: ${resp.status} ${text}`);
-      }
-      return resp.text();
+  const updateOrganizationMutation = useOrganizationsServicePutAdminOrganizationsById({
+    onSuccess: () => {
+      toast.success("Organization updated successfully");
+      refetch();
+      setShowAddDialog(false);
+      setEditingOrg(null);
+      setFormData({
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
     },
+    onError: (error) => {
+      console.error('Failed to update organization:', error);
+      toast.error("Failed to update organization");
+    }
+  });
+
+  const deleteOrganizationMutation = useOrganizationsServiceDeleteAdminOrganizationsById({
     onSuccess: () => {
       toast.success("Organization deleted successfully");
       refetch();
-      setShowDeleteConfirmation(false);
-      setOrgToDelete(null);
+      setShowDeleteConfirmation(false); // Close the dialog
+      setOrgToDelete(null); // Clear the organization to delete
     },
     onError: (error) => {
-      console.error("Failed to delete organization:", error);
+      console.error('Failed to delete organization:', error);
       toast.error("Failed to delete organization");
-    },
+    }
   });
 
-  // Transform the organizations data from the direct API call
-  const fixedOrgs = organizations
-    ? (Array.isArray(organizations) ? organizations : [organizations]).map(
-        toFixedOrg,
-      )
-    : [];
 
-  // Log organization details for debugging
-  React.useEffect(() => {
-    if (organizations) {
-      console.log("Raw organizations from API:", organizations);
-      console.log("Fixed organizations:", fixedOrgs);
-      fixedOrgs.forEach((org, index) => {
-        console.log(`Organization ${index + 1}:`, {
-          id: org.id,
-          name: org.name,
-          attributes: org.attributes,
-          categories: org.attributes?.categories,
-        });
-      });
+
+  const orgs = (organizations as OrganizationResponse[]) || [];
+
+  // Load categories from IndexedDB on mount
+  const loadCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const { offlineDB } = await import('@/services/indexeddb');
+      const stored = await offlineDB.getAllCategoryCatalogs();
+      setCategories(stored);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
     }
-  }, [organizations, fixedOrgs]);
+  };
 
-  // Categories are now loaded via the useCategoryCatalogs hook
+  React.useEffect(() => {
+    loadCategories();
+  }, []);
 
   // Debug formData changes
   React.useEffect(() => {
-    console.log("FormData changed:", formData);
-    console.log("FormData categories:", formData.attributes?.categories);
+    console.log('FormData changed:', formData);
+    console.log('FormData categories:', formData.attributes?.categories);
   }, [formData]);
 
   const handleSubmit = () => {
@@ -275,63 +158,62 @@ export const ManageOrganizations: React.FC = () => {
       toast.error("At least one domain is required");
       return;
     }
-    // Build payload as expected by backend
-    const requestBody: CreateOrganizationRequest = {
-      name: formData.name,
+    const requestBody: OrganizationCreateRequest = {
+      ...formData,
       domains: cleanDomains,
-      redirectUrl:
-        formData.redirectUrl ||
-        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-        "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
       enabled: "true",
       attributes: {
         categories: (formData.attributes?.categories as string[]) || [],
       },
-    } as unknown as CreateOrganizationRequest;
-
+    };
+    
     if (editingOrg) {
-      (updateOrganizationMutation.mutate as unknown as (v: unknown) => void)({
-        organizationId: editingOrg.id,
-        requestBody,
+      updateOrganizationMutation.mutate({ 
+        id: editingOrg.id, 
+        requestBody 
       });
     } else {
       createOrganizationMutation.mutate({ requestBody });
     }
   };
 
-  const handleEdit = (org: OrganizationResponseFixed) => {
+  const handleEdit = (org: OrganizationResponse) => {
     setEditingOrg(org);
+    const orgAttributes = org.attributes || {};
     setFormData({
       name: org.name,
-      domains: org.domains || [{ name: "" }],
+      domains:
+        Array.isArray(org.domains) && org.domains.length > 0
+          ? org.domains.map((d) => (typeof d === "string" ? { name: d } : d))
+          : [{ name: "" }],
       redirectUrl:
-        org.redirectUrl ||
+        (orgAttributes.redirect_url && orgAttributes.redirect_url[0]) ||
         import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
         "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-      enabled: org.enabled ? "true" : "false",
-      attributes: { categories: [], ...(org.attributes || {}) },
+      enabled: ((orgAttributes.enabled && orgAttributes.enabled[0]) || "true") as "true" | "false",
+      attributes: {
+        categories: orgAttributes.categories || [],
+      },
     });
     setShowAddDialog(true);
   };
 
-  const handleDelete = (org: OrganizationResponseFixed) => {
+  const handleDelete = (org: OrganizationResponse) => {
     setOrgToDelete(org);
     setShowDeleteConfirmation(true);
   };
 
   const confirmDelete = () => {
     if (!orgToDelete) return;
-
-    (deleteOrganizationMutation.mutate as unknown as (v: unknown) => void)({ organizationId: orgToDelete.id });
+    
+    deleteOrganizationMutation.mutate({ id: orgToDelete.id });
   };
 
   const resetForm = () => {
     setFormData({
       name: "",
       domains: [{ name: "" }],
-      redirectUrl:
-        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-        "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
       enabled: "true",
       attributes: { categories: [] },
     });
@@ -365,7 +247,7 @@ export const ManageOrganizations: React.FC = () => {
   };
 
 
-  if (isLoading) {
+  if (isLoading || categoriesLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -380,8 +262,10 @@ export const ManageOrganizations: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+
           {/* Header */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -389,16 +273,11 @@ export const ManageOrganizations: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <Building2 className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    {t("manageOrganizations.title", {
-                      defaultValue: "Manage Organizations",
-                    })}
+                    {t('manageOrganizations.title', { defaultValue: 'Manage Organizations' })}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  {t("manageOrganizations.subtitle", {
-                    defaultValue:
-                      "Create and manage organizations for sustainability assessments",
-                  })}
+                  {t('manageOrganizations.subtitle', { defaultValue: 'Create and manage organizations for sustainability assessments' })}
                 </p>
               </div>
 
@@ -410,21 +289,19 @@ export const ManageOrganizations: React.FC = () => {
                 }}
               >
                 <DialogTrigger asChild>
-                  <Button
+                  <Button 
                     className="bg-dgrv-green hover:bg-green-700"
                     onClick={() => setShowAddDialog(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {t("manageOrganizations.addOrganization", {
-                      defaultValue: "Add Organization",
-                    })}
+                    {t('manageOrganizations.addOrganization', { defaultValue: 'Add Organization' })}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>
                       {editingOrg
-                        ? t("manageOrganizations.editOrganization")
+                        ? t('manageOrganizations.editOrganization')
                         : "Add New Organization"}
                     </DialogTitle>
                   </DialogHeader>
@@ -465,7 +342,7 @@ export const ManageOrganizations: React.FC = () => {
                               handleDomainChange(idx, e.target.value)
                             }
                             placeholder="Enter domain (e.g. adorsys.com)"
-                            className={`border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${!d.name.trim() ? "border-red-500" : ""}`}
+                            className={`border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${!d?.name?.trim() ? "border-red-500" : ""}`}
                             required
                           />
                           {formData.domains.length > 1 && (
@@ -490,53 +367,26 @@ export const ManageOrganizations: React.FC = () => {
                         + Add Domain
                       </Button>
                     </div>
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        <div className="text-blue-600 mt-0.5">
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-blue-900">Category Assignment</h3>
-                          <p className="text-blue-700 text-sm mt-1">
-                            After creating the organization, you'll be able to assign categories with custom weights through the category manager.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-
+                    
+                    
                     <div className="flex space-x-2 pt-4">
                       <Button
                         onClick={handleSubmit}
                         className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow"
-                        disabled={
-                          createOrganizationMutation.isPending ||
-                          updateOrganizationMutation.isPending
-                        }
+                        disabled={createOrganizationMutation.isPending || updateOrganizationMutation.isPending}
                       >
-                        {createOrganizationMutation.isPending ||
-                        updateOrganizationMutation.isPending
-                          ? t("manageOrganizations.saving", {
-                              defaultValue: "Saving...",
-                            })
-                          : editingOrg
-                            ? t("manageOrganizations.update", {
-                                defaultValue: "Update",
-                              })
-                            : t("manageOrganizations.create", {
-                                defaultValue: "Create",
-                              })}
+                        {createOrganizationMutation.isPending || updateOrganizationMutation.isPending
+                          ? t('manageOrganizations.saving', { defaultValue: 'Saving...' })
+                          : editingOrg 
+                            ? t('manageOrganizations.update', { defaultValue: 'Update' }) 
+                            : t('manageOrganizations.create', { defaultValue: 'Create' })}
                       </Button>
                       <Button
                         variant="outline"
                         onClick={resetForm}
                         className="px-6 py-2 text-base font-semibold rounded shadow"
                       >
-                        {t("manageOrganizations.cancel", {
-                          defaultValue: "Cancel",
-                        })}
+                        {t('manageOrganizations.cancel', { defaultValue: 'Cancel' })}
                       </Button>
                     </div>
                   </div>
@@ -547,7 +397,7 @@ export const ManageOrganizations: React.FC = () => {
 
           {/* Organizations Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {fixedOrgs.map((org, index) => (
+            {orgs.map((org, index) => (
               <Card
                 key={org.id}
                 className="animate-fade-in hover:shadow-lg transition-shadow"
@@ -562,92 +412,69 @@ export const ManageOrganizations: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {org.domains && org.domains.length > 0 && (
                       <div className="text-sm text-gray-600">
-                        <b>
-                          {t("manageOrganizations.domains", {
-                            defaultValue: "Domains",
-                          })}
-                          :
-                        </b>{" "}
-                        {org.domains.map((d) => d.name).join(", ")}
+                        <b>{t('manageOrganizations.domains', { defaultValue: 'Domains' })}:</b>{" "}
+                        {org.domains
+                          .map((d) => (typeof d === "string" ? d : (d as any).name))
+                          .join(", ")}
                       </div>
                     )}
-                    {org.description && (
-                      <div className="text-sm text-gray-600">
-                        <b>
-                          {t("manageOrganizations.description", {
-                            defaultValue: "Description",
-                          })}
-                          :
-                        </b>{" "}
-                        {org.description}
-                      </div>
-                    )}
-                    <div className="flex flex-col space-y-2 pt-4">
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(org)}
-                          className="flex-1"
-                          disabled={false}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          {t("manageOrganizations.edit", {
-                            defaultValue: "Edit",
-                          })}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(org)}
-                          className="text-red-600 hover:bg-red-50"
-                          disabled={deleteOrganizationMutation.isPending}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          {t("manageOrganizations.delete", {
-                            defaultValue: "Delete",
-                          })}
-                        </Button>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setSelectedOrganization(org)}
-                        className="w-full"
-                      >
-                        Manage Categories
-                      </Button>
-                    </div>
                   </div>
                 </CardContent>
+                <CardFooter className="border-t pt-4">
+                  <div className="flex flex-col space-y-2 w-full">
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(org)}
+                        className="flex-1"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        {t('manageOrganizations.edit', { defaultValue: 'Edit' })}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(org)}
+                        className="text-red-600 hover:bg-red-50 flex-1"
+                        disabled={deleteOrganizationMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        {t('manageOrganizations.delete', { defaultValue: 'Delete' })}
+                      </Button>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAssigningOrg(org)}
+                      className="w-full"
+                    >
+                      <ListTree className="w-4 h-4 mr-1" />
+                      {t('manageOrganizations.assignCategories', { defaultValue: 'Assign Categories' })}
+                    </Button>
+                  </div>
+                </CardFooter>
               </Card>
             ))}
 
-            {fixedOrgs.length === 0 && (
+            {orgs.length === 0 && (
               <Card className="md:col-span-2 lg:col-span-3 text-center py-12">
                 <CardContent>
                   <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {t("manageOrganizations.noOrganizations", {
-                      defaultValue: "No organizations yet",
-                    })}
+                    {t('manageOrganizations.noOrganizations', { defaultValue: 'No organizations yet' })}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    {t("manageOrganizations.getStarted", {
-                      defaultValue:
-                        "Create your first organization to get started.",
-                    })}
+                    {t('manageOrganizations.getStarted', { defaultValue: 'Create your first organization to get started.' })}
                   </p>
                   <Button
                     onClick={() => setShowAddDialog(true)}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    {t("manageOrganizations.addFirstOrganization", {
-                      defaultValue: "Add First Organization",
-                    })}
+                    {t('manageOrganizations.addFirstOrganization', { defaultValue: 'Add First Organization' })}
                   </Button>
                 </CardContent>
               </Card>
@@ -662,32 +489,22 @@ export const ManageOrganizations: React.FC = () => {
               setOrgToDelete(null);
             }}
             onConfirm={confirmDelete}
-            title={t("manageOrganizations.confirmDeleteTitle")}
-            description={t("manageOrganizations.confirmDeleteDescription", {
-              name: orgToDelete?.name || "",
+            title={t('manageOrganizations.confirmDeleteTitle')}
+            description={t('manageOrganizations.confirmDeleteDescription', { 
+              name: orgToDelete?.name || ''
             })}
-            confirmText={t("manageOrganizations.deleteOrganization")}
-            cancelText={t("manageOrganizations.cancel")}
+            confirmText={t('manageOrganizations.deleteOrganization')}
+            cancelText={t('manageOrganizations.cancel')}
             variant="destructive"
             isLoading={deleteOrganizationMutation.isPending}
           />
 
-          {/* Organization Category Manager Dialog */}
-          {selectedOrganization && (
-            <Dialog open={!!selectedOrganization} onOpenChange={() => setSelectedOrganization(null)}>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Manage Categories - {selectedOrganization.name}</DialogTitle>
-                </DialogHeader>
-                <React.Suspense fallback={<div className="p-4">Loading categories...</div>}>
-                  <OrganizationCategoryManagerLazy
-                    keycloakOrganizationId={selectedOrganization.id}
-                    organizationName={selectedOrganization.name}
-                    autoOpenAssign={true}
-                  />
-                </React.Suspense>
-              </DialogContent>
-            </Dialog>
+          {assigningOrg && (
+            <AssignCategories
+              organization={assigningOrg}
+              isOpen={!!assigningOrg}
+              onClose={() => setAssigningOrg(null)}
+            />
           )}
         </div>
       </div>
