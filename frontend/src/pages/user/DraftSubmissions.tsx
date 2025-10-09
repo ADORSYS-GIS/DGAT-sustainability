@@ -8,16 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { useOfflineDraftSubmissions } from "@/hooks/useOfflineApi";
 import { useOfflineAssessmentsMutation } from "@/hooks/useOfflineApi";
 import { toast } from "sonner";
-import {
-  Clock,
-  CheckCircle,
-  Eye,
-  ArrowLeft,
-  Building2,
+import { 
+  Clock, 
+  CheckCircle, 
+  Eye, 
+  ArrowLeft, 
+  Building2, 
   Calendar,
   FileText,
   Users,
-  TrendingUp,
+  TrendingUp
 } from "lucide-react";
 import type { Submission_content_responses } from "@/openapi-rq/requests/types.gen";
 
@@ -30,6 +30,7 @@ interface SubmissionResponseWithCategory extends Submission_content_responses {
 interface DraftSubmission {
   submission_id: string;
   assessment_id: string;
+  assessment_name: string; // Added assessment_name
   org_id: string;
   org_name: string;
   content: {
@@ -47,57 +48,39 @@ interface DraftSubmission {
 export default function DraftSubmissions() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const {
-    data: draftSubmissionsData,
-    isLoading,
-    error,
-    refetch,
-  } = useOfflineDraftSubmissions();
+  const { data: draftSubmissionsData, isLoading, error, refetch } = useOfflineDraftSubmissions();
   const { approveAssessment, isPending } = useOfflineAssessmentsMutation();
   const [approvingId, setApprovingId] = useState<string | null>(null);
-  const [selectedSubmission, setSelectedSubmission] =
-    useState<DraftSubmission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<DraftSubmission | null>(null);
 
   const handleApprove = async (assessmentId: string) => {
     setApprovingId(assessmentId);
     try {
-      console.log(
-        "🔍 handleApprove: Starting approval for assessmentId:",
-        assessmentId,
-      );
+      console.log('🔍 handleApprove: Starting approval for assessmentId:', assessmentId);
       await approveAssessment(assessmentId, {
         onSuccess: (result) => {
-          console.log(
-            "🔍 handleApprove: onSuccess called with result:",
-            result,
-          );
-          toast.success(
-            t("user.draftSubmissions.approvedSuccessfully", {
-              defaultValue: "Assessment approved successfully!",
-            }),
-          );
+          console.log('🔍 handleApprove: onSuccess called with result:', result);
+          toast.success(t("user.draftSubmissions.approvedSuccessfully", { 
+            defaultValue: "Assessment approved successfully!" 
+          }));
           // Navigate back to dashboard after successful approval
           setTimeout(() => {
-            console.log("🔍 handleApprove: Navigating to dashboard");
+            console.log('🔍 handleApprove: Navigating to dashboard');
             navigate("/user/dashboard");
           }, 1500);
         },
         onError: (error) => {
-          console.log("🔍 handleApprove: onError called with error:", error);
-          toast.error(
-            t("user.draftSubmissions.failedToApprove", {
-              defaultValue: "Failed to approve assessment.",
-            }),
-          );
+          console.log('🔍 handleApprove: onError called with error:', error);
+          toast.error(t("user.draftSubmissions.failedToApprove", { 
+            defaultValue: "Failed to approve assessment." 
+          }));
         },
       });
     } catch (error) {
-      console.log("🔍 handleApprove: Caught error:", error);
-      toast.error(
-        t("user.draftSubmissions.failedToApprove", {
-          defaultValue: "Failed to approve assessment.",
-        }),
-      );
+      console.log('🔍 handleApprove: Caught error:', error);
+      toast.error(t("user.draftSubmissions.failedToApprove", { 
+        defaultValue: "Failed to approve assessment." 
+      }));
     } finally {
       setApprovingId(null);
     }
@@ -140,9 +123,7 @@ export default function DraftSubmissions() {
         }
         if (
           typeof parsed === "string" ||
-          (typeof parsed === "object" &&
-            parsed !== null &&
-            !Array.isArray(parsed))
+          (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed))
         ) {
           answer = parsed as string | Record<string, unknown>;
         } else {
@@ -169,20 +150,14 @@ export default function DraftSubmissions() {
     const files: { name?: string; url?: string }[] =
       typeof answer === "object" &&
       answer !== null &&
-      Array.isArray(
-        (answer as { files?: { name?: string; url?: string }[] }).files,
-      )
+      Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
         ? (answer as { files: { name?: string; url?: string }[] }).files
         : [];
     return (
       <div className="space-y-6">
         {/* Yes/No */}
         <div className="flex flex-col gap-2">
-          <span className="font-semibold text-gray-700">
-            {t("user.draftSubmissions.yesNoResponse", {
-              defaultValue: "Yes/No Response",
-            })}
-          </span>
+          <span className="font-semibold text-gray-700">{t("user.draftSubmissions.yesNoResponse", { defaultValue: "Yes/No Response" })}</span>
           <div className="flex space-x-4">
             <Button
               type="button"
@@ -212,14 +187,10 @@ export default function DraftSubmissions() {
             </Button>
           </div>
         </div>
-
+        
         {/* Percentage */}
         <div className="flex flex-col gap-2">
-          <span className="font-semibold text-gray-700">
-            {t("user.draftSubmissions.percentageResponse", {
-              defaultValue: "Percentage Response",
-            })}
-          </span>
+          <span className="font-semibold text-gray-700">{t("user.draftSubmissions.percentageResponse", { defaultValue: "Percentage Response" })}</span>
           <div className="flex space-x-2">
             {[0, 25, 50, 75, 100].map((val) => (
               <Button
@@ -239,33 +210,23 @@ export default function DraftSubmissions() {
             ))}
           </div>
         </div>
-
+        
         {/* Text Input */}
         <div className="flex flex-col gap-2">
-          <span className="font-semibold text-gray-700">
-            {t("user.draftSubmissions.textResponse", {
-              defaultValue: "Text Response",
-            })}
-          </span>
+          <span className="font-semibold text-gray-700">{t("user.draftSubmissions.textResponse", { defaultValue: "Text Response" })}</span>
           <Textarea
             value={typeof textValue === "string" ? textValue : ""}
             readOnly
             className="bg-gray-50 border border-gray-200 focus:ring-0 focus:border-blue-600 text-gray-800"
             rows={4}
-            placeholder={t("user.draftSubmissions.noTextResponseProvided", {
-              defaultValue: "No text response provided",
-            })}
+            placeholder={t("user.draftSubmissions.noTextResponseProvided", { defaultValue: "No text response provided" })}
             style={{ opacity: 1 }}
           />
         </div>
-
+        
         {/* File List */}
         <div className="flex flex-col gap-2">
-          <span className="font-semibold text-gray-700">
-            {t("user.draftSubmissions.attachedFiles", {
-              defaultValue: "Attached Files",
-            })}
-          </span>
+          <span className="font-semibold text-gray-700">{t("user.draftSubmissions.attachedFiles", { defaultValue: "Attached Files" })}</span>
           {files.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {files.map((file, idx) => (
@@ -283,11 +244,7 @@ export default function DraftSubmissions() {
               ))}
             </div>
           ) : (
-            <span className="text-sm text-gray-500 italic">
-              {t("user.draftSubmissions.noFilesAttached", {
-                defaultValue: "No files attached",
-              })}
-            </span>
+            <span className="text-sm text-gray-500 italic">{t("user.draftSubmissions.noFilesAttached", { defaultValue: "No files attached" })}</span>
           )}
         </div>
       </div>
@@ -301,11 +258,7 @@ export default function DraftSubmissions() {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <div className="text-lg text-gray-600">
-                {t("user.draftSubmissions.loadingDraftSubmissions", {
-                  defaultValue: "Loading draft submissions...",
-                })}
-              </div>
+              <div className="text-lg text-gray-600">{t("user.draftSubmissions.loadingDraftSubmissions", { defaultValue: "Loading draft submissions..." })}</div>
             </div>
           </div>
         </div>
@@ -320,14 +273,10 @@ export default function DraftSubmissions() {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="text-lg text-red-600 mb-2">
-                {t("user.draftSubmissions.errorLoadingDraftSubmissions", {
-                  defaultValue: "Error loading draft submissions",
-                })}
+                {t("user.draftSubmissions.errorLoadingDraftSubmissions", { defaultValue: "Error loading draft submissions" })}
               </div>
               <Button onClick={() => refetch()} variant="outline">
-                {t("user.draftSubmissions.tryAgain", {
-                  defaultValue: "Try Again",
-                })}
+                {t("user.draftSubmissions.tryAgain", { defaultValue: "Try Again" })}
               </Button>
             </div>
           </div>
@@ -337,16 +286,11 @@ export default function DraftSubmissions() {
   }
 
   // Handle both possible response structures
-  const submissions = ((
-    draftSubmissionsData as { submissions?: DraftSubmission[] }
-  )?.submissions ||
-    draftSubmissionsData?.draft_submissions ||
-    []) as DraftSubmission[];
+  const submissions = ((draftSubmissionsData as { submissions?: DraftSubmission[] })?.submissions || draftSubmissionsData?.draft_submissions || []) as DraftSubmission[];
 
   // If viewing a specific submission
   if (selectedSubmission) {
-    const groupedByCategory: Record<string, SubmissionResponseWithCategory[]> =
-      {};
+    const groupedByCategory: Record<string, SubmissionResponseWithCategory[]> = {};
     if (selectedSubmission.content?.responses) {
       for (const resp of selectedSubmission.content.responses) {
         const cat = resp.question_category || "Uncategorized";
@@ -367,28 +311,21 @@ export default function DraftSubmissions() {
               className="mb-4 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              {t("user.draftSubmissions.backToDraftSubmissions", {
-                defaultValue: "Back to Draft Submissions",
-              })}
+              {t("user.draftSubmissions.backToDraftSubmissions", { defaultValue: "Back to Draft Submissions" })}
             </Button>
-
+            
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    {t("user.draftSubmissions.assessment", {
-                      defaultValue: "Assessment",
-                    })}{" "}
-                    #{selectedSubmission.assessment_id.slice(0, 8)}
+                    {selectedSubmission.assessment_name || t("user.draftSubmissions.assessment", { defaultValue: "Assessment" })}
                   </h1>
                   <p className="text-gray-600">
-                    {t("user.draftSubmissions.reviewAndApprove", {
-                      defaultValue: "Review and approve this draft submission",
-                    })}
+                    {t("user.draftSubmissions.reviewAndApprove", { defaultValue: "Review and approve this draft submission" })}
                   </p>
                 </div>
-                <Badge
-                  variant="secondary"
+                <Badge 
+                  variant="secondary" 
                   className="px-3 py-1 text-sm font-medium bg-amber-100 text-amber-800 border-amber-200"
                 >
                   {selectedSubmission.review_status
@@ -402,56 +339,33 @@ export default function DraftSubmissions() {
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <Building2 className="h-5 w-5 text-blue-600" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {selectedSubmission.org_name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {t("user.draftSubmissions.organization", {
-                        defaultValue: "Organization",
-                      })}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">{selectedSubmission.org_name}</p>
+                    <p className="text-xs text-gray-500">{t("user.draftSubmissions.organization", { defaultValue: "Organization" })}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <Calendar className="h-5 w-5 text-green-600" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      {new Date(
-                        selectedSubmission.submitted_at,
-                      ).toLocaleDateString()}
+                      {new Date(selectedSubmission.submitted_at).toLocaleDateString()}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {t("user.draftSubmissions.submitted", {
-                        defaultValue: "Submitted",
-                      })}
-                    </p>
+                    <p className="text-xs text-gray-500">{t("user.draftSubmissions.submitted", { defaultValue: "Submitted" })}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <FileText className="h-5 w-5 text-purple-600" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      {selectedSubmission.content?.responses?.length || 0}{" "}
-                      {t("user.draftSubmissions.responses", {
-                        defaultValue: "Responses",
-                      })}
+                      {selectedSubmission.content?.responses?.length || 0} {t("user.draftSubmissions.responses", { defaultValue: "Responses" })}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {t("user.draftSubmissions.questionsAnswered", {
-                        defaultValue: "Questions Answered",
-                      })}
-                    </p>
+                    <p className="text-xs text-gray-500">{t("user.draftSubmissions.questionsAnswered", { defaultValue: "Questions Answered" })}</p>
                   </div>
                 </div>
               </div>
 
               {/* Responses */}
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  {t("user.draftSubmissions.assessmentResponses", {
-                    defaultValue: "Assessment Responses",
-                  })}
-                </h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">{t("user.draftSubmissions.assessmentResponses", { defaultValue: "Assessment Responses" })}</h2>
                 {categories.length > 0 ? (
                   categories.map((category) => (
                     <Card key={category} className="border-0 shadow-sm">
@@ -464,13 +378,9 @@ export default function DraftSubmissions() {
                       <CardContent className="p-6">
                         <div className="space-y-6">
                           {groupedByCategory[category].map((response, idx) => (
-                            <div
-                              key={idx}
-                              className="border-l-4 border-blue-200 pl-6"
-                            >
+                            <div key={idx} className="border-l-4 border-blue-200 pl-6">
                               <h3 className="font-semibold text-gray-900 mb-4 text-lg">
-                                {response.question_text ||
-                                  `Question ${idx + 1}`}
+                                {response.question_text || `Question ${idx + 1}`}
                               </h3>
                               {renderReadOnlyAnswer(response)}
                             </div>
@@ -482,11 +392,7 @@ export default function DraftSubmissions() {
                 ) : (
                   <div className="text-center py-12 text-gray-500">
                     <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>
-                      {t("user.draftSubmissions.noResponsesAvailable", {
-                        defaultValue: "No responses available",
-                      })}
-                    </p>
+                    <p>{t("user.draftSubmissions.noResponsesAvailable", { defaultValue: "No responses available" })}</p>
                   </div>
                 )}
               </div>
@@ -501,23 +407,15 @@ export default function DraftSubmissions() {
                   {t("common.cancel", { defaultValue: "Cancel" })}
                 </Button>
                 <Button
-                  onClick={() =>
-                    handleApprove(selectedSubmission.assessment_id)
-                  }
-                  disabled={
-                    isPending ||
-                    approvingId === selectedSubmission.assessment_id
-                  }
+                  onClick={() => handleApprove(selectedSubmission.assessment_id)}
+                  disabled={isPending || approvingId === selectedSubmission.assessment_id}
                   className="px-6 bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {approvingId === selectedSubmission.assessment_id
-                    ? t("user.draftSubmissions.approving", {
-                        defaultValue: "Approving...",
-                      })
-                    : t("user.draftSubmissions.approveSubmission", {
-                        defaultValue: "Approve Submission",
-                      })}
+                    ? t("user.draftSubmissions.approving", { defaultValue: "Approving..." })
+                    : t("user.draftSubmissions.approveSubmission", { defaultValue: "Approve Submission" })
+                  }
                 </Button>
               </div>
             </div>
@@ -534,15 +432,10 @@ export default function DraftSubmissions() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            {t("user.draftSubmissions.title", {
-              defaultValue: "Draft Submissions",
-            })}
+            {t("user.draftSubmissions.title", { defaultValue: "Draft Submissions" })}
           </h1>
           <p className="text-lg text-gray-600">
-            {t("user.draftSubmissions.description", {
-              defaultValue:
-                "Review and approve draft assessments submitted by organization users",
-            })}
+            {t("user.draftSubmissions.description", { defaultValue: "Review and approve draft assessments submitted by organization users" })}
           </p>
         </div>
 
@@ -551,14 +444,11 @@ export default function DraftSubmissions() {
             <CardContent className="flex flex-col items-center justify-center py-16">
               <Clock className="h-16 w-16 text-gray-300 mb-4" />
               <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                {t("user.draftSubmissions.noDraftSubmissions", {
-                  defaultValue: "No Draft Submissions",
-                })}
+                {t("user.draftSubmissions.noDraftSubmissions", { defaultValue: "No Draft Submissions" })}
               </h3>
               <p className="text-gray-500 text-center max-w-md">
-                {t("user.draftSubmissions.noDraftSubmissionsDescription", {
-                  defaultValue:
-                    "There are currently no draft submissions pending approval. Check back later for new submissions.",
+                {t("user.draftSubmissions.noDraftSubmissionsDescription", { 
+                  defaultValue: "There are currently no draft submissions pending approval. Check back later for new submissions." 
                 })}
               </p>
             </CardContent>
@@ -566,10 +456,7 @@ export default function DraftSubmissions() {
         ) : (
           <div className="grid gap-6">
             {submissions.map((submission) => (
-              <Card
-                key={submission.submission_id}
-                className="border-0 shadow-sm hover:shadow-md transition-shadow"
-              >
+              <Card key={submission.submission_id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -580,8 +467,8 @@ export default function DraftSubmissions() {
                             {submission.org_name}
                           </span>
                         </div>
-                        <Badge
-                          variant="secondary"
+                        <Badge 
+                          variant="secondary" 
                           className="bg-amber-100 text-amber-800 border-amber-200"
                         >
                           {submission.review_status
@@ -589,48 +476,29 @@ export default function DraftSubmissions() {
                             .replace(/\b\w/g, (c) => c.toUpperCase())}
                         </Badge>
                       </div>
-
+                      
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                         <div className="flex items-center space-x-2">
                           <FileText className="h-4 w-4" />
-                          <span>
-                            {t("user.draftSubmissions.assessment", {
-                              defaultValue: "Assessment",
-                            })}{" "}
-                            #{submission.assessment_id.slice(0, 8)}
-                          </span>
+                          <span>{submission.assessment_name || t("user.draftSubmissions.assessment", { defaultValue: "Assessment" })}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4" />
-                          <span>
-                            {t("user.draftSubmissions.submitted", {
-                              defaultValue: "Submitted",
-                            })}{" "}
-                            {new Date(
-                              submission.submitted_at,
-                            ).toLocaleDateString()}
-                          </span>
+                          <span>{t("user.draftSubmissions.submitted", { defaultValue: "Submitted" })} {new Date(submission.submitted_at).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Users className="h-4 w-4" />
-                          <span>
-                            {submission.content?.responses?.length || 0}{" "}
-                            {t("user.draftSubmissions.responses", {
-                              defaultValue: "responses",
-                            })}
-                          </span>
+                          <span>{submission.content?.responses?.length || 0} {t("user.draftSubmissions.responses", { defaultValue: "responses" })}</span>
                         </div>
                       </div>
                     </div>
-
+                    
                     <Button
                       onClick={() => handleViewDetails(submission)}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       <Eye className="h-4 w-4 mr-2" />
-                      {t("user.draftSubmissions.viewDetails", {
-                        defaultValue: "View Details",
-                      })}
+                      {t("user.draftSubmissions.viewDetails", { defaultValue: "View Details" })}
                     </Button>
                   </div>
                 </CardContent>

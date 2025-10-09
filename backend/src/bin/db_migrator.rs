@@ -1,10 +1,11 @@
-use anyhow::{Context, Result};
 use dotenv::dotenv;
 use sea_orm_migration::prelude::*;
-use sea_orm_migration::sea_orm::Database;
+use sea_orm_migration::sea_orm::{Database, DbErr};
 use std::env;
 use sustainability_tool::common::migrations::Migrator;
-use tracing::{error, info};
+use anyhow::{Context, Result};
+use tracing::{info, error};
+use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -15,8 +16,8 @@ async fn main() -> Result<()> {
 
     dotenv().ok();
 
-    let database_url =
-        env::var("DATABASE_URL").context("DATABASE_URL must be set in environment or .env")?;
+    let database_url = env::var("DATABASE_URL")
+        .context("DATABASE_URL must be set in environment or .env")?;
 
     let conn = Database::connect(&database_url)
         .await

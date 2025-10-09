@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Navbar } from "@/components/shared/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { useTranslation } from "react-i18next";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useOfflineSubmissionsMutation } from "../../hooks/useOfflineApi";
 
 // Locally extend the type to include question_category
 interface SubmissionResponseWithCategory extends Submission_content_responses {
@@ -22,19 +24,27 @@ interface SubmissionResponseWithCategory extends Submission_content_responses {
 export const SubmissionView: React.FC = () => {
   const { t } = useTranslation();
   const { submissionId } = useParams<{ submissionId: string }>();
+  const navigate = useNavigate();
   const {
     data: submissionsData,
     isLoading: submissionLoading,
     error: submissionError,
+    deleteSubmission,
   } = useOfflineSubmissions();
+  const { deleteSubmission: deleteSubmissionMutation } = useOfflineSubmissionsMutation();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
+  const handleDelete = async () => {
+    if (submissionId) {
+      await deleteSubmissionMutation(submissionId);
+      navigate("/user/assessments"); // Redirect after deletion
+    }
+    setIsDeleteDialogOpen(false);
+  };
+  
   // Find the specific submission by ID
-  const submission = submissionsData?.submissions?.find(
-    (s) => s.submission_id === submissionId,
-  );
-  const responses = submission?.content?.responses as
-    | SubmissionResponseWithCategory[]
-    | undefined;
+  const submission = submissionsData?.submissions?.find(s => s.submission_id === submissionId);
+  const responses = submission?.content?.responses as SubmissionResponseWithCategory[] | undefined;
 
   // Group responses by category
   const groupedByCategory = React.useMemo(() => {
@@ -79,9 +89,7 @@ export const SubmissionView: React.FC = () => {
         }
         if (
           typeof parsed === "string" ||
-          (typeof parsed === "object" &&
-            parsed !== null &&
-            !Array.isArray(parsed))
+          (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed))
         ) {
           answer = parsed as string | Record<string, unknown>;
         } else {
@@ -108,9 +116,7 @@ export const SubmissionView: React.FC = () => {
     const files: { name?: string; url?: string }[] =
       typeof answer === "object" &&
       answer !== null &&
-      Array.isArray(
-        (answer as { files?: { name?: string; url?: string }[] }).files,
-      )
+      Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
         ? (answer as { files: { name?: string; url?: string }[] }).files
         : [];
     return (
@@ -214,7 +220,7 @@ export const SubmissionView: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
+        <div className="pb-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
         </div>
       </div>
@@ -224,7 +230,7 @@ export const SubmissionView: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
+        <div className="pb-8 flex items-center justify-center">
           <div className="text-red-600">Error loading submission details.</div>
         </div>
       </div>
@@ -234,9 +240,9 @@ export const SubmissionView: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Remove online status indicator */}
-
+        
         <div className="mb-6">
           <Card className="shadow-md bg-white/90 border-0">
             <CardHeader className="border-b pb-2 mb-2">
@@ -277,17 +283,10 @@ export const SubmissionView: React.FC = () => {
               </div>
               {/* Grouped by category with dropdown */}
               <div className="mt-6">
-                <Accordion
-                  type="multiple"
-                  className="w-full divide-y divide-gray-100"
-                >
+                <Accordion type="multiple" className="w-full divide-y divide-gray-100">
                   {categories.length > 0 ? (
                     categories.map((category) => (
-                      <AccordionItem
-                        key={category}
-                        value={category}
-                        className="bg-white/80"
-                      >
+                      <AccordionItem key={category} value={category} className="bg-white/80">
                         <AccordionTrigger className="text-left text-lg font-semibold text-dgrv-blue px-6 py-4 hover:bg-dgrv-blue/5 focus:bg-dgrv-blue/10 rounded-md justify-start items-start">
                           {category}
                         </AccordionTrigger>
@@ -309,9 +308,7 @@ export const SubmissionView: React.FC = () => {
                                   })()}
                                 </CardTitle>
                               </CardHeader>
-                              <CardContent>
-                                {renderReadOnlyAnswer(response)}
-                              </CardContent>
+                              <CardContent>{renderReadOnlyAnswer(response)}</CardContent>
                             </Card>
                           ))}
                         </AccordionContent>
@@ -325,7 +322,22 @@ export const SubmissionView: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+        <div className="mt-6 flex justify-end">
+          <Button
+            variant="destructive"
+            onClick={() => setIsDeleteDialogOpen(true)}
+          >
+            {t("deleteSubmission")}
+          </Button>
+        </div>
       </div>
+      <ConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDelete}
+        title={t("confirmDeletion")}
+        description={t("confirmDeletionDescription")}
+      />
     </div>
   );
 };

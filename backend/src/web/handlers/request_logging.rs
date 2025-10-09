@@ -3,7 +3,11 @@
 //! This module provides middleware for logging all incoming HTTP requests
 //! with detailed information including method, path, user info, response status, and duration.
 
-use axum::{extract::Request, middleware::Next, response::Response};
+use axum::{
+    extract::Request,
+    middleware::Next,
+    response::Response,
+};
 use std::time::Instant;
 use tracing::{info, warn};
 
@@ -17,7 +21,10 @@ use crate::common::models::claims::Claims;
 /// - Response status code
 /// - Request duration
 /// - Remote IP address (if available)
-pub async fn request_logging_middleware(request: Request, next: Next) -> Response {
+pub async fn request_logging_middleware(
+    request: Request,
+    next: Next,
+) -> Response {
     let start_time = Instant::now();
     let method = request.method().clone();
     let uri = request.uri().clone();
@@ -25,10 +32,9 @@ pub async fn request_logging_middleware(request: Request, next: Next) -> Respons
     let query = uri.query().unwrap_or("");
 
     // Extract user information from claims if available (redacted in production logs)
-    let _user_info = request
-        .extensions()
-        .get::<Claims>()
-        .map(|_claims| "[redacted user info]".to_string());
+    let _user_info = request.extensions().get::<Claims>().map(|_claims| {
+        "[redacted user info]".to_string()
+    });
 
     // Extract remote IP if available from headers
     let remote_ip = request

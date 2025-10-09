@@ -1,16 +1,16 @@
 /// <reference lib="webworker" />
 
-import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
-import { registerRoute, NavigationRoute } from "workbox-routing";
-import {
-  NetworkFirst,
-  CacheFirst,
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { registerRoute, NavigationRoute } from 'workbox-routing';
+import { 
+  NetworkFirst, 
+  CacheFirst, 
   StaleWhileRevalidate,
-  NetworkOnly,
-} from "workbox-strategies";
-import { ExpirationPlugin } from "workbox-expiration";
-import { CacheableResponsePlugin } from "workbox-cacheable-response";
-import { BackgroundSyncPlugin } from "workbox-background-sync";
+  NetworkOnly 
+} from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
+import { BackgroundSyncPlugin } from 'workbox-background-sync';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -21,11 +21,11 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
 // Skip waiting and claim clients immediately
-self.addEventListener("install", (event) => {
+self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
@@ -33,17 +33,17 @@ self.addEventListener("activate", (event) => {
 registerRoute(
   new NavigationRoute(
     new NetworkFirst({
-      cacheName: "navigation-cache",
+      cacheName: 'navigation-cache',
       networkTimeoutSeconds: 3,
       plugins: [
         new CacheableResponsePlugin({
-          statuses: [0, 200],
+          statuses: [0, 200]
         }),
         new ExpirationPlugin({
           maxEntries: 50,
-          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-        }),
-      ],
+          maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+        })
+      ]
     }),
     {
       // Only apply to navigation requests that don't match these patterns
@@ -52,187 +52,184 @@ registerRoute(
         /^\/health/,
         /\.(?:json|xml|csv)$/,
         /\/_next\/static\//,
-        /\/static\//,
-      ],
-    },
-  ),
+        /\/static\//
+      ]
+    }
+  )
 );
 
 // Cache API requests with NetworkFirst strategy
 registerRoute(
-  ({ url }) => url.pathname.startsWith("/api/"),
+  ({ url }) => url.pathname.startsWith('/api/'),
   new NetworkFirst({
-    cacheName: "api-cache",
+    cacheName: 'api-cache',
     networkTimeoutSeconds: 10,
     plugins: [
       new CacheableResponsePlugin({
-        statuses: [0, 200, 201, 204, 404, 500],
+        statuses: [0, 200, 201, 204, 404, 500]
       }),
       new ExpirationPlugin({
         maxEntries: 100,
-        maxAgeSeconds: 60 * 60 * 24, // 24 hours
-      }),
-    ],
-  }),
+        maxAgeSeconds: 60 * 60 * 24 // 24 hours
+      })
+    ]
+  })
 );
 
 // Cache health check endpoints
 registerRoute(
-  ({ url }) => url.pathname.startsWith("/health"),
+  ({ url }) => url.pathname.startsWith('/health'),
   new NetworkFirst({
-    cacheName: "health-cache",
+    cacheName: 'health-cache',
     networkTimeoutSeconds: 5,
     plugins: [
       new CacheableResponsePlugin({
-        statuses: [0, 200],
+        statuses: [0, 200]
       }),
       new ExpirationPlugin({
         maxEntries: 10,
-        maxAgeSeconds: 60 * 5, // 5 minutes
-      }),
-    ],
-  }),
+        maxAgeSeconds: 60 * 5 // 5 minutes
+      })
+    ]
+  })
 );
 
 // Cache static assets (JS, CSS, images) with CacheFirst
 registerRoute(
-  ({ request }) =>
-    request.destination === "script" ||
-    request.destination === "style" ||
-    request.destination === "image",
+  ({ request }) => 
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'image',
   new CacheFirst({
-    cacheName: "static-assets-cache",
+    cacheName: 'static-assets-cache',
     plugins: [
       new CacheableResponsePlugin({
-        statuses: [0, 200],
+        statuses: [0, 200]
       }),
       new ExpirationPlugin({
         maxEntries: 200,
-        maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-      }),
-    ],
-  }),
+        maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+      })
+    ]
+  })
 );
 
 // Cache fonts with CacheFirst
 registerRoute(
-  ({ request }) => request.destination === "font",
+  ({ request }) => request.destination === 'font',
   new CacheFirst({
-    cacheName: "fonts-cache",
+    cacheName: 'fonts-cache',
     plugins: [
       new CacheableResponsePlugin({
-        statuses: [0, 200],
+        statuses: [0, 200]
       }),
       new ExpirationPlugin({
         maxEntries: 20,
-        maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-      }),
-    ],
-  }),
+        maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+      })
+    ]
+  })
 );
 
 // Cache Google Fonts
 registerRoute(
-  ({ url }) =>
-    url.origin === "https://fonts.googleapis.com" ||
-    url.origin === "https://fonts.gstatic.com",
+  ({ url }) => 
+    url.origin === 'https://fonts.googleapis.com' ||
+    url.origin === 'https://fonts.gstatic.com',
   new CacheFirst({
-    cacheName: "google-fonts-cache",
+    cacheName: 'google-fonts-cache',
     plugins: [
       new CacheableResponsePlugin({
-        statuses: [0, 200],
+        statuses: [0, 200]
       }),
       new ExpirationPlugin({
         maxEntries: 10,
-        maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-      }),
-    ],
-  }),
+        maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+      })
+    ]
+  })
 );
 
 // Background sync for offline API requests
-const bgSyncPlugin = new BackgroundSyncPlugin("api-queue", {
-  maxRetentionTime: 24 * 60, // Retry for up to 24 hours
+const bgSyncPlugin = new BackgroundSyncPlugin('api-queue', {
+  maxRetentionTime: 24 * 60 // Retry for up to 24 hours
 });
 
 // Handle POST/PUT/DELETE requests with background sync
 registerRoute(
-  ({ url, request }) =>
-    url.pathname.startsWith("/api/") &&
-    ["POST", "PUT", "DELETE", "PATCH"].includes(request.method),
+  ({ url, request }) => 
+    url.pathname.startsWith('/api/') && 
+    ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method),
   new NetworkOnly({
-    plugins: [bgSyncPlugin],
+    plugins: [bgSyncPlugin]
   }),
-  "POST",
+  'POST'
 );
 
 // Fallback for offline navigation
-self.addEventListener("fetch", (event) => {
-  if (event.request.mode === "navigate") {
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return caches.match("/index.html");
-      }),
+        return caches.match('/index.html');
+      })
     );
   }
 });
 
 // Handle offline fallback for API requests
-self.addEventListener("fetch", (event) => {
+self.addEventListener('fetch', (event) => {
   const { request } = event;
-
+  
   // Only handle API requests
-  if (request.url.includes("/api/")) {
+  if (request.url.includes('/api/')) {
     event.respondWith(
       fetch(request)
-        .then((response) => {
+        .then(response => {
           // Clone the response before returning it
           const responseClone = response.clone();
-
+          
           // Cache successful responses
           if (response.status === 200 || response.status === 201) {
-            caches.open("api-cache").then((cache) => {
+            caches.open('api-cache').then(cache => {
               cache.put(request, responseClone);
             });
           }
-
+          
           return response;
         })
         .catch(() => {
           // Return cached response if available
-          return caches.match(request).then((cachedResponse) => {
+          return caches.match(request).then(cachedResponse => {
             if (cachedResponse) {
               return cachedResponse;
             }
-
+            
             // Return offline fallback for specific endpoints
-            if (request.url.includes("/api/assessments")) {
-              return new Response(
-                JSON.stringify({
-                  message: "Offline mode: Data not available",
-                  offline: true,
-                }),
-                {
-                  status: 503,
-                  headers: { "Content-Type": "application/json" },
-                },
-              );
+            if (request.url.includes('/api/assessments')) {
+              return new Response(JSON.stringify({ 
+                message: 'Offline mode: Data not available',
+                offline: true 
+              }), {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
+              });
             }
-
-            return new Response("Offline mode", { status: 503 });
+            
+            return new Response('Offline mode', { status: 503 });
           });
-        }),
+        })
     );
   }
 });
 
 // Log service worker events for debugging
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-
-  if (event.data && event.data.type === "GET_VERSION") {
-    event.ports[0].postMessage({ version: "1.0.0" });
+  
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: '1.0.0' });
   }
-});
+}); 

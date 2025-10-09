@@ -4,15 +4,15 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
-
+use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, TransactionTrait, Set};
+use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::common::cache::cached_ops;
 use crate::common::models::claims::Claims;
+use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
-use crate::web::routes::AppState;
+use crate::common::cache::cached_ops;
 use crate::with_request_cache;
 
 // Helper function to determine assessment status based on three-tier system
@@ -22,25 +22,23 @@ async fn determine_assessment_status(
     assessment_id: Uuid,
 ) -> Result<AssessmentStatus, ApiError> {
     // Check if assessment has been reviewed (in assessments_submission table)
-    let has_final_submission =
-        cached_ops::get_submission_with_session(app_state, claims, assessment_id)
-            .await?
-            .is_some();
-
+    let has_final_submission = cached_ops::get_submission_with_session(app_state, claims, assessment_id)
+        .await?
+        .is_some();
+    
     if has_final_submission {
         return Ok(AssessmentStatus::Reviewed);
     }
-
+    
     // Check if assessment has been submitted to temp_submission table
-    let has_temp_submission =
-        cached_ops::get_temp_submission_with_session(app_state, claims, assessment_id)
-            .await?
-            .is_some();
-
+    let has_temp_submission = cached_ops::get_temp_submission_with_session(app_state, claims, assessment_id)
+        .await?
+        .is_some();
+    
     if has_temp_submission {
         return Ok(AssessmentStatus::Submitted);
     }
-
+    
     // Default to draft (covers both cases: no responses exist, or has responses but not submitted)
     Ok(AssessmentStatus::Draft)
 }
@@ -101,25 +99,19 @@ async fn fetch_files_for_response(
     Ok(files)
 }
 
-// Use AssessmentQuery from models.rs instead of redefining it here
-// Add helper function for AssessmentQuery to parse status
-fn parse_assessment_status(status: &Option<String>) -> Option<AssessmentStatus> {
-    status.as_ref().and_then(|s| match s.as_str() {
-        "draft" => Some(AssessmentStatus::Draft),
-        "submitted" => Some(AssessmentStatus::Submitted),
-        "reviewed" => Some(AssessmentStatus::Reviewed),
-        _ => None,
-    })
-}
+// Use AssessmentQuery from models (implements IntoParams)
+use crate::web::api::models::AssessmentQuery;
 
+/// List assessments for current org with optional filters
 #[utoipa::path(
     get,
     path = "/assessments",
+    tag = "Assessment",
+    params(AssessmentQuery),
     responses(
-        (status = 200, description = "List assessments", body = AssessmentListResponse)
-    ),
-    params(
-        AssessmentQuery
+        (status = 200, description = "Assessments list", body = AssessmentListResponse),
+        (status = 400, description = "Bad request"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn list_assessments(
@@ -128,26 +120,25 @@ pub async fn list_assessments(
     Query(query): Query<AssessmentQuery>,
 ) -> Result<Json<AssessmentListResponse>, ApiError> {
     with_request_cache!({
-        let org_id = claims
-            .get_org_id()
+        let org_id = claims.get_org_id()
             .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
         // Fetch assessments from the database for the current organization - using session-level cache
-        let assessment_models =
-            cached_ops::get_user_assessments_with_session(&app_state, &claims, &org_id).await?;
+        let assessment_models = cached_ops::get_user_assessments_with_session(&app_state, &claims, &org_id).await?;
 
         // Convert database models to API models
         let mut assessments = Vec::new();
         for model in assessment_models {
             // Determine status using three-tier system (under_review, submitted, reviewed)
-            let status =
-                determine_assessment_status(&app_state, &claims, model.assessment_id).await?;
+            let status = determine_assessment_status(&app_state, &claims, model.assessment_id).await?;
 
             assessments.push(Assessment {
                 assessment_id: model.assessment_id,
                 org_id: model.org_id,
                 language: model.language,
                 name: model.name,
+                categories: serde_json::from_value(model.categories.clone())
+                    .unwrap_or_default(),
                 status,
                 created_at: model.created_at.to_rfc3339(),
                 updated_at: model.created_at.to_rfc3339(),
@@ -165,7 +156,15 @@ pub async fn list_assessments(
         };
 
         // Filter by status if specified
-        filtered_assessments = if let Some(parsed_status) = parse_assessment_status(&query.status) {
+        filtered_assessments = if let Some(parsed_status) = query
+            .status
+            .as_ref()
+            .and_then(|s| match s.as_str() {
+                "draft" => Some(AssessmentStatus::Draft),
+                "submitted" => Some(AssessmentStatus::Submitted),
+                "reviewed" => Some(AssessmentStatus::Reviewed),
+                _ => None,
+            }) {
             filtered_assessments
                 .into_iter()
                 .filter(|a| a.status == parsed_status)
@@ -179,35 +178,21 @@ pub async fn list_assessments(
         };
 
         Ok(Json(AssessmentListResponse {
-            submissions: filtered_assessments
-                .iter()
-                .map(|a| AdminSubmissionDetail {
-                    submission_id: a.assessment_id,
-                    assessment_id: a.assessment_id,
-                    org_id: a.org_id.clone(),
-                    org_name: "Unknown".to_string(), // Placeholder, replace with actual logic
-                    content: AdminSubmissionContent {
-                        assessment: AdminAssessmentInfo {
-                            assessment_id: a.assessment_id,
-                            language: a.language.clone(),
-                        },
-                        responses: vec![], // Placeholder, replace with actual logic
-                    },
-                    review_status: a.status.to_string(),
-                    submitted_at: a.created_at.clone(),
-                    reviewed_at: None, // Placeholder, replace with actual logic
-                })
-                .collect(),
+            assessments: filtered_assessments,
         }))
     })
 }
 
+/// Create a new assessment
 #[utoipa::path(
     post,
     path = "/assessments",
+    tag = "Assessment",
     request_body = CreateAssessmentRequest,
     responses(
-        (status = 201, description = "Create assessment", body = AssessmentResponse)
+        (status = 201, description = "Assessment created", body = AssessmentResponse),
+        (status = 400, description = "Validation error or permissions"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn create_assessment(
@@ -216,8 +201,7 @@ pub async fn create_assessment(
     Json(request): Json<CreateAssessmentRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     with_request_cache!({
-        let org_id = claims
-            .get_org_id()
+        let org_id = claims.get_org_id()
             .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
         // Check if user has permission to create assessments (only org_admin)
@@ -246,27 +230,18 @@ pub async fn create_assessment(
             .assessments
             .get_assessments_by_org(&org_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to fetch existing assessments: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing assessments: {e}")))?;
 
         for existing_assessment in existing_assessments {
             // Check if this assessment has a submission (submitted) - using session-level cache
-            let has_submission = cached_ops::get_submission_with_session(
-                &app_state,
-                &claims,
-                existing_assessment.assessment_id,
-            )
-            .await?
-            .is_some();
+            let has_submission = cached_ops::get_submission_with_session(&app_state, &claims, existing_assessment.assessment_id)
+                .await?
+                .is_some();
 
             if !has_submission {
                 // Only delete responses and the assessment if it is a draft (no submission) - using cached operation
-                let existing_responses = cached_ops::get_latest_responses_by_assessment(
-                    &app_state,
-                    existing_assessment.assessment_id,
-                )
-                .await?;
+                let existing_responses = cached_ops::get_latest_responses_by_assessment(&app_state, existing_assessment.assessment_id)
+                    .await?;
 
                 for response in existing_responses {
                     let _ = app_state
@@ -285,15 +260,17 @@ pub async fn create_assessment(
             }
         }
 
-        // Create the new assessment in the database
+        // Parse categories from JSON to Vec<Uuid>
+        let categories: Vec<Uuid> = serde_json::from_value(request.categories)
+            .map_err(|e| ApiError::BadRequest(format!("Invalid categories format: {e}")))?;
+
+        // Create the new assessment in the database with categories
         let assessment_model = app_state
             .database
             .assessments
-            .create_assessment(org_id, request.language, request.name)
+            .create_assessment(org_id, request.language, request.name, categories)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to create assessment: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to create assessment: {e}")))?;
 
         // Convert a database model to an API model
         let assessment = Assessment {
@@ -301,26 +278,29 @@ pub async fn create_assessment(
             org_id: assessment_model.org_id,
             language: assessment_model.language,
             name: assessment_model.name,
+            categories: serde_json::from_value(assessment_model.categories)
+                .unwrap_or_default(),
             status: AssessmentStatus::Draft,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
         };
 
         // Invalidate user's session cache since we created/deleted assessments
-        cached_ops::invalidate_user_session_cache(&app_state, &claims, None);
 
         Ok((StatusCode::CREATED, Json(AssessmentResponse { assessment })))
     })
 }
 
+/// Get an assessment by ID with latest responses
 #[utoipa::path(
     get,
     path = "/assessments/{assessment_id}",
+    tag = "Assessment",
+    params(("assessment_id" = uuid::Uuid, Path, description = "Assessment ID")),
     responses(
-        (status = 200, description = "Get assessment", body = AssessmentWithResponsesResponse)
-    ),
-    params(
-        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+        (status = 200, description = "Assessment detail", body = AssessmentWithResponsesResponse),
+        (status = 404, description = "Assessment not found"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn get_assessment(
@@ -329,8 +309,7 @@ pub async fn get_assessment(
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<AssessmentWithResponsesResponse>, ApiError> {
     with_request_cache!({
-        let org_id = claims
-            .get_org_id()
+        let org_id = claims.get_org_id()
             .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
         // Fetch the assessment from the database - using cached operation
@@ -370,14 +349,15 @@ pub async fn get_assessment(
             org_id: assessment_model.org_id,
             language: assessment_model.language,
             name: assessment_model.name,
+            categories: serde_json::from_value(assessment_model.categories)
+                .unwrap_or_default(),
             status,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
         };
 
         // Fetch the latest responses for this assessment - using cached operation
-        let response_models =
-            cached_ops::get_latest_responses_by_assessment(&app_state, assessment_id).await?;
+        let response_models = cached_ops::get_latest_responses_by_assessment(&app_state, assessment_id).await?;
 
         // Convert response models to API models
         let mut responses = Vec::new();
@@ -405,15 +385,18 @@ pub async fn get_assessment(
     })
 }
 
+/// Update an assessment
 #[utoipa::path(
     put,
     path = "/assessments/{assessment_id}",
+    tag = "Assessment",
+    params(("assessment_id" = uuid::Uuid, Path, description = "Assessment ID")),
     request_body = UpdateAssessmentRequest,
     responses(
-        (status = 200, description = "Update assessment", body = AssessmentResponse)
-    ),
-    params(
-        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+        (status = 200, description = "Assessment updated", body = AssessmentResponse),
+        (status = 400, description = "Validation or permission error"),
+        (status = 404, description = "Assessment not found"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn update_assessment(
@@ -422,8 +405,7 @@ pub async fn update_assessment(
     Path(assessment_id): Path<Uuid>,
     Json(request): Json<UpdateAssessmentRequest>,
 ) -> Result<Json<AssessmentResponse>, ApiError> {
-    let org_id = claims
-        .get_org_id()
+    let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Validate request
@@ -490,25 +472,29 @@ pub async fn update_assessment(
         org_id: assessment_model.org_id,
         language: assessment_model.language,
         name: assessment_model.name,
+        categories: serde_json::from_value(assessment_model.categories)
+            .unwrap_or_default(),
         status: AssessmentStatus::Draft,
         created_at: assessment_model.created_at.to_rfc3339(),
         updated_at: assessment_model.created_at.to_rfc3339(),
     };
 
     // Invalidate user's session cache since we updated an assessment
-    cached_ops::invalidate_user_session_cache(&app_state, &claims, Some(assessment_id));
 
     Ok(Json(AssessmentResponse { assessment }))
 }
 
+/// Delete an assessment
 #[utoipa::path(
     delete,
     path = "/assessments/{assessment_id}",
+    tag = "Assessment",
+    params(("assessment_id" = uuid::Uuid, Path, description = "Assessment ID")),
     responses(
-        (status = 204, description = "Delete assessment")
-    ),
-    params(
-        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+        (status = 204, description = "Assessment deleted"),
+        (status = 400, description = "Permission error or submitted"),
+        (status = 404, description = "Assessment not found"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn delete_assessment(
@@ -516,8 +502,7 @@ pub async fn delete_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims
-        .get_org_id()
+    let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Check if the assessment exists and get its details
@@ -566,7 +551,6 @@ pub async fn delete_assessment(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to delete assessment: {e}")))?;
 
     // Invalidate user's session cache since we deleted an assessment
-    cached_ops::invalidate_user_session_cache(&app_state, &claims, Some(assessment_id));
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -575,11 +559,13 @@ pub async fn delete_assessment(
 #[utoipa::path(
     post,
     path = "/assessments/{assessment_id}/draft",
+    tag = "Assessment",
+    params(("assessment_id" = uuid::Uuid, Path, description = "Assessment ID")),
     responses(
-        (status = 200, description = "Submit draft assessment", body = serde_json::Value)
-    ),
-    params(
-        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+        (status = 200, description = "Draft stored", body = serde_json::Value),
+        (status = 400, description = "Permission or validation error"),
+        (status = 404, description = "Assessment not found"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn user_submit_draft_assessment(
@@ -587,8 +573,7 @@ pub async fn user_submit_draft_assessment(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let org_id = claims
-        .get_org_id()
+    let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     if !claims.can_answer_assessments() {
@@ -661,35 +646,20 @@ pub async fn user_submit_draft_assessment(
     });
 
     // Insert or update the draft in temp_submission using service API
-    let existing_temp = app_state
-        .database
-        .temp_submission
-        .get_temp_submission_by_assessment_id(assessment_id)
+    let existing_temp = app_state.database.temp_submission.get_temp_submission_by_assessment_id(assessment_id)
         .await
-        .map_err(|e| {
-            ApiError::InternalServerError(format!("Failed to query temp submission: {e}"))
-        })?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to query temp submission: {e}")))?;
 
     if existing_temp.is_some() {
         // Update draft
-        app_state
-            .database
-            .temp_submission
-            .update_submission_content(assessment_id, draft_content.clone())
+        app_state.database.temp_submission.update_submission_content(assessment_id, draft_content.clone())
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to update temp submission: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to update temp submission: {e}")))?;
     } else {
         // Create draft
-        app_state
-            .database
-            .temp_submission
-            .create_temp_submission(assessment_id, org_id.clone(), draft_content.clone())
+        app_state.database.temp_submission.create_temp_submission(assessment_id, org_id.clone(), draft_content.clone())
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to store temp submission: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to store temp submission: {e}")))?;
     }
 
     Ok((StatusCode::OK, Json(draft_content)))
@@ -699,11 +669,13 @@ pub async fn user_submit_draft_assessment(
 #[utoipa::path(
     post,
     path = "/assessments/{assessment_id}/submit",
+    tag = "Assessment",
+    params(("assessment_id" = uuid::Uuid, Path, description = "Assessment ID")),
     responses(
-        (status = 200, description = "Submit assessment")
-    ),
-    params(
-        ("assessment_id" = Uuid, Path, description = "Assessment ID")
+        (status = 200, description = "Assessment submitted"),
+        (status = 400, description = "Permission or validation error"),
+        (status = 404, description = "Not found"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn submit_assessment(
@@ -718,9 +690,7 @@ pub async fn submit_assessment(
     }
 
     // Start database transaction to ensure atomicity
-    let txn = app_state
-        .database
-        .get_connection()
+    let txn = app_state.database.get_connection()
         .begin()
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to start transaction: {e}")))?;
@@ -734,16 +704,29 @@ pub async fn submit_assessment(
             .map_err(|e| ApiError::InternalServerError(format!("Failed to read temp_submission: {e}")))?
             .ok_or_else(|| ApiError::BadRequest("No temp submission to finalize".to_string()))?;
 
-        // Create final submission using the content from temp submission
+        // Fetch the assessment to get its name before we delete it
+        let assessment = app_state.database.assessments
+            .get_assessment_by_id(assessment_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?
+            .ok_or_else(|| ApiError::NotFound("Assessment not found".to_string()))?;
+
+        // Enhance the temp submission content with assessment name
+        let mut enhanced_content = temp_submission.content.clone();
+        if let Some(content_obj) = enhanced_content.as_object_mut() {
+            content_obj.insert("assessment_name".to_string(), serde_json::Value::String(assessment.name.clone()));
+        }
+
+        // Create final submission using the enhanced content with assessment name
         let submission = crate::common::database::entity::assessments_submission::ActiveModel {
             submission_id: Set(assessment_id),
             org_id: Set(temp_submission.org_id.clone()),
-            content: Set(temp_submission.content.clone()),
+            content: Set(enhanced_content),
             submitted_at: Set(chrono::Utc::now()),
             status: Set(crate::common::database::entity::assessments_submission::SubmissionStatus::UnderReview),
             reviewed_at: Set(None),
         };
-
+        
         submission.insert(&txn)
             .await
             .map_err(|e| ApiError::InternalServerError(format!("Failed to create final submission: {e}")))?;
@@ -767,22 +750,19 @@ pub async fn submit_assessment(
     match result {
         Ok(_) => {
             // Commit transaction on success
-            txn.commit().await.map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to commit transaction: {e}"))
-            })?;
-
+            txn.commit()
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to commit transaction: {e}")))?;
+            
             // Invalidate user's session cache since we submitted an assessment
-            cached_ops::invalidate_user_session_cache(&app_state, &claims, Some(assessment_id));
-
+            
             Ok(StatusCode::OK)
         }
         Err(e) => {
             // Rollback transaction on any error
             if let Err(rollback_err) = txn.rollback().await {
                 tracing::error!("Failed to rollback transaction: {}", rollback_err);
-                return Err(ApiError::InternalServerError(format!(
-                    "Transaction failed and rollback failed: {rollback_err}"
-                )));
+                return Err(ApiError::InternalServerError(format!("Transaction failed and rollback failed: {rollback_err}")));
             }
             Err(e)
         }

@@ -7,15 +7,18 @@ use axum::{
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
+use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
-use crate::web::routes::AppState;
 
+/// List all categories
 #[utoipa::path(
     get,
     path = "/categories",
+    tag = "Category",
     responses(
-        (status = 200, description = "List categories", body = CategoryListResponse)
+        (status = 200, description = "List of categories", body = CategoryListResponse),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn list_categories(
@@ -47,12 +50,16 @@ pub async fn list_categories(
     Ok(Json(CategoryListResponse { categories }))
 }
 
+/// Create a new category
 #[utoipa::path(
     post,
     path = "/categories",
+    tag = "Category",
     request_body = CreateCategoryRequest,
     responses(
-        (status = 201, description = "Create category", body = CategoryResponse)
+        (status = 201, description = "Category created", body = CategoryResponse),
+        (status = 400, description = "Validation or permission error"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn create_category(
@@ -115,14 +122,18 @@ pub async fn create_category(
     Ok((StatusCode::CREATED, Json(CategoryResponse { category })))
 }
 
+/// Get a category by ID
 #[utoipa::path(
     get,
     path = "/categories/{category_id}",
-    responses(
-        (status = 200, description = "Get category", body = CategoryResponse)
-    ),
+    tag = "Category",
     params(
-        ("category_id" = Uuid, Path, description = "Category ID")
+        ("category_id" = uuid::Uuid, Path, description = "Category ID")
+    ),
+    responses(
+        (status = 200, description = "Category found", body = CategoryResponse),
+        (status = 404, description = "Category not found"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn get_category(
@@ -157,15 +168,20 @@ pub async fn get_category(
     Ok(Json(CategoryResponse { category }))
 }
 
+/// Update a category
 #[utoipa::path(
     put,
     path = "/categories/{category_id}",
+    tag = "Category",
+    params(
+        ("category_id" = uuid::Uuid, Path, description = "Category ID")
+    ),
     request_body = UpdateCategoryRequest,
     responses(
-        (status = 200, description = "Update category", body = CategoryResponse)
-    ),
-    params(
-        ("category_id" = Uuid, Path, description = "Category ID")
+        (status = 200, description = "Category updated", body = CategoryResponse),
+        (status = 400, description = "Validation or permission error"),
+        (status = 404, description = "Category not found"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn update_category(
@@ -234,14 +250,19 @@ pub async fn update_category(
     Ok(Json(CategoryResponse { category }))
 }
 
+/// Delete a category
 #[utoipa::path(
     delete,
     path = "/categories/{category_id}",
-    responses(
-        (status = 204, description = "Delete category")
-    ),
+    tag = "Category",
     params(
-        ("category_id" = Uuid, Path, description = "Category ID")
+        ("category_id" = uuid::Uuid, Path, description = "Category ID")
+    ),
+    responses(
+        (status = 204, description = "Category deleted"),
+        (status = 400, description = "Permission error"),
+        (status = 404, description = "Category not found"),
+        (status = 500, description = "Server error")
     )
 )]
 pub async fn delete_category(
@@ -285,9 +306,7 @@ pub async fn delete_category(
             .questions_revisions
             .get_revisions_by_question(question.question_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to fetch question revisions: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revisions: {e}")))?;
 
         for revision in question_revisions {
             let has_responses = app_state
@@ -295,9 +314,7 @@ pub async fn delete_category(
                 .assessments_response
                 .has_responses_for_question_revision(revision.question_revision_id)
                 .await
-                .map_err(|e| {
-                    ApiError::InternalServerError(format!("Failed to check responses: {e}"))
-                })?;
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to check responses: {e}")))?;
 
             if has_responses {
                 has_submitted_responses = true;
@@ -324,9 +341,7 @@ pub async fn delete_category(
             .questions_revisions
             .get_revisions_by_question(question.question_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to fetch question revisions: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revisions: {e}")))?;
 
         // Delete assessment responses that reference these question revisions
         for revision in question_revisions {
@@ -335,11 +350,7 @@ pub async fn delete_category(
                 .assessments_response
                 .delete_responses_by_question_revision_id(revision.question_revision_id)
                 .await
-                .map_err(|e| {
-                    ApiError::InternalServerError(format!(
-                        "Failed to delete assessment responses: {e}"
-                    ))
-                })?;
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to delete assessment responses: {e}")))?;
         }
 
         // Delete question revisions first (due to foreign key constraint)
@@ -348,9 +359,7 @@ pub async fn delete_category(
             .questions_revisions
             .delete_revisions_by_question_id(question.question_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to delete question revisions: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question revisions: {e}")))?;
 
         // Delete the question
         app_state
@@ -358,9 +367,7 @@ pub async fn delete_category(
             .questions
             .delete_question(question.question_id)
             .await
-            .map_err(|e| {
-                ApiError::InternalServerError(format!("Failed to delete question: {e}"))
-            })?;
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question: {e}")))?;
     }
 
     // Delete the category from the database
@@ -372,4 +379,4 @@ pub async fn delete_category(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to delete category: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
-}
+} 

@@ -1,18 +1,10 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  QueryKey,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, QueryKey } from "@tanstack/react-query";
 import { useSyncStatus } from "@/hooks/shared/useSyncStatus";
 import { offlineDB } from "@/services/indexeddb";
 import { syncService } from "@/services/syncService";
 import { toast } from "sonner";
 
-export function useOfflineQuery<TData>(
-  queryKey: QueryKey,
-  queryFn: () => Promise<TData>,
-) {
+export function useOfflineQuery<TData>(queryKey: QueryKey, queryFn: () => Promise<TData>) {
   const { isOnline } = useSyncStatus();
 
   return useQuery<TData>({
@@ -79,4 +71,4 @@ export function useOfflineMutation<TData, TVariables>(
       queryClient.invalidateQueries();
     },
   });
-}
+} 

@@ -1,13 +1,13 @@
 import React from "react";
 import { keycloak } from "../../services/shared/keycloakConfig";
-import {
-  getAuthState,
-  login as authLogin,
+import { 
+  getAuthState, 
+  login as authLogin, 
   logout as authLogout,
   initializeAuth,
   setupTokenRefresh,
   UserProfile,
-  AuthState,
+  AuthState 
 } from "../../services/shared/authService";
 
 interface AuthHookState extends AuthState {
@@ -63,7 +63,7 @@ export const useAuth = (): AuthHookState => {
           return;
         }
       }
-
+      
       // Update state after initialization
       updateAuthState();
     };

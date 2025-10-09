@@ -12,24 +12,17 @@ pub struct AdminSubmissionListResponse {
 
 #[derive(serde::Serialize, ToSchema)]
 pub struct AssessmentListResponse {
-    pub submissions: Vec<AdminSubmissionDetail>,
+    pub assessments: Vec<Assessment>,
 }
 
 #[derive(serde::Serialize, ToSchema)]
 pub struct SubmissionListResponse {
-    pub email: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub organization_id: String,
-    pub roles: Vec<String>,
-    pub categories: Vec<String>,
+    pub submissions: Vec<Submission>,
 }
 
 #[derive(serde::Serialize, ToSchema)]
 pub struct SubmissionDetailResponse {
-    pub user_id: String,
-    pub email: String,
-    pub status: UserInvitationStatus,
+    pub submission: Submission,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -214,6 +207,7 @@ pub struct Assessment {
     pub org_id: String,
     pub language: String,
     pub name: String,
+    pub categories: serde_json::Value,
     pub status: AssessmentStatus,
     pub created_at: String,
     pub updated_at: String,
@@ -223,6 +217,7 @@ pub struct Assessment {
 pub struct CreateAssessmentRequest {
     pub language: String,
     pub name: String,
+    pub categories: serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -282,6 +277,7 @@ pub struct ResponseListResponse {
 pub struct AssessmentSubmission {
     pub assessment_id: Uuid,
     pub org_id: String,
+    pub assessment_name: String,
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,
@@ -291,6 +287,7 @@ pub struct AssessmentSubmission {
 pub struct Submission {
     pub submission_id: Uuid,
     pub org_id: String,
+    pub assessment_name: String,
     pub content: serde_json::Value,
     pub submitted_at: String,
     pub review_status: String,
@@ -398,6 +395,22 @@ pub struct AdminReviewListResponse {
     pub reviews: Vec<AdminReview>,
 }
 
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminReport {
+    pub report_id: Uuid,
+    pub submission_id: Uuid,
+    pub org_id: String,
+    pub org_name: String,
+    pub status: String,
+    pub generated_at: String,
+    pub data: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminReportListResponse {
+    pub reports: Vec<AdminReport>,
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct AssignReviewerRequest {
     pub submission_id: Uuid,
@@ -460,6 +473,7 @@ pub struct GenerateReportRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateRecommendationStatusRequest {
     pub report_id: Uuid,
+    pub recommendation_id: String,
     pub category: String,
     pub status: String,
 }
@@ -473,6 +487,7 @@ pub struct OrganizationActionPlan {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct RecommendationWithStatus {
+    pub recommendation_id: Uuid,
     pub report_id: Uuid,
     pub category: String,
     pub recommendation: String,

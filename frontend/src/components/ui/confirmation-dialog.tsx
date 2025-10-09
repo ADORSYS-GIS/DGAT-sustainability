@@ -46,10 +46,18 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+          >
             {cancelText}
           </Button>
-          <Button variant={variant} onClick={onConfirm} disabled={isLoading}>
+          <Button
+            variant={variant}
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
             {isLoading ? "Deleting..." : confirmText}
           </Button>
         </DialogFooter>

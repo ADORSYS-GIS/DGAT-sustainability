@@ -6,8 +6,7 @@ const PAGE_MARGIN = 14;
 const COLUMN_MARGIN = 10;
 const CARD_MARGIN = 6;
 const COLUMN_COUNT = 4;
-const COLUMN_WIDTH =
-  (297 - 2 * PAGE_MARGIN - (COLUMN_COUNT - 1) * COLUMN_MARGIN) / COLUMN_COUNT; // A4 landscape
+const COLUMN_WIDTH = (297 - 2 * PAGE_MARGIN - (COLUMN_COUNT - 1) * COLUMN_MARGIN) / COLUMN_COUNT; // A4 landscape
 const CARD_PADDING = 4;
 const CARD_WIDTH = COLUMN_WIDTH - CARD_PADDING * 2;
 const HEADER_TOP_PADDING = 8;
@@ -44,25 +43,16 @@ interface Column {
   title: string;
 }
 
-const getStatusColors = (status: RecommendationWithStatus["status"]) => {
+const getStatusColors = (status: RecommendationWithStatus['status']) => {
   return COLORS.cardStatus[status] || COLORS.cardStatus.todo;
 };
 
-const drawCard = (
-  doc: jsPDF,
-  x: number,
-  y: number,
-  width: number,
-  recommendation: RecommendationWithStatus,
-): number => {
+const drawCard = (doc: jsPDF, x: number, y: number, width: number, recommendation: RecommendationWithStatus): number => {
   const { bg, border } = getStatusColors(recommendation.status);
 
   doc.setFontSize(FONT_SIZES.cardText);
   doc.setFont("helvetica", "normal");
-  const splitText = doc.splitTextToSize(
-    recommendation.recommendation,
-    width - 2 * CARD_PADDING,
-  );
+  const splitText = doc.splitTextToSize(recommendation.recommendation, width - 2 * CARD_PADDING);
   const textHeight = doc.getTextDimensions(splitText).h;
 
   const categoryHeight = FONT_SIZES.cardCategory * 0.35 * 2; // Line height for category
@@ -70,14 +60,14 @@ const drawCard = (
 
   doc.setDrawColor(border[0], border[1], border[2]);
   doc.setFillColor(bg[0], bg[1], bg[2]);
-  doc.roundedRect(x, y, width, cardHeight, 3, 3, "FD"); // FD = Fill and Stroke
+  doc.roundedRect(x, y, width, cardHeight, 3, 3, 'FD'); // FD = Fill and Stroke
 
   // Category
   doc.setFontSize(FONT_SIZES.cardCategory);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.dgrvBlue[0], COLORS.dgrvBlue[1], COLORS.dgrvBlue[2]);
   doc.text(recommendation.category, x + CARD_PADDING, y + CARD_PADDING + 2);
-
+  
   // Recommendation Text
   doc.setFont("helvetica", "normal");
   doc.setFontSize(FONT_SIZES.cardText);
@@ -87,29 +77,16 @@ const drawCard = (
   return cardHeight;
 };
 
-const drawColumns = (
-  doc: jsPDF,
-  startY: number,
-  columns: Column[],
-  tasksByColumn: Map<string, RecommendationWithStatus[]>,
-) => {
+const drawColumns = (doc: jsPDF, startY: number, columns: Column[], tasksByColumn: Map<string, RecommendationWithStatus[]>) => {
   let currentX = PAGE_MARGIN;
   const maxPageHeight = doc.internal.pageSize.height;
   const columnHeight = maxPageHeight - startY - PAGE_MARGIN;
 
-  columns.forEach((column) => {
+  columns.forEach(column => {
     // Draw column container
-    doc.setDrawColor(
-      COLORS.columnContainer.border[0],
-      COLORS.columnContainer.border[1],
-      COLORS.columnContainer.border[2],
-    );
-    doc.setFillColor(
-      COLORS.columnContainer.bg[0],
-      COLORS.columnContainer.bg[1],
-      COLORS.columnContainer.bg[2],
-    );
-    doc.roundedRect(currentX, startY, COLUMN_WIDTH, columnHeight, 3, 3, "FD");
+    doc.setDrawColor(COLORS.columnContainer.border[0], COLORS.columnContainer.border[1], COLORS.columnContainer.border[2]);
+    doc.setFillColor(COLORS.columnContainer.bg[0], COLORS.columnContainer.bg[1], COLORS.columnContainer.bg[2]);
+    doc.roundedRect(currentX, startY, COLUMN_WIDTH, columnHeight, 3, 3, 'FD');
 
     // Draw Header inside container
     const headerX = currentX + CARD_PADDING;
@@ -121,13 +98,13 @@ const drawColumns = (
     doc.text(column.title, headerX, headerY);
 
     // Draw Badge
-    const taskCount = tasksByColumn.get(column.id)?.length.toString() || "0";
+    const taskCount = tasksByColumn.get(column.id)?.length.toString() || '0';
     const titleWidth = doc.getTextWidth(column.title);
     const badgeX = headerX + titleWidth + 5;
     const badgeWidth = doc.getTextWidth(taskCount) + 4;
     doc.setDrawColor(209, 213, 219); // border-gray-300
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(badgeX, headerY - 3, badgeWidth, 5, 2, 2, "FD");
+    doc.roundedRect(badgeX, headerY - 3, badgeWidth, 5, 2, 2, 'FD');
     doc.setFontSize(FONT_SIZES.badge);
     doc.setTextColor(0, 0, 0);
     doc.text(taskCount, badgeX + 2, headerY);
@@ -139,7 +116,7 @@ const drawColumns = (
 export const drawKanbanBoard = (
   doc: jsPDF,
   recommendations: RecommendationWithStatus[],
-  addNewPage: () => void,
+  addNewPage: () => void
 ) => {
   if (!recommendations || recommendations.length === 0) return;
 
@@ -154,8 +131,8 @@ export const drawKanbanBoard = (
   ];
 
   const tasksByColumn = new Map<string, RecommendationWithStatus[]>();
-  columns.forEach((col) => tasksByColumn.set(col.id, []));
-  recommendations.forEach((rec) => tasksByColumn.get(rec.status)?.push(rec));
+  columns.forEach(col => tasksByColumn.set(col.id, []));
+  recommendations.forEach(rec => tasksByColumn.get(rec.status)?.push(rec));
 
   drawColumns(doc, startY, columns, tasksByColumn);
 
@@ -170,31 +147,19 @@ export const drawKanbanBoard = (
     columns.forEach((column, index) => {
       const columnX = PAGE_MARGIN + index * (COLUMN_WIDTH + COLUMN_MARGIN);
       const tasks = tasksByColumn.get(column.id) || [];
-
+      
       for (const task of tasks) {
         const taskId = `${task.category}-${task.recommendation}`;
         if (drawnTasks.has(taskId)) continue;
 
-        const estCardHeight =
-          doc.splitTextToSize(
-            task.recommendation,
-            COLUMN_WIDTH - 2 * CARD_PADDING,
-          ).length *
-            4 +
-          20;
+        const estCardHeight = (doc.splitTextToSize(task.recommendation, COLUMN_WIDTH - 2 * CARD_PADDING).length * 4) + 20;
 
         if (cardYPositions[index] + estCardHeight > maxPageHeight) {
           continue; // Move to next column if this card won't fit
         }
 
         const cardX = columnX + CARD_PADDING;
-        const cardHeight = drawCard(
-          doc,
-          cardX,
-          cardYPositions[index],
-          CARD_WIDTH,
-          task,
-        );
+        const cardHeight = drawCard(doc, cardX, cardYPositions[index], CARD_WIDTH, task);
         cardYPositions[index] += cardHeight + CARD_MARGIN;
         drawnTasks.add(taskId);
         tasksToDraw--;
@@ -207,11 +172,9 @@ export const drawKanbanBoard = (
       drawColumns(doc, startY, columns, tasksByColumn);
       cardYPositions.fill(cardStartY); // Reset Y positions for new page
     } else if (tasksToDraw > 0 && !pageHasContent) {
-      // Handle case where a single card is too large for a page
-      console.error(
-        "A card is too large to fit on a single page and was skipped.",
-      );
-      break;
+        // Handle case where a single card is too large for a page
+        console.error("A card is too large to fit on a single page and was skipped.");
+        break;
     }
   }
 };

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { UserInvitationForm } from "@/components/shared/UserInvitationForm";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   Dialog,
   DialogContent,
@@ -12,41 +13,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  Plus,
-  Edit,
-  Trash2,
-  Mail,
-  Building2,
-  UserPlus,
-} from "lucide-react";
-import {
-  useOrganizationsServiceGetOrganizations,
-  useOrganizationsServiceGetOrganizationsByOrganizationIdMembers,
-  useOrganizationsServicePostOrganizationsByOrganizationIdMembers,
-  useOrganizationsServiceDeleteOrganizationsByOrganizationIdMembersByUserId,
   useAdminServiceDeleteAdminUsersByUserId,
-} from "@/services/openapiQueries";
+  useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId,
+  useOrganizationMembersServiceGetOrganizationsByIdMembers,
+  useOrganizationMembersServicePostOrganizationsByIdMembers,
+  useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles,
+  useOrganizationsServiceGetAdminOrganizations
+} from "@/openapi-rq/queries/queries";
 import type {
-  OrganizationMember,
-  MemberRequest,
-  OrganizationResponse,
   OrgAdminMemberRequest,
-  RoleAssignment,
+  OrganizationMember,
+  OrganizationResponse,
+  RoleAssignment
 } from "@/openapi-rq/requests/types.gen";
-import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
-import { UserInvitationForm } from "@/components/shared/UserInvitationForm";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { useOfflineCategories } from "@/hooks/useOfflineApi";
+import { Building2, Edit, Mail, Trash2, UserPlus, Users } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 // Helper to extract domain names
 function getDomainNames(domains: unknown): string[] {
@@ -79,76 +63,68 @@ export const ManageUsers: React.FC = () => {
     email: "",
     roles: ["org_admin"],
   });
-
+  
   // Add local loading state for offline user creation
   const [isCreatingUser, setIsCreatingUser] = useState(false);
-
+  
   // Use direct React Query hooks for data fetching
-  const { data: organizations, isLoading: orgsLoading } =
-    useOrganizationsServiceGetOrganizations();
-  const {
-    data: { categories },
-    isLoading: categoriesLoading,
-  } = useOfflineCategories();
-  const transformedCategories = categories.map((cat) => ({
-    id: cat.category_id,
-    name: cat.name,
-  }));
-
+  const { data: organizations, isLoading: orgsLoading } = useOrganizationsServiceGetAdminOrganizations();
+  
   // Add a new state to track the selected organization object
   const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(
     null,
   );
-
+  
   // Only fetch users when selectedOrg is set
   const {
     data: users,
     isLoading: usersLoading,
     refetch,
-  } = useOrganizationsServiceGetOrganizationsByOrganizationIdMembers(
+  } = useOrganizationMembersServiceGetOrganizationsByIdMembers(
     { id: selectedOrg ? selectedOrg.id : "" },
     undefined,
-    { enabled: !!selectedOrg?.id },
+    { enabled: !!selectedOrg?.id }
   );
-
+  
   // Use the generated mutation hooks
-  const createUserMutation =
-    useOrganizationsServicePostOrganizationsByOrganizationIdMembers({
-      onSuccess: (result) => {
-        toast.success("User created successfully");
-        refetch();
-        setShowAddDialog(false);
-        setFormData({
-          email: "",
-          roles: [],
-        });
-      },
-      onError: () => {
-        toast.error("Failed to create user");
-      },
-    });
-
-  // Role update function not available in current API
-  const updateUserMutation = {
-    mutate: () => {
-      toast.error("User role updates are not currently supported");
+  const createUserMutation = useOrganizationMembersServicePostOrganizationsByIdMembers({
+    onSuccess: (result) => {
+      toast.success("User created successfully");
+      refetch();
+      setShowAddDialog(false);
+      setFormData({
+        email: "",
+        roles: [],
+      });
     },
-    isPending: false,
-  };
-
-  const deleteUserMutation =
-    useOrganizationsServiceDeleteOrganizationsByOrganizationIdMembersByUserId(
-      {
-        onSuccess: () => {
-          toast.success("User removed from organization successfully");
-          refetch();
-        },
-        onError: (error) => {
-          console.error("Failed to remove user from organization:", error);
-          toast.error("Failed to remove user from organization");
-        },
-      },
-    );
+    onError: () => {
+      toast.error("Failed to create user");
+    }
+  });
+  
+  const updateUserMutation = useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles({
+    onSuccess: () => {
+      toast.success("User updated successfully");
+      refetch();
+      setShowAddDialog(false);
+      resetForm();
+    },
+    onError: (error) => {
+      console.error("Failed to update user:", error);
+      toast.error("Failed to update user");
+    }
+  });
+  
+  const deleteUserMutation = useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId({
+    onSuccess: () => {
+      toast.success("User removed from organization successfully");
+      refetch();
+    },
+    onError: (error) => {
+      console.error("Failed to remove user from organization:", error);
+      toast.error("Failed to remove user from organization");
+    }
+  });
 
   // New mutation for deleting user entirely
   const deleteUserEntirelyMutation = useAdminServiceDeleteAdminUsersByUserId({
@@ -163,81 +139,76 @@ export const ManageUsers: React.FC = () => {
       toast.error("Failed to delete user entirely");
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
-    },
+    }
   });
 
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(
-    null,
-  );
+  const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(null);
 
   // Offline-first user creation logic
-  const createUserOffline = async (data: {
-    id: string;
-    requestBody: OrgAdminMemberRequest;
-  }) => {
+  const createUserOffline = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
     try {
       // Generate a temporary ID for optimistic updates
       const tempId = `temp_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
-
+      
       // Create a temporary user object for local storage
       const tempUser = {
         id: tempId,
         email: data.requestBody.email,
-        username: data.requestBody.email.split("@")[0], // Use email prefix as username
-        firstName: "",
-        lastName: "",
+        username: data.requestBody.email.split('@')[0], // Use email prefix as username
+        firstName: '',
+        lastName: '',
         emailVerified: false,
         roles: data.requestBody.roles,
         organization_id: data.id,
         updated_at: now,
-        sync_status: "pending" as const,
+        sync_status: 'pending' as const,
         local_changes: true,
-        last_synced: undefined,
+        last_synced: undefined
       };
-
+      
       // Save to IndexedDB immediately for optimistic UI updates
       await offlineDB.saveUser(tempUser);
-
+      
       // Try to sync with backend if online
       try {
         const result = await createUserMutation.mutateAsync({
           id: data.id,
-          requestBody: data.requestBody,
+          requestBody: data.requestBody
         });
-
+        
         // If successful, replace the temporary user with the real one
-        if (result && typeof result === "object" && "id" in result) {
+        if (result && typeof result === 'object' && 'id' in result) {
           const realUserId = (result as { id: string }).id;
           // Delete the temporary user
           await offlineDB.deleteUser(tempId);
-
+          
           // Save the real user with proper ID
           const realUser = {
             id: realUserId,
             email: data.requestBody.email,
-            username: data.requestBody.email.split("@")[0],
-            firstName: "", // Default empty since not provided in response
-            lastName: "", // Default empty since not provided in response
+            username: data.requestBody.email.split('@')[0],
+            firstName: '', // Default empty since not provided in response
+            lastName: '', // Default empty since not provided in response
             emailVerified: false, // Default false since not provided in response
             roles: data.requestBody.roles,
             organization_id: data.id,
             updated_at: new Date().toISOString(),
-            sync_status: "synced" as const,
+            sync_status: 'synced' as const,
             local_changes: false,
-            last_synced: new Date().toISOString(),
+            last_synced: new Date().toISOString()
           };
-
+          
           await offlineDB.saveUser(realUser);
           toast.success("User created successfully");
         }
       } catch (apiError) {
-        console.warn("API call failed, user saved locally for sync:", apiError);
+        console.warn('API call failed, user saved locally for sync:', apiError);
         toast.success("Fail to creat user");
       }
-
+      
       return { success: true };
     } catch (error) {
       toast.error("Failed to create user");
@@ -251,38 +222,37 @@ export const ManageUsers: React.FC = () => {
   // Update handleSubmit to use the offline user creation
   const handleSubmit = async () => {
     if (!formData.email.trim()) {
-      toast.error(t("manageUsers.emailRequired"));
+      toast.error(t('manageUsers.emailRequired'));
       return;
     }
     if (!selectedOrg?.id) {
-      toast.error(t("manageUsers.selectOrgRequired"));
+      toast.error(t('manageUsers.selectOrgRequired'));
       return;
     }
-
+    
     if (editingUser) {
       // For editing, use RoleAssignment
       const roleAssignment: RoleAssignment = {
         roles: formData.roles,
       };
-
+      
       updateUserMutation.mutate({
         id: selectedOrg.id,
         membershipId: editingUser.id,
-        requestBody: roleAssignment,
+        requestBody: roleAssignment
       });
     } else {
       // For creating, use offline-first approach
       const memberReq: OrgAdminMemberRequest = {
         email: formData.email,
         roles: formData.roles,
-        categories: [], // Empty categories array for now
       };
-
+      
       setIsCreatingUser(true);
       try {
         await createUserOffline({
           id: selectedOrg.id,
-          requestBody: memberReq,
+          requestBody: memberReq
         });
         refetch();
         setShowAddDialog(false);
@@ -312,9 +282,9 @@ export const ManageUsers: React.FC = () => {
 
   const confirmDelete = () => {
     if (!userToDelete) return;
-
+    
     deleteUserEntirelyMutation.mutate({
-      userId: userToDelete.id,
+      userId: userToDelete.id
     });
   };
 
@@ -345,9 +315,9 @@ export const ManageUsers: React.FC = () => {
       case "admin":
         return "Admin";
       case "org_admin":
-        return t("manageUsers.orgAdmin");
+        return t('manageUsers.orgAdmin');
       case "Org_User":
-        return t("manageUsers.orgUser");
+        return t('manageUsers.orgUser');
       default:
         return role;
     }
@@ -373,11 +343,11 @@ export const ManageUsers: React.FC = () => {
               <div className="flex items-center space-x-3 mb-4">
                 <Building2 className="w-8 h-8 text-dgrv-blue" />
                 <h1 className="text-3xl font-bold text-dgrv-blue">
-                  {t("manageUsers.selectOrganization")}
+                  {t('manageUsers.selectOrganization')}
                 </h1>
               </div>
               <p className="text-lg text-gray-600">
-                {t("manageUsers.clickOrgToManage")}
+                {t('manageUsers.clickOrgToManage')}
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -419,7 +389,7 @@ export const ManageUsers: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-20 pb-8">
+      <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -428,8 +398,7 @@ export const ManageUsers: React.FC = () => {
               onClick={() => setSelectedOrg(null)}
               className="px-4 py-2 text-base font-semibold rounded shadow border-2 border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 transition"
             >
-              <span className="mr-2">&larr;</span>{" "}
-              {t("manageUsers.backToOrganizations")}
+              <span className="mr-2">&larr;</span> {t('manageUsers.backToOrganizations')}
             </Button>
             <div className="flex gap-3">
               <Button
@@ -443,7 +412,7 @@ export const ManageUsers: React.FC = () => {
             </div>
           </div>
           <p className="text-lg text-gray-600 mb-6">
-            {t("manageUsers.manageUsersForOrg", { org: selectedOrg.name })}
+            {t('manageUsers.manageUsersForOrg', { org: selectedOrg.name })}
           </p>
 
           <Dialog
@@ -457,15 +426,13 @@ export const ManageUsers: React.FC = () => {
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingUser
-                    ? t("manageUsers.editUser")
-                    : t("manageUsers.addNewUser")}
+                  {editingUser ? t('manageUsers.editUser') : t('manageUsers.addNewUser')}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 {/* In the form UI, only show email and role fields */}
                 <div>
-                  <Label htmlFor="email">{t("manageUsers.email")}</Label>
+                  <Label htmlFor="email">{t('manageUsers.email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -476,27 +443,25 @@ export const ManageUsers: React.FC = () => {
                         email: e.target.value,
                       }))
                     }
-                    placeholder={t("manageUsers.emailPlaceholder")}
+                    placeholder={t('manageUsers.emailPlaceholder')}
                   />
                 </div>
                 {/* In the form UI, make the role select fixed to 'org_admin' and not editable */}
                 <div>
-                  <Label htmlFor="role">{t("manageUsers.role")}</Label>
+                  <Label htmlFor="role">{t('manageUsers.role')}</Label>
                   <Input
                     id="role"
-                    value={t("manageUsers.organizationAdmin")}
+                    value={t('manageUsers.organizationAdmin')}
                     readOnly
                     className="bg-gray-100 cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="organization">
-                    {t("manageUsers.organization")}
-                  </Label>
+                  <Label htmlFor="organization">{t('manageUsers.organization')}</Label>
                   {/* Organization field - read-only since we're already in a specific org context */}
                   <Input
                     id="organization"
-                    value={selectedOrg?.name || ""}
+                    value={selectedOrg?.name || ''}
                     readOnly
                     disabled
                     className="bg-gray-100 cursor-not-allowed"
@@ -507,25 +472,14 @@ export const ManageUsers: React.FC = () => {
                   <Button
                     onClick={handleSubmit}
                     className="bg-dgrv-green hover:bg-green-700"
-                    disabled={
-                      createUserMutation.isPending ||
-                      updateUserMutation.isPending ||
-                      isCreatingUser
-                    }
+                    disabled={createUserMutation.isPending || updateUserMutation.isPending || isCreatingUser}
                   >
-                    {createUserMutation.isPending ||
-                    updateUserMutation.isPending ||
-                    isCreatingUser
-                      ? t("manageUsers.processing", {
-                          defaultValue: "Processing...",
-                        })
-                      : editingUser
-                        ? t("manageUsers.update")
-                        : t("manageUsers.create")}{" "}
-                    {t("manageUsers.user")}
+                    {createUserMutation.isPending || updateUserMutation.isPending || isCreatingUser
+                      ? t('manageUsers.processing', { defaultValue: 'Processing...' })
+                      : editingUser ? t('manageUsers.update') : t('manageUsers.create')} {t('manageUsers.user')}
                   </Button>
                   <Button variant="outline" onClick={resetForm}>
-                    {t("manageUsers.cancel")}
+                    {t('manageUsers.cancel')}
                   </Button>
                 </div>
               </div>
@@ -554,8 +508,8 @@ export const ManageUsers: React.FC = () => {
                           @{user.username}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {t("manageUsers.orgLabel")}{" "}
-                          {selectedOrg?.name || t("manageUsers.unknown")}
+                          {t('manageUsers.orgLabel')}{" "}
+                          {selectedOrg?.name || t('manageUsers.unknown')}
                         </p>
                       </div>
                     </div>
@@ -566,9 +520,7 @@ export const ManageUsers: React.FC = () => {
                           : "bg-red-500 text-white"
                       }
                     >
-                      {user.emailVerified
-                        ? t("manageUsers.verified")
-                        : t("manageUsers.notVerified")}
+                      {user.emailVerified ? t('manageUsers.verified') : t('manageUsers.notVerified')}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -610,10 +562,10 @@ export const ManageUsers: React.FC = () => {
                 <CardContent>
                   <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {t("manageUsers.noUsersYet")}
+                    {t('manageUsers.noUsersYet')}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    {t("manageUsers.addFirstUserDesc")}
+                    {t('manageUsers.addFirstUserDesc')}
                   </p>
                   <Button
                     onClick={() => setShowInvitationDialog(true)}
@@ -633,14 +585,13 @@ export const ManageUsers: React.FC = () => {
           >
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{t("userInvitation.title")}</DialogTitle>
+                <DialogTitle>{t('userInvitation.title')}</DialogTitle>
               </DialogHeader>
               <UserInvitationForm
-                organizations={(organizations || []).map((org) => ({
-                  id: org.id || "",
-                  name: org.name || "",
+                organizations={(organizations || []).map(org => ({
+                  id: org.id || '',
+                  name: org.name || ''
                 }))}
-                categories={transformedCategories}
                 defaultOrganizationId={selectedOrg?.id || undefined}
                 onInvitationCreated={() => {
                   setShowInvitationDialog(false);
@@ -658,16 +609,15 @@ export const ManageUsers: React.FC = () => {
               setUserToDelete(null);
             }}
             onConfirm={confirmDelete}
-            title={t("manageUsers.confirmDeleteTitle")}
-            description={t("manageUsers.confirmDeleteDescription", {
-              email: userToDelete?.email || "",
-              name:
-                userToDelete?.firstName && userToDelete?.lastName
-                  ? `${userToDelete.firstName} ${userToDelete.lastName}`
-                  : userToDelete?.email || "",
+            title={t('manageUsers.confirmDeleteTitle')}
+            description={t('manageUsers.confirmDeleteDescription', { 
+              email: userToDelete?.email || '',
+              name: userToDelete?.firstName && userToDelete?.lastName 
+                ? `${userToDelete.firstName} ${userToDelete.lastName}`
+                : userToDelete?.email || ''
             })}
-            confirmText={t("manageUsers.deleteUser")}
-            cancelText={t("manageUsers.cancel")}
+            confirmText={t('manageUsers.deleteUser')}
+            cancelText={t('manageUsers.cancel')}
             variant="destructive"
             isLoading={deleteUserEntirelyMutation.isPending}
           />

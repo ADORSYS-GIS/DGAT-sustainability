@@ -32,4 +32,4 @@ export const keycloakInitOptions = {
   promiseType: "native" as const,
   // Reduce timeout for faster initialization
   timeSkew: 0,
-};
+}; 

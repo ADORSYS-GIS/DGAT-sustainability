@@ -1,23 +1,6 @@
-import {
-  Document,
-  Packer,
-  Paragraph,
-  ImageRun,
-  AlignmentType,
-  HeadingLevel,
-  TextRun,
-  Table,
-  TableRow,
-  TableCell,
-  WidthType,
-  VerticalAlign,
-  BorderStyle,
-} from "docx";
+import { Document, Packer, Paragraph, ImageRun, AlignmentType, HeadingLevel, TextRun, Table, TableRow, TableCell, WidthType, VerticalAlign, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
-import type {
-  AdminSubmissionDetail,
-  RecommendationWithStatus,
-} from "@/openapi-rq/requests/types.gen";
+import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 
 async function urlToArrayBuffer(url: string): Promise<ArrayBuffer> {
   const response = await fetch(url);
@@ -43,7 +26,7 @@ interface ITableData {
 
 const groupDataByCategory = (
   submissions: AdminSubmissionDetail[],
-  recommendations: RecommendationWithStatus[],
+  recommendations: RecommendationWithStatus[]
 ): { [key: string]: ITableData[] } => {
   const groupedData: { [key: string]: ITableData[] } = {};
   const addedQuestions: { [key: string]: Set<string> } = {};
@@ -59,28 +42,25 @@ const groupDataByCategory = (
           addedQuestions[category] = new Set();
         }
 
-        if (
-          questionText !== "N/A" &&
-          !addedQuestions[category].has(questionText)
-        ) {
+        if (questionText !== "N/A" && !addedQuestions[category].has(questionText)) {
           const categoryRecs = recommendations
             .filter((rec) => rec.category === category)
             .map((rec) => `- ${rec.recommendation}`)
             .join("\n");
-
+          
           let answer = "N/A";
           let percentage = "0%";
           let textAnswer = "N/A";
 
           if (response.response) {
-            try {
-              const parsed = JSON.parse(response.response);
-              answer = parsed.yesNo ? "Yes" : "No";
-              percentage = `${parsed.percentage || 0}%`;
-              textAnswer = parsed.text || "N/A";
-            } catch (e) {
-              textAnswer = response.response;
-            }
+              try {
+                  const parsed = JSON.parse(response.response);
+                  answer = parsed.yesNo ? "Yes" : "No";
+                  percentage = `${parsed.percentage || 0}%`;
+                  textAnswer = parsed.text || "N/A";
+              } catch (e) {
+                  textAnswer = response.response;
+              }
           }
 
           groupedData[category].push({
@@ -89,8 +69,7 @@ const groupDataByCategory = (
             answer: answer,
             percentage: percentage,
             textAnswer: textAnswer,
-            recommendations:
-              categoryRecs || "No recommendations for this category.",
+            recommendations: categoryRecs || "No recommendations for this category.",
           });
 
           addedQuestions[category].add(questionText);
@@ -104,182 +83,132 @@ const groupDataByCategory = (
 
 const createAssessmentsTable = (
   submissions: AdminSubmissionDetail[],
-  recommendations: RecommendationWithStatus[],
+  recommendations: RecommendationWithStatus[]
 ) => {
   const groupedData = groupDataByCategory(submissions, recommendations);
   const tables = [];
 
   for (const category in groupedData) {
-    tables.push(
-      new Paragraph({
-        children: [new TextRun({ text: category, bold: true, size: 28 })],
-        spacing: { before: 200 },
-      }),
-    );
+    tables.push(new Paragraph({
+      children: [new TextRun({ text: category, bold: true, size: 28 })],
+      spacing: { before: 200 },
+    }));
 
     const rows = [
       new TableRow({
         children: [
-          new TableCell({
-            children: [new Paragraph("Question")],
-            width: { size: 20, type: WidthType.PERCENTAGE },
-          }),
-          new TableCell({
-            children: [new Paragraph("Answer (Y/N)")],
-            width: { size: 10, type: WidthType.PERCENTAGE },
-          }),
-          new TableCell({
-            children: [new Paragraph("Percentage")],
-            width: { size: 10, type: WidthType.PERCENTAGE },
-          }),
-          new TableCell({
-            children: [new Paragraph("Text Answer")],
-            width: { size: 30, type: WidthType.PERCENTAGE },
-          }),
-          new TableCell({
-            children: [new Paragraph("Recommendations")],
-            width: { size: 30, type: WidthType.PERCENTAGE },
-          }),
+          new TableCell({ children: [new Paragraph("Question")], width: { size: 20, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph("Answer (Y/N)")], width: { size: 10, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph("Percentage")], width: { size: 10, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph("Text Answer")], width: { size: 30, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph("Recommendations")], width: { size: 30, type: WidthType.PERCENTAGE } }),
         ],
       }),
     ];
 
-    groupedData[category].forEach((data) => {
-      rows.push(
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph(data.question)] }),
-            new TableCell({ children: [new Paragraph(data.answer)] }),
-            new TableCell({ children: [new Paragraph(data.percentage)] }),
-            new TableCell({ children: [new Paragraph(data.textAnswer)] }),
-            new TableCell({ children: [new Paragraph(data.recommendations)] }),
-          ],
-        }),
-      );
+    groupedData[category].forEach(data => {
+      rows.push(new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph(data.question)] }),
+          new TableCell({ children: [new Paragraph(data.answer)] }),
+          new TableCell({ children: [new Paragraph(data.percentage)] }),
+          new TableCell({ children: [new Paragraph(data.textAnswer)] }),
+          new TableCell({ children: [new Paragraph(data.recommendations)] }),
+        ],
+      }));
     });
 
-    tables.push(
-      new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }),
-    );
+    tables.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));
   }
 
   return tables;
 };
 
 const createKanbanBoard = (recommendations: RecommendationWithStatus[]) => {
-  const tasksByColumn = {
-    todo: recommendations.filter((r) => r.status === "todo"),
-    in_progress: recommendations.filter((r) => r.status === "in_progress"),
-    done: recommendations.filter((r) => r.status === "done"),
-    approved: recommendations.filter((r) => r.status === "approved"),
-  };
-
-  const columnTitles = {
-    todo: "To Do",
-    in_progress: "In Progress",
-    done: "Done",
-    approved: "Approved",
-  };
-
-  const maxTasks = Math.max(
-    tasksByColumn.todo.length,
-    tasksByColumn.in_progress.length,
-    tasksByColumn.done.length,
-    tasksByColumn.approved.length,
-  );
-
-  const headerRow = new TableRow({
-    children: Object.keys(columnTitles).map(
-      (key) =>
-        new TableCell({
-          children: [
-            new Paragraph({
+    const tasksByColumn = {
+      todo: recommendations.filter(r => r.status === 'todo'),
+      in_progress: recommendations.filter(r => r.status === 'in_progress'),
+      done: recommendations.filter(r => r.status === 'done'),
+      approved: recommendations.filter(r => r.status === 'approved'),
+    };
+  
+    const columnTitles = {
+      todo: "To Do",
+      in_progress: "In Progress",
+      done: "Done",
+      approved: "Approved",
+    };
+  
+    const maxTasks = Math.max(
+      tasksByColumn.todo.length,
+      tasksByColumn.in_progress.length,
+      tasksByColumn.done.length,
+      tasksByColumn.approved.length
+    );
+  
+    const headerRow = new TableRow({
+      children: Object.keys(columnTitles).map(key => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text: columnTitles[key as keyof typeof columnTitles], bold: true })],
+        })],
+      })),
+    });
+  
+    const taskRows = [];
+    for (let i = 0; i < maxTasks; i++) {
+      const rowCells = [];
+      const columns = ['todo', 'in_progress', 'done', 'approved'];
+  
+      for (const col of columns) {
+        const tasks = tasksByColumn[col as keyof typeof tasksByColumn];
+        if (tasks[i]) {
+          const task = tasks[i];
+          rowCells.push(new TableCell({
+            children: [new Paragraph({
               children: [
-                new TextRun({
-                  text: columnTitles[key as keyof typeof columnTitles],
-                  bold: true,
-                }),
+                new TextRun({ text: task.category, bold: true, color: dgrvBlue }),
+                new TextRun({ text: `\n${task.recommendation}` }),
               ],
-            }),
-          ],
-        }),
-    ),
-  });
-
-  const taskRows = [];
-  for (let i = 0; i < maxTasks; i++) {
-    const rowCells = [];
-    const columns = ["todo", "in_progress", "done", "approved"];
-
-    for (const col of columns) {
-      const tasks = tasksByColumn[col as keyof typeof tasksByColumn];
-      if (tasks[i]) {
-        const task = tasks[i];
-        rowCells.push(
-          new TableCell({
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: task.category,
-                    bold: true,
-                    color: dgrvBlue,
-                  }),
-                  new TextRun({ text: `\n${task.recommendation}` }),
-                ],
-              }),
-            ],
+            })],
             verticalAlign: VerticalAlign.TOP,
-          }),
-        );
-      } else {
-        rowCells.push(new TableCell({ children: [new Paragraph("")] }));
+          }));
+        } else {
+          rowCells.push(new TableCell({ children: [new Paragraph("")] }));
+        }
       }
+      taskRows.push(new TableRow({ children: rowCells }));
     }
-    taskRows.push(new TableRow({ children: rowCells }));
-  }
+  
+    const table = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [headerRow, ...taskRows],
+    });
+  
+    return [
+      new Paragraph({ text: "", pageBreakBefore: true }),
+      new Paragraph({
+        children: [new TextRun({ text: "Action Plan Kanban Board", size: 36, bold: true, color: dgrvBlue })],
+        spacing: { after: 100 },
+      }),
+      new Paragraph("This Kanban board provides a visual tool to track the progress of each recommendation."),
+      table,
+    ];
+  };
 
-  const table = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [headerRow, ...taskRows],
-  });
-
-  return [
-    new Paragraph({ text: "", pageBreakBefore: true }),
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: "Action Plan Kanban Board",
-          size: 36,
-          bold: true,
-          color: dgrvBlue,
-        }),
-      ],
-      spacing: { after: 100 },
-    }),
-    new Paragraph(
-      "This Kanban board provides a visual tool to track the progress of each recommendation.",
-    ),
-    table,
-  ];
-};
 
 // Main export function
 export async function exportAllAssessmentsDOCX(
   submissions: AdminSubmissionDetail[],
   recommendations: RecommendationWithStatus[],
   radarChartDataUrl?: string,
-  recommendationChartDataUrl?: string,
+  recommendationChartDataUrl?: string
 ) {
   let imageBuffer: ArrayBuffer | undefined;
 
   // Add sustainability logo
   try {
     const possiblePaths = [
-      "/sustainability.png",
-      "./sustainability.png",
-      "sustainability.png",
-      "/public/sustainability.png",
+      '/sustainability.png', './sustainability.png', 'sustainability.png', '/public/sustainability.png'
     ];
     for (const path of possiblePaths) {
       try {
@@ -290,29 +219,28 @@ export async function exportAllAssessmentsDOCX(
       }
     }
     if (!imageBuffer) {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = 500;
-      canvas.height = 500;
-      if (ctx) {
-        ctx.fillStyle = "#1e3a8a";
-        ctx.fillRect(0, 0, 150, 150);
-        ctx.fillStyle = "white";
-        ctx.font = "bold 24px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("DGRV", 75, 75);
-        ctx.font = "16px Arial";
-        ctx.fillText("Sustainability", 75, 110);
-      }
-      const base64 = canvas.toDataURL("image/png");
-      const response = await fetch(base64);
-      const blob = await response.blob();
-      imageBuffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as ArrayBuffer);
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(blob);
-      });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 500; canvas.height = 500;
+        if (ctx) {
+          ctx.fillStyle = '#1e3a8a';
+          ctx.fillRect(0, 0, 150, 150);
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 24px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('DGRV', 75, 75);
+          ctx.font = '16px Arial';
+          ctx.fillText('Sustainability', 75, 110);
+        }
+        const base64 = canvas.toDataURL('image/png');
+        const response = await fetch(base64);
+        const blob = await response.blob();
+        imageBuffer = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as ArrayBuffer);
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(blob);
+        });
     }
   } catch (error) {
     console.error("Error in logo processing:", error);
@@ -372,19 +300,10 @@ export async function exportAllAssessmentsDOCX(
         properties: {},
         children: [
           new Paragraph({
-            children: [
-              new TextRun({
-                text: "Sustainability Dimensions Overview",
-                size: 36,
-                bold: true,
-                color: dgrvBlue,
-              }),
-            ],
+            children: [new TextRun({ text: "Sustainability Dimensions Overview", size: 36, bold: true, color: dgrvBlue })],
             spacing: { after: 100 },
           }),
-          new Paragraph(
-            "The following chart visualizes the performance across key sustainability dimensions, providing a high-level overview of strengths and areas for improvement.",
-          ),
+          new Paragraph("The following chart visualizes the performance across key sustainability dimensions, providing a high-level overview of strengths and areas for improvement."),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
@@ -404,27 +323,16 @@ export async function exportAllAssessmentsDOCX(
   // --- Recommendation Status Chart Section ---
   if (recommendationChartDataUrl) {
     try {
-      const recommendationChartBuffer = await urlToArrayBuffer(
-        recommendationChartDataUrl,
-      );
+      const recommendationChartBuffer = await urlToArrayBuffer(recommendationChartDataUrl);
       sections.push({
         properties: {},
         children: [
           new Paragraph({ text: "", pageBreakBefore: true }),
           new Paragraph({
-            children: [
-              new TextRun({
-                text: "Recommendation Status Overview",
-                size: 36,
-                bold: true,
-                color: dgrvBlue,
-              }),
-            ],
+            children: [new TextRun({ text: "Recommendation Status Overview", size: 36, bold: true, color: dgrvBlue })],
             spacing: { after: 100 },
           }),
-          new Paragraph(
-            "This chart summarizes the current status of all recommendations, illustrating the progress made in implementing the suggested actions.",
-          ),
+          new Paragraph("This chart summarizes the current status of all recommendations, illustrating the progress made in implementing the suggested actions."),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
@@ -447,19 +355,10 @@ export async function exportAllAssessmentsDOCX(
     children: [
       new Paragraph({ text: "", pageBreakBefore: true }),
       new Paragraph({
-        children: [
-          new TextRun({
-            text: "Detailed Assessment Results",
-            size: 36,
-            bold: true,
-            color: dgrvBlue,
-          }),
-        ],
+        children: [new TextRun({ text: "Detailed Assessment Results", size: 36, bold: true, color: dgrvBlue })],
         spacing: { after: 100 },
       }),
-      new Paragraph(
-        "The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations.",
-      ),
+      new Paragraph("The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations."),
       ...createAssessmentsTable(submissions, recommendations),
     ],
   });
@@ -470,10 +369,11 @@ export async function exportAllAssessmentsDOCX(
     children: createKanbanBoard(recommendations),
   });
 
+
   const doc = new Document({ sections });
 
   // --- Final Save ---
-  Packer.toBlob(doc).then((blob) => {
+  Packer.toBlob(doc).then(blob => {
     saveAs(blob, "sustainability-report.docx");
   });
 }

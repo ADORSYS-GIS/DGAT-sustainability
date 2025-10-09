@@ -8,35 +8,27 @@ use axum::{
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
+use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
-use crate::web::routes::AppState;
 
 // Helper: check if user is member of org by org_id
-#[allow(dead_code)]
 fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id: &str) -> bool {
     // Application admins bypass organization membership checks
     if claims.is_application_admin() {
         return true;
     }
-    claims
-        .organizations
-        .as_ref()
-        .map(|orgs| {
-            orgs.orgs
-                .values()
-                .any(|info| info.id.as_deref() == Some(org_id))
-        })
+    claims.organizations.as_ref()
+        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
         .unwrap_or(false)
 }
 
+/// Upload a file
 #[utoipa::path(
     post,
     path = "/files",
-    request_body = Multipart,
-    responses(
-        (status = 201, description = "Upload file")
-    )
+    tag = "File",
+    responses((status = 201, description = "File uploaded"))
 )]
 pub async fn upload_file(
     State(app_state): State<AppState>,
@@ -127,15 +119,13 @@ pub async fn upload_file(
     Ok(StatusCode::CREATED)
 }
 
+/// Download a file
 #[utoipa::path(
     get,
     path = "/files/{file_id}",
-    responses(
-        (status = 200, description = "Download file")
-    ),
-    params(
-        ("file_id" = Uuid, Path, description = "File ID")
-    )
+    tag = "File",
+    params(("file_id" = uuid::Uuid, Path, description = "File ID")),
+    responses((status = 200, description = "Binary file content"), (status = 404, description = "Not found"))
 )]
 pub async fn download_file(
     State(app_state): State<AppState>,
@@ -187,23 +177,20 @@ pub async fn download_file(
     Ok((headers, file_model.content))
 }
 
+/// Delete a file
 #[utoipa::path(
     delete,
     path = "/files/{file_id}",
-    responses(
-        (status = 204, description = "Delete file")
-    ),
-    params(
-        ("file_id" = Uuid, Path, description = "File ID")
-    )
+    tag = "File",
+    params(("file_id" = uuid::Uuid, Path, description = "File ID")),
+    responses((status = 204, description = "Deleted"), (status = 404, description = "Not found"))
 )]
 pub async fn delete_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path(file_id): Path<Uuid>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims
-        .get_org_id()
+    let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch the file to verify ownership
@@ -262,15 +249,13 @@ pub async fn delete_file(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Get file metadata
 #[utoipa::path(
     get,
     path = "/files/{file_id}/metadata",
-    responses(
-        (status = 200, description = "Get file metadata", body = FileMetadataResponse)
-    ),
-    params(
-        ("file_id" = Uuid, Path, description = "File ID")
-    )
+    tag = "File",
+    params(("file_id" = uuid::Uuid, Path, description = "File ID")),
+    responses((status = 200, description = "Metadata", body = FileMetadataResponse), (status = 404, description = "Not found"))
 )]
 pub async fn get_file_metadata(
     State(app_state): State<AppState>,
@@ -331,17 +316,17 @@ pub async fn get_file_metadata(
     Ok(Json(FileMetadataResponse { metadata }))
 }
 
+/// Attach a file to a response
 #[utoipa::path(
     post,
-    path = "/files/{assessment_id}/{response_id}/attach",
-    request_body = AttachFileRequest,
-    responses(
-        (status = 204, description = "Attach file to response")
-    ),
+    path = "/assessments/{assessment_id}/responses/{response_id}/files",
+    tag = "File",
     params(
-        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
-        ("response_id" = Uuid, Path, description = "Response ID")
-    )
+        ("assessment_id" = uuid::Uuid, Path, description = "Assessment ID"),
+        ("response_id" = uuid::Uuid, Path, description = "Response ID")
+    ),
+    request_body = AttachFileRequest,
+    responses((status = 204, description = "Attached"), (status = 404, description = "Not found"))
 )]
 pub async fn attach_file(
     State(app_state): State<AppState>,
@@ -349,8 +334,7 @@ pub async fn attach_file(
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<AttachFileRequest>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims
-        .get_org_id()
+    let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment
@@ -446,25 +430,24 @@ pub async fn attach_file(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Remove a file from a response
 #[utoipa::path(
     delete,
-    path = "/files/{assessment_id}/{response_id}/{file_id}",
-    responses(
-        (status = 204, description = "Remove file from response")
-    ),
+    path = "/assessments/{assessment_id}/responses/{response_id}/files/{file_id}",
+    tag = "File",
     params(
-        ("assessment_id" = Uuid, Path, description = "Assessment ID"),
-        ("response_id" = Uuid, Path, description = "Response ID"),
-        ("file_id" = Uuid, Path, description = "File ID")
-    )
+        ("assessment_id" = uuid::Uuid, Path, description = "Assessment ID"),
+        ("response_id" = uuid::Uuid, Path, description = "Response ID"),
+        ("file_id" = uuid::Uuid, Path, description = "File ID")
+    ),
+    responses((status = 204, description = "Removed"), (status = 404, description = "Not found"))
 )]
 pub async fn remove_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id, file_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims
-        .get_org_id()
+    let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Verify that the current organization is the owner of the assessment

@@ -1,39 +1,38 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { useOfflineAdminActionPlans } from '@/hooks/useOfflineApi';
+import {
+  OrganizationActionPlan
+} from '@/openapi-rq/requests/types.gen';
+import {
+  AlertCircle,
   ArrowLeft,
-  Kanban,
   Building2,
-  Users,
-  Clock,
   CheckCircle,
   PlayCircle,
-  ThumbsUp,
-  AlertCircle,
   RefreshCw,
-} from "lucide-react";
-import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
-import {
-  RecommendationWithStatus,
-  OrganizationActionPlan,
-} from "@/openapi-rq/requests/types.gen";
-import { useOfflineAdminActionPlans } from "@/hooks/useOfflineApi";
+  ThumbsUp
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 const AdminActionPlans: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [selectedOrganization, setSelectedOrganization] =
-    useState<OrganizationActionPlan | null>(null);
-
+  const [selectedOrganization, setSelectedOrganization] = useState<OrganizationActionPlan | null>(null);
+  
   const {
     data: { organizations },
     isLoading,
     error,
-    refetch,
+    refetch
   } = useOfflineAdminActionPlans();
 
   // State to manage refreshing indicator
@@ -54,9 +53,7 @@ const AdminActionPlans: React.FC = () => {
   // Update selected organization if the data changes
   useEffect(() => {
     if (selectedOrganization && organizations.length > 0) {
-      const updatedOrg = organizations.find(
-        (org) => org.organization_id === selectedOrganization.organization_id,
-      );
+      const updatedOrg = organizations.find(org => org.organization_id === selectedOrganization.organization_id);
       if (updatedOrg) {
         setSelectedOrganization(updatedOrg);
       } else {
@@ -64,7 +61,7 @@ const AdminActionPlans: React.FC = () => {
         setSelectedOrganization(null);
       }
     }
-  }, [organizations]);
+  }, [organizations]); // eslint-disable-line react-hooks/exhaustive-deps
   // Disable exhaustive-deps for `selectedOrganization` as we explicitly handle its update based on `organizations`
 
   // Refresh data when user returns to the tab
@@ -76,37 +73,23 @@ const AdminActionPlans: React.FC = () => {
       }
     };
 
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [isLoading, isRefreshing, organizations.length, handleRefresh]);
 
   // Columns for Kanban
   const columns = [
-    {
-      id: "todo",
-      title: t("adminActionPlans.kanban.todo", { defaultValue: "To Do" }),
-      icon: AlertCircle,
-      color: "text-gray-600",
-    },
+    { id: "todo", title: t("adminActionPlans.kanban.todo", { defaultValue: "To Do" }), icon: AlertCircle, color: "text-gray-600" },
     {
       id: "in_progress",
-      title: t("adminActionPlans.kanban.inProgress", {
-        defaultValue: "In Progress",
-      }),
+      title: t("adminActionPlans.kanban.inProgress", { defaultValue: "In Progress" }),
       icon: PlayCircle,
       color: "text-blue-600",
     },
-    {
-      id: "done",
-      title: t("adminActionPlans.kanban.done", { defaultValue: "Done" }),
-      icon: CheckCircle,
-      color: "text-green-600",
-    },
+    { id: "done", title: t("adminActionPlans.kanban.done", { defaultValue: "Done" }), icon: CheckCircle, color: "text-green-600" },
     {
       id: "approved",
-      title: t("adminActionPlans.kanban.approved", {
-        defaultValue: "Approved",
-      }),
+      title: t("adminActionPlans.kanban.approved", { defaultValue: "Approved" }),
       icon: ThumbsUp,
       color: "text-emerald-600",
     },
@@ -114,40 +97,18 @@ const AdminActionPlans: React.FC = () => {
 
   // Filter recommendations by status
   const getTasksByStatus = (status: string) =>
-    selectedOrganization?.recommendations.filter(
-      (rec) => rec.status === status,
-    ) || [];
+    selectedOrganization?.recommendations.filter((rec) => rec.status === status) || [];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "todo":
-        return (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            {t("adminActionPlans.todo", { defaultValue: "To Do" })}
-          </Badge>
-        );
-      case "in_progress":
-        return (
-          <Badge variant="default" className="bg-blue-100 text-blue-800">
-            <PlayCircle className="w-3 h-3 mr-1" />
-            {t("adminActionPlans.inProgress", { defaultValue: "In Progress" })}
-          </Badge>
-        );
-      case "done":
-        return (
-          <Badge variant="default" className="bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            {t("adminActionPlans.done", { defaultValue: "Done" })}
-          </Badge>
-        );
-      case "approved":
-        return (
-          <Badge variant="default" className="bg-emerald-100 text-emerald-800">
-            <ThumbsUp className="w-3 h-3 mr-1" />
-            {t("adminActionPlans.approved", { defaultValue: "Approved" })}
-          </Badge>
-        );
+      case 'todo':
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800"><AlertCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.todo', { defaultValue: 'To Do' })}</Badge>;
+      case 'in_progress':
+        return <Badge variant="default" className="bg-blue-100 text-blue-800"><PlayCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.inProgress', { defaultValue: 'In Progress' })}</Badge>;
+      case 'done':
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.done', { defaultValue: 'Done' })}</Badge>;
+      case 'approved':
+        return <Badge variant="default" className="bg-emerald-100 text-emerald-800"><ThumbsUp className="w-3 h-3 mr-1" />{t('adminActionPlans.approved', { defaultValue: 'Approved' })}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -159,11 +120,7 @@ const AdminActionPlans: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-gray-600">
-              {t("adminActionPlans.loading", {
-                defaultValue: "Loading action plans...",
-              })}
-            </p>
+            <p className="mt-2 text-gray-600">{t('adminActionPlans.loading', { defaultValue: 'Loading action plans...' })}</p>
           </div>
         </div>
       </div>
@@ -178,7 +135,7 @@ const AdminActionPlans: React.FC = () => {
             <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
             <p className="text-red-600">{error.message}</p>
             <Button onClick={handleRefresh} className="mt-2">
-              {t("adminActionPlans.retry", { defaultValue: "Retry" })}
+              {t('adminActionPlans.retry', { defaultValue: 'Retry' })}
             </Button>
           </div>
         </div>
@@ -196,28 +153,15 @@ const AdminActionPlans: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/admin/review-assessments")}
+              onClick={() => navigate('/admin/review-assessments')}
               className="flex items-center space-x-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>
-                {t("adminActionPlans.backToReview", {
-                  defaultValue: "Back to Review",
-                })}
-              </span>
+              <span>{t('adminActionPlans.backToReview', { defaultValue: 'Back to Review' })}</span>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {t("adminActionPlans.title", {
-                  defaultValue: "Organization Action Plans",
-                })}
-              </h1>
-              <p className="text-gray-600">
-                {t("adminActionPlans.subtitle", {
-                  defaultValue:
-                    "Select an organization to view their action plan",
-                })}
-              </p>
+              <h1 className="text-2xl font-bold text-gray-900">{t('adminActionPlans.title', { defaultValue: 'Organization Action Plans' })}</h1>
+              <p className="text-gray-600">{t('adminActionPlans.subtitle', { defaultValue: 'Select an organization to view their action plan' })}</p>
             </div>
           </div>
           <Button
@@ -227,12 +171,8 @@ const AdminActionPlans: React.FC = () => {
             disabled={isRefreshing}
             className="flex items-center space-x-2"
           >
-            <RefreshCw
-              className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            <span>
-              {t("adminActionPlans.refresh", { defaultValue: "Refresh" })}
-            </span>
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{t('adminActionPlans.refresh', { defaultValue: 'Refresh' })}</span>
           </Button>
         </div>
 
@@ -243,15 +183,10 @@ const AdminActionPlans: React.FC = () => {
               <CardContent>
                 <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t("adminActionPlans.noOrganizations", {
-                    defaultValue: "No organizations with action plans",
-                  })}
+                  {t('adminActionPlans.noOrganizations', { defaultValue: 'No organizations with action plans' })}
                 </h3>
                 <p className="text-gray-600">
-                  {t("adminActionPlans.noOrganizationsDesc", {
-                    defaultValue:
-                      "Organizations with recommendations will appear here",
-                  })}
+                  {t('adminActionPlans.noOrganizationsDesc', { defaultValue: 'Organizations with recommendations will appear here' })}
                 </p>
               </CardContent>
             </Card>
@@ -268,18 +203,9 @@ const AdminActionPlans: React.FC = () => {
                       <Building2 className="w-6 h-6 text-blue-600" />
                     </div>
                     <div className="flex-1">
-                      <CardTitle className="text-lg">
-                        {org.organization_name}
-                      </CardTitle>
+                      <CardTitle className="text-lg">{org.organization_name}</CardTitle>
                       <p className="text-sm text-gray-600">
-                        {org.recommendations.length}{" "}
-                        {org.recommendations.length === 1
-                          ? t("adminActionPlans.recommendation", {
-                              defaultValue: "recommendation",
-                            })
-                          : t("adminActionPlans.recommendations", {
-                              defaultValue: "recommendations",
-                            })}
+                        {org.recommendations.length} {org.recommendations.length === 1 ? t('adminActionPlans.recommendation', { defaultValue: 'recommendation' }) : t('adminActionPlans.recommendations', { defaultValue: 'recommendations' })}
                       </p>
                     </div>
                   </div>
@@ -287,17 +213,12 @@ const AdminActionPlans: React.FC = () => {
                 <CardContent>
                   <div className="space-y-2">
                     {columns.map((column) => {
-                      const count = org.recommendations.filter(
-                        (rec) => rec.status === column.id,
-                      ).length;
+                      const count = org.recommendations.filter(rec => rec.status === column.id).length;
                       if (count === 0) return null;
-
+                      
                       const IconComponent = column.icon;
                       return (
-                        <div
-                          key={column.id}
-                          className="flex items-center justify-between text-sm"
-                        >
+                        <div key={column.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center space-x-2">
                             <IconComponent className="w-4 h-4" />
                             <span className={column.color}>{column.title}</span>
@@ -329,21 +250,11 @@ const AdminActionPlans: React.FC = () => {
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>
-              {t("adminActionPlans.backToOrganizations", {
-                defaultValue: "Back to Organizations",
-              })}
-            </span>
+            <span>{t('adminActionPlans.backToOrganizations', { defaultValue: 'Back to Organizations' })}</span>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {selectedOrganization.organization_name}
-            </h1>
-            <p className="text-gray-600">
-              {t("adminActionPlans.actionPlanFor", {
-                defaultValue: "Action Plan",
-              })}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">{selectedOrganization.organization_name}</h1>
+            <p className="text-gray-600">{t('adminActionPlans.actionPlanFor', { defaultValue: 'Action Plan' })}</p>
           </div>
         </div>
         <Button
@@ -353,12 +264,8 @@ const AdminActionPlans: React.FC = () => {
           disabled={isRefreshing}
           className="flex items-center space-x-2"
         >
-          <RefreshCw
-            className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-          />
-          <span>
-            {t("adminActionPlans.refresh", { defaultValue: "Refresh" })}
-          </span>
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span>{t('adminActionPlans.refresh', { defaultValue: 'Refresh' })}</span>
         </Button>
       </div>
 
@@ -385,10 +292,7 @@ const AdminActionPlans: React.FC = () => {
                   <div className="text-center py-8 text-gray-500">
                     <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">
-                      {t("adminActionPlans.kanban.noTasks", {
-                        status: column.id,
-                        defaultValue: `No tasks in ${column.title.toLowerCase()}`,
-                      })}
+                      {t("adminActionPlans.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
                     </p>
                   </div>
                 ) : (
@@ -406,12 +310,7 @@ const AdminActionPlans: React.FC = () => {
                             {task.recommendation}
                           </div>
                           <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>
-                              {t("adminActionPlans.createdAt", {
-                                defaultValue: "Created",
-                              })}
-                              : {new Date(task.created_at).toLocaleDateString()}
-                            </span>
+                            <span>{t('adminActionPlans.createdAt', { defaultValue: 'Created' })}: {new Date(task.created_at).toLocaleDateString()}</span>
                             {getStatusBadge(task.status)}
                           </div>
                         </div>

@@ -17,23 +17,31 @@ import type {
   RecommendationWithStatus, // Import the type
 } from "@/openapi-rq/requests/types.gen";
 
-// Define ReportCategoryData and ReportData based on usage in ActionPlan.tsx (local definitions)
-export interface ReportCategoryData {
-  [key: string]: {
-    recommendation: string;
-    status?: string;
-    created_at?: string;
-  };
+// New types for report data structure, aligning with the actual API response
+export interface ReportRecommendation {
+  id: string;
+  status: "todo" | "in_progress" | "done" | "approved";
+  text: string;
 }
 
-export interface ReportData {
+export interface ReportCategoryContent {
+  recommendations: ReportRecommendation[];
+  questions?: { answer: unknown; question: string }[];
+}
+
+export interface ReportCategoryData {
+  [category: string]: ReportCategoryContent;
+}
+
+// Create a more specific report type that aligns with the actual API response
+export interface DetailedReport extends Omit<Report, 'data'> {
   data: ReportCategoryData[];
 }
 
 // Base interface for all offline entities
 export interface OfflineEntity {
   updated_at: string;
-  sync_status: "synced" | "pending" | "failed";
+  sync_status: 'synced' | 'pending' | 'failed';
   local_changes?: boolean;
   last_synced?: string;
 }
@@ -50,9 +58,10 @@ export interface OfflineAssessment extends Assessment, OfflineEntity {
   organization_id?: string;
   user_id?: string; // Add user_id
   user_email?: string;
-  status: "draft" | "in_progress" | "completed" | "submitted";
+  status: 'draft' | 'in_progress' | 'completed' | 'submitted';
   progress_percentage?: number;
   last_activity?: string;
+  categories?: string[]; // List of category UUIDs assigned to this assessment
 }
 
 // Enhanced Response with offline fields
@@ -88,18 +97,14 @@ export interface OfflineReport extends Report, OfflineEntity {
 }
 
 // Enhanced Recommendation with offline fields
-export interface OfflineRecommendation
-  extends RecommendationWithStatus,
-    OfflineEntity {
+export interface OfflineRecommendation extends RecommendationWithStatus, OfflineEntity {
   recommendation_id: string; // Unique ID for IndexedDB
   organization_id: string;
   organization_name: string; // Cached organization name for display
 }
 
 // Enhanced Organization with offline fields (fixing the created_at conflict)
-export interface OfflineOrganization
-  extends Omit<Organization, "created_at" | "updated_at">,
-    OfflineEntity {
+export interface OfflineOrganization extends Omit<Organization, 'created_at' | 'updated_at'>, OfflineEntity {
   organization_id: string; // Map from API 'id' field
   member_count?: number;
   assessment_count?: number;
@@ -117,9 +122,7 @@ export interface OfflineUser extends OrganizationMember, OfflineEntity {
 }
 
 // Enhanced Organization Invitation with offline fields
-export interface OfflineInvitation
-  extends OrganizationInvitation,
-    OfflineEntity {
+export interface OfflineInvitation extends OrganizationInvitation, OfflineEntity {
   inviter_email?: string;
   organization_name?: string;
 }
@@ -155,15 +158,15 @@ export interface SyncStatus {
   failed_items_count: number;
   sync_in_progress: boolean;
   sync_progress_percentage: number;
-  network_quality: "excellent" | "good" | "poor" | "offline";
-  connection_type?: "wifi" | "cellular" | "ethernet" | "unknown";
+  network_quality: 'excellent' | 'good' | 'poor' | 'offline';
+  connection_type?: 'wifi' | 'cellular' | 'ethernet' | 'unknown';
 }
 
 // Network Status for tracking connectivity
 export interface NetworkStatus {
   is_online: boolean;
-  connection_type?: "wifi" | "cellular" | "ethernet" | "unknown";
-  connection_quality: "excellent" | "good" | "poor" | "offline";
+  connection_type?: 'wifi' | 'cellular' | 'ethernet' | 'unknown';
+  connection_quality: 'excellent' | 'good' | 'poor' | 'offline';
   last_online?: string;
   last_offline?: string;
   uptime_percentage: number;
@@ -177,9 +180,9 @@ export interface ConflictData {
   entity_id: string;
   local_version: Record<string, unknown>; // Replacing 'any' with proper type
   server_version: Record<string, unknown>; // Replacing 'any' with proper type
-  conflict_type: "timestamp" | "version" | "content";
+  conflict_type: 'timestamp' | 'version' | 'content';
   resolved: boolean;
-  resolution_strategy: "local_wins" | "server_wins" | "manual" | "merge";
+  resolution_strategy: 'local_wins' | 'server_wins' | 'manual' | 'merge';
   created_at: string;
   resolved_at?: string;
 }
@@ -189,7 +192,7 @@ export interface DataLoadingProgress {
   total_items: number;
   loaded_items: number;
   current_entity: string;
-  status: "idle" | "loading" | "completed" | "failed";
+  status: 'idle' | 'loading' | 'completed' | 'failed';
   error_message?: string;
   started_at: string;
   completed_at?: string;
@@ -274,8 +277,7 @@ export interface OfflineDatabaseSchema {
     key: string; // 'current'
     value: DatabaseStats;
   };
-  recommendations: {
-    // Add the new object store
+  recommendations: { // Add the new object store
     key: string; // recommendation_id
     value: OfflineRecommendation;
   };
@@ -291,7 +293,7 @@ export interface QuestionFilters {
 export interface AssessmentFilters {
   user_id?: string;
   organization_id?: string;
-  status?: "draft" | "in_progress" | "completed" | "submitted";
+  status?: 'draft' | 'in_progress' | 'completed' | 'submitted';
   created_after?: string;
   created_before?: string;
 }
@@ -306,13 +308,7 @@ export interface ResponseFilters {
 export interface SubmissionFilters {
   user_id?: string;
   organization_id?: string;
-  review_status?:
-    | "pending_review"
-    | "under_review"
-    | "approved"
-    | "rejected"
-    | "revision_requested"
-    | "reviewed";
+  review_status?: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'reviewed';
   submitted_after?: string;
   submitted_before?: string;
 }
@@ -322,7 +318,7 @@ export interface UserFilters {
   roles?: string[];
   is_active?: boolean;
   search_text?: string;
-  sync_status?: "synced" | "pending" | "failed"; // Add sync_status filter
+  sync_status?: 'synced' | 'pending' | 'failed'; // Add sync_status filter
 }
 
 // Type definition for pending review submissions
@@ -330,7 +326,7 @@ export interface OfflinePendingReviewSubmission {
   id: string; // Unique ID for the pending review entry
   submission_id: string; // The ID of the submission being reviewed
   reviewer: string; // ID of the reviewer
-  sync_status: "pending" | "synced" | "failed";
+  sync_status: 'pending' | 'synced' | 'failed';
   timestamp: string; // When the pending review was created/updated
   // Add any other relevant fields for a pending review
 }

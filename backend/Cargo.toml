@@ -34,8 +34,7 @@ tower-http = { version = "0.5", features = ["cors", "trace"] }
 once_cell = "1.19"
 sysinfo = "0.30"
 rand = "0.8"
-serde_yaml = "0.9.34"
-utoipa = { version = "4.2", features = ["uuid"] }
+utoipa = { version = "4.2", features = ["axum_extras", "chrono", "uuid"] }
 
 [[bin]]
 name = "sustainability-tool"
