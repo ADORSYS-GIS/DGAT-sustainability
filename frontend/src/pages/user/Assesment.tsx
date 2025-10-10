@@ -244,7 +244,10 @@ export const Assessment: React.FC = () => {
               const maxAttempts = 10;
               while (attempts < maxAttempts) {
                 const savedAssessment = await offlineDB.getAssessment(realAssessmentId);
-                if (savedAssessment) return;
+                if (savedAssessment) {
+                  navigate(`/user/assessment/${realAssessmentId}`);
+                  return;
+                }
                 await new Promise((resolve) => setTimeout(resolve, 500));
                 attempts++;
               }

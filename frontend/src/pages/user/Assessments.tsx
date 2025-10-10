@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineQuestions, useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
-import type { Assessment, Submission } from "@/openapi-rq/requests/types.gen";
+import type { Assessment, Question, Submission } from "@/openapi-rq/requests/types.gen";
 import { Calendar, Eye, FileText, Trash2 } from "lucide-react";
 import * as React from "react";
 import { useEffect, useState } from "react";
@@ -28,6 +28,12 @@ type AuthUser = {
 // Extend Assessment type to include status for local use
 type AssessmentWithStatus = Assessment & { status?: string };
 
+// Extend Submission type to include assessment_name for local use
+type SubmissionWithName = Submission & { assessment_name?: string };
+
+// Extend Question type to include category for local use
+type QuestionWithCategory = Question & { category?: string };
+
 export const Assessments: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -49,7 +55,7 @@ export const Assessments: React.FC = () => {
       if (q.question?.latest_revision) {
         map.set(q.question.latest_revision.question_revision_id, {
           text: q.question.latest_revision.text as unknown as string,
-          category: q.question.category,
+          category: (q.question as QuestionWithCategory).category || "",
         });
       }
     });
@@ -64,7 +70,7 @@ export const Assessments: React.FC = () => {
   }, [remoteLoading]);
 
   // Helper function to count unique categories completed for a submission
-  const getCategoryCounts = (submission: Submission, questionsMap: Map<string, { text: string; category: string }>) => {
+  const getCategoryCounts = (submission: SubmissionWithName, questionsMap: Map<string, { text: string; category: string }>) => {
     try {
       const responses = submission?.content?.responses || [];
       const completedCategories = new Set<string>();
@@ -140,7 +146,7 @@ export const Assessments: React.FC = () => {
 
   // Card for each submission
   const SubmissionCard: React.FC<{
-    submission: Submission;
+    submission: SubmissionWithName;
     user: AuthUser | null;
     navigate: NavigateFunction;
     index: number;
@@ -165,7 +171,7 @@ export const Assessments: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  {t("sustainability")} {t("assessment")} {t("submission", { defaultValue: "Submission" })}
+                  {submission.assessment_name || `${t("sustainability")} ${t("assessment")} ${t("submission", { defaultValue: "Submission" })}`}
                 </h3>
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
@@ -250,7 +256,7 @@ export const Assessments: React.FC = () => {
         </div>
 
         <div className="grid gap-6">
-          {submissions.map((submission: Submission, index) => (
+          {submissions.map((submission: SubmissionWithName, index) => (
             <SubmissionCard
               key={submission.submission_id}
               submission={submission}

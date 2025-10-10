@@ -1388,31 +1388,51 @@ export function useOfflineUserRecommendations() {
           const reports = (reportsResponse.reports || []) as unknown as DetailedReport[];
 
           const allOfflineRecommendations: OfflineRecommendation[] = [];
+          const submissions = await offlineDB.getAllSubmissions();
+          const submissionMap = new Map(submissions.map(s => [s.submission_id, s.assessment_name]));
+
+          const enrichedReports = reports.map(report => ({
+            ...report,
+            assessment_name: submissionMap.get(report.submission_id)
+          }));
+
           for (const report of reports) {
+            const assessmentName = submissionMap.get(report.submission_id);
             const transformedRecs = DataTransformationService.transformReportToOfflineRecommendations(
               report,
               user?.organization,
-              user?.organization_name
+              user?.organization_name,
+              assessmentName
             );
             allOfflineRecommendations.push(...transformedRecs);
           }
           await offlineDB.saveRecommendations(allOfflineRecommendations);
           
-          return { reports };
+          return { reports: enrichedReports };
         },
         async () => {
-          const offlineRecommendations = await offlineDB.getAllRecommendations();
-          const userRecommendations = user?.organization
-            ? offlineRecommendations.filter(rec => rec.organization_id === user.organization)
-            : offlineRecommendations;
+          const [offlineRecommendations, submissions] = await Promise.all([
+            offlineDB.getAllRecommendations(),
+            offlineDB.getAllSubmissions(),
+          ]);
+          const submissionMap = new Map(submissions.map(s => [s.submission_id, s.assessment_name]));
 
-          const reportsMap = new Map<string, DetailedReport>();
+          const userRecommendations = (user?.organization
+            ? offlineRecommendations.filter(rec => rec.organization_id === user.organization)
+            : offlineRecommendations
+          ).map(rec => ({
+            ...rec,
+            assessment_name: submissionMap.get(rec.submission_id || '') || 'Unknown Assessment',
+          }));
+
+          const reportsMap = new Map<string, DetailedReport & { assessment_name?: string }>();
 
           for (const rec of userRecommendations) {
             if (!reportsMap.has(rec.report_id)) {
               reportsMap.set(rec.report_id, {
                 report_id: rec.report_id,
-                submission_id: '',
+                submission_id: rec.submission_id || '',
+                assessment_name: rec.assessment_name,
                 report_type: 'sustainability',
                 status: 'completed',
                 generated_at: new Date().toISOString(),
@@ -1609,37 +1629,46 @@ export function useOfflineUsers(organizationId?: string) {
 // ===== DRAFT SUBMISSIONS =====
 
 export function useOfflineDraftSubmissions() {
-  const [data, setData] = useState<{ draft_submissions: unknown[] }>({ draft_submissions: [] });
+  const [data, setData] = useState<{ draft_submissions: (Submission & { assessment_name?: string })[] }>({ draft_submissions: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-              // Use the admin draft submissions endpoint
-      console.log('🔍 useOfflineDraftSubmissions: Starting fetch...');
-      console.log('🔍 useOfflineDraftSubmissions: Calling AdminService.getDrafts()');
-      const result = await apiInterceptor.interceptGet(
-        () => {
-          console.log('🔍 useOfflineDraftSubmissions: Inside AdminService.getDrafts() call');
-          console.log('🔍 useOfflineDraftSubmissions: Timestamp:', new Date().toISOString());
-          // Add cache-busting parameter to ensure fresh data
-          return AdminService.getDrafts({ status: undefined });
-        },
-        () => {
-          console.log('🔍 useOfflineDraftSubmissions: Using offline fallback');
-          return offlineDB.getAllSubmissions().then(submissions => ({ 
-            draft_submissions: submissions.filter(s => s.review_status === 'pending_review') 
-          }));
-        },
-        'drafts_endpoint',
-      );
-      console.log('🔍 useOfflineDraftSubmissions: Result received:', result);
+      const [draftsResult, assessmentsResult] = await Promise.all([
+        apiInterceptor.interceptGet(
+          () => AdminService.getDrafts({ status: undefined }),
+          () => offlineDB.getAllSubmissions().then(submissions => ({
+            submissions: submissions.filter(s => s.review_status === 'pending_review')
+          })),
+          'drafts_endpoint'
+        ),
+        apiInterceptor.interceptGet(
+          () => AssessmentsService.getAssessments(),
+          () => offlineDB.getAllAssessments().then(assessments => ({ assessments })),
+          'assessments'
+        )
+      ]);
 
-      setData(result as { draft_submissions: unknown[] });
+      const assessmentsMap = new Map<string, string>();
+      if (assessmentsResult?.assessments) {
+        for (const assessment of (assessmentsResult.assessments as Assessment[])) {
+          if (assessment.assessment_id && assessment.name) {
+            assessmentsMap.set(assessment.assessment_id, assessment.name);
+          }
+        }
+      }
+
+      const submissionList = (draftsResult as { submissions: Submission[] })?.submissions || [];
+      const submissions = submissionList.map((submission: Submission) => ({
+        ...submission,
+        assessment_name: assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
+      }));
+
+      setData({ draft_submissions: submissions });
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch draft submissions'));
     } finally {

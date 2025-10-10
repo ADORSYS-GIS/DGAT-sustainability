@@ -25,7 +25,7 @@ export const ActionPlan: React.FC = () => {
 
   // Flat recommendation type for Kanban with status
   // Type for Kanban recommendations
-  type KanbanRecommendation = OfflineRecommendation & { id: string }; // Add a local 'id' for React keys
+  type KanbanRecommendation = OfflineRecommendation & { id: string; assessment_name?: string }; // Add assessment_name
   
   // Extract and flatten recommendations from all reports (fixed for actual data structure)
   const extractRecommendations = (reports: DetailedReport[]): KanbanRecommendation[] => {
@@ -44,14 +44,17 @@ export const ActionPlan: React.FC = () => {
               recommendations.forEach((rec) => {
                 // Use the ID from the backend directly
                 const recommendation_id = rec.id;
-                allRecommendations.push({
-                  recommendation_id: recommendation_id,
-                  report_id: report.report_id,
-                  category,
-                  recommendation: rec.text,
-                  status: rec.status,
-                  id: recommendation_id, // For React key
-                } as KanbanRecommendation);
+                if (rec.text !== "No recommendation provided") {
+                  allRecommendations.push({
+                    recommendation_id: recommendation_id,
+                    report_id: report.report_id,
+                    category,
+                    recommendation: rec.text,
+                    status: rec.status,
+                    id: recommendation_id, // For React key
+                    assessment_name: (report as DetailedReport & { assessment_name?: string }).assessment_name, // Pass assessment_name
+                  } as KanbanRecommendation);
+                }
               });
             }
           });
@@ -237,6 +240,9 @@ export const ActionPlan: React.FC = () => {
                             <div className="flex flex-col gap-1">
                               <div className="font-bold text-dgrv-blue mb-1">
                                 {task.category}
+                              </div>
+                              <div className="text-sm text-gray-700 italic mb-1">
+                                {task.assessment_name}
                               </div>
                               <div className="text-sm text-gray-900 mb-2">
                                 {task.recommendation}

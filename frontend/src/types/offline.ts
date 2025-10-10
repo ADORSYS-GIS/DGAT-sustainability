@@ -101,6 +101,8 @@ export interface OfflineRecommendation extends RecommendationWithStatus, Offline
   recommendation_id: string; // Unique ID for IndexedDB
   organization_id: string;
   organization_name: string; // Cached organization name for display
+  assessment_name?: string; // Optional assessment name
+  submission_id?: string;
 }
 
 // Enhanced Organization with offline fields (fixing the created_at conflict)

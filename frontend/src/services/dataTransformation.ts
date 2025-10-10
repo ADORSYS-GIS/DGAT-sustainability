@@ -616,7 +616,8 @@ export class DataTransformationService {
   static transformReportToOfflineRecommendations(
     report: DetailedReport,
     userOrganizationId?: string,
-    organizationName?: string
+    organizationName?: string,
+    assessmentName?: string
   ): OfflineRecommendation[] {
     const recommendations: OfflineRecommendation[] = [];
     const now = new Date().toISOString();
@@ -639,12 +640,14 @@ export class DataTransformationService {
             recommendations.push({
               recommendation_id: deterministicId,
               report_id: report.report_id,
+              submission_id: report.submission_id,
               category: categoryName,
               recommendation: rec.text,
               status: rec.status,
               created_at: now,
               organization_id: userOrganizationId || 'unknown',
               organization_name: organizationName || 'Unknown Organization',
+              assessment_name: assessmentName,
               updated_at: now,
               sync_status: 'synced',
               local_changes: false,

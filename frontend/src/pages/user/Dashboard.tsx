@@ -128,8 +128,10 @@ export const Dashboard: React.FC = () => {
   const recommendations: OfflineRecommendation[] = reportsData?.recommendations || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = React.useState(false);
+  const [exportType, setExportType] = React.useState<"pdf" | "docx">("pdf");
 
-  const handleOpenReportDialog = () => {
+  const handleOpenReportDialog = (type: "pdf" | "docx") => {
+    setExportType(type);
     setIsReportDialogOpen(true);
   };
 
@@ -204,12 +206,21 @@ export const Dashboard: React.FC = () => {
       const radarChartDataUrl = chartRef.current?.toBase64Image();
       const recommendationChartDataUrl = recommendationChartRef.current?.toBase64Image();
 
-      await exportAllAssessmentsPDF(
-        singleSubmissions,
-        singleRecs,
-        radarChartDataUrl,
-        recommendationChartDataUrl
-      );
+      if (exportType === "pdf") {
+        await exportAllAssessmentsPDF(
+          singleSubmissions,
+          singleRecs,
+          radarChartDataUrl,
+          recommendationChartDataUrl
+        );
+      } else {
+        await exportAllAssessmentsDOCX(
+          singleSubmissions,
+          singleRecs,
+          radarChartDataUrl,
+          recommendationChartDataUrl
+        );
+      }
     } finally {
       setIsReportDialogOpen(false);
     }
@@ -525,7 +536,7 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <h3 className="font-medium">
-                              {t('user.dashboard.sustainabilityAssessment')}
+                              {submission.assessment_name || t('user.dashboard.sustainabilityAssessment')}
                             </h3>
                             <p className="text-sm text-gray-600">
                               {new Date(
@@ -576,7 +587,7 @@ export const Dashboard: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={handleOpenReportDialog}
+                      onClick={() => handleOpenReportDialog("pdf")}
                       disabled={reportsLoading}
                     >
                       {t('user.dashboard.exportAsPDF')}
@@ -586,7 +597,7 @@ export const Dashboard: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={handleExportAllDOCX}
+                      onClick={() => handleOpenReportDialog("docx")}
                       disabled={reportsLoading}
                     >
                       {t('user.dashboard.exportAsDOCX')}
@@ -643,6 +654,11 @@ export const Dashboard: React.FC = () => {
         onReportSelect={handleSelectReportToExport}
         assessments={assessmentsData?.assessments || []}
         submissions={submissionsData?.submissions || []}
+        description={
+          exportType === "pdf"
+            ? t('user.dashboard.actionPlan.selectReportDescription')
+            : t('user.dashboard.actionPlan.selectReportDescriptionDOCX')
+        }
       />
     </div>
   );
