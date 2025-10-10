@@ -352,6 +352,7 @@ mod tests {
                 assessment_id,
                 "test_user".to_string(),
                 json!({"question1": "answer1"}),
+                Some("Test Assessment".to_string()),
             )
             .await?;
 
@@ -399,6 +400,7 @@ mod tests {
                 mock_submission.submission_id,
                 "test_user".to_string(),
                 json!({"question1": "answer1", "question2": "answer2"}),
+                Some("Test Assessment".to_string()),
             )
             .await?;
 

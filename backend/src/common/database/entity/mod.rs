@@ -1,8 +1,8 @@
+pub mod assessment_categories;
 pub mod assessments;
 pub mod assessments_response;
 pub mod assessments_response_file;
 pub mod assessments_submission;
-pub mod categories;
 pub mod category_catalog;
 pub mod file;
 pub mod organization_categories;

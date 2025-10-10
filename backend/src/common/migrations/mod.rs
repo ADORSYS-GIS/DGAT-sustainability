@@ -18,6 +18,9 @@ mod m20250715_000012_add_reviewed_at_to_assessments_submission;
 mod m20250715_000013_update_submission_reports_table;
 mod m20250731_000001_add_assessment_name;
 mod m20250819_000015_create_temp_submission_table;
+mod m20250916_000016_add_categories_to_assessments;
+mod m20250917_000017_create_assessment_categories_join_table;
+mod m20251010_082000_refactor_questions_category_link;
 
 pub struct Migrator;
 
@@ -43,6 +46,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20250124_000018_migrate_categories_to_catalog::Migration),
             Box::new(m20250731_000001_add_assessment_name::Migration),
             Box::new(m20250819_000015_create_temp_submission_table::Migration),
+            Box::new(m20250916_000016_add_categories_to_assessments::Migration),
+            Box::new(m20250917_000017_create_assessment_categories_join_table::Migration),
+            Box::new(m20251010_082000_refactor_questions_category_link::Migration),
         ]
     }
 }

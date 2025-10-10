@@ -68,7 +68,16 @@ async fn process_response(
             {
                 Ok(Some(question)) => {
                     // Use the revision text directly (it's already a JSON Value)
-                    (revision.text, question.category)
+                    let category_name = match app_state
+                        .database
+                        .category_catalog
+                        .get_category_catalog_by_id(question.category_id)
+                        .await
+                    {
+                        Ok(Some(c)) => c.name,
+                        _ => "Unknown".to_string(),
+                    };
+                    (revision.text, category_name)
                 }
                 _ => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
             }

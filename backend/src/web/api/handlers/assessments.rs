@@ -4,8 +4,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, TransactionTrait, Set};
-use serde::Deserialize;
+use sea_orm::{ActiveModelTrait, EntityTrait, ModelTrait, TransactionTrait, Set};
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
@@ -132,13 +131,21 @@ pub async fn list_assessments(
             // Determine status using three-tier system (under_review, submitted, reviewed)
             let status = determine_assessment_status(&app_state, &claims, model.assessment_id).await?;
 
+            let categories = model
+                .find_related(crate::common::database::entity::assessment_categories::Entity)
+                .all(app_state.database.get_connection())
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch categories: {}", e)))?
+                .into_iter()
+                .map(|cat| cat.category_catalog_id)
+                .collect();
+
             assessments.push(Assessment {
                 assessment_id: model.assessment_id,
                 org_id: model.org_id,
                 language: model.language,
                 name: model.name,
-                categories: serde_json::from_value(model.categories.clone())
-                    .unwrap_or_default(),
+                categories,
                 status,
                 created_at: model.created_at.to_rfc3339(),
                 updated_at: model.created_at.to_rfc3339(),
@@ -261,14 +268,11 @@ pub async fn create_assessment(
         }
 
         // Parse categories from JSON to Vec<Uuid>
-        let categories: Vec<Uuid> = serde_json::from_value(request.categories)
-            .map_err(|e| ApiError::BadRequest(format!("Invalid categories format: {e}")))?;
-
         // Create the new assessment in the database with categories
         let assessment_model = app_state
             .database
             .assessments
-            .create_assessment(org_id, request.language, request.name, categories)
+            .create_assessment(org_id, request.language, request.name, request.categories.clone())
             .await
             .map_err(|e| ApiError::InternalServerError(format!("Failed to create assessment: {e}")))?;
 
@@ -278,8 +282,7 @@ pub async fn create_assessment(
             org_id: assessment_model.org_id,
             language: assessment_model.language,
             name: assessment_model.name,
-            categories: serde_json::from_value(assessment_model.categories)
-                .unwrap_or_default(),
+            categories: request.categories,
             status: AssessmentStatus::Draft,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
@@ -343,14 +346,22 @@ pub async fn get_assessment(
         // Determine status using three-tier system (under_review, submitted, reviewed)
         let status = determine_assessment_status(&app_state, &claims, assessment_id).await?;
 
+        let categories = assessment_model
+            .find_related(crate::common::database::entity::assessment_categories::Entity)
+            .all(app_state.database.get_connection())
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch categories: {}", e)))?
+            .into_iter()
+            .map(|cat| cat.category_catalog_id)
+            .collect();
+
         // Convert a database model to an API model
         let assessment = Assessment {
             assessment_id: assessment_model.assessment_id,
             org_id: assessment_model.org_id,
             language: assessment_model.language,
             name: assessment_model.name,
-            categories: serde_json::from_value(assessment_model.categories)
-                .unwrap_or_default(),
+            categories,
             status,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
@@ -466,14 +477,22 @@ pub async fn update_assessment(
             }
         })?;
 
+    let categories = assessment_model
+        .find_related(crate::common::database::entity::assessment_categories::Entity)
+        .all(app_state.database.get_connection())
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch categories: {}", e)))?
+        .into_iter()
+        .map(|cat| cat.category_catalog_id)
+        .collect();
+
     // Convert database model to API model
     let assessment = Assessment {
         assessment_id: assessment_model.assessment_id,
         org_id: assessment_model.org_id,
         language: assessment_model.language,
         name: assessment_model.name,
-        categories: serde_json::from_value(assessment_model.categories)
-            .unwrap_or_default(),
+        categories,
         status: AssessmentStatus::Draft,
         created_at: assessment_model.created_at.to_rfc3339(),
         updated_at: assessment_model.created_at.to_rfc3339(),

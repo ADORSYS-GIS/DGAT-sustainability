@@ -140,14 +140,15 @@ pub struct QuestionRevision {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateQuestionRequest {
-    pub category: String,
+    pub category_id: Uuid,
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateQuestionRequest {
-    pub category: String,
+    pub category_id: Uuid,
+    pub category: String, // Keep this for the response
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
 }
@@ -207,7 +208,7 @@ pub struct Assessment {
     pub org_id: String,
     pub language: String,
     pub name: String,
-    pub categories: serde_json::Value,
+    pub categories: Vec<Uuid>,
     pub status: AssessmentStatus,
     pub created_at: String,
     pub updated_at: String,
@@ -217,7 +218,7 @@ pub struct Assessment {
 pub struct CreateAssessmentRequest {
     pub language: String,
     pub name: String,
-    pub categories: serde_json::Value,
+    pub categories: Vec<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

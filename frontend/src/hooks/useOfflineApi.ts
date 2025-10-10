@@ -468,7 +468,7 @@ export function useOfflineAssessment(assessmentId: string) {
             status: offlineAssessment.status || 'draft',
             created_at: offlineAssessment.created_at || new Date().toISOString(),
             updated_at: offlineAssessment.updated_at || new Date().toISOString(),
-            categories: offlineAssessment.categories || [],
+            categories: offlineAssessment.categories || undefined,
           };
           
           // Convert OfflineResponse back to Response format
@@ -567,7 +567,7 @@ export function useOfflineAssessmentsMutation() {
         status: "draft",
         created_at: now,
         updated_at: now,
-        categories: assessment.categories,
+        categories: assessment.categories || undefined,
       };
 
       const offlineAssessment = DataTransformationService.transformAssessment(

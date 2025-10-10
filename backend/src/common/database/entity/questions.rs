@@ -10,7 +10,7 @@ use std::sync::Arc;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub question_id: Uuid,
-    pub category: String,
+    pub category_id: Uuid,
     pub created_at: DateTime<Utc>,
 }
 
@@ -18,11 +18,23 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::questions_revisions::Entity")]
     QuestionsRevisions,
+    #[sea_orm(
+        belongs_to = "super::category_catalog::Entity",
+        from = "Column::CategoryId",
+        to = "super::category_catalog::Column::CategoryCatalogId"
+    )]
+    CategoryCatalog,
 }
 
 impl Related<super::questions_revisions::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::QuestionsRevisions.def()
+    }
+}
+
+impl Related<super::category_catalog::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::CategoryCatalog.def()
     }
 }
 
@@ -44,10 +56,10 @@ impl QuestionsService {
         }
     }
 
-    pub async fn create_question(&self, category: String) -> Result<Model, DbErr> {
+    pub async fn create_question(&self, category_id: Uuid) -> Result<Model, DbErr> {
         let question = ActiveModel {
             question_id: Set(Uuid::new_v4()),
-            category: Set(category),
+            category_id: Set(category_id),
             created_at: Set(Utc::now()),
         };
 
@@ -58,9 +70,9 @@ impl QuestionsService {
         self.db_service.find_by_id(id).await
     }
 
-    pub async fn get_questions_by_category(&self, category: &str) -> Result<Vec<Model>, DbErr> {
+    pub async fn get_questions_by_category(&self, category_id: Uuid) -> Result<Vec<Model>, DbErr> {
         Entity::find()
-            .filter(Column::Category.eq(category))
+            .filter(Column::CategoryId.eq(category_id))
             .all(self.db_service.get_connection())
             .await
     }
@@ -72,7 +84,7 @@ impl QuestionsService {
     pub async fn update_question(
         &self,
         id: Uuid,
-        category: Option<String>,
+        category_id: Option<Uuid>,
     ) -> Result<Model, DbErr> {
         let question = self
             .get_question_by_id(id)
@@ -81,8 +93,8 @@ impl QuestionsService {
 
         let mut question: ActiveModel = question.into();
 
-        if let Some(category) = category {
-            question.category = Set(category);
+        if let Some(category_id) = category_id {
+            question.category_id = Set(category_id);
         }
 
         self.db_service.update(question).await
@@ -90,6 +102,20 @@ impl QuestionsService {
 
     pub async fn delete_question(&self, id: Uuid) -> Result<DeleteResult, DbErr> {
         self.db_service.delete(id).await
+    }
+
+    pub async fn delete_questions_by_category_id(
+        &self,
+        category_id: Uuid,
+        txn: Option<&sea_orm::DatabaseTransaction>,
+    ) -> Result<DeleteResult, DbErr> {
+        let query = Entity::delete_many().filter(Column::CategoryId.eq(category_id));
+
+        if let Some(txn) = txn {
+            query.exec(txn).await
+        } else {
+            query.exec(self.db_service.get_connection()).await
+        }
     }
 }
 
@@ -102,7 +128,7 @@ mod tests {
     async fn test_questions_service() -> Result<(), Box<dyn std::error::Error>> {
         let mock_question = Model {
             question_id: Uuid::new_v4(),
-            category: "test_category".to_string(),
+            category_id: Uuid::new_v4(),
             created_at: Utc::now(),
         };
 
@@ -124,10 +150,10 @@ mod tests {
 
         // Test create
         let question = questions_service
-            .create_question("test_category".to_string())
+            .create_question(mock_question.category_id)
             .await?;
 
-        assert_eq!(question.category, "test_category");
+        assert_eq!(question.category_id, mock_question.category_id);
 
         // Test get all questions
         let questions = questions_service.get_all_questions().await?;
@@ -139,7 +165,7 @@ mod tests {
             .await?;
         assert!(found.is_some());
         let found = found.unwrap();
-        assert_eq!(found.category, question.category);
+        assert_eq!(found.category_id, question.category_id);
 
         // Test delete question
         let delete_result = questions_service
@@ -149,10 +175,10 @@ mod tests {
 
         // Test get by category
         let category_questions = questions_service
-            .get_questions_by_category("test_category")
+            .get_questions_by_category(mock_question.category_id)
             .await?;
         assert!(!category_questions.is_empty());
-        assert_eq!(category_questions[0].category, "test_category");
+        assert_eq!(category_questions[0].category_id, mock_question.category_id);
 
         Ok(())
     }

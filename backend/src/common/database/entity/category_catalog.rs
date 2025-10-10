@@ -22,11 +22,19 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::organization_categories::Entity")]
     OrganizationCategories,
+    #[sea_orm(has_many = "super::assessment_categories::Entity")]
+    AssessmentCategories,
 }
 
 impl Related<super::organization_categories::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::OrganizationCategories.def()
+    }
+}
+
+impl Related<super::assessment_categories::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AssessmentCategories.def()
     }
 }
 
@@ -120,10 +128,25 @@ impl CategoryCatalogService {
         self.db_service.update(active_model).await
     }
 
-    pub async fn delete_category_catalog(&self, category_catalog_id: Uuid) -> Result<(), DbErr> {
-        Entity::delete_by_id(category_catalog_id)
-            .exec(self.db_service.get_connection())
-            .await?;
+    pub async fn delete_category_catalog(
+        &self,
+        category_catalog_id: Uuid,
+        txn: Option<&sea_orm::DatabaseTransaction>,
+    ) -> Result<(), DbErr> {
+        let query = Entity::delete_by_id(category_catalog_id);
+
+        let result = if let Some(txn) = txn {
+            query.exec(txn).await?
+        } else {
+            query.exec(self.db_service.get_connection()).await?
+        };
+
+        if result.rows_affected == 0 {
+            return Err(DbErr::RecordNotFound(
+                "Category catalog not found".to_string(),
+            ));
+        }
+
         Ok(())
     }
 }

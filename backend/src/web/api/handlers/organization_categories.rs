@@ -130,9 +130,23 @@ pub async fn delete_category_catalog(
         ));
     }
 
+    let transaction = app_state.database.begin_transaction().await?;
+    let questions_service = &app_state.database.questions;
     let category_catalog_service = &app_state.database.category_catalog;
+
+    // First, delete all questions associated with this category
+    questions_service
+        .delete_questions_by_category_id(category_catalog_id, Some(&transaction))
+        .await
+        .map_err(|e| {
+            ApiError::InternalServerError(format!(
+                "Failed to delete questions for category: {e}"
+            ))
+        })?;
+
+    // Then, delete the category catalog itself
     category_catalog_service
-        .delete_category_catalog(category_catalog_id)
+        .delete_category_catalog(category_catalog_id, Some(&transaction))
         .await
         .map_err(|e| {
             if e.to_string().contains("not found") {
@@ -143,6 +157,8 @@ pub async fn delete_category_catalog(
                 ))
             }
         })?;
+
+    transaction.commit().await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -99,7 +99,17 @@ async fn generate_report_content(
                 .and_then(|t| t.as_str())
                 .unwrap_or("Unknown question");
 
-            let category = &question.category;
+            // Get category name
+            let category_model = match app_state
+                .database
+                .category_catalog
+                .get_category_catalog_by_id(question.category_id)
+                .await
+            {
+                Ok(Some(c)) => c,
+                _ => continue, // Skip if category not found
+            };
+            let category = &category_model.name;
 
             // Parse the response string directly (no longer an array)
             let answer = if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(response_str) {

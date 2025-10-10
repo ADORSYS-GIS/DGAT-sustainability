@@ -59,9 +59,17 @@ pub async fn list_questions(
                 HashMap::new()
             };
 
+            let category = app_state
+                .database
+                .category_catalog
+                .get_category_catalog_by_id(db_question.category_id)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?
+                .ok_or(ApiError::InternalServerError("Category not found for question".to_string()))?;
+
             let question = Question {
                 question_id: db_question.question_id,
-                category: db_question.category,
+                category: category.name,
                 created_at: db_question.created_at.to_rfc3339(),
                 latest_revision: QuestionRevision {
                     question_revision_id: revision_model.question_revision_id,
@@ -106,7 +114,7 @@ pub async fn create_question(
     let question_model = app_state
         .database
         .questions
-        .create_question(request.category.clone())
+        .create_question(request.category_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create question: {e}")))?;
 
@@ -123,9 +131,17 @@ pub async fn create_question(
         })?;
 
     // Build the response with the created question and revision
+    let category = app_state
+        .database
+        .category_catalog
+        .get_category_catalog_by_id(question_model.category_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?
+        .ok_or(ApiError::InternalServerError("Category not found for question".to_string()))?;
+
     let question = Question {
         question_id: question_model.question_id,
-        category: question_model.category,
+        category: category.name,
         created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
@@ -221,9 +237,17 @@ pub async fn get_question(
     })?;
 
     // Build the response
+    let category = app_state
+        .database
+        .category_catalog
+        .get_category_catalog_by_id(question_model.category_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?
+        .ok_or(ApiError::InternalServerError("Category not found for question".to_string()))?;
+
     let question = Question {
         question_id: question_model.question_id,
-        category: question_model.category,
+        category: category.name,
         created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision.question_revision_id,
@@ -266,7 +290,7 @@ pub async fn update_question(
     let updated_question_model = app_state
         .database
         .questions
-        .update_question(question_id, Some(request.category.clone()))
+        .update_question(question_id, Some(request.category_id))
         .await
         .map_err(|e| {
             if e.to_string().contains("Question not found") {
@@ -289,9 +313,17 @@ pub async fn update_question(
         })?;
 
     // Build the response
+    let category = app_state
+        .database
+        .category_catalog
+        .get_category_catalog_by_id(updated_question_model.category_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?
+        .ok_or(ApiError::InternalServerError("Category not found for question".to_string()))?;
+
     let question = Question {
         question_id: updated_question_model.question_id,
-        category: updated_question_model.category,
+        category: category.name,
         created_at: updated_question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,

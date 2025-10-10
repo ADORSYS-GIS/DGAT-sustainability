@@ -11,11 +11,6 @@ use utoipa::OpenApi;
         crate::web::api::handlers::organization_categories::assign_categories_to_organization,
         crate::web::api::handlers::organization_categories::update_organization_category,
         // Categories
-        crate::web::api::handlers::categories::list_categories,
-        crate::web::api::handlers::categories::create_category,
-        crate::web::api::handlers::categories::get_category,
-        crate::web::api::handlers::categories::update_category,
-        crate::web::api::handlers::categories::delete_category,
         // Assessments
         crate::web::api::handlers::assessments::list_assessments,
         crate::web::api::handlers::assessments::create_assessment,

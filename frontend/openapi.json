@@ -3060,15 +3060,16 @@
         "required": ["reports"]
       },
       "Question": {
-        "required": ["question_id", "category", "created_at", "latest_revision"],
+        "required": ["question_id", "category_id", "created_at", "latest_revision"],
         "type": "object",
         "properties": {
           "question_id": {
             "type": "string",
             "format": "uuid"
           },
-          "category": {
-            "type": "string"
+          "category_id": {
+            "type": "string",
+            "format": "uuid"
           },
           "created_at": {
             "type": "string",
@@ -3110,11 +3111,12 @@
         }
       },
       "CreateQuestionRequest": {
-        "required": ["category", "text"],
+        "required": ["category_id", "text"],
         "type": "object",
         "properties": {
-          "category": {
-            "type": "string"
+          "category_id": {
+            "type": "string",
+            "format": "uuid"
           },
           "text": {
             "type": "object",
@@ -3131,8 +3133,9 @@
       "UpdateQuestionRequest": {
         "type": "object",
         "properties": {
-          "category": {
-            "type": "string"
+          "category_id": {
+            "type": "string",
+            "format": "uuid"
           },
           "text": {
             "type": "object"

@@ -2,7 +2,6 @@ use crate::common::database::entity::assessments::AssessmentsService;
 use crate::common::database::entity::assessments_response::AssessmentsResponseService;
 use crate::common::database::entity::assessments_response_file::AssessmentsResponseFileService;
 use crate::common::database::entity::assessments_submission::AssessmentsSubmissionService;
-use crate::common::database::entity::categories::CategoriesService;
 use crate::common::database::entity::category_catalog::CategoryCatalogService;
 use crate::common::database::entity::file::FileService;
 use crate::common::database::entity::organization_categories::OrganizationCategoriesService;
@@ -10,7 +9,7 @@ use crate::common::database::entity::questions::QuestionsService;
 use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
 use crate::common::database::entity::submission_reports::SubmissionReportsService;
 use crate::common::database::entity::temp_submission::TempSubmissionService;
-use sea_orm::DatabaseConnection;
+use sea_orm::{DatabaseConnection, TransactionTrait};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -21,7 +20,6 @@ pub struct AppDatabase {
     pub assessments_response: AssessmentsResponseService,
     pub assessments_submission: AssessmentsSubmissionService,
     pub assessments_response_file: AssessmentsResponseFileService,
-    pub categories: CategoriesService,
     pub category_catalog: CategoryCatalogService,
     pub file: FileService,
     pub organization_categories: OrganizationCategoriesService,
@@ -39,7 +37,6 @@ impl AppDatabase {
             assessments_response: AssessmentsResponseService::new(conn.clone()),
             assessments_submission: AssessmentsSubmissionService::new(conn.clone()),
             assessments_response_file: AssessmentsResponseFileService::new(conn.clone()),
-            categories: CategoriesService::new(conn.clone()),
             category_catalog: CategoryCatalogService::new(conn.clone()),
             file: FileService::new(conn.clone()),
             organization_categories: OrganizationCategoriesService::new(conn.clone()),
@@ -53,6 +50,12 @@ impl AppDatabase {
 
     pub fn get_connection(&self) -> &DatabaseConnection {
         &self.conn
+    }
+
+    pub async fn begin_transaction(
+        &self,
+    ) -> Result<sea_orm::DatabaseTransaction, sea_orm::DbErr> {
+        self.conn.begin().await
     }
 }
 

@@ -360,6 +360,7 @@ export const ManageQuestions = () => {
     return "Unknown error";
   }
 
+ 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -375,10 +376,15 @@ export const ManageQuestions = () => {
         toast.error(t('manageQuestions.weightRangeError'));
         return;
       }
-      
+
       // Use selected category if available, otherwise use form category
       const categoryName = selectedCategory || formData.categoryName;
-      
+      const category = categories.find((c) => c.name === categoryName);
+      if (!category) {
+        toast.error("Category not found");
+        return;
+      }
+
       // Remove empty language fields
       const text: Record<string, string> = {};
       for (const code of Object.keys(formData.text)) {
@@ -386,10 +392,10 @@ export const ManageQuestions = () => {
           text[code] = formData.text[code].trim();
         }
       }
-      
+
       if (editingQuestion) {
         const updateBody: UpdateQuestionRequest = {
-          category: categoryName,
+          category_id: category.category_catalog_id,
           text,
           weight: formData.weight,
         };
@@ -405,7 +411,7 @@ export const ManageQuestions = () => {
         });
       } else {
         const createBody: CreateQuestionRequest = {
-          category: categoryName,
+          category_id: category.category_catalog_id,
           text,
           weight: formData.weight,
         };
@@ -420,12 +426,14 @@ export const ManageQuestions = () => {
         });
       }
     },
-    [formData, editingQuestion, selectedCategory, createQuestion, updateQuestion, refetchQuestions, setIsDialogOpen, setEditingQuestion, setSelectedCategory, t],
+    [formData, editingQuestion, selectedCategory, createQuestion, updateQuestion, refetchQuestions, setIsDialogOpen, setEditingQuestion, setSelectedCategory, t, categories],
   );
+
 
   const handleAddQuestion = useCallback((categoryName: string) => {
     setSelectedCategory(categoryName);
     setEditingQuestion(null);
+    const questionCount = questions.filter(q => q.category === categoryName).length;
     setFormData({
       text: LANGUAGES.reduce(
         (acc, lang) => ({ ...acc, [lang.code]: "" }),
@@ -433,7 +441,7 @@ export const ManageQuestions = () => {
       ),
       weight: 5,
       categoryName: categoryName,
-      order: questions.filter(q => q.category === categoryName).length + 1,
+      order: questionCount + 1,
     });
     setIsDialogOpen(true);
   }, [questions]);
@@ -491,15 +499,6 @@ export const ManageQuestions = () => {
       return newSet;
     });
   }, []);
-
-  const getQuestionsByCategory = useCallback(
-    (categoryName: string) => {
-      return questions
-        .filter((q: QuestionWithLatestRevision) => q.category === categoryName)
-        .sort((a, b) => (a.latest_revision?.weight || 0) - (b.latest_revision?.weight || 0));
-    },
-    [questions],
-  );
 
   if (categoriesLoading || questionsLoading) {
     return (
@@ -591,7 +590,9 @@ export const ManageQuestions = () => {
           {/* Categories Grid */}
           <div className="grid gap-6">
             {categories.map((category) => {
-              const categoryQuestions = getQuestionsByCategory(category.name);
+              const categoryQuestions = questions
+                .filter((q) => q.category === category.name)
+                .sort((a, b) => (a.latest_revision?.weight || 0) - (b.latest_revision?.weight || 0));
               const questionCount = categoryQuestions.length;
               
               return (
@@ -610,9 +611,6 @@ export const ManageQuestions = () => {
                             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                               {questionCount} {questionCount === 1 ? 'Question' : 'Questions'}
                             </Badge>
-                            <span className="text-sm text-gray-500">
-                              Weight: {category.weight}
-                            </span>
                           </div>
                         </div>
                       </div>

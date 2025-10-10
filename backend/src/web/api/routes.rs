@@ -5,10 +5,6 @@ use crate::web::api::handlers::{
         create_assessment, delete_assessment, get_assessment, list_assessments, submit_assessment,
         update_assessment, user_submit_draft_assessment,
     },
-    categories::{
-        create_category, delete_category, get_category, list_categories, update_category,
-        get_specific_category_catalog,
-    },
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
     organization_categories::{
@@ -68,16 +64,11 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/questions/:question_id", put(update_question))
         .route("/api/questions/revisions/:revision_id", delete(delete_question_revision_by_id))
         // Category endpoints
-        .route("/api/categories", get(list_categories))
-        .route("/api/categories", post(create_category))
-        .route("/api/categories/:category_id", get(get_category))
-        .route("/api/categories/:category_id", put(update_category))
-        .route("/api/categories/:category_id", delete(delete_category))
         // Category Catalog endpoints
         .route("/api/category-catalog", get(get_category_catalogs))
         .route("/api/category-catalog", post(create_category_catalog))
         .route("/api/category-catalog/:category_catalog_id", delete(delete_category_catalog))
-        .route("/api/category-catalog/:category_catalog_id", get(get_specific_category_catalog))
+        .route("/api/category-catalog/:category_catalog_id", get(get_category_catalog))
         .route("/api/category-catalog/:category_catalog_id", put(update_category_catalog))
         // Organization Categories endpoints
         .route("/api/organizations/:keycloak_organization_id/categories", get(get_organization_categories))
