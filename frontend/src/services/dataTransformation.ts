@@ -38,10 +38,18 @@ export class DataTransformationService {
   /**
    * Transform API Question to OfflineQuestion
    */
-  static transformQuestion(question: Question): OfflineQuestion {
+  static transformQuestion(
+    question: Question,
+    categoryIdToNameMap: Map<string, string>
+  ): OfflineQuestion {
+    const categoryName = categoryIdToNameMap.get(question.category_id);
+    if (!categoryName) {
+      console.warn(`Could not find category name for category ID: "${question.category_id}".`);
+    }
+
     return {
       question_id: question.question_id,
-      category: question.category,
+      category: categoryName || 'Unknown Category', // The name for display
       latest_revision: {
         question_revision_id: question.latest_revision.question_revision_id,
         question_id: question.question_id,
@@ -49,8 +57,8 @@ export class DataTransformationService {
         weight: question.latest_revision.weight,
         created_at: question.latest_revision.created_at,
       },
-      revisions: [question.latest_revision], // Add the revisions array
-      category_id: question.category, // Use category as category_id
+      revisions: [question.latest_revision],
+      category_id: question.category_id, // The ID from the API
       created_at: question.created_at,
       updated_at: question.created_at,
       sync_status: 'synced',
@@ -373,7 +381,7 @@ export class DataTransformationService {
           questionText = text;
         }
       }
-      const questionCategory = question?.category && typeof question.category === 'string' ? question.category as string : '';
+      const questionCategory = (question as Question & { category: string })?.category || '';
       
       return this.transformResponse(response, questionText, questionCategory);
     });

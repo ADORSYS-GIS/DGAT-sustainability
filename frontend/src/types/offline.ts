@@ -49,6 +49,7 @@ export interface OfflineEntity {
 // Enhanced Question with offline fields
 export interface OfflineQuestion extends Question, OfflineEntity {
   revisions: QuestionRevision[];
+  category: string;
   category_id: string;
   search_text?: string; // For efficient text search
 }

@@ -19,143 +19,72 @@ async fn generate_report_content(
     submission_id: Uuid,
     app_state: &AppState
 ) -> Result<Value, ApiError> {
-    // Get the submission data to extract questions, answers, and categories
     let submission = app_state
         .database
         .assessments_submission
-        
         .get_submission_by_assessment_id(submission_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
 
-    // Extract responses from submission content
     let empty_responses = vec![];
     let responses = submission.content
         .get("responses")
         .and_then(|r| r.as_array())
         .unwrap_or(&empty_responses);
 
-    // Collect all requested categories and recommendations
-    let mut requested_categories: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut recommendations: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
-
     for request in requests {
         if !request.category.is_empty() {
-            requested_categories.insert(request.category.clone());
+            // Create a stable, unique ID based on the category and recommendation text.
+            let recommendation_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("{}-{}", request.category, request.recommendation).as_bytes());
             recommendations.entry(request.category.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(json!({
-                    "id": request.recommendation,
+                    "id": recommendation_id.to_string(),
                     "text": request.recommendation,
                     "status": request.status.clone().unwrap_or_else(|| "todo".to_string()),
                 }));
         }
     }
 
-    // If no specific categories are requested, include all categories
-    let include_all_categories = requested_categories.is_empty();
-
-    // Group responses by category, filtering by the requested categories if specified
     let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
-
     for response in responses {
-        // Handle the new structure where response contains question_revision_id and escaped JSON response
         if let (Some(question_revision_id_str), Some(response_str)) = (
             response.get("question_revision_id").and_then(|q| q.as_str()),
             response.get("response").and_then(|r| r.as_str())
         ) {
-            // Parse the question_revision_id
-            let question_revision_id = match Uuid::parse_str(question_revision_id_str) {
-                Ok(id) => id,
-                Err(_) => continue, // Skip invalid UUIDs
-            };
-
-            // Get question revision to get question text and question_id
-            let question_revision = match app_state
-                .database
-                .questions_revisions
-                .get_revision_by_id(question_revision_id)
-                .await
-            {
-                Ok(Some(revision)) => revision,
-                _ => continue, // Skip if revision not found
-            };
-
-            // Get question to get category
-            let question = match app_state
-                .database
-                .questions
-                .get_question_by_id(question_revision.question_id)
-                .await
-            {
-                Ok(Some(q)) => q,
-                _ => continue, // Skip if question not found
-            };
-
-            // Extract question text from the jsonb field (assuming English for now)
-            let question_text = question_revision.text
-                .get("en")
-                .and_then(|t| t.as_str())
-                .unwrap_or("Unknown question");
-
-            // Get category name
-            let category_model = match app_state
-                .database
-                .category_catalog
-                .get_category_catalog_by_id(question.category_id)
-                .await
-            {
-                Ok(Some(c)) => c,
-                _ => continue, // Skip if category not found
-            };
-            let category = &category_model.name;
-
-            // Parse the response string directly (no longer an array)
-            let answer = if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(response_str) {
-                response_obj
-            } else {
-                json!({"text": response_str})
-            };
-
-            // Include responses if all categories are requested or if this category is specifically requested
-            if include_all_categories || requested_categories.contains(category) {
-                // Create question/answer object WITHOUT recommendation (recommendation will be added at category level)
-                let question_data = serde_json::json!({
-                    "question": question_text,
-                    "answer": answer
-                });
-
-                // Add this question/answer to the category (supporting multiple questions per category)
-                categories.entry(category.to_string())
-                    .or_insert_with(Vec::new)
-                    .push(question_data);
+            if let Ok(question_revision_id) = Uuid::parse_str(question_revision_id_str) {
+                if let Ok(Some(revision)) = app_state.database.questions_revisions.get_revision_by_id(question_revision_id).await {
+                    if let Ok(Some(question)) = app_state.database.questions.get_question_by_id(revision.question_id).await {
+                        if let Ok(Some(category_model)) = app_state.database.category_catalog.get_category_catalog_by_id(question.category_id).await {
+                            let question_text = revision.text.get("en").and_then(|t| t.as_str()).unwrap_or("Unknown question");
+                            let answer = serde_json::from_str(response_str).unwrap_or(json!({ "text": response_str }));
+                            
+                            categories.entry(category_model.name)
+                                .or_default()
+                                .push(json!({ "question": question_text, "answer": answer }));
+                        }
+                    }
+                }
             }
         }
     }
 
-    // Convert to the required format with one recommendation per category
-    // [{"category1": [{"question": "question_text", "answer": "answer_content"}, ...], "recommendation": "recommendation_text", "category2": [...]}]
     let mut result_object = serde_json::Map::new();
-
     for (category, questions) in categories {
-        // Get the recommendations for this category
-        let category_recommendations = recommendations.get(&category)
-            .cloned()
-            .unwrap_or_else(|| vec![json!({"id": Uuid::new_v4(), "text": "No recommendation provided", "status": "todo"})]);
-
-        // Create category object with questions, recommendations, and status
-        let category_data = serde_json::json!({
-            "questions": questions,
-            "recommendations": category_recommendations,
+        let category_recommendations = recommendations.remove(&category).unwrap_or_else(|| {
+            let default_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("{}-{}", category, "No recommendation provided").as_bytes());
+            vec![json!({"id": default_id.to_string(), "text": "No recommendation provided", "status": "todo"})]
         });
 
-        result_object.insert(category, category_data);
+        result_object.insert(category, json!({
+            "questions": questions,
+            "recommendations": category_recommendations,
+        }));
     }
 
-    let result = vec![serde_json::Value::Object(result_object)];
-
-    Ok(serde_json::Value::Array(result))
+    Ok(json!([result_object]))
 }
 
 
@@ -574,77 +503,63 @@ pub async fn list_all_reports(
     path = "/reports/{report_id}/recommendations/{category}/status",
     tag = "Report",
     params(
-        ("report_id" = uuid::Uuid, Path, description = "Report ID"),
-        ("category" = String, Path, description = "Category name")
+        ("report_id" = Uuid, Path, description = "Report ID"),
+        ("recommendation_id" = String, Path, description = "Recommendation ID")
     ),
     request_body = UpdateRecommendationStatusRequest,
     responses((status = 200, description = "Updated"), (status = 404, description = "Not found"), (status = 400, description = "Bad request"))
 )]
 pub async fn update_recommendation_status(
     State(app_state): State<AppState>,
-    Path((report_id, category)): Path<(Uuid, String)>,
+    Path((report_id, recommendation_id)): Path<(Uuid, String)>,
     Json(request): Json<UpdateRecommendationStatusRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // Validate status
-    let valid_statuses = vec!["todo", "in_progress", "done", "approved"];
+    let valid_statuses = &["todo", "in_progress", "done", "approved"];
     if !valid_statuses.contains(&request.status.as_str()) {
-        return Err(ApiError::BadRequest(format!("Invalid status: {}. Must be one of: {:?}", request.status, valid_statuses)));
+        return Err(ApiError::BadRequest(format!("Invalid status: {}", request.status)));
     }
 
-    // Parse recommendation_id from string to Uuid
-    let recommendation_id_uuid = match Uuid::parse_str(&request.recommendation_id) {
-        Ok(uuid) => uuid,
-        Err(_) => return Err(ApiError::BadRequest("Invalid recommendation_id format".to_string())),
-    };
-    // Get the report
     let report = app_state
         .database
         .submission_reports
         .get_report_by_id(report_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch report: {e}")))?
+        .map_err(|e| ApiError::InternalServerError(format!("Database error: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Report not found".to_string()))?;
 
-    // Update the report data to include the status for the specific recommendation
-    if let Some(mut data) = report.data {
-        if let Some(categories_array) = data.as_array_mut() {
-            for category_obj in categories_array {
-                if let Some(category_map) = category_obj.as_object_mut() {
-                    if let Some(category_data) = category_map.get_mut(&category) {
-                        if let Some(category_obj_inner) = category_data.as_object_mut() {
-                            if let Some(recommendations_array) = category_obj_inner.get_mut("recommendations").and_then(|r| r.as_array_mut()) {
-                                for recommendation_value in recommendations_array {
-                                    if let Some(recommendation_map) = recommendation_value.as_object_mut() {
-                                        if let Some(id_value) = recommendation_map.get("id") {
-                                            if let Some(id_str) = id_value.as_str() {
-                                                if let Ok(id_uuid) = Uuid::parse_str(id_str) {
-                                                    if id_uuid == recommendation_id_uuid {
-                                                        recommendation_map.insert("status".to_string(), serde_json::Value::String(request.status.clone()));
-                                                        // Update the report in the database
-                                                        app_state
-                                                            .database
-                                                            .submission_reports
-                                                            .update_report_status(report_id, report.status, Some(data))
-                                                            .await
-                                                            .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))?;
-                                                        return Ok(StatusCode::OK); // Found and updated
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+    let mut data = report.data.ok_or_else(|| ApiError::InternalServerError("Report data is missing".to_string()))?;
+    let mut recommendation_found_and_updated = false;
+
+    if let Some(categories_map) = data.get_mut(0).and_then(|c| c.as_object_mut()) {
+        for (_category_name, category_data) in categories_map.iter_mut() {
+            if let Some(recs) = category_data.get_mut("recommendations").and_then(|r| r.as_array_mut()) {
+                for rec in recs {
+                    if rec.get("id").and_then(|id| id.as_str()) == Some(&recommendation_id) {
+                        if let Some(rec_obj) = rec.as_object_mut() {
+                            rec_obj.insert("status".to_string(), json!(request.status));
+                            recommendation_found_and_updated = true;
+                            break;
                         }
                     }
                 }
             }
+            if recommendation_found_and_updated {
+                break;
+            }
         }
-        // If we reach here, the specific recommendation was not found
-        return Err(ApiError::NotFound("Recommendation not found within the specified category".to_string()));
     }
 
-    Err(ApiError::InternalServerError("Report data is missing or malformed".to_string()))
+    if recommendation_found_and_updated {
+        app_state
+            .database
+            .submission_reports
+            .update_report_status(report_id, report.status, Some(data))
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))?;
+        Ok(StatusCode::OK)
+    } else {
+        Err(ApiError::NotFound("Recommendation not found in this report".to_string()))
+    }
 }
 
 #[cfg(test)]

@@ -86,12 +86,12 @@ export function useOfflineQuestions() {
           console.log('🔍 useOfflineQuestions: Using offline fallback');
           const questions = await offlineDB.getAllQuestions();
           console.log(`🔍 useOfflineQuestions: Found ${questions.length} questions in IndexedDB`);
-          
+
           // Transform OfflineQuestion to QuestionWithRevisionsResponse format
           const transformedQuestions = questions.map(q => ({
             question: {
               question_id: q.question_id,
-              category: q.category,
+              category_id: q.category_id, // Use category_id
               created_at: q.created_at,
               latest_revision: q.latest_revision
             },
@@ -134,7 +134,7 @@ export function useOfflineQuestionsMutation() {
       // Create a temporary object that mimics the structure of a real Question object
       const tempQuestionForTransform: Question = {
         question_id: tempId,
-        category: question.category,
+        category_id: question.category_id, // Use category_id
         created_at: now,
         latest_revision: {
           question_revision_id: `temp_rev_${crypto.randomUUID()}`,
@@ -145,8 +145,13 @@ export function useOfflineQuestionsMutation() {
         },
       };
 
+      // To transform, we need the category name. We'll fetch it from IndexedDB.
+      const categoryMap = new Map<string, string>();
+      const categories = await offlineDB.getAllCategoryCatalogs();
+      categories.forEach(c => categoryMap.set(c.category_catalog_id, c.name));
+
       // Use the transformation service to create a valid OfflineQuestion
-      const offlineQuestion = DataTransformationService.transformQuestion(tempQuestionForTransform);
+      const offlineQuestion = DataTransformationService.transformQuestion(tempQuestionForTransform, categoryMap);
       
       // Manually set a temp ID and pending status for the optimistic update
       offlineQuestion.sync_status = 'pending';
@@ -207,9 +212,16 @@ export function useOfflineQuestionsMutation() {
       }
 
       // Create updated question object
+      // To update, we need the category name. We'll fetch it from IndexedDB.
+      const categoryMap = new Map<string, string>();
+      const categories = await offlineDB.getAllCategoryCatalogs();
+      categories.forEach(c => categoryMap.set(c.category_catalog_id, c.name));
+      const categoryName = categoryMap.get(question.category_id);
+
       const updatedQuestion: OfflineQuestion = {
         ...existingQuestion,
-        category: question.category,
+        category: categoryName || existingQuestion.category, // Update category name
+        category_id: question.category_id, // Update category_id
         latest_revision: {
           ...existingQuestion.latest_revision,
           text: question.text,
@@ -1468,9 +1480,9 @@ export function useOfflineRecommendationStatusMutation() {
       await invalidateAndRefetch(queryClient, ['user_recommendations', 'admin_action_plans']);
 
       const result = await apiInterceptor.interceptMutation(
-        () => ReportsService.putReportsByReportIdRecommendationsByCategoryStatus({
+        () => ReportsService.putReportsByReportIdRecommendationsByRecommendationIdStatus({
           reportId: reportId,
-          category: category,
+          recommendationId: recommendationId,
           requestBody: {
             report_id: reportId,
             category: category,

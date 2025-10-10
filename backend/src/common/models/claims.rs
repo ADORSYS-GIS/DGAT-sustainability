@@ -25,6 +25,7 @@ pub struct Organizations {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrganizationInfo {
     pub id: Option<String>,
+    #[serde(default)]
     pub categories: Vec<String>,
 }
 
@@ -184,5 +185,34 @@ mod tests {
 
         // Test that admin can still manage any organization
         assert!(claims.can_manage_organization("any-org"));
+    }
+
+    #[test]
+    fn test_user_with_organization_without_categories() {
+        // Test data for a user with an organization but no categories field
+        let test_json = json!({
+            "sub": "user-456",
+            "organizations": {
+                "another-org": {
+                    "id": "org-id-2"
+                }
+            },
+            "preferred_username": "testuser2",
+            "realm_access": {
+                "roles": ["Org_User"]
+            },
+            "exp": 1234567890_u64,
+            "iat": 1234567890_u64,
+            "aud": "test-audience",
+            "iss": "test-issuer"
+        });
+
+        // Test deserialization
+        let claims: Claims =
+            serde_json::from_value(test_json).expect("Should deserialize successfully");
+
+        // Check that categories is an empty vec
+        let org_info = claims.organizations.as_ref().unwrap().orgs.get("another-org").unwrap();
+        assert!(org_info.categories.is_empty());
     }
 }

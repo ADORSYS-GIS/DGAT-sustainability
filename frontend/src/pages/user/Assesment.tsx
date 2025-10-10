@@ -50,6 +50,7 @@ type LocalAnswer = {
 
 type QuestionWithCategory = Question & {
   category: string;
+  category_id?: string;
   latest_revision: QuestionRevision;
 };
 
@@ -162,6 +163,7 @@ export const Assessment: React.FC = () => {
 
     // For a regular user, their categories are directly on the user object.
     // For an admin, we don't need their categories here, as filtering is handled elsewhere.
+    // For a regular user, their categories are directly on the user object as an array of UUIDs.
     const userCategories = (!isOrgAdmin && Array.isArray(user.categories)) ? user.categories as string[] : [];
 
     return { orgId, categories: userCategories };
@@ -364,21 +366,41 @@ export const Assessment: React.FC = () => {
   const groupedQuestions = React.useMemo(() => {
     if (!questionsData?.questions || !categoriesData) return {};
 
-    // Create a lookup map from category name (lowercase) to category ID
+    // Create lookup maps for categories
+    const categoryIdToNameMap = new Map<string, string>();
     const categoryNameToIdMap = new Map<string, string>();
     categoriesData.forEach(cat => {
+      categoryIdToNameMap.set(cat.category_catalog_id, cat.name);
       categoryNameToIdMap.set(cat.name.toLowerCase(), cat.category_catalog_id);
     });
 
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
     
-    // Group questions by category ID by looking it up from the question's category name
-    (questionsData.questions.map(q => q.question) as QuestionWithCategory[]).forEach((question) => {
-      if (question && question.category) { // This is the category NAME
-        const categoryId = categoryNameToIdMap.get(question.category.toLowerCase());
+    // Group questions by their proper category ID, handling legacy data
+    (questionsData.questions as unknown as QuestionWithCategory[]).forEach((question) => {
+      if (question) {
+        let categoryId: string | undefined;
+        // The question might have the correct UUID in category_id
+        if (question.category_id && categoryIdToNameMap.has(question.category_id)) {
+          categoryId = question.category_id;
+        }
+        // Or it might have the name in category_id (legacy issue)
+        else if (question.category_id && categoryNameToIdMap.has(question.category_id.toLowerCase())) {
+          categoryId = categoryNameToIdMap.get(question.category_id.toLowerCase());
+        }
+        // Or it might have the name in the category property
+        else if (question.category && categoryNameToIdMap.has(question.category.toLowerCase())) {
+          categoryId = categoryNameToIdMap.get(question.category.toLowerCase());
+        }
+
         if (categoryId) {
-          if (!groups[categoryId]) groups[categoryId] = [];
-          groups[categoryId].push({ question, revision: question.latest_revision });
+          if (!groups[categoryId]) {
+            groups[categoryId] = [];
+          }
+          groups[categoryId].push({
+            question,
+            revision: question.latest_revision,
+          });
         }
       }
     });
@@ -395,7 +417,6 @@ export const Assessment: React.FC = () => {
           filtered[assessmentCatId] = groups[assessmentCatId];
         } else {
           // Regular users see only the intersection of their categories and assessment categories
-          // Assumes orgInfo.categories contains category IDs
           const userHasCategory = orgInfo.categories.includes(assessmentCatId);
           if (userHasCategory) {
             filtered[assessmentCatId] = groups[assessmentCatId];

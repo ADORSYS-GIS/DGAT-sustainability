@@ -83,7 +83,7 @@ interface FileAttachment {
   type NormalizedCategory = {
     name: string;
     responses: Array<{ question_text: string; response: { yesNo?: boolean; percentage?: number; text?: string } }>;
-    recommendationText?: string;
+    recommendations?: { id: string; text: string; status: string }[];
   };
 
   const normalizeGenericReportData = (data: unknown): NormalizedCategory[] => {
@@ -105,9 +105,11 @@ interface FileAttachment {
         const text = typeof answer.text === 'string' ? (answer.text as string) : undefined;
         responses.push({ question_text: questionText, response: { yesNo, percentage, text } });
       });
-      const recommendationText = typeof obj.recommendation === 'string' ? (obj.recommendation as string) : undefined;
-      if (responses.length > 0 || recommendationText) {
-        categories.push({ name: key, responses, recommendationText });
+      const recommendations = Array.isArray(obj.recommendations)
+        ? (obj.recommendations as { id: string; text: string; status: string }[])
+        : [];
+      if (responses.length > 0 || recommendations.length > 0) {
+        categories.push({ name: key, responses, recommendations });
       }
     }
     return categories;
@@ -188,7 +190,7 @@ export const ReportHistory: React.FC = () => {
     if (currentReport && currentReport.data && !isAdminReportData(currentReport.data)) {
       const normalizedData = normalizeGenericReportData(currentReport.data);
       const categories = normalizedData.map(cat => cat.name);
-      const recommendationCounts = normalizedData.map(cat => cat.recommendationText ? 1 : 0); // Simple count for now
+      const recommendationCounts = normalizedData.map(cat => cat.recommendations?.length || 0);
 
       return {
         data: {
@@ -810,7 +812,15 @@ export const ReportHistory: React.FC = () => {
                               </div>
                               <div>
                                 <h3 className="text-xl font-bold text-purple-800">{cat.name}</h3>
-                                <span className="text-sm text-gray-600">{cat.responses.length} questions</span>
+                                <div className="flex items-center gap-4 mt-1">
+                                  <span className="text-sm text-gray-600">{cat.responses.length} questions</span>
+                                  {cat.recommendations && cat.recommendations.length > 0 && (
+                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                                      <Award className="w-3 h-3 mr-1" />
+                                      {cat.recommendations.length} recommendation{cat.recommendations.length !== 1 ? 's' : ''}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -818,13 +828,22 @@ export const ReportHistory: React.FC = () => {
                           {/* Generic Category Content */}
                           <div className="p-6 bg-gray-50 space-y-6">
                             {/* Generic Recommendation */}
-                            {cat.recommendationText && (
+                            {cat.recommendations && cat.recommendations.length > 0 && (
                               <div className="bg-white rounded-lg p-4 border-l-4 border-purple-400">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Award className="w-5 h-5 text-purple-600" />
-                                  <span className="font-semibold text-purple-800">Recommendation</span>
+                                  <span className="font-semibold text-purple-800">Recommendations</span>
                                 </div>
-                                <p className="text-gray-700 leading-relaxed">{cat.recommendationText}</p>
+                                <div className="space-y-3">
+                                  {cat.recommendations.map((rec, idx) => (
+                                    <div key={rec.id || idx} className="flex items-start gap-3">
+                                      <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <span className="text-purple-600 text-xs font-bold">{idx + 1}</span>
+                                      </div>
+                                      <p className="text-gray-700 leading-relaxed">{rec.text}</p>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                             

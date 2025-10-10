@@ -145,7 +145,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/reports/:report_id", delete(delete_report))
         .route("/api/admin/action-plans", get(list_all_action_plans))
         .route("/api/admin/reports", get(list_all_reports))
-        .route("/api/reports/:report_id/recommendations/:category/status", put(update_recommendation_status))
+        .route("/api/reports/:report_id/recommendations/:recommendation_id/status", put(update_recommendation_status))
         .route("/api/organizations/:org_id/org-admin/members", post(add_org_admin_member))
         .route("/api/organizations/:org_id/org-admin/members", get(get_org_admin_members))
         .route("/api/organizations/:org_id/org-admin/members/:member_id", delete(remove_org_admin_member))

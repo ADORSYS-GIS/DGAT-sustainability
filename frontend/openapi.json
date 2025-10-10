@@ -1801,12 +1801,12 @@
         }
       }
     },
-    "/reports/{report_id}/recommendations/{category}/status": {
+    "/reports/{report_id}/recommendations/{recommendation_id}/status": {
       "put": {
         "tags": ["Reports"],
         "summary": "Update recommendation status",
         "description": "Update the status of a recommendation (org admin only)",
-        "operationId": "update_recommendation_status",
+        "operationId": "updateRecommendationStatus",
         "parameters": [
           {
             "name": "report_id",
@@ -1819,13 +1819,14 @@
             "description": "Report ID"
           },
           {
-            "name": "category",
+            "name": "recommendation_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "string"
             },
-            "description": "Category name"
+            "description": "Recommendation ID"
           }
         ],
         "requestBody": {

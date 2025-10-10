@@ -34,6 +34,10 @@ interface AssignCategoriesProps {
   onClose: () => void;
 }
 
+interface OrganizationCategoriesResponse {
+  organization_categories: OrganizationCategory[];
+}
+
 const AssignCategories: React.FC<AssignCategoriesProps> = ({
   organization,
   isOpen,
@@ -64,10 +68,12 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
     }
 
     if (orgCategories) {
+      const typedOrgCategories = orgCategories as unknown as OrganizationCategoriesResponse;
       const selected =
         categoryCatalogs?.category_catalogs?.filter((cat) =>
-          orgCategories.categories?.some(
-            (orgCat) => orgCat.category_catalog_id === cat.category_catalog_id
+          typedOrgCategories.organization_categories?.some(
+            (orgCat) =>
+              orgCat.category_catalog_id === cat.category_catalog_id
           )
         ) || [];
       setSelectedCategories(
@@ -77,7 +83,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
         }))
       );
       const initialWeights =
-        orgCategories.categories?.reduce(
+        typedOrgCategories.organization_categories?.reduce(
           (acc, cat) => {
             acc[cat.category_catalog_id!] = cat.weight || 0;
             return acc;
@@ -168,7 +174,8 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
       if (updatedOrgCategories) {
         await Promise.all(
           categoryIds.map((categoryId) => {
-            const orgCat = updatedOrgCategories.categories?.find(
+            const typedUpdatedOrgCategories = updatedOrgCategories as unknown as OrganizationCategoriesResponse;
+            const orgCat = typedUpdatedOrgCategories.organization_categories?.find(
               (c) => c.category_catalog_id === categoryId
             );
             if (orgCat && weights[categoryId] !== undefined) {

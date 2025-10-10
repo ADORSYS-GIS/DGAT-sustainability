@@ -232,8 +232,15 @@ export class ApiInterceptor {
       switch (entityType) {
         case 'questions':
           if (data.questions && Array.isArray(data.questions)) {
+            const categories = await offlineDB.getAllCategoryCatalogs();
+            const categoryNameToIdMap = new Map<string, string>();
+            categories.forEach(cat => {
+              if (cat.name && cat.category_catalog_id) {
+                categoryNameToIdMap.set(cat.name.toLowerCase(), cat.category_catalog_id);
+              }
+            });
             for (const question of data.questions as Question[]) {
-              const offlineQuestion = DataTransformationService.transformQuestion(question);
+              const offlineQuestion = DataTransformationService.transformQuestion(question, categoryNameToIdMap);
               await offlineDB.saveQuestion(offlineQuestion);
             }
           }
@@ -429,6 +436,7 @@ export class ApiInterceptor {
           // Create the request data from the offline question
           const questionData = {
             category: question.category,
+            category_id: question.category_id,
             text: question.latest_revision.text,
             weight: question.latest_revision.weight
           };

@@ -156,6 +156,8 @@ export class InitialDataLoader {
       
       // Load categories first
       const categoriesData = await CategoryCatalogService.getCategoryCatalog();
+      const categoryNameToIdMap = new Map<string, string>();
+
       if (categoriesData?.category_catalogs) {
         const transformedCategories = categoriesData.category_catalogs.map(
           DataTransformationService.transformCategoryCatalog
@@ -163,6 +165,11 @@ export class InitialDataLoader {
         
         if (DataTransformationService.validateTransformedData(transformedCategories, 'category_catalogs')) {
           await offlineDB.saveCategoryCatalogs(transformedCategories);
+          transformedCategories.forEach(cat => {
+            if (cat.name && cat.category_catalog_id) {
+              categoryNameToIdMap.set(cat.name.toLowerCase(), cat.category_catalog_id);
+            }
+          });
         }
       }
 
@@ -186,7 +193,7 @@ export class InitialDataLoader {
           })
           .map(question => {
             try {
-              return DataTransformationService.transformQuestion(question);
+              return DataTransformationService.transformQuestion(question, categoryNameToIdMap);
             } catch (error) {
               console.error('❌ Failed to transform question:', question, error);
               throw error;

@@ -42,13 +42,15 @@ export const ActionPlan: React.FC = () => {
             const recommendations = categoryData[category]?.recommendations;
             if (recommendations && Array.isArray(recommendations)) {
               recommendations.forEach((rec) => {
+                // Use the ID from the backend directly
+                const recommendation_id = rec.id;
                 allRecommendations.push({
-                  recommendation_id: rec.id,
+                  recommendation_id: recommendation_id,
                   report_id: report.report_id,
                   category,
                   recommendation: rec.text,
                   status: rec.status,
-                  id: rec.id, // For React key
+                  id: recommendation_id, // For React key
                 } as KanbanRecommendation);
               });
             }
