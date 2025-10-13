@@ -2235,7 +2235,7 @@
               "example": {
                 "name": "adorsy51s",
                 "domains": [{ "name": "yd5es.com" }],
-                "redirectUrl": "http://localhost:5173",
+                "redirectUrl": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com",
                 "enabled": "true",
                 "attributes": {
                   "categories": ["environmental"]
@@ -2258,7 +2258,7 @@
                   "domains": ["yd5es.com"],
                   "attributes": {
                     "domains": ["yd5es.com"],
-                    "redirect_url": ["http://localhost:5173"],
+                    "redirect_url": ["https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"],
                     "enabled": ["true"],
                     "categories": ["environmental"]
                   }
@@ -3997,7 +3997,7 @@
             "type": "string",
             "description": "The redirect URL for the organization",
             "format": "uri",
-            "example": "http://localhost:5173"
+            "example": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"
           },
           "enabled": {
             "type": "string",
@@ -4060,7 +4060,7 @@
             },
             "example": {
               "domains": ["yd5es.com"],
-              "redirect_url": ["http://localhost:5173"],
+              "redirect_url": ["https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"],
               "enabled": ["true"],
               "categories": ["environmental"]
             }
