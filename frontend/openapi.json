@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3001/api",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Production server"
     },
     {
-      "url": "http://localhost:3001/api",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Staging server"
     },
     {
-      "url": "http://localhost:3001/api",
+      "url": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/api",
       "description": "Development server"
     }
   ],
@@ -324,35 +324,41 @@
         }
       }
     },
-    "/category-catalog": {
+    "/categories": {
       "get": {
-        "tags": ["Category Catalog"],
-        "summary": "List category catalogs",
-        "description": "Get all active category catalogs",
-        "operationId": "get_category_catalogs",
+        "tags": ["Categories"],
+        "summary": "List categories",
+        "description": "Get all categories",
+        "operationId": "list_categories",
         "responses": {
           "200": {
-            "description": "List of active category catalogs",
+            "description": "List of categories",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CategoryCatalogListResponse"
+                  "$ref": "#/components/schemas/CategoryListResponse"
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       },
       "post": {
-        "tags": ["Category Catalog"],
-        "summary": "Create category catalog",
-        "description": "Create a new category catalog entry (Admin only)",
-        "operationId": "create_category_catalog",
+        "tags": ["Categories"],
+        "summary": "Create category",
+        "description": "Create a new category (Admin only)",
+        "operationId": "create_category",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCategoryCatalogRequest"
+                "$ref": "#/components/schemas/CreateCategoryRequest"
               }
             }
           },
@@ -360,11 +366,11 @@
         },
         "responses": {
           "201": {
-            "description": "Category catalog created successfully",
+            "description": "Category created successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CategoryCatalogResponse"
+                  "$ref": "#/components/schemas/CategoryResponse"
                 }
               }
             }
@@ -372,23 +378,29 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
     },
-    "/category-catalog/{category_catalog_id}": {
+    "/categories/{category_id}": {
       "get": {
-        "tags": ["Category Catalog"],
-        "summary": "Get category catalog",
-        "description": "Get a specific category catalog by ID",
-        "operationId": "get_category_catalog",
+        "tags": ["Categories"],
+        "summary": "Get category",
+        "description": "Get specific category by ID",
+        "operationId": "get_category",
         "parameters": [
           {
-            "name": "category_catalog_id",
+            "name": "category_id",
             "in": "path",
-            "description": "Category Catalog ID",
+            "description": "Category ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -398,30 +410,36 @@
         ],
         "responses": {
           "200": {
-            "description": "Category catalog found",
+            "description": "Category details",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CategoryCatalogResponse"
+                  "$ref": "#/components/schemas/CategoryResponse"
                 }
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       },
       "put": {
-        "tags": ["Category Catalog"],
-        "summary": "Update category catalog",
-        "description": "Update a category catalog entry (Admin only)",
-        "operationId": "update_category_catalog",
+        "tags": ["Categories"],
+        "summary": "Update category",
+        "description": "Update a category (Admin only)",
+        "operationId": "update_category",
         "parameters": [
           {
-            "name": "category_catalog_id",
+            "name": "category_id",
             "in": "path",
-            "description": "Category Catalog ID",
+            "description": "Category ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -433,7 +451,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCategoryCatalogRequest"
+                "$ref": "#/components/schemas/UpdateCategoryRequest"
               }
             }
           },
@@ -441,11 +459,11 @@
         },
         "responses": {
           "200": {
-            "description": "Category catalog updated successfully",
+            "description": "Category updated successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CategoryCatalogResponse"
+                  "$ref": "#/components/schemas/CategoryResponse"
                 }
               }
             }
@@ -453,24 +471,30 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       },
       "delete": {
-        "tags": ["Category Catalog"],
-        "summary": "Delete category catalog",
-        "description": "Delete a category catalog entry by id (Admin only)",
-        "operationId": "delete_category_catalog",
+        "tags": ["Categories"],
+        "summary": "Delete category",
+        "description": "Delete a category (Admin only)",
+        "operationId": "delete_category",
         "parameters": [
           {
-            "name": "category_catalog_id",
+            "name": "category_id",
             "in": "path",
-            "description": "Category Catalog ID",
+            "description": "Category ID",
             "required": true,
             "schema": {
               "type": "string",
@@ -480,13 +504,19 @@
         ],
         "responses": {
           "204": {
-            "description": "Category catalog deleted successfully"
+            "description": "Category deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -1801,12 +1831,12 @@
         }
       }
     },
-    "/reports/{report_id}/recommendations/{recommendation_id}/status": {
+    "/reports/{report_id}/recommendations/{category}/status": {
       "put": {
         "tags": ["Reports"],
         "summary": "Update recommendation status",
         "description": "Update the status of a recommendation (org admin only)",
-        "operationId": "updateRecommendationStatus",
+        "operationId": "update_recommendation_status",
         "parameters": [
           {
             "name": "report_id",
@@ -1819,14 +1849,13 @@
             "description": "Report ID"
           },
           {
-            "name": "recommendation_id",
+            "name": "category",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "string"
+              "type": "string"
             },
-            "description": "Recommendation ID"
+            "description": "Category name"
           }
         ],
         "requestBody": {
@@ -2206,7 +2235,7 @@
               "example": {
                 "name": "adorsy51s",
                 "domains": [{ "name": "yd5es.com" }],
-                "redirectUrl": "http://localhost:5173",
+                "redirectUrl": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com",
                 "enabled": "true",
                 "attributes": {
                   "categories": ["environmental"]
@@ -2229,7 +2258,7 @@
                   "domains": ["yd5es.com"],
                   "attributes": {
                     "domains": ["yd5es.com"],
-                    "redirect_url": ["http://localhost:5173"],
+                    "redirect_url": ["https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"],
                     "enabled": ["true"],
                     "categories": ["environmental"]
                   }
@@ -2633,7 +2662,7 @@
           }
         },
         "responses": {
-          "201": { 
+          "201": {
             "description": "User created and invited successfully",
             "content": {
               "application/json": {
@@ -2889,143 +2918,6 @@
           "500": { "$ref": "#/components/responses/InternalServerError" }
         }
       }
-    },
-    "/organizations/{keycloak_organization_id}/categories": {
-      "get": {
-        "tags": ["Organizations"],
-        "summary": "Get organization categories",
-        "description": "Get all categories assigned to a specific organization",
-        "operationId": "get_organization_categories",
-        "parameters": [
-          {
-            "name": "keycloak_organization_id",
-            "in": "path",
-            "description": "Keycloak Organization ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of organization categories",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationCategoryListResponse"
-                }
-              }
-            }
-          },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
-        }
-      }
-    },
-    "/organizations/{keycloak_organization_id}/categories/assign": {
-      "post": {
-        "tags": ["Organizations"],
-        "summary": "Assign categories to organization",
-        "description": "Assign a list of categories to an organization. This will replace existing assignments.",
-        "operationId": "assign_categories_to_organization",
-        "parameters": [
-          {
-            "name": "keycloak_organization_id",
-            "in": "path",
-            "description": "Keycloak Organization ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssignCategoriesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Categories assigned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationCategoryListResponse"
-                }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
-        }
-      }
-    },
-    "/organizations/{keycloak_organization_id}/categories/{organization_category_id}": {
-      "put": {
-        "tags": ["Organizations"],
-        "summary": "Update organization category weight",
-        "description": "Update the weight of a single category for an organization.",
-        "operationId": "update_organization_category",
-        "parameters": [
-          {
-            "name": "keycloak_organization_id",
-            "in": "path",
-            "description": "Keycloak Organization ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "organization_category_id",
-            "in": "path",
-            "description": "Organization Category ID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateOrganizationCategoryRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Category updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationCategory"
-                }
-              }
-            }
-          },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
-        }
-      }
     }
   },
   "components": {
@@ -3061,16 +2953,15 @@
         "required": ["reports"]
       },
       "Question": {
-        "required": ["question_id", "category_id", "created_at", "latest_revision"],
+        "required": ["question_id", "category", "created_at", "latest_revision"],
         "type": "object",
         "properties": {
           "question_id": {
             "type": "string",
             "format": "uuid"
           },
-          "category_id": {
-            "type": "string",
-            "format": "uuid"
+          "category": {
+            "type": "string"
           },
           "created_at": {
             "type": "string",
@@ -3112,12 +3003,11 @@
         }
       },
       "CreateQuestionRequest": {
-        "required": ["category_id", "text"],
+        "required": ["category", "text"],
         "type": "object",
         "properties": {
-          "category_id": {
-            "type": "string",
-            "format": "uuid"
+          "category": {
+            "type": "string"
           },
           "text": {
             "type": "object",
@@ -3134,9 +3024,8 @@
       "UpdateQuestionRequest": {
         "type": "object",
         "properties": {
-          "category_id": {
-            "type": "string",
-            "format": "uuid"
+          "category": {
+            "type": "string"
           },
           "text": {
             "type": "object"
@@ -4020,7 +3909,7 @@
             }
           }
         }
-      },
+      }
       "AdminSubmissionDetail_content": {
         "type": "object",
         "properties": {
@@ -4108,7 +3997,7 @@
             "type": "string",
             "description": "The redirect URL for the organization",
             "format": "uri",
-            "example": "http://localhost:5173"
+            "example": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"
           },
           "enabled": {
             "type": "string",
@@ -4171,7 +4060,7 @@
             },
             "example": {
               "domains": ["yd5es.com"],
-              "redirect_url": ["http://localhost:5173"],
+              "redirect_url": ["https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com"],
               "enabled": ["true"],
               "categories": ["environmental"]
             }
@@ -4466,26 +4355,25 @@
         },
         "required": ["language", "name"]
       },
-      "CategoryCatalog": {
-        "required": ["category_catalog_id", "name", "template_id", "is_active", "created_at", "updated_at"],
+      "Category": {
+        "required": ["category_id", "name", "weight", "order", "template_id", "created_at", "updated_at"],
         "type": "object",
         "properties": {
-          "category_catalog_id": {
+          "category_id": {
             "type": "string",
             "format": "uuid"
           },
           "name": {
             "type": "string"
           },
-          "description": {
-            "type": "string",
-            "nullable": true
+          "weight": {
+            "type": "integer"
+          },
+          "order": {
+            "type": "integer"
           },
           "template_id": {
             "type": "string"
-          },
-          "is_active": {
-            "type": "boolean"
           },
           "created_at": {
             "type": "string",
@@ -4497,60 +4385,61 @@
           }
         }
       },
-      "CreateCategoryCatalogRequest": {
-        "required": ["name", "template_id"],
+      "CreateCategoryRequest": {
+        "required": ["name", "weight", "order", "template_id"],
         "type": "object",
         "properties": {
           "name": {
             "type": "string"
           },
-          "description": {
-            "type": "string",
-            "nullable": true
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1
           },
           "template_id": {
             "type": "string"
-          },
-          "is_active": {
-            "type": "boolean",
-            "nullable": true
           }
         }
       },
-      "UpdateCategoryCatalogRequest": {
+      "UpdateCategoryRequest": {
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
-          "description": {
-            "type": "string",
-            "nullable": true
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
           },
-          "is_active": {
-            "type": "boolean",
-            "nullable": true
+          "order": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       },
-      "CategoryCatalogResponse": {
-        "required": ["category_catalog"],
+      "CategoryResponse": {
+        "required": ["category"],
         "type": "object",
         "properties": {
-          "category_catalog": {
-            "$ref": "#/components/schemas/CategoryCatalog"
+          "category": {
+            "$ref": "#/components/schemas/Category"
           }
         }
       },
-      "CategoryCatalogListResponse": {
-        "required": ["category_catalogs"],
+      "CategoryListResponse": {
+        "required": ["categories"],
         "type": "object",
         "properties": {
-          "category_catalogs": {
+          "categories": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CategoryCatalog"
+              "$ref": "#/components/schemas/Category"
             }
           }
         }
@@ -4708,79 +4597,6 @@
             "type": "string",
             "enum": ["todo", "in_progress", "done", "approved"],
             "description": "New status for the recommendation"
-          }
-        }
-      },
-      "AssignCategoriesRequest": {
-        "type": "object",
-        "required": ["category_catalog_ids"],
-        "properties": {
-          "category_catalog_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "List of Category Catalog IDs to assign to the organization."
-          }
-        }
-      },
-      "UpdateOrganizationCategoryRequest": {
-        "type": "object",
-        "required": ["weight"],
-        "properties": {
-          "weight": {
-            "type": "number",
-            "format": "float",
-            "description": "The weight for this category for this organization (0-100)."
-          }
-        }
-      },
-      "OrganizationCategory": {
-        "type": "object",
-        "required": [
-          "organization_category_id",
-          "organization_id",
-          "category_catalog_id",
-          "weight",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "organization_category_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "organization_id": {
-            "type": "string"
-          },
-          "category_catalog_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "weight": {
-            "type": "number",
-            "format": "float"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "OrganizationCategoryListResponse": {
-        "type": "object",
-        "required": ["categories"],
-        "properties": {
-          "categories": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OrganizationCategory"
-            }
           }
         }
       }
