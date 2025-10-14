@@ -39,7 +39,7 @@ services:
     working_dir: /app
     command: ["node", "scripts/fetch_openapi.js"]
     environment:
-      - EVENTSERVER_OPENAPI_URL=http://backend:3001/openapi-json
+      - EVENTSERVER_OPENAPI_URL=http://backend:3001/api/openapi.json
     volumes:
       - openapi-volume:/app
       - ./scripts:/app/scripts:ro
