@@ -2,6 +2,8 @@ import jsPDF from "jspdf";
 import { drawAssessmentsTable } from "./drawTable";
 import { drawKanbanBoard } from "./drawKanban";
 import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
+import { offlineDB } from "@/services/indexeddb";
+import type { OfflineImage } from "@/types/offline";
 
 const PAGE_MARGIN = 14;
 const dgrvBlue = [30, 58, 138];
@@ -23,6 +25,61 @@ const addNewPageWithHeader = (doc: jsPDF) => {
   addHeader(doc);
 };
 
+async function loadImageAsBase64(url: string): Promise<string | undefined> {
+  // 1. Try to load from IndexedDB
+  const cachedImage = await offlineDB.getImage(url);
+  if (cachedImage) {
+    console.log(`Loaded image from IndexedDB: ${url}`);
+    return cachedImage.dataUrl;
+  }
+
+  // 2. If not in IndexedDB, try to fetch from network
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    const base64 = await new Promise<string | undefined>((resolve, reject) => {
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            console.warn("Could not get 2D context for canvas.");
+            return resolve(undefined);
+          }
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL('image/png');
+          resolve(dataUrl);
+        } catch (error) {
+          console.error(`Error processing image ${url}:`, error);
+          reject(error);
+        }
+      };
+      img.onerror = (e) => {
+        console.warn(`Failed to load image from network: ${url}`, e);
+        resolve(undefined);
+      };
+      img.src = url;
+    });
+
+    if (base64) {
+      // 3. Cache the image in IndexedDB for future offline use
+      await offlineDB.saveImage({
+        id: url,
+        dataUrl: base64,
+        timestamp: new Date().toISOString(),
+      });
+      console.log(`Cached image to IndexedDB: ${url}`);
+      return base64;
+    }
+  } catch (error) {
+    console.error(`Failed to fetch and cache image ${url}:`, error);
+  }
+
+  return undefined;
+}
+
 // Main export function
 export async function exportAllAssessmentsPDF(
   submissions: AdminSubmissionDetail[],
@@ -35,60 +92,42 @@ export async function exportAllAssessmentsPDF(
   const pageHeight = doc.internal.pageSize.getHeight();
 
   // --- Cover Page ---
-  try {
-    const possiblePaths = [
-      '/sustainability.png', './sustainability.png', 'sustainability.png', '/public/sustainability.png'
-    ];
-    let imageLoaded = false;
-    for (const path of possiblePaths) {
-      try {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        await new Promise<void>((resolve) => {
-          img.onload = () => {
-            try {
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              if (!ctx) return resolve();
-              canvas.width = img.width;
-              canvas.height = img.height;
-              ctx.drawImage(img, 0, 0);
-              const base64 = canvas.toDataURL('image/png');
-              const imgWidth = 200;
-              const imgHeight = 130;
-              const x = (pageWidth - imgWidth) / 2;
-              doc.addImage(base64, "PNG", x, 20, imgWidth, imgHeight);
-              imageLoaded = true;
-              resolve();
-            } catch (error) { resolve(); }
-          };
-          img.onerror = () => resolve();
-          img.src = path;
-        });
-        if (imageLoaded) break;
-      } catch (error) { continue; }
+  let imageBase64: string | undefined;
+  const possiblePaths = [
+    '/sustainability.png', './sustainability.png', 'sustainability.png', '/public/sustainability.png'
+  ];
+
+  for (const path of possiblePaths) {
+    imageBase64 = await loadImageAsBase64(path);
+    if (imageBase64) {
+      break;
     }
-    if (!imageLoaded) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 150; canvas.height = 150;
-        if (ctx) {
-          ctx.fillStyle = '#1e3a8a';
-          ctx.fillRect(0, 0, 150, 150);
-          ctx.fillStyle = 'white';
-          ctx.font = 'bold 24px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText('DGRV', 75, 75);
-          ctx.font = '16px Arial';
-          ctx.fillText('Sustainability', 75, 110);
-        }
-        const base64 = canvas.toDataURL('image/png');
-        const imgWidth = 150; const imgHeight = 150;
-        const x = (pageWidth - imgWidth) / 2;
-        doc.addImage(base64, "PNG", x, 20, imgWidth, imgHeight);
+  }
+
+  if (imageBase64) {
+    const imgWidth = 200;
+    const imgHeight = 130;
+    const x = (pageWidth - imgWidth) / 2;
+    doc.addImage(imageBase64, "PNG", x, 20, imgWidth, imgHeight);
+  } else {
+    // Fallback to drawing a blue rectangle with text
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 150; canvas.height = 150;
+    if (ctx) {
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(0, 0, 150, 150);
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('DGRV', 75, 75);
+      ctx.font = '16px Arial';
+      ctx.fillText('Sustainability', 75, 110);
     }
-  } catch (error) {
-    console.error("Error in logo processing:", error);
+    const base64 = canvas.toDataURL('image/png');
+    const imgWidth = 150; const imgHeight = 150;
+    const x = (pageWidth - imgWidth) / 2;
+    doc.addImage(base64, "PNG", x, 20, imgWidth, imgHeight);
   }
 
   doc.setFontSize(40);

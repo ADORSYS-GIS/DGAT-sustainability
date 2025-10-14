@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { useOfflineAdminActionPlans } from '@/hooks/useOfflineApi';
+import { useOfflineAdminActionPlans } from '@/hooks/useOfflineReports';
 import {
   OrganizationActionPlan
 } from '@/openapi-rq/requests/types.gen';

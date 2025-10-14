@@ -13,7 +13,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/shared/useAuth"; // Import useAuth hook
-import { useOfflineRecommendationStatusMutation, useOfflineUserRecommendations } from "../../hooks/useOfflineApi";
+import { useOfflineRecommendationStatusMutation, useOfflineUserRecommendations } from "@/hooks/useOfflineReports";
 
 export const ActionPlan: React.FC = () => {
   const { t } = useTranslation();

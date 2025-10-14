@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   useOfflineSyncStatus
-} from "@/hooks/useOfflineApi";
+} from "@/hooks/useOfflineSync";
 import { useOfflineCategoryCatalogs, useOfflineCategoryCatalogsMutation } from "@/hooks/useCategoryCatalogs";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";

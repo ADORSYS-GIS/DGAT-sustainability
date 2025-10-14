@@ -31,10 +31,28 @@ import type {
   OfflineInvitation,
   OfflineRecommendation, // Import OfflineRecommendation
   ReportCategoryData, // Import ReportCategoryData
-  DetailedReport
+  DetailedReport,
+  OfflineOrganizationCategory
 } from "@/types/offline";
+import { OrganizationCategory } from "@/openapi-rq/requests/types.gen";
 
 export class DataTransformationService {
+  /**
+   * Transform API OrganizationCategory to OfflineOrganizationCategory
+   */
+  static transformOrganizationCategory(orgCategory: OrganizationCategory, organizationId: string): OfflineOrganizationCategory {
+    const now = new Date().toISOString();
+    return {
+      id: `${organizationId}-${orgCategory.category_catalog_id}`,
+      organization_id: organizationId,
+      category_catalog_id: orgCategory.category_catalog_id,
+      updated_at: now,
+      sync_status: 'synced',
+      local_changes: false,
+      last_synced: now,
+    };
+  }
+
   /**
    * Transform API Question to OfflineQuestion
    */
@@ -97,21 +115,25 @@ export class DataTransformationService {
    */
   static transformAssessment(
     assessment: Assessment,
+    categoryIdToCategoryMap: Map<string, OfflineCategoryCatalog>,
     userOrganizationId?: string,
     userEmail?: string,
-    userId?: string // Add userId parameter
+    userId?: string
   ): OfflineAssessment {
     const now = new Date().toISOString();
-    
+    const resolvedCategories = (assessment.categories ?? [])
+      .map(catId => categoryIdToCategoryMap.get(catId))
+      .filter((cat): cat is OfflineCategoryCatalog => cat !== undefined);
+
     return {
       ...assessment,
       organization_id: userOrganizationId,
-      user_id: userId, // Populate user_id
+      user_id: userId,
       user_email: userEmail,
-      status: 'draft' as const, // Default status
+      status: 'draft' as const,
       progress_percentage: 0,
       last_activity: assessment.created_at,
-      categories: assessment.categories, // Preserve categories from API assessment
+      categories: resolvedCategories,
       updated_at: now,
       sync_status: 'synced' as const,
       local_changes: false,
@@ -161,14 +183,21 @@ export class DataTransformationService {
    * Transform API Submission to OfflineSubmission
    */
   static transformSubmission(
-    submission: Submission,
+    submission: Partial<Submission>,
     userOrganizationId?: string,
     reviewerEmail?: string
   ): OfflineSubmission {
     const now = new Date().toISOString();
     
     return {
-      ...submission,
+      submission_id: submission.submission_id || '',
+      assessment_id: submission.assessment_id || '',
+      assessment_name: submission.assessment_name || '',
+      user_id: submission.user_id,
+      content: submission.content || { assessment: {}, responses: [] },
+      review_status: submission.review_status as 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'draft' || 'draft',
+      submitted_at: submission.submitted_at || now,
+      reviewed_at: submission.reviewed_at,
       organization_id: userOrganizationId,
       reviewer_id: submission.reviewed_at ? submission.submission_id : undefined,
       reviewer_email: reviewerEmail,
@@ -344,11 +373,13 @@ export class DataTransformationService {
    */
   static transformAssessmentsWithContext(
     assessments: Assessment[],
+    categoryIdToCategoryMap: Map<string, OfflineCategoryCatalog>,
     userOrganizationId?: string,
-    userEmail?: string
+    userEmail?: string,
+    userId?: string
   ): OfflineAssessment[] {
-    return assessments.map(assessment => 
-      this.transformAssessment(assessment, userOrganizationId, userEmail)
+    return assessments.map(assessment =>
+      this.transformAssessment(assessment, categoryIdToCategoryMap, userOrganizationId, userEmail, userId)
     );
   }
 

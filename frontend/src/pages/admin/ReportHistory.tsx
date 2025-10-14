@@ -9,7 +9,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { AdminService } from "@/openapi-rq/requests/services.gen";
 import type {
   AdminReport,

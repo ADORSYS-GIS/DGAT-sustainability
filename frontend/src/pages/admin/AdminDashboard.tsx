@@ -2,11 +2,9 @@ import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
-import {
-  useOfflineAdminSubmissions,
-  useOfflineOrganizations,
-  useOfflineQuestions
-} from "@/hooks/useOfflineApi";
+import { useOfflineAdminSubmissions } from "@/hooks/useOfflineAdminSubmissions";
+import { useOfflineOrganizations } from "@/hooks/useOfflineOrganizations";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 import {
   BookOpen,
   Kanban,

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import {
   ArrowLeft,
   BookOpen,

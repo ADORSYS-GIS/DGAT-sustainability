@@ -717,11 +717,37 @@ pub async fn submit_assessment(
     // Perform all operations within the transaction
     let result = async {
         // Fetch the temp submission (must exist) - this read operation doesn't need transaction
-        let temp_submission = app_state.database.temp_submission
-            .get_temp_submission_by_assessment_id(assessment_id)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to read temp_submission: {e}")))?
-            .ok_or_else(|| ApiError::BadRequest("No temp submission to finalize".to_string()))?;
+        let temp_submission = match app_state.database.temp_submission.get_temp_submission_by_assessment_id(assessment_id).await {
+            Ok(Some(ts)) => ts,
+            _ => {
+                let responses = app_state.database.assessments_response.get_latest_responses_by_assessment(assessment_id).await
+                    .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch responses: {e}")))?;
+                
+                let mut content_responses = Vec::new();
+                for res in responses {
+                    content_responses.push(serde_json::json!({
+                        "question_revision_id": res.question_revision_id,
+                        "response": res.response,
+                        "version": res.version,
+                        "files": []
+                    }));
+                }
+
+                let content = serde_json::json!({
+                    "assessment": { "assessment_id": assessment_id },
+                    "responses": content_responses
+                });
+
+                crate::common::database::entity::temp_submission::Model {
+                    temp_id: assessment_id,
+                    org_id: claims.get_org_id().unwrap(),
+                    content,
+                    status: crate::common::database::entity::assessments_submission::SubmissionStatus::PendingReview,
+                    submitted_at: chrono::Utc::now(),
+                    reviewed_at: None,
+                }
+            }
+        };
 
         // Fetch the assessment to get its name before we delete it
         let assessment = app_state.database.assessments
@@ -751,17 +777,13 @@ pub async fn submit_assessment(
             .map_err(|e| ApiError::InternalServerError(format!("Failed to create final submission: {e}")))?;
 
         // Delete the temp submission after successful final submission
-        crate::common::database::entity::temp_submission::Entity::delete_by_id(assessment_id)
-            .exec(&txn)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to clean up temp submission: {e}")))?;
-
-        // Delete the assessment after successful final submission and temp submission cleanup
-        // This will cascade delete all associated assessment_response records
-        crate::common::database::entity::assessments::Entity::delete_by_id(assessment_id)
-            .exec(&txn)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to clean up assessment: {e}")))?;
+        // Only delete the temp submission if it exists
+        if app_state.database.temp_submission.get_temp_submission_by_assessment_id(assessment_id).await?.is_some() {
+            crate::common::database::entity::temp_submission::Entity::delete_by_id(assessment_id)
+                .exec(&txn)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to clean up temp submission: {e}")))?;
+        }
 
         Ok::<(), ApiError>(())
     }.await;

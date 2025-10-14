@@ -38,7 +38,7 @@ import { toast } from "sonner";
 import {
   useOfflineQuestions,
   useOfflineQuestionsMutation
-} from "../../hooks/useOfflineApi";
+} from "@/hooks/useOfflineQuestions";
 import { useOfflineCategoryCatalogs } from "../../hooks/useCategoryCatalogs";
 import type {
   CreateQuestionRequest,

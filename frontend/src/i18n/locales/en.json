@@ -526,6 +526,7 @@
         "approving": "Approving...",
         "approvedSuccessfully": "Assessment approved successfully!",
         "failedToApprove": "Failed to approve assessment.",
+        "approvedOfflineSuccessfully": "Successfully approved, will sync when you come back online",
         "viewFullAssessment": "View Full Assessment",
         "approveSubmission": "Approve Submission",
         "backToDraftSubmissions": "Back to Draft Submissions",

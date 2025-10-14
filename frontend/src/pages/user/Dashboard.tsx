@@ -36,13 +36,10 @@ import { generateRecommendationChartData } from "@/utils/recommendationChart";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { OrgUserManageUsers } from "./OrgUserManageUsers";
-import { 
-  useOfflineSubmissions,
-  useOfflineReports,
-  useOfflineAssessments,
-  useOfflineAdminSubmissions,
-  useOfflineUserRecommendations,
-} from "@/hooks/useOfflineApi";
+import { useOfflineSubmissions } from "@/hooks/useOfflineSubmissions";
+import { useOfflineReports, useOfflineUserRecommendations } from "@/hooks/useOfflineReports";
+import { useOfflineAssessments } from "@/hooks/useOfflineAssessments";
+import { useOfflineAdminSubmissions } from "@/hooks/useOfflineAdminSubmissions";
 import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
 import { ReportSelectionDialog } from "@/components/shared/ReportSelectionDialog";
 import type { Report, AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";

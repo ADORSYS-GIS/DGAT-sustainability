@@ -8,8 +8,8 @@ import {
   QuestionsService,
   CategoryCatalogService,
   AssessmentsService,
-  ResponsesService,
   SubmissionsService,
+  ResponsesService,
   ReportsService,
   OrganizationsService,
   OrganizationMembersService,
@@ -34,6 +34,7 @@ import type {
   DetailedReport
 } from "@/types/offline";
 import { getAuthState } from "./shared/authService";
+import { reviewService } from "./reviewService";
 
 export interface SyncResult {
   entityType: string;
@@ -54,6 +55,8 @@ export interface FullSyncResult {
   users: SyncResult;
   recommendations: SyncResult;
   pending_assessments: SyncResult;
+  pending_draft_submissions: SyncResult;
+  pending_review_submissions: SyncResult;
 }
 
 export class SyncService {
@@ -116,10 +119,11 @@ export class SyncService {
       // Only sync assessments, submissions, and reports for non-DGRV admin users
       if (!isDrgvAdmin) {
         syncTasks.push(
-          this.syncPendingAssessments(), // Sync pending assessments first
-          this.syncAssessments(),
+          this.syncPendingAssessments(),
           this.syncSubmissions(),
-          this.syncReports()
+          this.syncReports(),
+          this.syncPendingDraftSubmissions(),
+          this.syncPendingReviewSubmissions(),
         );
       }
 
@@ -162,14 +166,6 @@ export class SyncService {
         }
         taskIndex++;
 
-        const assessmentsResult = syncResults[taskIndex];
-        if (assessmentsResult?.status === 'fulfilled') {
-          results.assessments = assessmentsResult.value;
-        } else if (assessmentsResult?.status === 'rejected') {
-          results.assessments.errors.push(assessmentsResult.reason?.toString() || 'Unknown error');
-        }
-        taskIndex++;
-
         const submissionsResult = syncResults[taskIndex];
         if (submissionsResult?.status === 'fulfilled') {
           results.submissions = submissionsResult.value;
@@ -185,6 +181,22 @@ export class SyncService {
           results.reports.errors.push(reportsResult.reason?.toString() || 'Unknown error');
         }
         taskIndex++;
+
+        const pendingDraftSubmissionsResult = syncResults[taskIndex];
+        if (pendingDraftSubmissionsResult?.status === 'fulfilled') {
+          results.pending_draft_submissions = pendingDraftSubmissionsResult.value;
+        } else if (pendingDraftSubmissionsResult?.status === 'rejected') {
+          results.pending_draft_submissions.errors.push(pendingDraftSubmissionsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+
+        const pendingReviewSubmissionsResult = syncResults[taskIndex];
+        if (pendingReviewSubmissionsResult?.status === 'fulfilled') {
+          results.pending_review_submissions = pendingReviewSubmissionsResult.value;
+        } else if (pendingReviewSubmissionsResult?.status === 'rejected') {
+          results.pending_review_submissions.errors.push(pendingReviewSubmissionsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
       }
 
       // Organizations only for DGRV admin
@@ -195,6 +207,7 @@ export class SyncService {
         } else if (organizationsResult?.status === 'rejected') {
           results.organizations.errors.push(organizationsResult.reason?.toString() || 'Unknown error');
         }
+        taskIndex++;
       }
 
       // Recommendations only for DGRV admin
@@ -251,13 +264,17 @@ export class SyncService {
         
         if (!localQuestion) {
           // Add new question
-          const offlineQuestion = DataTransformationService.transformQuestion(serverQuestion);
+          const categories = await offlineDB.getAllCategoryCatalogs();
+          const categoryIdToNameMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
+          const offlineQuestion = DataTransformationService.transformQuestion(serverQuestion, categoryIdToNameMap);
           await offlineDB.saveQuestion(offlineQuestion);
           result.added++;
         } else {
           // Check if the server version is more recent or if local has no pending changes
           // For now, we'll always update if the server version exists to ensure consistency
-          const offlineQuestion = DataTransformationService.transformQuestion(serverQuestion);
+          const categories = await offlineDB.getAllCategoryCatalogs();
+          const categoryIdToNameMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
+          const offlineQuestion = DataTransformationService.transformQuestion(serverQuestion, categoryIdToNameMap);
           await offlineDB.saveQuestion(offlineQuestion);
           result.updated++;
         }
@@ -334,62 +351,6 @@ export class SyncService {
     return result;
   }
 
-  /**
-   * Sync assessments from server to local
-   */
-  private async syncAssessments(): Promise<SyncResult> {
-    const result: SyncResult = { entityType: 'assessments', added: 0, updated: 0, deleted: 0, errors: [] };
-
-    try {
-      // Get server assessments
-      const serverAssessmentsResponse = await AssessmentsService.getAssessments();
-      const serverAssessments = serverAssessmentsResponse.assessments;
-      
-      // If server returns no assessments, clear the local store completely
-      if (serverAssessments.length === 0) {
-        const currentLocalAssessments = await offlineDB.getAllAssessments();
-        await offlineDB.clearStore('assessments');
-        result.deleted = currentLocalAssessments.length;
-        return result;
-      }
-
-      const serverAssessmentIds = new Set(serverAssessments.map(a => a.assessment_id));
-
-      // Get local assessments
-      const localAssessments = await offlineDB.getAllAssessments();
-      const localAssessmentIds = new Set(localAssessments.map(a => a.assessment_id));
-
-      // Find assessments to add/update
-      for (const serverAssessment of serverAssessments) {
-        const localAssessment = localAssessments.find(a => a.assessment_id === serverAssessment.assessment_id);
-        
-        if (!localAssessment) {
-          // Add new assessment
-          const offlineAssessment = DataTransformationService.transformAssessment(serverAssessment);
-          await offlineDB.saveAssessment(offlineAssessment);
-          result.added++;
-        } else {
-          // Update existing assessment if different
-          const offlineAssessment = DataTransformationService.transformAssessment(serverAssessment);
-          await offlineDB.saveAssessment(offlineAssessment);
-          result.updated++;
-        }
-      }
-
-      // Find assessments to delete (local assessments not on server)
-      for (const localAssessment of localAssessments) {
-        if (!serverAssessmentIds.has(localAssessment.assessment_id) && !localAssessment.assessment_id.startsWith('temp_')) {
-          await offlineDB.deleteAssessment(localAssessment.assessment_id);
-          result.deleted++;
-        }
-      }
-
-      } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
-    }
-
-    return result;
-  }
 
   /**
    * Sync pending assessments (created offline) to server
@@ -423,8 +384,11 @@ export class SyncService {
             await offlineDB.deleteAssessment(pendingAssessment.assessment_id);
 
             // Save the real assessment with proper context
+            const categories = await offlineDB.getAllCategoryCatalogs();
+            const categoryMap = new Map(categories.map(c => [c.category_catalog_id, c]));
             const finalOfflineAssessment = DataTransformationService.transformAssessment(
               realAssessment,
+              categoryMap,
               pendingAssessment.organization_id,
               pendingAssessment.user_email
             );
@@ -751,7 +715,9 @@ export class SyncService {
       organizations: { entityType: 'organizations', added: 0, updated: 0, deleted: 0, errors: [] },
       users: { entityType: 'users', added: 0, updated: 0, deleted: 0, errors: [] },
       recommendations: { entityType: 'recommendations', added: 0, updated: 0, deleted: 0, errors: [] },
-      pending_assessments: { entityType: 'pending_assessments', added: 0, updated: 0, deleted: 0, errors: [] }
+      pending_assessments: { entityType: 'pending_assessments', added: 0, updated: 0, deleted: 0, errors: [] },
+      pending_draft_submissions: { entityType: 'pending_draft_submissions', added: 0, updated: 0, deleted: 0, errors: [] },
+      pending_review_submissions: { entityType: 'pending_review_submissions', added: 0, updated: 0, deleted: 0, errors: [] }
     };
   }
 
@@ -768,7 +734,85 @@ export class SyncService {
   getOnlineStatus(): boolean {
     return this.isOnline;
   }
-}
+  /**
+   * Sync pending draft submissions (approved offline) to server
+   */
+  private async syncPendingDraftSubmissions(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'pending_draft_submissions', added: 0, updated: 0, deleted: 0, errors: [] };
 
+    try {
+      const allSubmissions = await offlineDB.getAllSubmissions();
+      const draftsToSync = allSubmissions.filter(
+        s => s.review_status === 'pending_review' && s.sync_status === 'pending'
+      );
+
+      console.log(`🔄 Found ${draftsToSync.length} pending draft submissions to sync`);
+
+      for (const draft of draftsToSync) {
+        try {
+          await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId: draft.assessment_id });
+
+          // If successful, remove from local DB
+          // If successful, update the local submission's status to synced
+          draft.sync_status = 'synced';
+          await offlineDB.saveSubmission(draft);
+          result.updated++; // Representing a successful sync
+          console.log(`✅ Successfully synced approved draft: ${draft.submission_id}`);
+        } catch (error) {
+          console.error(`❌ Failed to sync approved draft ${draft.submission_id}:`, error);
+          result.errors.push(`Failed to sync draft ${draft.submission_id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          
+          // If sync fails, update status to 'failed' so it reappears in the UI
+          draft.sync_status = 'failed';
+          await offlineDB.saveSubmission(draft);
+        }
+      }
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+
+  /**
+   * Sync pending review submissions (approved/rejected offline) to server
+   */
+  private async syncPendingReviewSubmissions(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'pending_review_submissions', added: 0, updated: 0, deleted: 0, errors: [] };
+
+    try {
+      const pendingReviews = await offlineDB.getAllPendingReviewSubmissions();
+      const reviewsToSync = pendingReviews.filter(r => r.sync_status === 'pending');
+
+      console.log(`🔄 Found ${reviewsToSync.length} pending review submissions to sync`);
+
+      for (const review of reviewsToSync) {
+        try {
+          await reviewService.submitReview({
+            submission_id: review.submission_id,
+            recommendation: JSON.parse(review.recommendation),
+            status: review.status,
+          });
+
+          // If successful, remove from local DB
+          await offlineDB.deletePendingReviewSubmission(review.id);
+          result.updated++; // Representing a successful sync
+          console.log(`✅ Successfully synced pending review: ${review.id}`);
+        } catch (error) {
+          console.error(`❌ Failed to sync pending review ${review.id}:`, error);
+          result.errors.push(`Failed to sync review ${review.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          
+          // If sync fails, update status to 'failed' so it can be retried
+          review.sync_status = 'failed';
+          await offlineDB.savePendingReviewSubmission(review);
+        }
+      }
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+}
 // Export singleton instance
 export const syncService = new SyncService();

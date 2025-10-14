@@ -14,14 +14,13 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/shared/useAuth';
-import {
-  useOfflineOrganizations,
-  useOfflineQuestions,
-  useOfflineSubmissions,
-  useOfflineSyncStatus
-} from '@/hooks/useOfflineApi';
-import { ReportsService } from '@/openapi-rq/requests/services.gen';
-import { Submission, Submission_content_responses } from '@/openapi-rq/requests/types.gen';
+import { useOfflineOrganizations } from '@/hooks/useOfflineOrganizations';
+import { useOfflineQuestions } from '@/hooks/useOfflineQuestions';
+import { useOfflineSyncStatus } from '@/hooks/useOfflineSync';
+import { useOfflineCategoryCatalogs } from '@/hooks/useOfflineCategoryCatalogs';
+import { useAddPendingReviewSubmission, usePendingReviewSubmissions } from '@/hooks/usePendingReviewSubmissions';
+import { useReviewAssessments, useSubmitReview } from '@/hooks/useReviewAssessments';
+import { Submission_content_responses } from '@/openapi-rq/requests/types.gen';
 import { offlineDB } from '@/services/indexeddb';
 import {
   AlertTriangle,
@@ -42,11 +41,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-
-interface ReviewSubmission extends Submission {
-  org_id: string;
-}
-
+import type { OfflinePendingReviewSubmission, OfflineSubmission } from '@/types/offline';
 import FileDisplay from '@/components/shared/FileDisplay';
 
 // Type for file attachments
@@ -79,76 +74,51 @@ interface CategoryRecommendation {
   timestamp: Date;
 }
 
-interface PendingReviewSubmission {
-  id: string;
-  submission_id: string;
-  categoryRecommendations: CategoryRecommendation[];
-  reviewer: string;
-  timestamp: Date;
-  sync_status: 'pending' | 'synced' | 'failed';
-}
 
 const ReviewAssessments: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedSubmission, setSelectedSubmission] = useState<ReviewSubmission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<OfflineSubmission | null>(null);
   const [categoryRecommendations, setCategoryRecommendations] = useState<CategoryRecommendation[]>([]);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [currentComment, setCurrentComment] = useState('');
   const [isAddingRecommendation, setIsAddingRecommendation] = useState<string>('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingReviews, setPendingReviews] = useState<PendingReviewSubmission[]>([]);
   // Use offline hooks
-  const { data: submissionsData, isLoading: submissionsLoading, error: submissionsError, refetch: refetchSubmissions } = useOfflineSubmissions();
+  const { data: submissionsData, isLoading: submissionsLoading, error: submissionsError, refetch: refetchSubmissions } = useReviewAssessments();
+  const { data: pendingReviewsData } = usePendingReviewSubmissions();
+  const { mutateAsync: addPendingReview } = useAddPendingReviewSubmission();
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
+  const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategoryCatalogs();
   const { isOnline } = useOfflineSyncStatus();
   const { data: organizationsData, isLoading: organizationsLoading } = useOfflineOrganizations();
-
-  // Load pending reviews from IndexedDB
-  useEffect(() => {
-    const loadPendingReviews = async () => {
-      try {
-        const pendingReviewsFromDb = await offlineDB.getAllPendingReviewSubmissions();
-        const mappedPendingReviews: PendingReviewSubmission[] = pendingReviewsFromDb.map(pr => ({
-          ...pr,
-          timestamp: new Date(pr.timestamp),
-          categoryRecommendations: [], // Initialize with empty array
-        }));
-        setPendingReviews(mappedPendingReviews);
-      } catch (error) {
-        console.error('Failed to load pending reviews:', error);
-      }
-    };
-    loadPendingReviews();
-  }, []);
-
+  const { mutateAsync: submitReview } = useSubmitReview();
   // Filter submissions for review
+  const categoryIdMap = useMemo(() => {
+    if (!categoriesData) return new Map();
+    const map = new Map<string, string>();
+    categoriesData.forEach(c => {
+      map.set(c.category_catalog_id, c.name);
+    });
+    return map;
+  }, [categoriesData]);
+
   const questionsMap = useMemo(() => {
     if (!questionsData?.questions) return new Map();
     const map = new Map<string, { text: string; category: string }>();
     questionsData.questions.forEach(q => {
       if (q.question?.latest_revision) {
+        const categoryName = categoryIdMap.get(q.question.category_id) || 'Unknown Category';
         map.set(q.question.latest_revision.question_revision_id, {
           text: (q.question.latest_revision.text as { en: string })?.en || '',
-          category: q.question.category,
+          category: categoryName,
         });
       }
     });
     return map;
-  }, [questionsData]);
-
-  const categoriesMap = useMemo(() => {
-    if (!questionsData?.questions) return new Map();
-    const map = new Map<string, string>();
-    questionsData.questions.forEach(q => {
-      if (q.question && q.question.category) {
-        map.set(q.question.category, q.question.category);
-      }
-    });
-    return map;
-  }, [questionsData]);
+  }, [questionsData, categoryIdMap]);
 
   const organizationsMap = useMemo(() => {
     if (!organizationsData?.organizations) return new Map();
@@ -159,32 +129,11 @@ const ReviewAssessments: React.FC = () => {
     return map;
   }, [organizationsData]);
 
-  const submissionsForReview = (submissionsData?.submissions as ReviewSubmission[])?.filter(
-    submission => submission.review_status === 'under_review'
-  ) || [];
+  const submissionsForReview = submissionsData || [];
 
   // Get responses from the selected submission (they're already included in the submission data)
   const submissionResponses = selectedSubmission?.content?.responses || [];
 
-  // Listen for sync completion and update pending reviews
-  React.useEffect(() => {
-    const checkPendingReviews = async () => {
-      try {
-        const pendingReviewsFromDb = await offlineDB.getAllPendingReviewSubmissions();
-        const mappedPendingReviews: PendingReviewSubmission[] = pendingReviewsFromDb.map(pr => ({
-          ...pr,
-          timestamp: new Date(pr.timestamp),
-          categoryRecommendations: [], // Initialize with empty array
-        }));
-        setPendingReviews(mappedPendingReviews);
-      } catch (error) {
-        console.error('Failed to check pending reviews:', error);
-      }
-    };
-    
-    const interval = setInterval(checkPendingReviews, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   const addCategoryRecommendation = (category: string, recommendation: string) => {
     const newRecommendation: CategoryRecommendation = {
@@ -200,59 +149,38 @@ const ReviewAssessments: React.FC = () => {
     setCategoryRecommendations(prev => prev.filter(rec => rec.id !== id));
   };
 
-  const handleSubmitReview = async () => {
+  const handleSubmitReview = async (status: 'approved' | 'rejected') => {
     if (!selectedSubmission || categoryRecommendations.length === 0) {
       toast.error(t('reviewAssessments.pleaseAddRecommendations', { defaultValue: 'Please add at least one recommendation' }));
       return;
     }
 
+    if (!user?.sub) {
+      toast.error(t('reviewAssessments.reviewerNotFound', { defaultValue: 'Reviewer information not found. Please log in again.' }));
+      return;
+    }
+
     setIsSubmitting(true);
 
+    const reviewData = {
+      submission_id: selectedSubmission.submission_id,
+      recommendation: JSON.stringify(categoryRecommendations),
+      status,
+      reviewer: user.sub,
+    };
+
     try {
-      // Create pending review for UI
-      const pendingReview: PendingReviewSubmission = {
-        id: crypto.randomUUID(),
-        submission_id: selectedSubmission.submission_id,
-        categoryRecommendations,
-        reviewer: user?.email || 'Unknown',
-        timestamp: new Date(),
-        sync_status: 'pending'
-      };
-
-      setPendingReviews(prev => [...prev, pendingReview]);
-
-      // Use the OpenAPI-generated service directly
-      const result = await ReportsService.postSubmissionsBySubmissionIdReports({
-        submissionId: selectedSubmission.submission_id,
-        requestBody: categoryRecommendations.map(rec => ({
-          recommendation_id: rec.id,
-          category: rec.category,
-          recommendation: rec.recommendation,
-          status: 'todo'
-        }))
-      });
-
-      console.log('✅ Report generation successful:', result.report_id);
-      
-      // Update the pending review status
-      setPendingReviews(prev => 
-        prev.map(review =>
-          review.submission_id === selectedSubmission.submission_id
-            ? { ...review, sync_status: 'synced' as const }
-            : review
-        )
-      );
-
-      toast.success(t('reviewAssessments.reviewSubmitted', { defaultValue: 'Review submitted successfully' }));
-
+      await submitReview(reviewData);
+      toast.success(t('reviewAssessments.reviewQueued', { defaultValue: 'Review has been queued for submission.' }));
+      // On success, close the dialog and reset state
       setIsReviewDialogOpen(false);
       setSelectedSubmission(null);
       setCategoryRecommendations([]);
-      refetchSubmissions();
     } catch (error) {
-      console.error('Failed to submit review:', error);
-      toast.error(t('reviewAssessments.failedToSubmitReview', { defaultValue: 'Failed to submit review' }));
+      console.error('Failed to queue review:', error);
+      toast.error(t('reviewAssessments.queueFailed', { defaultValue: 'Failed to queue review for submission.' }));
     } finally {
+      // Always reset the submitting state
       setIsSubmitting(false);
     }
   };
@@ -281,7 +209,7 @@ const ReviewAssessments: React.FC = () => {
 
 
 
-  if (submissionsLoading || questionsLoading || organizationsLoading) {
+  if (submissionsLoading || questionsLoading || organizationsLoading || categoriesLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
@@ -332,10 +260,10 @@ const ReviewAssessments: React.FC = () => {
         
         <div className="flex items-center space-x-4">
           {/* Pending Reviews Count */}
-          {pendingReviews.length > 0 && (
+          {pendingReviewsData && pendingReviewsData.length > 0 && (
             <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
               <Clock className="w-4 h-4" />
-              <span>{pendingReviews.length} {t('reviewAssessments.pendingSync', { defaultValue: 'Pending Sync' })}</span>
+              <span>{pendingReviewsData.length} {t('reviewAssessments.pendingSync', { defaultValue: 'Pending Sync' })}</span>
             </div>
           )}
         </div>
@@ -369,7 +297,7 @@ const ReviewAssessments: React.FC = () => {
                         {submission.assessment_name || t('reviewAssessments.unknownAssessment', { defaultValue: 'Unknown Assessment' })}
                       </CardTitle>
                       <p className="text-sm text-gray-600">
-                        {t('reviewAssessments.organization', { defaultValue: 'Organization' })}: {organizationsMap.get(submission.org_id) || t('reviewAssessments.unknownOrganization', { defaultValue: 'Unknown Organization' })}
+                        {t('reviewAssessments.organization', { defaultValue: 'Organization' })}: {organizationsMap.get(submission.organization_id) || t('reviewAssessments.unknownOrganization', { defaultValue: 'Unknown Organization' })}
                       </p>
                       <p className="text-sm text-gray-600">
                         {t('reviewAssessments.submitted', { defaultValue: 'Submitted' })}: {new Date(submission.submitted_at).toLocaleDateString()}
@@ -418,7 +346,7 @@ const ReviewAssessments: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-medium">{t('reviewAssessments.organization', { defaultValue: 'Organization' })}:</span>
-                    <p className="text-gray-600">{organizationsMap.get(selectedSubmission.org_id) || t('reviewAssessments.unknown', { defaultValue: 'Unknown' })}</p>
+                    <p className="text-gray-600">{organizationsMap.get(selectedSubmission.organization_id) || t('reviewAssessments.unknown', { defaultValue: 'Unknown' })}</p>
                   </div>
                   <div>
                     <span className="font-medium">{t('reviewAssessments.submissionDate', { defaultValue: 'Submission Date' })}:</span>
@@ -685,7 +613,7 @@ const ReviewAssessments: React.FC = () => {
                   {t('reviewAssessments.cancel', { defaultValue: 'Cancel' })}
                 </Button>
                 <Button
-                  onClick={handleSubmitReview}
+                  onClick={() => handleSubmitReview('approved')}
                   disabled={isSubmitting || categoryRecommendations.length === 0}
                   className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white"
                 >

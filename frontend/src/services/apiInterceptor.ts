@@ -185,42 +185,40 @@ export class ApiInterceptor {
     entityType: string,
     operation: 'create' | 'update' | 'delete'
   ): Promise<T> {
+    console.log(`[Interceptor] 1. Intercepting mutation for entity: ${entityType}, operation: ${operation}`);
     try {
-      // Always perform local mutation first for immediate UI feedback
+      console.log('[Interceptor] 2. Executing local mutation.');
       await localMutation(data);
+      console.log('[Interceptor] 3. Local mutation completed successfully.');
 
-      // If online, try API call
       if (this.isOnline) {
+        console.log('[Interceptor] 4a. [Online] Attempting API call.');
         try {
           const result = await apiCall();
-          
-          // Update local data with server response
+          console.log('[Interceptor] 5a. [Online] API call successful. Result:', result);
           await this.updateLocalData(result, entityType);
-          
           return result;
         } catch (apiError) {
-          console.warn(`API call failed for ${entityType} ${operation}, will retry later:`, apiError);
-          
-          // Add to sync queue for later retry
+          console.warn(`[Interceptor] 5b. [Online] API call failed. Queuing for later sync. Error:`, apiError);
           if (this.config.enableQueueing) {
             await this.addToSyncQueue(data, entityType, operation);
           }
-          
-          // Return the local data as fallback
-          return data as T;
+          // Even if the API fails, we resolve with a mock success object to unblock the UI.
+          // The queue will handle the retry.
+          return { success: true, offline: true, ...data } as unknown as T;
         }
       } else {
-        // Offline - add to sync queue
+        console.log('[Interceptor] 4b. [Offline] Queuing mutation for later sync.');
         if (this.config.enableQueueing) {
           await this.addToSyncQueue(data, entityType, operation);
         }
-        
-        // Return the local data
-        return data as T;
+        // When offline, we immediately resolve with a mock success object.
+        // This is crucial for react-query's onSuccess to fire.
+        return { success: true, offline: true, ...data } as unknown as T;
       }
     } catch (error) {
-      console.error(`Failed to perform ${operation} on ${entityType}:`, error);
-      throw error;
+      console.error(`[Interceptor] Critical error during mutation interception for ${entityType}:`, error);
+      throw error; // Re-throw critical errors.
     }
   }
 
@@ -261,23 +259,39 @@ export class ApiInterceptor {
           break;
         case 'assessments':
           if (data.assessments && Array.isArray(data.assessments)) {
+            const categories = await offlineDB.getAllCategoryCatalogs();
+            const categoryIdToCategoryMap = new Map(
+              categories.map(cat => [cat.category_catalog_id, cat])
+            );
             for (const assessment of data.assessments as Assessment[]) {
-              const offlineAssessment = DataTransformationService.transformAssessment(assessment);
+              const offlineAssessment = DataTransformationService.transformAssessment(assessment, categoryIdToCategoryMap);
               await offlineDB.saveAssessment(offlineAssessment);
             }
           } else if (data.assessment) {
-            const offlineAssessment = DataTransformationService.transformAssessment(data.assessment as Assessment);
+            const categories = await offlineDB.getAllCategoryCatalogs();
+            const categoryIdToCategoryMap = new Map(
+              categories.map(cat => [cat.category_catalog_id, cat])
+            );
+            const offlineAssessment = DataTransformationService.transformAssessment(data.assessment as Assessment, categoryIdToCategoryMap);
             await offlineDB.saveAssessment(offlineAssessment);
           }
           break;
         case 'draft_assessments':
           if (data.assessments && Array.isArray(data.assessments)) {
             for (const assessment of data.assessments as Assessment[]) {
-              const offlineAssessment = DataTransformationService.transformAssessment(assessment);
+              const categories = await offlineDB.getAllCategoryCatalogs();
+              const categoryIdToCategoryMap = new Map(
+                categories.map(cat => [cat.category_catalog_id, cat])
+              );
+              const offlineAssessment = DataTransformationService.transformAssessment(assessment, categoryIdToCategoryMap);
               await offlineDB.saveAssessment(offlineAssessment);
             }
           } else if (data.assessment) {
-            const offlineAssessment = DataTransformationService.transformAssessment(data.assessment as Assessment);
+            const categories = await offlineDB.getAllCategoryCatalogs();
+            const categoryIdToCategoryMap = new Map(
+              categories.map(cat => [cat.category_catalog_id, cat])
+            );
+            const offlineAssessment = DataTransformationService.transformAssessment(data.assessment as Assessment, categoryIdToCategoryMap);
             await offlineDB.saveAssessment(offlineAssessment);
           }
           break;
@@ -324,8 +338,8 @@ export class ApiInterceptor {
           break;
         case 'draft_submission':
           // Handle individual draft submission creation
-          if (data.draft_submission) {
-            const offlineSubmission = DataTransformationService.transformSubmission(data.draft_submission as Submission);
+          if (data.submission) {
+            const offlineSubmission = DataTransformationService.transformSubmission(data.submission as Submission);
             await offlineDB.saveSubmission(offlineSubmission);
           }
           break;
@@ -365,7 +379,7 @@ export class ApiInterceptor {
   /**
    * Add item to sync queue
    */
-  private async addToSyncQueue(data: Record<string, unknown>, entityType: string, operation: 'create' | 'update' | 'delete'): Promise<void> {
+  async addToSyncQueue(data: Record<string, unknown>, entityType: string, operation: 'create' | 'update' | 'delete'): Promise<void> {
     try {
       const queueItem: SyncQueueItem = {
         id: crypto.randomUUID(),
@@ -494,44 +508,7 @@ export class ApiInterceptor {
 
 
       // Scan assessments table for pending items
-      const allAssessments = await offlineDB.getAllAssessments();
-      const pendingAssessments = allAssessments.filter(a => a.sync_status === 'pending');
-
-      for (const tempAssessment of pendingAssessments) {
-        if (!tempAssessment.assessment_id.startsWith('temp_')) {
-            continue;
-        }
-
-        try {
-            const assessmentData: CreateAssessmentRequest = {
-                name: tempAssessment.name,
-                language: tempAssessment.language,
-                categories: tempAssessment.categories,
-            };
-
-            const { AssessmentsService } = await import('@/openapi-rq/requests/services.gen');
-            const response = await AssessmentsService.postAssessments({ requestBody: assessmentData });
-            
-            if (response && typeof response === 'object' && 'assessment' in response) {
-                const realAssessment = (response as { assessment: Assessment }).assessment;
-                
-                await offlineDB.deleteAssessment(tempAssessment.assessment_id);
-                
-                const finalOfflineAssessment = DataTransformationService.transformAssessment(
-                    realAssessment,
-                    tempAssessment.org_id,
-                    undefined,
-                    'synced'
-                );
-                await offlineDB.saveAssessment(finalOfflineAssessment);
-                
-                successCount++;
-            }
-        } catch (error) {
-            console.error(`❌ Failed to sync assessment ${tempAssessment.assessment_id}:`, error);
-            failureCount++;
-        }
-      }
+      // This is now handled by syncService.syncPendingAssessments
 
       // Scan responses table for pending items
       const allResponses = await offlineDB.getResponsesWithFilters({});
@@ -674,7 +651,7 @@ export class ApiInterceptor {
           
           if (queueItem.entity_type === 'report' && queueItem.operation === 'create') {
             // Check if this submission has already been processed
-            const submissionId = queueItem.data.submissionId as string;
+            const submissionId = (queueItem.data as { submissionId: string }).submissionId;
             if (this.processedSubmissions.has(submissionId)) {
               console.log(`⚠️ Submission ${submissionId} already processed, skipping...`);
               await offlineDB.removeFromSyncQueue(queueItem.id);
@@ -683,7 +660,7 @@ export class ApiInterceptor {
             
             // Handle report generation
             const { ReportsService } = await import('@/openapi-rq/requests/services.gen');
-            const recommendationsWithIds = (queueItem.data.categoryRecommendations as { category: string; recommendation: string }[]).map(
+            const recommendationsWithIds = ((queueItem.data as { categoryRecommendations: { category: string; recommendation: string }[] }).categoryRecommendations).map(
               (rec: { category: string; recommendation: string }) => ({
                 ...rec,
                 recommendation_id: crypto.randomUUID(), // Generate a unique ID for each recommendation

@@ -27,16 +27,18 @@ import { toast } from "sonner";
 import {
   useOfflineCategoryCatalogs
 } from "@/hooks/useCategoryCatalogs";
+import { invalidateAndRefetch } from "@/hooks/useOfflineApi";
 import {
-  invalidateAndRefetch,
   useOfflineAssessment,
   useOfflineAssessmentsMutation,
   useOfflineDraftAssessments,
-  useOfflineQuestions,
+} from "@/hooks/useOfflineAssessments";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
+import {
   useOfflineResponses,
   useOfflineResponsesMutation,
-  useOfflineSyncStatus,
-} from "../../hooks/useOfflineApi";
+} from "@/hooks/useOfflineResponses";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { offlineDB } from "../../services/indexeddb";
 
 type FileData = { name: string; url: string };

@@ -5,11 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { useOfflineDraftSubmissions } from "@/hooks/useOfflineApi";
-import { useOfflineAssessmentsMutation } from "@/hooks/useOfflineApi";
+import { useOfflineDraftSubmissions, useOfflineDraftSubmissionsMutation } from "@/hooks/useOfflineDraftSubmissions";
 import { toast } from "sonner";
-import { 
-  Clock, 
+import {
+  Clock,
   CheckCircle, 
   Eye, 
   ArrowLeft, 
@@ -31,59 +30,52 @@ interface DraftSubmission {
   submission_id: string;
   assessment_id: string;
   assessment_name: string; // Added assessment_name
-  org_id: string;
-  org_name: string;
-  content: {
-    assessment: {
-      assessment_id: string;
-      language: string;
+  org_id?: string;
+  org_name?: string;
+  content?: {
+    assessment?: {
+      assessment_id?: string;
+      language?: string;
     };
-    responses: SubmissionResponseWithCategory[];
+    responses?: SubmissionResponseWithCategory[];
   };
   review_status: string;
   submitted_at: string;
-  reviewed_at: string | null;
+  reviewed_at?: string | null;
 }
 
 export default function DraftSubmissions() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data: draftSubmissionsData, isLoading, error, refetch } = useOfflineDraftSubmissions();
-  const { approveAssessment, isPending } = useOfflineAssessmentsMutation();
+  const { data: draftSubmissions, isLoading, error, refetch } = useOfflineDraftSubmissions();
+  const { approveDraftSubmission } = useOfflineDraftSubmissionsMutation();
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<DraftSubmission | null>(null);
 
-  const handleApprove = async (assessmentId: string) => {
-    setApprovingId(assessmentId);
-    try {
-      console.log('🔍 handleApprove: Starting approval for assessmentId:', assessmentId);
-      await approveAssessment(assessmentId, {
-        onSuccess: (result) => {
-          console.log('🔍 handleApprove: onSuccess called with result:', result);
-          toast.success(t("user.draftSubmissions.approvedSuccessfully", { 
-            defaultValue: "Assessment approved successfully!" 
-          }));
-          // Navigate back to dashboard after successful approval
-          setTimeout(() => {
-            console.log('🔍 handleApprove: Navigating to dashboard');
-            navigate("/user/dashboard");
-          }, 1500);
-        },
-        onError: (error) => {
-          console.log('🔍 handleApprove: onError called with error:', error);
-          toast.error(t("user.draftSubmissions.failedToApprove", { 
-            defaultValue: "Failed to approve assessment." 
-          }));
-        },
-      });
-    } catch (error) {
-      console.log('🔍 handleApprove: Caught error:', error);
-      toast.error(t("user.draftSubmissions.failedToApprove", { 
-        defaultValue: "Failed to approve assessment." 
-      }));
-    } finally {
-      setApprovingId(null);
-    }
+  const handleApprove = (submissionId: string) => {
+    setApprovingId(submissionId);
+    approveDraftSubmission.mutate(submissionId, {
+      onSuccess: () => {
+        console.log("Mutation successful for submission:", submissionId);
+        toast.success(t("user.draftSubmissions.approvedOfflineSuccessfully", {
+          defaultValue: "Successfully approved, will sync when you come back online"
+        }));
+        // The query invalidation will remove the item from the list.
+        // Reset the selected submission and navigate back to the dashboard.
+        setSelectedSubmission(null);
+        navigate("/user/dashboard");
+      },
+      onError: (error) => {
+        console.error("Mutation failed for submission:", submissionId, error);
+        toast.error(t("user.draftSubmissions.failedToApprove", {
+          defaultValue: "Failed to approve assessment."
+        }));
+      },
+      onSettled: () => {
+        console.log("Mutation settled for submission:", submissionId);
+        setApprovingId(null);
+      }
+    });
   };
 
   const handleViewDetails = (submission: DraftSubmission) => {
@@ -286,7 +278,7 @@ export default function DraftSubmissions() {
   }
 
   // Handle both possible response structures
-  const submissions = ((draftSubmissionsData as { submissions?: DraftSubmission[] })?.submissions || draftSubmissionsData?.draft_submissions || []) as DraftSubmission[];
+  const submissions = (draftSubmissions.draft_submissions || []) as unknown as DraftSubmission[];
 
   // If viewing a specific submission
   if (selectedSubmission) {
@@ -407,12 +399,12 @@ export default function DraftSubmissions() {
                   {t("common.cancel", { defaultValue: "Cancel" })}
                 </Button>
                 <Button
-                  onClick={() => handleApprove(selectedSubmission.assessment_id)}
-                  disabled={isPending || approvingId === selectedSubmission.assessment_id}
+                  onClick={() => handleApprove(selectedSubmission.submission_id)}
+                  disabled={approveDraftSubmission.isPending || approvingId === selectedSubmission.submission_id}
                   className="px-6 bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {approvingId === selectedSubmission.assessment_id
+                  {approvingId === selectedSubmission.submission_id
                     ? t("user.draftSubmissions.approving", { defaultValue: "Approving..." })
                     : t("user.draftSubmissions.approveSubmission", { defaultValue: "Approve Submission" })
                   }
