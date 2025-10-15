@@ -15,7 +15,8 @@ import type {
   CreateResponseRequest,
   AdminSubmissionDetail,
   RecommendationWithStatus, // Import RecommendationWithStatus
-  OrganizationResponse // Import OrganizationResponse
+  OrganizationResponse, // Import OrganizationResponse
+  AdminReport,
 } from "@/openapi-rq/requests/types.gen";
 import type { CategoryCatalog } from "@/openapi-rq/requests/types.gen";
 
@@ -26,13 +27,15 @@ import type {
   OfflineCategoryCatalog,
   OfflineSubmission,
   OfflineReport,
+  OfflineAdminReport,
   OfflineOrganization,
   OfflineUser,
   OfflineInvitation,
   OfflineRecommendation, // Import OfflineRecommendation
   ReportCategoryData, // Import ReportCategoryData
   DetailedReport,
-  OfflineOrganizationCategory
+  OfflineOrganizationCategory,
+  OfflineDraftSubmission
 } from "@/types/offline";
 import { OrganizationCategory } from "@/openapi-rq/requests/types.gen";
 
@@ -58,25 +61,28 @@ export class DataTransformationService {
    */
   static transformQuestion(
     question: Question,
-    categoryIdToNameMap: Map<string, string>
+    categoryNameToIdMap: Map<string, string>
   ): OfflineQuestion {
-    const categoryName = categoryIdToNameMap.get(question.category_id);
-    if (!categoryName) {
-      console.warn(`Could not find category name for category ID: "${question.category_id}".`);
+    const apiQuestion = question as unknown as { category: string };
+    const categoryName = apiQuestion.category;
+    const categoryId = categoryNameToIdMap.get(categoryName?.toLowerCase());
+
+    if (!categoryId) {
+      console.warn(`Could not find category ID for category name: "${categoryName}".`);
     }
 
     return {
       question_id: question.question_id,
-      category: categoryName || 'Unknown Category', // The name for display
+      category: categoryName || 'Unknown Category',
       latest_revision: {
         question_revision_id: question.latest_revision.question_revision_id,
         question_id: question.question_id,
-        text: question.latest_revision.text,
+        text: question.latest_revision.text as Record<string, string>,
         weight: question.latest_revision.weight,
         created_at: question.latest_revision.created_at,
       },
       revisions: [question.latest_revision],
-      category_id: question.category_id, // The ID from the API
+      category_id: categoryId || '',
       created_at: question.created_at,
       updated_at: question.created_at,
       sync_status: 'synced',
@@ -211,6 +217,38 @@ export class DataTransformationService {
   }
 
   /**
+   * Transform API Submission to OfflineDraftSubmission
+   * This is used when fetching drafts from the backend that should be stored as local drafts.
+   */
+  static transformSubmissionToDraft(
+    submission: Partial<Submission>,
+    userOrganizationId?: string,
+    reviewerEmail?: string
+  ): OfflineDraftSubmission {
+    const now = new Date().toISOString();
+    
+    return {
+      submission_id: submission.submission_id || `temp_draft_${crypto.randomUUID()}`,
+      assessment_id: submission.assessment_id || '',
+      assessment_name: submission.assessment_name || '',
+      user_id: submission.user_id,
+      content: submission.content || { assessment: {}, responses: [] },
+      review_status: 'draft' as const, // Always start as draft when transforming to OfflineDraftSubmission
+      submitted_at: submission.submitted_at || now,
+      reviewed_at: submission.reviewed_at,
+      organization_id: userOrganizationId,
+      reviewer_id: submission.reviewed_at ? submission.submission_id : undefined,
+      reviewer_email: reviewerEmail,
+      review_comments: '',
+      files: [],
+      updated_at: now,
+      sync_status: 'pending' as const, // Mark as pending for sync if it came from backend as a draft
+      local_changes: true, // Assume local changes for a draft
+      last_synced: undefined // Not yet synced as a final submission
+    };
+  }
+
+  /**
    * Transform API AdminSubmissionDetail to OfflineSubmission
    */
   static transformAdminSubmission(
@@ -272,18 +310,47 @@ export class DataTransformationService {
   }
 
   /**
+   * Transform API AdminReport to OfflineAdminReport
+   */
+  static transformAdminReport(report: AdminReport): OfflineAdminReport {
+    const now = new Date().toISOString();
+    return {
+      ...report,
+      updated_at: now,
+      sync_status: 'synced' as const,
+      local_changes: false,
+      last_synced: now,
+    };
+  }
+
+  /**
    * Transform API Organization to OfflineOrganization
    */
   static transformOrganization(organization: Organization): OfflineOrganization {
     const now = new Date().toISOString();
     
+    const domains = (organization.attributes?.domains && Array.isArray(organization.attributes.domains))
+      ? organization.attributes.domains
+      : [];
+
+    const redirectUrl = (organization.attributes?.redirect_url && organization.attributes.redirect_url.length > 0)
+      ? organization.attributes.redirect_url[0]
+      : '';
+
     return {
-      ...organization,
-      organization_id: organization.id, // Map API 'id' to IndexedDB 'organization_id'
-      member_count: 0, // Will be calculated when members are loaded
-      assessment_count: 0, // Will be calculated when assessments are loaded
-      submission_count: 0, // Will be calculated when submissions are loaded
+      id: organization.id,
+      organization_id: organization.id,
+      name: organization.name,
+      description: organization.description || null,
+      country: organization.country || null,
+      domains: domains as string[],
+      redirectUrl: redirectUrl,
+      attributes: organization.attributes || {},
+      member_count: 0,
+      assessment_count: 0,
+      submission_count: 0,
       is_active: true,
+      created_at: organization.created_at || now,
       updated_at: now,
       sync_status: 'synced' as const,
       local_changes: false,
@@ -302,18 +369,25 @@ export class DataTransformationService {
       throw new Error('OrganizationResponse missing required id for transformation to OfflineOrganization');
     }
 
+    // Extract redirectUrl from attributes, handling potential undefined or empty array
+    const redirectUrl = (organizationResponse.attributes?.redirect_url && organizationResponse.attributes.redirect_url.length > 0)
+      ? organizationResponse.attributes.redirect_url[0]
+      : '';
+
     return {
-      id: organizationResponse.id, // Add the 'id' property here
+      id: organizationResponse.id,
       organization_id: organizationResponse.id,
       name: organizationResponse.name || 'Unknown Organization',
+      domains: organizationResponse.domains || [], // domains is already Array<string>
+      redirectUrl: redirectUrl,
       description: null, // Default as it's not in OrganizationResponse
       country: null, // Default
       attributes: organizationResponse.attributes || {},
-      updated_at: now,
       member_count: 0,
       assessment_count: 0,
       submission_count: 0,
       is_active: true,
+      updated_at: now,
       sync_status: 'synced' as const,
       local_changes: false,
       last_synced: now

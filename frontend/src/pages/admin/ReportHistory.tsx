@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
-import { AdminService } from "@/openapi-rq/requests/services.gen";
+import { useOfflineAdminReports } from "@/hooks/useOfflineReports";
 import type {
   AdminReport,
   AdminSubmissionDetail,
@@ -119,12 +119,16 @@ export const ReportHistory: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { isOnline } = useOfflineSyncStatus();
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch: loadReports,
+  } = useOfflineAdminReports();
+  const reports = (data?.reports as AdminReport[]) || [];
   const navigate = useNavigate();
   const chartRef = React.useRef<ChartJS<"radar">>(null);
   const recommendationChartRef = React.useRef<ChartJS<"bar">>(null);
-  
-  const [reports, setReports] = useState<AdminReport[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
@@ -278,28 +282,11 @@ export const ReportHistory: React.FC = () => {
     return { submissions, recommendations };
   };
 
-  const loadReports = React.useCallback(async () => {
-    if (!isOnline) {
-      toast.error(t('reportHistory.offlineError', { defaultValue: 'Cannot load reports while offline' }));
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await AdminService.getAdminReports();
-        setReports(data.reports || []);
-    } catch (error) {
-      console.error('Failed to load reports:', error);
-      toast.error(t('reportHistory.loadError', { defaultValue: 'Failed to load reports' }));
-    } finally {
-      setLoading(false);
-    }
-  }, [isOnline, t]);
-
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    if (error) {
+      toast.error(t("reportHistory.loadError", { defaultValue: "Failed to load reports" }));
+    }
+  }, [error, t]);
 
   const filteredReports = reports.filter(report => {
     const matchesSearch =

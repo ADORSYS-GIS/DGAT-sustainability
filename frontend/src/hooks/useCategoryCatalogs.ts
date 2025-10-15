@@ -51,67 +51,100 @@ export const useOfflineCategoryCatalogsMutation = () => {
   const queryClient = useQueryClient();
 
   const createOrUpdateMutation = useMutation({
-    mutationFn: async (categoryCatalog: CategoryCatalog) => {
-      const isUpdate = 'category_catalog_id' in categoryCatalog &&
-        !!categoryCatalog.category_catalog_id &&
-        !String(categoryCatalog.category_catalog_id).startsWith('temp-');
-      const tempId = `temp-${Date.now()}`;
-      
-      // Ensure category_catalog_id is always a string for offline storage
-      const catalogWithId = {
+    networkMode: 'always',
+    mutationFn: async (categoryCatalog: OfflineCategoryCatalog) => {
+      const tempId = categoryCatalog.category_catalog_id || `temp-${Date.now()}`;
+      const offlineCategoryCatalog: OfflineCategoryCatalog = {
         ...categoryCatalog,
-        category_catalog_id: categoryCatalog.category_catalog_id || tempId,
+        category_catalog_id: tempId,
+        sync_status: 'pending',
+        updated_at: new Date().toISOString(),
       };
+
+      // Await the local DB save before the mutation completes
+      await offlineDB.saveCategoryCatalog(offlineCategoryCatalog);
+
+      return offlineCategoryCatalog;
+    },
+    onMutate: async (newCategory: OfflineCategoryCatalog) => {
+      await queryClient.cancelQueries({ queryKey: ['category-catalogs'] });
+      const previousCategories = queryClient.getQueryData<OfflineCategoryCatalog[]>(['category-catalogs']);
       
-      const offlineCategoryCatalog = DataTransformationService.transformCategoryCatalog(catalogWithId);
+      const isUpdate = 'category_catalog_id' in newCategory && !!newCategory.category_catalog_id && !String(newCategory.category_catalog_id).startsWith('temp-');
 
-      // Prepare request body for API call
-      const apiRequestBody = { ...categoryCatalog };
-      if (!isUpdate) {
-        // For create operations, remove temporary ID if it exists
-        delete (apiRequestBody as Partial<CategoryCatalog>).category_catalog_id;
+      const tempId = newCategory.category_catalog_id || `temp-${Date.now()}`;
+      const optimisticCategory: OfflineCategoryCatalog = {
+        ...newCategory,
+        category_catalog_id: tempId,
+        sync_status: 'pending',
+        updated_at: new Date().toISOString(),
+      };
+
+      if (isUpdate) {
+        queryClient.setQueryData<OfflineCategoryCatalog[]>(['category-catalogs'], old =>
+          old?.map(category => category.category_catalog_id === newCategory.category_catalog_id ? optimisticCategory : category)
+        );
+      } else {
+        queryClient.setQueryData<OfflineCategoryCatalog[]>(['category-catalogs'], old => [...(old || []), optimisticCategory]);
       }
+      
+      return { previousCategories };
+    },
+    onError: (err, newCategory, context) => {
+      if (context?.previousCategories) {
+        queryClient.setQueryData(['category-catalogs'], context.previousCategories);
+      }
+    },
+    onSuccess: (data, variables) => {
+      const isUpdate = 'category_catalog_id' in variables &&
+        !!variables.category_catalog_id &&
+        !String(variables.category_catalog_id).startsWith('temp-');
 
-      return apiInterceptor.interceptMutation(
+      apiInterceptor.interceptMutation(
         () => {
+          const apiRequestBody = { ...variables };
+          if (!isUpdate) {
+            delete (apiRequestBody as Partial<CategoryCatalog>).category_catalog_id;
+          }
           if (isUpdate) {
             return CategoryCatalogService.putCategoryCatalogByCategoryCatalogId({
-              categoryCatalogId: categoryCatalog.category_catalog_id!,
+              categoryCatalogId: variables.category_catalog_id!,
               requestBody: apiRequestBody,
             });
           }
           return CategoryCatalogService.postCategoryCatalog({ requestBody: apiRequestBody });
         },
-        async () => { await offlineDB.saveCategoryCatalog(offlineCategoryCatalog); },
-        offlineCategoryCatalog as unknown as Record<string, unknown>,
+        async () => {},
+        data as unknown as Record<string, unknown>,
         'category_catalog',
         isUpdate ? 'update' : 'create'
       );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["category-catalogs"] });
-      queryClient.invalidateQueries({ queryKey: ["category-catalog"] });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['category-catalogs'] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (categoryCatalogId: string) => {
-      const apiCall = async () => {
-        await CategoryCatalogService.deleteCategoryCatalogByCategoryCatalogId({ categoryCatalogId });
-        return { category_catalog_id: categoryCatalogId };
-      };
+      await offlineDB.deleteCategoryCatalog(categoryCatalogId);
 
-      return apiInterceptor.interceptMutation(
-        apiCall,
-        async () => { await offlineDB.deleteCategoryCatalog(categoryCatalogId); },
-        { category_catalog_id: categoryCatalogId },
-        'category_catalog',
-        'delete'
-      );
+      if (!categoryCatalogId.startsWith('temp-')) {
+        apiInterceptor.interceptMutation(
+          async () => {
+            await CategoryCatalogService.deleteCategoryCatalogByCategoryCatalogId({ categoryCatalogId });
+            return { success: true, category_catalog_id: categoryCatalogId };
+          },
+          async () => {},
+          { category_catalog_id: categoryCatalogId },
+          'category_catalog',
+          'delete'
+        );
+      }
+      return { categoryCatalogId };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["category-catalogs"] });
-      queryClient.invalidateQueries({ queryKey: ["category-catalog"] });
+      queryClient.invalidateQueries({ queryKey: ['category-catalogs'] });
     },
   });
 

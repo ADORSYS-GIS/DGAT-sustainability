@@ -1,175 +1,104 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offlineDB } from "../services/indexeddb";
 import { apiInterceptor } from "../services/apiInterceptor";
-import {
-  QuestionsService,
-} from "@/openapi-rq/requests/services.gen";
-import type { 
-  Question,
+import { QuestionsService } from "@/openapi-rq/requests/services.gen";
+import type {
   CreateQuestionRequest,
   UpdateQuestionRequest,
-  QuestionWithRevisionsResponse
 } from "@/openapi-rq/requests/types.gen";
-import type {
-  OfflineQuestion,
-} from "@/types/offline";
-import { DataTransformationService } from "../services/dataTransformation";
+import type { OfflineQuestion } from "@/types/offline";
+import type { OfflineCategoryCatalog } from "@/types/offline";
 
+// Hook to fetch questions with offline support
 export function useOfflineQuestions() {
-  const [data, setData] = useState<{ questions: QuestionWithRevisionsResponse[] }>({ questions: [] });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const result = await apiInterceptor.interceptGet(
-        () => QuestionsService.getQuestions(),
-        async () => {
-          console.log('🔍 useOfflineQuestions: Using offline fallback');
-          const questions = await offlineDB.getAllQuestions();
-          console.log(`🔍 useOfflineQuestions: Found ${questions.length} questions in IndexedDB`);
-
-          // Transform OfflineQuestion to QuestionWithRevisionsResponse format
-          const transformedQuestions = questions.map(q => ({
-            question: {
-              question_id: q.question_id,
-              category_id: q.category_id, // Use category_id
-              created_at: q.created_at,
-              latest_revision: q.latest_revision
-            },
-            revisions: [q.latest_revision] // Include all revisions if available
-          }));
-          
-          return { questions: transformedQuestions };
-        },
-        'questions'
-      );
-
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch questions'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return { data, isLoading, error, refetch: fetchData };
+  return useQuery({
+    queryKey: ["questions"],
+    queryFn: async (): Promise<OfflineQuestion[]> => {
+      try {
+        // Attempt to sync with the server, but don't block
+        apiInterceptor.interceptGet(
+          () => QuestionsService.getQuestions(),
+          async () => null, // We don't need a fallback, just the sync trigger
+          'questions'
+        );
+      } catch (error) {
+        console.log("Could not sync questions, using local data.", error);
+      }
+      // Always return data from IndexedDB as the single source of truth
+      return await offlineDB.getAllQuestions();
+    },
+  });
 }
 
+// Hook for question mutations (create, update, delete) with optimistic updates
 export function useOfflineQuestionsMutation() {
-  const [isPending, setIsPending] = useState(false);
+  const queryClient = useQueryClient();
 
-  const createQuestion = useCallback(async (
-    question: CreateQuestionRequest,
-    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
-  ) => {
-    try {
-      setIsPending(true);
+  // CREATE MUTATION
+  const createQuestionMutation = useMutation({
+    networkMode: 'always',
+    mutationFn: async (question: CreateQuestionRequest & { order?: number }) => {
+      const categories = queryClient.getQueryData<OfflineCategoryCatalog[]>(['category-catalogs']) || [];
+      const categoryMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
+      const categoryName = categoryMap.get(question.category_id) || "Unknown Category";
 
       const tempId = `temp_${crypto.randomUUID()}`;
-      const now = new Date().toISOString();
-
-      // Create a temporary object that mimics the structure of a real Question object
-      const tempQuestionForTransform: Question = {
+      const offlineQuestion: OfflineQuestion = {
         question_id: tempId,
-        category_id: question.category_id, // Use category_id
-        created_at: now,
+        category_id: question.category_id,
+        category: categoryName,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sync_status: 'pending',
+        order: question.order,
         latest_revision: {
           question_revision_id: `temp_rev_${crypto.randomUUID()}`,
           question_id: tempId,
-          text: question.text,
+          text: question.text as Record<string, string>,
           weight: question.weight || 5,
-          created_at: now,
+          created_at: new Date().toISOString(),
         },
+        revisions: [],
       };
 
-      // To transform, we need the category name. We'll fetch it from IndexedDB.
-      const categoryMap = new Map<string, string>();
-      const categories = await offlineDB.getAllCategoryCatalogs();
-      categories.forEach(c => categoryMap.set(c.category_catalog_id, c.name));
+      const localMutation = async () => {
+        await offlineDB.saveQuestion(offlineQuestion);
+      };
 
-      // Use the transformation service to create a valid OfflineQuestion
-      const offlineQuestion = DataTransformationService.transformQuestion(tempQuestionForTransform, categoryMap);
-      
-      // Manually set a temp ID and pending status for the optimistic update
-      offlineQuestion.sync_status = 'pending';
-      offlineQuestion.local_changes = true;
-
-      // Save the temporary question locally first for immediate UI feedback
-      await offlineDB.saveQuestion(offlineQuestion);
-
-      // Now, perform the actual API call
-      const result = await apiInterceptor.interceptMutation(
+      await apiInterceptor.interceptMutation(
         () => QuestionsService.postQuestions({ requestBody: question }),
-        async (data: Record<string, unknown>) => {
-          // This function is called by interceptMutation to save data locally
-          // For create operations, we DON'T save here since we already saved above
-          // The API response will be handled by updateLocalData
-        },
-        question as Record<string, unknown>,
-        'questions',
+        localMutation,
+        offlineQuestion as unknown as Record<string, unknown>,
+        'question',
         'create'
       );
+      return offlineQuestion;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
+    },
+  });
 
-      // Check if this is a valid API response (has question property) or request data (offline)
-      if (result && typeof result === 'object' && 'question' in result) {
-        // This is a valid API response - the question was created successfully
-        
-        // Delete the temporary question and save the real one
-        await offlineDB.deleteQuestion(tempId);
-        
-        // The real question should be saved by updateLocalData in interceptMutation
-        options?.onSuccess?.(result);
-      } else {
-        // This is request data (offline scenario) - still call onSuccess for immediate feedback
-        options?.onSuccess?.(result);
-      }
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to create question');
-      console.error('❌ createQuestion error:', error);
-      options?.onError?.(error);
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  }, []);
-
-  const updateQuestion = useCallback(async (
-    questionId: string,
-    question: UpdateQuestionRequest,
-    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
-  ) => {
-    try {
-      setIsPending(true);
-
-      // Get the existing question to update it locally
+  // UPDATE MUTATION
+  const updateQuestionMutation = useMutation({
+    networkMode: 'always',
+    mutationFn: async ({ questionId, question }: { questionId: string, question: UpdateQuestionRequest }) => {
+      const categories = queryClient.getQueryData<OfflineCategoryCatalog[]>(['category-catalogs']) || [];
+      const categoryMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
+      
       const existingQuestion = await offlineDB.getQuestion(questionId);
       if (!existingQuestion) {
-        throw new Error('Question not found in local database');
+        throw new Error("Question not found for update");
       }
 
-      // Create updated question object
-      // To update, we need the category name. We'll fetch it from IndexedDB.
-      const categoryMap = new Map<string, string>();
-      const categories = await offlineDB.getAllCategoryCatalogs();
-      categories.forEach(c => categoryMap.set(c.category_catalog_id, c.name));
-      const categoryName = categoryMap.get(question.category_id);
-
+      const categoryName = categoryMap.get(question.category_id) || existingQuestion.category;
       const updatedQuestion: OfflineQuestion = {
         ...existingQuestion,
-        category: categoryName || existingQuestion.category, // Update category name
-        category_id: question.category_id, // Update category_id
+        category_id: question.category_id,
+        category: categoryName,
         latest_revision: {
           ...existingQuestion.latest_revision,
-          text: question.text,
+          text: question.text as Record<string, string>,
           weight: question.weight,
           created_at: new Date().toISOString(),
         },
@@ -177,79 +106,64 @@ export function useOfflineQuestionsMutation() {
         updated_at: new Date().toISOString(),
       };
 
-      const result = await apiInterceptor.interceptMutation(
+      const localMutation = async () => {
+        await offlineDB.saveQuestion(updatedQuestion);
+      };
+
+      await apiInterceptor.interceptMutation(
         () => QuestionsService.putQuestionsByQuestionId({ questionId, requestBody: question }),
-        async (data: Record<string, unknown>) => {
-          // This function is called by interceptMutation to save data locally
-          // For update operations, we update the existing question
-          await offlineDB.saveQuestion(updatedQuestion);
-        },
-        question as Record<string, unknown>,
-        'questions',
+        localMutation,
+        updatedQuestion as unknown as Record<string, unknown>,
+        'question',
         'update'
       );
+      return updatedQuestion;
+    },
+    onSuccess: (updatedQuestion) => {
+      queryClient.setQueryData<OfflineQuestion[]>(['questions'], (old) =>
+        old?.map(q => q.question_id === updatedQuestion.question_id ? updatedQuestion : q)
+      );
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
+    },
+  });
 
-      options?.onSuccess?.(result);
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to update question');
-      options?.onError?.(error);
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  }, []);
+  // DELETE MUTATION
+  const deleteQuestionMutation = useMutation({
+    networkMode: 'always',
+    mutationFn: async (questionId: string) => {
+      const questionToDelete = await offlineDB.getQuestion(questionId);
+      const revisionId = questionToDelete?.latest_revision?.question_revision_id;
 
-  const deleteQuestion = useCallback(async (
-    questionId: string,
-    options?: { onSuccess?: (data: Record<string, unknown>) => void; onError?: (err: Error) => void }
-  ) => {
-    try {
-      setIsPending(true);
+      const localMutation = async () => {
+        await offlineDB.deleteQuestion(questionId);
+      };
 
-      // Get the existing question to verify it exists and get its latest revision
-      const existingQuestion = await offlineDB.getQuestion(questionId);
-      if (!existingQuestion) {
-        throw new Error('Question not found in local database');
-      }
-
-      // Get the latest revision ID
-      const latestRevisionId = existingQuestion.latest_revision?.question_revision_id;
-      if (!latestRevisionId) {
-        throw new Error('Question has no latest revision');
-      }
-
-      // Delete from local storage first for immediate UI feedback
-      await offlineDB.deleteQuestion(questionId);
-
-      // Now, perform the actual API call to delete the question revision
-      const result = await apiInterceptor.interceptMutation(
+      await apiInterceptor.interceptMutation(
         async () => {
-          // Call the actual delete question revision API
-          const { QuestionsService } = await import('@/openapi-rq/requests/services.gen');
-          const response = await QuestionsService.deleteQuestionsRevisionsByQuestionRevisionId({ questionRevisionId: latestRevisionId });
-          return { success: true, response };
+          if (revisionId && !questionId.startsWith('temp_')) {
+            await QuestionsService.deleteQuestionsRevisionsByQuestionRevisionId({ questionRevisionId: revisionId });
+          }
+          return { success: true, question_id: questionId };
         },
-        async () => {
-          // This function is called by interceptMutation to save data locally
-          // For delete operations, we DON'T save anything since we already deleted above
-        },
-        { questionRevisionId: latestRevisionId } as Record<string, unknown>,
-        'questions',
+        localMutation,
+        { question_id: questionId },
+        'question',
         'delete'
       );
+      return { questionId };
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<OfflineQuestion[]>(['questions'], (old) =>
+        old?.filter(q => q.question_id !== data.questionId)
+      );
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
+    },
+  });
 
-      options?.onSuccess?.(result);
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to delete question');
-      console.error('❌ deleteQuestion error:', error);
-      options?.onError?.(error);
-      throw error;
-    } finally {
-      setIsPending(false);
-    }
-  }, []);
-
-  return { createQuestion, updateQuestion, deleteQuestion, isPending };
+  return {
+    createQuestion: createQuestionMutation.mutateAsync,
+    updateQuestion: updateQuestionMutation.mutateAsync,
+    deleteQuestion: deleteQuestionMutation.mutateAsync,
+    isPending: createQuestionMutation.isPending || updateQuestionMutation.isPending || deleteQuestionMutation.isPending,
+  };
 }

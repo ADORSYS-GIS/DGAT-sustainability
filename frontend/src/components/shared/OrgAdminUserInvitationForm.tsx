@@ -10,8 +10,11 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
+import { useOfflineOrganizationCategories } from '@/hooks/useOfflineOrganizationCategories';
 import { useOfflineCategoryCatalogs } from '@/hooks/useOfflineCategoryCatalogs';
 import type { OfflineCategoryCatalog } from '@/types/offline';
+import type { OfflineOrganizationCategory } from '@/types/offline';
+import { useMemo } from 'react';
 
 interface OrgAdminUserInvitationFormProps {
   organizationId: string;
@@ -35,9 +38,21 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
   const [createdInvitation, setCreatedInvitation] = useState<OrgAdminUserInvitationResponse | null>(null);
 
   const {
-    data: availableCategories = [],
-    isLoading: isLoadingCategories,
+    organizationCategories: offlineOrgCategories = [],
+    isLoading: isLoadingOrgCategories,
+  } = useOfflineOrganizationCategories();
+
+  const {
+    data: allCategoryCatalogs = [],
+    isLoading: isLoadingCategoryCatalogs,
   } = useOfflineCategoryCatalogs();
+
+  const availableCategories = useMemo(() => {
+    const orgCategoryMap = new Map(offlineOrgCategories.map(oc => [oc.category_catalog_id, oc]));
+    return allCategoryCatalogs.filter(cc => orgCategoryMap.has(cc.category_catalog_id));
+  }, [offlineOrgCategories, allCategoryCatalogs]);
+
+  const isLoadingCategories = isLoadingOrgCategories || isLoadingCategoryCatalogs;
 
   // Create user invitation mutation
   const createUserInvitationMutation = useMutation({

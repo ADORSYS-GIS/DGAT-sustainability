@@ -158,21 +158,25 @@ export function useOfflineAssessment(assessmentId: string) {
           console.log(`🔍 useOfflineAssessment: Using offline fallback for assessment ${assessmentId}`);
           
           // For offline fallback, get assessment and construct AssessmentDetailResponse
-          const offlineAssessment = await offlineDB.getAssessment(assessmentId);
-          console.log(`🔍 useOfflineAssessment: Retrieved from IndexedDB:`, offlineAssessment);
+          let offlineAssessment = await offlineDB.getAssessment(assessmentId);
           
-          if (!offlineAssessment) {
-            console.log(`🔍 useOfflineAssessment: Assessment ${assessmentId} not found in IndexedDB`);
-            
-            // Check if this might be a temporary assessment that was just created
-            if (assessmentId.startsWith('temp_')) {
-              // Return a more user-friendly error that indicates waiting
-              throw new Error('Assessment is being created, please wait...');
+          // If it's a temporary assessment and not found immediately, retry a few times
+          if (!offlineAssessment && assessmentId.startsWith('temp_')) {
+            let attempts = 0;
+            const maxAttempts = 5;
+            while (!offlineAssessment && attempts < maxAttempts) {
+              console.log(`🔍 useOfflineAssessment: Temporary assessment ${assessmentId} not found, retrying... (Attempt ${attempts + 1}/${maxAttempts})`);
+              await new Promise(resolve => setTimeout(resolve, 200)); // Wait 200ms
+              offlineAssessment = await offlineDB.getAssessment(assessmentId);
+              attempts++;
             }
-            
-            // For real assessment IDs that aren't found, provide better error message
+          }
+
+          if (!offlineAssessment) {
+            console.log(`🔍 useOfflineAssessment: Assessment ${assessmentId} not found in IndexedDB after retries.`);
             throw new Error(`Assessment ${assessmentId} not found. Please try refreshing the page or contact support if the problem persists.`);
           }
+          console.log(`🔍 useOfflineAssessment: Retrieved from IndexedDB:`, offlineAssessment);
           
           const [responses, allQuestions, allCategories] = await Promise.all([
             offlineDB.getResponsesByAssessment(assessmentId),
@@ -289,11 +293,11 @@ export function useOfflineAssessmentsMutation() {
       organizationId?: string;
       userEmail?: string;
     }
-  ) => {
-    try {
-      setIsPending(true);
+  ): Promise<Record<string, unknown>> => {
+    console.log("useOfflineAssessments: Entering createAssessment function.");
+    setIsPending(true); // Set pending at the very beginning
 
-      // Get organization context from options or use default
+    try {
       const organizationId = options?.organizationId;
       const userEmail = options?.userEmail;
 
@@ -311,7 +315,6 @@ export function useOfflineAssessmentsMutation() {
         categories: assessment.categories || undefined,
       };
 
-      // To transform, we need the category name. We'll fetch it from IndexedDB.
       const categories = await offlineDB.getAllCategoryCatalogs();
       const categoryIdToCategoryMap = new Map(
         categories.map(cat => [cat.category_catalog_id, cat])
@@ -325,50 +328,62 @@ export function useOfflineAssessmentsMutation() {
       );
       offlineAssessment.sync_status = 'pending';
 
-      await offlineDB.saveAssessment(offlineAssessment);
+      await offlineDB.saveAssessment(offlineAssessment); // This is the critical local save
 
-      // Add to sync queue
       await apiInterceptor.addToSyncQueue(
         offlineAssessment as unknown as Record<string, unknown>,
         'assessments',
         'create'
       );
 
-      const result = await apiInterceptor.interceptMutation(
-        () => AssessmentsService.postAssessments({ requestBody: assessment }),
-        async () => {
-          // The optimistic update (saving the temp assessment) is already done.
-          // The real data will be saved by the interceptor's updateLocalData method.
-        },
-        assessment as Record<string, unknown>,
-        'assessments',
-        'create'
-      );
+      let result: Record<string, unknown> = { assessment: offlineAssessment, offline: true }; // Default to offline success
 
-      // After the API call, if successful, we clean up the temporary assessment.
-      type AssessmentResponse = { assessment: Assessment };
-      const isAssessmentResponse = (res: unknown): res is AssessmentResponse => {
-        return (
-            typeof res === 'object' &&
-            res !== null &&
-            'assessment' in res &&
-            typeof (res as { assessment: { assessment_id: unknown } }).assessment.assessment_id === 'string'
+      if (!navigator.onLine) {
+        console.log("useOfflineAssessments: Offline path - calling onSuccess.");
+        options?.onSuccess?.(result);
+        return result;
+      }
+
+      try {
+        const apiResult = await apiInterceptor.interceptMutation(
+          () => AssessmentsService.postAssessments({ requestBody: assessment }),
+          async () => { /* local update handled by interceptor */ },
+          assessment as Record<string, unknown>,
+          'assessments',
+          'create'
         );
-      }
 
-      if (isAssessmentResponse(result)) {
-        // This was a successful online request, the interceptor saved the real assessment.
-        // Now we can safely delete the temporary one.
-        await offlineDB.deleteAssessment(tempId);
-      }
+        type AssessmentResponse = { assessment: Assessment };
+        const isAssessmentResponse = (res: unknown): res is AssessmentResponse => {
+          return (
+              typeof res === 'object' &&
+              res !== null &&
+              'assessment' in res &&
+              typeof (res as { assessment: { assessment_id: unknown } }).assessment.assessment_id === 'string'
+          );
+        }
 
-      // Always call onSuccess for offline-first behavior
-      // The result will be the temporary assessment data when offline, or the real one when online.
-      options?.onSuccess?.(result);
-      return result;
+        if (isAssessmentResponse(apiResult)) {
+          await offlineDB.deleteAssessment(tempId); // Clean up temp assessment
+          result = apiResult; // Use the real API result
+        } else {
+          console.warn("useOfflineAssessments: API call succeeded but returned unexpected format. Using offline assessment for UI.", apiResult);
+          result = { assessment: offlineAssessment, offline: true, apiResult: apiResult };
+        }
+        console.log("useOfflineAssessments: Online API call successful - calling onSuccess.");
+        options?.onSuccess?.(result);
+        return result;
+
+      } catch (apiError) {
+        console.warn("useOfflineAssessments: API call failed during online assessment creation, but local save was successful. Treating as offline success for UI.", apiError);
+        result = { assessment: offlineAssessment, offline: true, apiError: apiError };
+        console.log("useOfflineAssessments: Online API failed, local save successful - calling onSuccess.");
+        options?.onSuccess?.(result);
+        return result;
+      }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to create assessment');
-      console.error('❌ Assessment creation failed:', error);
+      const error = err instanceof Error ? err : new Error('Failed to create assessment locally');
+      console.error('❌ useOfflineAssessments: Assessment creation failed locally:', error);
       options?.onError?.(error);
       throw error;
     } finally {
@@ -489,7 +504,7 @@ export function useOfflineAssessmentsMutation() {
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
           assessment_name: 'Unknown Assessment',
-          review_status: 'draft',
+          review_status: 'pending_review', // Changed to 'pending_review'
         });
         await offlineDB.saveSubmission(offlineSubmission);
       } catch (storageError) {
@@ -537,7 +552,7 @@ export function useOfflineAssessmentsMutation() {
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
           assessment_name: 'Unknown Assessment',
-          review_status: 'draft',
+          review_status: 'pending_review', // Changed to 'pending_review'
         });
         options?.onSuccess?.({ submission: offlineSubmission });
       } else {
@@ -546,7 +561,7 @@ export function useOfflineAssessmentsMutation() {
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
           assessment_name: 'Unknown Assessment',
-          review_status: 'draft',
+          review_status: 'pending_review', // Changed to 'pending_review'
         });
         options?.onSuccess?.({ submission: offlineSubmission });
       }

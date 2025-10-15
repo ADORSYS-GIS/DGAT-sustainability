@@ -9,6 +9,7 @@ import {
 import type { 
   Report,
   ActionPlanListResponse,
+  AdminReport,
   OrganizationActionPlan,
 } from "@/openapi-rq/requests/types.gen";
 import type {
@@ -306,4 +307,43 @@ export function useOfflineRecommendationStatusMutation() {
   }, [queryClient]);
 
   return { updateRecommendationStatus, isPending };
+}
+export function useOfflineAdminReports() {
+  const [data, setData] = useState<{ reports: AdminReport[] }>({ reports: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await apiInterceptor.interceptGet(
+        async () => {
+          const response = await AdminService.getAdminReports();
+          const reports = response.reports || [];
+          const offlineReports = reports.map(DataTransformationService.transformAdminReport);
+          await offlineDB.saveAdminReports(offlineReports);
+          return { reports };
+        },
+        async () => {
+          const reports = await offlineDB.getAllAdminReports();
+          return { reports };
+        },
+        'admin_reports'
+      );
+
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch admin reports'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, isLoading, error, refetch: fetchData };
 }

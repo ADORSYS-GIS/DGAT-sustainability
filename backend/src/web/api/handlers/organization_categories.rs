@@ -132,9 +132,58 @@ pub async fn delete_category_catalog(
 
     let transaction = app_state.database.begin_transaction().await?;
     let questions_service = &app_state.database.questions;
+    let questions_revisions_service = &app_state.database.questions_revisions;
+    let assessments_response_service = &app_state.database.assessments_response;
     let category_catalog_service = &app_state.database.category_catalog;
 
-    // First, delete all questions associated with this category
+    // 1. Get all questions associated with this category
+    let questions = questions_service
+        .get_questions_by_category(category_catalog_id)
+        .await
+        .map_err(|e| {
+            ApiError::InternalServerError(format!(
+                "Failed to retrieve questions for category: {e}"
+            ))
+        })?;
+
+    for question in questions {
+        // 2. For each question, get all its revisions
+        let revisions = questions_revisions_service
+            .get_revisions_by_question(question.question_id)
+            .await
+            .map_err(|e| {
+                ApiError::InternalServerError(format!(
+                    "Failed to retrieve question revisions for question {}: {e}",
+                    question.question_id
+                ))
+            })?;
+
+        for revision in revisions {
+            // 3. For each revision, delete all associated assessments_response records
+            assessments_response_service
+                .delete_responses_by_question_revision_id(revision.question_revision_id, Some(&transaction))
+                .await
+                .map_err(|e| {
+                    ApiError::InternalServerError(format!(
+                        "Failed to delete assessment responses for revision {}: {e}",
+                        revision.question_revision_id
+                    ))
+                })?;
+        }
+
+        // 4. Delete all questions_revisions for each question
+        questions_revisions_service
+            .delete_revisions_by_question_id(question.question_id, Some(&transaction))
+            .await
+            .map_err(|e| {
+                ApiError::InternalServerError(format!(
+                    "Failed to delete question revisions for question {}: {e}",
+                    question.question_id
+                ))
+            })?;
+    }
+
+    // 5. Delete the questions themselves
     questions_service
         .delete_questions_by_category_id(category_catalog_id, Some(&transaction))
         .await
@@ -144,7 +193,7 @@ pub async fn delete_category_catalog(
             ))
         })?;
 
-    // Then, delete the category catalog itself
+    // 6. Finally, delete the category catalog itself
     category_catalog_service
         .delete_category_catalog(category_catalog_id, Some(&transaction))
         .await

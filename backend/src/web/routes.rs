@@ -23,6 +23,8 @@ use tower_http::cors::{CorsLayer, Any};
 
 use crate::common::cache::SessionCache;
 use crate::common::config::{Configs, KeycloakConfigs};
+use crate::common::database::entity::assessments_response::AssessmentsResponseService;
+use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
 use crate::common::models::claims::Claims;
 use crate::common::services::keycloak_service::KeycloakService;
 use crate::common::state::AppDatabase;

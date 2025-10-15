@@ -29,6 +29,7 @@ export interface AuthState {
   user: UserProfile | null;
   roles: string[];
   loading: boolean;
+  organizationId?: string; // Add organizationId to AuthState
 }
 
 /**
@@ -159,6 +160,14 @@ export const getUserProfile = (): UserProfile | null => {
     
     const token = keycloak.tokenParsed;
     
+    let organizationId: string | undefined;
+    if (token.organizations) {
+      const orgKeys = Object.keys(token.organizations);
+      if (orgKeys.length > 0) {
+        organizationId = token.organizations[orgKeys[0]].id;
+      }
+    }
+
     return {
       sub: token.sub || "",
       preferred_username: token.preferred_username,
@@ -168,7 +177,7 @@ export const getUserProfile = (): UserProfile | null => {
       realm_access: token.realm_access,
       organisations: token.organisations,
       organization_name: token.organization_name,
-      organization: token.organization,
+      organization: organizationId, // Use the extracted organizationId
       organizations: token.organizations,
       categories: token.categories,
     };
@@ -191,6 +200,7 @@ export const getAuthState = (): AuthState => {
     user,
     roles,
     loading: false,
+    organizationId: user?.organization, // Populate organizationId from user profile
   };
 };
 

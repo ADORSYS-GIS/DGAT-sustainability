@@ -10,7 +10,7 @@ import { ManageCategories } from "../pages/admin/ManageCategories";
 import { ManageQuestions } from "../pages/admin/ManageQuestions";
 import ReviewAssessments from "../pages/user/ReviewAssessments";
 import AdminActionPlans from "../pages/admin/AdminActionPlans";
-import { Assessment } from "../pages/user/Assesment";
+import { Assessment } from "../pages/user/Assessment";
 import { AssessmentList } from "../pages/user/AssessmentList";
 import { Assessments } from "../pages/user/Assessments";
 import { ActionPlan } from "../pages/user/ActionPlan";

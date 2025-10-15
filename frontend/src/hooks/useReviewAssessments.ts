@@ -41,6 +41,7 @@ export function useSubmitReview() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    networkMode: 'always',
     mutationFn: async ({ submission_id, recommendation, status, reviewer }: SubmitReviewInput) => {
       const now = new Date().toISOString();
       const existingSubmission = await offlineDB.getSubmission(submission_id);

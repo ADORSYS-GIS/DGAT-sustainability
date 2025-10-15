@@ -42,7 +42,7 @@ function isOnlineAdminSubmissionList(response: unknown): response is AdminSubmis
 }
 
 export function useOfflineDraftSubmissions() {
-  const [data, setData] = useState<{ draft_submissions: (Submission & { assessment_name?: string })[] }>({ draft_submissions: [] });
+  const [data, setData] = useState<{ draft_submissions: OfflineDraftSubmission[] }>({ draft_submissions: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -130,6 +130,7 @@ export function useOfflineDraftSubmissionsMutation() {
   const queryClient = useQueryClient();
 
   const approveDraftSubmission = useMutation({
+    networkMode: 'always', // Ensure mutation runs regardless of network status
     mutationFn: async (submissionId: string) => {
       console.log(`[Mutation] 1. Starting approval for submissionId: ${submissionId}`);
       
@@ -149,23 +150,23 @@ export function useOfflineDraftSubmissionsMutation() {
 
       const localMutation = async () => {
         console.log(`[Mutation] 3. Performing local mutation for submissionId: ${submissionId}`);
-        const approvedSubmission = {
+        // Update the draft's status to pending and approved, but keep it in draft_submissions
+        const updatedDraft: OfflineDraftSubmission = {
           ...draft,
           review_status: 'approved' as const,
           sync_status: 'pending' as const,
           updated_at: new Date().toISOString(),
         };
-        await offlineDB.saveSubmission(approvedSubmission);
-        await offlineDB.deleteDraftSubmission(submissionId);
-        console.log(`[Mutation] 4. Local mutation complete. Draft moved to submissions and marked as pending.`);
+        await offlineDB.saveDraftSubmission(updatedDraft); // Save back to draft_submissions
+        console.log(`[Mutation] 4. Local mutation complete. Draft ${submissionId} marked as pending for submission.`);
       };
 
       return apiInterceptor.interceptMutation(
         apiCall,
         localMutation,
-        { assessmentId, submissionId: draft.submission_id },
-        'submission',
-        'update'
+        draft as unknown as Record<string, unknown>, // Pass the entire draft object as data for the sync queue
+        'draft_submission', // Entity type is 'draft_submission' as it's still in that table
+        'submit' // Operation is 'submit'
       );
     },
     onSuccess: (data) => {

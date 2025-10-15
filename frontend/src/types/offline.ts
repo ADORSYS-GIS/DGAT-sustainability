@@ -15,6 +15,7 @@ import type {
   Review,
   RecommendationWithStatus, // Import the type
   AssessmentDetailResponse, // Import AssessmentDetailResponse
+  AdminReport,
 } from "@/openapi-rq/requests/types.gen";
 import type { CategoryCatalog } from "@/openapi-rq/requests/types.gen";
 
@@ -55,11 +56,13 @@ export interface OfflineEntity {
 }
 
 // Enhanced Question with offline fields
-export interface OfflineQuestion extends Question, OfflineEntity {
+export interface OfflineQuestion extends Omit<Question, 'latest_revision'>, OfflineEntity {
   revisions: QuestionRevision[];
   category: string;
   category_id: string;
   search_text?: string; // For efficient text search
+  latest_revision: QuestionRevision & { text: Record<string, string> };
+  order?: number;
 }
 
 // Enhanced Assessment with offline fields
@@ -95,14 +98,15 @@ export interface OfflineSubmission extends Omit<Submission, 'review_status'>, Of
   reviewer_email?: string;
   review_comments?: string;
   files?: FileMetadata[];
-  review_status: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'draft';
+  review_status: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'draft' | 'reviewed';
 }
 
 // Enhanced Draft Submission with offline fields
-export interface OfflineDraftSubmission extends Submission, OfflineEntity {
+export interface OfflineDraftSubmission extends Omit<Submission, 'review_status'>, OfflineEntity {
   organization_id?: string;
   org_name?: string; // Add organization name for offline display
   assessment_name: string;
+  review_status: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'draft' | 'reviewed'; // Added 'reviewed'
 }
 
 // Enhanced Report with offline fields
@@ -112,6 +116,9 @@ export interface OfflineReport extends Report, OfflineEntity {
   file_path?: string; // Local file path if downloaded
   is_downloaded?: boolean;
 }
+
+// Enhanced AdminReport with offline fields
+export interface OfflineAdminReport extends AdminReport, OfflineEntity {}
 
 // Enhanced Recommendation with offline fields
 export interface OfflineRecommendation extends RecommendationWithStatus, OfflineEntity {
@@ -129,6 +136,10 @@ export interface OfflineOrganization extends Omit<Organization, 'created_at' | '
   assessment_count?: number;
   submission_count?: number;
   is_active?: boolean;
+  domains: string[];
+  redirectUrl: string; // Add redirectUrl
+  created_at?: string; // Add created_at
+  enabled?: 'true' | 'false'; // Add enabled property
 }
 
 // Enhanced User/Organization Member with offline fields
@@ -268,6 +279,10 @@ export interface OfflineDatabaseSchema {
   reports: {
     key: string; // report_id
     value: OfflineReport;
+  };
+  admin_reports: {
+    key: string; // report_id
+    value: OfflineAdminReport;
   };
   organizations: {
     key: string; // organization id

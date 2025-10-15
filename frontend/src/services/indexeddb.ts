@@ -14,6 +14,7 @@ import type {
   OfflineRecommendation, // Add the new type
   OfflineOrganizationCategory,
   OfflinePendingReviewSubmission, // Import OfflinePendingReviewSubmission
+  OfflineAdminReport,
   OfflineDraftSubmission,
   SyncQueueItem,
   SyncStatus,
@@ -34,7 +35,7 @@ export type { OfflineCategoryCatalog };
 class OfflineDB {
   private dbPromise: Promise<IDBPDatabase<OfflineDatabaseSchema>>;
   private readonly DB_NAME = "dgat-offline-db";
-  private readonly DB_VERSION = 9; // Increment DB_VERSION to trigger upgrade
+  private readonly DB_VERSION = 11; // Increment DB_VERSION to trigger upgrade
 
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
@@ -152,6 +153,14 @@ class OfflineDB {
       reportsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
+    // Admin Reports store with indexes
+    if (!existingStores.includes("admin_reports")) {
+      const adminReportsStore = db.createObjectStore("admin_reports", { keyPath: "report_id" });
+      adminReportsStore.createIndex("org_id", "org_id", { unique: false });
+      adminReportsStore.createIndex("sync_status", "sync_status", { unique: false });
+      adminReportsStore.createIndex("updated_at", "updated_at", { unique: false });
+    }
+
     // Invitations store with indexes
     if (!existingStores.includes("invitations")) {
       const invitationsStore = db.createObjectStore("invitations", { keyPath: "invitation_id" });
@@ -224,10 +233,33 @@ class OfflineDB {
   }
 
   // ===== ORGANIZATION CATEGORIES =====
+  async saveOrganizationCategory(orgCategory: OfflineOrganizationCategory): Promise<string> {
+    const db = await this.dbPromise;
+    const result = await db.put("organization_categories", orgCategory);
+    return result as string;
+  }
+
   async saveOrganizationCategories(orgCategories: OfflineOrganizationCategory[]): Promise<void> {
     const db = await this.dbPromise;
     const tx = db.transaction("organization_categories", "readwrite");
     await Promise.all(orgCategories.map(oc => tx.store.put(oc)));
+    await tx.done;
+  }
+
+  async getAllOrganizationCategories(): Promise<OfflineOrganizationCategory[]> {
+    const db = await this.dbPromise;
+    return db.getAll("organization_categories");
+  }
+
+  async deleteOrganizationCategory(id: string): Promise<void> {
+    const db = await this.dbPromise;
+    await db.delete("organization_categories", id);
+  }
+
+  async clearOrganizationCategoriesStore(): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("organization_categories", "readwrite");
+    await tx.store.clear();
     await tx.done;
   }
 
@@ -521,6 +553,17 @@ class OfflineDB {
   async deleteReport(reportId: string): Promise<void> {
     const db = await this.dbPromise;
     await db.delete("reports", reportId);
+  }
+  async saveAdminReports(reports: OfflineAdminReport[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("admin_reports", "readwrite");
+    await Promise.all(reports.map(r => tx.store.put(r)));
+    await tx.done;
+  }
+
+  async getAllAdminReports(): Promise<OfflineAdminReport[]> {
+    const db = await this.dbPromise;
+    return db.getAll("admin_reports");
   }
 
   // ===== ORGANIZATIONS =====

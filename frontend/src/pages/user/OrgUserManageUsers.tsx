@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Edit, Trash2, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineUsers } from "@/hooks/useOfflineUsers";
+import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
 import { useOfflineCategoryCatalogs } from "@/hooks/useOfflineCategoryCatalogs";
 import type {
   OrganizationMember,
@@ -250,11 +251,21 @@ export const OrgUserManageUsers: React.FC = () => {
   }, [user]);
 
   const {
+    organizationCategories: offlineOrgCategories = [],
+    isLoading: isLoadingOrgCategories,
+  } = useOfflineOrganizationCategories();
+
+  const {
     data: allCategoryCatalogs = [],
-    isLoading: isLoadingCategories,
+    isLoading: isLoadingCategoryCatalogs,
   } = useOfflineCategoryCatalogs();
 
-  const availableCategories: OfflineCategoryCatalog[] = allCategoryCatalogs;
+  const availableCategories = useMemo(() => {
+    const orgCategoryMap = new Map(offlineOrgCategories.map(oc => [oc.category_catalog_id, oc]));
+    return allCategoryCatalogs.filter(cc => orgCategoryMap.has(cc.category_catalog_id));
+  }, [offlineOrgCategories, allCategoryCatalogs]);
+
+  const isLoadingCategories = isLoadingOrgCategories || isLoadingCategoryCatalogs;
   
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
