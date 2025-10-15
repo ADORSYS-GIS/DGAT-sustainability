@@ -360,6 +360,7 @@ export class SyncService {
    * Sync organization categories from server to local
    */
   private async syncOrganizationCategories(): Promise<SyncResult> {
+    console.log("🔄 Starting syncOrganizationCategories...");
     const result: SyncResult = { entityType: 'organization_categories', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
@@ -375,20 +376,32 @@ export class SyncService {
       const serverOrgCategoriesResponse = await OrganizationsService.getOrganizationsByKeycloakOrganizationIdCategories({
         keycloakOrganizationId: organizationId
       });
-      const serverOrgCategories = serverOrgCategoriesResponse.categories;
+      console.log("Fetched serverOrgCategoriesResponse:", serverOrgCategoriesResponse);
+      // Check if serverOrgCategoriesResponse or its 'categories' property is undefined
+      if (!serverOrgCategoriesResponse || !serverOrgCategoriesResponse.organization_categories) {
+        console.error("serverOrgCategoriesResponse or its organization_categories property is undefined:", serverOrgCategoriesResponse);
+        result.errors.push('Failed to fetch organization categories from server or response format is invalid.');
+        return result;
+      }
+      const serverOrgCategories = serverOrgCategoriesResponse.organization_categories;
+      console.log("Extracted serverOrgCategories:", serverOrgCategories);
 
       // If server returns no categories, clear the local store completely
       if (serverOrgCategories.length === 0) {
+        console.log("No server organization categories found. Clearing local store.");
         const currentLocalOrgCategories = await offlineDB.getAllOrganizationCategories();
         await offlineDB.clearStore('organization_categories');
         result.deleted = currentLocalOrgCategories.length;
         return result;
       }
+      console.log("Server organization categories found:", serverOrgCategories.length);
 
       const serverOrgCategoryIds = new Set(serverOrgCategories.map(oc => `${organizationId}-${oc.category_catalog_id}`));
+      console.log("Generated serverOrgCategoryIds:", serverOrgCategoryIds);
 
       // Get local organization categories
       const localOrgCategories = await offlineDB.getAllOrganizationCategories();
+      console.log("Local organization categories before sync:", localOrgCategories);
 
       // Find categories to add/update
       for (const serverOrgCategory of serverOrgCategories) {
@@ -397,10 +410,12 @@ export class SyncService {
 
         if (!localOrgCategory) {
           // Add new organization category
+          console.log("Adding new organization category:", offlineOrgCategory.id);
           await offlineDB.saveOrganizationCategory(offlineOrgCategory);
           result.added++;
         } else {
           // Update existing organization category if different
+          console.log("Updating existing organization category:", offlineOrgCategory.id);
           await offlineDB.saveOrganizationCategory(offlineOrgCategory);
           result.updated++;
         }
@@ -409,13 +424,17 @@ export class SyncService {
       // Find categories to delete (local categories not on server)
       for (const localOrgCategory of localOrgCategories) {
         if (!serverOrgCategoryIds.has(localOrgCategory.id)) {
+          console.log("Deleting local organization category not on server:", localOrgCategory.id);
           await offlineDB.deleteOrganizationCategory(localOrgCategory.id);
           result.deleted++;
         }
       }
 
     } catch (error) {
+      console.error("Error during syncOrganizationCategories:", error);
       result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      console.log("🔄 Finished syncOrganizationCategories. Result:", result);
     }
 
     return result;

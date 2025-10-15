@@ -266,6 +266,13 @@ export const OrgUserManageUsers: React.FC = () => {
   }, [offlineOrgCategories, allCategoryCatalogs]);
 
   const isLoadingCategories = isLoadingOrgCategories || isLoadingCategoryCatalogs;
+
+  useEffect(() => {
+    console.log("OrgUserManageUsers - offlineOrgCategories:", offlineOrgCategories);
+    console.log("OrgUserManageUsers - allCategoryCatalogs:", allCategoryCatalogs);
+    console.log("OrgUserManageUsers - availableCategories:", availableCategories);
+    console.log("OrgUserManageUsers - isLoadingCategories:", isLoadingCategories);
+  }, [offlineOrgCategories, allCategoryCatalogs, availableCategories, isLoadingCategories]);
   
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
