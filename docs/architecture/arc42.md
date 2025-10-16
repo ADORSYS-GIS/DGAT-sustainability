@@ -350,7 +350,9 @@ erDiagram
     ASSESSMENTS ||--o| REPORTS : "generates"
     ASSESSMENTS ||--o| TEMP_SUBMISSION : "drafts to"
     ASSESSMENTS ||--o| ASSESSMENTS_SUBMISSION : "finalizes to"
-
+  CATEGORY_CATALOG ||--o{ ORGANIZATION_CATEGORIES: "contains"
+  ASSESSMENTS ||--o{ASSESSMENT_CATEGORY: "contains"
+  ORGANIZATION_CATEGORIES ||--o{ASSESSMENT_CATEGORY: "has one or many"
     ORGANIZATIONS {
         uuid organization_id PK
         varchar name
@@ -383,12 +385,23 @@ erDiagram
     }
 
     ORGANIZATION_CATEGORIES {
-        uuid category_id PK
+        uuid organisation_category_id PK
         uuid organization_id FK
+        uuid category_catalog_id FK
         varchar name
-        varchar description "nullable"
-        jsonb categories "Array of strings"
+        int weight
+        varchar categories
     }
+
+      ASSESSMENT_CATEGORY {
+        uuid assessment_category_id PK
+        uuid organisation_category_id FK
+    }
+
+  CATEGORY_CATALOG {
+    uuid catalog_id PK
+    varchar name
+  }
 
     QUESTIONS {
         uuid question_id PK

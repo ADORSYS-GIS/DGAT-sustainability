@@ -1,35 +1,501 @@
-name: Create and publish a Docker image
+name: Deploy Sustainability Tool
 
 on:
   push:
     branches:
       - main
+      - develop
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: adorsys-gis/dgat-sustainability
 
 jobs:
-  build-and-push-image:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
+    outputs:
+      git-sha: ${{ steps.vars.outputs.GIT_SHA }}
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.DGAT_ONLINE_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+      - name: Compute variables (lowercase repo + short SHA)
+        id: vars
+        run: |
+          GIT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "GIT_SHA=$GIT_SHA" >> $GITHUB_OUTPUT
+          echo "GIT_SHA=$GIT_SHA" >> $GITHUB_ENV
+          echo "REPO_LOWER=$REPO_LOWER" >> $GITHUB_ENV
+          echo "IMAGE_NAME_FRONTEND=$REPO_LOWER/frontend" >> $GITHUB_ENV
+          echo "IMAGE_NAME_BACKEND=$REPO_LOWER/backend" >> $GITHUB_ENV
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
         with:
-          context: ./frontend
+          context: .
+          file: ./infrastructure/Dockerfile.backend
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:${{ env.GIT_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./infrastructure/Dockerfile.frontend
+          push: true
+          build-args: |
+            FE_HOST=${{ secrets.FE_HOST || 'localhost' }}
+            API_BASE_URL=${{ secrets.API_BASE_URL }}
+            VITE_KEYCLOAK_URL=${{ secrets.VITE_KEYCLOAK_URL }}
+            VITE_KEYCLOAK_ISSUER_URI=${{ secrets.VITE_KEYCLOAK_ISSUER_URI }}
+            VITE_KEYCLOAK_CLIENT_ID=${{ secrets.VITE_KEYCLOAK_CLIENT_ID || 'sustainability-tool' }}
+            VITE_KEYCLOAK_SCOPES=${{ secrets.VITE_KEYCLOAK_SCOPES || 'openid profile email' }}
+            VITE_KEYCLOAK_HOME_URL=${{ secrets.VITE_KEYCLOAK_HOME_URL }}
+            VITE_KEYCLOAK_REDIRECT_URI=${{ secrets.VITE_KEYCLOAK_REDIRECT_URI }}
+            VITE_ORGANIZATION_REDIRECT_URL=${{ secrets.VITE_ORGANIZATION_REDIRECT_URL }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ env.GIT_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set lowercase variables
+        run: |
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO_LOWER=$REPO_LOWER" >> $GITHUB_ENV
+          echo "IMAGE_NAME_FRONTEND=$REPO_LOWER/frontend" >> $GITHUB_ENV
+          echo "IMAGE_NAME_BACKEND=$REPO_LOWER/backend" >> $GITHUB_ENV
+          echo "GIT_SHA=${{ needs.build-and-push.outputs.git-sha }}" >> $GITHUB_ENV
+
+      - name: Generate production docker-compose.yml
+        run: |
+          # Use latest tag for main branch, SHA tag for other branches
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            IMAGE_TAG="latest"
+          else
+            IMAGE_TAG="${{ env.GIT_SHA }}"
+          fi
+          
+          cat > docker-compose.production.yml <<'EOF'
+          services:
+            backend:
+              image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:${IMAGE_TAG}
+              container_name: sustainability-backend
+              restart: unless-stopped
+              environment:
+                RUST_LOG: "info,hyper=warn,sea_orm=warn"
+                DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+                KEYCLOAK_URL: "${KEYCLOAK_URL}"
+                SERVER_PORT: 3001
+                CORS_ORIGIN: "${CORS_ORIGIN}"
+              depends_on:
+                db:
+                  condition: service_healthy
+                keycloak:
+                  condition: service_healthy
+              healthcheck:
+                test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+                interval: 30s
+                timeout: 10s
+                retries: 5
+                start_period: 20s
+              networks: [tool-net]
+              ulimits:
+                nofile:
+                  soft: 65536
+                  hard: 65536
+
+            db:
+              image: postgres:16-alpine
+              container_name: sustainability-db
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: "${POSTGRES_DB}"
+                POSTGRES_USER: "${POSTGRES_USER}"
+                POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+              volumes:
+                - postgres-data:/var/lib/postgresql/data
+              networks: [tool-net]
+
+            keycloak:
+              image: quay.io/keycloak/keycloak:26.3.1
+              container_name: sustainability-keycloak
+              restart: unless-stopped
+              environment:
+                KC_DB: "postgres"
+                KC_DB_URL_HOST: db
+                KC_DB_URL_PORT: 5432
+                KC_DB_URL_DATABASE: "${POSTGRES_DB}"
+                KC_DB_USERNAME: "${POSTGRES_USER}"
+                KC_DB_PASSWORD: "${POSTGRES_PASSWORD}"
+                KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN}"
+                KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD}"
+                KC_PROXY_HEADERS: "xforwarded"
+                KC_PROXY: "edge"
+                KC_FEATURES: "preview,organization"
+                KC_HOSTNAME: "${SERVER_ADDRESS}"
+                KC_HOSTNAME_URL: "https://${SERVER_ADDRESS}/keycloak"
+                KC_HOSTNAME_PATH: "/keycloak"
+                KC_HOSTNAME_STRICT: "true"
+                KC_HOSTNAME_STRICT_HTTPS: "true"
+                KC_HTTP_ENABLED: "true"
+                KC_HTTPS_PORT: 8443
+                FERNANDO_PASSWORD: "${FERNANDO_PASSWORD}"
+                KC_SPI_EMAIL_DEFAULT_HOST: "${EMAIL_HOST}"
+                KC_SPI_EMAIL_DEFAULT_PORT: "${EMAIL_PORT}"
+                KC_SPI_EMAIL_DEFAULT_FROM: "${EMAIL_FROM}"
+                KC_SPI_EMAIL_DEFAULT_FROM_DISPLAY_NAME: "${EMAIL_FROM_DISPLAY_NAME}"
+                KC_SPI_EMAIL_DEFAULT_USER: "${EMAIL_USER}"
+                KC_SPI_EMAIL_DEFAULT_PASSWORD: "${EMAIL_PASSWORD}"
+                KC_SPI_EMAIL_DEFAULT_SSL: "${EMAIL_SSL:-false}"
+                KC_SPI_EMAIL_DEFAULT_STARTTLS: "${EMAIL_STARTTLS:-true}"
+                KC_SPI_EMAIL_DEFAULT_AUTH: "${EMAIL_AUTH:-true}"
+                KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak"
+              entrypoint: ["/bin/bash", "/keycloak-startup.sh"]
+              volumes:
+                - ./infrastructure/keycloak:/opt/keycloak/data/import:rw
+                - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
+                - ./keycloak-startup.sh:/keycloak-startup.sh:ro
+                - ./scripts/a.sh:/a.sh:ro
+              depends_on:
+                db:
+                  condition: service_healthy
+              healthcheck:
+                test: ["CMD-SHELL", "exit 0"]
+                interval: 30s
+                timeout: 10s
+                retries: 1
+                start_period: 240s
+              networks: [tool-net]
+
+            frontend:
+              image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${IMAGE_TAG}
+              container_name: sustainability-frontend-app
+              restart: unless-stopped
+              depends_on:
+                backend:
+                  condition: service_healthy
+                keycloak:
+                  condition: service_healthy
+              healthcheck:
+                test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
+                interval: 30s
+                timeout: 10s
+                retries: 5
+                start_period: 15s
+              networks: [tool-net]
+              ulimits:
+                nofile:
+                  soft: 65536
+                  hard: 65536
+
+            nginx:
+              image: nginx:alpine
+              container_name: sustainability-nginx
+              restart: unless-stopped
+              volumes:
+                - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+                - ./certbot/conf:/etc/letsencrypt:ro
+                - ./certbot/www:/var/www/certbot:ro
+              ports:
+                - "80:80"
+                - "443:443"
+              depends_on:
+                frontend:
+                  condition: service_healthy
+              healthcheck:
+                test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+                start_period: 10s
+              networks: [tool-net]
+
+          volumes:
+            postgres-data:
+              driver: local
+
+          networks:
+            tool-net:
+              driver: bridge
+          EOF
+          
+          echo "Production docker-compose.yml generated"
+          cat docker-compose.production.yml
+
+      - name: Validate deployment environment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR="${{ secrets.EC2_APP_DIR }}"
+            
+            echo "=== DEPLOYMENT ENVIRONMENT VALIDATION ==="
+            echo "Current user: $(whoami)"
+            echo "Application directory: $APP_DIR"
+            echo "========================================"
+            
+            # Check if directory exists
+            if [ ! -d "$APP_DIR" ]; then
+              echo "Error: Application directory $APP_DIR does not exist"
+              exit 1
+            fi
+            
+            cd "$APP_DIR"
+            echo "Application directory contents:"
+            ls -la
+            
+            # Check if Docker is running
+            if ! docker info > /dev/null 2>&1; then
+              echo "Error: Docker is not running"
+              exit 1
+            fi
+            echo "✓ Docker is running"
+            
+            # Check disk space (at least 2GB free)
+            AVAILABLE=$(df . | tail -1 | awk '{print $4}')
+            if [ "$AVAILABLE" -lt 2000000 ]; then
+              echo "Error: Insufficient disk space. Available: ${AVAILABLE}KB"
+              exit 1
+            fi
+            echo "✓ Disk space check passed. Available: ${AVAILABLE}KB"
+            
+            # Check if .env file exists
+            if [ ! -f ".env" ]; then
+              echo "Warning: .env file not found. Please ensure environment variables are configured."
+            else
+              echo "✓ .env file found"
+            fi
+            
+            echo "✓ Environment validation passed!"
+
+      - name: Copy deployment files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.production.yml,scripts/request_ssl.sh"
+          target: ${{ secrets.EC2_APP_DIR }}
+          strip_components: 0
+
+      - name: Save current deployment state
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR="${{ secrets.EC2_APP_DIR }}"
+            cd "$APP_DIR"
+            
+            # Save current deployment state for rollback
+            if [ -f "docker-compose.yml" ]; then
+              echo "Saving current deployment state..."
+              cp docker-compose.yml docker-compose.rollback.yml
+              echo "✓ Current state saved for rollback"
+            else
+              echo "No existing deployment found, skipping rollback preparation"
+            fi
+            
+            # Replace docker-compose.yml with production version
+            if [ -f "docker-compose.production.yml" ]; then
+              mv docker-compose.production.yml docker-compose.yml
+              echo "✓ Production docker-compose.yml activated"
+            fi
+
+      - name: Deploy with health checks and rollback capability
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR="${{ secrets.EC2_APP_DIR }}"
+            HEALTH_CHECK_URL="https://${{ secrets.SERVER_ADDRESS }}/api/health"
+            
+            cd "$APP_DIR"
+            
+            echo "=== STARTING DEPLOYMENT ==="
+            echo "Target: ${{ secrets.SERVER_ADDRESS }}"
+            echo "SHA: ${{ env.GIT_SHA }}"
+            echo "=========================="
+            
+            # Pull latest images
+            echo "Pulling latest images..."
+            docker compose pull
+            
+            # Stop old containers gracefully
+            echo "Stopping old containers..."
+            docker compose down --timeout 30
+            
+            # Start new containers
+            echo "Starting new containers..."
+            docker compose up -d
+            
+            # Wait for services to initialize
+            echo "Waiting for services to start (60 seconds)..."
+            sleep 60
+            
+            # Health check
+            echo "Performing health check on: $HEALTH_CHECK_URL"
+            MAX_RETRIES=5
+            RETRY_COUNT=0
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              if curl -f -s --max-time 10 "$HEALTH_CHECK_URL" > /dev/null 2>&1; then
+                echo "✓ Health check passed!"
+                echo "✓ Deployment successful!"
+                echo "${{ env.GIT_SHA }}" > .last-successful-deploy
+            
+                # Clean up old images
+                echo "Cleaning up old images..."
+                docker image prune -af --filter "until=48h"
+            
+                exit 0
+              fi
+            
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES failed. Retrying in 10 seconds..."
+              sleep 10
+            done
+            
+            # Health check failed - attempt rollback
+            echo "✗ Health check failed after $MAX_RETRIES attempts!"
+            echo "Attempting rollback..."
+            
+            docker compose down --timeout 30
+            
+            if [ -f "docker-compose.rollback.yml" ]; then
+              echo "Rolling back to previous deployment..."
+              cp docker-compose.rollback.yml docker-compose.yml
+              docker compose up -d
+            
+              # Wait and verify rollback
+              sleep 60
+              if curl -f -s --max-time 10 "$HEALTH_CHECK_URL" > /dev/null 2>&1; then
+                echo "✓ Rollback successful!"
+                exit 0
+              else
+                echo "✗ Rollback also failed!"
+                exit 1
+              fi
+            else
+              echo "✗ No rollback file found!"
+              exit 1
+            fi
+
+      - name: Verify SSL certificates
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR="${{ secrets.EC2_APP_DIR }}"
+            cd "$APP_DIR"
+            
+            echo "=== SSL CERTIFICATE VERIFICATION ==="
+            
+            # Check if certificates exist
+            if [ -d "certbot/conf/live/${{ secrets.SERVER_ADDRESS }}" ]; then
+              echo "✓ SSL certificates found for ${{ secrets.SERVER_ADDRESS }}"
+            
+              # Check certificate expiry
+              CERT_PATH="certbot/conf/live/${{ secrets.SERVER_ADDRESS }}/cert.pem"
+              if [ -f "$CERT_PATH" ]; then
+                EXPIRY=$(openssl x509 -enddate -noout -in "$CERT_PATH" | cut -d= -f2)
+                echo "Certificate expires: $EXPIRY"
+            
+                # Check if certificate expires in less than 30 days
+                if openssl x509 -checkend 2592000 -noout -in "$CERT_PATH"; then
+                  echo "✓ Certificate is valid for more than 30 days"
+                else
+                  echo "⚠ Warning: Certificate expires in less than 30 days!"
+                fi
+              fi
+            else
+              echo "⚠ Warning: No SSL certificates found!"
+              echo "Please run: export SERVER_ADDRESS=${{ secrets.SERVER_ADDRESS }} && ./scripts/request_ssl.sh"
+            fi
+
+      - name: Display deployment summary
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR="${{ secrets.EC2_APP_DIR }}"
+            cd "$APP_DIR"
+            
+            echo "========================================="
+            echo "       DEPLOYMENT SUMMARY"
+            echo "========================================="
+            echo "Application: Sustainability Tool"
+            echo "Environment: Production"
+            echo "Domain: ${{ secrets.SERVER_ADDRESS }}"
+            echo "Deployed SHA: ${{ env.GIT_SHA }}"
+            echo "Deployment Time: $(date)"
+            echo ""
+            echo "Container Status:"
+            docker compose ps
+            echo ""
+            echo "Application URLs:"
+            echo "  - Frontend: https://${{ secrets.SERVER_ADDRESS }}"
+            echo "  - Backend API: https://${{ secrets.SERVER_ADDRESS }}/api"
+            echo "  - Keycloak: https://${{ secrets.SERVER_ADDRESS }}/keycloak"
+            echo "  - Health Check: https://${{ secrets.SERVER_ADDRESS }}/api/health"
+            echo "========================================="
+
+      - name: Notify deployment status
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR="${{ secrets.EC2_APP_DIR }}"
+            cd "$APP_DIR"
+            
+            if [ -f ".last-successful-deploy" ]; then
+              LAST_SHA=$(cat .last-successful-deploy)
+              echo "Last successful deployment SHA: $LAST_SHA"
+            else
+              echo "No previous successful deployment recorded"
+            fi

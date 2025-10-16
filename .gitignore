@@ -1,5 +1,6 @@
 backend/target
 .env
+certbot/
 .roo
 .cursor/
 # Logs
