@@ -69,7 +69,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (assessmentName.trim()) {
-      if (isOrgAdmin && availableCategories.length > 0 && selectedCategories.length === 0) {
+      if (isOrgAdmin && selectedCategories.length === 0) {
         toast.error(t('assessment.categoriesRequired', { defaultValue: 'Please select at least one category for this assessment.' }));
         return;
       }
@@ -170,7 +170,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
             <Button
               type="submit"
               className="bg-dgrv-blue hover:bg-blue-700"
-              disabled={isLoading || !assessmentName.trim() || (isOrgAdmin && availableCategories.length > 0 && selectedCategories.length === 0)}
+              disabled={isLoading || !assessmentName.trim() || (isOrgAdmin && selectedCategories.length === 0)}
             >
               {isLoading
                 ? t('common.creating', { defaultValue: 'Creating...' })

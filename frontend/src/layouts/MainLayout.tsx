@@ -14,12 +14,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   // Routes that should not show the navbar (like login page if you have one)
   const routesWithoutNavbar = ["/login"];
   const shouldShowNavbar = !routesWithoutNavbar.includes(location.pathname);
+  const isHomePage = location.pathname === "/";
 
   return (
     <>
       {shouldShowNavbar && <Navbar />}
       <main className={shouldShowNavbar ? "pt-16" : ""}>
-        <div className="py-8 px-4 sm:px-6 lg:px-8">{children}</div>
+        <div className={isHomePage ? "" : "py-8 px-4 sm:px-6 lg:px-8"}>{children}</div>
       </main>
       <Toaster />
       <SyncStatusIndicator />

@@ -6,6 +6,7 @@ import type {
   CreateQuestionRequest,
   UpdateQuestionRequest,
 } from "@/openapi-rq/requests/types.gen";
+import { DataTransformationService } from "../services/dataTransformation";
 import type { OfflineQuestion } from "@/types/offline";
 import type { OfflineCategoryCatalog } from "@/types/offline";
 
@@ -65,16 +66,36 @@ export function useOfflineQuestionsMutation() {
         await offlineDB.saveQuestion(offlineQuestion);
       };
 
-      await apiInterceptor.interceptMutation(
+      const response = await apiInterceptor.interceptMutation(
         () => QuestionsService.postQuestions({ requestBody: question }),
         localMutation,
         offlineQuestion as unknown as Record<string, unknown>,
         'question',
         'create'
       );
-      return offlineQuestion;
+
+      // After successful API call, replace the temporary question with the real one
+      if (response && response.question) {
+        await offlineDB.deleteQuestion(tempId);
+        const categories = await offlineDB.getAllCategoryCatalogs();
+        const categoryIdToNameMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
+        const finalQuestion = DataTransformationService.transformQuestion(response.question, categoryIdToNameMap);
+        await offlineDB.saveQuestion(finalQuestion);
+        return { finalQuestion, tempId };
+      }
+      
+      return { finalQuestion: offlineQuestion, tempId };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Optimistically update the cache to replace the temp item with the real one
+      queryClient.setQueryData<OfflineQuestion[]>(['questions'], (old) => {
+        if (!old) return [data.finalQuestion];
+        // Remove the temporary item
+        const withoutTemp = old.filter(q => q.question_id !== data.tempId);
+        // Add the final, permanent item
+        return [...withoutTemp, data.finalQuestion];
+      });
+      // Invalidate to ensure consistency with the server in the background
       queryClient.invalidateQueries({ queryKey: ['questions'] });
     },
   });

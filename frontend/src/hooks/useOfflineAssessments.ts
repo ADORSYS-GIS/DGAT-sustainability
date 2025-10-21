@@ -298,6 +298,14 @@ export function useOfflineAssessmentsMutation() {
     setIsPending(true); // Set pending at the very beginning
 
     try {
+      // VALIDATION: Ensure at least one category is selected
+      if (!assessment.categories || assessment.categories.length === 0) {
+        const error = new Error("An assessment must have at least one category selected.");
+        console.error('❌ useOfflineAssessments: Assessment creation failed locally:', error);
+        options?.onError?.(error);
+        throw error;
+      }
+
       const organizationId = options?.organizationId;
       const userEmail = options?.userEmail;
 

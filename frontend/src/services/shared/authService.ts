@@ -173,7 +173,7 @@ export const getUserProfile = (): UserProfile | null => {
       preferred_username: token.preferred_username,
       name: token.name,
       email: token.email,
-      roles: token.realm_access?.roles || [],
+      roles: token.roles || token.realm_access?.roles || [],
       realm_access: token.realm_access,
       organisations: token.organisations,
       organization_name: token.organization_name,
@@ -193,7 +193,7 @@ export const getUserProfile = (): UserProfile | null => {
 export const getAuthState = (): AuthState => {
   const isAuthenticated = !!keycloak.authenticated;
   const user = getUserProfile();
-  const roles = user?.roles || user?.realm_access?.roles || [];
+  const roles = user?.roles || [];
   
   return {
     isAuthenticated,
