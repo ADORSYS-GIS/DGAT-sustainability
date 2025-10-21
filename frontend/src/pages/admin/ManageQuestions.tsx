@@ -1,36 +1,20 @@
+/**
+ * @file Manage Questions page for administrators.
+ * @description This page allows administrators to create, edit, and delete questions and assign them to categories.
+ */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
-  ChevronDown,
-  ChevronRight,
-  Edit,
-  FileText,
-  Globe,
-  Layers,
-  Plus,
-  Settings,
-  Sparkles,
-  Target,
-  Trash2
+  Settings
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -45,7 +29,9 @@ import type {
   UpdateQuestionRequest
 } from "../../openapi-rq/requests/types.gen";
 import { offlineDB } from "../../services/indexeddb";
-import type { OfflineCategoryCatalog, OfflineQuestion } from "../../types/offline";
+import type { OfflineQuestion } from "../../types/offline";
+import CategoryCard from "@/components/pages/admin/ManageQuestions/CategoryCard";
+import QuestionForm, { QuestionFormData } from "@/components/pages/admin/ManageQuestions/QuestionForm";
 
 const LANGUAGES = [
   { code: "en", name: "English", flag: "🇺🇸" },
@@ -55,199 +41,6 @@ const LANGUAGES = [
   { code: "de", name: "Deutsch", flag: "🇩🇪" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
 ];
-
-interface QuestionFormData {
-  text: Record<string, string>;
-  weight: number;
-  categoryName: string;
-  order: number;
-}
-
-const QuestionForm: React.FC<{
-  categories: OfflineCategoryCatalog[];
-  selectedCategory?: string;
-  formData: QuestionFormData;
-  setFormData: React.Dispatch<React.SetStateAction<QuestionFormData>>;
-  onSubmit: (e: React.FormEvent) => void;
-  isPending: boolean;
-  editingQuestion: OfflineQuestion | null;
-  onCancel: () => void;
-}> = ({
-  categories,
-  selectedCategory,
-  formData,
-  setFormData,
-  onSubmit,
-  isPending,
-  editingQuestion,
-  onCancel,
-}) => {
-  const { t } = useTranslation();
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <div className="text-center pb-4">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
-          <FileText className="w-6 h-6 text-blue-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900">
-          {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
-        </h3>
-        {selectedCategory && (
-          <p className="text-sm text-gray-500 mt-1">
-            Adding to category: <span className="font-medium text-blue-600">{selectedCategory}</span>
-          </p>
-        )}
-      </div>
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-gray-700">
-          {t('manageQuestions.category')} <span className="text-red-500">*</span>
-        </Label>
-        <Select
-          value={formData.categoryName}
-          onValueChange={(value) =>
-            setFormData((prev) => ({
-              ...prev,
-              categoryName: value,
-            }))
-          }
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={t('manageQuestions.selectCategoryPlaceholder')} />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.category_catalog_id} value={category.name}>
-                <div className="flex items-center space-x-2">
-                  <Layers className="w-4 h-4 text-gray-500" />
-                  <span>{category.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="text_en" className="text-sm font-medium text-gray-700">
-          🇺🇸 English Question <span className="text-red-500">*</span>
-        </Label>
-        <Textarea
-          id="text_en"
-          value={formData.text["en"] || ""}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              text: { ...prev.text, en: e.target.value },
-            }))
-          }
-          placeholder="Enter the question in English..."
-          className="min-h-[100px] resize-none"
-          required
-        />
-      </div>
-      <div className="space-y-3">
-        <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-          <Globe className="w-4 h-4" />
-          <span>Additional Languages (Optional)</span>
-        </Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
-            <div key={lang.code} className="space-y-2">
-              <Label className="text-xs font-medium text-gray-600 flex items-center space-x-1">
-                <span>{lang.flag}</span>
-                <span>{lang.name}</span>
-              </Label>
-              <Textarea
-                id={`text_${lang.code}`}
-                value={formData.text[lang.code] || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    text: { ...prev.text, [lang.code]: e.target.value },
-                  }))
-                }
-                placeholder={`Enter the question in ${lang.name}...`}
-                className="min-h-[80px] resize-none text-sm"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="weight" className="text-sm font-medium text-gray-700 flex items-center space-x-1">
-            <Target className="w-4 h-4" />
-            <span>{t('manageQuestions.weightLabel')}</span>
-          </Label>
-          <Input
-            id="weight"
-            type="number"
-            min="1"
-            max="10"
-            value={formData.weight}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                weight: parseInt(e.target.value) || 1,
-              }))
-            }
-            className="text-center"
-            required
-          />
-          <p className="text-xs text-gray-500">Higher weight = more important</p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="order" className="text-sm font-medium text-gray-700">
-            {t('manageQuestions.displayOrder')}
-          </Label>
-          <Input
-            id="order"
-            type="number"
-            min="1"
-            value={formData.order}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                order: parseInt(e.target.value) || 1,
-              }))
-            }
-            className="text-center"
-            required
-          />
-          <p className="text-xs text-gray-500">Display sequence</p>
-        </div>
-      </div>
-      <div className="flex space-x-3 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          className="flex-1"
-          disabled={isPending}
-        >
-          Cancel
-        </Button>
-      <Button
-        type="submit"
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
-        disabled={isPending}
-      >
-          {isPending ? (
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Saving...</span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Sparkles className="w-4 h-4" />
-              <span>{editingQuestion ? 'Update Question' : 'Create Question'}</span>
-            </div>
-          )}
-      </Button>
-      </div>
-    </form>
-  );
-};
 
 export const ManageQuestions = () => {
   const { t } = useTranslation();
@@ -287,7 +80,7 @@ export const ManageQuestions = () => {
     cleanupTemporaryItems();
   }, []);
 
-  const { 
+  const {
     data: categoriesData,
     isLoading: categoriesLoading,
     error: categoriesError
@@ -515,132 +308,30 @@ export const ManageQuestions = () => {
               const categoryQuestions = (questions || [])
                 .filter((q) => q.category === category.name)
                 .sort((a, b) => (a.order || 0) - (b.order || 0));
-              const questionCount = categoryQuestions.length;
               
               return (
-                <Card key={category.category_catalog_id} className="overflow-hidden border shadow-lg bg-white">
-                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
-                          <Layers className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-xl font-semibold text-gray-900">
-                            {category.name}
-                          </CardTitle>
-                          <div className="flex items-center space-x-3 mt-1">
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                              {questionCount} {questionCount === 1 ? 'Question' : 'Questions'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleCategoryExpansion(category.name)}
-                          className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
-                        >
-                          {expandedCategories.has(category.name) ? (
-                            <ChevronDown className="w-4 h-4" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4" />
-                          )}
-                        </Button>
-                  <Button
-                          onClick={() => handleAddQuestion(category.name)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                          size="sm"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                          Add Question
-                  </Button>
-                      </div>
-                    </div>
-            </CardHeader>
-                  
-                  <CardContent className="p-0">
-                    {expandedCategories.has(category.name) && (
-                      <>
-                        {questionCount > 0 ? (
-                          <div className="divide-y divide-gray-100">
-                            {categoryQuestions.map((question, index) => (
-                              <div key={question.question_id} className="p-6 hover:bg-gray-50 transition-colors">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex items-start space-x-3">
-                                      <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full text-sm font-medium text-gray-600 mt-1">
-                                        {index + 1}
-                                      </div>
-                                      <div className="flex-1">
-                                      <QuestionText question={question} />
-                                        <div className="flex items-center space-x-4 mt-3">
-                                          <Badge variant="outline" className="text-xs">
-                                            Weight: {question.latest_revision?.weight || 5}
-                                          </Badge>
-                                          <span className="text-xs text-gray-500">
-                                            {new Date(question.created_at).toLocaleDateString()}
-                                          </span>
-                                        </div>
-                                    </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center space-x-2 ml-4">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleEdit(question)}
-                                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
-                                        <Button
-                                      variant="ghost"
-                                          size="sm"
-                                      onClick={() => handleDelete(question.question_id)}
-                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                              <FileText className="w-8 h-8 text-gray-400" />
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Questions Yet</h3>
-                            <p className="text-gray-500 mb-4">{t('manageQuestions.noQuestionsInCategory')}</p>
-                            <Button
-                              onClick={() => handleAddQuestion(category.name)}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add First Question
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-                  );
-                })}
+                <CategoryCard
+                  key={category.category_catalog_id}
+                  category={category}
+                  questions={categoryQuestions}
+                  isExpanded={expandedCategories.has(category.name)}
+                  onToggle={() => toggleCategoryExpansion(category.name)}
+                  onAddQuestion={handleAddQuestion}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              );
+            })}
             
-                {categories.length === 0 && (
+            {categories.length === 0 && (
               <Card className="text-center py-12 border shadow-lg bg-white">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                   <BookOpen className="w-8 h-8 text-gray-400" />
-                  </div>
+                </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories Available</h3>
                 <p className="text-gray-500">{t('manageQuestions.noCategories')}</p>
               </Card>
-                )}
+            )}
           </div>
         </div>
       </div>
@@ -664,55 +355,6 @@ export const ManageQuestions = () => {
           />
         </DialogContent>
       </Dialog>
-    </div>
-  );
-};
-
-const QuestionText = ({
-  question,
-}: {
-  question: OfflineQuestion;
-}) => {
-  const { t } = useTranslation();
-  if (!question.latest_revision || !question.latest_revision.text) {
-    return <em className="text-gray-500">{t('manageQuestions.noText')}</em>;
-  }
-
-  const text = question.latest_revision.text;
-  const languages = Object.keys(text).filter(lang => text[lang] && text[lang].trim());
-
-  if (languages.length === 0) {
-    return <em className="text-gray-500">{t('manageQuestions.noText')}</em>;
-  }
-
-  return (
-    <div className="space-y-3">
-      {text.en && (
-        <div className="space-y-1">
-          <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
-            <span>🇺🇸</span>
-            <span>English</span>
-          </span>
-          <p className="text-gray-900 leading-relaxed">{text.en}</p>
-        </div>
-      )}
-      
-      {languages.filter(lang => lang !== 'en').map((lang) => {
-        const langText = text[lang];
-        if (!langText) return null;
-
-        const langInfo = LANGUAGES.find(l => l.code === lang);
-
-        return (
-          <div key={lang} className="space-y-1">
-            <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
-              <span>{langInfo?.flag || '🌐'}</span>
-              <span>{langInfo?.name || lang}</span>
-            </span>
-            <p className="text-gray-700 leading-relaxed text-sm">{langText}</p>
-          </div>
-        );
-      })}
     </div>
   );
 };

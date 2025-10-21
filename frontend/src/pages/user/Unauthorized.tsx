@@ -1,8 +1,12 @@
+/**
+ * @file Unauthorized.tsx
+ * @description This file defines the Unauthorized page, which is displayed when a user tries to access a page they do not have permission to view.
+ */
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-
-/**
- * Displays a message when the user is not authorized to access a page.
+ 
+ /**
+  * Displays a message when the user is not authorized to access a page.
  */
 
 const Unauthorized = () => {

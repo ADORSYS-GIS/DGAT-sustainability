@@ -1,109 +1,80 @@
+/**
+ * @file Assessments.tsx
+ * @description This file defines the Assessments page, which displays a list of submissions.
+ */
 import { Navbar } from "@/components/shared/Navbar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineSubmissions";
-import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
-import type { Assessment, Submission } from "@/openapi-rq/requests/types.gen";
-import { Calendar, Eye, FileText, Trash2 } from "lucide-react";
+import {
+  useOfflineSubmissions,
+  useOfflineSubmissionsMutation,
+} from "@/hooks/useOfflineSubmissions";
+import { Submission } from "@/openapi-rq/requests/types.gen";
 import * as React from "react";
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NavigateFunction, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { AssessmentsHeader } from "@/components/pages/user/Assessments/AssessmentsHeader";
+import { LoadingIndicator } from "@/components/pages/user/Assessments/LoadingIndicator";
+import { NoSubmissions } from "@/components/pages/user/Assessments/NoSubmissions";
+import { SubmissionCard } from "@/components/pages/user/Assessments/SubmissionCard";
 
-type AuthUser = {
-  sub?: string;
-  name?: string;
-  preferred_username?: string;
-  email?: string;
-  roles?: string[];
-  organizations?: Record<string, unknown>;
-  realm_access?: { roles?: string[] };
-  organisation_name?: string;
-  organisation?: string;
-};
-
-// Extend Assessment type to include status for local use
-type AssessmentWithStatus = Assessment & { status?: string };
-
-// Extend Submission type to include assessment_name for local use
 type SubmissionWithName = Submission & { assessment_name?: string };
-
 
 export const Assessments: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { isOnline } = useOfflineSyncStatus();
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [submissionToDelete, setSubmissionToDelete] = React.useState<
+    string | null
+  >(null);
 
-  // Fetch all submissions for the current user/org
-  const { data: submissionsData, isLoading: submissionsLoading, refetch } = useOfflineSubmissions();
+  const {
+    data: submissionsData,
+    isLoading,
+    refetch,
+  } = useOfflineSubmissions();
   const submissions = submissionsData?.submissions || [];
 
+  const { deleteSubmission, isPending: isDeleting } =
+    useOfflineSubmissionsMutation();
 
-  // Delete submission mutation
-  const { deleteSubmission, isPending: isDeleting } = useOfflineSubmissionsMutation();
-
-  useEffect(() => {
-    setIsLoading(submissionsLoading);
-  }, [submissionsLoading]);
-
-  // Helper function to count unique categories completed for a submission
-  const getCategoryCounts = (submission: SubmissionWithName) => {
-    try {
-      const responses = submission?.content?.responses || [];
-      const completedCategories = new Set<string>();
-
-      responses.forEach(response => {
-        const customResponse = response as unknown as { question_category?: string };
-        if (customResponse.question_category) {
-          completedCategories.add(customResponse.question_category);
-        }
-      });
-      return { completed: completedCategories.size };
-    } catch (error) {
-      console.warn('Error calculating category counts:', error);
-      return { completed: 0 };
-    }
-  };
-
-  // Helper function to check if user is org_admin
   const isOrgAdmin = () => {
     if (!user?.roles) return false;
-    return user.roles.includes('org_admin');
+    return user.roles.includes("org_admin");
   };
 
-  // Handle delete submission
   const handleDeleteSubmission = async (submissionId: string) => {
     try {
       await deleteSubmission(submissionId, {
         onSuccess: () => {
-          toast.success(t('submission.deleted', { defaultValue: 'Submission deleted successfully' }));
-          refetch(); // Refresh the list
+          toast.success(
+            t("submission.deleted", {
+              defaultValue: "Submission deleted successfully",
+            })
+          );
+          refetch();
         },
         onError: (error) => {
-          toast.error(t('submission.deleteError', { defaultValue: 'Failed to delete submission' }));
-          console.error('Delete submission error:', error);
-        }
+          toast.error(
+            t("submission.deleteError", {
+              defaultValue: "Failed to delete submission",
+            })
+          );
+          console.error("Delete submission error:", error);
+        },
       });
     } catch (error) {
-      console.error('Delete submission error:', error);
+      console.error("Delete submission error:", error);
     }
   };
 
-  // Handle delete confirmation
   const confirmDelete = (submissionId: string) => {
     setSubmissionToDelete(submissionId);
     setIsDeleteDialogOpen(true);
   };
 
-  // Execute deletion after confirmation
   const executeDelete = async () => {
     if (submissionToDelete) {
       await handleDeleteSubmission(submissionToDelete);
@@ -112,155 +83,30 @@ export const Assessments: React.FC = () => {
     setSubmissionToDelete(null);
   };
 
-
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="pb-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
-        </div>
-      </div>
-    );
+    return <LoadingIndicator />;
   }
-
-  // Card for each submission
-  const SubmissionCard: React.FC<{
-    submission: SubmissionWithName;
-    user: AuthUser | null;
-    navigate: NavigateFunction;
-    index: number;
-    onDelete: (submissionId: string) => void;
-    isDeleting: boolean;
-    isOrgAdmin: boolean;
-  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin }) => {
-    const { completed } = getCategoryCounts(submission);
-    
-    return (
-      <Card
-        key={submission.submission_id}
-        className="animate-fade-in"
-        style={{ animationDelay: `${index * 100}ms` }}
-      >
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-3">
-              <div className="p-2 rounded-full bg-dgrv-green/10">
-                <FileText className="w-5 h-5 text-dgrv-green" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">
-                  {submission.assessment_name || `${t("sustainability")} ${t("assessment")} ${t("submission", { defaultValue: "Submission" })}`}
-                </h3>
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      {t("submittedAt")}: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : "-"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </CardTitle>
-            <div className="flex items-center space-x-3">
-              <Badge
-                className={
-                  submission.review_status === "approved"
-                    ? "bg-dgrv-green text-white"
-                    : submission.review_status === "rejected"
-                    ? "bg-red-500 text-white"
-                    : submission.review_status === "under_review"
-                    ? "bg-yellow-500 text-white"
-                    : "bg-gray-500 text-white"
-                }
-              >
-                {submission.review_status
-                  ? submission.review_status.charAt(0).toUpperCase() +
-                    submission.review_status.slice(1).replace('_', ' ')
-                  : "-"}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              <p>
-                {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  navigate(`/submission-view/${submission.submission_id}`)
-                }
-              >
-                <Eye className="w-4 h-4 mr-1" />
-                {t("viewSubmission")}
-              </Button>
-              {isOrgAdmin && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => confirmDelete(submission.submission_id)}
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  {isDeleting ? t("deleting", { defaultValue: "Deleting..." }) : t("delete", { defaultValue: "Delete" })}
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <FileText className="w-8 h-8 text-dgrv-blue" />
-            <h1 className="text-3xl font-bold text-dgrv-blue">
-              {t("yourSubmissions", { defaultValue: "Your Submissions" })}
-            </h1>
-          </div>
-          <p className="text-lg text-gray-600">
-            {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
-          </p>
-        </div>
+        <AssessmentsHeader />
 
         <div className="grid gap-6">
           {submissions.map((submission: SubmissionWithName, index) => (
             <SubmissionCard
               key={submission.submission_id}
               submission={submission}
-              user={user}
               navigate={navigate}
               index={index}
-              onDelete={handleDeleteSubmission}
+              onDelete={confirmDelete}
               isDeleting={isDeleting}
               isOrgAdmin={isOrgAdmin()}
             />
           ))}
 
-          {submissions.length === 0 && !isLoading && (
-            <Card className="text-center py-12">
-              <CardContent>
-                <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t("noSubmissions", { defaultValue: "No Submissions" })}
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          {submissions.length === 0 && !isLoading && <NoSubmissions />}
         </div>
       </div>
       <ConfirmationDialog

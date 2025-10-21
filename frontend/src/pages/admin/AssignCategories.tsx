@@ -1,27 +1,32 @@
-import React, { useState, useEffect } from 'react';
+// /frontend/src/pages/admin/AssignCategories.tsx
+/**
+ * @file Assign Categories dialog.
+ * @description This dialog allows administrators to assign categories to an organization and set their weights.
+ */
+import CategorySelector from '@/components/pages/admin/AssignCategories/CategorySelector';
+import WeightDistribution from '@/components/pages/admin/AssignCategories/WeightDistribution';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
+  useCategoryCatalogServiceGetCategoryCatalog as useGetCategoryCatalogs,
   useOrganizationsServiceGetOrganizationsByKeycloakOrganizationIdCategories as useGetOrganizationCategories,
   useOrganizationsServicePostOrganizationsByKeycloakOrganizationIdCategoriesAssign as useAssignCategoriesToOrganization,
   useOrganizationsServicePutOrganizationsByKeycloakOrganizationIdCategoriesByOrganizationCategoryId as useUpdateOrganizationCategory,
-  useCategoryCatalogServiceGetCategoryCatalog as useGetCategoryCatalogs,
 } from '@/openapi-rq/queries/queries';
 import type {
-  OrganizationCategory,
   CategoryCatalog,
+  OrganizationCategory,
   OrganizationResponse,
 } from '@/openapi-rq/requests/types.gen';
-import Select, { MultiValue } from 'react-select';
+import React, { useEffect, useState } from 'react';
+import { MultiValue } from 'react-select';
 
 interface OptionType {
   value: string;
@@ -213,37 +218,17 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
             Assign categories to this organization and set their weights. The total weight must be 100.
           </DialogDescription>
         </DialogHeader>
-        <div>
-          <Label>Categories</Label>
-          <Select
-            isMulti
-            options={categoryOptions}
-            value={selectedCategories}
-            onChange={handleCategoryChange}
-          />
-        </div>
+        <CategorySelector
+          options={categoryOptions}
+          value={selectedCategories}
+          onChange={handleCategoryChange}
+        />
         {selectedCategories.length > 0 && (
-          <div>
-            <Label>Weights</Label>
-            {selectedCategories.map((cat) => (
-              <div key={cat.value} className="flex items-center gap-2 mt-2">
-                <Label className="w-1/3">{cat.label}</Label>
-                <Input
-                  type="number"
-                  value={weights[cat.value] ? weights[cat.value].toFixed(2) : ''}
-                  onChange={(e) =>
-                    handleWeightChange(cat.value, e.target.value)
-                  }
-                />
-              </div>
-            ))}
-            <div>
-              Total:{' '}
-              {Object.values(weights)
-                .reduce((s, w) => s + w, 0)
-                .toFixed(2)}
-            </div>
-          </div>
+          <WeightDistribution
+            selectedCategories={selectedCategories}
+            weights={weights}
+            onWeightChange={handleWeightChange}
+          />
         )}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">

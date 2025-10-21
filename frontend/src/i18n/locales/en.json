@@ -439,7 +439,12 @@
     "skipCategoryCreation": "Skip Category Creation",
     "confirmDeleteTitle": "Delete Organization",
     "confirmDeleteDescription": "Are you sure you want to delete the organization '{{name}}'? This action will permanently remove the organization and all its associated data from the system and cannot be undone.",
-    "deleteOrganization": "Delete Organization"
+    "deleteOrganization": "Delete Organization",
+    "organizationName": "Organization Name",
+    "organizationNamePlaceholder": "Enter organization name",
+    "domainPlaceholder": "Enter domain",
+    "addDomain": "Add Domain",
+    "assignCategories": "Assign Categories"
   },
   "user": {
     "dashboard": {
@@ -556,6 +561,7 @@
         "underReview": "Under Review",
         "rejected": "Rejected",
         "revisionRequested": "Revision Requested",
+        "reviewed": "Reviewed",
         "unknown": "Unknown"
       },
       "loadingSubmissionsInline": "Loading submissions...",
@@ -1074,6 +1080,23 @@
     "backToOrganizations": "Back to organizations",
     "exportAsPDF": "Export as PDF",
     "assessmentName": "Assessment",
-    "unknownAssessment": "Unknown Assessment"
+    "unknownAssessment": "Unknown Assessment",
+    "reportDetails": "Report Details",
+    "noDetails": "No details available for this report.",
+    "close": "Close",
+    "questions": "Questions",
+    "recommendation": "Recommendation",
+    "recommendations": "Recommendations",
+    "questionsAndResponses": "Questions and Responses",
+    "yesNo": "Yes/No",
+    "yes": "Yes",
+    "no": "No",
+    "percentage": "Percentage",
+    "textResponse": "Text Response",
+    "availableBelow": "Available below",
+    "detailedResponse": "Detailed Response",
+    "attachments": "Attachments",
+    "responseAttachments": "Response Attachments",
+    "additionalAttachments": "Additional Attachments"
   }
 }

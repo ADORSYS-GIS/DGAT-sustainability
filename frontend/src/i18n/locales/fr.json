@@ -574,6 +574,7 @@
         "underReview": "En cours d'examen",
         "rejected": "Rejeté",
         "revisionRequested": "Révision demandée",
+        "reviewed": "Examiné",
         "unknown": "Inconnu"
       },
       "loadingSubmissionsInline": "Chargement des soumissions...",

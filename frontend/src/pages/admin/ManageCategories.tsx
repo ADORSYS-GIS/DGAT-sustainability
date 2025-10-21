@@ -1,26 +1,22 @@
+// /frontend/src/pages/admin/ManageCategories.tsx
+/**
+ * @file Page for managing sustainability categories.
+ * @description This page allows administrators to create, update, and delete sustainability categories.
+ */
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   useOfflineSyncStatus
 } from "@/hooks/useOfflineSync";
 import { useOfflineCategoryCatalogs, useOfflineCategoryCatalogsMutation } from "@/hooks/useCategoryCatalogs";
-import { Edit, Plus, Trash2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
-
 import { OfflineCategoryCatalog } from "@/types/offline";
+import CategoryDialog from "@/components/pages/admin/ManageCategories/CategoryDialog";
+import CategoryList from "@/components/pages/admin/ManageCategories/CategoryList";
+import { Plus } from "lucide-react";
 
 interface ApiError {
   message?: string;
@@ -35,15 +31,10 @@ export const ManageCategories: React.FC = () => {
     name: "",
     description: "",
   });
-  // State for add/edit dialog weight error
-  const [showDialogWeightError, setShowDialogWeightError] = useState(false);
 
-  // Use offline hooks for all data fetching
   const { data: categoriesData, isLoading, error, refetch } = useOfflineCategoryCatalogs();
-
   const categories = categoriesData || [];
 
-  // Use enhanced offline mutation hooks
   const mutationHooks = useOfflineCategoryCatalogsMutation();
   const createOrUpdateCategory = mutationHooks.createOrUpdate;
   const deleteCategory = mutationHooks.delete;
@@ -67,11 +58,6 @@ export const ManageCategories: React.FC = () => {
     };
   }, [refetch]);
 
-  // Use categories as is (no sorting needed)
-  const sortedCategories = [...categories];
-
-  // Calculate total weight
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -87,7 +73,7 @@ export const ManageCategories: React.FC = () => {
         await createOrUpdateCategory({
           name: formData.name,
           description: formData.description,
-          template_id: SUSTAINABILITY_TEMPLATE_ID,
+          template_id: "sustainability_template_1",
           is_active: true,
         } as OfflineCategoryCatalog);
         toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
@@ -164,7 +150,6 @@ export const ManageCategories: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Offline Status Indicator */}
           <div className="mb-4 flex items-center justify-end">
             <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
               isOnline 
@@ -191,121 +176,41 @@ export const ManageCategories: React.FC = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{t('manageCategories.categories')}</CardTitle>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    className="bg-dgrv-blue hover:bg-blue-700"
-                    onClick={() => {
-                      setEditingCategory(null);
-                      setFormData({
-                        name: "",
-                        description: "",
-                      });
-                      setShowDialogWeightError(false);
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('manageCategories.addCategory')}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingCategory ? t('manageCategories.editCategory') : t('manageCategories.addCategory')}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <Label htmlFor="name">{t('manageCategories.categoryName')}</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            name: e.target.value,
-                          }))
-                        }
-                        placeholder={t('manageCategories.categoryNamePlaceholder')}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="description">{t('manageCategories.categoryDescription')}</Label>
-                      <Input
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            description: e.target.value,
-                          }))
-                        }
-                        placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      className="w-full bg-dgrv-blue hover:bg-blue-700"
-                      disabled={isPending}
-                    >
-                      {isPending
-                        ? t('manageCategories.saving', { defaultValue: 'Saving...' })
-                        : editingCategory 
-                          ? t('manageCategories.updateCategory') 
-                          : t('manageCategories.createCategory')}
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <Button
+                className="bg-dgrv-blue hover:bg-blue-700"
+                onClick={() => {
+                  setEditingCategory(null);
+                  setFormData({
+                    name: "",
+                    description: "",
+                  });
+                  setIsDialogOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t('manageCategories.addCategory')}
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {sortedCategories.map((category) => (
-                  <div
-                    key={category.category_catalog_id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div>
-                      <h3 className="font-medium text-lg">{category.name}</h3>
-                      <p className="text-sm text-gray-600">
-                        {category.description}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(category)}
-                        disabled={isPending}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(category.category_catalog_id)}
-                        className="text-red-600 hover:text-red-700"
-                        disabled={isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {/* Show error and redistribute button if needed */}
-                {sortedCategories.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>
-                      {t('manageCategories.noCategoriesYet')}
-                    </p>
-                  </div>
-                )}
-              </div>
+              <CategoryList
+                categories={categories}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isPending={isPending}
+              />
             </CardContent>
           </Card>
         </div>
       </div>
+      <CategoryDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSubmit={handleSubmit}
+        formData={formData}
+        setFormData={setFormData}
+        editingCategory={editingCategory}
+        isPending={isPending}
+      />
     </div>
   );
 };
