@@ -22,10 +22,10 @@ export const keycloak = new Keycloak({
  * Keycloak initialization options
  */
 export const keycloakInitOptions = {
-  onLoad: "check-sso" as const,
+  onLoad: "login-required" as const,
   silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
   pkceMethod: "S256" as const,
-  checkLoginIframe: false,
+  checkLoginIframe: true,
   enableLogging: import.meta.env.DEV,
   // Add timeout to prevent hanging
   promiseType: "native" as const,
