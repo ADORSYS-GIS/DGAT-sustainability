@@ -3,12 +3,15 @@ import { offlineDB } from "../services/indexeddb";
 import { apiInterceptor } from "../services/apiInterceptor";
 import {
   SubmissionsService,
+  AssessmentsService,
 } from "@/openapi-rq/requests/services.gen";
 import type { 
   Submission,
 } from "@/openapi-rq/requests/types.gen";
 import type {
   OfflineResponse,
+  OfflineAssessment,
+  OfflineCategoryCatalog,
 } from "@/types/offline";
 import { useAuth } from "./shared/useAuth";
 
@@ -43,10 +46,83 @@ export function useOfflineSubmissions() {
 
       // Fetch submissions (online or offline)
       const result = await apiInterceptor.interceptGet(
-        () => SubmissionsService.getSubmissions(),
+        async () => {
+          const response = await SubmissionsService.getSubmissions();
+          const submissions = response.submissions || [];
+
+          const assessmentsResponse =
+            await AssessmentsService.getAssessments();
+          const assessments = assessmentsResponse.assessments || [];
+          const categoryObjectMap = new Map(
+            allCategories.map((c) => [c.category_catalog_id, c])
+          );
+
+          await offlineDB.saveAssessments(
+            assessments.map((assessment) => {
+              const offlineCategories = assessment.categories
+                ?.map((catId) => categoryObjectMap.get(catId))
+                .filter((cat): cat is OfflineCategoryCatalog => cat !== undefined);
+
+              return {
+                ...assessment,
+                status: assessment.status as OfflineAssessment["status"],
+                categories: offlineCategories,
+                sync_status: "synced",
+                updated_at: new Date().toISOString(),
+              };
+            })
+          );
+
+          const assessmentNameMap = new Map(
+            assessments.map((a) => [a.assessment_id, a.name])
+          );
+
+          const offlineSubmissions = submissions.map((s) => {
+            const content = s.content as { assessment_name?: string };
+            return {
+              ...s,
+              assessment_name:
+                content?.assessment_name ||
+                assessmentNameMap.get(s.assessment_id) ||
+                "Unknown Assessment",
+            };
+          });
+
+          await offlineDB.clearStore('submissions');
+          await offlineDB.saveSubmissions(
+            offlineSubmissions.map((s) => ({
+              ...s,
+              sync_status: "synced",
+              updated_at: new Date().toISOString(),
+            }))
+          );
+
+          return { submissions: offlineSubmissions };
+        },
         async () => {
           const offlineSubmissions = await offlineDB.getAllSubmissions();
-          return { submissions: offlineSubmissions as unknown as Submission[] };
+          const allAssessments = await offlineDB.getAllAssessments();
+          const assessmentNameMap = new Map(
+            allAssessments.map((a) => [a.assessment_id, a.name])
+          );
+
+          const submissionsWithNames = offlineSubmissions.map((s) => {
+            const content = s.content as { assessment_name?: string };
+            const submissionWithName = s as Submission & { assessment_name?: string };
+            return {
+              ...s,
+              assessment_name:
+                content?.assessment_name ||
+                submissionWithName.assessment_name ||
+                assessmentNameMap.get(s.assessment_id) ||
+                "Unknown Assessment",
+            };
+          });
+
+          const filteredSubmissions = submissionsWithNames.filter(
+            s => s.review_status !== 'draft'
+          );
+          return { submissions: filteredSubmissions as unknown as Submission[] };
         },
         'submissions'
       );

@@ -16,6 +16,7 @@ import type {
   RecommendationWithStatus, // Import the type
   AssessmentDetailResponse, // Import AssessmentDetailResponse
   AdminReport,
+  AdminSubmissionDetail,
 } from "@/openapi-rq/requests/types.gen";
 import type { CategoryCatalog } from "@/openapi-rq/requests/types.gen";
 
@@ -44,6 +45,8 @@ export interface ReportCategoryData {
 
 // Create a more specific report type that aligns with the actual API response
 export interface DetailedReport extends Omit<Report, 'data'> {
+  assessment_id: string;
+  assessment_name: string;
   data: ReportCategoryData[];
 }
 
@@ -106,7 +109,7 @@ export interface OfflineDraftSubmission extends Omit<Submission, 'review_status'
   organization_id?: string;
   org_name?: string; // Add organization name for offline display
   assessment_name: string;
-  review_status: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'draft' | 'reviewed'; // Added 'reviewed'
+  review_status: 'pending_review' | 'under_review' | 'approved' | 'rejected' | 'revision_requested' | 'draft' | 'reviewed' | 'pending_approval';
 }
 
 // Enhanced Report with offline fields
@@ -125,7 +128,8 @@ export interface OfflineRecommendation extends RecommendationWithStatus, Offline
   recommendation_id: string; // Unique ID for IndexedDB
   organization_id: string;
   organization_name: string; // Cached organization name for display
-  assessment_name?: string; // Optional assessment name
+  assessment_id: string;
+  assessment_name: string;
   submission_id?: string;
 }
 
@@ -332,6 +336,17 @@ export interface OfflineDatabaseSchema {
     key: string; // image URL or unique ID
     value: OfflineImage;
   };
+  action_plans: {
+    key: string; // organization_id
+    value: OfflineActionPlan;
+  };
+}
+
+// New type for storing action plans offline
+export interface OfflineActionPlan extends OfflineEntity {
+  organization_id: string;
+  organization_name: string;
+  recommendations: OfflineRecommendation[];
 }
 
 // Represents the link between an organization and a category catalog
@@ -394,3 +409,14 @@ export interface OfflinePendingReviewSubmission {
 export interface OfflineAssessmentDetailResponse extends AssessmentDetailResponse {
   categories: OfflineCategoryCatalog[];
 }
+
+export interface ActionPlan {
+  organization_id: string;
+  organization_name: string;
+  recommendations: RecommendationWithStatus[];
+}
+
+export type AdminSubmissionWithNames = AdminSubmissionDetail & {
+  assessment_name: string;
+  org_name: string;
+};

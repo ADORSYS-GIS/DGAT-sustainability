@@ -392,6 +392,18 @@ export class ApiInterceptor {
             }
           }
           break;
+        case 'action-plans':
+          if (data.organizations && Array.isArray(data.organizations)) {
+            for (const org of data.organizations as { organization_id: string; recommendations: unknown[] }[]) {
+              if (org.recommendations && Array.isArray(org.recommendations)) {
+                // This is not ideal, we are receiving recommendations, not submissions.
+                // This part of the backend may need to be updated to return submissions.
+                // For now, we can't properly store this data as submissions.
+                console.warn(`Received recommendations for organization ${org.organization_id}, but expected submissions.`);
+              }
+            }
+          }
+          break;
         default:
           console.warn(`Unknown entity type for local storage: ${entityType}`);
       }

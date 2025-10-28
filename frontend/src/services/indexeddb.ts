@@ -12,6 +12,7 @@ import type {
   OfflineUser,
   OfflineInvitation,
   OfflineRecommendation, // Add the new type
+  OfflineActionPlan,
   OfflineOrganizationCategory,
   OfflinePendingReviewSubmission, // Import OfflinePendingReviewSubmission
   OfflineAdminReport,
@@ -35,7 +36,7 @@ export type { OfflineCategoryCatalog };
 class OfflineDB {
   private dbPromise: Promise<IDBPDatabase<OfflineDatabaseSchema>>;
   private readonly DB_NAME = "dgat-offline-db";
-  private readonly DB_VERSION = 11; // Increment DB_VERSION to trigger upgrade
+  private readonly DB_VERSION = 12; // Increment DB_VERSION to trigger upgrade
 
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
@@ -230,6 +231,37 @@ class OfflineDB {
     if (!existingStores.includes("images")) {
       db.createObjectStore("images", { keyPath: "id" });
     }
+
+    // Action Plans store with indexes
+    if (!existingStores.includes("action_plans")) {
+      const actionPlansStore = db.createObjectStore("action_plans", { keyPath: "organization_id" });
+      actionPlansStore.createIndex("sync_status", "sync_status", { unique: false });
+      actionPlansStore.createIndex("updated_at", "updated_at", { unique: false });
+    }
+  }
+
+  // ===== ACTION PLANS =====
+  async saveActionPlan(actionPlan: OfflineActionPlan): Promise<string> {
+    const db = await this.dbPromise;
+    const result = await db.put("action_plans", actionPlan);
+    return result as string;
+  }
+
+  async saveActionPlans(actionPlans: OfflineActionPlan[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("action_plans", "readwrite");
+    await Promise.all(actionPlans.map(ap => tx.store.put(ap)));
+    await tx.done;
+  }
+
+  async getActionPlan(organizationId: string): Promise<OfflineActionPlan | undefined> {
+    const db = await this.dbPromise;
+    return db.get("action_plans", organizationId);
+  }
+
+  async getAllActionPlans(): Promise<OfflineActionPlan[]> {
+    const db = await this.dbPromise;
+    return db.getAll("action_plans");
   }
 
   // ===== ORGANIZATION CATEGORIES =====

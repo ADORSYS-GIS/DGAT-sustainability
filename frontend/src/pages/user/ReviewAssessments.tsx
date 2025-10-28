@@ -93,7 +93,7 @@ const ReviewAssessments: React.FC = () => {
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategoryCatalogs();
   const { isOnline } = useOfflineSyncStatus();
-  const { data: organizationsData, isLoading: organizationsLoading } = useOfflineOrganizations();
+  const { organizations: organizationsData, isLoading: organizationsLoading } = useOfflineOrganizations();
   const { mutateAsync: submitReview } = useSubmitReview();
   // Filter submissions for review
   const categoryIdMap = useMemo(() => {
@@ -106,13 +106,13 @@ const ReviewAssessments: React.FC = () => {
   }, [categoriesData]);
 
   const questionsMap = useMemo(() => {
-    if (!questionsData?.questions) return new Map();
+    if (!questionsData) return new Map();
     const map = new Map<string, { text: string; category: string }>();
-    questionsData.questions.forEach(q => {
-      if (q.question?.latest_revision) {
-        const categoryName = categoryIdMap.get(q.question.category_id) || 'Unknown Category';
-        map.set(q.question.latest_revision.question_revision_id, {
-          text: (q.question.latest_revision.text as { en: string })?.en || '',
+    questionsData.forEach(q => {
+      if (q.latest_revision) {
+        const categoryName = categoryIdMap.get(q.category_id) || 'Unknown Category';
+        map.set(q.latest_revision.question_revision_id, {
+          text: (q.latest_revision.text as { en: string })?.en || '',
           category: categoryName,
         });
       }
@@ -121,9 +121,9 @@ const ReviewAssessments: React.FC = () => {
   }, [questionsData, categoryIdMap]);
 
   const organizationsMap = useMemo(() => {
-    if (!organizationsData?.organizations) return new Map();
+    if (!organizationsData) return new Map();
     const map = new Map<string, string>();
-    organizationsData.organizations.forEach(o => {
+    organizationsData.forEach(o => {
       map.set(o.id, o.name);
     });
     return map;
@@ -296,9 +296,6 @@ const ReviewAssessments: React.FC = () => {
                       <CardTitle className="text-lg">
                         {submission.assessment_name || t('reviewAssessments.unknownAssessment', { defaultValue: 'Unknown Assessment' })}
                       </CardTitle>
-                      <p className="text-sm text-gray-600">
-                        {t('reviewAssessments.organization', { defaultValue: 'Organization' })}: {organizationsMap.get(submission.organization_id) || t('reviewAssessments.unknownOrganization', { defaultValue: 'Unknown Organization' })}
-                      </p>
                       <p className="text-sm text-gray-600">
                         {t('reviewAssessments.submitted', { defaultValue: 'Submitted' })}: {new Date(submission.submitted_at).toLocaleDateString()}
                       </p>

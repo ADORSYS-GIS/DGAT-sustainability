@@ -459,6 +459,8 @@ pub struct AttachFileRequest {
 pub struct Report {
     pub report_id: Uuid,
     pub submission_id: Uuid,
+    pub assessment_id: Uuid,
+    pub assessment_name: String,
     pub status: String,
     pub generated_at: String,
     pub data: Option<serde_json::Value>,
@@ -490,6 +492,8 @@ pub struct OrganizationActionPlan {
 pub struct RecommendationWithStatus {
     pub recommendation_id: Uuid,
     pub report_id: Uuid,
+    pub assessment_id: Uuid,
+    pub assessment_name: String,
     pub category: String,
     pub recommendation: String,
     pub status: String,

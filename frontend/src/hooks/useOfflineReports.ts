@@ -15,67 +15,13 @@ import type {
 import type {
   OfflineRecommendation,
   DetailedReport,
+  ReportCategoryData,
+  ReportCategoryContent,
 } from "@/types/offline";
 import { DataTransformationService } from "../services/dataTransformation";
 import { useAuth } from "./shared/useAuth";
 import { invalidateAndRefetch } from "./useOfflineApi";
 
-export function useOfflineAdminActionPlans() {
-  const [data, setData] = useState<ActionPlanListResponse>({ organizations: [] });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const result = await apiInterceptor.interceptGet(
-        () => AdminService.getAdminActionPlans(),
-        async () => {
-          // Offline fallback: fetch all recommendations from IndexedDB
-          const offlineRecommendations = await offlineDB.getAllRecommendations();
-
-          // Group recommendations by organization to match ActionPlanListResponse structure
-          const organizationsMap = new Map<string, OrganizationActionPlan>();
-
-          offlineRecommendations.forEach(rec => {
-            if (!organizationsMap.has(rec.organization_id)) {
-              organizationsMap.set(rec.organization_id, {
-                organization_id: rec.organization_id,
-                organization_name: rec.organization_name,
-                recommendations: [],
-              });
-            }
-            organizationsMap.get(rec.organization_id)?.recommendations.push({
-              recommendation_id: rec.recommendation_id,
-              report_id: rec.report_id,
-              category: rec.category,
-              recommendation: rec.recommendation,
-              status: rec.status,
-              created_at: rec.created_at,
-            });
-          });
-
-          return { organizations: Array.from(organizationsMap.values()) };
-        },
-        'admin_action_plans'
-      );
-
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch admin action plans'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return { data, isLoading, error, refetch: fetchData };
-}
 
 export function useOfflineReports() {
   const [data, setData] = useState<{ recommendations: OfflineRecommendation[]; reports: Report[] }>({ recommendations: [], reports: [] });
@@ -153,10 +99,27 @@ export function useOfflineUserRecommendations() {
           const submissions = await offlineDB.getAllSubmissions();
           const submissionMap = new Map(submissions.map(s => [s.submission_id, s.assessment_name]));
 
-          const enrichedReports = reports.map(report => ({
+          const uiReports = reports.map(report => ({
             ...report,
             assessment_name: submissionMap.get(report.submission_id)
           }));
+
+          const reportsToSave = uiReports.map(report => {
+            const reportData = (report.data || []).reduce((acc, item) => {
+              const key = Object.keys(item)[0];
+              if (key) {
+                acc[key] = item[key];
+              }
+              return acc;
+            }, {} as { [key: string]: unknown });
+        
+            return {
+              ...report,
+              updated_at: new Date().toISOString(),
+              sync_status: 'synced' as const,
+              data: reportData,
+            };
+          });
 
           for (const report of reports) {
             const assessmentName = submissionMap.get(report.submission_id);
@@ -169,8 +132,9 @@ export function useOfflineUserRecommendations() {
             allOfflineRecommendations.push(...transformedRecs);
           }
           await offlineDB.saveRecommendations(allOfflineRecommendations);
+          await offlineDB.saveReports(reportsToSave);
           
-          return { reports: enrichedReports };
+          return { reports: uiReports };
         },
         async () => {
           const [offlineRecommendations, submissions] = await Promise.all([
@@ -194,6 +158,7 @@ export function useOfflineUserRecommendations() {
               reportsMap.set(rec.report_id, {
                 report_id: rec.report_id,
                 submission_id: rec.submission_id || '',
+                assessment_id: rec.assessment_id,
                 assessment_name: rec.assessment_name,
                 report_type: 'sustainability',
                 status: 'completed',
@@ -340,6 +305,94 @@ export function useOfflineAdminReports() {
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, isLoading, error, refetch: fetchData };
+}
+
+export function useOfflineReport(submissionId?: string) {
+  const [data, setData] = useState<{ report: DetailedReport | null }>({ report: null });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!submissionId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await apiInterceptor.interceptGet(
+        async () => {
+          // Online: Fetch all reports and find the specific one
+          const response = await ReportsService.getUserReports();
+          const reports = (response.reports || []) as unknown as DetailedReport[];
+          const report = reports.find(r => r.submission_id === submissionId);
+          
+          if (report) {
+            // Save the fetched report to IndexedDB
+            const submissions = await offlineDB.getAllSubmissions();
+            const submissionMap = new Map(submissions.map(s => [s.submission_id, s.assessment_name]));
+            const assessmentName = submissionMap.get(report.submission_id) || 'Unknown Assessment';
+
+            const reportToSave = {
+              ...report,
+              assessment_name: assessmentName,
+              updated_at: new Date().toISOString(),
+              sync_status: 'synced' as const,
+              data: (report.data || []).reduce((acc, item) => {
+                const key = Object.keys(item)[0];
+                if (key) acc[key] = item[key];
+                return acc;
+              }, {} as { [key: string]: unknown }),
+            };
+            await offlineDB.saveReports([reportToSave]);
+            return { report };
+          }
+          return { report: null };
+        },
+        async () => {
+          // Offline: Fetch from IndexedDB
+          const allReports = await offlineDB.getAllReports();
+          const report = allReports.find(r => r.submission_id === submissionId);
+
+          if (report) {
+            const submissions = await offlineDB.getAllSubmissions();
+            const submission = submissions.find(s => s.submission_id === submissionId);
+            const assessmentName = submission?.assessment_name || 'Unknown Assessment';
+
+            const reportData = report.data as { [key: string]: unknown };
+            const transformedData: ReportCategoryData[] = reportData
+              ? Object.entries(reportData).map(([category, content]) => ({
+                  [category]: content as ReportCategoryContent,
+                }))
+              : [];
+
+            const enrichedReport = {
+              ...report,
+              assessment_name: assessmentName,
+              data: transformedData,
+            };
+            return { report: enrichedReport as unknown as DetailedReport };
+          }
+          return { report: null };
+        },
+        `report_${submissionId}`
+      );
+
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch report'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [submissionId]);
 
   useEffect(() => {
     fetchData();

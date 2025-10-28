@@ -179,6 +179,8 @@ export const Dashboard: React.FC = () => {
         return categoryRecommendations.map((rec) => ({
           recommendation_id: rec.id,
           report_id: report.report_id,
+          assessment_id: report.assessment_id,
+          assessment_name: report.assessment_name,
           category,
           recommendation: rec.text,
           status: (rec.status as RecommendationWithStatus["status"]) || "todo",
@@ -310,7 +312,7 @@ export const Dashboard: React.FC = () => {
       description: t('user.dashboard.actionPlan.description'),
       icon: CheckSquare,
       color: "blue" as const,
-      onClick: () => navigate("/action-plan"),
+      onClick: () => navigate("/user/assessment-submissions"),
     },
   ];
 
@@ -359,13 +361,13 @@ export const Dashboard: React.FC = () => {
 
     const allRecommendations = userRecommendations?.reports.flatMap(report => {
       const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
-      return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
-        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+      return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
+        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
       );
     }) || [];
     await exportAllAssessmentsPDF(
       adminSubmissionsData?.submissions || [],
-      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })),
+      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
       radarChartDataUrl,
       recommendationChartDataUrl
     );
@@ -378,13 +380,13 @@ export const Dashboard: React.FC = () => {
 
     const allRecommendations = userRecommendations?.reports.flatMap(report => {
       const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
-      return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
-        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+      return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
+        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
       );
     }) || [];
     await exportAllAssessmentsDOCX(
       adminSubmissionsData?.submissions || [],
-      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })),
+      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
       radarChartDataUrl,
       recommendationChartDataUrl
     );
@@ -451,11 +453,11 @@ export const Dashboard: React.FC = () => {
     if (userRecommendations?.reports) {
       const allRecommendations = userRecommendations.reports.flatMap(report => {
         const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
-        return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
-          (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+        return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
+          (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
         );
       });
-      return generateRecommendationChartData(allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })));
+      return generateRecommendationChartData(allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })));
     }
     return null;
   }, [userRecommendations]);

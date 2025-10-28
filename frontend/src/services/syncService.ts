@@ -55,7 +55,8 @@ export interface FullSyncResult {
   reports: SyncResult;
   organizations: SyncResult;
   users: SyncResult;
-  recommendations: SyncResult;
+  admin_submissions: SyncResult;
+  action_plans: SyncResult;
   pending_assessments: SyncResult;
   pending_review_submissions: SyncResult;
   pending_organizations: SyncResult; // Add pending organizations to sync result
@@ -133,7 +134,8 @@ export class SyncService {
       // Always sync organizations for DGRV admin
       if (isDrgvAdmin) {
         syncTasks.push(this.syncOrganizations());
-        syncTasks.push(this.syncRecommendations());
+        syncTasks.push(this.syncAdminSubmissions());
+        syncTasks.push(this.syncActionPlans());
         syncTasks.push(this.syncPendingOrganizations()); // Add pending organizations sync
       }
 
@@ -209,11 +211,19 @@ export class SyncService {
 
       // Recommendations only for DGRV admin
       if (isDrgvAdmin) {
-        const recommendationsResult = syncResults[taskIndex];
-        if (recommendationsResult?.status === 'fulfilled') {
-          results.recommendations = recommendationsResult.value;
-        } else if (recommendationsResult?.status === 'rejected') {
-          results.recommendations.errors.push(recommendationsResult.reason?.toString() || 'Unknown error');
+        const adminSubmissionsResult = syncResults[taskIndex];
+        if (adminSubmissionsResult?.status === 'fulfilled') {
+          results.admin_submissions = adminSubmissionsResult.value;
+        } else if (adminSubmissionsResult?.status === 'rejected') {
+          results.admin_submissions.errors.push(adminSubmissionsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+
+        const actionPlansResult = syncResults[taskIndex];
+        if (actionPlansResult?.status === 'fulfilled') {
+          results.action_plans = actionPlansResult.value;
+        } else if (actionPlansResult?.status === 'rejected') {
+          results.action_plans.errors.push(actionPlansResult.reason?.toString() || 'Unknown error');
         }
         taskIndex++;
 
@@ -379,7 +389,7 @@ export class SyncService {
       console.log("Fetched serverOrgCategoriesResponse:", serverOrgCategoriesResponse);
       // Check if serverOrgCategoriesResponse or its 'categories' property is undefined
       if (!serverOrgCategoriesResponse || !serverOrgCategoriesResponse.organization_categories) {
-        console.error("serverOrgCategoriesResponse or its organization_categories property is undefined:", serverOrgCategoriesResponse);
+        console.error("serverOrgCategoriesResponse or its 'organization_categories' property is undefined:", serverOrgCategoriesResponse);
         result.errors.push('Failed to fetch organization categories from server or response format is invalid.');
         return result;
       }
@@ -678,114 +688,88 @@ export class SyncService {
   /**
    * Sync recommendations from server to local (DGRV admin only)
    */
-  private async syncRecommendations(): Promise<SyncResult> {
-    const result: SyncResult = { entityType: 'recommendations', added: 0, updated: 0, deleted: 0, errors: [] };
+  private async syncAdminSubmissions(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'admin_submissions', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
-      // Get server action plans (which contain recommendations)
-      const serverActionPlansResponse = await AdminService.getAdminActionPlans();
-      const serverOrganizations = serverActionPlansResponse.organizations;
+      const serverSubmissionsResponse = await AdminService.getAdminSubmissions();
+      const serverSubmissions = serverSubmissionsResponse.submissions;
 
-      // If server returns no organizations with recommendations, clear the local store completely
-      if (serverOrganizations.length === 0) {
-        const currentLocalRecommendations = await offlineDB.getAllRecommendations();
-        await offlineDB.clearStore('recommendations');
-        result.deleted = currentLocalRecommendations.length;
+      if (serverSubmissions.length === 0) {
+        // We might not want to clear all submissions, just the ones visible to the admin.
+        // This requires more sophisticated logic. For now, we'll just add/update.
         return result;
       }
 
-      // Extract all server recommendations
-      const serverRecommendations: OfflineRecommendation[] = [];
-      const serverRecommendationIds = new Set<string>();
+      const localSubmissions = await offlineDB.getAllSubmissions();
+      const allAssessments = await offlineDB.getAllAssessments();
+      const allOrganizations = await offlineDB.getAllOrganizations();
+      const serverSubmissionIds = new Set(serverSubmissions.map(s => s.submission_id));
 
-      for (const org of serverOrganizations) {
-        for (const serverRec of org.recommendations) {
-          // Create a proper Report object structure
-          const reportData = {
-            report_id: serverRec.report_id,
-            data: [{
-              [serverRec.category]: {
-                recommendations: [{
-                  text: serverRec.recommendation,
-                  status: serverRec.status,
-                }],
-              }
-            }]
-          } as DetailedReport;
+      for (const serverSubmission of serverSubmissions) {
+        const localSubmission = localSubmissions.find(s => s.submission_id === serverSubmission.submission_id);
+        const assessment = allAssessments.find(a => a.assessment_id === serverSubmission.assessment_id);
+        const offlineSubmission = DataTransformationService.transformAdminSubmission(
+          serverSubmission,
+          assessment?.name || 'Unknown Assessment'
+        );
 
-          const offlineRecs = DataTransformationService.transformReportToOfflineRecommendations(
-            reportData,
-            org.organization_id,
-            org.organization_name
-          );
-
-          if (offlineRecs.length > 0) {
-            const offlineRec = offlineRecs[0];
-            serverRecommendations.push(offlineRec);
-            serverRecommendationIds.add(offlineRec.recommendation_id);
-          }
-        }
-      }
-
-      // Get local recommendations
-      const localRecommendations = await offlineDB.getAllRecommendations();
-      const localRecommendationIds = new Set(localRecommendations.map(r => r.recommendation_id));
-
-      console.log(`🔄 Syncing ${serverRecommendations.length} server recommendations with ${localRecommendations.length} local recommendations`);
-
-      // Find recommendations to add/update
-      for (const serverRec of serverRecommendations) {
-        // First try to find by exact recommendation_id match
-        let localRec = localRecommendations.find(r => r.recommendation_id === serverRec.recommendation_id);
-        
-        // If not found by ID, try to find by content match to avoid duplicates
-        if (!localRec) {
-          localRec = localRecommendations.find(r =>
-            r.report_id === serverRec.report_id &&
-            r.category === serverRec.category &&
-            r.recommendation === serverRec.recommendation
-          );
-          
-          if (localRec) {
-            console.log(`🔄 Found content match for recommendation: ${serverRec.recommendation_id} -> ${localRec.recommendation_id}`);
-          }
-        }
-        
-        if (!localRec) {
-          // Add new recommendation
-          console.log(`🔄 Adding new recommendation: ${serverRec.recommendation_id}`);
-          await offlineDB.saveRecommendation(serverRec);
+        if (!localSubmission) {
+          await offlineDB.saveSubmission(offlineSubmission);
           result.added++;
         } else {
-          // Update existing recommendation if different
-          // Check if any fields have changed
-          const hasChanges = localRec.status !== serverRec.status ||
-                           localRec.recommendation !== serverRec.recommendation ||
-                           localRec.category !== serverRec.category ||
-                           localRec.report_id !== serverRec.report_id ||
-                           localRec.organization_id !== serverRec.organization_id;
-
-          if (hasChanges) {
-            console.log(`🔄 Updating recommendation: ${localRec.recommendation_id} (preserving ID)`);
-            // Preserve the local recommendation_id but update all other fields
-            const updatedRec = {
-              ...serverRec,
-              recommendation_id: localRec.recommendation_id // Keep the existing ID
-            };
-            await offlineDB.saveRecommendation(updatedRec);
-            result.updated++;
-          }
+          await offlineDB.saveSubmission(offlineSubmission);
+          result.updated++;
         }
       }
 
-      // Find recommendations to delete (local recommendations not on server)
-      for (const localRec of localRecommendations) {
-        if (!serverRecommendationIds.has(localRec.recommendation_id) && !localRec.recommendation_id.startsWith('temp_')) {
-          await offlineDB.deleteRecommendation(localRec.recommendation_id);
+      // Optionally, delete local admin-visible submissions that are no longer on the server
+      // This is complex because a submission might be visible to both a user and an admin.
+      // We will skip deletion for now to avoid accidentally removing user data.
+
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+
+  private async syncActionPlans(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'action_plans', added: 0, updated: 0, deleted: 0, errors: [] };
+
+    try {
+      const serverActionPlansResponse = await AdminService.getAdminActionPlans();
+      const serverActionPlans = serverActionPlansResponse.organizations;
+
+      if (serverActionPlans.length === 0) {
+        const currentLocalActionPlans = await offlineDB.getAllActionPlans();
+        await offlineDB.clearStore('action_plans');
+        result.deleted = currentLocalActionPlans.length;
+        return result;
+      }
+
+      const serverActionPlanIds = new Set(serverActionPlans.map(ap => ap.organization_id));
+      const localActionPlans = await offlineDB.getAllActionPlans();
+
+      for (const serverActionPlan of serverActionPlans) {
+        const localActionPlan = localActionPlans.find(ap => ap.organization_id === serverActionPlan.organization_id);
+        const offlineActionPlan = DataTransformationService.transformActionPlan(serverActionPlan);
+
+        if (!localActionPlan) {
+          await offlineDB.saveActionPlan(offlineActionPlan);
+          result.added++;
+        } else {
+          await offlineDB.saveActionPlan(offlineActionPlan);
+          result.updated++;
+        }
+      }
+
+      for (const localActionPlan of localActionPlans) {
+        if (!serverActionPlanIds.has(localActionPlan.organization_id)) {
+          await offlineDB.deleteOrganization(localActionPlan.organization_id);
           result.deleted++;
         }
       }
-
     } catch (error) {
       result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -803,7 +787,8 @@ export class SyncService {
       reports: { entityType: 'reports', added: 0, updated: 0, deleted: 0, errors: [] },
       organizations: { entityType: 'organizations', added: 0, updated: 0, deleted: 0, errors: [] },
       users: { entityType: 'users', added: 0, updated: 0, deleted: 0, errors: [] },
-      recommendations: { entityType: 'recommendations', added: 0, updated: 0, deleted: 0, errors: [] },
+      admin_submissions: { entityType: 'admin_submissions', added: 0, updated: 0, deleted: 0, errors: [] },
+      action_plans: { entityType: 'action_plans', added: 0, updated: 0, deleted: 0, errors: [] },
       pending_assessments: { entityType: 'pending_assessments', added: 0, updated: 0, deleted: 0, errors: [] },
       pending_review_submissions: { entityType: 'pending_review_submissions', added: 0, updated: 0, deleted: 0, errors: [] },
       pending_organizations: { entityType: 'pending_organizations', added: 0, updated: 0, deleted: 0, errors: [] }
@@ -1027,6 +1012,7 @@ export class SyncService {
 
     return result;
   }
+
 }
 // Export singleton instance
 export const syncService = new SyncService();

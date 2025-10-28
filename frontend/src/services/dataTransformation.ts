@@ -35,7 +35,9 @@ import type {
   ReportCategoryData, // Import ReportCategoryData
   DetailedReport,
   OfflineOrganizationCategory,
-  OfflineDraftSubmission
+  OfflineDraftSubmission,
+  OfflineActionPlan,
+  ActionPlan
 } from "@/types/offline";
 import { OrganizationCategory } from "@/openapi-rq/requests/types.gen";
 
@@ -237,10 +239,6 @@ export class DataTransformationService {
       submitted_at: submission.submitted_at || now,
       reviewed_at: submission.reviewed_at,
       organization_id: userOrganizationId,
-      reviewer_id: submission.reviewed_at ? submission.submission_id : undefined,
-      reviewer_email: reviewerEmail,
-      review_comments: '',
-      files: [],
       updated_at: now,
       sync_status: 'pending' as const, // Mark as pending for sync if it came from backend as a draft
       local_changes: true, // Assume local changes for a draft
@@ -283,6 +281,28 @@ export class DataTransformationService {
       sync_status: 'synced' as const,
       local_changes: false,
       last_synced: now
+    };
+  }
+
+  static transformAdminSubmissionToOffline(
+    submission: AdminSubmissionDetail
+  ): OfflineSubmission {
+    const now = new Date().toISOString();
+    return {
+      submission_id: submission.submission_id,
+      assessment_id: submission.assessment_id,
+      assessment_name: "", // This will be enriched later
+      user_id: submission.user_id,
+      content: submission.content,
+      review_status: submission.review_status as OfflineSubmission["review_status"],
+      submitted_at: submission.submitted_at,
+      reviewed_at: submission.reviewed_at,
+      organization_id: submission.org_id,
+      org_name: submission.org_name,
+      updated_at: now,
+      sync_status: "synced",
+      local_changes: false,
+      last_synced: now,
     };
   }
 
@@ -746,13 +766,14 @@ export class DataTransformationService {
               recommendation_id: deterministicId,
               report_id: report.report_id,
               submission_id: report.submission_id,
+              assessment_id: report.assessment_id,
+              assessment_name: report.assessment_name,
               category: categoryName,
               recommendation: rec.text,
               status: rec.status,
-              created_at: now,
+              created_at: report.generated_at || now,
               organization_id: userOrganizationId || 'unknown',
               organization_name: organizationName || 'Unknown Organization',
-              assessment_name: assessmentName,
               updated_at: now,
               sync_status: 'synced',
               local_changes: false,
@@ -764,5 +785,34 @@ export class DataTransformationService {
     });
 
     return recommendations;
+  }
+
+  /**
+   * Transform API ActionPlan to OfflineActionPlan
+   */
+  static transformActionPlan(actionPlan: ActionPlan): OfflineActionPlan {
+    const now = new Date().toISOString();
+    const recommendations = actionPlan.recommendations.map(
+      (rec) =>
+        ({
+          ...rec,
+          organization_id: actionPlan.organization_id,
+          organization_name: actionPlan.organization_name,
+          updated_at: now,
+          sync_status: 'synced' as const,
+          local_changes: false,
+          last_synced: now,
+        } as OfflineRecommendation)
+    );
+
+    return {
+      organization_id: actionPlan.organization_id,
+      organization_name: actionPlan.organization_name,
+      recommendations,
+      updated_at: now,
+      sync_status: 'synced' as const,
+      local_changes: false,
+      last_synced: now,
+    };
   }
 }

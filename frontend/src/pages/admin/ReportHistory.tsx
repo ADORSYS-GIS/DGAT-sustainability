@@ -275,6 +275,8 @@ export const ReportHistory: React.FC = () => {
           recommendation: rec.text,
           status: (rec.status as RecommendationWithStatus["status"]) || "todo",
           created_at: report.generated_at,
+          assessment_id: report.submission_id || '',
+          assessment_name: 'N/A',
         }));
       }
     );
@@ -360,10 +362,11 @@ export const ReportHistory: React.FC = () => {
       const reportToExport: Report = {
         report_id: report.report_id,
         submission_id: submissionId,
-        report_type: "sustainability", // Defaulting to a common report type
         generated_at: report.generated_at,
         status: report.status as "generating" | "completed" | "failed", // Cast to the correct literal type
         data: report.data,
+        assessment_id: report.submission_id || '',
+        assessment_name: 'N/A',
       };
 
       const { submissions: singleSubmissions, recommendations: singleRecs } =
@@ -500,7 +503,7 @@ export const ReportHistory: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-semibold text-dgrv-blue">{report.org_name}</div>
-                        <div className="text-xs text-gray-500">{t('reportHistory.reportId', { defaultValue: 'Report' })}: {report.report_id}</div>
+                        <div className="text-xs text-gray-500">{t('reportHistory.report', { defaultValue: 'Report' })}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">

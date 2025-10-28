@@ -22,6 +22,7 @@ import { AdminGuide } from "../pages/admin/AdminGuide";
 import { UserGuide } from "../pages/user/UserGuide";
 import DraftSubmissions from "../pages/user/DraftSubmissions";
 import { ReportHistory } from "../pages/admin/ReportHistory";
+import { AssessmentSubmissionsList } from "@/pages/user/AssessmentSubmissionsList";
 
 const routes = [
   // Public routes
@@ -75,6 +76,7 @@ const routes = [
       { path: "assessment/:assessmentId", element: React.createElement(Assessment) },
       { path: "assessment-list", element: React.createElement(AssessmentList) },
       { path: "draft-submissions", element: React.createElement(DraftSubmissions) },
+      { path: "assessment-submissions", element: React.createElement(AssessmentSubmissionsList) },
       { path: "manage-users", element: React.createElement(OrgUserManageUsers) },
       { path: "guide", element: React.createElement(UserGuide) },
       { path: "reviews", element: React.createElement(ReviewAssessments) },
@@ -97,8 +99,7 @@ const routes = [
       allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
     }),
     children: [
-      { path: "", element: React.createElement(ActionPlan) },
-      { path: ":reportId", element: React.createElement(ActionPlan) },
+      { path: "submission/:submissionId", element: React.createElement(ActionPlan) },
     ],
   },
 

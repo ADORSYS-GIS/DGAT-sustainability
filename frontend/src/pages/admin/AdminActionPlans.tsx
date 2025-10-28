@@ -6,10 +6,8 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { useOfflineAdminActionPlans } from '@/hooks/useOfflineReports';
-import {
-  OrganizationActionPlan
-} from '@/openapi-rq/requests/types.gen';
+import { useOfflineActionPlans } from '@/hooks/useOfflineActionPlans';
+import { OfflineActionPlan, OfflineRecommendation } from '@/types/offline';
 import {
   AlertCircle,
   ArrowLeft,
@@ -19,63 +17,57 @@ import {
   RefreshCw,
   ThumbsUp
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 const AdminActionPlans: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [selectedOrganization, setSelectedOrganization] = useState<OrganizationActionPlan | null>(null);
-  
+  const [selectedOrganization, setSelectedOrganization] = useState<OfflineActionPlan | null>(null);
+  const [selectedAssessment, setSelectedAssessment] = useState<{ assessment_id: string; assessment_name: string; created_at: string } | null>(null);
+
   const {
-    data: { organizations },
-    isLoading,
-    error,
-    refetch
-  } = useOfflineAdminActionPlans();
+    data: actionPlansData,
+    isLoading: actionPlansLoading,
+    error: actionPlansError,
+    refetch: refetchActionPlans,
+  } = useOfflineActionPlans();
+
+  const uniqueAssessments = useMemo(() => {
+    if (!selectedOrganization) return [];
+    const assessmentsMap = new Map<string, { assessment_id: string; assessment_name: string; created_at: string }>();
+    selectedOrganization.recommendations.forEach(rec => {
+        if (rec.assessment_id && !assessmentsMap.has(rec.assessment_id)) {
+            assessmentsMap.set(rec.assessment_id, {
+                assessment_id: rec.assessment_id,
+                assessment_name: rec.assessment_name || 'Unknown Assessment',
+                created_at: rec.created_at
+            });
+        }
+    });
+    return Array.from(assessmentsMap.values());
+  }, [selectedOrganization]);
 
   // State to manage refreshing indicator
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Effect to handle initial data fetch and re-fetch on language change
-  useEffect(() => {
-    refetch();
-  }, [t, refetch]);
-
   // Handle manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await refetch();
+    await refetchActionPlans();
     setIsRefreshing(false);
   };
-
-  // Update selected organization if the data changes
-  useEffect(() => {
-    if (selectedOrganization && organizations.length > 0) {
-      const updatedOrg = organizations.find(org => org.organization_id === selectedOrganization.organization_id);
-      if (updatedOrg) {
-        setSelectedOrganization(updatedOrg);
-      } else {
-        // If the selected organization no longer exists (e.g., deleted), deselect it
-        setSelectedOrganization(null);
-      }
-    }
-  }, [organizations]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Disable exhaustive-deps for `selectedOrganization` as we explicitly handle its update based on `organizations`
 
   // Refresh data when user returns to the tab
   useEffect(() => {
     const handleFocus = () => {
-      // Only refresh if we're not already loading and we have data
-      if (!isLoading && !isRefreshing && organizations.length > 0) {
+      if (!actionPlansLoading && !isRefreshing) {
         handleRefresh();
       }
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [isLoading, isRefreshing, organizations.length, handleRefresh]);
+  }, [actionPlansLoading, isRefreshing, handleRefresh]);
 
   // Columns for Kanban
   const columns = [
@@ -96,8 +88,15 @@ const AdminActionPlans: React.FC = () => {
   ];
 
   // Filter recommendations by status
-  const getTasksByStatus = (status: string) =>
-    selectedOrganization?.recommendations.filter((rec) => rec.status === status) || [];
+  const getTasksByStatus = (status: string) => {
+    if (!selectedAssessment || !selectedOrganization) {
+      return [];
+    }
+    const submissionRecommendations = selectedOrganization.recommendations.filter(
+      (rec) => rec.assessment_id === selectedAssessment.assessment_id
+    );
+    return submissionRecommendations.filter((rec) => rec.status === status);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -114,7 +113,7 @@ const AdminActionPlans: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (actionPlansLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
@@ -127,13 +126,13 @@ const AdminActionPlans: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (actionPlansError) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-            <p className="text-red-600">{error.message}</p>
+            <p className="text-red-600">{actionPlansError.message}</p>
             <Button onClick={handleRefresh} className="mt-2">
               {t('adminActionPlans.retry', { defaultValue: 'Retry' })}
             </Button>
@@ -149,89 +148,70 @@ const AdminActionPlans: React.FC = () => {
       <div className="container mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/admin/review-assessments')}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>{t('adminActionPlans.backToReview', { defaultValue: 'Back to Review' })}</span>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{t('adminActionPlans.title', { defaultValue: 'Organization Action Plans' })}</h1>
-              <p className="text-gray-600">{t('adminActionPlans.subtitle', { defaultValue: 'Select an organization to view their action plan' })}</p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{t('adminActionPlans.title', { defaultValue: 'Organization Action Plans' })}</h1>
+            <p className="text-gray-600">{t('adminActionPlans.subtitle', { defaultValue: 'Select an organization to view their action plan' })}</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{t('adminActionPlans.refresh', { defaultValue: 'Refresh' })}</span>
-          </Button>
         </div>
 
         {/* Organization Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {organizations.length === 0 ? (
-            <Card className="col-span-full text-center py-12">
-              <CardContent>
-                <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t('adminActionPlans.noOrganizations', { defaultValue: 'No organizations with action plans' })}
-                </h3>
-                <p className="text-gray-600">
-                  {t('adminActionPlans.noOrganizationsDesc', { defaultValue: 'Organizations with recommendations will appear here' })}
+          {actionPlansData?.map((org) => (
+            <Card
+              key={org.organization_id}
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setSelectedOrganization(org)}
+            >
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-full bg-blue-100">
+                    <Building2 className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{org.organization_name}</CardTitle>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedAssessment) {
+    return (
+      <div className="container mx-auto p-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedOrganization(null)}
+          className="flex items-center space-x-2 mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>{t('adminActionPlans.backToOrganizations', { defaultValue: 'Back to Organizations' })}</span>
+        </Button>
+        <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
+          {t('assessment.selectAssessmentToViewActionPlan', { defaultValue: 'Select Assessment to View Action Plan' })}
+        </h1>
+        <p className="text-lg text-gray-600 mb-6">
+          {t('assessment.selectAssessmentToActionPlanDescription', { defaultValue: 'Choose an assessment to view the action plan.' })}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {uniqueAssessments.map((assessment) => (
+            <Card
+              key={assessment.assessment_id}
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setSelectedAssessment(assessment)}
+            >
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-dgrv-blue mb-2">{assessment.assessment_name}</h3>
+                <p className="text-sm text-gray-600">
+                  {t('assessment.submittedOn', { defaultValue: 'Submitted on' })}: {new Date(assessment.created_at).toLocaleDateString()}
                 </p>
               </CardContent>
             </Card>
-          ) : (
-            organizations.map((org) => (
-              <Card
-                key={org.organization_id}
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelectedOrganization(org)}
-              >
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 rounded-full bg-blue-100">
-                      <Building2 className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{org.organization_name}</CardTitle>
-                      <p className="text-sm text-gray-600">
-                        {org.recommendations.length} {org.recommendations.length === 1 ? t('adminActionPlans.recommendation', { defaultValue: 'recommendation' }) : t('adminActionPlans.recommendations', { defaultValue: 'recommendations' })}
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {columns.map((column) => {
-                      const count = org.recommendations.filter(rec => rec.status === column.id).length;
-                      if (count === 0) return null;
-                      
-                      const IconComponent = column.icon;
-                      return (
-                        <div key={column.id} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center space-x-2">
-                            <IconComponent className="w-4 h-4" />
-                            <span className={column.color}>{column.title}</span>
-                          </div>
-                          <Badge variant="outline">{count}</Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
+          ))}
         </div>
       </div>
     );
@@ -246,15 +226,15 @@ const AdminActionPlans: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedOrganization(null)}
+            onClick={() => setSelectedAssessment(null)}
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{t('adminActionPlans.backToOrganizations', { defaultValue: 'Back to Organizations' })}</span>
+            <span>{t('adminActionPlans.backToAssessments', { defaultValue: 'Back to Assessments' })}</span>
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{selectedOrganization.organization_name}</h1>
-            <p className="text-gray-600">{t('adminActionPlans.actionPlanFor', { defaultValue: 'Action Plan' })}</p>
+            <p className="text-gray-600">{selectedAssessment.assessment_name}</p>
           </div>
         </div>
         <Button
@@ -270,7 +250,18 @@ const AdminActionPlans: React.FC = () => {
       </div>
 
       {/* Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {actionPlansLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-dgrv-blue"></div>
+        </div>
+      ) : actionPlansError ? (
+        <div className="text-center py-12">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-red-700 mb-2">{t("error.title", { defaultValue: "An Error Occurred" })}</h2>
+          <p className="text-gray-600">{actionPlansError.message}</p>
+        </div>
+      ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {columns.map((column) => {
           const columnTasks = getTasksByStatus(column.id);
           const IconComponent = column.icon;
@@ -298,7 +289,7 @@ const AdminActionPlans: React.FC = () => {
                 ) : (
                   columnTasks.map((task) => (
                     <Card
-                      key={`${task.report_id}-${task.category}`}
+                      key={task.recommendation_id}
                       className="bg-gray-50 border-gray-200"
                     >
                       <CardContent className="p-4">
@@ -323,6 +314,7 @@ const AdminActionPlans: React.FC = () => {
           );
         })}
       </div>
+      )}
     </div>
   );
 };

@@ -129,13 +129,21 @@ pub async fn list_user_reports(
 
         // Convert database models to API models and add to collection
         for model in report_models {
-            all_reports.push(Report {
-                report_id: model.report_id,
-                submission_id: model.submission_id,
-                status: model.status,
-                generated_at: model.generated_at.to_rfc3339(),
-                data: model.data,
-            });
+            let assessment_name = submission.content
+               .get("assessment_name")
+               .and_then(|n| n.as_str())
+               .unwrap_or("Unknown Assessment")
+               .to_string();
+
+           all_reports.push(Report {
+               report_id: model.report_id,
+               submission_id: model.submission_id,
+               assessment_id: submission.submission_id,
+               assessment_name,
+               status: model.status,
+               generated_at: model.generated_at.to_rfc3339(),
+               data: model.data,
+           });
         }
     }
 
@@ -157,7 +165,7 @@ pub async fn list_reports(
     Path(submission_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
     // Check if submission exists
-    let _submission = app_state
+    let submission = app_state
         .database
         .assessments_submission
         .get_submission_by_assessment_id(submission_id)
@@ -172,6 +180,12 @@ pub async fn list_reports(
         .get_reports_by_submission(submission_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch reports: {e}")))?;
+    
+    let assessment_name = submission.content
+        .get("assessment_name")
+        .and_then(|n| n.as_str())
+        .unwrap_or("Unknown Assessment")
+        .to_string();
 
     // Convert database models to API models
     let reports: Vec<Report> = report_models
@@ -179,6 +193,8 @@ pub async fn list_reports(
         .map(|model| Report {
             report_id: model.report_id,
             submission_id: model.submission_id,
+            assessment_id: submission.submission_id,
+            assessment_name: assessment_name.clone(),
             status: model.status,
             generated_at: model.generated_at.to_rfc3339(),
             data: model.data,
@@ -270,9 +286,25 @@ pub async fn get_report(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch report: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Report not found".to_string()))?;
 
+    let submission = app_state
+        .database
+        .assessments_submission
+        .get_submission_by_assessment_id(report_model.submission_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Submission not found for this report".to_string()))?;
+
+    let assessment_name = submission.content
+        .get("assessment_name")
+        .and_then(|n| n.as_str())
+        .unwrap_or("Unknown Assessment")
+        .to_string();
+
     let report = Report {
         report_id: report_model.report_id,
         submission_id: report_model.submission_id,
+        assessment_id: submission.submission_id,
+        assessment_name,
         status: report_model.status,
         generated_at: report_model.generated_at.to_rfc3339(),
         data: report_model.data,
@@ -379,9 +411,16 @@ pub async fn list_all_action_plans(
                                                             status_value.as_str()
                                                         ) {
                                                             if let Ok(recommendation_id) = Uuid::parse_str(id_str) {
+                                                                let assessment_name = submission.content
+                                                                    .get("assessment_name")
+                                                                    .and_then(|n| n.as_str())
+                                                                    .unwrap_or("Unknown Assessment")
+                                                                    .to_string();
                                                                 org_recommendations.push(RecommendationWithStatus {
                                                                     recommendation_id,
                                                                     report_id: report.report_id,
+                                                                    assessment_id: submission.submission_id,
+                                                                    assessment_name,
                                                                     category: category_name.clone(),
                                                                     recommendation: text_str.to_string(),
                                                                     status: status_str.to_string(),

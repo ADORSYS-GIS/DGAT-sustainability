@@ -15,7 +15,7 @@ SubmissionDetailResponse,
 } from "@/openapi-rq/requests/types.gen";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DataTransformationService } from "../services/dataTransformation";
-import type { OfflineAssessment, OfflineDraftSubmission, OfflineCategoryCatalog } from "@/types/offline";
+import type { OfflineAssessment, OfflineDraftSubmission, OfflineCategoryCatalog, OfflineSubmission } from "@/types/offline";
 
 // Type guard to check if the response is from the online API for assessments
 function isOnlineAssessmentList(response: unknown): response is AssessmentListResponse {
@@ -106,10 +106,12 @@ export function useOfflineDraftSubmissions() {
         }
       }
 
-      const submissions = localDrafts.map((submission) => ({
-        ...submission,
-        assessment_name: assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
-      }));
+      const submissions = localDrafts
+        .filter((submission) => ['draft', 'pending_review', 'under_review'].includes(submission.review_status))
+        .map((submission) => ({
+          ...submission,
+          assessment_name: assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
+        }));
 
       setData({ draft_submissions: submissions });
     } catch (err) {
@@ -151,14 +153,16 @@ export function useOfflineDraftSubmissionsMutation() {
       const localMutation = async () => {
         console.log(`[Mutation] 3. Performing local mutation for submissionId: ${submissionId}`);
         // Update the draft's status to pending and approved, but keep it in draft_submissions
-        const updatedDraft: OfflineDraftSubmission = {
+        // Instead of updating, we move it to the main submissions table and delete it from drafts
+        const newSubmission: OfflineSubmission = {
           ...draft,
-          review_status: 'approved' as const,
+          review_status: 'under_review' as const, // It's now a regular submission under review
           sync_status: 'pending' as const,
           updated_at: new Date().toISOString(),
         };
-        await offlineDB.saveDraftSubmission(updatedDraft); // Save back to draft_submissions
-        console.log(`[Mutation] 4. Local mutation complete. Draft ${submissionId} marked as pending for submission.`);
+        await offlineDB.saveSubmission(newSubmission);
+        await offlineDB.deleteDraftSubmission(submissionId);
+        console.log(`[Mutation] 4. Local mutation complete. Draft ${submissionId} moved to submissions and deleted from drafts.`);
       };
 
       return apiInterceptor.interceptMutation(
