@@ -42,7 +42,8 @@ import { useOfflineAssessments } from "@/hooks/useOfflineAssessments";
 import { useOfflineAdminSubmissions } from "@/hooks/useOfflineAdminSubmissions";
 import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
 import { ReportSelectionDialog } from "@/components/shared/ReportSelectionDialog";
-import type { Report, AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
+import type { Report, AdminSubmissionDetail, RecommendationWithStatus, OrganizationCategory } from "@/openapi-rq/requests/types.gen";
+import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
 
 // Local types to map report.data into existing export inputs
 interface ReportAnswer {
@@ -72,6 +73,7 @@ export const Dashboard: React.FC = () => {
   const { data: reportsData, isLoading: reportsLoading } = useOfflineReports();
   const { data: assessmentsData } = useOfflineAssessments();
   const { data: userRecommendations } = useOfflineUserRecommendations();
+  const { organizationCategories: organizationCategoriesData } = useOfflineOrganizationCategories();
   
   // Add initial data loading hook
   const { refreshData } = useInitialDataLoad();
@@ -429,11 +431,11 @@ export const Dashboard: React.FC = () => {
   );
 
   const radarChartData = React.useMemo(() => {
-    if (reportsData?.reports) {
-      return generateRadarChartData({ reports: reportsData.reports });
+    if (reportsData?.reports && organizationCategoriesData) {
+      return generateRadarChartData({ reports: reportsData.reports, organizationCategories: organizationCategoriesData });
     }
     return null;
-  }, [reportsData]);
+  }, [reportsData, organizationCategoriesData]);
 
 
   const radarChartOptions = {

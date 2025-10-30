@@ -1,7 +1,28 @@
+import { z } from 'zod';
 import type { Report } from "@/openapi-rq/requests/types.gen";
+
+const answerSchema = z.object({
+  percentage: z.number().optional(),
+  yesNo: z.boolean().optional(),
+});
+
+const questionSchema = z.object({
+  answer: answerSchema.optional(),
+});
+
+const categoryDataSchema = z.object({
+  questions: z.array(questionSchema),
+  weight: z.number().optional(),
+});
+
+const reportDataSchema = z.array(z.record(z.string(), categoryDataSchema));
 
 interface ReportData {
   reports: Report[];
+  organizationCategories: {
+    category_name: string;
+    weight?: number;
+  }[];
 }
 
 interface RadarChartData {
@@ -18,20 +39,20 @@ interface RadarChartData {
 export const generateRadarChartData = (apiResponse: ReportData): RadarChartData => {
   const categories: { [key: string]: number } = {};
   const report = apiResponse.reports[apiResponse.reports.length - 1];
+  const { organizationCategories } = apiResponse;
 
-  if (report && report.data && Array.isArray(report.data)) {
-    const reportData = report.data as { [key: string]: { questions: { answer?: { percentage?: number; yesNo?: boolean } }[] } }[];
+  if (report && report.data) {
+    const parsedReportData = reportDataSchema.safeParse(report.data);
 
-    reportData.forEach((item) => {
-      Object.keys(item).forEach((categoryName) => {
-        if (!categories[categoryName]) {
-          categories[categoryName] = 0;
-        }
+    if (parsedReportData.success) {
+      parsedReportData.data.forEach((item) => {
+        Object.entries(item).forEach(([categoryName, category]) => {
+          if (!categories[categoryName]) {
+            categories[categoryName] = 0;
+          }
 
-        const category = item[categoryName];
-        let sustainabilityScore = 0;
+          let sustainabilityScore = 0;
 
-        if (category && category.questions && Array.isArray(category.questions)) {
           category.questions.forEach((question) => {
             if (question.answer) {
               const percentage = (question.answer.percentage || 0) / 100;
@@ -39,11 +60,17 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
               sustainabilityScore += percentage * yesNo;
             }
           });
-        }
 
-        categories[categoryName] = sustainabilityScore;
+          const orgCategory = organizationCategories.find(
+            (orgCat) => orgCat.category_name === categoryName
+          );
+          const weight = orgCategory?.weight || 0;
+          categories[categoryName] = sustainabilityScore * (weight / 100);
+        });
       });
-    });
+    } else {
+      console.error("Invalid report data structure:", parsedReportData.error);
+    }
   }
 
   const labels = Object.keys(categories);

@@ -354,6 +354,8 @@ export interface OfflineOrganizationCategory extends OfflineEntity {
   id: string; // composite key org_id + category_id
   organization_id: string;
   category_catalog_id: string;
+  category_name: string;
+  weight: number;
 }
 
 // Query Filters for efficient data retrieval
