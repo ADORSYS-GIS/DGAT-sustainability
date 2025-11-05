@@ -19,8 +19,6 @@ pub struct KeycloakConfigs {
     pub realm: String,
     #[envconfig(from = "KEYCLOAK_CLIENT_ID")]
     pub client_id: String,
-    #[envconfig(from = "KEYCLOAK_CLIENT_SECRET")]
-    pub client_secret: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Envconfig)]
