@@ -31,26 +31,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const initializeKeycloak = async () => {
+      // Prevent re-initialization if we already have a valid token
       if (keycloak.authenticated || keycloak.token) {
         updateAuthState();
         return;
       }
-      if (keycloak.authenticated === undefined) {
-        try {
-          await initializeAuth();
+
+      try {
+        const authenticated = await initializeAuth();
+        if (authenticated) {
           setupTokenRefresh();
-        } catch (error) {
-          console.error("Failed to initialize Keycloak in AuthProvider:", error);
-          setAuthState({
-            isAuthenticated: false,
-            user: null,
-            roles: [],
-            loading: false,
-          });
-          return;
         }
+      } catch (error) {
+        console.error("Failed to initialize Keycloak in AuthProvider:", error);
+      } finally {
+        updateAuthState();
       }
-      updateAuthState();
     };
 
     initializeKeycloak();
@@ -63,13 +59,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("User logged out (AuthProvider)");
       setAuthState({ isAuthenticated: false, user: null, roles: [], loading: false });
     };
-    const onAuthError = () => {
-      console.error("Authentication error (AuthProvider)");
+    const onAuthError = (error) => {
+      console.error("Authentication error (AuthProvider):", error);
       setAuthState({ isAuthenticated: false, user: null, roles: [], loading: false });
     };
     const onTokenExpired = () => {
       console.log("Token expired, attempting refresh... (AuthProvider)");
-      updateAuthState();
+      keycloak.updateToken(30).then(refreshed => {
+        if (refreshed) {
+          updateAuthState();
+        }
+      });
     };
 
     keycloak.onAuthSuccess = onAuthSuccess;
@@ -77,11 +77,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     keycloak.onAuthError = onAuthError;
     keycloak.onTokenExpired = onTokenExpired;
 
+    const handleOnline = () => {
+      console.log("Application is back online. Re-initializing Keycloak.");
+      initializeKeycloak();
+    };
+
+    window.addEventListener("online", handleOnline);
+
     return () => {
       keycloak.onAuthSuccess = undefined;
       keycloak.onAuthLogout = undefined;
       keycloak.onAuthError = undefined;
       keycloak.onTokenExpired = undefined;
+      window.removeEventListener("online", handleOnline);
     };
   }, []);
 
