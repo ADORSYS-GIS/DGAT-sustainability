@@ -37,6 +37,12 @@ impl IntoResponse for ApiError {
     }
 }
 
+impl From<anyhow::Error> for ApiError {
+    fn from(err: anyhow::Error) -> Self {
+        ApiError::InternalServerError(err.to_string())
+    }
+}
+
 impl From<sea_orm::DbErr> for ApiError {
     fn from(err: sea_orm::DbErr) -> Self {
         ApiError::DatabaseError(err.to_string())

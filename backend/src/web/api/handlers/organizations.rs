@@ -271,11 +271,11 @@ pub async fn create_organization(
     params(("realm", description = "Realm"), ("org_id", description = "Organization ID")),
     responses((status = 200, description = "Organization"), (status = 404, description = "Not found"))
 )]
-pub async fn get_organization(
+pub async fn get_organization_by_id(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -506,7 +506,7 @@ pub async fn update_member_roles(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id, member_id)): Path<(String, String, String)>,
+    Path((_realm, org_id, member_id)): Path<(String, String, String)>,
     Json(request): Json<KeycloakRoleAssignment>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -583,7 +583,7 @@ pub async fn delete_invitation(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id, invitation_id)): Path<(String, String, String)>,
+    Path((_realm, org_id, invitation_id)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -619,7 +619,7 @@ pub async fn get_organizations_count(
     Extension(_claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path(realm): Path<String>,
+    Path(_realm): Path<String>,
     Query(params): Query<OrganizationsCountQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -670,7 +670,7 @@ pub async fn get_member_organizations(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, member_id)): Path<(String, String)>,
+    Path((_realm, member_id)): Path<(String, String)>,
     Query(params): Query<MemberOrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -729,9 +729,9 @@ pub async fn get_identity_providers(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !can_access_organization(&claims, &org_id) {
@@ -739,8 +739,8 @@ pub async fn get_identity_providers(
     }
 
     // TODO: Implement logic to get identity providers for organization
-    let identity_providers: Vec<serde_json::Value> = vec![];
-    Ok((StatusCode::OK, Json(identity_providers)))
+    let _identity_providers: Vec<serde_json::Value> = vec![];
+    Ok((StatusCode::OK, Json(serde_json::json!([]))))
 }
 
 // Adds the identity provider with the specified id to the organization
@@ -757,10 +757,10 @@ pub async fn add_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
     Json(request): Json<String>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
@@ -768,7 +768,7 @@ pub async fn add_identity_provider(
     }
 
     // Parse identity provider ID/alias from JSON string
-    let provider_id = request.trim().trim_matches('"');
+    let _provider_id = request.trim().trim_matches('"');
 
     // TODO: Implement logic to add identity provider to organization
     Ok(StatusCode::NO_CONTENT)
@@ -787,9 +787,9 @@ pub async fn get_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, alias)): Path<(String, String, String)>,
+    Path((_realm, org_id, _alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !can_access_organization(&claims, &org_id) {
@@ -814,9 +814,9 @@ pub async fn remove_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, alias)): Path<(String, String, String)>,
+    Path((_realm, org_id, _alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
@@ -840,7 +840,7 @@ pub async fn get_members_count(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -875,17 +875,17 @@ pub async fn invite_existing_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    let user_id = form.get("id").ok_or_else(|| ApiError::BadRequest("Missing id parameter".to_string()))?;
+    let _user_id = form.get("id").ok_or_else(|| ApiError::BadRequest("Missing id parameter".to_string()))?;
 
     // TODO: Implement logic to invite existing user
     Ok(StatusCode::NO_CONTENT)
@@ -904,18 +904,18 @@ pub async fn invite_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    let email = form.get("email").ok_or_else(|| ApiError::BadRequest("Missing email parameter".to_string()))?;
-    let first_name = form.get("firstName");
+    let _email = form.get("email").ok_or_else(|| ApiError::BadRequest("Missing email parameter".to_string()))?;
+    let _first_name = form.get("firstName");
     let _last_name = form.get("lastName");
 
     // TODO: Implement logic to invite user by email
@@ -935,7 +935,7 @@ pub async fn get_member(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, member_id)): Path<(String, String, String)>,
+    Path((_realm, org_id, member_id)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -974,7 +974,7 @@ pub async fn get_member_organizations_in_org(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id, member_id)): Path<(String, String, String)>,
+    Path((_realm, org_id, member_id)): Path<(String, String, String)>,
     Query(params): Query<MemberOrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;

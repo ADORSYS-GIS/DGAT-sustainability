@@ -6,23 +6,19 @@ import { ArrowLeft, FileText } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useOfflineAdminSubmissions } from "@/hooks/useOfflineAdminSubmissions";
-import { AdminSubmissionDetail } from "@/openapi-rq/requests/types.gen";
-
-type AdminSubmissionWithAssessmentName = AdminSubmissionDetail & {
-  assessment_name: string;
-};
+import { useOfflineUserSubmissions } from "@/hooks/useOfflineUserSubmissions";
+import { OfflineSubmission } from "@/types/offline";
 
 export const AssessmentSubmissionsList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { data: submissionsData, isLoading: submissionsLoading } = useOfflineAdminSubmissions();
+  const { data: submissionsData, isLoading: submissionsLoading } = useOfflineUserSubmissions();
 
   const availableSubmissions = React.useMemo(() => {
     return submissionsData?.submissions || [];
-  }, [submissionsData?.submissions, user?.organizations]);
+  }, [submissionsData]);
 
   const handleSelectSubmission = (submissionId: string) => {
     navigate(`/action-plan/submission/${submissionId}`);
@@ -74,7 +70,7 @@ export const AssessmentSubmissionsList: React.FC = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {availableSubmissions.map((submission: AdminSubmissionWithAssessmentName) => (
+              {availableSubmissions.map((submission) => (
                 <Card
                   key={submission.submission_id}
                   className="hover:shadow-md transition-shadow cursor-pointer"

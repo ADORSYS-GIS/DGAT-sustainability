@@ -17,6 +17,7 @@ import type {
   DetailedReport,
   ReportCategoryData,
   ReportCategoryContent,
+  ReportRecommendation,
 } from "@/types/offline";
 import { DataTransformationService } from "../services/dataTransformation";
 import { useAuth } from "./shared/useAuth";
@@ -105,13 +106,18 @@ export function useOfflineUserRecommendations() {
           }));
 
           const reportsToSave = uiReports.map(report => {
-            const reportData = (report.data || []).reduce((acc, item) => {
+            const reportData: { [key: string]: { weight: number; questions: { answer: unknown; question: string }[]; recommendations: string[] } } = {};
+            for (const item of (report.data || [])) {
               const key = Object.keys(item)[0];
               if (key) {
-                acc[key] = item[key];
+                const content = item[key] as ReportCategoryContent;
+                reportData[key] = {
+                  weight: 0,
+                  questions: content?.questions || [],
+                  recommendations: (content?.recommendations || []).map(rec => rec.text),
+                };
               }
-              return acc;
-            }, {} as { [key: string]: unknown });
+            }
         
             return {
               ...report,
@@ -160,7 +166,6 @@ export function useOfflineUserRecommendations() {
                 submission_id: rec.submission_id || '',
                 assessment_id: rec.assessment_id,
                 assessment_name: rec.assessment_name,
-                report_type: 'sustainability',
                 status: 'completed',
                 generated_at: new Date().toISOString(),
                 data: [],
@@ -346,11 +351,21 @@ export function useOfflineReport(submissionId?: string) {
               assessment_name: assessmentName,
               updated_at: new Date().toISOString(),
               sync_status: 'synced' as const,
-              data: (report.data || []).reduce((acc, item) => {
-                const key = Object.keys(item)[0];
-                if (key) acc[key] = item[key];
-                return acc;
-              }, {} as { [key: string]: unknown }),
+              data: (() => {
+                const reportData: { [key: string]: { weight: number; questions: { answer: unknown; question: string }[]; recommendations: string[] } } = {};
+                for (const item of (report.data || [])) {
+                  const key = Object.keys(item)[0];
+                  if (key) {
+                    const content = item[key] as ReportCategoryContent;
+                    reportData[key] = {
+                      weight: 0,
+                      questions: content?.questions || [],
+                      recommendations: (content?.recommendations || []).map(rec => rec.text),
+                    };
+                  }
+                }
+                return reportData;
+              })(),
             };
             await offlineDB.saveReports([reportToSave]);
             return { report };
@@ -367,12 +382,30 @@ export function useOfflineReport(submissionId?: string) {
             const submission = submissions.find(s => s.submission_id === submissionId);
             const assessmentName = submission?.assessment_name || 'Unknown Assessment';
 
-            const reportData = report.data as { [key: string]: unknown };
-            const transformedData: ReportCategoryData[] = reportData
-              ? Object.entries(reportData).map(([category, content]) => ({
-                  [category]: content as ReportCategoryContent,
-                }))
-              : [];
+            // Fetch recommendations for this report
+            const recommendations = await offlineDB.getRecommendationsByReportId(report.report_id);
+
+            // Group recommendations by category
+            const recommendationsByCategory: { [key: string]: ReportRecommendation[] } = {};
+            for (const rec of recommendations) {
+              if (!recommendationsByCategory[rec.category]) {
+                recommendationsByCategory[rec.category] = [];
+              }
+              recommendationsByCategory[rec.category].push({
+                id: rec.recommendation_id,
+                status: rec.status as "todo" | "in_progress" | "done" | "approved",
+                text: rec.recommendation,
+              });
+            }
+
+            // Transform into the structure expected by DetailedReport['data']
+            const transformedData: ReportCategoryData[] = Object.entries(recommendationsByCategory).map(
+              ([category, recs]) => ({
+                [category]: {
+                  recommendations: recs,
+                },
+              })
+            );
 
             const enrichedReport = {
               ...report,

@@ -41,16 +41,26 @@ import type {
 } from "@/types/offline";
 import { OrganizationCategory } from "@/openapi-rq/requests/types.gen";
 
+// The API sends more data than defined in the openapi spec
+// so we extend the type here to include the missing fields
+interface OrganizationCategoryWithDetails extends OrganizationCategory {
+  category_name: string;
+  weight: number;
+}
+
 export class DataTransformationService {
   /**
    * Transform API OrganizationCategory to OfflineOrganizationCategory
    */
   static transformOrganizationCategory(orgCategory: OrganizationCategory, organizationId: string): OfflineOrganizationCategory {
     const now = new Date().toISOString();
+    const detailedOrgCategory = orgCategory as OrganizationCategoryWithDetails;
     return {
-      id: `${organizationId}-${orgCategory.category_catalog_id}`,
+      id: `${organizationId}-${detailedOrgCategory.category_catalog_id}`,
       organization_id: organizationId,
-      category_catalog_id: orgCategory.category_catalog_id,
+      category_catalog_id: detailedOrgCategory.category_catalog_id,
+      category_name: detailedOrgCategory.category_name,
+      weight: detailedOrgCategory.weight,
       updated_at: now,
       sync_status: 'synced',
       local_changes: false,

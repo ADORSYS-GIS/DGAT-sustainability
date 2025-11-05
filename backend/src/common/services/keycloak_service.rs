@@ -3,9 +3,13 @@ use crate::common::models::keycloak::*;
 use anyhow::{anyhow, Result};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
-use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct TokenResponse {
+    access_token: String,
+}
 
 #[derive(Debug, Clone)]
 pub struct KeycloakService {
@@ -20,6 +24,28 @@ impl KeycloakService {
             .build().expect("Failed to create reqwest client");
 
         Self { client, config }
+    }
+
+    pub async fn get_admin_token(&self) -> Result<String> {
+        let url = format!(
+            "{}/realms/{}/protocol/openid-connect/token",
+            self.config.url, self.config.realm
+        );
+
+        let response = self
+            .client
+            .post(&url)
+            .form(&[
+                ("grant_type", "client_credentials"),
+                ("client_id", &self.config.client_id),
+                ("client_secret", &self.config.client_secret),
+            ])
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let token_response: TokenResponse = response.json().await?;
+        Ok(token_response.access_token)
     }
 
     /// Create a new organization
@@ -873,7 +899,7 @@ impl KeycloakService {
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
         
         // Create payload with all required user fields plus the updated categories
-        let mut payload = json!({
+        let payload = json!({
             "username": user.username,
             "email": user.email,
             "firstName": user.first_name,

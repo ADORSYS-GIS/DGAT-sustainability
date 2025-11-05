@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { offlineDB } from "../services/indexeddb";
-import { AdminSubmissionWithNames, OfflineAssessment, OfflineCategoryCatalog } from "@/types/offline";
+import { AdminSubmissionWithNames } from "@/types/offline";
 import { useAuth } from "./shared/useAuth";
-import { apiInterceptor } from "../services/apiInterceptor";
-import { AdminService, AssessmentsService } from "@/openapi-rq/requests/services.gen";
-import { DataTransformationService } from "../services/dataTransformation";
 import { AdminSubmissionDetail } from "@/openapi-rq/requests/types.gen";
 
 export function useOfflineAdminSubmissions(organizationId?: string) {
@@ -18,45 +15,8 @@ export function useOfflineAdminSubmissions(organizationId?: string) {
       setIsLoading(true);
       setError(null);
 
-      const result = await apiInterceptor.interceptGet(
-        async () => {
-          const response = await AdminService.getAdminSubmissions();
-          const submissions = response.submissions || [];
-          await offlineDB.saveSubmissions(
-            submissions.map(DataTransformationService.transformAdminSubmissionToOffline)
-          );
-
-          const assessmentsResponse = await AssessmentsService.getAssessments();
-          const assessments = assessmentsResponse.assessments || [];
-          const allCategories = await offlineDB.getAllCategoryCatalogs();
-          const categoryObjectMap = new Map(
-            allCategories.map((c) => [c.category_catalog_id, c])
-          );
-
-          await offlineDB.saveAssessments(
-            assessments.map((assessment) => {
-              const offlineCategories = assessment.categories
-                ?.map((catId) => categoryObjectMap.get(catId))
-                .filter((cat): cat is OfflineCategoryCatalog => cat !== undefined);
-
-              return {
-                ...assessment,
-                status: assessment.status as OfflineAssessment["status"],
-                categories: offlineCategories,
-                sync_status: "synced",
-                updated_at: new Date().toISOString(),
-              };
-            })
-          );
-
-          return { submissions };
-        },
-        async () => {
-          const submissions = await offlineDB.getAllSubmissions();
-          return { submissions: submissions as unknown as AdminSubmissionDetail[] };
-        },
-        "admin_submissions"
-      );
+      const submissions = await offlineDB.getAllSubmissions();
+      const result = { submissions: submissions as unknown as AdminSubmissionDetail[] };
 
       let filteredSubmissions = result.submissions;
 

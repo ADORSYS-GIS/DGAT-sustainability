@@ -79,9 +79,10 @@ export function useOfflineDraftAssessments() {
           console.log('🔍 useOfflineDraftAssessments: Making API call with status=draft');
           // Add cache-busting parameter to force fresh request
           const cacheBuster = Date.now();
-          return AssessmentsService.getAssessments({ 
+          return AssessmentsService.getAssessments({
             status: 'draft',
-            language: 'en' // Add language parameter to ensure fresh request
+            language: 'en', // Add language parameter to ensure fresh request
+            cache_buster: cacheBuster,
           });
         },
         async () => {
@@ -96,7 +97,7 @@ export function useOfflineDraftAssessments() {
           }));
           return { assessments: transformedAssessments };
         },
-        'assessments'
+        'draft_assessments'
       );
 
       console.log('🔍 useOfflineDraftAssessments: API response received:', result);

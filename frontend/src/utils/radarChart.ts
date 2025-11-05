@@ -36,7 +36,7 @@ interface RadarChartData {
   }[];
 }
 
-export const generateRadarChartData = (apiResponse: ReportData): RadarChartData => {
+export const generateRadarChartData = (apiResponse: ReportData): RadarChartData | null => {
   const categories: { [key: string]: number } = {};
   const report = apiResponse.reports[apiResponse.reports.length - 1];
   const { organizationCategories } = apiResponse;
@@ -76,6 +76,10 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
   const labels = Object.keys(categories);
   const sustainabilityScores = Object.values(categories);
   const maxRadarValue = 3;
+
+  if (labels.length === 0) {
+    return null;
+  }
 
   return {
     labels,

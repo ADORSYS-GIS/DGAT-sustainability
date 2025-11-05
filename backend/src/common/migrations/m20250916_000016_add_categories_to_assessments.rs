@@ -1,5 +1,5 @@
 use sea_orm_migration::prelude::*;
-use sea_orm::sea_query::{extension::postgres::Type, Alias, ColumnDef, Value};
+use sea_orm::sea_query::{ColumnDef};
 use sea_orm::Value as SeaValue;
 
 #[derive(DeriveMigrationName)]

@@ -311,6 +311,9 @@ export class ApiInterceptor {
           break;
         case 'draft_assessments':
           if (data.assessments && Array.isArray(data.assessments)) {
+            const draftAssessments = await offlineDB.getAssessmentsByStatus('draft');
+            const draftAssessmentIds = draftAssessments.map(a => a.assessment_id);
+            await offlineDB.deleteAssessments(draftAssessmentIds);
             for (const assessment of data.assessments as Assessment[]) {
               const categories = await offlineDB.getAllCategoryCatalogs();
               const categoryIdToCategoryMap = new Map(

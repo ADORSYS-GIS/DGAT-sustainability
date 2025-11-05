@@ -761,11 +761,13 @@ pub async fn submit_assessment(
         if let Some(content_obj) = enhanced_content.as_object_mut() {
             content_obj.insert("assessment_name".to_string(), serde_json::Value::String(assessment.name.clone()));
         }
+        let org_name = claims.get_organization_name().ok_or_else(|| ApiError::BadRequest("No organization name found in token".to_string()))?;
 
         // Create final submission using the enhanced content with assessment name
         let submission = crate::common::database::entity::assessments_submission::ActiveModel {
             submission_id: Set(assessment_id),
             org_id: Set(temp_submission.org_id.clone()),
+            org_name: Set(org_name),
             content: Set(enhanced_content),
             submitted_at: Set(chrono::Utc::now()),
             status: Set(crate::common::database::entity::assessments_submission::SubmissionStatus::UnderReview),
@@ -796,6 +798,7 @@ pub async fn submit_assessment(
                 .map_err(|e| ApiError::InternalServerError(format!("Failed to commit transaction: {e}")))?;
             
             // Invalidate user's session cache since we submitted an assessment
+            app_state.session_cache.invalidate_user(&claims.sub);
             
             Ok(StatusCode::OK)
         }

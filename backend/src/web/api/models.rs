@@ -676,6 +676,7 @@ pub struct OrganizationCategoryListResponse {
 pub struct AssessmentQuery {
     pub status: Option<String>,
     pub language: Option<String>,
+    pub cache_buster: Option<i64>,
 }
 
 // Properly implement IntoParams without using 'self'
@@ -697,6 +698,12 @@ impl utoipa::IntoParams for AssessmentQuery {
             ParameterBuilder::new()
                 .name("language")
                 .description(Some("Filter assessments by language"))
+                .parameter_in(parameter_in.clone())
+                .required(utoipa::openapi::Required::False)
+                .build(),
+            ParameterBuilder::new()
+                .name("cache_buster")
+                .description(Some("Cache buster to prevent stale data"))
                 .parameter_in(parameter_in)
                 .required(utoipa::openapi::Required::False)
                 .build(),

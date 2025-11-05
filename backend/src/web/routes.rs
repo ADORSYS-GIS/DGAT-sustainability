@@ -23,8 +23,6 @@ use tower_http::cors::{CorsLayer, Any};
 
 use crate::common::cache::SessionCache;
 use crate::common::config::{Configs, KeycloakConfigs};
-use crate::common::database::entity::assessments_response::AssessmentsResponseService;
-use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
 use crate::common::models::claims::Claims;
 use crate::common::services::keycloak_service::KeycloakService;
 use crate::common::state::AppDatabase;
@@ -42,12 +40,8 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new(keycloak_url: String, realm: String, database: AppDatabase) -> Self {
-        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_url.clone(), realm.clone())));
-        let keycloak_config = KeycloakConfigs {
-            url: keycloak_url,
-            realm,
-        };
+    pub async fn new(keycloak_config: KeycloakConfigs, database: AppDatabase) -> Self {
+        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_config.url.clone(), keycloak_config.realm.clone())));
         let keycloak_service = Arc::new(KeycloakService::new(keycloak_config));
 
         Self {

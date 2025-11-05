@@ -387,6 +387,12 @@ class OfflineDB {
     const db = await this.dbPromise;
     await db.delete("assessments", assessmentId);
   }
+  async deleteAssessments(assessmentIds: string[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("assessments", "readwrite");
+    await Promise.all(assessmentIds.map(id => tx.store.delete(id)));
+    await tx.done;
+  }
 
   // ===== RESPONSES =====
   async saveResponse(response: OfflineResponse): Promise<string> {

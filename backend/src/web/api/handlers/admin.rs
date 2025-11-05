@@ -5,16 +5,14 @@ use crate::web::api::models::{
     AdminSubmissionListResponse,
 };
 use crate::common::models::claims::Claims;
-use crate::common::models::keycloak::{KeycloakOrganization, UserInvitationRequest, UserInvitationResponse, UserInvitationStatus};
+use crate::common::models::keycloak::{UserInvitationRequest, UserInvitationResponse, UserInvitationStatus};
 use axum::{
     extract::{Path, Query, State, Extension},
     http::StatusCode,
     Json,
 };
 use serde::Deserialize;
-use serde_json::json;
 use uuid::Uuid;
-use std::collections::HashMap;
 
 // Helper function to extract token from request extensions
 fn get_token_from_extensions(token: &str) -> Result<String, ApiError> {
