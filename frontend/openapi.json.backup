@@ -1,0 +1,1686 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "sustainability-tool",
+    "description": "",
+    "license": {
+      "name": "MIT"
+    },
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "https://127.0.0.1:3001",
+      "description": "Dynamic server address from environment"
+    }
+  ],
+  "paths": {
+    "/category-catalog": {
+      "get": {
+        "tags": [
+          "crate::web::api::handlers::organization_categories"
+        ],
+        "summary": "Get all active category catalogs",
+        "operationId": "get_category_catalogs",
+        "responses": {
+          "200": {
+            "description": "List of active category catalogs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryCatalogListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "crate::web::api::handlers::organization_categories"
+        ],
+        "summary": "Create a new category catalog entry",
+        "operationId": "create_category_catalog",
+        "responses": {
+          "201": {
+            "description": "Category catalog created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryCatalogResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{keycloak_organization_id}/categories": {
+      "get": {
+        "tags": [
+          "crate::web::api::handlers::organization_categories"
+        ],
+        "summary": "Get organization categories by Keycloak organization ID",
+        "operationId": "get_organization_categories",
+        "parameters": [
+          {
+            "name": "keycloak_organization_id",
+            "in": "path",
+            "description": "Keycloak Organization ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of organization categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationCategoryListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{keycloak_organization_id}/categories/assign": {
+      "post": {
+        "tags": [
+          "crate::web::api::handlers::organization_categories"
+        ],
+        "summary": "Assign categories to an organization with equal weight distribution",
+        "operationId": "assign_categories_to_organization",
+        "parameters": [
+          {
+            "name": "keycloak_organization_id",
+            "in": "path",
+            "description": "Keycloak Organization ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Categories assigned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationCategoryListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{keycloak_organization_id}/categories/{organization_category_id}": {
+      "put": {
+        "tags": [
+          "crate::web::api::handlers::organization_categories"
+        ],
+        "summary": "Update organization category weight",
+        "operationId": "update_organization_category",
+        "parameters": [
+          {
+            "name": "keycloak_organization_id",
+            "in": "path",
+            "description": "Keycloak Organization ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_category_id",
+            "in": "path",
+            "description": "Organization Category ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization category updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationCategoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionPlanListResponse": {
+        "type": "object",
+        "required": [
+          "organizations"
+        ],
+        "properties": {
+          "organizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationActionPlan"
+            }
+          }
+        }
+      },
+      "AdminAssessmentInfo": {
+        "type": "object",
+        "required": [
+          "assessment_id",
+          "language"
+        ],
+        "properties": {
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "language": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminResponseDetail": {
+        "type": "object",
+        "required": [
+          "question_text",
+          "question_category",
+          "response",
+          "version",
+          "files"
+        ],
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileMetadata"
+            }
+          },
+          "question_category": {
+            "type": "string"
+          },
+          "question_text": {
+            "type": "string"
+          },
+          "response": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminReview": {
+        "type": "object",
+        "required": [
+          "review_id",
+          "submission_id",
+          "user_email",
+          "reviewer_id",
+          "reviewer_email",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true
+          },
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reviewer_email": {
+            "type": "string"
+          },
+          "reviewer_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_email": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminReviewListResponse": {
+        "type": "object",
+        "required": [
+          "reviews"
+        ],
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminReview"
+            }
+          }
+        }
+      },
+      "AdminSubmissionContent": {
+        "type": "object",
+        "required": [
+          "assessment",
+          "responses"
+        ],
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AdminAssessmentInfo"
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminResponseDetail"
+            }
+          }
+        }
+      },
+      "AdminSubmissionDetail": {
+        "type": "object",
+        "required": [
+          "submission_id",
+          "assessment_id",
+          "org_id",
+          "org_name",
+          "content",
+          "review_status",
+          "submitted_at"
+        ],
+        "properties": {
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "content": {
+            "$ref": "#/components/schemas/AdminSubmissionContent"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "org_name": {
+            "type": "string"
+          },
+          "review_status": {
+            "type": "string"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submitted_at": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminSubmissionListResponse": {
+        "type": "object",
+        "required": [
+          "submissions"
+        ],
+        "properties": {
+          "submissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSubmissionDetail"
+            }
+          }
+        }
+      },
+      "Assessment": {
+        "type": "object",
+        "required": [
+          "assessment_id",
+          "org_id",
+          "language",
+          "name",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssessmentStatus"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "AssessmentListResponse": {
+        "type": "object",
+        "required": [
+          "submissions"
+        ],
+        "properties": {
+          "submissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSubmissionDetail"
+            }
+          }
+        }
+      },
+      "AssessmentResponse": {
+        "type": "object",
+        "required": [
+          "assessment"
+        ],
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/Assessment"
+          }
+        }
+      },
+      "AssessmentStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "submitted",
+          "reviewed"
+        ]
+      },
+      "AssessmentSubmission": {
+        "type": "object",
+        "required": [
+          "assessment_id",
+          "org_id",
+          "content",
+          "submitted_at",
+          "review_status"
+        ],
+        "properties": {
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "content": {},
+          "org_id": {
+            "type": "string"
+          },
+          "review_status": {
+            "type": "string"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "submitted_at": {
+            "type": "string"
+          }
+        }
+      },
+      "AssessmentSubmissionResponse": {
+        "type": "object",
+        "required": [
+          "submission"
+        ],
+        "properties": {
+          "submission": {
+            "$ref": "#/components/schemas/AssessmentSubmission"
+          }
+        }
+      },
+      "AssessmentWithResponsesResponse": {
+        "type": "object",
+        "required": [
+          "assessment",
+          "responses"
+        ],
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/Assessment"
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Response"
+            }
+          }
+        }
+      },
+      "AssignCategoriesToOrganizationRequest": {
+        "type": "object",
+        "required": [
+          "category_catalog_ids"
+        ],
+        "properties": {
+          "category_catalog_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "weights": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "AssignReviewerRequest": {
+        "type": "object",
+        "required": [
+          "submission_id",
+          "reviewer_id"
+        ],
+        "properties": {
+          "reviewer_id": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AttachFileRequest": {
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "required": [
+          "category_id",
+          "name",
+          "weight",
+          "order",
+          "template_id",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "category_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CategoryCatalog": {
+        "type": "object",
+        "required": [
+          "category_catalog_id",
+          "name",
+          "template_id",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "category_catalog_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "CategoryCatalogListResponse": {
+        "type": "object",
+        "required": [
+          "category_catalogs"
+        ],
+        "properties": {
+          "category_catalogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryCatalog"
+            }
+          }
+        }
+      },
+      "CategoryCatalogResponse": {
+        "type": "object",
+        "required": [
+          "category_catalog"
+        ],
+        "properties": {
+          "category_catalog": {
+            "$ref": "#/components/schemas/CategoryCatalog"
+          }
+        }
+      },
+      "CategoryListResponse": {
+        "type": "object",
+        "required": [
+          "categories"
+        ],
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          }
+        }
+      },
+      "CategoryResponse": {
+        "type": "object",
+        "required": [
+          "category"
+        ],
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          }
+        }
+      },
+      "CreateAssessmentRequest": {
+        "type": "object",
+        "required": [
+          "language",
+          "name"
+        ],
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateCategoryCatalogRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "template_id"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "template_id": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateCategoryRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "weight",
+          "order",
+          "template_id"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateOrganizationCategoryRequest": {
+        "type": "object",
+        "required": [
+          "keycloak_organization_id",
+          "category_catalog_id",
+          "weight",
+          "order"
+        ],
+        "properties": {
+          "category_catalog_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "keycloak_organization_id": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "weight": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateQuestionRequest": {
+        "type": "object",
+        "required": [
+          "category",
+          "text",
+          "weight"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "text": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "CreateResponseRequest": {
+        "type": "object",
+        "required": [
+          "question_revision_id",
+          "response"
+        ],
+        "properties": {
+          "question_revision_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "response": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateReviewRequest": {
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "properties": {
+          "comments": {
+            "type": "string",
+            "nullable": true
+          },
+          "decision": {
+            "type": "string"
+          }
+        }
+      },
+      "FileMetadata": {
+        "type": "object",
+        "required": [
+          "file_id",
+          "filename",
+          "size",
+          "content_type",
+          "created_at"
+        ],
+        "properties": {
+          "content_type": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "metadata": {
+            "nullable": true
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "FileMetadataResponse": {
+        "type": "object",
+        "required": [
+          "metadata"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/FileMetadata"
+          }
+        }
+      },
+      "FileUploadResponse": {
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/FileMetadata"
+          }
+        }
+      },
+      "GenerateReportRequest": {
+        "type": "object",
+        "required": [
+          "category",
+          "recommendation"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InvitationRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "roles"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expiration": {
+            "type": "string",
+            "nullable": true
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "MemberRequest": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "roles"
+        ],
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      },
+      "OrganizationActionPlan": {
+        "type": "object",
+        "required": [
+          "organization_id",
+          "organization_name",
+          "recommendations"
+        ],
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_name": {
+            "type": "string"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecommendationWithStatus"
+            }
+          }
+        }
+      },
+      "OrganizationCategory": {
+        "type": "object",
+        "required": [
+          "organization_category_id",
+          "keycloak_organization_id",
+          "category_catalog_id",
+          "category_name",
+          "weight",
+          "order",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "category_catalog_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "category_name": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "keycloak_organization_id": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "organization_category_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "OrganizationCategoryListResponse": {
+        "type": "object",
+        "required": [
+          "organization_categories"
+        ],
+        "properties": {
+          "organization_categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationCategory"
+            }
+          }
+        }
+      },
+      "OrganizationCategoryResponse": {
+        "type": "object",
+        "required": [
+          "organization_category"
+        ],
+        "properties": {
+          "organization_category": {
+            "$ref": "#/components/schemas/OrganizationCategory"
+          }
+        }
+      },
+      "OrganizationCreateRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "domains",
+          "redirectUrl",
+          "enabled"
+        ],
+        "properties": {
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "nullable": true
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationDomainRequest"
+            }
+          },
+          "enabled": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "redirectUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "OrganizationDomainRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "QuestionListResponse": {
+        "type": "object",
+        "required": [
+          "questions"
+        ],
+        "properties": {
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
+          }
+        }
+      },
+      "QuestionResponse": {
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "properties": {
+          "question": {
+            "$ref": "#/components/schemas/Question"
+          }
+        }
+      },
+      "QuestionRevision": {
+        "type": "object",
+        "required": [
+          "question_revision_id",
+          "question_id",
+          "text",
+          "weight",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "question_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "question_revision_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "QuestionRevisionListResponse": {
+        "type": "object",
+        "required": [
+          "revisions"
+        ],
+        "properties": {
+          "revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionRevision"
+            }
+          }
+        }
+      },
+      "QuestionRevisionResponse": {
+        "type": "object",
+        "required": [
+          "revision"
+        ],
+        "properties": {
+          "revision": {
+            "$ref": "#/components/schemas/QuestionRevision"
+          }
+        }
+      },
+      "QuestionWithRevisionsResponse": {
+        "type": "object",
+        "required": [
+          "question",
+          "revisions"
+        ],
+        "properties": {
+          "question": {
+            "$ref": "#/components/schemas/Question"
+          },
+          "revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionRevision"
+            }
+          }
+        }
+      },
+      "RecommendationWithStatus": {
+        "type": "object",
+        "required": [
+          "report_id",
+          "category",
+          "recommendation",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "report_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "Report": {
+        "type": "object",
+        "required": [
+          "report_id",
+          "submission_id",
+          "status",
+          "generated_at"
+        ],
+        "properties": {
+          "data": {
+            "nullable": true
+          },
+          "generated_at": {
+            "type": "string"
+          },
+          "report_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ReportGenerationResponse": {
+        "type": "object",
+        "required": [
+          "report_id",
+          "status"
+        ],
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "ReportListResponse": {
+        "type": "object",
+        "required": [
+          "reports"
+        ],
+        "properties": {
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Report"
+            }
+          }
+        }
+      },
+      "ReportResponse": {
+        "type": "object",
+        "required": [
+          "report"
+        ],
+        "properties": {
+          "report": {
+            "$ref": "#/components/schemas/Report"
+          }
+        }
+      },
+      "Response": {
+        "type": "object",
+        "required": [
+          "response_id",
+          "assessment_id",
+          "question_revision_id",
+          "response",
+          "version",
+          "updated_at",
+          "files"
+        ],
+        "properties": {
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileMetadata"
+            }
+          },
+          "question_revision_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "response": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "response_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ResponseListResponse": {
+        "type": "object",
+        "required": [
+          "responses"
+        ],
+        "properties": {
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Response"
+            }
+          }
+        }
+      },
+      "ResponseResponse": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "$ref": "#/components/schemas/Response"
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "required": [
+          "review_id",
+          "submission_id",
+          "reviewer_id",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "comments": {
+            "type": "string",
+            "nullable": true
+          },
+          "completed_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true
+          },
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reviewer_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewer_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ReviewAssignmentResponse": {
+        "type": "object",
+        "required": [
+          "review_id",
+          "submission_id",
+          "reviewer_id",
+          "assigned_at"
+        ],
+        "properties": {
+          "assigned_at": {
+            "type": "string"
+          },
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reviewer_id": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ReviewDetailResponse": {
+        "type": "object",
+        "required": [
+          "review",
+          "submission"
+        ],
+        "properties": {
+          "review": {
+            "$ref": "#/components/schemas/Review"
+          },
+          "submission": {
+            "$ref": "#/components/schemas/AssessmentSubmission"
+          }
+        }
+      },
+      "ReviewListResponse": {
+        "type": "object",
+        "required": [
+          "reviews"
+        ],
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            }
+          }
+        }
+      },
+      "ReviewResponse": {
+        "type": "object",
+        "required": [
+          "review"
+        ],
+        "properties": {
+          "review": {
+            "$ref": "#/components/schemas/Review"
+          }
+        }
+      },
+      "Submission": {
+        "type": "object",
+        "required": [
+          "submission_id",
+          "org_id",
+          "content",
+          "submitted_at",
+          "review_status"
+        ],
+        "properties": {
+          "content": {},
+          "org_id": {
+            "type": "string"
+          },
+          "review_status": {
+            "type": "string"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submitted_at": {
+            "type": "string"
+          }
+        }
+      },
+      "SubmissionDetailResponse": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "status"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserInvitationStatus"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      },
+      "SubmissionListResponse": {
+        "type": "object",
+        "required": [
+          "email",
+          "organization_id",
+          "roles",
+          "categories"
+        ],
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "email": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "UpdateAssessmentRequest": {
+        "type": "object",
+        "required": [
+          "language"
+        ],
+        "properties": {
+          "language": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateCategoryCatalogRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "weight": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateOrganizationCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "weight": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateQuestionRequest": {
+        "type": "object",
+        "required": [
+          "category",
+          "text",
+          "weight"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "text": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "weight": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "UpdateRecommendationStatusRequest": {
+        "type": "object",
+        "required": [
+          "report_id",
+          "category",
+          "status"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "report_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateResponseRequest": {
+        "type": "object",
+        "required": [
+          "response",
+          "version"
+        ],
+        "properties": {
+          "response": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateReviewRequest": {
+        "type": "object",
+        "properties": {
+          "comments": {
+            "type": "string",
+            "nullable": true
+          },
+          "decision": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "User",
+      "description": "Operations related to user management"
+    },
+    {
+      "name": "Organization",
+      "description": "Operations related to organizations"
+    },
+    {
+      "name": "Organization Categories",
+      "description": "Operations related to organization-specific category management"
+    },
+    {
+      "name": "Category Catalog",
+      "description": "Operations related to category catalog management"
+    },
+    {
+      "name": "Health",
+      "description": "Health check operations"
+    },
+    {
+      "name": "Protected",
+      "description": "Protected resource operations"
+    }
+  ]
+}

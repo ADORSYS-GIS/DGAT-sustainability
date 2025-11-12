@@ -82,6 +82,13 @@ fn is_member_of_org_by_id(claims: &Claims, org_id: &str) -> bool {
 }
 
 // Get all organizations filtered according to the specified parameters
+/// List organizations
+#[utoipa::path(
+    get,
+    path = "/admin/organizations",
+    tag = "Organization",
+    responses((status = 200, description = "Organizations"))
+)]
 pub async fn get_organizations(
     Extension(_claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -149,6 +156,14 @@ pub async fn get_organizations(
 }
 
 // Create a new organization
+/// Create organization
+#[utoipa::path(
+    post,
+    path = "/admin/organizations",
+    tag = "Organization",
+    request_body = OrganizationCreateRequest,
+    responses((status = 201, description = "Created"))
+)]
 pub async fn create_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -175,7 +190,71 @@ pub async fn create_organization(
         )
         .await
     {
-        Ok(organization) => Ok((StatusCode::CREATED, Json(organization))),
+        Ok(organization) => {
+            // If categories are provided in attributes, assign them to the organization
+            if let Some(attributes) = &request.attributes {
+                if let Some(categories) = attributes.get("categories") {
+                    // categories is already a Vec<String>
+                    let category_names = categories.clone();
+                    
+                    if !category_names.is_empty() {
+                        // Convert category names to category catalog IDs and assign with equal weights
+                        let category_catalog_service = &app_state.database.category_catalog;
+                        let organization_categories_service = &app_state.database.organization_categories;
+                        
+                        let mut category_catalog_ids = Vec::new();
+                        for name in category_names {
+                            // Find category catalog by name
+                            let all_catalogs = category_catalog_service
+                                .get_all_active_categories()
+                                .await
+                                .map_err(|e| {
+                                    tracing::error!("Failed to get category catalogs: {}", e);
+                                    ApiError::InternalServerError("Failed to get category catalogs".to_string())
+                                })?;
+                            
+                            if let Some(catalog) = all_catalogs.iter().find(|cat| cat.name == name) {
+                                category_catalog_ids.push(catalog.category_catalog_id);
+                            }
+                        }
+                        
+                        if !category_catalog_ids.is_empty() {
+                            // Calculate equal weights
+                            let category_count = category_catalog_ids.len() as i32;
+                            let equal_weight = 100 / category_count;
+                            let remainder = 100 % category_count;
+                            
+                            // Create organization categories with equal weights
+                            for (index, category_catalog_id) in category_catalog_ids.iter().enumerate() {
+                                let organization_category_id = uuid::Uuid::new_v4();
+                                let mut weight = equal_weight;
+                                // Add remainder to first category
+                                if index == 0 && remainder > 0 {
+                                    weight += remainder;
+                                }
+                                let order = (index + 1) as i32;
+                                
+                                if let Err(e) = organization_categories_service
+                                    .create_organization_category(
+                                        organization_category_id,
+                                        organization.id.clone(),
+                                        *category_catalog_id,
+                                        weight,
+                                        order,
+                                    )
+                                    .await
+                                {
+                                    tracing::error!("Failed to create organization category: {}", e);
+                                    // Don't fail the entire operation, just log the error
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Ok((StatusCode::CREATED, Json(organization)))
+        },
         Err(e) => {
             tracing::error!("Failed to create organization: {}", e);
             Err(ApiError::InternalServerError("Failed to create organization".to_string()))
@@ -184,11 +263,19 @@ pub async fn create_organization(
 }
 
 // Get a specific organization
-pub async fn get_organization(
+/// Get organization by id
+#[utoipa::path(
+    get,
+    path = "/admin/realms/{realm}/organizations/{org_id}",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID")),
+    responses((status = 200, description = "Organization"), (status = 404, description = "Not found"))
+)]
+pub async fn get_organization_by_id(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((realm, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -210,6 +297,15 @@ pub async fn get_organization(
 }
 
 // Update an organization
+/// Update organization
+#[utoipa::path(
+    put,
+    path = "/admin/organizations/{org_id}",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID")),
+    request_body = OrganizationCreateRequest,
+    responses((status = 204, description = "Updated"))
+)]
 pub async fn update_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -253,6 +349,14 @@ pub async fn update_organization(
 }
 
 // Delete an organization
+/// Delete organization
+#[utoipa::path(
+    delete,
+    path = "/admin/organizations/{org_id}",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID")),
+    responses((status = 204, description = "Deleted"))
+)]
 pub async fn delete_organization(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -299,6 +403,14 @@ pub async fn delete_organization(
 }
 
 // Get organization members filtered according to the specified parameters
+/// List organization members (org_admin)
+#[utoipa::path(
+    get,
+    path = "/organizations/{org_id}/members",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID")),
+    responses((status = 200, description = "Members"))
+)]
 pub async fn get_members(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -354,6 +466,15 @@ pub async fn get_members(
 }
 
 // Add a member to an organization
+/// Add member to organization (org_admin)
+#[utoipa::path(
+    post,
+    path = "/organizations/{org_id}/members",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID")),
+    request_body = MemberRequest,
+    responses((status = 201, description = "Added"))
+)]
 pub async fn add_member(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -385,7 +506,7 @@ pub async fn update_member_roles(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id, member_id)): Path<(String, String, String)>,
+    Path((_realm, org_id, member_id)): Path<(String, String, String)>,
     Json(request): Json<KeycloakRoleAssignment>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -462,7 +583,7 @@ pub async fn delete_invitation(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id, invitation_id)): Path<(String, String, String)>,
+    Path((_realm, org_id, invitation_id)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -486,11 +607,19 @@ pub async fn delete_invitation(
 // NEW ENDPOINTS MATCHING OPENAPI SPECIFICATION
 
 // Returns the organizations counts
+/// Get organizations count
+#[utoipa::path(
+    get,
+    path = "/admin/realms/{realm}/organizations/count",
+    tag = "Organization",
+    params(("realm", description = "Realm")),
+    responses((status = 200, description = "Count"))
+)]
 pub async fn get_organizations_count(
     Extension(_claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path(realm): Path<String>,
+    Path(_realm): Path<String>,
     Query(params): Query<OrganizationsCountQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -529,11 +658,19 @@ pub async fn get_organizations_count(
 }
 
 // Returns the organizations associated with the user that has the specified id
+/// Get member organizations
+#[utoipa::path(
+    get,
+    path = "/admin/realms/{member_id}/organizations",
+    tag = "Organization",
+    params(("member_id", description = "Member ID")),
+    responses((status = 200, description = "Organizations"))
+)]
 pub async fn get_member_organizations(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, member_id)): Path<(String, String)>,
+    Path((_realm, member_id)): Path<(String, String)>,
     Query(params): Query<MemberOrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -580,13 +717,21 @@ pub async fn get_member_organizations(
 }
 
 // Returns all identity providers associated with the organization
+/// Get identity providers in org
+#[utoipa::path(
+    get,
+    path = "/admin/realms/{realm}/organizations/{org_id}/identity-providers",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID")),
+    responses((status = 200, description = "Identity providers"))
+)]
 pub async fn get_identity_providers(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !can_access_organization(&claims, &org_id) {
@@ -594,19 +739,28 @@ pub async fn get_identity_providers(
     }
 
     // TODO: Implement logic to get identity providers for organization
-    let identity_providers: Vec<serde_json::Value> = vec![];
-    Ok((StatusCode::OK, Json(identity_providers)))
+    let _identity_providers: Vec<serde_json::Value> = vec![];
+    Ok((StatusCode::OK, Json(serde_json::json!([]))))
 }
 
 // Adds the identity provider with the specified id to the organization
+/// Add identity provider to org
+#[utoipa::path(
+    post,
+    path = "/admin/realms/{realm}/organizations/{org_id}/identity-providers",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID")),
+    request_body = String,
+    responses((status = 204, description = "Added"))
+)]
 pub async fn add_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
     Json(request): Json<String>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
@@ -614,20 +768,28 @@ pub async fn add_identity_provider(
     }
 
     // Parse identity provider ID/alias from JSON string
-    let provider_id = request.trim().trim_matches('"');
+    let _provider_id = request.trim().trim_matches('"');
 
     // TODO: Implement logic to add identity provider to organization
     Ok(StatusCode::NO_CONTENT)
 }
 
 // Returns the identity provider associated with the organization that has the specified alias
+/// Get identity provider by alias
+#[utoipa::path(
+    get,
+    path = "/admin/realms/{realm}/organizations/{org_id}/identity-providers/{alias}",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID"), ("alias", description = "Alias")),
+    responses((status = 200, description = "Identity provider"), (status = 404, description = "Not found"))
+)]
 pub async fn get_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id, alias)): Path<(String, String, String)>,
+    Path((_realm, org_id, _alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !can_access_organization(&claims, &org_id) {
@@ -640,13 +802,21 @@ pub async fn get_identity_provider(
 }
 
 // Removes the identity provider with the specified alias from the organization
+/// Remove identity provider from org
+#[utoipa::path(
+    delete,
+    path = "/admin/realms/{realm}/organizations/{org_id}/identity-providers/{alias}",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID"), ("alias", description = "Alias")),
+    responses((status = 204, description = "Removed"))
+)]
 pub async fn remove_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id, alias)): Path<(String, String, String)>,
+    Path((_realm, org_id, _alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
@@ -658,11 +828,19 @@ pub async fn remove_identity_provider(
 }
 
 // Returns number of members in the organization
+/// Get members count in org
+#[utoipa::path(
+    get,
+    path = "/admin/realms/{realm}/organizations/{org_id}/members/count",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID")),
+    responses((status = 200, description = "Count"))
+)]
 pub async fn get_members_count(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -685,43 +863,59 @@ pub async fn get_members_count(
 }
 
 // Invites an existing user to the organization, using the specified user id
+/// Invite existing user to org
+#[utoipa::path(
+    post,
+    path = "/admin/realms/{realm}/organizations/{org_id}/members/invite-existing-user",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID")),
+    responses((status = 204, description = "Invited"))
+)]
 pub async fn invite_existing_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    let user_id = form.get("id").ok_or_else(|| ApiError::BadRequest("Missing id parameter".to_string()))?;
+    let _user_id = form.get("id").ok_or_else(|| ApiError::BadRequest("Missing id parameter".to_string()))?;
 
     // TODO: Implement logic to invite existing user
     Ok(StatusCode::NO_CONTENT)
 }
 
 // Invites an existing user or sends a registration link to a new user, based on the provided e-mail address
+/// Invite a user by email
+#[utoipa::path(
+    post,
+    path = "/admin/realms/{realm}/organizations/{org_id}/members/invite-user",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID")),
+    responses((status = 204, description = "Invited"))
+)]
 pub async fn invite_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id)): Path<(String, String)>,
+    Path((_realm, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let token = get_token_from_extensions(&token)?;
+    let _token = get_token_from_extensions(&token)?;
 
     // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    let email = form.get("email").ok_or_else(|| ApiError::BadRequest("Missing email parameter".to_string()))?;
-    let first_name = form.get("firstName");
+    let _email = form.get("email").ok_or_else(|| ApiError::BadRequest("Missing email parameter".to_string()))?;
+    let _first_name = form.get("firstName");
     let _last_name = form.get("lastName");
 
     // TODO: Implement logic to invite user by email
@@ -729,11 +923,19 @@ pub async fn invite_user(
 }
 
 // Returns the member of the organization with the specified id
+/// Get member by id in org
+#[utoipa::path(
+    get,
+    path = "/admin/realms/{realm}/organizations/{org_id}/members/{member_id}",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID"), ("member_id", description = "Member ID")),
+    responses((status = 200, description = "Member"), (status = 404, description = "Not found"))
+)]
 pub async fn get_member(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id, member_id)): Path<(String, String, String)>,
+    Path((_realm, org_id, member_id)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -760,11 +962,19 @@ pub async fn get_member(
 }
 
 // Returns the organizations associated with the user that has the specified id (within org context)
+/// Get organizations for a member (org scope)
+#[utoipa::path(
+    get,
+    path = "/admin/realms/{realm}/organizations/{org_id}/members/{member_id}/organizations",
+    tag = "Organization",
+    params(("realm", description = "Realm"), ("org_id", description = "Organization ID"), ("member_id", description = "Member ID")),
+    responses((status = 200, description = "Organizations"))
+)]
 pub async fn get_member_organizations_in_org(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_, org_id, member_id)): Path<(String, String, String)>,
+    Path((_realm, org_id, member_id)): Path<(String, String, String)>,
     Query(params): Query<MemberOrganizationsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
@@ -824,6 +1034,14 @@ pub async fn get_member_organizations_in_org(
 }
 
 // Update the remove_member handler to expect only org_id and membership_id
+/// Remove member from organization
+#[utoipa::path(
+    delete,
+    path = "/admin/organizations/{org_id}/members/{member_id}",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID"), ("member_id", description = "Member ID")),
+    responses((status = 204, description = "Removed"))
+)]
 pub async fn remove_member(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -1028,6 +1246,13 @@ pub async fn add_org_admin_member(
 
 
 // GET /api/organizations/:org_id/org-admin/members
+#[utoipa::path(
+    get,
+    path = "/organizations/{org_id}/org-admin/members",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID")),
+    responses((status = 200, description = "Org users list"))
+)]
 pub async fn get_org_admin_members(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -1056,6 +1281,13 @@ pub async fn get_org_admin_members(
 }
 
 // DELETE /api/organizations/:org_id/org-admin/members/:member_id
+#[utoipa::path(
+    delete,
+    path = "/organizations/{org_id}/org-admin/members/{member_id}",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID"), ("member_id", description = "Member ID")),
+    responses((status = 204, description = "Removed"))
+)]
 pub async fn remove_org_admin_member(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
@@ -1128,6 +1360,14 @@ pub struct OrgAdminMemberCategoryUpdateRequest {
 }
 
 // PUT /api/organizations/:org_id/org-admin/members/:member_id/categories
+#[utoipa::path(
+    put,
+    path = "/organizations/{org_id}/org-admin/members/{member_id}/categories",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID"), ("member_id", description = "Member ID")),
+    request_body = OrgAdminMemberCategoryUpdateRequest,
+    responses((status = 204, description = "Updated"))
+)]
 pub async fn update_org_admin_member_categories(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,

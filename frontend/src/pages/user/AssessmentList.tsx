@@ -7,7 +7,7 @@ import { ArrowLeft, FileText } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useOfflineDraftAssessments } from "../../hooks/useOfflineApi";
+import { useOfflineDraftAssessments } from "@/hooks/useOfflineAssessments";
 
 export const AssessmentList: React.FC = () => {
   const { t } = useTranslation();

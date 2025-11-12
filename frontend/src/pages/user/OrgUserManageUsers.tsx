@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,14 +14,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Users, Edit, Trash2, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { 
-  useOfflineUsers
-} from "@/hooks/useOfflineApi";
+import { useOfflineUsers } from "@/hooks/useOfflineUsers";
+import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
+import { useOfflineCategoryCatalogs } from "@/hooks/useOfflineCategoryCatalogs";
 import type {
   OrganizationMember,
   OrgAdminMemberRequest,
   OrgAdminMemberCategoryUpdateRequest,
 } from "@/openapi-rq/requests/types.gen";
+import type { OfflineCategoryCatalog } from "@/services/indexeddb";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
@@ -30,27 +31,6 @@ import type { OfflineUser } from "@/types/offline";
 import { useTranslation } from "react-i18next";
 import { OrgAdminUserInvitationForm } from "@/components/shared/OrgAdminUserInvitationForm";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-
-// Helper to get org and categories from ID token
-function getOrgAndCategoriesAndId(user: { organizations?: Record<string, { id: string; categories: string[] }> }) {
-  if (!user || !user.organizations)
-    return { orgName: "", orgId: "", categories: [] };
-  
-  const organizations = user.organizations as Record<string, { id: string; categories: string[] }>;
-  const orgKeys = Object.keys(organizations);
-  
-  if (orgKeys.length === 0) 
-    return { orgName: "", orgId: "", categories: [] };
-  
-  const orgName = orgKeys[0]; // First organization
-  const orgData = organizations[orgName];
-  
-  return { 
-    orgName, 
-    orgId: orgData?.id || "", 
-    categories: orgData?.categories || [] 
-  };
-}
 
 // Offline-first user mutation hooks
 function useUserMutations() {
@@ -261,12 +241,53 @@ export const OrgUserManageUsers: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   
-  const { orgName, orgId, categories } = getOrgAndCategoriesAndId(user);
+  const { orgName, orgId } = useMemo(() => {
+    if (!user || !user.organizations) return { orgName: "", orgId: "" };
+    const orgKeys = Object.keys(user.organizations);
+    if (orgKeys.length === 0) return { orgName: "", orgId: "" };
+    const orgName = orgKeys[0];
+    const orgData = user.organizations[orgName] as { id: string };
+    return { orgName, orgId: orgData?.id || "" };
+  }, [user]);
+
+  const {
+    organizationCategories: offlineOrgCategories = [],
+    isLoading: isLoadingOrgCategories,
+  } = useOfflineOrganizationCategories();
+
+  const {
+    data: allCategoryCatalogs = [],
+    isLoading: isLoadingCategoryCatalogs,
+  } = useOfflineCategoryCatalogs();
+
+  const availableCategories = useMemo(() => {
+    const orgCategoryMap = new Map(offlineOrgCategories.map(oc => [oc.category_catalog_id, oc]));
+    return allCategoryCatalogs.filter(cc => orgCategoryMap.has(cc.category_catalog_id));
+  }, [offlineOrgCategories, allCategoryCatalogs]);
+
+  const isLoadingCategories = isLoadingOrgCategories || isLoadingCategoryCatalogs;
+
+  useEffect(() => {
+    console.log("OrgUserManageUsers - offlineOrgCategories:", offlineOrgCategories);
+    console.log("OrgUserManageUsers - allCategoryCatalogs:", allCategoryCatalogs);
+    console.log("OrgUserManageUsers - availableCategories:", availableCategories);
+    console.log("OrgUserManageUsers - isLoadingCategories:", isLoadingCategories);
+  }, [offlineOrgCategories, allCategoryCatalogs, availableCategories, isLoadingCategories]);
   
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
   );
+
+  const categoryIdToNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    availableCategories.forEach(cat => {
+      if (cat.category_catalog_id && cat.name) {
+        map.set(cat.category_catalog_id, cat.name);
+      }
+    });
+    return map;
+  }, [availableCategories]);
   const [formData, setFormData] = useState({
     email: "",
     roles: ["Org_User"],
@@ -463,23 +484,28 @@ export const OrgUserManageUsers: React.FC = () => {
                 <div>
                   <Label htmlFor="categories">Categories</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {categories.map((cat) => (
-                      <label key={cat} className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={formData.categories.includes(cat)}
-                          onChange={(e) => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              categories: e.target.checked
-                                ? [...prev.categories, cat]
-                                : prev.categories.filter((c) => c !== cat),
-                            }));
-                          }}
-                        />
-                        <span>{cat}</span>
-                      </label>
-                    ))}
+                    {isLoadingCategories ? (
+                      <p>Loading categories...</p>
+                    ) : (
+                      availableCategories.map((cat) => (
+                        <label key={cat.category_catalog_id} className="flex items-center gap-1">
+                          <input
+                            type="checkbox"
+                            checked={formData.categories.includes(cat.category_catalog_id)}
+                            onChange={(e) => {
+                              const categoryId = cat.category_catalog_id;
+                              setFormData((prev) => ({
+                                ...prev,
+                                categories: e.target.checked
+                                  ? [...prev.categories, categoryId]
+                                  : prev.categories.filter((c) => c !== categoryId),
+                              }));
+                            }}
+                          />
+                          <span>{cat.name}</span>
+                        </label>
+                      ))
+                    )}
                   </div>
                 </div>
                 <div>
@@ -567,12 +593,12 @@ export const OrgUserManageUsers: React.FC = () => {
                     <div className="flex flex-wrap gap-2 text-xs mt-2">
                       {user.categories &&
                         user.categories.length > 0 &&
-                        user.categories.map((cat: string) => (
+                        user.categories.map((catId: string) => (
                           <Badge
-                            key={cat}
+                            key={catId}
                             className="bg-blue-100 text-blue-700"
                           >
-                            {cat}
+                            {categoryIdToNameMap.get(catId) || catId}
                           </Badge>
                         ))}
                     </div>

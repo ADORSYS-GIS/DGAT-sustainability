@@ -4,7 +4,7 @@ import { Navbar } from "@/components/shared/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useOfflineSubmissions } from "../../hooks/useOfflineApi";
+import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineSubmissions";
 import type { Submission_content_responses } from "../../openapi-rq/requests/types.gen";
 import {
   Accordion,
@@ -14,11 +14,11 @@ import {
 } from "@/components/ui/accordion";
 import { useTranslation } from "react-i18next";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { useOfflineSubmissionsMutation } from "../../hooks/useOfflineApi";
 
 // Locally extend the type to include question_category
 interface SubmissionResponseWithCategory extends Submission_content_responses {
   question_category?: string;
+  question_text?: string; // Add question_text
 }
 
 export const SubmissionView: React.FC = () => {
@@ -29,8 +29,10 @@ export const SubmissionView: React.FC = () => {
     data: submissionsData,
     isLoading: submissionLoading,
     error: submissionError,
-    deleteSubmission,
   } = useOfflineSubmissions();
+  
+  const submission = submissionsData?.submissions?.find(s => s.submission_id === submissionId);
+  
   const { deleteSubmission: deleteSubmissionMutation } = useOfflineSubmissionsMutation();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
@@ -42,8 +44,6 @@ export const SubmissionView: React.FC = () => {
     setIsDeleteDialogOpen(false);
   };
   
-  // Find the specific submission by ID
-  const submission = submissionsData?.submissions?.find(s => s.submission_id === submissionId);
   const responses = submission?.content?.responses as SubmissionResponseWithCategory[] | undefined;
 
   // Group responses by category
@@ -295,17 +295,7 @@ export const SubmissionView: React.FC = () => {
                             <Card key={idx} className="mb-4">
                               <CardHeader>
                                 <CardTitle className="text-base font-semibold text-dgrv-blue">
-                                  {(() => {
-                                    const q = response.question;
-                                    if (q && typeof q === "object") {
-                                      // @ts-expect-error: OpenAPI type is too loose, but backend always sends { en: string }
-                                      return q.en ?? t("category");
-                                    }
-                                    if (typeof q === "string") {
-                                      return q;
-                                    }
-                                    return t("category");
-                                  })()}
+                                  {response.question_text || t("category")}
                                 </CardTitle>
                               </CardHeader>
                               <CardContent>{renderReadOnlyAnswer(response)}</CardContent>

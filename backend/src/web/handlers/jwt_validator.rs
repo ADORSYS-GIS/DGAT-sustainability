@@ -4,7 +4,7 @@ use reqwest::Client;
 use serde_json::Value;
 use std::collections::HashMap;
 use thiserror::Error;
-use tracing::{error, info};
+use tracing::{error};
 
 #[derive(Error, Debug)]
 pub enum JwtError {
@@ -52,9 +52,13 @@ impl JwtValidator {
 
         // Set up validation
         let mut validation = Validation::new(Algorithm::RS256);
-        validation.set_audience(&["sustainability", "account"]);
-        let keycloak_url = self.keycloak_url.replace("https", "http");
-        validation.set_issuer(&[&format!("{}/realms/{}", keycloak_url, self.realm)]);
+        // Accept the frontend/client audience and account
+        // NOTE: Align these with your Keycloak client-id(s)
+        validation.set_audience(&["sustainability-tool", "account"]);
+        // Accept the exact HTTPS issuer (matches well-known), and be lenient by also allowing HTTP if present upstream
+        let https_iss = format!("{}/realms/{}", self.keycloak_url, self.realm);
+        let http_iss = https_iss.replace("https://", "http://");
+        validation.set_issuer(&[&https_iss, &http_iss]);
         // Decode and validate token
         let token_data =
             decode::<Claims>(token, &decoding_key, &validation).map_err(JwtError::DecodeError)?;

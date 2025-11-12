@@ -25,16 +25,20 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  invalidateAndRefetch,
+  useOfflineCategoryCatalogs
+} from "@/hooks/useCategoryCatalogs";
+import { invalidateAndRefetch } from "@/hooks/useOfflineApi";
+import {
   useOfflineAssessment,
   useOfflineAssessmentsMutation,
-  useOfflineCategories,
   useOfflineDraftAssessments,
-  useOfflineQuestions,
+} from "@/hooks/useOfflineAssessments";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
+import {
   useOfflineResponses,
   useOfflineResponsesMutation,
-  useOfflineSyncStatus,
-} from "../../hooks/useOfflineApi";
+} from "@/hooks/useOfflineResponses";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { offlineDB } from "../../services/indexeddb";
 
 type FileData = { name: string; url: string };
@@ -48,6 +52,7 @@ type LocalAnswer = {
 
 type QuestionWithCategory = Question & {
   category: string;
+  category_id?: string;
   latest_revision: QuestionRevision;
 };
 
@@ -59,7 +64,7 @@ function isAssessmentDetailResponse(
 }
 
 // Type guard for assessment result
-function isAssessmentResult(result: unknown): result is { assessment: AssessmentType } {
+function isAssessmentResult(result: unknown): result is { assessment: AssessmentType; offline?: boolean } {
   return !!result && typeof result === 'object' && result !== null && 'assessment' in result;
 }
 
@@ -78,6 +83,13 @@ export const Assessment: React.FC = () => {
   const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
   const { isOnline } = useOfflineSyncStatus();
 
+  const allRoles = React.useMemo(() => {
+    if (!user) return [];
+    return [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
+  }, [user]);
+
+  const isOrgAdmin = React.useMemo(() => allRoles.includes("org_admin"), [allRoles]);
+
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, LocalAnswer>>({});
   const [showPercentInfo, setShowPercentInfo] = useState<string | null>(null);
@@ -91,7 +103,7 @@ export const Assessment: React.FC = () => {
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
-  const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategories();
+  const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategoryCatalogs();
   const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineDraftAssessments();
   const { data: existingResponses, isLoading: responsesLoading } = useOfflineResponses(assessmentId || "");
   const { createAssessment, submitDraftAssessment: submitDraftAssessmentHook, isPending: assessmentMutationPending } = useOfflineAssessmentsMutation();
@@ -116,7 +128,7 @@ export const Assessment: React.FC = () => {
     if (existingResponses?.responses && existingResponses.responses.length > 0) {
       const loadedAnswers: Record<string, LocalAnswer> = {};
       
-      existingResponses.responses.forEach((response) => {
+      existingResponses.responses.forEach((response: CreateResponseRequest) => {
         try {
           console.log('🔍 Processing response:', response);
           const responseData = JSON.parse(response.response[0] || response.response);
@@ -150,39 +162,35 @@ export const Assessment: React.FC = () => {
     const isOrgAdmin = allRoles.includes("org_admin");
 
     let orgId = "";
-    let userCategories: string[] = [];
-
     if (user.organizations && typeof user.organizations === "object") {
       const orgKeys = Object.keys(user.organizations);
       if (orgKeys.length > 0) {
-        const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
+        const orgData = (user.organizations as Record<string, { id: string }>)[orgKeys[0]];
         orgId = orgData?.id || "";
-        if (isOrgAdmin) {
-          userCategories = orgData?.categories || [];
-        }
       }
     }
 
-    if (!isOrgAdmin && user.categories && Array.isArray(user.categories)) {
-      userCategories = user.categories;
-    }
+    // For a regular user, their categories are directly on the user object.
+    // For an admin, we don't need their categories here, as filtering is handled elsewhere.
+    // For a regular user, their categories are directly on the user object as an array of UUIDs.
+    const userCategories = (!isOrgAdmin && Array.isArray(user.categories)) ? user.categories as string[] : [];
 
     return { orgId, categories: userCategories };
   }, [user]);
 
   const organizationCategories = React.useMemo(() => {
-    if (!categoriesData?.categories || !orgInfo.categories) {
+    if (!categoriesData || !orgInfo.categories) {
       return [];
     }
-    const orgCategoryNames = new Set(orgInfo.categories.map(c => c.toLowerCase()));
-    return categoriesData.categories
-      .filter(c => orgCategoryNames.has(c.name.toLowerCase()))
-      .map(c => c.name);
+    const orgCategoryNames = new Set(orgInfo.categories.map((c: string) => c.toLowerCase()));
+    return categoriesData
+      .filter((c: { name: string; }) => orgCategoryNames.has(c.name.toLowerCase()))
+      .map((c: { name: string; }) => c.name);
   }, [categoriesData, orgInfo.categories]);
 
-  // Extract assessment categories from assessment detail and map IDs to names
-  const assessmentCategories = React.useMemo(() => {
-    if (!assessmentDetail || !categoriesData?.categories) return [];
+  // Extract assessment category IDs from assessment detail
+  const assessmentCategoryIds = React.useMemo(() => {
+    if (!assessmentDetail) return [];
     
     let actualAssessment: AssessmentType;
     if (isAssessmentDetailResponse(assessmentDetail)) {
@@ -191,36 +199,19 @@ export const Assessment: React.FC = () => {
       actualAssessment = assessmentDetail as AssessmentType;
     }
     
-    // Get category names from assessment categories array by mapping IDs to names
-    if (actualAssessment.categories && Array.isArray(actualAssessment.categories)) {
-      return actualAssessment.categories.map(cat => {
-        if (typeof cat === 'string') {
-          // This is a category ID, find the corresponding category name
-          const categoryObj = categoriesData.categories.find(c => c.category_id === cat);
-          return categoryObj?.name || cat; // Return name if found, otherwise fall back to ID
-        }
-        if (typeof cat === 'object' && cat !== null && 'name' in cat) {
-          return (cat as { name: string }).name;
-        }
-        return '';
-      }).filter(Boolean);
-    }
-    
-    return [];
-  }, [assessmentDetail, categoriesData?.categories]);
+    return actualAssessment.categories || [];
+  }, [assessmentDetail]);
 
   // Assessment creation logic
   useEffect(() => {
     if (!user) return;
-    const allRoles = [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
-    const canCreate = allRoles.includes("org_admin");
 
-    if (!assessmentId && !canCreate) {
+    if (!assessmentId && !isOrgAdmin) {
       toast.error(t("assessment.noPermissionToCreate", { defaultValue: "Only organization administrators can create assessments." }));
       navigate("/dashboard");
       return;
     }
-  }, [assessmentId, user, navigate, t]);
+  }, [assessmentId, user, navigate, t, isOrgAdmin]);
 
   // Handle assessment selection
   const handleSelectAssessment = (selectedAssessmentId: string) => {
@@ -243,44 +234,38 @@ export const Assessment: React.FC = () => {
     const newAssessment: CreateAssessmentRequest = {
       language: currentLanguage,
       name: assessmentName,
-      categories: categories?.map(cat => {
-        // Find category ID by name from available categories
-        const categoryObj = categoriesData?.categories.find(c => c.name === cat);
-        return categoryObj?.category_id || cat;
-      }),
+      categories: categories,
     };
     
     createAssessment(newAssessment, {
-      onSuccess: (result) => {
+      onSuccess: (result: unknown) => {
+        console.log("Assessment creation onSuccess result:", result);
         if (result && isAssessmentResult(result) && result.assessment?.assessment_id) {
-          const realAssessmentId = result.assessment.assessment_id;
-          if (!realAssessmentId.startsWith("temp_")) {
-            // Invalidate and refetch the assessments query to ensure immediate visibility
-            invalidateAndRefetch(queryClient, ['assessments']);
-            // The existing refetchAssessments() is redundant if invalidateAndRefetch is used
-            // refetchAssessments();
-            const waitForAssessment = async () => {
-              let attempts = 0;
-              const maxAttempts = 10;
-              while (attempts < maxAttempts) {
-                const savedAssessment = await offlineDB.getAssessment(realAssessmentId);
-                if (savedAssessment) return;
-                await new Promise((resolve) => setTimeout(resolve, 500));
-                attempts++;
-              }
-            };
-            waitForAssessment();
+          const assessmentIdToNavigate = result.assessment.assessment_id;
+          
+          // Invalidate and refetch the assessments query to ensure immediate visibility
+          invalidateAndRefetch(queryClient, ['assessments']);
+          
+          // Navigate immediately to the assessment, whether it's a temp_ ID or a real ID
+          navigate(`/user/assessment/${assessmentIdToNavigate}`);
+          
+          // If it's a temporary assessment, we don't need to wait for it to be saved
+          // The useOfflineAssessment hook will handle loading it from IndexedDB
+          if (assessmentIdToNavigate.startsWith("temp_")) {
+            toast.success(t("assessment.offlineCreated", { defaultValue: "Assessment created offline and will sync when online!" }));
           } else {
-            setHasCreatedAssessment(false);
+            toast.success(t("assessment.createdSuccessfully", { defaultValue: "Assessment created successfully!" }));
           }
         } else {
+          console.error("Assessment creation result did not contain a valid assessment_id:", result);
           toast.error(t("assessment.failedToCreate"));
           setHasCreatedAssessment(false);
         }
         setShowCreateModal(false);
         setIsCreatingAssessment(false);
       },
-      onError: () => {
+      onError: (error) => {
+        console.error("Error creating assessment:", error);
         toast.error(t("assessment.failedToCreate"));
         setHasCreatedAssessment(false);
         setShowCreateModal(false);
@@ -384,42 +369,73 @@ export const Assessment: React.FC = () => {
 
   // Group questions by category - use intersection of assessment categories and user categories
   const groupedQuestions = React.useMemo(() => {
-    if (!questionsData?.questions) return {};
+    if (!questionsData || !categoriesData) return {};
+
+    // Create lookup maps for categories
+    const categoryIdToNameMap = new Map<string, string>();
+    const categoryNameToIdMap = new Map<string, string>();
+    categoriesData.forEach((cat: { category_catalog_id: string; name: string; }) => {
+      categoryIdToNameMap.set(cat.category_catalog_id, cat.name);
+      categoryNameToIdMap.set(cat.name.toLowerCase(), cat.category_catalog_id);
+    });
+
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
-    (questionsData.questions as unknown as QuestionWithCategory[]).forEach((question) => {
-      const category = question.category;
-      if (!groups[category]) groups[category] = [];
-      groups[category].push({ question, revision: question.latest_revision });
+    
+    // Group questions by their proper category ID, handling legacy data
+    (questionsData as unknown as QuestionWithCategory[]).forEach((question) => {
+      if (question) {
+        let categoryId: string | undefined;
+        // The question might have the correct UUID in category_id
+        if (question.category_id && categoryIdToNameMap.has(question.category_id)) {
+          categoryId = question.category_id;
+        }
+        // Or it might have the name in category_id (legacy issue)
+        else if (question.category_id && categoryNameToIdMap.has(question.category_id.toLowerCase())) {
+          categoryId = categoryNameToIdMap.get(question.category_id.toLowerCase());
+        }
+        // Or it might have the name in the category property
+        else if (question.category && categoryNameToIdMap.has(question.category.toLowerCase())) {
+          categoryId = categoryNameToIdMap.get(question.category.toLowerCase());
+        }
+
+        if (categoryId) {
+          if (!groups[categoryId]) {
+            groups[categoryId] = [];
+          }
+          groups[categoryId].push({
+            question,
+            revision: question.latest_revision,
+          });
+        }
+      }
     });
 
     const filtered: typeof groups = {};
-    
-    // First filter by assessment categories
-    for (const assessmentCat of assessmentCategories) {
-      const normalizedAssessmentCat = assessmentCat.toLowerCase();
-      const matchingCategory = Object.keys(groups).find((cat) => cat.toLowerCase() === normalizedAssessmentCat);
-      if (matchingCategory && groups[matchingCategory]) {
-        // Then check if this category is also assigned to the user
-        const normalizedUserCat = normalizedAssessmentCat;
-        const userHasCategory = orgInfo.categories.some(userCat =>
-          userCat.toLowerCase() === normalizedUserCat
-        );
-        
-        if (userHasCategory) {
-          filtered[matchingCategory] = groups[matchingCategory];
+
+    // Filter questions based on user role using category IDs
+    for (const assessmentCatId of assessmentCategoryIds) {
+      if (groups[assessmentCatId]) {
+        if (isOrgAdmin) {
+          // Admins see all categories assigned to the assessment
+          filtered[assessmentCatId] = groups[assessmentCatId];
+        } else {
+          // Regular users see only the intersection of their categories and assessment categories
+          const userHasCategory = orgInfo.categories.includes(assessmentCatId);
+          if (userHasCategory) {
+            filtered[assessmentCatId] = groups[assessmentCatId];
+          }
         }
       }
     }
     return filtered;
-  }, [questionsData?.questions, assessmentCategories, orgInfo.categories]);
+  }, [questionsData, categoriesData, assessmentCategoryIds, orgInfo.categories, user, isOrgAdmin]);
 
   const categories = Object.keys(groupedQuestions);
 
   // Check if we have any categories - only show this message for Org_User, not org_admin
-  const allRoles = [...(user?.roles || []), ...(user?.realm_access?.roles || [])].map((r) => r.toLowerCase());
-  const isOrgUser = allRoles.includes("org_user") && !allRoles.includes("org_admin");
+  const isOrgUser = allRoles.includes("org_user") && !isOrgAdmin;
   
-  if (assessmentCategories.length === 0 && isOrgUser) {
+  if (assessmentCategoryIds.length > 0 && categories.length === 0 && isOrgUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -440,8 +456,7 @@ export const Assessment: React.FC = () => {
 
   // Show assessment list if no specific assessment is selected
   if (!assessmentId) {
-    const allRoles = [...(user?.roles || []), ...(user?.realm_access?.roles || [])].map((r) => r.toLowerCase());
-    const canCreate = allRoles.includes("org_admin");
+    const canCreate = isOrgAdmin;
 
     return (
       <div className="min-h-screen bg-gray-50">
@@ -481,8 +496,7 @@ export const Assessment: React.FC = () => {
               onClose={() => setShowCreateModal(false)}
               onSubmit={handleCreateAssessment}
               isLoading={isCreatingAssessment}
-              isOrgAdmin={allRoles.includes("org_admin")}
-              availableCategories={organizationCategories}
+              isOrgAdmin={isOrgAdmin}
             />
           </div>
         </div>
@@ -672,7 +686,7 @@ export const Assessment: React.FC = () => {
           <Textarea
             id={`input-text-${key}`}
             value={textValue}
-            onChange={(e) => handleAnswerChange(key, { text: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleAnswerChange(key, { text: e.target.value })}
             placeholder={t("assessment.enterYourResponse")}
             className="mt-1"
             rows={4}
@@ -705,24 +719,6 @@ export const Assessment: React.FC = () => {
     );
   };
 
-  if (assessmentId && assessmentId.startsWith("temp_")) {
-    return (
-      <>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
-            <p className="text-gray-600">{t("assessment.creating", { defaultValue: "Creating assessment..." })}</p>
-            <p className="text-sm text-gray-500 mt-2">{t("assessment.pleaseWait", { defaultValue: "Please wait while we set up your assessment." })}</p>
-            {creationAttempts > 0 && (
-              <p className="text-xs text-gray-400 mt-1">
-                {t("assessment.attempt", { defaultValue: "Attempt" })} {creationAttempts}/3
-              </p>
-            )}
-          </div>
-        </div>
-      </>
-    );
-  }
 
   if (assessmentLoading || responsesLoading || !assessmentDetail || categoriesLoading) {
     return (
@@ -737,10 +733,11 @@ export const Assessment: React.FC = () => {
     );
   }
 
-  const currentCategory = categories[currentCategoryIndex];
-  const currentCategoryObject = categoriesData?.categories.find(c => c.name === currentCategory);
+  const currentCategoryId = categories[currentCategoryIndex];
+  const currentCategoryObject = categoriesData?.find((c: { category_catalog_id: string; }) => c.category_catalog_id === currentCategoryId);
+  const currentCategoryName = currentCategoryObject?.name || t("assessment.unknownCategory", { defaultValue: "Unknown Category" });
   const currentQuestions = getCurrentCategoryQuestions();
-  const progress = ((currentCategoryIndex + 1) / categories.length) * 100;
+  const progress = categories.length > 0 ? ((currentCategoryIndex + 1) / categories.length) * 100 : 0;
   const isLastCategory = currentCategoryIndex === categories.length - 1;
 
   return (
@@ -750,7 +747,7 @@ export const Assessment: React.FC = () => {
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl font-bold text-dgrv-blue mb-2">{toolName}</h1>
           <p className="text-lg text-gray-600">
-            {t("category")} {currentCategoryIndex + 1} {t("of", { defaultValue: "of" })} {categories.length}: {currentCategory}
+            {t("category")} {currentCategoryIndex + 1} {t("of", { defaultValue: "of" })} {categories.length}: {currentCategoryName}
           </p>
         </div>
 
@@ -833,19 +830,14 @@ export const Assessment: React.FC = () => {
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="text-xl text-dgrv-blue">
-              {currentCategory}
-              {currentCategoryObject && (
-                <span className="text-base text-gray-500 font-normal ml-2">
-                  ({t("weight", { defaultValue: "Weight" })}: {currentCategoryObject.weight})
-                </span>
-              )}
+              {currentCategoryName}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
             {currentQuestions.map((question, index) => {
               let questionText = "";
               if (typeof question.revision.text === "object" && question.revision.text !== null) {
-                const textObj = question.revision.text as Record<string, unknown>;
+                const textObj = question.revision.text as Record<string, string>;
                 questionText = typeof textObj[currentLanguage] === "string" ? textObj[currentLanguage] : (Object.values(textObj).find((v) => typeof v === "string") as string) || "";
               } else if (typeof question.revision.text === "string") {
                 questionText = question.revision.text;
@@ -898,8 +890,7 @@ export const Assessment: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateAssessment}
         isLoading={isCreatingAssessment}
-        isOrgAdmin={allRoles.includes("org_admin")}
-        availableCategories={organizationCategories}
+        isOrgAdmin={isOrgAdmin}
       />
     </div>
   );

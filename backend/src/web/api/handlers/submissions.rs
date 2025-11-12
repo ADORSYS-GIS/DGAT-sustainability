@@ -1,7 +1,7 @@
 use crate::common::models::claims::Claims;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
-use crate::web::api::models::{AssessmentSubmission, Submission, SubmissionDetailResponse, SubmissionListResponse};
+use crate::web::api::models::{Submission, SubmissionDetailResponse, SubmissionListResponse};
 use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,
@@ -68,7 +68,16 @@ async fn process_response(
             {
                 Ok(Some(question)) => {
                     // Use the revision text directly (it's already a JSON Value)
-                    (revision.text, question.category)
+                    let category_name = match app_state
+                        .database
+                        .category_catalog
+                        .get_category_catalog_by_id(question.category_id)
+                        .await
+                    {
+                        Ok(Some(c)) => c.name,
+                        _ => "Unknown".to_string(),
+                    };
+                    (revision.text, category_name)
                 }
                 _ => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
             }
@@ -127,6 +136,13 @@ fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id
         .unwrap_or(false)
 }
 
+/// List submissions for current org
+#[utoipa::path(
+    get,
+    path = "/submissions",
+    tag = "Submission",
+    responses((status = 200, description = "Submissions", body = SubmissionListResponse))
+)]
 pub async fn list_user_submissions(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -184,6 +200,14 @@ pub async fn list_user_submissions(
     Ok(Json(SubmissionListResponse { submissions }))
 }
 
+/// Get a submission by ID
+#[utoipa::path(
+    get,
+    path = "/submissions/{submission_id}",
+    tag = "Submission",
+    params(("submission_id" = uuid::Uuid, Path, description = "Submission ID")),
+    responses((status = 200, description = "Submission detail", body = SubmissionDetailResponse), (status = 404, description = "Not found"))
+)]
 pub async fn get_submission(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -232,8 +256,8 @@ pub async fn get_submission(
     }
 
     // Convert database model to API model
-    let submission = AssessmentSubmission {
-        assessment_id: submission_model.submission_id,
+    let submission = Submission {
+        submission_id: submission_model.submission_id,
         org_id: submission_model.org_id,
         assessment_name,
         content: enhanced_content,
@@ -245,6 +269,14 @@ pub async fn get_submission(
     Ok(Json(SubmissionDetailResponse { submission }))
 }
 
+/// Delete a submission by ID
+#[utoipa::path(
+    delete,
+    path = "/submissions/{submission_id}",
+    tag = "Submission",
+    params(("submission_id" = uuid::Uuid, Path, description = "Submission ID")),
+    responses((status = 204, description = "Deleted"), (status = 404, description = "Not found"))
+)]
 pub async fn delete_submission(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,

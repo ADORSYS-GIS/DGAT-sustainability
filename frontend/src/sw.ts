@@ -1,9 +1,12 @@
 /// <reference lib="webworker" />
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(self as any).__WB_DISABLE_DEV_LOGS = true;
+
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { 
-  NetworkFirst, 
+import {
+  NetworkFirst,
   CacheFirst, 
   StaleWhileRevalidate,
   NetworkOnly 
@@ -13,6 +16,7 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { BackgroundSyncPlugin } from 'workbox-background-sync';
 
 declare const self: ServiceWorkerGlobalScope;
+
 
 // Clean up outdated caches
 cleanupOutdatedCaches();
@@ -190,7 +194,7 @@ self.addEventListener('fetch', (event) => {
           const responseClone = response.clone();
           
           // Cache successful responses
-          if (response.status === 200 || response.status === 201) {
+          if (request.method === 'GET' && (response.status === 200 || response.status === 201)) {
             caches.open('api-cache').then(cache => {
               cache.put(request, responseClone);
             });
@@ -222,14 +226,3 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
-
-// Log service worker events for debugging
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: '1.0.0' });
-  }
-}); 

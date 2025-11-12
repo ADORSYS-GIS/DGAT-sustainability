@@ -5,16 +5,14 @@ use crate::web::api::models::{
     AdminSubmissionListResponse,
 };
 use crate::common::models::claims::Claims;
-use crate::common::models::keycloak::{KeycloakOrganization, UserInvitationRequest, UserInvitationResponse, UserInvitationStatus};
+use crate::common::models::keycloak::{UserInvitationRequest, UserInvitationResponse, UserInvitationStatus};
 use axum::{
     extract::{Path, Query, State, Extension},
     http::StatusCode,
     Json,
 };
 use serde::Deserialize;
-use serde_json::json;
 use uuid::Uuid;
-use std::collections::HashMap;
 
 // Helper function to extract token from request extensions
 fn get_token_from_extensions(token: &str) -> Result<String, ApiError> {
@@ -161,7 +159,16 @@ pub async fn list_all_submissions(
                                     .and_then(|t| t.as_str())
                                     .unwrap_or("Unknown question")
                                     .to_string();
-                                (text, question.category)
+                                let category = app_state
+                                    .database
+                                    .category_catalog
+                                    .get_category_catalog_by_id(question.category_id)
+                                    .await
+                                    .ok()
+                                    .flatten()
+                                    .map(|c| c.name)
+                                    .unwrap_or("Unknown".to_string());
+                                (text, category)
                             }
                             _ => ("Unknown question".to_string(), "Unknown".to_string()),
                         }
@@ -375,7 +382,17 @@ pub async fn list_temp_submissions_by_assessment(
                             .get_question_by_id(revision.question_id)
                             .await
                         {
-                            Ok(Some(question)) => question.category,
+                            Ok(Some(question)) => {
+                                app_state
+                                    .database
+                                    .category_catalog
+                                    .get_category_catalog_by_id(question.category_id)
+                                    .await
+                                    .ok()
+                                    .flatten()
+                                    .map(|c| c.name)
+                                    .unwrap_or("Unknown category".to_string())
+                            },
                             _ => "Unknown category".to_string(),
                         };
 
@@ -625,7 +642,7 @@ mod tests {
 
         let mock_question = crate::common::database::entity::questions::Model {
             question_id,
-            category: "Environmental".to_string(),
+            category_id: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
         };
 
@@ -672,11 +689,11 @@ mod tests {
             .unwrap_or("Unknown question")
             .to_string();
 
-        let category = question.category;
+        let category_id = question.category_id;
 
         // Verify the expected values match the sample payload from the issue
         assert_eq!(text, "What is your organization's sustainability policy?");
-        assert_eq!(category, "Environmental");
+        assert_eq!(category_id, mock_question.category_id);
 
         println!("✓ Successfully extracted question_text: {}", text);
         println!("✓ Successfully extracted question_category: {}", category);

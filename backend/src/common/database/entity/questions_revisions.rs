@@ -106,11 +106,18 @@ impl QuestionsRevisionsService {
         self.db_service.delete(id).await
     }
 
-    pub async fn delete_revisions_by_question_id(&self, question_id: Uuid) -> Result<DeleteResult, DbErr> {
-        Entity::delete_many()
-            .filter(Column::QuestionId.eq(question_id))
-            .exec(self.db_service.get_connection())
-            .await
+    pub async fn delete_revisions_by_question_id(
+        &self,
+        question_id: Uuid,
+        txn: Option<&sea_orm::DatabaseTransaction>,
+    ) -> Result<DeleteResult, DbErr> {
+        let query = Entity::delete_many().filter(Column::QuestionId.eq(question_id));
+
+        if let Some(txn) = txn {
+            query.exec(txn).await
+        } else {
+            query.exec(self.db_service.get_connection()).await
+        }
     }
 }
 

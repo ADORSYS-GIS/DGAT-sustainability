@@ -36,16 +36,14 @@ import { generateRecommendationChartData } from "@/utils/recommendationChart";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { OrgUserManageUsers } from "./OrgUserManageUsers";
-import { 
-  useOfflineSubmissions,
-  useOfflineReports,
-  useOfflineAssessments,
-  useOfflineAdminSubmissions,
-  useOfflineUserRecommendations,
-} from "@/hooks/useOfflineApi";
+import { useOfflineSubmissions } from "@/hooks/useOfflineSubmissions";
+import { useOfflineReports, useOfflineUserRecommendations } from "@/hooks/useOfflineReports";
+import { useOfflineAssessments } from "@/hooks/useOfflineAssessments";
+import { useOfflineAdminSubmissions } from "@/hooks/useOfflineAdminSubmissions";
 import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
 import { ReportSelectionDialog } from "@/components/shared/ReportSelectionDialog";
-import type { Report, AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
+import type { Report, AdminSubmissionDetail, RecommendationWithStatus, OrganizationCategory } from "@/openapi-rq/requests/types.gen";
+import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
 
 // Local types to map report.data into existing export inputs
 interface ReportAnswer {
@@ -75,6 +73,7 @@ export const Dashboard: React.FC = () => {
   const { data: reportsData, isLoading: reportsLoading } = useOfflineReports();
   const { data: assessmentsData } = useOfflineAssessments();
   const { data: userRecommendations } = useOfflineUserRecommendations();
+  const { organizationCategories: organizationCategoriesData } = useOfflineOrganizationCategories();
   
   // Add initial data loading hook
   const { refreshData } = useInitialDataLoad();
@@ -128,8 +127,10 @@ export const Dashboard: React.FC = () => {
   const recommendations: OfflineRecommendation[] = reportsData?.recommendations || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = React.useState(false);
+  const [exportType, setExportType] = React.useState<"pdf" | "docx">("pdf");
 
-  const handleOpenReportDialog = () => {
+  const handleOpenReportDialog = (type: "pdf" | "docx") => {
+    setExportType(type);
     setIsReportDialogOpen(true);
   };
 
@@ -180,6 +181,8 @@ export const Dashboard: React.FC = () => {
         return categoryRecommendations.map((rec) => ({
           recommendation_id: rec.id,
           report_id: report.report_id,
+          assessment_id: report.assessment_id,
+          assessment_name: report.assessment_name,
           category,
           recommendation: rec.text,
           status: (rec.status as RecommendationWithStatus["status"]) || "todo",
@@ -204,12 +207,21 @@ export const Dashboard: React.FC = () => {
       const radarChartDataUrl = chartRef.current?.toBase64Image();
       const recommendationChartDataUrl = recommendationChartRef.current?.toBase64Image();
 
-      await exportAllAssessmentsPDF(
-        singleSubmissions,
-        singleRecs,
-        radarChartDataUrl,
-        recommendationChartDataUrl
-      );
+      if (exportType === "pdf") {
+        await exportAllAssessmentsPDF(
+          singleSubmissions,
+          singleRecs,
+          radarChartDataUrl,
+          recommendationChartDataUrl
+        );
+      } else {
+        await exportAllAssessmentsDOCX(
+          singleSubmissions,
+          singleRecs,
+          radarChartDataUrl,
+          recommendationChartDataUrl
+        );
+      }
     } finally {
       setIsReportDialogOpen(false);
     }
@@ -302,7 +314,7 @@ export const Dashboard: React.FC = () => {
       description: t('user.dashboard.actionPlan.description'),
       icon: CheckSquare,
       color: "blue" as const,
-      onClick: () => navigate("/action-plan"),
+      onClick: () => navigate("/user/assessment-submissions"),
     },
   ];
 
@@ -351,13 +363,13 @@ export const Dashboard: React.FC = () => {
 
     const allRecommendations = userRecommendations?.reports.flatMap(report => {
       const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
-      return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
-        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+      return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
+        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
       );
     }) || [];
     await exportAllAssessmentsPDF(
       adminSubmissionsData?.submissions || [],
-      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })),
+      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
       radarChartDataUrl,
       recommendationChartDataUrl
     );
@@ -370,13 +382,13 @@ export const Dashboard: React.FC = () => {
 
     const allRecommendations = userRecommendations?.reports.flatMap(report => {
       const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
-      return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
-        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+      return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
+        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
       );
     }) || [];
     await exportAllAssessmentsDOCX(
       adminSubmissionsData?.submissions || [],
-      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })),
+      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
       radarChartDataUrl,
       recommendationChartDataUrl
     );
@@ -419,11 +431,11 @@ export const Dashboard: React.FC = () => {
   );
 
   const radarChartData = React.useMemo(() => {
-    if (reportsData?.reports) {
-      return generateRadarChartData({ reports: reportsData.reports });
+    if (reportsData?.reports && organizationCategoriesData) {
+      return generateRadarChartData({ reports: reportsData.reports, organizationCategories: organizationCategoriesData });
     }
     return null;
-  }, [reportsData]);
+  }, [reportsData, organizationCategoriesData]);
 
 
   const radarChartOptions = {
@@ -443,11 +455,11 @@ export const Dashboard: React.FC = () => {
     if (userRecommendations?.reports) {
       const allRecommendations = userRecommendations.reports.flatMap(report => {
         const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
-        return Object.values(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(category =>
-          (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at }))
+        return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
+          (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
         );
       });
-      return generateRecommendationChartData(allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, category: '', status: r.status as RecommendationWithStatus['status'] })));
+      return generateRecommendationChartData(allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })));
     }
     return null;
   }, [userRecommendations]);
@@ -525,7 +537,7 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <h3 className="font-medium">
-                              {t('user.dashboard.sustainabilityAssessment')}
+                              {submission.assessment_name || t('user.dashboard.sustainabilityAssessment')}
                             </h3>
                             <p className="text-sm text-gray-600">
                               {new Date(
@@ -576,7 +588,7 @@ export const Dashboard: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={handleOpenReportDialog}
+                      onClick={() => handleOpenReportDialog("pdf")}
                       disabled={reportsLoading}
                     >
                       {t('user.dashboard.exportAsPDF')}
@@ -586,7 +598,7 @@ export const Dashboard: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="w-full justify-start"
-                      onClick={handleExportAllDOCX}
+                      onClick={() => handleOpenReportDialog("docx")}
                       disabled={reportsLoading}
                     >
                       {t('user.dashboard.exportAsDOCX')}
@@ -643,6 +655,11 @@ export const Dashboard: React.FC = () => {
         onReportSelect={handleSelectReportToExport}
         assessments={assessmentsData?.assessments || []}
         submissions={submissionsData?.submissions || []}
+        description={
+          exportType === "pdf"
+            ? t('user.dashboard.actionPlan.selectReportDescription')
+            : t('user.dashboard.actionPlan.selectReportDescriptionDOCX')
+        }
       />
     </div>
   );

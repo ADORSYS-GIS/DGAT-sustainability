@@ -27,6 +27,7 @@ use crate::common::models::claims::Claims;
 use crate::common::services::keycloak_service::KeycloakService;
 use crate::common::state::AppDatabase;
 use crate::web::api::routes::create_router;
+use crate::web::api::handlers::openapi::get_openapi_json;
 use crate::web::handlers::{jwt_validator::JwtValidator, midlw::auth_middleware, request_logging::request_logging_middleware};
 
 /// Application state containing shared services for JWT validation and database access
@@ -39,12 +40,8 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new(keycloak_url: String, realm: String, database: AppDatabase) -> Self {
-        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_url.clone(), realm.clone())));
-        let keycloak_config = KeycloakConfigs {
-            url: keycloak_url,
-            realm,
-        };
+    pub async fn new(keycloak_config: KeycloakConfigs, database: AppDatabase) -> Self {
+        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_config.url.clone(), keycloak_config.realm.clone())));
         let keycloak_service = Arc::new(KeycloakService::new(keycloak_config));
 
         Self {
@@ -58,14 +55,22 @@ impl AppState {
 
 /// Create the main application router with protected routes
 pub fn routers(app_state: AppState) -> Router {
+    // Scope auth middleware only to protected and API routers
+    let protected = protected_routes().layer(middleware::from_fn_with_state(
+        app_state.jwt_validator.clone(),
+        auth_middleware,
+    ));
+
+    let api = create_router(app_state.clone()).layer(middleware::from_fn_with_state(
+        app_state.jwt_validator.clone(),
+        auth_middleware,
+    ));
+
     Router::new()
-        .merge(protected_routes())
-        .merge(create_router(app_state.clone()))
-        // Apply authentication middleware to all protected routes
-        .layer(middleware::from_fn_with_state(
-            app_state.jwt_validator.clone(),
-            auth_middleware,
-        ))
+        .merge(protected)
+        .merge(api)
+        // Public routes (no auth)
+        .route("/api/openapi.json", get(get_openapi_json))
 }
 
 /// Protected routes that require JWT authentication

@@ -17,6 +17,13 @@ pub struct QuestionRevisionQuery {
     question_revision_id: Option<Uuid>,
 }
 
+/// List questions with latest revisions
+#[utoipa::path(
+    get,
+    path = "/questions",
+    tag = "Question",
+    responses((status = 200, description = "Questions list", body = QuestionListResponse))
+)]
 pub async fn list_questions(
     State(app_state): State<AppState>,
 ) -> Result<Json<QuestionListResponse>, ApiError> {
@@ -52,9 +59,17 @@ pub async fn list_questions(
                 HashMap::new()
             };
 
+            let category = app_state
+                .database
+                .category_catalog
+                .get_category_catalog_by_id(db_question.category_id)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?
+                .ok_or(ApiError::InternalServerError("Category not found for question".to_string()))?;
+
             let question = Question {
                 question_id: db_question.question_id,
-                category: db_question.category,
+                category: category.name,
                 created_at: db_question.created_at.to_rfc3339(),
                 latest_revision: QuestionRevision {
                     question_revision_id: revision_model.question_revision_id,
@@ -72,6 +87,14 @@ pub async fn list_questions(
     Ok(Json(QuestionListResponse { questions }))
 }
 
+/// Create a question and initial revision
+#[utoipa::path(
+    post,
+    path = "/questions",
+    tag = "Question",
+    request_body = CreateQuestionRequest,
+    responses((status = 201, description = "Question created", body = QuestionResponse), (status = 400, description = "Validation error"))
+)]
 pub async fn create_question(
     State(app_state): State<AppState>,
     Json(request): Json<CreateQuestionRequest>,
@@ -91,7 +114,7 @@ pub async fn create_question(
     let question_model = app_state
         .database
         .questions
-        .create_question(request.category.clone())
+        .create_question(request.category_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create question: {e}")))?;
 
@@ -108,9 +131,17 @@ pub async fn create_question(
         })?;
 
     // Build the response with the created question and revision
+    let category = app_state
+        .database
+        .category_catalog
+        .get_category_catalog_by_id(question_model.category_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?
+        .ok_or(ApiError::InternalServerError("Category not found for question".to_string()))?;
+
     let question = Question {
         question_id: question_model.question_id,
-        category: question_model.category,
+        category: category.name,
         created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
@@ -124,6 +155,17 @@ pub async fn create_question(
     Ok((StatusCode::CREATED, Json(QuestionResponse { question })))
 }
 
+/// Get a question by ID (optionally by revision)
+#[utoipa::path(
+    get,
+    path = "/questions/{question_id}",
+    tag = "Question",
+    params(
+        ("question_id" = uuid::Uuid, Path, description = "Question ID"),
+        ("question_revision_id" = Option<uuid::Uuid>, Query, description = "Specific revision ID")
+    ),
+    responses((status = 200, description = "Question detail", body = QuestionResponse), (status = 404, description = "Not found"))
+)]
 pub async fn get_question(
     State(app_state): State<AppState>,
     Path(question_id): Path<Uuid>,
@@ -195,9 +237,17 @@ pub async fn get_question(
     })?;
 
     // Build the response
+    let category = app_state
+        .database
+        .category_catalog
+        .get_category_catalog_by_id(question_model.category_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?
+        .ok_or(ApiError::InternalServerError("Category not found for question".to_string()))?;
+
     let question = Question {
         question_id: question_model.question_id,
-        category: question_model.category,
+        category: category.name,
         created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision.question_revision_id,
@@ -211,6 +261,15 @@ pub async fn get_question(
     Ok(Json(QuestionResponse { question }))
 }
 
+/// Update a question (creates a new revision)
+#[utoipa::path(
+    put,
+    path = "/questions/{question_id}",
+    tag = "Question",
+    params(("question_id" = uuid::Uuid, Path, description = "Question ID")),
+    request_body = UpdateQuestionRequest,
+    responses((status = 200, description = "Question updated", body = QuestionResponse), (status = 404, description = "Not found"), (status = 400, description = "Validation error"))
+)]
 pub async fn update_question(
     State(app_state): State<AppState>,
     Path(question_id): Path<Uuid>,
@@ -231,7 +290,7 @@ pub async fn update_question(
     let updated_question_model = app_state
         .database
         .questions
-        .update_question(question_id, Some(request.category.clone()))
+        .update_question(question_id, Some(request.category_id))
         .await
         .map_err(|e| {
             if e.to_string().contains("Question not found") {
@@ -254,9 +313,17 @@ pub async fn update_question(
         })?;
 
     // Build the response
+    let category = app_state
+        .database
+        .category_catalog
+        .get_category_catalog_by_id(updated_question_model.category_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?
+        .ok_or(ApiError::InternalServerError("Category not found for question".to_string()))?;
+
     let question = Question {
         question_id: updated_question_model.question_id,
-        category: updated_question_model.category,
+        category: category.name,
         created_at: updated_question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
@@ -270,6 +337,14 @@ pub async fn update_question(
     Ok(Json(QuestionResponse { question }))
 }
 
+/// Delete a question revision by ID
+#[utoipa::path(
+    delete,
+    path = "/questions/revisions/{revision_id}",
+    tag = "Question",
+    params(("revision_id" = uuid::Uuid, Path, description = "Question revision ID")),
+    responses((status = 204, description = "Deleted"), (status = 400, description = "In use"), (status = 404, description = "Not found"))
+)]
 pub async fn delete_question_revision_by_id(
     State(app_state): State<AppState>,
     Path(revision_id): Path<Uuid>,

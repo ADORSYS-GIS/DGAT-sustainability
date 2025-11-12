@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 import { Calendar, Clock, FileText, Tag, Trash2 } from "lucide-react";
-import type { OfflineAssessment, OfflineCategory } from "@/types/offline";
-import { useOfflineCategories, useOfflineAssessmentsMutation } from "@/hooks/useOfflineApi";
+import type { OfflineAssessment } from "@/types/offline";
+import { useDeleteAssessment } from "@/hooks/useAssessments";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
 
@@ -23,30 +23,13 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   onAssessmentDeleted,
 }) => {
   const { t } = useTranslation();
-  const { data: categoriesData } = useOfflineCategories();
-  const { deleteAssessment, isPending } = useOfflineAssessmentsMutation();
+  const { mutate: deleteAssessment, isPending } = useDeleteAssessment();
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = React.useState<string | null>(null);
 
-  // Create a map of category IDs to category names for easy lookup
-  const categoriesMap = React.useMemo(() => {
-    if (!categoriesData?.categories) return new Map<string, string>();
-    return new Map(
-      categoriesData.categories.map((cat) => [cat.category_id, cat.name])
-    );
-  }, [categoriesData?.categories]);
-
-  // Function to get category names from category UUIDs
-  const getCategoryNames = (categoryIds?: string[]) => {
-    if (!categoryIds || categoryIds.length === 0) return [];
-    return categoryIds
-      .map((id) => categoriesMap.get(id))
-      .filter((name): name is string => !!name);
-  };
-
   const handleDeleteAssessment = async (assessmentId: string) => {
     try {
-      await deleteAssessment(assessmentId, {
+      deleteAssessment(assessmentId, {
         onSuccess: () => {
           toast.success(t('assessment.deletedSuccessfully', { defaultValue: 'Assessment deleted successfully' }));
           onAssessmentDeleted?.();
@@ -125,13 +108,13 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                         <span>{t('assessment.assignedCategories', { defaultValue: 'Assigned categories' })}:</span>
                       </div>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {getCategoryNames(assessment.categories).map((categoryName) => (
+                        {assessment.categories.map((category) => (
                           <Badge
-                            key={categoryName}
+                            key={category.category_catalog_id}
                             variant="outline"
                             className="text-xs bg-dgrv-green/10 text-dgrv-green border-dgrv-green/20"
                           >
-                            {categoryName}
+                            {category.name}
                           </Badge>
                         ))}
                       </div>

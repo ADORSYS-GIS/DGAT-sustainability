@@ -3,11 +3,8 @@ use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
-use tracing::error;
-use tracing::log::warn;
 use crate::common::database::entity::assessments_submission::SubmissionStatus;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -209,20 +206,24 @@ mod tests {
 
     #[tokio::test]
     async fn test_automatic_assessment_deletion_after_submission() -> Result<(), Box<dyn std::error::Error>> {
-        use crate::common::database::entity::assessments::{AssessmentsService, Model as AssessmentModel};
-        use crate::common::database::entity::assessments_submission::AssessmentsSubmissionService;
+        use crate::common::database::entity::assessments::AssessmentsService;
+        use crate::common::database::entity::assessments_submission::{
+            AssessmentsSubmissionService, Model as SubmissionModel,
+        };
 
         let assessment_id = Uuid::new_v4();
 
-        let mock_assessment = AssessmentModel {
-            assessment_id,
+        let mock_submission = SubmissionModel {
+            submission_id: assessment_id,
             org_id: "test_org".to_string(),
-            language: "en".to_string(),
-            name: "Test Assessment".to_string(),
-            created_at: Utc::now(),
+            content: json!({"question1": "answer1"}),
+            submitted_at: chrono::Utc::now(),
+            status: SubmissionStatus::UnderReview,
+            reviewed_at: None,
+            name: Some("Test Assessment".to_string()),
         };
 
-        let mock_submission = Model {
+        let mock_temp_submission = Model {
             temp_id: assessment_id,
             org_id: "test_org".to_string(),
             content: json!({"question1": "answer1"}),
@@ -231,42 +232,38 @@ mod tests {
             reviewed_at: None,
         };
 
-        // Create mock databases
-        let submissions_db1 = MockDatabase::new(DatabaseBackend::Postgres)
+        // This DB is for the temp_submission_service inside assessment_submission_service
+        let temp_submission_db = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([
-                vec![mock_submission.clone()], // create_submission result
+                vec![mock_temp_submission.clone()], // for get_temp_submission_by_assessment_id
             ])
-            .append_exec_results([MockExecResult {
+            .append_exec_results([MockExecResult { // for delete_temp_submission
                 last_insert_id: 1,
                 rows_affected: 1,
             }])
             .into_connection();
 
-        let submissions_db2 = MockDatabase::new(DatabaseBackend::Postgres)
+        let submission_db = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([
-                vec![mock_submission.clone()], // create_submission result
+                vec![mock_submission.clone()], // for create_submission
             ])
-            .append_exec_results([MockExecResult {
-                last_insert_id: 1,
-                rows_affected: 1,
-            }])
             .into_connection();
 
         let assessments_db = MockDatabase::new(DatabaseBackend::Postgres)
-            .append_query_results([
-                vec![mock_submission.clone()], // get_submission_by_assessment_id for delete check
-            ])
-            .append_exec_results([MockExecResult {
+            .append_exec_results([MockExecResult { // for delete_assessment
                 last_insert_id: 1,
-                rows_affected: 1, // assessment deletion
+                rows_affected: 1,
             }])
             .into_connection();
 
         // Create services
-        let assessments_service = AssessmentsService::new(Arc::new(assessments_db));
+        let assessments_service = Arc::new(AssessmentsService::new(Arc::new(assessments_db)));
+        let temp_submission_service = Arc::new(TempSubmissionService::new(Arc::new(temp_submission_db)));
 
-        let submission_service = AssessmentsSubmissionService::new(Arc::new(submissions_db2))
-            .with_assessments_service(assessments_service);
+        let submission_service =
+            AssessmentsSubmissionService::new(Arc::new(submission_db))
+                .with_assessments_service(assessments_service)
+                .with_temp_submission_service(temp_submission_service);
 
         // Test that submission creation triggers automatic assessment deletion
         let result = submission_service
@@ -274,6 +271,7 @@ mod tests {
                 assessment_id,
                 "test_user".to_string(),
                 json!({"question1": "answer1"}),
+                Some("Test Assessment".to_string()),
             )
             .await?;
 

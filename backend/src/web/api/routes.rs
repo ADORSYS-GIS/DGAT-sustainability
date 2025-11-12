@@ -5,15 +5,16 @@ use crate::web::api::handlers::{
         create_assessment, delete_assessment, get_assessment, list_assessments, submit_assessment,
         update_assessment, user_submit_draft_assessment,
     },
-    categories::{
-        create_category, delete_category, get_category, list_categories, update_category,
-    },
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
+    organization_categories::{
+        assign_categories_to_organization, create_category_catalog, delete_category_catalog, get_category_catalog,
+        get_category_catalogs, get_organization_categories, update_category_catalog, update_organization_category,
+    },
     organizations::{
         add_identity_provider, add_member, create_organization, delete_organization, get_identity_provider, get_identity_providers, 
         get_member, get_member_organizations, get_member_organizations_in_org, get_members, 
-        get_members_count, get_organization, get_organizations, get_organizations_count, 
+        get_members_count, get_organization_by_id, get_organizations, get_organizations_count,
         invite_existing_user, invite_user, remove_identity_provider, remove_member, 
         update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
         update_org_admin_member_categories,
@@ -40,7 +41,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/admin/organizations", post(create_organization))
         .route("/admin/realms/:realm/organizations/count", get(get_organizations_count))
         .route("/admin/realms/:member_id/organizations", get(get_member_organizations))
-        .route("/admin/realms/:realm/organizations/:org_id", get(get_organization))
+        .route("/api/admin/organizations/:org_id", get(get_organization_by_id))
         // The following endpoints expect only org_id as a path parameter
         .route("/api/admin/organizations/:org_id", put(update_organization))
         .route("/api/admin/organizations/:org_id", delete(delete_organization))
@@ -63,11 +64,16 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/questions/:question_id", put(update_question))
         .route("/api/questions/revisions/:revision_id", delete(delete_question_revision_by_id))
         // Category endpoints
-        .route("/api/categories", get(list_categories))
-        .route("/api/categories", post(create_category))
-        .route("/api/categories/:category_id", get(get_category))
-        .route("/api/categories/:category_id", put(update_category))
-        .route("/api/categories/:category_id", delete(delete_category))
+        // Category Catalog endpoints
+        .route("/api/category-catalog", get(get_category_catalogs))
+        .route("/api/category-catalog", post(create_category_catalog))
+        .route("/api/category-catalog/:category_catalog_id", delete(delete_category_catalog))
+        .route("/api/category-catalog/:category_catalog_id", get(get_category_catalog))
+        .route("/api/category-catalog/:category_catalog_id", put(update_category_catalog))
+        // Organization Categories endpoints
+        .route("/api/organizations/:keycloak_organization_id/categories", get(get_organization_categories))
+        .route("/api/organizations/:keycloak_organization_id/categories/assign", post(assign_categories_to_organization))
+        .route("/api/organizations/:keycloak_organization_id/categories/:organization_category_id", put(update_organization_category))
         // Assessment endpoints (org-scoped)
         .route("/api/assessments", get(list_assessments))
         .route("/api/assessments", post(create_assessment))
@@ -139,7 +145,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/reports/:report_id", delete(delete_report))
         .route("/api/admin/action-plans", get(list_all_action_plans))
         .route("/api/admin/reports", get(list_all_reports))
-        .route("/api/reports/:report_id/recommendations/:category/status", put(update_recommendation_status))
+        .route("/api/reports/:report_id/recommendations/:recommendation_id/status", put(update_recommendation_status))
         .route("/api/organizations/:org_id/org-admin/members", post(add_org_admin_member))
         .route("/api/organizations/:org_id/org-admin/members", get(get_org_admin_members))
         .route("/api/organizations/:org_id/org-admin/members/:member_id", delete(remove_org_admin_member))
