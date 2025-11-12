@@ -10,6 +10,11 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
+import { useOfflineOrganizationCategories } from '@/hooks/useOfflineOrganizationCategories';
+import { useOfflineCategoryCatalogs } from '@/hooks/useOfflineCategoryCatalogs';
+import type { OfflineCategoryCatalog } from '@/types/offline';
+import type { OfflineOrganizationCategory } from '@/types/offline';
+import { useMemo } from 'react';
 
 interface OrgAdminUserInvitationFormProps {
   organizationId: string;
@@ -28,15 +33,36 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
     first_name: '',
     last_name: '',
     roles: ['Org_User'], // Default to Org_User for org admin
+    categories: [], // Add categories to form data
   });
   const [createdInvitation, setCreatedInvitation] = useState<OrgAdminUserInvitationResponse | null>(null);
+
+  const {
+    organizationCategories: offlineOrgCategories = [],
+    isLoading: isLoadingOrgCategories,
+  } = useOfflineOrganizationCategories();
+
+  const {
+    data: allCategoryCatalogs = [],
+    isLoading: isLoadingCategoryCatalogs,
+  } = useOfflineCategoryCatalogs();
+
+  const availableCategories = useMemo(() => {
+    const orgCategoryMap = new Map(offlineOrgCategories.map(oc => [oc.category_catalog_id, oc]));
+    return allCategoryCatalogs.filter(cc => orgCategoryMap.has(cc.category_catalog_id));
+  }, [offlineOrgCategories, allCategoryCatalogs]);
+
+  const isLoadingCategories = isLoadingOrgCategories || isLoadingCategoryCatalogs;
 
   // Create user invitation mutation
   const createUserInvitationMutation = useMutation({
     mutationFn: async (data: OrgAdminMemberRequest): Promise<OrgAdminUserInvitationResponse> => {
-      return OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({ 
-        id: organizationId, 
-        requestBody: data 
+      return OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
+        id: organizationId,
+        requestBody: {
+          ...data,
+          categories: data.categories, // Include categories in the request body
+        }
       });
     },
     onSuccess: (result) => {
@@ -53,6 +79,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
         first_name: '',
         last_name: '',
         roles: ['Org_User'], // Default to Org_User for org admin
+        categories: [], // Reset categories after successful invitation
       });
 
       onInvitationCreated?.();
@@ -316,6 +343,34 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
               </Button>
             </div>
             <p className="text-xs text-gray-500">Organization Admin can only create Organization User accounts</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="categories">Categories</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {isLoadingCategories ? (
+                <p>Loading categories...</p>
+              ) : (
+                availableCategories.map((cat: OfflineCategoryCatalog) => (
+                  <label key={cat.category_catalog_id} className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={formData.categories?.includes(cat.category_catalog_id) || false}
+                      onChange={(e) => {
+                        const categoryId = cat.category_catalog_id;
+                        setFormData((prev) => ({
+                          ...prev,
+                          categories: e.target.checked
+                            ? [...(prev.categories || []), categoryId]
+                            : (prev.categories || []).filter((c) => c !== categoryId),
+                        }));
+                      }}
+                    />
+                    <span>{cat.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
           </div>
 
 

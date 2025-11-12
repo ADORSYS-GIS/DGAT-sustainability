@@ -9,8 +9,8 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
-import { AdminService } from "@/openapi-rq/requests/services.gen";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
+import { useOfflineAdminReports } from "@/hooks/useOfflineReports";
 import type {
   AdminReport,
   AdminSubmissionDetail,
@@ -83,7 +83,7 @@ interface FileAttachment {
   type NormalizedCategory = {
     name: string;
     responses: Array<{ question_text: string; response: { yesNo?: boolean; percentage?: number; text?: string } }>;
-    recommendationText?: string;
+    recommendations?: { id: string; text: string; status: string }[];
   };
 
   const normalizeGenericReportData = (data: unknown): NormalizedCategory[] => {
@@ -105,9 +105,11 @@ interface FileAttachment {
         const text = typeof answer.text === 'string' ? (answer.text as string) : undefined;
         responses.push({ question_text: questionText, response: { yesNo, percentage, text } });
       });
-      const recommendationText = typeof obj.recommendation === 'string' ? (obj.recommendation as string) : undefined;
-      if (responses.length > 0 || recommendationText) {
-        categories.push({ name: key, responses, recommendationText });
+      const recommendations = Array.isArray(obj.recommendations)
+        ? (obj.recommendations as { id: string; text: string; status: string }[])
+        : [];
+      if (responses.length > 0 || recommendations.length > 0) {
+        categories.push({ name: key, responses, recommendations });
       }
     }
     return categories;
@@ -117,12 +119,16 @@ export const ReportHistory: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { isOnline } = useOfflineSyncStatus();
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch: loadReports,
+  } = useOfflineAdminReports();
+  const reports = (data?.reports as AdminReport[]) || [];
   const navigate = useNavigate();
   const chartRef = React.useRef<ChartJS<"radar">>(null);
   const recommendationChartRef = React.useRef<ChartJS<"bar">>(null);
-  
-  const [reports, setReports] = useState<AdminReport[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
@@ -188,7 +194,7 @@ export const ReportHistory: React.FC = () => {
     if (currentReport && currentReport.data && !isAdminReportData(currentReport.data)) {
       const normalizedData = normalizeGenericReportData(currentReport.data);
       const categories = normalizedData.map(cat => cat.name);
-      const recommendationCounts = normalizedData.map(cat => cat.recommendationText ? 1 : 0); // Simple count for now
+      const recommendationCounts = normalizedData.map(cat => cat.recommendations?.length || 0);
 
       return {
         data: {
@@ -269,6 +275,8 @@ export const ReportHistory: React.FC = () => {
           recommendation: rec.text,
           status: (rec.status as RecommendationWithStatus["status"]) || "todo",
           created_at: report.generated_at,
+          assessment_id: report.submission_id || '',
+          assessment_name: 'N/A',
         }));
       }
     );
@@ -276,28 +284,11 @@ export const ReportHistory: React.FC = () => {
     return { submissions, recommendations };
   };
 
-  const loadReports = React.useCallback(async () => {
-    if (!isOnline) {
-      toast.error(t('reportHistory.offlineError', { defaultValue: 'Cannot load reports while offline' }));
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await AdminService.getAdminReports();
-        setReports(data.reports || []);
-    } catch (error) {
-      console.error('Failed to load reports:', error);
-      toast.error(t('reportHistory.loadError', { defaultValue: 'Failed to load reports' }));
-    } finally {
-      setLoading(false);
-    }
-  }, [isOnline, t]);
-
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    if (error) {
+      toast.error(t("reportHistory.loadError", { defaultValue: "Failed to load reports" }));
+    }
+  }, [error, t]);
 
   const filteredReports = reports.filter(report => {
     const matchesSearch =
@@ -371,10 +362,11 @@ export const ReportHistory: React.FC = () => {
       const reportToExport: Report = {
         report_id: report.report_id,
         submission_id: submissionId,
-        report_type: "sustainability", // Defaulting to a common report type
         generated_at: report.generated_at,
         status: report.status as "generating" | "completed" | "failed", // Cast to the correct literal type
         data: report.data,
+        assessment_id: report.submission_id || '',
+        assessment_name: 'N/A',
       };
 
       const { submissions: singleSubmissions, recommendations: singleRecs } =
@@ -511,7 +503,7 @@ export const ReportHistory: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-semibold text-dgrv-blue">{report.org_name}</div>
-                        <div className="text-xs text-gray-500">{t('reportHistory.reportId', { defaultValue: 'Report' })}: {report.report_id}</div>
+                        <div className="text-xs text-gray-500">{t('reportHistory.report', { defaultValue: 'Report' })}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -810,7 +802,15 @@ export const ReportHistory: React.FC = () => {
                               </div>
                               <div>
                                 <h3 className="text-xl font-bold text-purple-800">{cat.name}</h3>
-                                <span className="text-sm text-gray-600">{cat.responses.length} questions</span>
+                                <div className="flex items-center gap-4 mt-1">
+                                  <span className="text-sm text-gray-600">{cat.responses.length} questions</span>
+                                  {cat.recommendations && cat.recommendations.length > 0 && (
+                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                                      <Award className="w-3 h-3 mr-1" />
+                                      {cat.recommendations.length} recommendation{cat.recommendations.length !== 1 ? 's' : ''}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -818,13 +818,22 @@ export const ReportHistory: React.FC = () => {
                           {/* Generic Category Content */}
                           <div className="p-6 bg-gray-50 space-y-6">
                             {/* Generic Recommendation */}
-                            {cat.recommendationText && (
+                            {cat.recommendations && cat.recommendations.length > 0 && (
                               <div className="bg-white rounded-lg p-4 border-l-4 border-purple-400">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Award className="w-5 h-5 text-purple-600" />
-                                  <span className="font-semibold text-purple-800">Recommendation</span>
+                                  <span className="font-semibold text-purple-800">Recommendations</span>
                                 </div>
-                                <p className="text-gray-700 leading-relaxed">{cat.recommendationText}</p>
+                                <div className="space-y-3">
+                                  {cat.recommendations.map((rec, idx) => (
+                                    <div key={rec.id || idx} className="flex items-start gap-3">
+                                      <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <span className="text-purple-600 text-xs font-bold">{idx + 1}</span>
+                                      </div>
+                                      <p className="text-gray-700 leading-relaxed">{rec.text}</p>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                             

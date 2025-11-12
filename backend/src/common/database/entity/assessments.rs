@@ -14,7 +14,6 @@ pub struct Model {
     pub org_id: String,
     pub language: String,
     pub name: String,
-    pub categories: Json,
     pub created_at: DateTime<Utc>,
 }
 
@@ -24,6 +23,8 @@ pub enum Relation {
     AssessmentsResponse,
     #[sea_orm(has_one = "super::assessments_submission::Entity")]
     AssessmentsSubmission,
+    #[sea_orm(has_many = "super::assessment_categories::Entity")]
+    AssessmentCategories,
 }
 
 impl Related<super::assessments_response::Entity> for Entity {
@@ -35,6 +36,12 @@ impl Related<super::assessments_response::Entity> for Entity {
 impl Related<super::assessments_submission::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AssessmentsSubmission.def()
+    }
+}
+
+impl Related<super::assessment_categories::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AssessmentCategories.def()
     }
 }
 impl ActiveModelBehavior for ActiveModel {}
@@ -74,18 +81,35 @@ impl AssessmentsService {
         org_id: String,
         language: String,
         name: String,
-        categories: Vec<Uuid>,
+        category_ids: Vec<Uuid>,
     ) -> Result<Model, DbErr> {
-        let assessment = ActiveModel {
+        let assessment_model = ActiveModel {
             assessment_id: Set(Uuid::new_v4()),
             org_id: Set(org_id),
             language: Set(language),
             name: Set(name),
-            categories: Set(Json::from(categories.into_iter().map(|uuid| uuid.to_string()).collect::<Vec<String>>())),
             created_at: Set(Utc::now()),
         };
 
-        self.db_service.create(assessment).await
+        let created_assessment = self.db_service.create(assessment_model).await?;
+
+        if !category_ids.is_empty() {
+            let assessment_categories_models: Vec<super::assessment_categories::ActiveModel> =
+                category_ids
+                    .into_iter()
+                    .map(|category_id| super::assessment_categories::ActiveModel {
+                        assessment_id: Set(created_assessment.assessment_id),
+                        category_catalog_id: Set(category_id),
+                        ..Default::default()
+                    })
+                    .collect();
+
+            super::assessment_categories::Entity::insert_many(assessment_categories_models)
+                .exec(self.db_service.get_connection())
+                .await?;
+        }
+
+        Ok(created_assessment)
     }
 
     pub async fn get_assessment_by_id(&self, id: Uuid) -> Result<Option<Model>, DbErr> {
@@ -135,11 +159,6 @@ impl AssessmentsService {
         self.db_service.delete(id).await
     }
 
-    /// Get the categories service for category validation and operations
-    pub async fn get_categories_service(&self) -> Result<super::categories::CategoriesService, DbErr> {
-        let db = self.db_service.get_connection().clone();
-        Ok(super::categories::CategoriesService::new(Arc::new(db)))
-    }
 }
 
 #[cfg(test)]
@@ -157,7 +176,6 @@ mod tests {
             org_id: "test_org".to_string(),
             language: "en".to_string(),
             name: "Test Assessment".to_string(),
-            categories: Json::from(Vec::<Uuid>::new()),
             created_at: Utc::now(),
         };
 
@@ -204,7 +222,7 @@ mod tests {
 
         // Test create
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string(), Vec::new())
+            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string(), vec![])
             .await?;
 
         assert_eq!(assessment.org_id, "test_org");
@@ -276,7 +294,6 @@ mod tests {
             org_id: "test_org".to_string(),
             language: "en".to_string(),
             name: "Test Assessment".to_string(),
-            categories: Json::from(Vec::<Uuid>::new()),
             created_at: Utc::now(),
         };
 
@@ -351,7 +368,7 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string())
+            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string(), vec![])
             .await?;
 
         // Create some responses for this assessment
@@ -406,7 +423,6 @@ mod tests {
             org_id: "test_org".to_string(),
             language: "en".to_string(),
             name: "Test Assessment".to_string(),
-            categories: Json::from(Vec::<Uuid>::new()),
             created_at: Utc::now(),
         };
 
@@ -430,7 +446,7 @@ mod tests {
 
         // Create an assessment
         let assessment = assessments_service
-            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string(), Vec::new())
+            .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string(), vec![])
             .await?;
 
         // Try to delete the assessment without creating a submission - this should fail

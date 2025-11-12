@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/shared/Navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -10,91 +10,30 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Edit, Plus, Trash2 } from "lucide-react";
+import { Building2, Edit, Plus, Trash2, ListTree } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { useOfflineCategoriesMutation } from "@/hooks/useOfflineApi";
-import {
-  useOrganizationsServiceDeleteAdminOrganizationsById,
-  useOrganizationsServiceGetAdminOrganizations,
-  useOrganizationsServicePostAdminOrganizations,
-  useOrganizationsServicePutAdminOrganizationsById
-} from "@/openapi-rq/queries/queries";
 import type {
-  OrganizationCreateRequest
+  OrganizationCreateRequest,
+  OrganizationResponse,
 } from "@/openapi-rq/requests/types.gen";
 import { useTranslation } from "react-i18next";
 import Select from "react-select";
 import { toast } from "sonner";
+import AssignCategories from "./AssignCategories";
 
-interface Category {
-  categoryId: string;
-  name: string;
-  weight: number;
-  order: number;
-  templateId: string;
-}
-
-// Update the OrganizationResponse type for local use
-interface OrganizationDomain {
-  name: string;
-  verified?: boolean;
-}
-interface OrganizationResponseFixed {
-  id: string;
-  name: string;
-  alias?: string;
-  enabled: boolean;
-  description?: string | null;
-  redirectUrl?: string | null;
-  domains?: OrganizationDomain[];
-  attributes?: { [key: string]: string[] };
-}
-
-// Helper to map OrganizationResponse to OrganizationResponseFixed
-function toFixedOrg(org: unknown): OrganizationResponseFixed {
-  const o = org as Record<string, unknown>;
-  
-  // Convert attributes from serde_json::Value to HashMap<string, string[]>
-  const attributes: { [key: string]: string[] } = {};
-  if (o.attributes && typeof o.attributes === 'object' && o.attributes !== null) {
-    const attrsObj = o.attributes as Record<string, unknown>;
-    for (const [key, value] of Object.entries(attrsObj)) {
-      if (Array.isArray(value)) {
-        const stringValues: string[] = value
-          .filter(v => typeof v === 'string')
-          .map(v => v as string);
-        attributes[key] = stringValues;
-      }
-    }
-  }
-  
-  return {
-    id: o.id as string,
-    name: o.name as string,
-    alias: o.alias as string | undefined,
-    enabled: (o.enabled as boolean) ?? false,
-    description: o.description as string | null,
-    redirectUrl: o.redirectUrl as string | null,
-    domains: Array.isArray(o.domains)
-      ? (o.domains as unknown[]).map((d) => ({
-          name: (d as Record<string, unknown>).name as string,
-          verified: (d as Record<string, unknown>).verified as
-            | boolean
-            | undefined,
-        }))
-      : [],
-    attributes: attributes,
-  };
-}
+import type { OfflineCategoryCatalog } from "@/types/offline";
+import { useOfflineOrganizations } from "@/hooks/useOfflineOrganizations"; // Import the new hook
 
 export const ManageOrganizations: React.FC = () => {
   const { t } = useTranslation();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingOrg, setEditingOrg] =
-    useState<OrganizationResponseFixed | null>(null);
+    useState<OrganizationResponse | null>(null);
+  const [assigningOrg, setAssigningOrg] =
+    useState<OrganizationResponse | null>(null);
   const [formData, setFormData] = useState<OrganizationCreateRequest>({
     name: "",
     domains: [{ name: "" }],
@@ -102,124 +41,44 @@ export const ManageOrganizations: React.FC = () => {
     enabled: "true",
     attributes: { categories: [] },
   });
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<OfflineCategoryCatalog[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0); // New state for pending sync items
   
   // Category creation state
-  const [showCategoryCreation, setShowCategoryCreation] = useState(false);
-  const [categoryFormData, setCategoryFormData] = useState({
-    name: "",
-    weight: 25,
-    order: 1,
-  });
   
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [orgToDelete, setOrgToDelete] = useState<OrganizationResponseFixed | null>(null);
+  const [orgToDelete, setOrgToDelete] = useState<OrganizationResponse | null>(null);
   
   // Category mutation hooks
-  const categoryMutations = useOfflineCategoriesMutation();
-  const createCategory = categoryMutations.createCategory.mutate;
   
-  // Use direct API query method from queries.ts instead of offline hook
   const {
-    data: organizations,
+    organizations: offlineOrganizations,
     isLoading,
-    refetch,
-  } = useOrganizationsServiceGetAdminOrganizations();
-  
-  // Use the actual mutation methods from queries.ts for direct API calls
-  const createOrganizationMutation = useOrganizationsServicePostAdminOrganizations({
-    onSuccess: (result) => {
-      toast.success("Organization created successfully");
-      refetch();
-      setShowAddDialog(false);
-      setEditingOrg(null);
-      setFormData({
-        name: "",
-        domains: [{ name: "" }],
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-        enabled: "true",
-        attributes: { categories: [] },
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to create organization:', error);
-      toast.error("Failed to create organization");
-    }
-  });
+    isOnline,
+    createOrganizationOffline,
+    updateOrganizationOffline,
+    deleteOrganizationOffline,
+    refetchOrganizations,
+  } = useOfflineOrganizations();
 
-  const updateOrganizationMutation = useOrganizationsServicePutAdminOrganizationsById({
-    onSuccess: () => {
-      toast.success("Organization updated successfully");
-      refetch();
-      setShowAddDialog(false);
-      setEditingOrg(null);
-      setFormData({
-        name: "",
-        domains: [{ name: "" }],
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-        enabled: "true",
-        attributes: { categories: [] },
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to update organization:', error);
-      toast.error("Failed to update organization");
-    }
-  });
+  // Function to update pending sync count
+  const updatePendingSyncCount = async () => {
+    const { offlineDB } = await import('@/services/indexeddb');
+    const syncQueue = await offlineDB.getSyncQueue();
+    setPendingSyncCount(syncQueue.length);
+  };
 
-  const deleteOrganizationMutation = useOrganizationsServiceDeleteAdminOrganizationsById({
-    onSuccess: () => {
-      toast.success("Organization deleted successfully");
-      refetch();
-      setShowDeleteConfirmation(false); // Close the dialog
-      setOrgToDelete(null); // Clear the organization to delete
-    },
-    onError: (error) => {
-      console.error('Failed to delete organization:', error);
-      toast.error("Failed to delete organization");
-    }
-  });
-
-
-
-  // Transform the organizations data from the direct API call
-  const fixedOrgs = organizations ? 
-    (Array.isArray(organizations) ? organizations : [organizations]).map(toFixedOrg) 
-    : [];
-
-  // Log organization details for debugging
-  React.useEffect(() => {
-    if (organizations) {
-      console.log('Raw organizations from API:', organizations);
-      console.log('Fixed organizations:', fixedOrgs);
-      fixedOrgs.forEach((org, index) => {
-        console.log(`Organization ${index + 1}:`, {
-          id: org.id,
-          name: org.name,
-          attributes: org.attributes,
-          categories: org.attributes?.categories
-        });
-      });
-    }
-  }, [organizations, fixedOrgs]);
+  const orgs = offlineOrganizations || [];
 
   // Load categories from IndexedDB on mount
   const loadCategories = async () => {
     setCategoriesLoading(true);
     try {
       const { offlineDB } = await import('@/services/indexeddb');
-      const stored = await offlineDB.getAllCategories();
-      // Map the IndexedDB category structure to the expected format
-      const mappedCategories = stored.map(cat => ({
-        categoryId: cat.category_id,
-        name: cat.name,
-        weight: cat.weight,
-        order: cat.order,
-        templateId: cat.template_id
-      }));
-      setCategories(mappedCategories);
+      const stored = await offlineDB.getAllCategoryCatalogs();
+      setCategories(stored);
     } catch (error) {
       console.error('Failed to load categories:', error);
       setCategories([]);
@@ -230,9 +89,23 @@ export const ManageOrganizations: React.FC = () => {
 
   React.useEffect(() => {
     loadCategories();
-  }, []);
+    updatePendingSyncCount(); // Initial load of pending sync count
 
-  // Debug formData changes
+    const handleDataSync = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.entityType === 'organization') {
+        refetchOrganizations();
+        updatePendingSyncCount(); // Update count after organization sync
+      }
+    };
+
+    window.addEventListener('datasync', handleDataSync);
+
+    return () => {
+      window.removeEventListener('datasync', handleDataSync);
+    };
+  }, [refetchOrganizations]); // Added updatePendingSyncCount to dependency array
+
   React.useEffect(() => {
     console.log('FormData changed:', formData);
     console.log('FormData categories:', formData.attributes?.categories);
@@ -249,50 +122,54 @@ export const ManageOrganizations: React.FC = () => {
       toast.error("At least one domain is required");
       return;
     }
-    // Check if at least one category is selected
-    const selectedCategories = (formData.attributes?.categories as string[]) || [];
-    if (selectedCategories.length === 0) {
-      toast.error("At least one category is required");
-      return;
-    }
     const requestBody: OrganizationCreateRequest = {
       ...formData,
       domains: cleanDomains,
       enabled: "true",
       attributes: {
-        categories: selectedCategories,
+        categories: (formData.attributes?.categories as string[]) || [],
       },
     };
     
     if (editingOrg) {
-      updateOrganizationMutation.mutate({ 
-        id: editingOrg.id, 
-        requestBody 
-      });
+      updateOrganizationOffline(editingOrg.id, requestBody);
     } else {
-      createOrganizationMutation.mutate({ requestBody });
+      createOrganizationOffline(requestBody);
     }
+    setShowAddDialog(false); // Close the dialog after submission
+    setEditingOrg(null); // Clear editing state
+    setFormData({ // Reset form data
+      name: "",
+      domains: [{ name: "" }],
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      enabled: "true",
+      attributes: { categories: [] },
+    });
+    updatePendingSyncCount(); // Update pending sync count after an offline operation
   };
 
-  const handleEdit = (org: OrganizationResponseFixed) => {
+  const handleEdit = (org: OrganizationResponse) => {
     setEditingOrg(org);
+    const orgAttributes = org.attributes || {};
     setFormData({
       name: org.name,
-      domains: org.domains || [{ name: "" }],
-      redirectUrl: org.redirectUrl || import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-      enabled: org.enabled ? "true" : "false",
-      attributes: org.attributes || { categories: [] },
+      domains:
+        Array.isArray(org.domains) && org.domains.length > 0
+          ? org.domains.map((d) => (typeof d === "string" ? { name: d } : d))
+          : [{ name: "" }],
+      redirectUrl:
+        (orgAttributes.redirect_url && orgAttributes.redirect_url[0]) ||
+        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
+        "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      enabled: ((orgAttributes.enabled && orgAttributes.enabled[0]) || "true") as "true" | "false",
+      attributes: {
+        categories: orgAttributes.categories || [],
+      },
     });
     setShowAddDialog(true);
-    setShowCategoryCreation(false);
-    setCategoryFormData({
-      name: "",
-      weight: 25,
-      order: 1,
-    });
   };
 
-  const handleDelete = (org: OrganizationResponseFixed) => {
+  const handleDelete = (org: OrganizationResponse) => {
     setOrgToDelete(org);
     setShowDeleteConfirmation(true);
   };
@@ -300,7 +177,10 @@ export const ManageOrganizations: React.FC = () => {
   const confirmDelete = () => {
     if (!orgToDelete) return;
     
-    deleteOrganizationMutation.mutate({ id: orgToDelete.id });
+    deleteOrganizationOffline(orgToDelete.id);
+    setShowDeleteConfirmation(false); // Close the dialog
+    setOrgToDelete(null); // Clear the organization to delete
+    updatePendingSyncCount(); // Update pending sync count after an offline operation
   };
 
   const resetForm = () => {
@@ -313,12 +193,6 @@ export const ManageOrganizations: React.FC = () => {
     });
     setEditingOrg(null);
     setShowAddDialog(false);
-    setShowCategoryCreation(false);
-    setCategoryFormData({
-      name: "",
-      weight: 25,
-      order: 1,
-    });
   };
 
   // --- Domains UI helpers ---
@@ -346,56 +220,6 @@ export const ManageOrganizations: React.FC = () => {
     });
   };
 
-  const handleCreateCategory = async () => {
-    if (!categoryFormData.name.trim()) {
-      toast.error(t('manageCategories.textRequired', { defaultValue: 'Category name is required' }));
-      return;
-    }
-
-    if (categoryFormData.weight <= 0 || categoryFormData.weight > 100) {
-      toast.error(t('manageCategories.weightRangeError', { defaultValue: 'Weight must be between 1 and 100' }));
-      return;
-    }
-
-    await createCategory({
-      name: categoryFormData.name,
-      weight: categoryFormData.weight,
-      order: categoryFormData.order,
-      template_id: "sustainability_template_1", // Match the template ID used in ManageCategories
-    }, {
-      onSuccess: (result) => {
-        console.log('✅ Category creation onSuccess called with result:', result);
-        toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
-        
-        // Add the new category to the form data
-        const newCategoryName = categoryFormData.name;
-        setFormData((prev) => ({
-          ...prev,
-          attributes: {
-            ...prev.attributes,
-            categories: [...(prev.attributes?.categories || []), newCategoryName],
-          },
-        }));
-        
-        // Reset category form
-        setCategoryFormData({
-          name: "",
-          weight: 25,
-          order: categories.length + 1,
-        });
-        
-        // Hide category creation section
-        setShowCategoryCreation(false);
-        
-        // Reload categories
-        loadCategories();
-      },
-      onError: (error) => {
-        console.error('❌ Category creation onError called with error:', error);
-        toast.error(t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
-      }
-    });
-  };
 
   if (isLoading || categoriesLoading) {
     return (
@@ -492,7 +316,7 @@ export const ManageOrganizations: React.FC = () => {
                               handleDomainChange(idx, e.target.value)
                             }
                             placeholder="Enter domain (e.g. adorsys.com)"
-                            className={`border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${!d.name.trim() ? "border-red-500" : ""}`}
+                            className={`border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${!d?.name?.trim() ? "border-red-500" : ""}`}
                             required
                           />
                           {formData.domains.length > 1 && (
@@ -517,180 +341,17 @@ export const ManageOrganizations: React.FC = () => {
                         + Add Domain
                       </Button>
                     </div>
-                    <div>
-                      <Label
-                        htmlFor="categories"
-                        className="font-semibold text-dgrv-blue"
-                      >
-                        Categories <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        id="categories"
-                        isMulti
-                        options={categories.map((cat) => ({
-                          value: cat.name,
-                          label: cat.name,
-                        }))}
-                        value={(formData.attributes?.categories || []).map(
-                          (catName) => ({ value: catName, label: catName }),
-                        )}
-                        onChange={(selected) => {
-                          console.log('Categories selected in Select:', selected);
-                          setFormData((prev) => ({
-                            ...prev,
-                            attributes: {
-                              ...prev.attributes,
-                              categories: selected.map((opt) => opt.value),
-                            },
-                            enabled: "true",
-                          }));
-                        }}
-                        classNamePrefix="react-select"
-                        placeholder="Select categories..."
-                        styles={{
-                          control: (base) => ({
-                            ...base,
-                            borderColor: "#2563eb",
-                            minHeight: "44px",
-                            boxShadow: "none",
-                            "&:hover": { borderColor: "#2563eb" },
-                          }),
-                          multiValue: (base) => ({
-                            ...base,
-                            backgroundColor: "#e0f2fe",
-                            color: "#0369a1",
-                          }),
-                          multiValueLabel: (base) => ({
-                            ...base,
-                            color: "#0369a1",
-                          }),
-                          multiValueRemove: (base) => ({
-                            ...base,
-                            color: "#0369a1",
-                            ":hover": {
-                              backgroundColor: "#bae6fd",
-                              color: "#0ea5e9",
-                            },
-                          }),
-                        }}
-                      />
-                    </div>
                     
-                    {/* Category Creation Section */}
-                    {!editingOrg && (
-                      <div className="border-t pt-4 mt-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <h4 className="font-semibold text-dgrv-blue">
-                              {t('manageOrganizations.createCategoryWithOrg')}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {t('manageOrganizations.createCategoryWithOrgDesc')}
-                            </p>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setShowCategoryCreation(!showCategoryCreation)}
-                            className="text-dgrv-blue border-dgrv-blue hover:bg-dgrv-blue hover:text-white"
-                          >
-                            {showCategoryCreation ? t('manageOrganizations.skipCategoryCreation') : t('manageOrganizations.createCategory')}
-                          </Button>
-                        </div>
-                        
-                        {showCategoryCreation && (
-                          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                            <div>
-                              <Label className="font-semibold text-dgrv-blue">
-                                {t('manageOrganizations.newCategoryName')} <span className="text-red-500">*</span>
-                              </Label>
-                              <Input
-                                value={categoryFormData.name}
-                                onChange={(e) =>
-                                  setCategoryFormData((prev) => ({
-                                    ...prev,
-                                    name: e.target.value,
-                                  }))
-                                }
-                                placeholder={t('manageOrganizations.newCategoryNamePlaceholder')}
-                                className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <Label className="font-semibold text-dgrv-blue">
-                                  {t('manageOrganizations.categoryWeight')} <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max="100"
-                                  value={categoryFormData.weight}
-                                  onChange={(e) =>
-                                    setCategoryFormData((prev) => ({
-                                      ...prev,
-                                      weight: parseInt(e.target.value) || 25,
-                                    }))
-                                  }
-                                  className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
-                                />
-                              </div>
-                              <div>
-                                <Label className="font-semibold text-dgrv-blue">
-                                  {t('manageOrganizations.categoryDisplayOrder')}
-                                </Label>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={categoryFormData.order}
-                                  onChange={(e) =>
-                                    setCategoryFormData((prev) => ({
-                                      ...prev,
-                                      order: parseInt(e.target.value) || 1,
-                                    }))
-                                  }
-                                  className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
-                                />
-                              </div>
-                            </div>
-                            <div className="flex space-x-2 pt-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={handleCreateCategory}
-                                className="bg-dgrv-green hover:bg-green-700 text-white"
-                                disabled={categoryMutations.createCategory.isPending}
-                              >
-                                {categoryMutations.createCategory.isPending 
-                                  ? t('common.processing') 
-                                  : t('manageOrganizations.createCategory')}
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setShowCategoryCreation(false)}
-                              >
-                                {t('manageOrganizations.skipCategoryCreation')}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
                     
                     <div className="flex space-x-2 pt-4">
                       <Button
                         onClick={handleSubmit}
                         className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow"
-                        disabled={createOrganizationMutation.isPending || updateOrganizationMutation.isPending}
+                        // No longer need to disable based on mutation pending state as operations are offline
                       >
-                        {createOrganizationMutation.isPending || updateOrganizationMutation.isPending
-                          ? t('manageOrganizations.saving', { defaultValue: 'Saving...' })
-                          : editingOrg 
-                            ? t('manageOrganizations.update', { defaultValue: 'Update' }) 
-                            : t('manageOrganizations.create', { defaultValue: 'Create' })}
+                        {editingOrg
+                          ? t('manageOrganizations.update', { defaultValue: 'Update' })
+                          : t('manageOrganizations.create', { defaultValue: 'Create' })}
                       </Button>
                       <Button
                         variant="outline"
@@ -708,7 +369,7 @@ export const ManageOrganizations: React.FC = () => {
 
           {/* Organizations Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {fixedOrgs.map((org, index) => (
+            {orgs.map((org, index) => (
               <Card
                 key={org.id}
                 className="animate-fade-in hover:shadow-lg transition-shadow"
@@ -723,25 +384,25 @@ export const ManageOrganizations: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {org.domains && org.domains.length > 0 && (
                       <div className="text-sm text-gray-600">
                         <b>{t('manageOrganizations.domains', { defaultValue: 'Domains' })}:</b>{" "}
-                        {org.domains.map((d) => d.name).join(", ")}
+                        {org.domains
+                          .map((d: { name: string }) => d.name) // Access the 'name' property of each domain object
+                          .join(", ")}
                       </div>
                     )}
-                    {org.description && (
-                      <div className="text-sm text-gray-600">
-                        <b>{t('manageOrganizations.description', { defaultValue: 'Description' })}:</b> {org.description}
-                      </div>
-                    )}
-                    <div className="flex space-x-2 pt-4">
+                  </div>
+                </CardContent>
+                <CardFooter className="border-t pt-4">
+                  <div className="flex flex-col space-y-2 w-full">
+                    <div className="flex space-x-2">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleEdit(org)}
                         className="flex-1"
-                        disabled={false}
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         {t('manageOrganizations.edit', { defaultValue: 'Edit' })}
@@ -750,19 +411,28 @@ export const ManageOrganizations: React.FC = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => handleDelete(org)}
-                        className="text-red-600 hover:bg-red-50"
-                        disabled={deleteOrganizationMutation.isPending}
+                        className="text-red-600 hover:bg-red-50 flex-1"
+                        // No longer need to disable based on mutation pending state
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4 mr-1" />
                         {t('manageOrganizations.delete', { defaultValue: 'Delete' })}
                       </Button>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAssigningOrg(org)}
+                      className="w-full"
+                    >
+                      <ListTree className="w-4 h-4 mr-1" />
+                      {t('manageOrganizations.assignCategories', { defaultValue: 'Assign Categories' })}
+                    </Button>
                   </div>
-                </CardContent>
+                </CardFooter>
               </Card>
             ))}
 
-            {fixedOrgs.length === 0 && (
+            {orgs.length === 0 && (
               <Card className="md:col-span-2 lg:col-span-3 text-center py-12">
                 <CardContent>
                   <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -798,8 +468,16 @@ export const ManageOrganizations: React.FC = () => {
             confirmText={t('manageOrganizations.deleteOrganization')}
             cancelText={t('manageOrganizations.cancel')}
             variant="destructive"
-            isLoading={deleteOrganizationMutation.isPending}
+            // isLoading={deleteOrganizationMutation.isPending} // No longer needed
           />
+
+          {assigningOrg && (
+            <AssignCategories
+              organization={assigningOrg}
+              isOpen={!!assigningOrg}
+              onClose={() => setAssigningOrg(null)}
+            />
+          )}
         </div>
       </div>
     </div>

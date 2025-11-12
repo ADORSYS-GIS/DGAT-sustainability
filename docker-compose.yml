@@ -39,7 +39,7 @@ services:
     working_dir: /app
     command: ["node", "scripts/fetch_openapi.js"]
     environment:
-      - EVENTSERVER_OPENAPI_URL=http://backend:3001/openapi-json
+      - EVENTSERVER_OPENAPI_URL=http://backend:3001/api/openapi.json
     volumes:
       - openapi-volume:/app
       - ./scripts:/app/scripts:ro
@@ -66,7 +66,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5433:5432"
+      - "5430:5432"
     networks: [tool-net]
 
   #
@@ -85,16 +85,17 @@ services:
       KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
-      KEYCLOAK_FRONTEND_URL: "{KEYCLOAK_FRONTEND_URL:-https://localhost/keycloak}"
+      KEYCLOAK_FRONTEND_URL: "${KEYCLOAK_FRONTEND_URL:-https://localhost/keycloak}"
       KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-https://localhost}"
-      KC_PROXY_HEADERS: "forwarded"
+      KC_PROXY_HEADERS: "xforwarded"
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
       # Hostname v2 configuration (replaces deprecated v1 options)
-      KC_HOSTNAME: "${KC_HOSTNAME:-localhost}"
-      KC_HOSTNAME_URL: "${KC_HOSTNAME_URL:-https://localhost/keycloak}"
+      KC_HOSTNAME: "${KC_HOSTNAME:-ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+      KC_HOSTNAME_URL: "${KC_HOSTNAME_URL:-https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/keycloak}"
       KC_HOSTNAME_PATH: "/keycloak"
       KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME_STRICT_HTTPS: "true"
       KC_HTTP_ENABLED: "true"
       KC_HTTPS_PORT: 8443
       # if you also want to allow HTTP, for debugging only
@@ -179,15 +180,16 @@ services:
       - "443:443"
     volumes:
       - ./ssl:/etc/nginx/ssl:ro
-      - openapi-volume:/usr/share/nginx/html
+      - openapi-volume:/openapi
       - ./openapi.json:/app/openapi.json
       - ./infrastructure/frontend-entrypoint.sh:/docker-entrypoint.d/40-check-network.sh:ro
     entrypoint: >
       /bin/sh -c "
-        while [ ! -f /usr/share/nginx/html/openapi.json ]; do
+        while [ ! -f /openapi/openapi.json ]; do
           echo 'Waiting for openapi.json...';
           sleep 2;
         done;
+        cp /openapi/openapi.json /usr/share/nginx/html/openapi.json;
         nginx -g 'daemon off;'
       "
     networks: [tool-net]

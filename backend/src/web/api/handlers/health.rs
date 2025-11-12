@@ -15,6 +15,15 @@ fn increment_request_count() {
     REQUEST_COUNT.fetch_add(1, Ordering::Relaxed);
 }
 
+/// Health check
+#[utoipa::path(
+    get,
+    path = "/health",
+    tag = "Health",
+    responses(
+        (status = 200, description = "Service health", body = HealthResponse)
+    )
+)]
 pub async fn health_check() -> Json<HealthResponse> {
     increment_request_count();
 
@@ -29,6 +38,15 @@ pub async fn health_check() -> Json<HealthResponse> {
     })
 }
 
+/// Basic metrics
+#[utoipa::path(
+    get,
+    path = "/metrics",
+    tag = "Health",
+    responses(
+        (status = 200, description = "Service metrics", body = MetricsResponse)
+    )
+)]
 pub async fn metrics() -> Json<MetricsResponse> {
     increment_request_count();
 

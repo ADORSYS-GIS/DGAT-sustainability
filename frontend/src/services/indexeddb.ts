@@ -1,17 +1,22 @@
 import { openDB, DBSchema, IDBPDatabase, deleteDB } from "idb";
+import { toast } from "sonner";
 import type {
   OfflineDatabaseSchema,
   OfflineQuestion,
   OfflineAssessment,
   OfflineResponse,
-  OfflineCategory,
+  OfflineCategoryCatalog,
   OfflineSubmission,
   OfflineReport,
   OfflineOrganization,
   OfflineUser,
   OfflineInvitation,
   OfflineRecommendation, // Add the new type
+  OfflineActionPlan,
+  OfflineOrganizationCategory,
   OfflinePendingReviewSubmission, // Import OfflinePendingReviewSubmission
+  OfflineAdminReport,
+  OfflineDraftSubmission,
   SyncQueueItem,
   SyncStatus,
   NetworkStatus,
@@ -22,27 +27,36 @@ import type {
   AssessmentFilters,
   ResponseFilters,
   SubmissionFilters,
-  UserFilters
+  UserFilters,
+  OfflineImage // Import OfflineImage
 } from "@/types/offline";
+export type { OfflineCategoryCatalog };
 
 // Enhanced IndexedDB Database Class
 class OfflineDB {
   private dbPromise: Promise<IDBPDatabase<OfflineDatabaseSchema>>;
   private readonly DB_NAME = "dgat-offline-db";
-  private readonly DB_VERSION = 5; // Increment DB_VERSION
+  private readonly DB_VERSION = 12; // Increment DB_VERSION to trigger upgrade
 
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
       upgrade: (db, oldVersion, newVersion) => {
-        
-        // Create all object stores with proper indexing
+        console.log(`Upgrading database from version ${oldVersion} to ${newVersion}`);
+        // The createObjectStores function is idempotent and will create any missing stores.
+        // Calling it on every upgrade is a safe way to ensure all stores are present.
         this.createObjectStores(db);
       },
       blocked: () => {
+        console.warn("IndexedDB upgrade is blocked. Please close other tabs.");
+        toast.warning("A database update is pending. Please close any other open tabs of this application.");
       },
       blocking: () => {
+        // This is on the old connection. The user will see the 'blocked' message in the new tab.
+        console.warn("This connection is blocking a database upgrade.");
       },
       terminated: () => {
+        console.error("IndexedDB connection was terminated.");
+        toast.error("Database connection was lost. Please refresh the page.");
       }
     });
   }
@@ -68,14 +82,14 @@ class OfflineDB {
       questionsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
-    // Categories store with indexes
-    if (!existingStores.includes("categories")) {
-      const categoriesStore = db.createObjectStore("categories", { keyPath: "category_id" });
-      categoriesStore.createIndex("template_id", "template_id", { unique: false });
-      categoriesStore.createIndex("sync_status", "sync_status", { unique: false });
-      categoriesStore.createIndex("updated_at", "updated_at", { unique: false });
+    // Category Catalogs store with indexes
+    if (!existingStores.includes("category_catalogs")) {
+      const categoryCatalogsStore = db.createObjectStore("category_catalogs", { keyPath: "category_catalog_id" });
+      categoryCatalogsStore.createIndex("template_id", "template_id", { unique: false });
+      categoryCatalogsStore.createIndex("sync_status", "sync_status", { unique: false });
+      categoryCatalogsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
-
+    
     // Assessments store with indexes
     if (!existingStores.includes("assessments")) {
       const assessmentsStore = db.createObjectStore("assessments", { keyPath: "assessment_id" });
@@ -106,6 +120,17 @@ class OfflineDB {
       submissionsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
+    // Draft Submissions store with indexes
+    if (!existingStores.includes("draft_submissions")) {
+      const draftSubmissionsStore = db.createObjectStore("draft_submissions", { keyPath: "submission_id" });
+      draftSubmissionsStore.createIndex("assessment_id", "assessment_id", { unique: false });
+      draftSubmissionsStore.createIndex("user_id", "user_id", { unique: false });
+      draftSubmissionsStore.createIndex("organization_id", "organization_id", { unique: false });
+      draftSubmissionsStore.createIndex("review_status", "review_status", { unique: false });
+      draftSubmissionsStore.createIndex("sync_status", "sync_status", { unique: false });
+      draftSubmissionsStore.createIndex("updated_at", "updated_at", { unique: false });
+    }
+
     // Organizations store with indexes
     if (!existingStores.includes("organizations")) {
       const organizationsStore = db.createObjectStore("organizations", { keyPath: "organization_id" });
@@ -127,6 +152,14 @@ class OfflineDB {
       reportsStore.createIndex("assessment_id", "assessment_id", { unique: false });
       reportsStore.createIndex("sync_status", "sync_status", { unique: false });
       reportsStore.createIndex("updated_at", "updated_at", { unique: false });
+    }
+
+    // Admin Reports store with indexes
+    if (!existingStores.includes("admin_reports")) {
+      const adminReportsStore = db.createObjectStore("admin_reports", { keyPath: "report_id" });
+      adminReportsStore.createIndex("org_id", "org_id", { unique: false });
+      adminReportsStore.createIndex("sync_status", "sync_status", { unique: false });
+      adminReportsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
 
     // Invitations store with indexes
@@ -188,6 +221,78 @@ class OfflineDB {
       conflictsStore.createIndex("entity_id", "entity_id", { unique: false });
       conflictsStore.createIndex("created_at", "created_at", { unique: false });
     }
+    if (!existingStores.includes("organization_categories")) {
+      const orgCategoriesStore = db.createObjectStore("organization_categories", { keyPath: "id" });
+      orgCategoriesStore.createIndex("organization_id", "organization_id", { unique: false });
+      orgCategoriesStore.createIndex("category_catalog_id", "category_catalog_id", { unique: false });
+    }
+
+    // Images store
+    if (!existingStores.includes("images")) {
+      db.createObjectStore("images", { keyPath: "id" });
+    }
+
+    // Action Plans store with indexes
+    if (!existingStores.includes("action_plans")) {
+      const actionPlansStore = db.createObjectStore("action_plans", { keyPath: "organization_id" });
+      actionPlansStore.createIndex("sync_status", "sync_status", { unique: false });
+      actionPlansStore.createIndex("updated_at", "updated_at", { unique: false });
+    }
+  }
+
+  // ===== ACTION PLANS =====
+  async saveActionPlan(actionPlan: OfflineActionPlan): Promise<string> {
+    const db = await this.dbPromise;
+    const result = await db.put("action_plans", actionPlan);
+    return result as string;
+  }
+
+  async saveActionPlans(actionPlans: OfflineActionPlan[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("action_plans", "readwrite");
+    await Promise.all(actionPlans.map(ap => tx.store.put(ap)));
+    await tx.done;
+  }
+
+  async getActionPlan(organizationId: string): Promise<OfflineActionPlan | undefined> {
+    const db = await this.dbPromise;
+    return db.get("action_plans", organizationId);
+  }
+
+  async getAllActionPlans(): Promise<OfflineActionPlan[]> {
+    const db = await this.dbPromise;
+    return db.getAll("action_plans");
+  }
+
+  // ===== ORGANIZATION CATEGORIES =====
+  async saveOrganizationCategory(orgCategory: OfflineOrganizationCategory): Promise<string> {
+    const db = await this.dbPromise;
+    const result = await db.put("organization_categories", orgCategory);
+    return result as string;
+  }
+
+  async saveOrganizationCategories(orgCategories: OfflineOrganizationCategory[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("organization_categories", "readwrite");
+    await Promise.all(orgCategories.map(oc => tx.store.put(oc)));
+    await tx.done;
+  }
+
+  async getAllOrganizationCategories(): Promise<OfflineOrganizationCategory[]> {
+    const db = await this.dbPromise;
+    return db.getAll("organization_categories");
+  }
+
+  async deleteOrganizationCategory(id: string): Promise<void> {
+    const db = await this.dbPromise;
+    await db.delete("organization_categories", id);
+  }
+
+  async clearOrganizationCategoriesStore(): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("organization_categories", "readwrite");
+    await tx.store.clear();
+    await tx.done;
   }
 
   // ===== QUESTIONS =====
@@ -282,6 +387,12 @@ class OfflineDB {
     const db = await this.dbPromise;
     await db.delete("assessments", assessmentId);
   }
+  async deleteAssessments(assessmentIds: string[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("assessments", "readwrite");
+    await Promise.all(assessmentIds.map(id => tx.store.delete(id)));
+    await tx.done;
+  }
 
   // ===== RESPONSES =====
   async saveResponse(response: OfflineResponse): Promise<string> {
@@ -321,40 +432,50 @@ class OfflineDB {
     await db.delete("responses", responseId);
   }
 
-  // ===== CATEGORIES =====
-  async saveCategory(category: OfflineCategory): Promise<string> {
+  // ===== CATEGORY CATALOGS =====
+  async saveCategoryCatalog(categoryCatalog: OfflineCategoryCatalog): Promise<string> {
     const db = await this.dbPromise;
-    const result = await db.put("categories", category);
+    const result = await db.put("category_catalogs", categoryCatalog);
     return result as string;
   }
-
-  async saveCategories(categories: OfflineCategory[]): Promise<void> {
+  
+  async saveCategoryCatalogs(categoryCatalogs: OfflineCategoryCatalog[]): Promise<void> {
     const db = await this.dbPromise;
-    const tx = db.transaction("categories", "readwrite");
-    await Promise.all(categories.map(c => tx.store.put(c)));
+    const tx = db.transaction("category_catalogs", "readwrite");
+    await Promise.all(categoryCatalogs.map(c => tx.store.put(c)));
     await tx.done;
   }
-
-  async getCategory(categoryId: string): Promise<OfflineCategory | undefined> {
+  
+  async getCategoryCatalog(categoryCatalogId: string): Promise<OfflineCategoryCatalog | undefined> {
     const db = await this.dbPromise;
-    return db.get("categories", categoryId);
+    return db.get("category_catalogs", categoryCatalogId);
   }
-
-  async getAllCategories(): Promise<OfflineCategory[]> {
+  
+  async getAllCategoryCatalogs(): Promise<OfflineCategoryCatalog[]> {
     const db = await this.dbPromise;
-    return db.getAll("categories");
+    return db.getAll("category_catalogs");
   }
-
-  async getCategoriesByTemplate(templateId: string): Promise<OfflineCategory[]> {
+  
+  async deleteCategoryCatalog(categoryCatalogId: string): Promise<void> {
     const db = await this.dbPromise;
-    const tx = db.transaction("categories", "readonly");
-    const index = tx.store.index("template_id");
-    return index.getAll(templateId);
+    await db.delete("category_catalogs", categoryCatalogId);
   }
-
-  async deleteCategory(categoryId: string): Promise<void> {
+  
+  async getOrganizationCategories(organizationId: string): Promise<OfflineCategoryCatalog[]> {
     const db = await this.dbPromise;
-    await db.delete("categories", categoryId);
+    const tx = db.transaction(["organization_categories", "category_catalogs"], "readonly");
+    const orgCatStore = tx.objectStore("organization_categories");
+    const catStore = tx.objectStore("category_catalogs");
+    const orgCatIndex = orgCatStore.index("organization_id");
+
+    const orgCategoryLinks = await orgCatIndex.getAll(organizationId);
+    const categoryIds = orgCategoryLinks.map(link => link.category_catalog_id);
+
+    const categories = await Promise.all(
+      categoryIds.map(id => catStore.get(id))
+    );
+
+    return categories.filter((cat): cat is OfflineCategoryCatalog => cat !== undefined);
   }
 
   // ===== SUBMISSIONS =====
@@ -407,6 +528,35 @@ class OfflineDB {
     await db.delete("submissions", submissionId);
   }
 
+  // ===== DRAFT SUBMISSIONS =====
+  async saveDraftSubmission(draftSubmission: OfflineDraftSubmission): Promise<string> {
+    const db = await this.dbPromise;
+    const result = await db.put("draft_submissions", draftSubmission);
+    return result as string;
+  }
+
+  async saveDraftSubmissions(draftSubmissions: OfflineDraftSubmission[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("draft_submissions", "readwrite");
+    await Promise.all(draftSubmissions.map(s => tx.store.put(s)));
+    await tx.done;
+  }
+
+  async getDraftSubmission(submissionId: string): Promise<OfflineDraftSubmission | undefined> {
+    const db = await this.dbPromise;
+    return db.get("draft_submissions", submissionId);
+  }
+
+  async getAllDraftSubmissions(): Promise<OfflineDraftSubmission[]> {
+    const db = await this.dbPromise;
+    return db.getAll("draft_submissions");
+  }
+
+  async deleteDraftSubmission(submissionId: string): Promise<void> {
+    const db = await this.dbPromise;
+    await db.delete("draft_submissions", submissionId);
+  }
+
   // ===== REPORTS =====
   async saveReport(report: OfflineReport): Promise<string> {
     const db = await this.dbPromise;
@@ -441,6 +591,17 @@ class OfflineDB {
   async deleteReport(reportId: string): Promise<void> {
     const db = await this.dbPromise;
     await db.delete("reports", reportId);
+  }
+  async saveAdminReports(reports: OfflineAdminReport[]): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("admin_reports", "readwrite");
+    await Promise.all(reports.map(r => tx.store.put(r)));
+    await tx.done;
+  }
+
+  async getAllAdminReports(): Promise<OfflineAdminReport[]> {
+    const db = await this.dbPromise;
+    return db.getAll("admin_reports");
   }
 
   // ===== ORGANIZATIONS =====
@@ -573,6 +734,11 @@ class OfflineDB {
     await db.clear("sync_queue");
   }
 
+  async updateSyncQueueItem(item: SyncQueueItem): Promise<void> {
+    const db = await this.dbPromise;
+    await db.put("sync_queue", item);
+  }
+
   // ===== STATUS MANAGEMENT =====
   async saveSyncStatus(status: SyncStatus): Promise<string> {
     const db = await this.dbPromise;
@@ -659,7 +825,7 @@ class OfflineDB {
       questions,
       assessments,
       responses,
-      categories,
+      categoryCatalogs,
       submissions,
       reports,
       organizations,
@@ -671,7 +837,7 @@ class OfflineDB {
       db.getAll("questions"),
       db.getAll("assessments"),
       db.getAll("responses"),
-      db.getAll("categories"),
+      db.getAll("category_catalogs"),
       db.getAll("submissions"),
       db.getAll("reports"),
       db.getAll("organizations"),
@@ -685,7 +851,7 @@ class OfflineDB {
       questions_count: questions.length,
       assessments_count: assessments.length,
       responses_count: responses.length,
-      categories_count: categories.length,
+      categories_count: categoryCatalogs.length,
       submissions_count: submissions.length,
       reports_count: reports.length,
       organizations_count: organizations.length,
@@ -1054,7 +1220,19 @@ class OfflineDB {
     console.log(`🧹 Cleaned up ${deletedCount} invalid responses`);
     return deletedCount;
   }
+
+  // ===== IMAGES =====
+  async saveImage(image: OfflineImage): Promise<string> {
+    const db = await this.dbPromise;
+    const result = await db.put("images", image);
+    return result as string;
+  }
+
+  async getImage(id: string): Promise<OfflineImage | undefined> {
+    const db = await this.dbPromise;
+    return db.get("images", id);
+  }
 }
 
 // Export singleton instance
-export const offlineDB = new OfflineDB(); 
+export const offlineDB = new OfflineDB();

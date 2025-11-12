@@ -1,8 +1,9 @@
 pub mod admin;
 pub mod assessments;
-pub mod categories;
 pub mod files;
 pub mod health;
+pub mod openapi;
+pub mod organization_categories;
 pub mod organizations;
 pub mod questions;
 pub mod reports;

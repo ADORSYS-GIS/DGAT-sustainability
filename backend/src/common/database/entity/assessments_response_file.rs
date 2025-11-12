@@ -153,8 +153,14 @@ mod tests {
 
         let db = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([vec![mock_response_file.clone()]]) // link_file_to_response result
-            .append_query_results([vec![mock_file.clone()]]) // get_files_for_response result
-            .append_query_results([vec![mock_response.clone()]]) // get_responses_for_file result
+            .append_query_results([vec![(
+                mock_response_file.clone(),
+                Some(mock_file.clone())
+            )]]) // get_files_for_response result
+            .append_query_results([vec![(
+                mock_response.clone(),
+                Some(mock_response_file.clone())
+            )]]) // get_responses_for_file result
             .append_exec_results([
                 MockExecResult {
                     last_insert_id: 1,

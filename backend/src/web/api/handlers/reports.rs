@@ -19,7 +19,6 @@ async fn generate_report_content(
     submission_id: Uuid,
     app_state: &AppState
 ) -> Result<Value, ApiError> {
-    // Get the submission data to extract questions, answers, and categories
     let submission = app_state
         .database
         .assessments_submission
@@ -28,129 +27,77 @@ async fn generate_report_content(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
 
-    // Extract responses from submission content
     let empty_responses = vec![];
     let responses = submission.content
         .get("responses")
         .and_then(|r| r.as_array())
         .unwrap_or(&empty_responses);
 
-    // Collect all requested categories and recommendations
-    let mut requested_categories: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut recommendations: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
-
     for request in requests {
         if !request.category.is_empty() {
-            requested_categories.insert(request.category.clone());
+            // Create a stable, unique ID based on the category and recommendation text.
+            let recommendation_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("{}-{}", request.category, request.recommendation).as_bytes());
             recommendations.entry(request.category.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(json!({
-                    "id": request.recommendation_id,
+                    "id": recommendation_id.to_string(),
                     "text": request.recommendation,
                     "status": request.status.clone().unwrap_or_else(|| "todo".to_string()),
                 }));
         }
     }
 
-    // If no specific categories are requested, include all categories
-    let include_all_categories = requested_categories.is_empty();
-
-    // Group responses by category, filtering by the requested categories if specified
     let mut categories: std::collections::HashMap<String, Vec<serde_json::Value>> = std::collections::HashMap::new();
-
     for response in responses {
-        // Handle the new structure where response contains question_revision_id and escaped JSON response
         if let (Some(question_revision_id_str), Some(response_str)) = (
             response.get("question_revision_id").and_then(|q| q.as_str()),
             response.get("response").and_then(|r| r.as_str())
         ) {
-            // Parse the question_revision_id
-            let question_revision_id = match Uuid::parse_str(question_revision_id_str) {
-                Ok(id) => id,
-                Err(_) => continue, // Skip invalid UUIDs
-            };
-
-            // Get question revision to get question text and question_id
-            let question_revision = match app_state
-                .database
-                .questions_revisions
-                .get_revision_by_id(question_revision_id)
-                .await
-            {
-                Ok(Some(revision)) => revision,
-                _ => continue, // Skip if revision not found
-            };
-
-            // Get question to get category
-            let question = match app_state
-                .database
-                .questions
-                .get_question_by_id(question_revision.question_id)
-                .await
-            {
-                Ok(Some(q)) => q,
-                _ => continue, // Skip if question not found
-            };
-
-            // Extract question text from the jsonb field (assuming English for now)
-            let question_text = question_revision.text
-                .get("en")
-                .and_then(|t| t.as_str())
-                .unwrap_or("Unknown question");
-
-            let category = &question.category;
-
-            // Parse the response string directly (no longer an array)
-            let answer = if let Ok(response_obj) = serde_json::from_str::<serde_json::Value>(response_str) {
-                response_obj
-            } else {
-                json!({"text": response_str})
-            };
-
-            // Include responses if all categories are requested or if this category is specifically requested
-            if include_all_categories || requested_categories.contains(category) {
-                // Create question/answer object WITHOUT recommendation (recommendation will be added at category level)
-                let question_data = serde_json::json!({
-                    "question": question_text,
-                    "answer": answer
-                });
-
-                // Add this question/answer to the category (supporting multiple questions per category)
-                categories.entry(category.to_string())
-                    .or_insert_with(Vec::new)
-                    .push(question_data);
+            if let Ok(question_revision_id) = Uuid::parse_str(question_revision_id_str) {
+                if let Ok(Some(revision)) = app_state.database.questions_revisions.get_revision_by_id(question_revision_id).await {
+                    if let Ok(Some(question)) = app_state.database.questions.get_question_by_id(revision.question_id).await {
+                        if let Ok(Some(category_model)) = app_state.database.category_catalog.get_category_catalog_by_id(question.category_id).await {
+                            let question_text = revision.text.get("en").and_then(|t| t.as_str()).unwrap_or("Unknown question");
+                            let answer = serde_json::from_str(response_str).unwrap_or(json!({ "text": response_str }));
+                            
+                            categories.entry(category_model.name)
+                                .or_default()
+                                .push(json!({ "question": question_text, "answer": answer }));
+                        }
+                    }
+                }
             }
         }
     }
 
-    // Convert to the required format with one recommendation per category
-    // [{"category1": [{"question": "question_text", "answer": "answer_content"}, ...], "recommendation": "recommendation_text", "category2": [...]}]
     let mut result_object = serde_json::Map::new();
-
     for (category, questions) in categories {
-        // Get the recommendations for this category
-        let category_recommendations = recommendations.get(&category)
-            .cloned()
-            .unwrap_or_else(|| vec![json!({"id": Uuid::new_v4(), "text": "No recommendation provided", "status": "todo"})]);
-
-        // Create category object with questions, recommendations, and status
-        let category_data = serde_json::json!({
-            "questions": questions,
-            "recommendations": category_recommendations,
+        let category_recommendations = recommendations.remove(&category).unwrap_or_else(|| {
+            let default_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("{}-{}", category, "No recommendation provided").as_bytes());
+            vec![json!({"id": default_id.to_string(), "text": "No recommendation provided", "status": "todo"})]
         });
 
-        result_object.insert(category, category_data);
+        result_object.insert(category, json!({
+            "questions": questions,
+            "recommendations": category_recommendations,
+        }));
     }
 
-    let result = vec![serde_json::Value::Object(result_object)];
-
-    Ok(serde_json::Value::Array(result))
+    Ok(json!([result_object]))
 }
 
 
 
 /// List all reports for the authenticated organization
 /// GET /user/reports
+/// List all reports for the authenticated organization
+#[utoipa::path(
+    get,
+    path = "/user/reports",
+    tag = "Report",
+    responses((status = 200, description = "Reports", body = ReportListResponse))
+)]
 pub async fn list_user_reports(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -182,13 +129,21 @@ pub async fn list_user_reports(
 
         // Convert database models to API models and add to collection
         for model in report_models {
-            all_reports.push(Report {
-                report_id: model.report_id,
-                submission_id: model.submission_id,
-                status: model.status,
-                generated_at: model.generated_at.to_rfc3339(),
-                data: model.data,
-            });
+            let assessment_name = submission.content
+               .get("assessment_name")
+               .and_then(|n| n.as_str())
+               .unwrap_or("Unknown Assessment")
+               .to_string();
+
+           all_reports.push(Report {
+               report_id: model.report_id,
+               submission_id: model.submission_id,
+               assessment_id: submission.submission_id,
+               assessment_name,
+               status: model.status,
+               generated_at: model.generated_at.to_rfc3339(),
+               data: model.data,
+           });
         }
     }
 
@@ -197,12 +152,20 @@ pub async fn list_user_reports(
 
 /// List reports for a submission
 /// GET /submissions/{submission_id}/reports
+/// List reports for a submission
+#[utoipa::path(
+    get,
+    path = "/submissions/{submission_id}/reports",
+    tag = "Report",
+    params(("submission_id" = uuid::Uuid, Path, description = "Submission ID")),
+    responses((status = 200, description = "Reports for submission", body = ReportListResponse), (status = 404, description = "Submission not found"))
+)]
 pub async fn list_reports(
     State(app_state): State<AppState>,
     Path(submission_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
     // Check if submission exists
-    let _submission = app_state
+    let submission = app_state
         .database
         .assessments_submission
         .get_submission_by_assessment_id(submission_id)
@@ -217,6 +180,12 @@ pub async fn list_reports(
         .get_reports_by_submission(submission_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch reports: {e}")))?;
+    
+    let assessment_name = submission.content
+        .get("assessment_name")
+        .and_then(|n| n.as_str())
+        .unwrap_or("Unknown Assessment")
+        .to_string();
 
     // Convert database models to API models
     let reports: Vec<Report> = report_models
@@ -224,6 +193,8 @@ pub async fn list_reports(
         .map(|model| Report {
             report_id: model.report_id,
             submission_id: model.submission_id,
+            assessment_id: submission.submission_id,
+            assessment_name: assessment_name.clone(),
             status: model.status,
             generated_at: model.generated_at.to_rfc3339(),
             data: model.data,
@@ -235,6 +206,15 @@ pub async fn list_reports(
 
 /// Generate a new report for a submission
 /// POST /submissions/{submission_id}/reports
+/// Generate a new report for a submission
+#[utoipa::path(
+    post,
+    path = "/submissions/{submission_id}/reports",
+    tag = "Report",
+    params(("submission_id" = uuid::Uuid, Path, description = "Submission ID")),
+    request_body = Vec<GenerateReportRequest>,
+    responses((status = 201, description = "Report generation started", body = ReportGenerationResponse), (status = 404, description = "Submission not found"))
+)]
 pub async fn generate_report(
     State(app_state): State<AppState>,
     Path(submission_id): Path<Uuid>,
@@ -286,6 +266,14 @@ pub async fn generate_report(
 
 /// Get a specific report
 /// GET /reports/{report_id}
+/// Get a specific report
+#[utoipa::path(
+    get,
+    path = "/reports/{report_id}",
+    tag = "Report",
+    params(("report_id" = uuid::Uuid, Path, description = "Report ID")),
+    responses((status = 200, description = "Report detail", body = ReportResponse), (status = 404, description = "Not found"))
+)]
 pub async fn get_report(
     State(app_state): State<AppState>,
     Path(report_id): Path<Uuid>,
@@ -298,9 +286,25 @@ pub async fn get_report(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch report: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Report not found".to_string()))?;
 
+    let submission = app_state
+        .database
+        .assessments_submission
+        .get_submission_by_assessment_id(report_model.submission_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Submission not found for this report".to_string()))?;
+
+    let assessment_name = submission.content
+        .get("assessment_name")
+        .and_then(|n| n.as_str())
+        .unwrap_or("Unknown Assessment")
+        .to_string();
+
     let report = Report {
         report_id: report_model.report_id,
         submission_id: report_model.submission_id,
+        assessment_id: submission.submission_id,
+        assessment_name,
         status: report_model.status,
         generated_at: report_model.generated_at.to_rfc3339(),
         data: report_model.data,
@@ -311,6 +315,14 @@ pub async fn get_report(
 
 /// Delete a report
 /// DELETE /reports/{report_id}
+/// Delete a report
+#[utoipa::path(
+    delete,
+    path = "/reports/{report_id}",
+    tag = "Report",
+    params(("report_id" = uuid::Uuid, Path, description = "Report ID")),
+    responses((status = 204, description = "Deleted"), (status = 404, description = "Not found"))
+)]
 pub async fn delete_report(
     State(app_state): State<AppState>,
     Path(report_id): Path<Uuid>,
@@ -337,31 +349,42 @@ pub async fn delete_report(
 
 /// Get all action plans for all organizations (DGRV admin view)
 /// GET /admin/action-plans
+/// Get all action plans for all organizations (DGRV admin view)
+#[utoipa::path(
+    get,
+    path = "/admin/action-plans",
+    tag = "Report",
+    responses((status = 200, description = "All action plans", body = ActionPlanListResponse))
+)]
 pub async fn list_all_action_plans(
-    Extension(token): Extension<String>,
     State(app_state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // Get all organizations from Keycloak
-    let organizations = app_state
-        .keycloak_service
-        .get_organizations(&token)
+    // Get all submissions from the database
+    let all_submissions = app_state
+        .database
+        .assessments_submission
+        .get_all_submissions()
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organizations: {e}")))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch all submissions: {e}")))?;
+
+    // Group submissions by organization
+    let mut submissions_by_org: std::collections::HashMap<String, Vec<_>> = std::collections::HashMap::new();
+    for submission in all_submissions {
+        submissions_by_org.entry(submission.org_id.clone()).or_default().push(submission);
+    }
 
     let mut action_plans = Vec::new();
 
-    for org in organizations {
-        // Get all submissions for this organization
-        let submissions = app_state
-            .database
-            .assessments_submission
-            .get_submissions_by_org(&org.id)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions for org {}: {e}", org.id)))?;
-
+    for (org_id, submissions) in submissions_by_org {
         let mut org_recommendations = Vec::new();
+        let mut org_name = "Unknown Organization".to_string();
 
         for submission in submissions {
+            // Update org_name from the first submission
+            if org_name == "Unknown Organization" {
+                org_name = submission.org_name.clone();
+            }
+
             // Get reports for this submission
             let reports = app_state
                 .database
@@ -392,9 +415,16 @@ pub async fn list_all_action_plans(
                                                             status_value.as_str()
                                                         ) {
                                                             if let Ok(recommendation_id) = Uuid::parse_str(id_str) {
+                                                                let assessment_name = submission.content
+                                                                    .get("assessment_name")
+                                                                    .and_then(|n| n.as_str())
+                                                                    .unwrap_or("Unknown Assessment")
+                                                                    .to_string();
                                                                 org_recommendations.push(RecommendationWithStatus {
                                                                     recommendation_id,
                                                                     report_id: report.report_id,
+                                                                    assessment_id: submission.submission_id,
+                                                                    assessment_name,
                                                                     category: category_name.clone(),
                                                                     recommendation: text_str.to_string(),
                                                                     status: status_str.to_string(),
@@ -417,8 +447,8 @@ pub async fn list_all_action_plans(
 
         if !org_recommendations.is_empty() {
             action_plans.push(OrganizationActionPlan {
-                organization_id: Uuid::parse_str(&org.id).unwrap_or_else(|_| Uuid::nil()),
-                organization_name: org.name,
+                organization_id: Uuid::parse_str(&org_id).unwrap_or_else(|_| Uuid::nil()),
+                organization_name: org_name,
                 recommendations: org_recommendations,
             });
         }
@@ -429,10 +459,16 @@ pub async fn list_all_action_plans(
 
 /// Get all reports for all organizations (DGRV admin view)
 /// GET /admin/reports
+/// Get all reports for all organizations (DGRV admin view)
+#[utoipa::path(
+    get,
+    path = "/admin/reports",
+    tag = "Report",
+    responses((status = 200, description = "All reports", body = AdminReportListResponse))
+)]
 pub async fn list_all_reports(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
-    Extension(token): Extension<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     // Only DGRV admins can access this endpoint
     if !claims.is_application_admin() {
@@ -447,20 +483,7 @@ pub async fn list_all_reports(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch all reports: {e}")))?;
 
-    // Get all organizations from Keycloak to map org_id to org_name
-    let organizations = app_state
-        .keycloak_service
-        .get_organizations(&token)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organizations: {e}")))?;
-
-    // Create a mapping from org_id to org_name
-    let org_name_map: std::collections::HashMap<String, String> = organizations
-        .into_iter()
-        .map(|org| (org.id, org.name))
-        .collect();
-
-    // Get all submissions to map report submission_id to org_id
+    // Get all submissions to map report submission_id to org_id and org_name
     let all_submissions = app_state
         .database
         .assessments_submission
@@ -468,10 +491,10 @@ pub async fn list_all_reports(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch all submissions: {e}")))?;
 
-    // Create a mapping from submission_id to org_id
-    let submission_org_map: std::collections::HashMap<Uuid, String> = all_submissions
+    // Create a mapping from submission_id to (org_id, org_name)
+    let submission_org_map: std::collections::HashMap<Uuid, (String, String)> = all_submissions
         .into_iter()
-        .map(|submission| (submission.submission_id, submission.org_id))
+        .map(|submission| (submission.submission_id, (submission.org_id, submission.org_name)))
         .collect();
 
     // Convert database models to AdminReport models with organization information
@@ -479,13 +502,9 @@ pub async fn list_all_reports(
 
     for report_model in all_reports {
         let submission_id = report_model.submission_id;
-        let org_id = submission_org_map.get(&submission_id)
+        let (org_id, org_name) = submission_org_map.get(&submission_id)
             .cloned()
-            .unwrap_or_else(|| "unknown".to_string());
-        
-        let org_name = org_name_map.get(&org_id)
-            .cloned()
-            .unwrap_or_else(|| "Unknown Organization".to_string());
+            .unwrap_or_else(|| ("unknown".to_string(), "Unknown Organization".to_string()));
 
         admin_reports.push(AdminReport {
             report_id: report_model.report_id,
@@ -494,7 +513,7 @@ pub async fn list_all_reports(
             org_name,
             status: report_model.status,
             generated_at: report_model.generated_at.to_rfc3339(),
-            data: report_model.data,
+            data: report_model.data.unwrap_or(serde_json::Value::Null),
         });
     }
 
@@ -503,71 +522,69 @@ pub async fn list_all_reports(
 
 /// Update recommendation status (for org admins)
 /// PATCH /reports/{report_id}/recommendations/{category}/status
+/// Update recommendation status (for org admins)
+#[utoipa::path(
+    put,
+    path = "/reports/{report_id}/recommendations/{category}/status",
+    tag = "Report",
+    params(
+        ("report_id" = Uuid, Path, description = "Report ID"),
+        ("recommendation_id" = String, Path, description = "Recommendation ID")
+    ),
+    request_body = UpdateRecommendationStatusRequest,
+    responses((status = 200, description = "Updated"), (status = 404, description = "Not found"), (status = 400, description = "Bad request"))
+)]
 pub async fn update_recommendation_status(
     State(app_state): State<AppState>,
-    Path((report_id, category)): Path<(Uuid, String)>,
+    Path((report_id, recommendation_id)): Path<(Uuid, String)>,
     Json(request): Json<UpdateRecommendationStatusRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    // Validate status
-    let valid_statuses = vec!["todo", "in_progress", "done", "approved"];
+    let valid_statuses = &["todo", "in_progress", "done", "approved"];
     if !valid_statuses.contains(&request.status.as_str()) {
-        return Err(ApiError::BadRequest(format!("Invalid status: {}. Must be one of: {:?}", request.status, valid_statuses)));
+        return Err(ApiError::BadRequest(format!("Invalid status: {}", request.status)));
     }
 
-    // Parse recommendation_id from string to Uuid
-    let recommendation_id_uuid = match Uuid::parse_str(&request.recommendation_id) {
-        Ok(uuid) => uuid,
-        Err(_) => return Err(ApiError::BadRequest("Invalid recommendation_id format".to_string())),
-    };
-    // Get the report
     let report = app_state
         .database
         .submission_reports
         .get_report_by_id(report_id)
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch report: {e}")))?
+        .map_err(|e| ApiError::InternalServerError(format!("Database error: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Report not found".to_string()))?;
 
-    // Update the report data to include the status for the specific recommendation
-    if let Some(mut data) = report.data {
-        if let Some(categories_array) = data.as_array_mut() {
-            for category_obj in categories_array {
-                if let Some(category_map) = category_obj.as_object_mut() {
-                    if let Some(category_data) = category_map.get_mut(&category) {
-                        if let Some(category_obj_inner) = category_data.as_object_mut() {
-                            if let Some(recommendations_array) = category_obj_inner.get_mut("recommendations").and_then(|r| r.as_array_mut()) {
-                                for recommendation_value in recommendations_array {
-                                    if let Some(recommendation_map) = recommendation_value.as_object_mut() {
-                                        if let Some(id_value) = recommendation_map.get("id") {
-                                            if let Some(id_str) = id_value.as_str() {
-                                                if let Ok(id_uuid) = Uuid::parse_str(id_str) {
-                                                    if id_uuid == recommendation_id_uuid {
-                                                        recommendation_map.insert("status".to_string(), serde_json::Value::String(request.status.clone()));
-                                                        // Update the report in the database
-                                                        app_state
-                                                            .database
-                                                            .submission_reports
-                                                            .update_report_status(report_id, report.status, Some(data))
-                                                            .await
-                                                            .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))?;
-                                                        return Ok(StatusCode::OK); // Found and updated
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+    let mut data = report.data.ok_or_else(|| ApiError::InternalServerError("Report data is missing".to_string()))?;
+    let mut recommendation_found_and_updated = false;
+
+    if let Some(categories_map) = data.get_mut(0).and_then(|c| c.as_object_mut()) {
+        for (_category_name, category_data) in categories_map.iter_mut() {
+            if let Some(recs) = category_data.get_mut("recommendations").and_then(|r| r.as_array_mut()) {
+                for rec in recs {
+                    if rec.get("id").and_then(|id| id.as_str()) == Some(&recommendation_id) {
+                        if let Some(rec_obj) = rec.as_object_mut() {
+                            rec_obj.insert("status".to_string(), json!(request.status));
+                            recommendation_found_and_updated = true;
+                            break;
                         }
                     }
                 }
             }
+            if recommendation_found_and_updated {
+                break;
+            }
         }
-        // If we reach here, the specific recommendation was not found
-        return Err(ApiError::NotFound("Recommendation not found within the specified category".to_string()));
     }
 
-    Err(ApiError::InternalServerError("Report data is missing or malformed".to_string()))
+    if recommendation_found_and_updated {
+        app_state
+            .database
+            .submission_reports
+            .update_report_status(report_id, report.status, Some(data))
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))?;
+        Ok(StatusCode::OK)
+    } else {
+        Err(ApiError::NotFound("Recommendation not found in this report".to_string()))
+    }
 }
 
 #[cfg(test)]

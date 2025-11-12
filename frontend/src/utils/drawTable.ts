@@ -16,12 +16,11 @@ interface TableData {
   answer: string;
   percentage: string;
   textAnswer: string;
-  recommendations: string;
+  recommendations?: string;
 }
 
 const groupDataByCategory = (
   submissions: AdminSubmissionDetail[],
-  recommendations: RecommendationWithStatus[]
 ): { [key: string]: TableData[] } => {
   const groupedData: { [key: string]: TableData[] } = {};
   const addedQuestions: { [key: string]: Set<string> } = {};
@@ -38,11 +37,6 @@ const groupDataByCategory = (
         }
 
         if (questionText !== "N/A" && !addedQuestions[category].has(questionText)) {
-          const categoryRecs = recommendations
-            .filter((rec) => rec.category === category)
-            .map((rec) => `- ${rec.recommendation}`)
-            .join("\n");
-          
           let answer = "N/A";
           let percentage = "0%";
           let textAnswer = "N/A";
@@ -64,7 +58,6 @@ const groupDataByCategory = (
             answer: answer,
             percentage: percentage,
             textAnswer: textAnswer,
-            recommendations: categoryRecs || "No recommendations for this category.",
           });
 
           addedQuestions[category].add(questionText);
@@ -86,19 +79,33 @@ export const drawAssessmentsTable = (
     return;
   }
 
-  const groupedData = groupDataByCategory(submissions, recommendations);
+  const groupedData = groupDataByCategory(submissions);
   const styles = getTableStyles();
   let isFirstCategory = true;
 
   Object.keys(groupedData).forEach(category => {
     const tableData = groupedData[category];
-    const body = tableData.map(row => [
-      row.question,
-      row.answer,
-      row.percentage,
-      row.textAnswer,
-      row.recommendations,
-    ]);
+    const categoryRecs = recommendations
+      .filter((rec) => rec.category === category)
+      .map((rec) => `- ${rec.recommendation}`)
+      .join("\n");
+
+    const body = tableData.map((row, index) => {
+      const rowContent: (string | { content: string; rowSpan: number; styles: { valign: 'middle' } })[] = [
+        row.question,
+        row.answer,
+        row.percentage,
+        row.textAnswer,
+      ];
+      if (index === 0) {
+        rowContent.push({
+          content: categoryRecs || "No recommendations for this category.",
+          rowSpan: tableData.length,
+          styles: { valign: 'middle' },
+        });
+      }
+      return rowContent;
+    });
 
     let currentY;
     if (isFirstCategory) {
@@ -123,12 +130,16 @@ export const drawAssessmentsTable = (
           "Recommendations",
         ],
       ],
-      body: body,
+      body: body as UserOptions['body'],
       ...styles,
       didParseCell: (data) => {
         if (data.column.dataKey === 4) { // 'Recommendations' column
-          if (data.cell.raw && typeof data.cell.raw === 'string') {
-            data.cell.text = data.cell.raw.split('\n');
+          let rawValue = data.cell.raw;
+          if (typeof rawValue === 'object' && rawValue !== null && 'content' in rawValue) {
+            rawValue = rawValue.content;
+          }
+          if (rawValue && typeof rawValue === 'string') {
+            data.cell.text = rawValue.split('\n');
           }
         }
       },

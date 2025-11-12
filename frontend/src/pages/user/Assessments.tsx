@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineQuestions, useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineApi";
+import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineSubmissions";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import type { Assessment, Submission } from "@/openapi-rq/requests/types.gen";
 import { Calendar, Eye, FileText, Trash2 } from "lucide-react";
 import * as React from "react";
@@ -28,58 +29,43 @@ type AuthUser = {
 // Extend Assessment type to include status for local use
 type AssessmentWithStatus = Assessment & { status?: string };
 
+// Extend Submission type to include assessment_name for local use
+type SubmissionWithName = Submission & { assessment_name?: string };
+
+
 export const Assessments: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { isOnline } = useOfflineSyncStatus();
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
 
   // Fetch all submissions for the current user/org
-  const { data, isLoading: remoteLoading, refetch } = useOfflineSubmissions();
-  const submissions = data?.submissions || [];
+  const { data: submissionsData, isLoading: submissionsLoading, refetch } = useOfflineSubmissions();
+  const submissions = submissionsData?.submissions || [];
 
-  const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
-
-  const questionsMap = React.useMemo(() => {
-    if (!questionsData?.questions) return new Map();
-    const map = new Map<string, { text: string; category: string }>();
-    questionsData.questions.forEach(q => {
-      if (q.question?.latest_revision) {
-        map.set(q.question.latest_revision.question_revision_id, {
-          text: q.question.latest_revision.text as unknown as string,
-          category: q.question.category,
-        });
-      }
-    });
-    return map;
-  }, [questionsData]);
 
   // Delete submission mutation
   const { deleteSubmission, isPending: isDeleting } = useOfflineSubmissionsMutation();
 
   useEffect(() => {
-    setIsLoading(remoteLoading);
-  }, [remoteLoading]);
+    setIsLoading(submissionsLoading);
+  }, [submissionsLoading]);
 
   // Helper function to count unique categories completed for a submission
-  const getCategoryCounts = (submission: Submission, questionsMap: Map<string, { text: string; category: string }>) => {
+  const getCategoryCounts = (submission: SubmissionWithName) => {
     try {
       const responses = submission?.content?.responses || [];
       const completedCategories = new Set<string>();
 
       responses.forEach(response => {
-        const customResponse = response as unknown as { question_revision_id?: string; question_category?: string };
-        const questionDetails = customResponse.question_revision_id
-          ? questionsMap.get(customResponse.question_revision_id)
-          : undefined;
-        const category = customResponse.question_category || questionDetails?.category;
-        if (category) {
-          completedCategories.add(category);
+        const customResponse = response as unknown as { question_category?: string };
+        if (customResponse.question_category) {
+          completedCategories.add(customResponse.question_category);
         }
       });
-      
       return { completed: completedCategories.size };
     } catch (error) {
       console.warn('Error calculating category counts:', error);
@@ -140,16 +126,15 @@ export const Assessments: React.FC = () => {
 
   // Card for each submission
   const SubmissionCard: React.FC<{
-    submission: Submission;
+    submission: SubmissionWithName;
     user: AuthUser | null;
     navigate: NavigateFunction;
     index: number;
     onDelete: (submissionId: string) => void;
     isDeleting: boolean;
     isOrgAdmin: boolean;
-    questionsMap: Map<string, { text: string; category: string }>;
-  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin, questionsMap }) => {
-    const { completed } = getCategoryCounts(submission, questionsMap);
+  }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin }) => {
+    const { completed } = getCategoryCounts(submission);
     
     return (
       <Card
@@ -165,7 +150,7 @@ export const Assessments: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  {t("sustainability")} {t("assessment")} {t("submission", { defaultValue: "Submission" })}
+                  {submission.assessment_name || `${t("sustainability")} ${t("assessment")} ${t("submission", { defaultValue: "Submission" })}`}
                 </h3>
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
@@ -250,7 +235,7 @@ export const Assessments: React.FC = () => {
         </div>
 
         <div className="grid gap-6">
-          {submissions.map((submission: Submission, index) => (
+          {submissions.map((submission: SubmissionWithName, index) => (
             <SubmissionCard
               key={submission.submission_id}
               submission={submission}
@@ -260,7 +245,6 @@ export const Assessments: React.FC = () => {
               onDelete={handleDeleteSubmission}
               isDeleting={isDeleting}
               isOrgAdmin={isOrgAdmin()}
-              questionsMap={questionsMap}
             />
           ))}
 

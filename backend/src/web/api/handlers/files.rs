@@ -23,6 +23,13 @@ fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id
         .unwrap_or(false)
 }
 
+/// Upload a file
+#[utoipa::path(
+    post,
+    path = "/files",
+    tag = "File",
+    responses((status = 201, description = "File uploaded"))
+)]
 pub async fn upload_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -112,6 +119,14 @@ pub async fn upload_file(
     Ok(StatusCode::CREATED)
 }
 
+/// Download a file
+#[utoipa::path(
+    get,
+    path = "/files/{file_id}",
+    tag = "File",
+    params(("file_id" = uuid::Uuid, Path, description = "File ID")),
+    responses((status = 200, description = "Binary file content"), (status = 404, description = "Not found"))
+)]
 pub async fn download_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -162,6 +177,14 @@ pub async fn download_file(
     Ok((headers, file_model.content))
 }
 
+/// Delete a file
+#[utoipa::path(
+    delete,
+    path = "/files/{file_id}",
+    tag = "File",
+    params(("file_id" = uuid::Uuid, Path, description = "File ID")),
+    responses((status = 204, description = "Deleted"), (status = 404, description = "Not found"))
+)]
 pub async fn delete_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -226,6 +249,14 @@ pub async fn delete_file(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Get file metadata
+#[utoipa::path(
+    get,
+    path = "/files/{file_id}/metadata",
+    tag = "File",
+    params(("file_id" = uuid::Uuid, Path, description = "File ID")),
+    responses((status = 200, description = "Metadata", body = FileMetadataResponse), (status = 404, description = "Not found"))
+)]
 pub async fn get_file_metadata(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -285,6 +316,18 @@ pub async fn get_file_metadata(
     Ok(Json(FileMetadataResponse { metadata }))
 }
 
+/// Attach a file to a response
+#[utoipa::path(
+    post,
+    path = "/assessments/{assessment_id}/responses/{response_id}/files",
+    tag = "File",
+    params(
+        ("assessment_id" = uuid::Uuid, Path, description = "Assessment ID"),
+        ("response_id" = uuid::Uuid, Path, description = "Response ID")
+    ),
+    request_body = AttachFileRequest,
+    responses((status = 204, description = "Attached"), (status = 404, description = "Not found"))
+)]
 pub async fn attach_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -387,6 +430,18 @@ pub async fn attach_file(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Remove a file from a response
+#[utoipa::path(
+    delete,
+    path = "/assessments/{assessment_id}/responses/{response_id}/files/{file_id}",
+    tag = "File",
+    params(
+        ("assessment_id" = uuid::Uuid, Path, description = "Assessment ID"),
+        ("response_id" = uuid::Uuid, Path, description = "Response ID"),
+        ("file_id" = uuid::Uuid, Path, description = "File ID")
+    ),
+    responses((status = 204, description = "Removed"), (status = 404, description = "Not found"))
+)]
 pub async fn remove_file(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,

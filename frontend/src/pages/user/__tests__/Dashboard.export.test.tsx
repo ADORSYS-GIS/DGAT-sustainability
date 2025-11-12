@@ -13,7 +13,7 @@ const wrap = (ui: React.ReactElement) => (
 
 describe("Dashboard export flow", () => {
   it("opens report dialog and exports selected report", async () => {
-    vi.spyOn(offlineApi, "useOfflineReports").mockReturnValue({
+    vi.spyOn(require("@/hooks/useOfflineReports"), "useOfflineReports").mockReturnValue({
       data: {
         recommendations: [],
         reports: [
@@ -32,10 +32,10 @@ describe("Dashboard export flow", () => {
       refetch: vi.fn(),
     } as any);
 
-    vi.spyOn(offlineApi, "useOfflineSubmissions").mockReturnValue({ data: { submissions: [] }, isLoading: false } as any);
-    vi.spyOn(offlineApi, "useOfflineAdminSubmissions").mockReturnValue({ data: { submissions: [] }, isLoading: false } as any);
-    vi.spyOn(offlineApi, "useOfflineAssessments").mockReturnValue({ data: { assessments: [] }, isLoading: false } as any);
-    vi.spyOn(offlineApi, "useOfflineUserRecommendations").mockReturnValue({ data: { recommendations: [] }, isLoading: false } as any);
+    vi.spyOn(require("@/hooks/useOfflineSubmissions"), "useOfflineSubmissions").mockReturnValue({ data: { submissions: [] }, isLoading: false } as any);
+    vi.spyOn(require("@/hooks/useOfflineAdminSubmissions"), "useOfflineAdminSubmissions").mockReturnValue({ data: { submissions: [] }, isLoading: false } as any);
+    vi.spyOn(require("@/hooks/useOfflineAssessments"), "useOfflineAssessments").mockReturnValue({ data: { assessments: [] }, isLoading: false } as any);
+    vi.spyOn(require("@/hooks/useOfflineReports"), "useOfflineUserRecommendations").mockReturnValue({ data: { recommendations: [] }, isLoading: false } as any);
 
     const exportSpy = vi.spyOn(exportPDFModule, "exportReportPDF").mockResolvedValue();
 
