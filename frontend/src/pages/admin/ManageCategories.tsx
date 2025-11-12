@@ -11,10 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   useOfflineSyncStatus
-} from "@/hooks/useOfflineApi";
+} from "@/hooks/useOfflineSync";
 import { useOfflineCategoryCatalogs, useOfflineCategoryCatalogsMutation } from "@/hooks/useCategoryCatalogs";
 import { Edit, Plus, Trash2 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -51,6 +51,22 @@ export const ManageCategories: React.FC = () => {
 
   const { isOnline } = useOfflineSyncStatus();
 
+  useEffect(() => {
+    const handleDataSync = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.entityType === 'category_catalog' || customEvent.detail.entityType === 'category_catalogs') {
+        console.log('Received datasync event for categories, refetching...');
+        refetch();
+      }
+    };
+
+    window.addEventListener('datasync', handleDataSync);
+
+    return () => {
+      window.removeEventListener('datasync', handleDataSync);
+    };
+  }, [refetch]);
+
   // Use categories as is (no sorting needed)
   const sortedCategories = [...categories];
 
@@ -59,42 +75,30 @@ export const ManageCategories: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (editingCategory) {
-      // Update existing category
-      await createOrUpdateCategory({
-        ...editingCategory,
-        name: formData.name,
-        description: formData.description,
-      }, {
-        onSuccess: () => {
-          toast.success(t('manageCategories.updateSuccess', { defaultValue: 'Category updated successfully' }));
-          setIsDialogOpen(false);
-          setEditingCategory(null);
-          setFormData({ name: "", description: "" });
-          refetch();
-        },
-        onError: (error) => {
-          toast.error(t('manageCategories.updateError', { defaultValue: 'Failed to update category' }));
-        }
-      });
-    } else {
-      // Create new category
-      await createOrUpdateCategory({
-        name: formData.name,
-        description: formData.description,
-        template_id: SUSTAINABILITY_TEMPLATE_ID,
-        is_active: true,
-      } as OfflineCategoryCatalog, {
-        onSuccess: () => {
-          toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
-          setIsDialogOpen(false);
-          setFormData({ name: "", description: "" });
-          refetch();
-        },
-        onError: (error) => {
-          toast.error(t('manageCategories.createError', { defaultValue: 'Failed to create category' }));
-        }
-      });
+    try {
+      if (editingCategory) {
+        await createOrUpdateCategory({
+          ...editingCategory,
+          name: formData.name,
+          description: formData.description,
+        });
+        toast.success(t('manageCategories.updateSuccess', { defaultValue: 'Category updated successfully' }));
+      } else {
+        await createOrUpdateCategory({
+          name: formData.name,
+          description: formData.description,
+          template_id: SUSTAINABILITY_TEMPLATE_ID,
+          is_active: true,
+        } as OfflineCategoryCatalog);
+        toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
+      }
+      setIsDialogOpen(false);
+      setEditingCategory(null);
+      setFormData({ name: "", description: "" });
+    } catch (error) {
+      const err = error as ApiError;
+      const errorMessage = err.detail || err.message || t('manageCategories.submitError', { defaultValue: 'Failed to save category' });
+      toast.error(errorMessage);
     }
   };
 
@@ -108,20 +112,19 @@ export const ManageCategories: React.FC = () => {
   };
 
   const handleDelete = async (categoryId: string) => {
-    if (!window.confirm(t('manageCategories.confirmDelete', { 
-      defaultValue: 'Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.' 
+    if (!window.confirm(t('manageCategories.confirmDelete', {
+      defaultValue: 'Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.'
     })))
       return;
     
-    await deleteCategory(categoryId, {
-      onSuccess: () => {
-        toast.success(t('manageCategories.deleteSuccess', { defaultValue: 'Category deleted successfully' }));
-        refetch();
-      },
-      onError: (error) => {
-        toast.error(t('manageCategories.deleteError', { defaultValue: 'Failed to delete category' }));
-      }
-    });
+    try {
+      await deleteCategory(categoryId);
+      toast.success(t('manageCategories.deleteSuccess', { defaultValue: 'Category deleted successfully' }));
+    } catch (error) {
+      const err = error as ApiError;
+      const errorMessage = err.detail || err.message || t('manageCategories.deleteError', { defaultValue: 'Failed to delete category' });
+      toast.error(errorMessage);
+    }
   };
 
   if (isLoading) {

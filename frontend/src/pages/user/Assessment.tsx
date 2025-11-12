@@ -27,16 +27,18 @@ import { toast } from "sonner";
 import {
   useOfflineCategoryCatalogs
 } from "@/hooks/useCategoryCatalogs";
+import { invalidateAndRefetch } from "@/hooks/useOfflineApi";
 import {
-  invalidateAndRefetch,
   useOfflineAssessment,
   useOfflineAssessmentsMutation,
   useOfflineDraftAssessments,
-  useOfflineQuestions,
+} from "@/hooks/useOfflineAssessments";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
+import {
   useOfflineResponses,
   useOfflineResponsesMutation,
-  useOfflineSyncStatus,
-} from "../../hooks/useOfflineApi";
+} from "@/hooks/useOfflineResponses";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { offlineDB } from "../../services/indexeddb";
 
 type FileData = { name: string; url: string };
@@ -62,7 +64,7 @@ function isAssessmentDetailResponse(
 }
 
 // Type guard for assessment result
-function isAssessmentResult(result: unknown): result is { assessment: AssessmentType } {
+function isAssessmentResult(result: unknown): result is { assessment: AssessmentType; offline?: boolean } {
   return !!result && typeof result === 'object' && result !== null && 'assessment' in result;
 }
 
@@ -80,6 +82,13 @@ export const Assessment: React.FC = () => {
 
   const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
   const { isOnline } = useOfflineSyncStatus();
+
+  const allRoles = React.useMemo(() => {
+    if (!user) return [];
+    return [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
+  }, [user]);
+
+  const isOrgAdmin = React.useMemo(() => allRoles.includes("org_admin"), [allRoles]);
 
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, LocalAnswer>>({});
@@ -119,7 +128,7 @@ export const Assessment: React.FC = () => {
     if (existingResponses?.responses && existingResponses.responses.length > 0) {
       const loadedAnswers: Record<string, LocalAnswer> = {};
       
-      existingResponses.responses.forEach((response) => {
+      existingResponses.responses.forEach((response: CreateResponseRequest) => {
         try {
           console.log('🔍 Processing response:', response);
           const responseData = JSON.parse(response.response[0] || response.response);
@@ -173,10 +182,10 @@ export const Assessment: React.FC = () => {
     if (!categoriesData || !orgInfo.categories) {
       return [];
     }
-    const orgCategoryNames = new Set(orgInfo.categories.map(c => c.toLowerCase()));
+    const orgCategoryNames = new Set(orgInfo.categories.map((c: string) => c.toLowerCase()));
     return categoriesData
-      .filter(c => orgCategoryNames.has(c.name.toLowerCase()))
-      .map(c => c.name);
+      .filter((c: { name: string; }) => orgCategoryNames.has(c.name.toLowerCase()))
+      .map((c: { name: string; }) => c.name);
   }, [categoriesData, orgInfo.categories]);
 
   // Extract assessment category IDs from assessment detail
@@ -196,15 +205,13 @@ export const Assessment: React.FC = () => {
   // Assessment creation logic
   useEffect(() => {
     if (!user) return;
-    const allRoles = [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
-    const canCreate = allRoles.includes("org_admin");
 
-    if (!assessmentId && !canCreate) {
+    if (!assessmentId && !isOrgAdmin) {
       toast.error(t("assessment.noPermissionToCreate", { defaultValue: "Only organization administrators can create assessments." }));
       navigate("/dashboard");
       return;
     }
-  }, [assessmentId, user, navigate, t]);
+  }, [assessmentId, user, navigate, t, isOrgAdmin]);
 
   // Handle assessment selection
   const handleSelectAssessment = (selectedAssessmentId: string) => {
@@ -231,39 +238,34 @@ export const Assessment: React.FC = () => {
     };
     
     createAssessment(newAssessment, {
-      onSuccess: (result) => {
+      onSuccess: (result: unknown) => {
+        console.log("Assessment creation onSuccess result:", result);
         if (result && isAssessmentResult(result) && result.assessment?.assessment_id) {
-          const realAssessmentId = result.assessment.assessment_id;
-          if (!realAssessmentId.startsWith("temp_")) {
-            // Invalidate and refetch the assessments query to ensure immediate visibility
-            invalidateAndRefetch(queryClient, ['assessments']);
-            // The existing refetchAssessments() is redundant if invalidateAndRefetch is used
-            // refetchAssessments();
-            const waitForAssessment = async () => {
-              let attempts = 0;
-              const maxAttempts = 10;
-              while (attempts < maxAttempts) {
-                const savedAssessment = await offlineDB.getAssessment(realAssessmentId);
-                if (savedAssessment) {
-                  navigate(`/user/assessment/${realAssessmentId}`);
-                  return;
-                }
-                await new Promise((resolve) => setTimeout(resolve, 500));
-                attempts++;
-              }
-            };
-            waitForAssessment();
+          const assessmentIdToNavigate = result.assessment.assessment_id;
+          
+          // Invalidate and refetch the assessments query to ensure immediate visibility
+          invalidateAndRefetch(queryClient, ['assessments']);
+          
+          // Navigate immediately to the assessment, whether it's a temp_ ID or a real ID
+          navigate(`/user/assessment/${assessmentIdToNavigate}`);
+          
+          // If it's a temporary assessment, we don't need to wait for it to be saved
+          // The useOfflineAssessment hook will handle loading it from IndexedDB
+          if (assessmentIdToNavigate.startsWith("temp_")) {
+            toast.success(t("assessment.offlineCreated", { defaultValue: "Assessment created offline and will sync when online!" }));
           } else {
-            setHasCreatedAssessment(false);
+            toast.success(t("assessment.createdSuccessfully", { defaultValue: "Assessment created successfully!" }));
           }
         } else {
+          console.error("Assessment creation result did not contain a valid assessment_id:", result);
           toast.error(t("assessment.failedToCreate"));
           setHasCreatedAssessment(false);
         }
         setShowCreateModal(false);
         setIsCreatingAssessment(false);
       },
-      onError: () => {
+      onError: (error) => {
+        console.error("Error creating assessment:", error);
         toast.error(t("assessment.failedToCreate"));
         setHasCreatedAssessment(false);
         setShowCreateModal(false);
@@ -367,12 +369,12 @@ export const Assessment: React.FC = () => {
 
   // Group questions by category - use intersection of assessment categories and user categories
   const groupedQuestions = React.useMemo(() => {
-    if (!questionsData?.questions || !categoriesData) return {};
+    if (!questionsData || !categoriesData) return {};
 
     // Create lookup maps for categories
     const categoryIdToNameMap = new Map<string, string>();
     const categoryNameToIdMap = new Map<string, string>();
-    categoriesData.forEach(cat => {
+    categoriesData.forEach((cat: { category_catalog_id: string; name: string; }) => {
       categoryIdToNameMap.set(cat.category_catalog_id, cat.name);
       categoryNameToIdMap.set(cat.name.toLowerCase(), cat.category_catalog_id);
     });
@@ -380,7 +382,7 @@ export const Assessment: React.FC = () => {
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
     
     // Group questions by their proper category ID, handling legacy data
-    (questionsData.questions as unknown as QuestionWithCategory[]).forEach((question) => {
+    (questionsData as unknown as QuestionWithCategory[]).forEach((question) => {
       if (question) {
         let categoryId: string | undefined;
         // The question might have the correct UUID in category_id
@@ -409,8 +411,6 @@ export const Assessment: React.FC = () => {
     });
 
     const filtered: typeof groups = {};
-    const allRoles = [...(user?.roles || []), ...(user?.realm_access?.roles || [])].map((r) => r.toLowerCase());
-    const isOrgAdmin = allRoles.includes("org_admin");
 
     // Filter questions based on user role using category IDs
     for (const assessmentCatId of assessmentCategoryIds) {
@@ -428,13 +428,12 @@ export const Assessment: React.FC = () => {
       }
     }
     return filtered;
-  }, [questionsData?.questions, categoriesData, assessmentCategoryIds, orgInfo.categories, user]);
+  }, [questionsData, categoriesData, assessmentCategoryIds, orgInfo.categories, user, isOrgAdmin]);
 
   const categories = Object.keys(groupedQuestions);
 
   // Check if we have any categories - only show this message for Org_User, not org_admin
-  const allRoles = [...(user?.roles || []), ...(user?.realm_access?.roles || [])].map((r) => r.toLowerCase());
-  const isOrgUser = allRoles.includes("org_user") && !allRoles.includes("org_admin");
+  const isOrgUser = allRoles.includes("org_user") && !isOrgAdmin;
   
   if (assessmentCategoryIds.length > 0 && categories.length === 0 && isOrgUser) {
     return (
@@ -457,8 +456,7 @@ export const Assessment: React.FC = () => {
 
   // Show assessment list if no specific assessment is selected
   if (!assessmentId) {
-    const allRoles = [...(user?.roles || []), ...(user?.realm_access?.roles || [])].map((r) => r.toLowerCase());
-    const canCreate = allRoles.includes("org_admin");
+    const canCreate = isOrgAdmin;
 
     return (
       <div className="min-h-screen bg-gray-50">
@@ -498,7 +496,7 @@ export const Assessment: React.FC = () => {
               onClose={() => setShowCreateModal(false)}
               onSubmit={handleCreateAssessment}
               isLoading={isCreatingAssessment}
-              isOrgAdmin={allRoles.includes("org_admin")}
+              isOrgAdmin={isOrgAdmin}
             />
           </div>
         </div>
@@ -688,7 +686,7 @@ export const Assessment: React.FC = () => {
           <Textarea
             id={`input-text-${key}`}
             value={textValue}
-            onChange={(e) => handleAnswerChange(key, { text: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleAnswerChange(key, { text: e.target.value })}
             placeholder={t("assessment.enterYourResponse")}
             className="mt-1"
             rows={4}
@@ -721,24 +719,6 @@ export const Assessment: React.FC = () => {
     );
   };
 
-  if (assessmentId && assessmentId.startsWith("temp_")) {
-    return (
-      <>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
-            <p className="text-gray-600">{t("assessment.creating", { defaultValue: "Creating assessment..." })}</p>
-            <p className="text-sm text-gray-500 mt-2">{t("assessment.pleaseWait", { defaultValue: "Please wait while we set up your assessment." })}</p>
-            {creationAttempts > 0 && (
-              <p className="text-xs text-gray-400 mt-1">
-                {t("assessment.attempt", { defaultValue: "Attempt" })} {creationAttempts}/3
-              </p>
-            )}
-          </div>
-        </div>
-      </>
-    );
-  }
 
   if (assessmentLoading || responsesLoading || !assessmentDetail || categoriesLoading) {
     return (
@@ -754,7 +734,7 @@ export const Assessment: React.FC = () => {
   }
 
   const currentCategoryId = categories[currentCategoryIndex];
-  const currentCategoryObject = categoriesData?.find(c => c.category_catalog_id === currentCategoryId);
+  const currentCategoryObject = categoriesData?.find((c: { category_catalog_id: string; }) => c.category_catalog_id === currentCategoryId);
   const currentCategoryName = currentCategoryObject?.name || t("assessment.unknownCategory", { defaultValue: "Unknown Category" });
   const currentQuestions = getCurrentCategoryQuestions();
   const progress = categories.length > 0 ? ((currentCategoryIndex + 1) / categories.length) * 100 : 0;
@@ -910,7 +890,7 @@ export const Assessment: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateAssessment}
         isLoading={isCreatingAssessment}
-        isOrgAdmin={allRoles.includes("org_admin")}
+        isOrgAdmin={isOrgAdmin}
       />
     </div>
   );

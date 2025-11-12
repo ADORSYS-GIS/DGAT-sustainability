@@ -3747,9 +3747,10 @@
         "required": [
           "generated_at",
           "report_id",
-          "report_type",
           "status",
-          "submission_id"
+          "submission_id",
+          "assessment_id",
+          "assessment_name"
         ],
         "type": "object",
         "properties": {
@@ -3761,9 +3762,12 @@
             "type": "string",
             "format": "uuid"
           },
-          "report_type": {
+          "assessment_id": {
             "type": "string",
-            "enum": ["sustainability", "compliance", "summary", "detailed"]
+            "format": "uuid"
+          },
+          "assessment_name": {
+            "type": "string"
           },
           "status": {
             "type": "string",
@@ -4618,7 +4622,7 @@
         }
       },
       "RecommendationWithStatus": {
-        "required": ["recommendation_id", "report_id", "category", "recommendation", "status", "created_at"],
+        "required": ["recommendation_id", "report_id", "assessment_id", "assessment_name", "category", "recommendation", "status", "created_at"],
         "type": "object",
         "properties": {
           "recommendation_id": {
@@ -4630,6 +4634,15 @@
             "type": "string",
             "format": "uuid",
             "description": "Report ID"
+          },
+          "assessment_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Assessment ID"
+          },
+          "assessment_name": {
+            "type": "string",
+            "description": "Assessment name"
           },
           "category": {
             "type": "string",
@@ -4774,9 +4787,9 @@
       },
       "OrganizationCategoryListResponse": {
         "type": "object",
-        "required": ["categories"],
+        "required": ["organization_categories"],
         "properties": {
-          "categories": {
+          "organization_categories": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OrganizationCategory"

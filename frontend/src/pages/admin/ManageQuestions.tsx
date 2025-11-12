@@ -32,36 +32,20 @@ import {
   Target,
   Trash2
 } from "lucide-react";
-import { useCallback, useEffect, useState as useLocalState, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   useOfflineQuestions,
   useOfflineQuestionsMutation
-} from "../../hooks/useOfflineApi";
+} from "@/hooks/useOfflineQuestions";
 import { useOfflineCategoryCatalogs } from "../../hooks/useCategoryCatalogs";
 import type {
   CreateQuestionRequest,
   UpdateQuestionRequest
 } from "../../openapi-rq/requests/types.gen";
 import { offlineDB } from "../../services/indexeddb";
-import type { OfflineCategoryCatalog } from "../../types/offline";
-
-// Extended types to match actual API response
-interface QuestionRevision {
-  question_revision_id: string;
-  question_id: string;
-  text: Record<string, string>;
-  weight: number;
-  created_at: string;
-}
-
-interface QuestionWithLatestRevision {
-  question_id: string;
-  category: string;
-  created_at: string;
-  latest_revision: QuestionRevision;
-}
+import type { OfflineCategoryCatalog, OfflineQuestion } from "../../types/offline";
 
 const LANGUAGES = [
   { code: "en", name: "English", flag: "🇺🇸" },
@@ -86,7 +70,7 @@ const QuestionForm: React.FC<{
   setFormData: React.Dispatch<React.SetStateAction<QuestionFormData>>;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
-  editingQuestion: QuestionWithLatestRevision | null;
+  editingQuestion: OfflineQuestion | null;
   onCancel: () => void;
 }> = ({
   categories,
@@ -98,13 +82,10 @@ const QuestionForm: React.FC<{
   editingQuestion,
   onCancel,
 }) => {
-  // Track which language dropdown is open (only one at a time)
-  const [openLang, setOpenLang] = useLocalState<string | null>(null);
   const { t } = useTranslation();
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      {/* Header */}
       <div className="text-center pb-4">
         <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
           <FileText className="w-6 h-6 text-blue-600" />
@@ -118,8 +99,6 @@ const QuestionForm: React.FC<{
           </p>
         )}
       </div>
-
-      {/* Category Selection */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">
           {t('manageQuestions.category')} <span className="text-red-500">*</span>
@@ -148,8 +127,6 @@ const QuestionForm: React.FC<{
           </SelectContent>
         </Select>
       </div>
-
-      {/* Question Text - English (Required) */}
       <div className="space-y-2">
         <Label htmlFor="text_en" className="text-sm font-medium text-gray-700">
           🇺🇸 English Question <span className="text-red-500">*</span>
@@ -168,8 +145,6 @@ const QuestionForm: React.FC<{
           required
         />
       </div>
-
-      {/* Other Languages */}
       <div className="space-y-3">
         <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
           <Globe className="w-4 h-4" />
@@ -198,8 +173,6 @@ const QuestionForm: React.FC<{
           ))}
         </div>
       </div>
-
-      {/* Weight and Order */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="weight" className="text-sm font-medium text-gray-700 flex items-center space-x-1">
@@ -244,8 +217,6 @@ const QuestionForm: React.FC<{
           <p className="text-xs text-gray-500">Display sequence</p>
         </div>
       </div>
-
-      {/* Action Buttons */}
       <div className="flex space-x-3 pt-4">
         <Button
           type="button"
@@ -284,7 +255,7 @@ export const ManageQuestions = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [editingQuestion, setEditingQuestion] =
-    useState<QuestionWithLatestRevision | null>(null);
+    useState<OfflineQuestion | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<QuestionFormData>({
     text: LANGUAGES.reduce(
@@ -296,56 +267,53 @@ export const ManageQuestions = () => {
     order: 1,
   });
 
-  // Clean up temporary items on component mount
   useEffect(() => {
     const cleanupTemporaryItems = async () => {
       try {
-        // Clean up temporary questions
         const allQuestions = await offlineDB.getAllQuestions();
         const tempQuestions = allQuestions.filter(q => q.question_id.startsWith('temp_'));
-        
         for (const tempQuestion of tempQuestions) {
           await offlineDB.deleteQuestion(tempQuestion.question_id);
         }
-        
-        // Clean up temporary categories
         const allCategories = await offlineDB.getAllCategoryCatalogs();
         const tempCategories = allCategories.filter(c => c.category_catalog_id.startsWith('temp_'));
-        
         for (const tempCategory of tempCategories) {
           await offlineDB.deleteCategoryCatalog(tempCategory.category_catalog_id);
         }
-        
       } catch (error) {
         // Silently handle cleanup errors
       }
     };
-
     cleanupTemporaryItems();
   }, []);
 
-  // Use offline hooks for all data fetching
   const { 
     data: categoriesData,
     isLoading: categoriesLoading,
     error: categoriesError
   } = useOfflineCategoryCatalogs();
-
   const categories = categoriesData || [];
 
-  const { 
-    data: questionsData,
+  const {
+    data: questions,
     isLoading: questionsLoading,
     refetch: refetchQuestions,
   } = useOfflineQuestions();
 
-  // Cast the response to match the actual API structure
-  const questions: QuestionWithLatestRevision[] = useMemo(
-    () => (questionsData?.questions || []) as unknown as QuestionWithLatestRevision[],
-    [questionsData]
-  );
+ useEffect(() => {
+   const handleDataSync = (event: Event) => {
+     const customEvent = event as CustomEvent;
+     if (customEvent.detail.entityType === 'question') {
+       refetchQuestions();
+     }
+   };
 
-  // Use enhanced offline mutation hooks
+   window.addEventListener('datasync', handleDataSync);
+   return () => {
+     window.removeEventListener('datasync', handleDataSync);
+   };
+ }, [refetchQuestions]);
+
   const { createQuestion, updateQuestion, deleteQuestion, isPending } = useOfflineQuestionsMutation();
 
   function getErrorMessage(error: unknown): string {
@@ -360,80 +328,65 @@ export const ManageQuestions = () => {
     return "Unknown error";
   }
 
- 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!formData.text.en.trim()) {
-        toast.error(t('manageQuestions.textRequired'));
-        return;
-      }
-      if (!formData.categoryName && !selectedCategory) {
-        toast.error(t('manageQuestions.categoryRequired'));
-        return;
-      }
-      if (formData.weight < 1 || formData.weight > 10) {
-        toast.error(t('manageQuestions.weightRangeError'));
-        return;
-      }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.text.en.trim()) {
+      toast.error(t('manageQuestions.textRequired'));
+      return;
+    }
+    if (!formData.categoryName && !selectedCategory) {
+      toast.error(t('manageQuestions.categoryRequired'));
+      return;
+    }
+    if (formData.weight < 1 || formData.weight > 10) {
+      toast.error(t('manageQuestions.weightRangeError'));
+      return;
+    }
 
-      // Use selected category if available, otherwise use form category
-      const categoryName = selectedCategory || formData.categoryName;
-      const category = categories.find((c) => c.name === categoryName);
-      if (!category) {
-        toast.error("Category not found");
-        return;
-      }
+    const categoryName = selectedCategory || formData.categoryName;
+    const category = categories.find((c) => c.name === categoryName);
+    if (!category) {
+      toast.error("Category not found");
+      return;
+    }
 
-      // Remove empty language fields
-      const text: Record<string, string> = {};
-      for (const code of Object.keys(formData.text)) {
-        if (formData.text[code] && formData.text[code].trim()) {
-          text[code] = formData.text[code].trim();
-        }
+    const text: Record<string, string> = {};
+    for (const code of Object.keys(formData.text)) {
+      if (formData.text[code] && formData.text[code].trim()) {
+        text[code] = formData.text[code].trim();
       }
+    }
 
+    try {
       if (editingQuestion) {
         const updateBody: UpdateQuestionRequest = {
           category_id: category.category_catalog_id,
           text,
           weight: formData.weight,
         };
-        await updateQuestion(editingQuestion.question_id, updateBody, {
-          onSuccess: () => {
-            toast.success(t('manageQuestions.updateSuccess'));
-            refetchQuestions();
-            setIsDialogOpen(false);
-            setEditingQuestion(null);
-            setSelectedCategory(undefined);
-          },
-          onError: (error: unknown) => toast.error(getErrorMessage(error)),
-        });
+        await updateQuestion({ questionId: editingQuestion.question_id, question: updateBody });
+        toast.success(t('manageQuestions.updateSuccess'));
       } else {
         const createBody: CreateQuestionRequest = {
           category_id: category.category_catalog_id,
           text,
           weight: formData.weight,
         };
-        await createQuestion(createBody, {
-          onSuccess: () => {
-            toast.success(t('manageQuestions.createSuccess'));
-            refetchQuestions();
-            setIsDialogOpen(false);
-            setSelectedCategory(undefined);
-          },
-          onError: (error: unknown) => toast.error(getErrorMessage(error)),
-        });
+        await createQuestion({ ...createBody, order: formData.order });
+        toast.success(t('manageQuestions.createSuccess'));
       }
-    },
-    [formData, editingQuestion, selectedCategory, createQuestion, updateQuestion, refetchQuestions, setIsDialogOpen, setEditingQuestion, setSelectedCategory, t, categories],
-  );
+      setIsDialogOpen(false);
+      setEditingQuestion(null);
+      setSelectedCategory(undefined);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
 
-
-  const handleAddQuestion = useCallback((categoryName: string) => {
+  const handleAddQuestion = (categoryName: string) => {
     setSelectedCategory(categoryName);
     setEditingQuestion(null);
-    const questionCount = questions.filter(q => q.category === categoryName).length;
+    const questionCount = (questions || []).filter(q => q.category === categoryName).length;
     setFormData({
       text: LANGUAGES.reduce(
         (acc, lang) => ({ ...acc, [lang.code]: "" }),
@@ -444,43 +397,38 @@ export const ManageQuestions = () => {
       order: questionCount + 1,
     });
     setIsDialogOpen(true);
-  }, [questions]);
+  };
 
-  const handleEdit = useCallback((question: QuestionWithLatestRevision) => {
+  const handleEdit = (question: OfflineQuestion) => {
     setEditingQuestion(question);
     setSelectedCategory(undefined);
     const weight = question.latest_revision?.weight || 5;
-    const text: Record<string, string> = LANGUAGES.reduce(
-      (acc, lang) => {
-        acc[lang.code] = question.latest_revision?.text[lang.code] || "";
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    const text = question.latest_revision?.text || {};
+    
     setFormData({
-      text,
+      text: LANGUAGES.reduce(
+        (acc, lang) => {
+          acc[lang.code] = text[lang.code] || "";
+          return acc;
+        },
+        {} as Record<string, string>,
+      ),
       weight,
       categoryName: question.category,
-      order: 1,
+      order: 1, // Order is not directly editable in this form for now
     });
     setIsDialogOpen(true);
-  }, []);
+  };
 
-  const handleDelete = useCallback(
-    async (questionId: string) => {
-      if (!window.confirm(t('manageQuestions.confirmDelete')))
-        return;
-      
-      await deleteQuestion(questionId, {
-        onSuccess: () => {
-          toast.success(t('manageQuestions.deleteSuccess'));
-          refetchQuestions();
-        },
-        onError: (error: unknown) => toast.error(getErrorMessage(error)),
-      });
-    },
-    [deleteQuestion, refetchQuestions, t],
-  );
+  const handleDelete = async (questionId: string) => {
+    if (!window.confirm(t('manageQuestions.confirmDelete'))) return;
+    try {
+      await deleteQuestion(questionId);
+      toast.success(t('manageQuestions.deleteSuccess'));
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
 
   const handleCancel = useCallback(() => {
     setIsDialogOpen(false);
@@ -513,7 +461,6 @@ export const ManageQuestions = () => {
     );
   }
 
-  // Show error if categories failed to load
   if (categoriesError) {
     return (
       <div className="min-h-screen bg-white">
@@ -539,41 +486,18 @@ export const ManageQuestions = () => {
     );
   }
 
-  // Safety check for questions data
-  if (!questions || !Array.isArray(questions)) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="pt-20 pb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                <BookOpen className="w-8 h-8 text-gray-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Questions Available</h3>
-              <p className="text-gray-600">No questions data available.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-white">
       <div className="pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header Section */}
           <div className="mb-8">
-            {/* Questions Count */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
                 <Badge variant="outline" className="bg-gray-50">
-                  {questions.length} Questions
+                  {(questions || []).length} Questions
                 </Badge>
               </div>
             </div>
-
-            {/* Title Section */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
                 <BookOpen className="w-8 h-8 text-blue-600" />
@@ -586,13 +510,11 @@ export const ManageQuestions = () => {
               </p>
             </div>
           </div>
-
-          {/* Categories Grid */}
           <div className="grid gap-6">
             {categories.map((category) => {
-              const categoryQuestions = questions
+              const categoryQuestions = (questions || [])
                 .filter((q) => q.category === category.name)
-                .sort((a, b) => (a.latest_revision?.weight || 0) - (b.latest_revision?.weight || 0));
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
               const questionCount = categoryQuestions.length;
               
               return (
@@ -723,7 +645,6 @@ export const ManageQuestions = () => {
         </div>
       </div>
 
-      {/* Question Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -750,7 +671,7 @@ export const ManageQuestions = () => {
 const QuestionText = ({
   question,
 }: {
-  question: QuestionWithLatestRevision;
+  question: OfflineQuestion;
 }) => {
   const { t } = useTranslation();
   if (!question.latest_revision || !question.latest_revision.text) {
@@ -766,7 +687,6 @@ const QuestionText = ({
 
   return (
     <div className="space-y-3">
-      {/* Primary language (English) */}
       {text.en && (
         <div className="space-y-1">
           <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
@@ -777,7 +697,6 @@ const QuestionText = ({
         </div>
       )}
       
-      {/* Other languages */}
       {languages.filter(lang => lang !== 'en').map((lang) => {
         const langText = text[lang];
         if (!langText) return null;

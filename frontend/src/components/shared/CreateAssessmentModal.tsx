@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useOrganizationCategories } from "@/hooks/useOrganizationCategories";
+import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
 import { LoadingSpinner } from "./LoadingSpinner";
-import { OrganizationCategory } from "@/openapi-rq/requests";
+import { OfflineCategoryCatalog, OfflineOrganizationCategory } from "@/types/offline";
+import { offlineDB } from "@/services/indexeddb";
 
 interface CreateAssessmentModalProps {
   isOpen: boolean;
@@ -35,16 +36,27 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   
   const {
-    data: orgCategoriesData,
-    isLoading: isLoadingOrgCategories,
-    error: orgCategoriesError
-  } = useOrganizationCategories();
+    organizationCategories: availableOrganizationCategories = [],
+    isLoading: isLoadingCategories,
+    error: orgCategoriesError,
+  } = useOfflineOrganizationCategories();
 
-  // The API response has a different shape than the generated type.
-  // We cast it to the expected shape to access the categories array.
-  const availableCategories: OrganizationCategory[] =
-    (orgCategoriesData as unknown as { organization_categories: OrganizationCategory[] })?.organization_categories || [];
-  const isLoadingCategories = isLoadingOrgCategories;
+  const [availableCategories, setAvailableCategories] = useState<OfflineCategoryCatalog[]>([]);
+
+  useEffect(() => {
+    const fetchCategoryDetails = async () => {
+      if (availableOrganizationCategories.length > 0) {
+        const categoryCatalogIds = availableOrganizationCategories.map(oc => oc.category_catalog_id);
+        const categories = await Promise.all(
+          categoryCatalogIds.map(id => offlineDB.getCategoryCatalog(id))
+        );
+        setAvailableCategories(categories.filter((cat): cat is OfflineCategoryCatalog => cat !== undefined));
+      } else {
+        setAvailableCategories([]);
+      }
+    };
+    fetchCategoryDetails();
+  }, [availableOrganizationCategories]);
 
   useEffect(() => {
     if (orgCategoriesError) {
@@ -57,7 +69,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (assessmentName.trim()) {
-      if (isOrgAdmin && availableCategories.length > 0 && selectedCategories.length === 0) {
+      if (isOrgAdmin && selectedCategories.length === 0) {
         toast.error(t('assessment.categoriesRequired', { defaultValue: 'Please select at least one category for this assessment.' }));
         return;
       }
@@ -112,14 +124,14 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
               ) : (
                 <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
                   {availableCategories.length > 0 ? (
-                    availableCategories.map((category: OrganizationCategory) => (
-                      <div key={category.organization_category_id} className="flex items-center space-x-2">
+                    availableCategories.map((category: OfflineCategoryCatalog) => (
+                      <div key={category.category_catalog_id} className="flex items-center space-x-2">
                         <input
                           type="checkbox"
-                          id={`category-${category.organization_category_id}`}
-                          checked={selectedCategories.includes(category.category_catalog_id!)}
+                          id={`category-${category.category_catalog_id}`}
+                          checked={selectedCategories.includes(category.category_catalog_id)}
                           onChange={(e) => {
-                            const categoryId = category.category_catalog_id!;
+                            const categoryId = category.category_catalog_id;
                             if (e.target.checked) {
                               setSelectedCategories([...selectedCategories, categoryId]);
                             } else {
@@ -128,8 +140,8 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
                           }}
                           className="h-4 w-4 text-dgrv-blue focus:ring-dgrv-blue border-gray-300 rounded"
                         />
-                        <label htmlFor={`category-${category.organization_category_id}`} className="text-sm text-gray-700">
-                          {category.category_name}
+                        <label htmlFor={`category-${category.category_catalog_id}`} className="text-sm text-gray-700">
+                          {category.name}
                         </label>
                       </div>
                     ))
@@ -158,7 +170,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
             <Button
               type="submit"
               className="bg-dgrv-blue hover:bg-blue-700"
-              disabled={isLoading || !assessmentName.trim() || (isOrgAdmin && availableCategories.length > 0 && selectedCategories.length === 0)}
+              disabled={isLoading || !assessmentName.trim() || (isOrgAdmin && selectedCategories.length === 0)}
             >
               {isLoading
                 ? t('common.creating', { defaultValue: 'Creating...' })

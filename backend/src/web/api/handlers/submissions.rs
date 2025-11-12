@@ -1,7 +1,7 @@
 use crate::common::models::claims::Claims;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
-use crate::web::api::models::{AssessmentSubmission, Submission, SubmissionDetailResponse, SubmissionListResponse};
+use crate::web::api::models::{Submission, SubmissionDetailResponse, SubmissionListResponse};
 use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,

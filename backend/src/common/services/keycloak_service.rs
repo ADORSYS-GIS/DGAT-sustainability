@@ -3,9 +3,13 @@ use crate::common::models::keycloak::*;
 use anyhow::{anyhow, Result};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
-use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct TokenResponse {
+    access_token: String,
+}
 
 #[derive(Debug, Clone)]
 pub struct KeycloakService {
@@ -873,7 +877,7 @@ impl KeycloakService {
         let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
         
         // Create payload with all required user fields plus the updated categories
-        let mut payload = json!({
+        let payload = json!({
             "username": user.username,
             "email": user.email,
             "firstName": user.first_name,

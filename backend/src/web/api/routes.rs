@@ -14,7 +14,7 @@ use crate::web::api::handlers::{
     organizations::{
         add_identity_provider, add_member, create_organization, delete_organization, get_identity_provider, get_identity_providers, 
         get_member, get_member_organizations, get_member_organizations_in_org, get_members, 
-        get_members_count, get_organization, get_organizations, get_organizations_count, 
+        get_members_count, get_organization_by_id, get_organizations, get_organizations_count,
         invite_existing_user, invite_user, remove_identity_provider, remove_member, 
         update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
         update_org_admin_member_categories,
@@ -41,7 +41,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/admin/organizations", post(create_organization))
         .route("/admin/realms/:realm/organizations/count", get(get_organizations_count))
         .route("/admin/realms/:member_id/organizations", get(get_member_organizations))
-        .route("/admin/realms/:realm/organizations/:org_id", get(get_organization))
+        .route("/api/admin/organizations/:org_id", get(get_organization_by_id))
         // The following endpoints expect only org_id as a path parameter
         .route("/api/admin/organizations/:org_id", put(update_organization))
         .route("/api/admin/organizations/:org_id", delete(delete_organization))

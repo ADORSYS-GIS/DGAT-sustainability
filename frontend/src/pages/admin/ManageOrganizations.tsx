@@ -15,12 +15,6 @@ import * as React from "react";
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import {
-  useOrganizationsServiceDeleteAdminOrganizationsById,
-  useOrganizationsServiceGetAdminOrganizations,
-  useOrganizationsServicePostAdminOrganizations,
-  useOrganizationsServicePutAdminOrganizationsById
-} from "@/openapi-rq/queries/queries";
 import type {
   OrganizationCreateRequest,
   OrganizationResponse,
@@ -31,6 +25,7 @@ import { toast } from "sonner";
 import AssignCategories from "./AssignCategories";
 
 import type { OfflineCategoryCatalog } from "@/types/offline";
+import { useOfflineOrganizations } from "@/hooks/useOfflineOrganizations"; // Import the new hook
 
 export const ManageOrganizations: React.FC = () => {
   const { t } = useTranslation();
@@ -48,6 +43,7 @@ export const ManageOrganizations: React.FC = () => {
   });
   const [categories, setCategories] = useState<OfflineCategoryCatalog[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0); // New state for pending sync items
   
   // Category creation state
   
@@ -57,70 +53,24 @@ export const ManageOrganizations: React.FC = () => {
   
   // Category mutation hooks
   
-  // Use direct API query method from queries.ts instead of offline hook
   const {
-    data: organizations,
+    organizations: offlineOrganizations,
     isLoading,
-    refetch,
-  } = useOrganizationsServiceGetAdminOrganizations();
-  
-  // Use the actual mutation methods from queries.ts for direct API calls
-  const createOrganizationMutation = useOrganizationsServicePostAdminOrganizations({
-    onSuccess: (result) => {
-      toast.success("Organization created successfully");
-      refetch();
-      setShowAddDialog(false);
-      setEditingOrg(null);
-      setFormData({
-        name: "",
-        domains: [{ name: "" }],
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-        enabled: "true",
-        attributes: { categories: [] },
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to create organization:', error);
-      toast.error("Failed to create organization");
-    }
-  });
+    isOnline,
+    createOrganizationOffline,
+    updateOrganizationOffline,
+    deleteOrganizationOffline,
+    refetchOrganizations,
+  } = useOfflineOrganizations();
 
-  const updateOrganizationMutation = useOrganizationsServicePutAdminOrganizationsById({
-    onSuccess: () => {
-      toast.success("Organization updated successfully");
-      refetch();
-      setShowAddDialog(false);
-      setEditingOrg(null);
-      setFormData({
-        name: "",
-        domains: [{ name: "" }],
-        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
-        enabled: "true",
-        attributes: { categories: [] },
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to update organization:', error);
-      toast.error("Failed to update organization");
-    }
-  });
+  // Function to update pending sync count
+  const updatePendingSyncCount = async () => {
+    const { offlineDB } = await import('@/services/indexeddb');
+    const syncQueue = await offlineDB.getSyncQueue();
+    setPendingSyncCount(syncQueue.length);
+  };
 
-  const deleteOrganizationMutation = useOrganizationsServiceDeleteAdminOrganizationsById({
-    onSuccess: () => {
-      toast.success("Organization deleted successfully");
-      refetch();
-      setShowDeleteConfirmation(false); // Close the dialog
-      setOrgToDelete(null); // Clear the organization to delete
-    },
-    onError: (error) => {
-      console.error('Failed to delete organization:', error);
-      toast.error("Failed to delete organization");
-    }
-  });
-
-
-
-  const orgs = (organizations as OrganizationResponse[]) || [];
+  const orgs = offlineOrganizations || [];
 
   // Load categories from IndexedDB on mount
   const loadCategories = async () => {
@@ -139,9 +89,23 @@ export const ManageOrganizations: React.FC = () => {
 
   React.useEffect(() => {
     loadCategories();
-  }, []);
+    updatePendingSyncCount(); // Initial load of pending sync count
 
-  // Debug formData changes
+    const handleDataSync = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.entityType === 'organization') {
+        refetchOrganizations();
+        updatePendingSyncCount(); // Update count after organization sync
+      }
+    };
+
+    window.addEventListener('datasync', handleDataSync);
+
+    return () => {
+      window.removeEventListener('datasync', handleDataSync);
+    };
+  }, [refetchOrganizations]); // Added updatePendingSyncCount to dependency array
+
   React.useEffect(() => {
     console.log('FormData changed:', formData);
     console.log('FormData categories:', formData.attributes?.categories);
@@ -168,13 +132,20 @@ export const ManageOrganizations: React.FC = () => {
     };
     
     if (editingOrg) {
-      updateOrganizationMutation.mutate({ 
-        id: editingOrg.id, 
-        requestBody 
-      });
+      updateOrganizationOffline(editingOrg.id, requestBody);
     } else {
-      createOrganizationMutation.mutate({ requestBody });
+      createOrganizationOffline(requestBody);
     }
+    setShowAddDialog(false); // Close the dialog after submission
+    setEditingOrg(null); // Clear editing state
+    setFormData({ // Reset form data
+      name: "",
+      domains: [{ name: "" }],
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      enabled: "true",
+      attributes: { categories: [] },
+    });
+    updatePendingSyncCount(); // Update pending sync count after an offline operation
   };
 
   const handleEdit = (org: OrganizationResponse) => {
@@ -206,7 +177,10 @@ export const ManageOrganizations: React.FC = () => {
   const confirmDelete = () => {
     if (!orgToDelete) return;
     
-    deleteOrganizationMutation.mutate({ id: orgToDelete.id });
+    deleteOrganizationOffline(orgToDelete.id);
+    setShowDeleteConfirmation(false); // Close the dialog
+    setOrgToDelete(null); // Clear the organization to delete
+    updatePendingSyncCount(); // Update pending sync count after an offline operation
   };
 
   const resetForm = () => {
@@ -373,13 +347,11 @@ export const ManageOrganizations: React.FC = () => {
                       <Button
                         onClick={handleSubmit}
                         className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow"
-                        disabled={createOrganizationMutation.isPending || updateOrganizationMutation.isPending}
+                        // No longer need to disable based on mutation pending state as operations are offline
                       >
-                        {createOrganizationMutation.isPending || updateOrganizationMutation.isPending
-                          ? t('manageOrganizations.saving', { defaultValue: 'Saving...' })
-                          : editingOrg 
-                            ? t('manageOrganizations.update', { defaultValue: 'Update' }) 
-                            : t('manageOrganizations.create', { defaultValue: 'Create' })}
+                        {editingOrg
+                          ? t('manageOrganizations.update', { defaultValue: 'Update' })
+                          : t('manageOrganizations.create', { defaultValue: 'Create' })}
                       </Button>
                       <Button
                         variant="outline"
@@ -417,7 +389,7 @@ export const ManageOrganizations: React.FC = () => {
                       <div className="text-sm text-gray-600">
                         <b>{t('manageOrganizations.domains', { defaultValue: 'Domains' })}:</b>{" "}
                         {org.domains
-                          .map((d) => (typeof d === "string" ? d : (d as any).name))
+                          .map((d: { name: string }) => d.name) // Access the 'name' property of each domain object
                           .join(", ")}
                       </div>
                     )}
@@ -440,7 +412,7 @@ export const ManageOrganizations: React.FC = () => {
                         variant="outline"
                         onClick={() => handleDelete(org)}
                         className="text-red-600 hover:bg-red-50 flex-1"
-                        disabled={deleteOrganizationMutation.isPending}
+                        // No longer need to disable based on mutation pending state
                       >
                         <Trash2 className="w-4 h-4 mr-1" />
                         {t('manageOrganizations.delete', { defaultValue: 'Delete' })}
@@ -496,7 +468,7 @@ export const ManageOrganizations: React.FC = () => {
             confirmText={t('manageOrganizations.deleteOrganization')}
             cancelText={t('manageOrganizations.cancel')}
             variant="destructive"
-            isLoading={deleteOrganizationMutation.isPending}
+            // isLoading={deleteOrganizationMutation.isPending} // No longer needed
           />
 
           {assigningOrg && (

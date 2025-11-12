@@ -64,6 +64,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub submission_id: Uuid, // Also FK to assessments
     pub org_id: String,             // Keycloak organization id
+    pub org_name: String,           // Denormalized organization name
     pub content: Value,              // JSON blob with all answers
     pub submitted_at: DateTime<Utc>, // When the submission was created
     pub status: SubmissionStatus,    // Review status (under_review, reviewed, etc.)
@@ -123,6 +124,7 @@ impl AssessmentsSubmissionService {
         &self,
         assessment_id: Uuid,
         org_id: String,
+        org_name: String,
         content: Value,
         assessment_name: Option<String>,
     ) -> Result<Model, DbErr> {
@@ -137,6 +139,7 @@ impl AssessmentsSubmissionService {
         let submission = ActiveModel {
             submission_id: Set(assessment_id),
             org_id: Set(org_id),
+            org_name: Set(org_name),
             content: Set(enhanced_content),
             submitted_at: Set(Utc::now()),
             status: Set(SubmissionStatus::UnderReview),

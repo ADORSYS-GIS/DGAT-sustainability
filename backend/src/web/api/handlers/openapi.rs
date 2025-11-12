@@ -64,7 +64,7 @@ use utoipa::OpenApi;
         // Organizations
         crate::web::api::handlers::organizations::get_organizations,
         crate::web::api::handlers::organizations::create_organization,
-        crate::web::api::handlers::organizations::get_organization,
+        crate::web::api::handlers::organizations::get_organization_by_id,
         crate::web::api::handlers::organizations::update_organization,
         crate::web::api::handlers::organizations::delete_organization,
         crate::web::api::handlers::organizations::get_members,

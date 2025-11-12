@@ -21,12 +21,11 @@ interface ITableData {
   answer: string;
   percentage: string;
   textAnswer: string;
-  recommendations: string;
+  recommendations?: string;
 }
 
 const groupDataByCategory = (
   submissions: AdminSubmissionDetail[],
-  recommendations: RecommendationWithStatus[]
 ): { [key: string]: ITableData[] } => {
   const groupedData: { [key: string]: ITableData[] } = {};
   const addedQuestions: { [key: string]: Set<string> } = {};
@@ -43,11 +42,6 @@ const groupDataByCategory = (
         }
 
         if (questionText !== "N/A" && !addedQuestions[category].has(questionText)) {
-          const categoryRecs = recommendations
-            .filter((rec) => rec.category === category)
-            .map((rec) => `- ${rec.recommendation}`)
-            .join("\n");
-          
           let answer = "N/A";
           let percentage = "0%";
           let textAnswer = "N/A";
@@ -69,7 +63,6 @@ const groupDataByCategory = (
             answer: answer,
             percentage: percentage,
             textAnswer: textAnswer,
-            recommendations: categoryRecs || "No recommendations for this category.",
           });
 
           addedQuestions[category].add(questionText);
@@ -85,7 +78,7 @@ const createAssessmentsTable = (
   submissions: AdminSubmissionDetail[],
   recommendations: RecommendationWithStatus[]
 ) => {
-  const groupedData = groupDataByCategory(submissions, recommendations);
+  const groupedData = groupDataByCategory(submissions);
   const tables = [];
 
   for (const category in groupedData) {
@@ -106,16 +99,28 @@ const createAssessmentsTable = (
       }),
     ];
 
-    groupedData[category].forEach(data => {
-      rows.push(new TableRow({
-        children: [
-          new TableCell({ children: [new Paragraph(data.question)] }),
-          new TableCell({ children: [new Paragraph(data.answer)] }),
-          new TableCell({ children: [new Paragraph(data.percentage)] }),
-          new TableCell({ children: [new Paragraph(data.textAnswer)] }),
-          new TableCell({ children: [new Paragraph(data.recommendations)] }),
-        ],
-      }));
+    const categoryRecs = recommendations
+      .filter((rec) => rec.category === category)
+      .map((rec) => `- ${rec.recommendation}`)
+      .join("\n");
+
+    const recommendationCell = new TableCell({
+      children: [new Paragraph(categoryRecs || "No recommendations for this category.")],
+      rowSpan: groupedData[category].length,
+      verticalAlign: VerticalAlign.CENTER,
+    });
+
+    groupedData[category].forEach((data, index) => {
+      const cells = [
+        new TableCell({ children: [new Paragraph(data.question)] }),
+        new TableCell({ children: [new Paragraph(data.answer)] }),
+        new TableCell({ children: [new Paragraph(data.percentage)] }),
+        new TableCell({ children: [new Paragraph(data.textAnswer)] }),
+      ];
+      if (index === 0) {
+        cells.push(recommendationCell);
+      }
+      rows.push(new TableRow({ children: cells }));
     });
 
     tables.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));

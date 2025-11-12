@@ -9,8 +9,8 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useOfflineSyncStatus } from "@/hooks/useOfflineApi";
-import { AdminService } from "@/openapi-rq/requests/services.gen";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
+import { useOfflineAdminReports } from "@/hooks/useOfflineReports";
 import type {
   AdminReport,
   AdminSubmissionDetail,
@@ -119,12 +119,16 @@ export const ReportHistory: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { isOnline } = useOfflineSyncStatus();
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch: loadReports,
+  } = useOfflineAdminReports();
+  const reports = (data?.reports as AdminReport[]) || [];
   const navigate = useNavigate();
   const chartRef = React.useRef<ChartJS<"radar">>(null);
   const recommendationChartRef = React.useRef<ChartJS<"bar">>(null);
-  
-  const [reports, setReports] = useState<AdminReport[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
@@ -271,6 +275,8 @@ export const ReportHistory: React.FC = () => {
           recommendation: rec.text,
           status: (rec.status as RecommendationWithStatus["status"]) || "todo",
           created_at: report.generated_at,
+          assessment_id: report.submission_id || '',
+          assessment_name: 'N/A',
         }));
       }
     );
@@ -278,28 +284,11 @@ export const ReportHistory: React.FC = () => {
     return { submissions, recommendations };
   };
 
-  const loadReports = React.useCallback(async () => {
-    if (!isOnline) {
-      toast.error(t('reportHistory.offlineError', { defaultValue: 'Cannot load reports while offline' }));
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await AdminService.getAdminReports();
-        setReports(data.reports || []);
-    } catch (error) {
-      console.error('Failed to load reports:', error);
-      toast.error(t('reportHistory.loadError', { defaultValue: 'Failed to load reports' }));
-    } finally {
-      setLoading(false);
-    }
-  }, [isOnline, t]);
-
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    if (error) {
+      toast.error(t("reportHistory.loadError", { defaultValue: "Failed to load reports" }));
+    }
+  }, [error, t]);
 
   const filteredReports = reports.filter(report => {
     const matchesSearch =
@@ -373,10 +362,11 @@ export const ReportHistory: React.FC = () => {
       const reportToExport: Report = {
         report_id: report.report_id,
         submission_id: submissionId,
-        report_type: "sustainability", // Defaulting to a common report type
         generated_at: report.generated_at,
         status: report.status as "generating" | "completed" | "failed", // Cast to the correct literal type
         data: report.data,
+        assessment_id: report.submission_id || '',
+        assessment_name: 'N/A',
       };
 
       const { submissions: singleSubmissions, recommendations: singleRecs } =
@@ -513,7 +503,7 @@ export const ReportHistory: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-semibold text-dgrv-blue">{report.org_name}</div>
-                        <div className="text-xs text-gray-500">{t('reportHistory.reportId', { defaultValue: 'Report' })}: {report.report_id}</div>
+                        <div className="text-xs text-gray-500">{t('reportHistory.report', { defaultValue: 'Report' })}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">

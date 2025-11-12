@@ -3,11 +3,8 @@ use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{DeleteResult, Set};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
-use tracing::error;
-use tracing::log::warn;
 use crate::common::database::entity::assessments_submission::SubmissionStatus;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]

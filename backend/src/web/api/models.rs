@@ -459,6 +459,8 @@ pub struct AttachFileRequest {
 pub struct Report {
     pub report_id: Uuid,
     pub submission_id: Uuid,
+    pub assessment_id: Uuid,
+    pub assessment_name: String,
     pub status: String,
     pub generated_at: String,
     pub data: Option<serde_json::Value>,
@@ -490,6 +492,8 @@ pub struct OrganizationActionPlan {
 pub struct RecommendationWithStatus {
     pub recommendation_id: Uuid,
     pub report_id: Uuid,
+    pub assessment_id: Uuid,
+    pub assessment_name: String,
     pub category: String,
     pub recommendation: String,
     pub status: String,
@@ -672,6 +676,7 @@ pub struct OrganizationCategoryListResponse {
 pub struct AssessmentQuery {
     pub status: Option<String>,
     pub language: Option<String>,
+    pub cache_buster: Option<i64>,
 }
 
 // Properly implement IntoParams without using 'self'
@@ -693,6 +698,12 @@ impl utoipa::IntoParams for AssessmentQuery {
             ParameterBuilder::new()
                 .name("language")
                 .description(Some("Filter assessments by language"))
+                .parameter_in(parameter_in.clone())
+                .required(utoipa::openapi::Required::False)
+                .build(),
+            ParameterBuilder::new()
+                .name("cache_buster")
+                .description(Some("Cache buster to prevent stale data"))
                 .parameter_in(parameter_in)
                 .required(utoipa::openapi::Required::False)
                 .build(),

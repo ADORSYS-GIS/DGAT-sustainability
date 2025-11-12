@@ -29,30 +29,78 @@ export interface AuthState {
   user: UserProfile | null;
   roles: string[];
   loading: boolean;
+  organizationId?: string; // Add organizationId to AuthState
 }
 
 /**
  * Initialize Keycloak authentication
  */
 export const initializeAuth = async (): Promise<boolean> => {
+  const isOnline = navigator.onLine;
+
+  if (!isOnline) {
+    const storedTokens = await getStoredTokens();
+    if (storedTokens && storedTokens.accessToken) {
+      console.log("Offline mode. Initializing with stored tokens.");
+      try {
+        const authenticated = await keycloak.init({
+          onLoad: "check-sso",
+          token: storedTokens.accessToken,
+          refreshToken: storedTokens.refreshToken,
+          idToken: storedTokens.idToken,
+          checkLoginIframe: false,
+          silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
+        });
+        if (authenticated) {
+          console.log("Initialized offline with stored tokens.");
+        }
+        return authenticated;
+      } catch (error) {
+        console.error("Offline initialization with stored tokens failed.", error);
+        return false;
+      }
+    } else {
+      console.log("Offline and no stored tokens. User is not authenticated.");
+      return false;
+    }
+  }
+
+  // Online mode
   try {
-    // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error("Keycloak initialization timeout")), 10000); // 10 second timeout
     });
 
     const initPromise = keycloak.init(keycloakInitOptions);
     const authenticated = await Promise.race([initPromise, timeoutPromise]);
-    
+
     if (authenticated) {
-      // Store tokens in IndexedDB
       await storeTokens();
-      console.log("Keycloak initialized successfully");
+      console.log("Keycloak initialized successfully (Online).");
     }
-    
+
     return authenticated;
   } catch (error) {
-    console.error("Failed to initialize Keycloak:", error);
+    console.error("Online Keycloak initialization failed:", error);
+    console.log("Attempting to use stored tokens as fallback...");
+    const storedTokens = await getStoredTokens();
+    if (storedTokens && storedTokens.accessToken) {
+        try {
+            const authenticated = await keycloak.init({
+                onLoad: 'check-sso',
+                token: storedTokens.accessToken,
+                refreshToken: storedTokens.refreshToken,
+                idToken: storedTokens.idToken,
+                checkLoginIframe: false,
+            });
+            if (authenticated) {
+                console.log("Fallback initialization with stored tokens successful.");
+                return true;
+            }
+        } catch (fallbackError) {
+            console.error("Fallback initialization with stored tokens failed:", fallbackError);
+        }
+    }
     return false;
   }
 };
@@ -159,16 +207,24 @@ export const getUserProfile = (): UserProfile | null => {
     
     const token = keycloak.tokenParsed;
     
+    let organizationId: string | undefined;
+    if (token.organizations) {
+      const orgKeys = Object.keys(token.organizations);
+      if (orgKeys.length > 0) {
+        organizationId = token.organizations[orgKeys[0]].id;
+      }
+    }
+
     return {
       sub: token.sub || "",
       preferred_username: token.preferred_username,
       name: token.name,
       email: token.email,
-      roles: token.realm_access?.roles || [],
+      roles: token.roles || token.realm_access?.roles || [],
       realm_access: token.realm_access,
       organisations: token.organisations,
       organization_name: token.organization_name,
-      organization: token.organization,
+      organization: organizationId, // Use the extracted organizationId
       organizations: token.organizations,
       categories: token.categories,
     };
@@ -184,13 +240,14 @@ export const getUserProfile = (): UserProfile | null => {
 export const getAuthState = (): AuthState => {
   const isAuthenticated = !!keycloak.authenticated;
   const user = getUserProfile();
-  const roles = user?.roles || user?.realm_access?.roles || [];
+  const roles = user?.roles || [];
   
   return {
     isAuthenticated,
     user,
     roles,
     loading: false,
+    organizationId: user?.organization, // Populate organizationId from user profile
   };
 };
 

@@ -2,11 +2,9 @@ import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
-import {
-  useOfflineAdminSubmissions,
-  useOfflineOrganizations,
-  useOfflineQuestions
-} from "@/hooks/useOfflineApi";
+import { useOfflineAdminSubmissions } from "@/hooks/useOfflineAdminSubmissions";
+import { useOfflineOrganizations } from "@/hooks/useOfflineOrganizations";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 import {
   BookOpen,
   Kanban,
@@ -163,30 +161,17 @@ export const AdminDashboard: React.FC = () => {
   ];
 
   // Dynamic counts for categories and questions using offline hooks
-  const [questionCount, setQuestionCount] = useState<number>(0);
-
   // Fetch categories count from offline data
   const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategoryCatalogs();
   const categoryCount = categoriesData?.length || 0;
 
   // Fetch questions count from offline data
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
-  function isQuestionsResponse(obj: unknown): obj is { questions: unknown[] } {
-    return (
-      typeof obj === "object" &&
-      obj !== null &&
-      Array.isArray((obj as { questions?: unknown[] }).questions)
-    );
-  }
-  useEffect(() => {
-    if (isQuestionsResponse(questionsData)) {
-      setQuestionCount(questionsData.questions.length);
-    }
-  }, [questionsData]);
+  const questionCount = questionsData?.length || 0;
 
   // Fetch organizations count from offline data
-  const { data: organizationsData, isLoading: organizationsLoading } = useOfflineOrganizations();
-  const organizationCount = organizationsData?.organizations?.length || 0;
+  const { organizations, isLoading: organizationsLoading } = useOfflineOrganizations();
+  const organizationCount = organizations?.length || 0;
 
   // Check if any data is still loading
   const isDataLoading = submissionsLoading || categoriesLoading || questionsLoading || organizationsLoading;

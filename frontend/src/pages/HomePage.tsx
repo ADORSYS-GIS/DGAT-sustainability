@@ -8,14 +8,13 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 export const Welcome: React.FC = () => {
-  const { isAuthenticated, loading, user, login } = useAuth();
+  const { isAuthenticated, loading, user, roles, login } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) return;
-    const roles = user?.roles || user?.realm_access?.roles || [];
     const isDrgvAdmin = roles.includes("drgv_admin");
     const isOrgAdmin = roles.includes("org_admin");
     const isOrgUser = roles.includes("Org_User");
@@ -34,7 +33,7 @@ export const Welcome: React.FC = () => {
     ) {
       navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, loading, user, navigate]);
+  }, [isAuthenticated, loading, user, roles, navigate]);
 
   const features = [
     {
@@ -120,7 +119,7 @@ export const Welcome: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-dgrv-light-blue">
       {/* Hero Section */}
-      <div className="pt-24 pb-16">
+      <div className="pt--6 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Content */}
           <div className="text-center mb-16 animate-fade-in">

@@ -9,9 +9,9 @@ import {
   SubmissionsService,
   ReportsService,
   OrganizationsService,
-  OrganizationMembersService,
-  OrganizationInvitationsService,
-  AdminService
+ OrganizationMembersService,
+ OrganizationInvitationsService,
+ AdminService
 } from "@/openapi-rq/requests/services.gen";
 
 import { DataTransformationService } from "./dataTransformation";
@@ -93,6 +93,7 @@ export class InitialDataLoader {
     try {
       // Load data in dependency order
       await this.loadQuestionsAndCategories();
+      await this.loadOrganizationCategories(userContext);
       
       if (config.loadOrganizations) {
         await this.loadOrganizations();
@@ -214,6 +215,30 @@ export class InitialDataLoader {
   }
 
   /**
+   * Load organization-specific categories
+   */
+  private async loadOrganizationCategories(userContext: UserContext): Promise<void> {
+    if (!userContext.organizationId) {
+      return;
+    }
+    try {
+      this.updateProgress('Loading organization categories...', 1);
+      const orgCategoriesData = await OrganizationsService.getOrganizationsByKeycloakOrganizationIdCategories({ keycloakOrganizationId: userContext.organizationId });
+      if (orgCategoriesData?.categories) {
+        const transformedOrgCategories = orgCategoriesData.categories.map(
+          orgCat => DataTransformationService.transformOrganizationCategory(orgCat, userContext.organizationId!)
+        );
+        if (DataTransformationService.validateTransformedData(transformedOrgCategories, 'organization_categories')) {
+          await offlineDB.saveOrganizationCategories(transformedOrgCategories);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load organization categories:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Load organizations (DGRV Admin only)
    */
   private async loadOrganizations(): Promise<void> {
@@ -295,16 +320,22 @@ export class InitialDataLoader {
   private async loadAssessments(userContext: UserContext): Promise<void> {
     try {
       this.updateProgress('Loading assessments...', 1);
-      
+
       const assessmentsData = await AssessmentsService.getAssessments();
-      
+      const categories = await offlineDB.getAllCategoryCatalogs();
+      const categoryIdToCategoryMap = new Map(
+        categories.map(cat => [cat.category_catalog_id, cat])
+      );
+
       if (assessmentsData?.assessments) {
         const transformedAssessments = DataTransformationService.transformAssessmentsWithContext(
           assessmentsData.assessments,
+          categoryIdToCategoryMap,
           userContext.organizationId,
-          userContext.userEmail
+          userContext.userEmail,
+          userContext.userId
         );
-        
+
         if (DataTransformationService.validateTransformedData(transformedAssessments, 'assessments')) {
           await offlineDB.saveAssessments(transformedAssessments);
         }
@@ -491,6 +522,7 @@ export class InitialDataLoader {
     
     if (config.loadQuestions) total += 1; // Questions
     if (config.loadCategories) total += 1; // Categories
+    total += 1; // Organization Categories
     if (config.loadOrganizations) total += 1; // Organizations
     if (config.loadUsers) total += 1; // Users
     if (config.loadAssessments) total += 1; // Assessments
