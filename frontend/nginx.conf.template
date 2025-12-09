@@ -10,7 +10,7 @@ upstream backend_server {
 # Redirect HTTP to HTTPS
 server {
     listen 80;
-    server_name _;
+    server_name ${SERVER_NAME};
 
     # Health check endpoint accessible on HTTP
     location /health {
@@ -28,7 +28,7 @@ server {
 # HTTPS server
 server {
     listen 443 ssl;
-    server_name _;
+    server_name ${SERVER_NAME};
     root /usr/share/nginx/html;
     index index.html;
 
@@ -71,10 +71,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        # Skip SSL verification
         proxy_ssl_verify off;
-
-        # Handle redirects properly
         proxy_redirect http://keycloak_server/ https://$host/;
     }
 
