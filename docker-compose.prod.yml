@@ -1,5 +1,8 @@
 services:
   backend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.backend
     image: sustainability-backend:latest
     restart: unless-stopped
     environment:
@@ -22,6 +25,9 @@ services:
       start_period: 20s
 
   migrate:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.backend
     image: sustainability-backend:latest
     restart: "no"
     command: ["/app/db-migrator"]
@@ -32,6 +38,9 @@ services:
         condition: service_healthy
 
   frontend:
+    build:
+      context: .
+      dockerfile: ./infrastructure/Dockerfile.frontend
     image: sustainability-frontend:latest
     restart: unless-stopped
     env_file: .env
