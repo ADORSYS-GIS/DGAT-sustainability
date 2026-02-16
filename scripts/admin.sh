@@ -164,7 +164,6 @@ fi
     --username "${NEW_USER_EMAIL}" \
     --new-password "${TEMP_PASSWORD}" \
     --temporary \
-    --temporary \
     --server "http://localhost:8080/keycloak" \
     --truststore "${TRUSTSTORE}" \
     --trustpass "${TRUSTSTORE_PASS}"
