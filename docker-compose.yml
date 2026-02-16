@@ -107,12 +107,12 @@ services:
       KC_PROXY_HEADERS: "xforwarded"
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
-      # Hostname v2 configuration (replaces deprecated v1 options)
+      # Hostname v2 configuration
       KC_HOSTNAME: "${KC_HOSTNAME:-ec2-63-177-64-129.eu-central-1.compute.amazonaws.com}"
       KC_HOSTNAME_URL: "${KC_HOSTNAME_URL:-https://localhost/keycloak}"
       KC_HOSTNAME_PATH: "/keycloak"
-      KC_HOSTNAME_STRICT: "true"
-      KC_HOSTNAME_STRICT_HTTPS: "true"
+      KC_HOSTNAME_STRICT: "${KC_HOSTNAME_STRICT:-false}"
+      KC_HOSTNAME_STRICT_HTTPS: "${KC_HOSTNAME_STRICT_HTTPS:-false}"
       KC_HTTP_ENABLED: "true"
       KC_HTTPS_PORT: 8443
       # if you also want to allow HTTP, for debugging only
