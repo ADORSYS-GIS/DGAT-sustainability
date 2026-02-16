@@ -5,6 +5,7 @@ services:
       dockerfile: ./infrastructure/Dockerfile.backend
     image: sustainability-backend:latest
     restart: unless-stopped
+    entrypoint: ["/app/sustainability-tool"]
     environment:
       RUST_LOG: "info,hyper=info,sea_orm=info"
       SERVER_HOST: 0.0.0.0
@@ -30,9 +31,10 @@ services:
       dockerfile: ./infrastructure/Dockerfile.backend
     image: sustainability-backend:latest
     restart: "no"
-    command: ["/app/db-migrator"]
+    entrypoint: ["/app/db-migrator"]
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}"
+      KEYCLOAK_URL: "${KEYCLOAK_URL:-https://localhost/keycloak}"
     depends_on:
       db:
         condition: service_healthy
@@ -66,7 +68,13 @@ services:
       "
 
   keycloak:
+    image: quay.io/keycloak/keycloak:latest
     restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME}
+    command: start-dev
     healthcheck:
       test:
         - "CMD-SHELL"
@@ -84,7 +92,12 @@ services:
       start_period: 60s
 
   db:
+    image: postgres:17-alpine
     restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
       interval: 10s

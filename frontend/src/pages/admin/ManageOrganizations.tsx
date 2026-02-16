@@ -37,22 +37,22 @@ export const ManageOrganizations: React.FC = () => {
   const [formData, setFormData] = useState<OrganizationCreateRequest>({
     name: "",
     domains: [{ name: "" }],
-    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://localhost/",
     enabled: "true",
     attributes: { categories: [] },
   });
   const [categories, setCategories] = useState<OfflineCategoryCatalog[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0); // New state for pending sync items
-  
+
   // Category creation state
-  
+
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [orgToDelete, setOrgToDelete] = useState<OrganizationResponse | null>(null);
-  
+
   // Category mutation hooks
-  
+
   const {
     organizations: offlineOrganizations,
     isLoading,
@@ -130,7 +130,7 @@ export const ManageOrganizations: React.FC = () => {
         categories: (formData.attributes?.categories as string[]) || [],
       },
     };
-    
+
     if (editingOrg) {
       updateOrganizationOffline(editingOrg.id, requestBody);
     } else {
@@ -141,7 +141,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({ // Reset form data
       name: "",
       domains: [{ name: "" }],
-      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://localhost/",
       enabled: "true",
       attributes: { categories: [] },
     });
@@ -160,7 +160,7 @@ export const ManageOrganizations: React.FC = () => {
       redirectUrl:
         (orgAttributes.redirect_url && orgAttributes.redirect_url[0]) ||
         import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-        "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+        "https://localhost/",
       enabled: ((orgAttributes.enabled && orgAttributes.enabled[0]) || "true") as "true" | "false",
       attributes: {
         categories: orgAttributes.categories || [],
@@ -176,7 +176,7 @@ export const ManageOrganizations: React.FC = () => {
 
   const confirmDelete = () => {
     if (!orgToDelete) return;
-    
+
     deleteOrganizationOffline(orgToDelete.id);
     setShowDeleteConfirmation(false); // Close the dialog
     setOrgToDelete(null); // Clear the organization to delete
@@ -187,7 +187,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({
       name: "",
       domains: [{ name: "" }],
-      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/",
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://localhost/",
       enabled: "true",
       attributes: { categories: [] },
     });
@@ -263,7 +263,7 @@ export const ManageOrganizations: React.FC = () => {
                 }}
               >
                 <DialogTrigger asChild>
-                  <Button 
+                  <Button
                     className="bg-dgrv-green hover:bg-green-700"
                     onClick={() => setShowAddDialog(true)}
                   >
@@ -341,13 +341,13 @@ export const ManageOrganizations: React.FC = () => {
                         + Add Domain
                       </Button>
                     </div>
-                    
-                    
+
+
                     <div className="flex space-x-2 pt-4">
                       <Button
                         onClick={handleSubmit}
                         className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow"
-                        // No longer need to disable based on mutation pending state as operations are offline
+                      // No longer need to disable based on mutation pending state as operations are offline
                       >
                         {editingOrg
                           ? t('manageOrganizations.update', { defaultValue: 'Update' })
@@ -412,7 +412,7 @@ export const ManageOrganizations: React.FC = () => {
                         variant="outline"
                         onClick={() => handleDelete(org)}
                         className="text-red-600 hover:bg-red-50 flex-1"
-                        // No longer need to disable based on mutation pending state
+                      // No longer need to disable based on mutation pending state
                       >
                         <Trash2 className="w-4 h-4 mr-1" />
                         {t('manageOrganizations.delete', { defaultValue: 'Delete' })}
@@ -462,13 +462,13 @@ export const ManageOrganizations: React.FC = () => {
             }}
             onConfirm={confirmDelete}
             title={t('manageOrganizations.confirmDeleteTitle')}
-            description={t('manageOrganizations.confirmDeleteDescription', { 
+            description={t('manageOrganizations.confirmDeleteDescription', {
               name: orgToDelete?.name || ''
             })}
             confirmText={t('manageOrganizations.deleteOrganization')}
             cancelText={t('manageOrganizations.cancel')}
             variant="destructive"
-            // isLoading={deleteOrganizationMutation.isPending} // No longer needed
+          // isLoading={deleteOrganizationMutation.isPending} // No longer needed
           />
 
           {assigningOrg && (

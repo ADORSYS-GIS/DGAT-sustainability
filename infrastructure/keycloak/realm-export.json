@@ -1029,15 +1029,15 @@
             "clientId": "sustainability-tool",
             "name": "",
             "description": "",
-            "rootUrl": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com",
-            "adminUrl": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com",
-            "baseUrl": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com",
+            "rootUrl": "https://localhost",
+            "adminUrl": "https://localhost",
+            "baseUrl": "https://localhost",
             "surrogateAuthRequired": false,
             "enabled": true,
             "alwaysDisplayInConsole": true,
             "clientAuthenticatorType": "client-secret",
             "redirectUris": [
-                "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/*"
+                "https://localhost/*"
             ],
             "webOrigins": [
                 "+"
@@ -1057,7 +1057,7 @@
                 "oidc.ciba.grant.enabled": "false",
                 "backchannel.logout.session.required": "true",
                 "standard.token.exchange.enabled": "false",
-                "post.logout.redirect.uris": "https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com/*",
+                "post.logout.redirect.uris": "https://localhost/*",
                 "frontchannel.logout.session.required": "true",
                 "oauth2.device.authorization.grant.enabled": "false",
                 "display.on.consent.screen": "false",

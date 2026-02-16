@@ -1,4 +1,5 @@
 FROM rust:1.88.0-slim-bookworm as builder
+LABEL org.opencontainers.image.source=https://github.com/ADORSYS-GIS/DGAT-sustainability
 
 WORKDIR /app
 

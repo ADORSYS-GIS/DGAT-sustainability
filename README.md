@@ -152,7 +152,7 @@ For production deployment, refer to the [deployment documentation](link-to-deplo
 
 ### Accessing the Admin Interface
 
-- Navigate to `http://https://ec2-56-228-63-114.eu-north-1.compute.amazonaws.com`.
+- Navigate to `http://https://localhost`.
 - Log in with DGRV admin credentials.
 - Manage users, configure assessment questions, and generate reports.
 
