@@ -108,7 +108,7 @@ services:
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
       # Hostname v2 configuration (replaces deprecated v1 options)
-      KC_HOSTNAME: "${KC_HOSTNAME:-ec2-56-228-63-114.eu-north-1.compute.amazonaws.com}"
+      KC_HOSTNAME: "${KC_HOSTNAME:-ec2-3-77-43-163.eu-central-1.compute.amazonaws.com}"
       KC_HOSTNAME_URL: "${KC_HOSTNAME_URL:-https://localhost/keycloak}"
       KC_HOSTNAME_PATH: "/keycloak"
       KC_HOSTNAME_STRICT: "true"
