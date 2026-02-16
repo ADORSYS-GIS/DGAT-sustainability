@@ -41,7 +41,11 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new(keycloak_config: KeycloakConfigs, database: AppDatabase) -> Self {
-        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(keycloak_config.url.clone(), keycloak_config.realm.clone())));
+        let jwt_validator = Arc::new(Mutex::new(JwtValidator::new(
+            keycloak_config.url.clone(),
+            keycloak_config.realm.clone(),
+            keycloak_config.expected_issuer.clone(),
+        )));
         let keycloak_service = Arc::new(KeycloakService::new(keycloak_config));
 
         Self {

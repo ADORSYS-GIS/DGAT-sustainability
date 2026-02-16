@@ -19,6 +19,8 @@ pub struct KeycloakConfigs {
     pub realm: String,
     #[envconfig(from = "KEYCLOAK_CLIENT_ID")]
     pub client_id: String,
+    #[envconfig(from = "KEYCLOAK_EXPECTED_ISSUER")]
+    pub expected_issuer: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Envconfig)]

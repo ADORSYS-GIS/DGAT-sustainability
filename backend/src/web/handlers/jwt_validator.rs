@@ -23,11 +23,12 @@ pub struct JwtValidator {
     client: Client,
     keycloak_url: String,
     realm: String,
+    expected_issuer: String,
     keys_cache: HashMap<String, DecodingKey>,
 }
 
 impl JwtValidator {
-    pub fn new(keycloak_url: String, realm: String) -> Self {
+    pub fn new(keycloak_url: String, realm: String, expected_issuer: String) -> Self {
         Self {
             client: Client::builder()
                 .danger_accept_invalid_certs(true)
@@ -35,6 +36,7 @@ impl JwtValidator {
                 .expect("Client"),
             keycloak_url,
             realm,
+            expected_issuer,
             keys_cache: HashMap::new(),
         }
     }
@@ -55,8 +57,8 @@ impl JwtValidator {
         // Accept the frontend/client audience and account
         // NOTE: Align these with your Keycloak client-id(s)
         validation.set_audience(&["sustainability-tool", "account"]);
-        // Accept the exact HTTPS issuer (matches well-known), and be lenient by also allowing HTTP if present upstream
-        let https_iss = format!("{}/realms/{}", self.keycloak_url, self.realm);
+        // Accept the expected issuer from configuration
+        let https_iss = self.expected_issuer.clone();
         let http_iss = https_iss.replace("https://", "http://");
         validation.set_issuer(&[&https_iss, &http_iss]);
         // Decode and validate token
