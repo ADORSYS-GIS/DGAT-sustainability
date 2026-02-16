@@ -6,6 +6,7 @@ pub struct Claims {
     pub sub: String,                       // Keycloak user ID
     pub organizations: Option<Organizations>, // Organizations with roles and metadata (optional for application_admin)
     pub realm_access: Option<RealmAccess>, // Realm roles
+    pub resource_access: Option<HashMap<String, RealmAccess>>, // Client roles
     pub preferred_username: String,        // Username
     pub email: Option<String>,             // Email
     pub given_name: Option<String>,        // First name

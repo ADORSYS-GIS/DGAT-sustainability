@@ -54,7 +54,11 @@ pub async fn auth_middleware(
     })?;
 
     // Log authentication at debug level (redacted in production)
-    tracing::debug!("User authenticated");
+    tracing::debug!("User authenticated preferred_username={} roles={:?} client_roles={:?}", 
+        claims.preferred_username,
+        claims.realm_access.as_ref().map(|ra| &ra.roles),
+        claims.resource_access.as_ref().map(|ra| ra)
+    );
 
     // Add claims and raw token to request extensions
     request.extensions_mut().insert(claims);
