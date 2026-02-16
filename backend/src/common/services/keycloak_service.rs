@@ -93,8 +93,14 @@ impl KeycloakService {
         let response = self.client.get(&url)
             .bearer_auth(token)
             .send()
-            .await?
-            .error_for_status()?;
+            .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+             let error_text = response.text().await.unwrap_or_default();
+             tracing::error!("Failed to get organizations. Status: {}, Body: {}", status, error_text);
+             return Err(anyhow!("Failed to get organizations: Status {} - {}", status, error_text));
+        }
 
         let response_text = response.text().await?;
         tracing::warn!("Raw Keycloak response: {}", response_text);
