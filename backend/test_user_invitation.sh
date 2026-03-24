@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Test script for user invitation flow
-# Make sure the backend is running on port 3001
+# Make sure the backend is running on port 3002
 
-BASE_URL="http://localhost:3001/api"
+BASE_URL="http://localhost:3002/api"
 ADMIN_TOKEN="your-admin-token-here"  # Replace with actual admin token
 
 echo "🧪 Testing User Invitation Flow"

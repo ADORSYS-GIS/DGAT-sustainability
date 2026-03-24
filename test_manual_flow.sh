@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-BASE_URL="http://localhost:3001"
+BASE_URL="http://localhost:3002"
 ADMIN_TOKEN=""  # You'll need to get this from your frontend or Keycloak
 
 echo "🧪 Testing Manual Trigger Flow"
