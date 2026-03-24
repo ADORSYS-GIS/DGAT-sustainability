@@ -127,7 +127,7 @@ fi
 # --- 1. LOG IN AS ADMIN ON MASTER REALM (retry until ready) ---
 login_ok=false
 for i in $(seq 1 120); do
-  if ./kcadm.sh config credentials --server "http://localhost:8080/keycloak" \
+  if ./kcadm.sh config credentials --server "http://localhost:8081/keycloak" \
         --realm master \
         --user "${ADMIN_USER}" \
         --password "${ADMIN_PASS}" \
@@ -154,7 +154,7 @@ fi
     -s lastName="${NEW_USER_LASTNAME}" \
     -s firstName="${NEW_USER_FIRSTNAME}" \
     -s lastName="${NEW_USER_LASTNAME}" \
-    --server "http://localhost:8080/keycloak" \
+    --server "http://localhost:8081/keycloak" \
     --truststore "${TRUSTSTORE}" \
     --trustpass "${TRUSTSTORE_PASS}"
 
@@ -164,7 +164,7 @@ fi
     --username "${NEW_USER_EMAIL}" \
     --new-password "${TEMP_PASSWORD}" \
     --temporary \
-    --server "http://localhost:8080/keycloak" \
+    --server "http://localhost:8081/keycloak" \
     --truststore "${TRUSTSTORE}" \
     --trustpass "${TRUSTSTORE_PASS}"
 
@@ -195,13 +195,13 @@ fi
   --rolename view-realm \
   --rolename view-users \
   --rolename view-users \
-  --server "http://localhost:8080/keycloak" \
+  --server "http://localhost:8081/keycloak" \
   --truststore "${TRUSTSTORE}" \
   --trustpass "${TRUSTSTORE_PASS}"
 
 # --- 5. ASSIGN application_admin and drgv_admin realm roles ---
 ./kcadm.sh add-roles -r "${REALM}" --uusername "${NEW_USER_EMAIL}" --rolename application_admin --rolename drgv_admin \
-  --server "http://localhost:8080/keycloak" \
+  --server "http://localhost:8081/keycloak" \
   --truststore "${TRUSTSTORE}" \
   --trustpass "${TRUSTSTORE_PASS}"
 
@@ -222,7 +222,7 @@ echo "[a.sh] Configuring realm email settings..."
   -s 'smtpServer.replyToDisplayName='"${KC_SPI_EMAIL_DEFAULT_FROM_DISPLAY_NAME:-DGRV COOPERATION}" \
   -s 'smtpServer.envelopeFrom=' \
   -s 'smtpServer.debug=false' \
-  --server "http://localhost:8080/keycloak" \
+  --server "http://localhost:8081/keycloak" \
   --truststore "${TRUSTSTORE}" \
   --trustpass "${TRUSTSTORE_PASS}"
 

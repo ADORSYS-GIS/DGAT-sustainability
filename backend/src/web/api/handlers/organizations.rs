@@ -323,8 +323,7 @@ pub async fn update_organization(
     // Prepare attributes from request
     let mut attributes = HashMap::new();
 
-    // Add redirect URL
-    attributes.insert("redirect_url".to_string(), vec![request.redirect_url.clone()]);
+
 
     // Add enabled status
     attributes.insert("enabled".to_string(), vec![request.enabled.clone()]);
@@ -337,7 +336,7 @@ pub async fn update_organization(
     }
 
     match app_state.keycloak_service
-        .update_organization(&token, &org_id, &request.name, request.domains.clone(), Some(attributes))
+        .update_organization(&token, &org_id, &request.name, request.domains.clone(), Some(request.redirect_url.clone()), Some(attributes))
         .await
     {
         Ok(()) => Ok(StatusCode::NO_CONTENT),

@@ -4,7 +4,7 @@ import Keycloak from "keycloak-js";
  * Keycloak configuration for the sustainability assessment tool
  */
 export const keycloakConfig = {
-  url: import.meta.env.VITE_KEYCLOAK_URL || "http://localhost:8080",
+  url: import.meta.env.VITE_KEYCLOAK_URL || "http://localhost:8081",
   realm: import.meta.env.VITE_KEYCLOAK_REALM || "sustainability-realm",
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || "sustainability-tool",
 };
@@ -22,7 +22,7 @@ export const keycloak = new Keycloak({
  * Keycloak initialization options
  */
 export const keycloakInitOptions = {
-  onLoad: "login-required" as const,
+  onLoad: "check-sso" as const,
   silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
   pkceMethod: "S256" as const,
   enableLogging: import.meta.env.DEV,

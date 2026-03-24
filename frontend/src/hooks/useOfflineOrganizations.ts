@@ -5,6 +5,10 @@ import type { OrganizationCreateRequest, OrganizationResponse } from "@/openapi-
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 
+import { OrganizationsService } from "@/openapi-rq/requests/services.gen";
+import type { Organization } from "@/openapi-rq/requests/types.gen";
+import { DataTransformationService } from "@/services/dataTransformation";
+
 export const useOfflineOrganizations = () => {
   const [organizations, setOrganizations] = useState<OfflineOrganization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,39 +55,61 @@ export const useOfflineOrganizations = () => {
     const tempId = uuidv4();
     const now = new Date().toISOString();
 
-    const newOrg: OfflineOrganization = {
-      organization_id: tempId, // Use tempId for IndexedDB key
-      id: tempId, // Also set the API 'id' field for consistency
+    // Optimistic offline object (used if offline or if online fails initially)
+    const newOrgOffline: OfflineOrganization = {
+      organization_id: tempId,
+      id: tempId,
       name: requestBody.name,
-      domains: requestBody.domains.map(d => d.name), // Correctly map to string[]
+      domains: requestBody.domains.map(d => d.name),
       redirectUrl: requestBody.redirectUrl,
       attributes: requestBody.attributes,
-      // enabled is not part of OfflineOrganization, it's handled in attributes if needed
       created_at: now,
       updated_at: now,
       sync_status: 'pending',
       local_changes: true,
     };
 
+    if (navigator.onLine) {
+      try {
+        const result = await OrganizationsService.postAdminOrganizations({ requestBody });
+        if (result && result.id) {
+          // Success! Transform and save the REAL organization
+          const realOrg = DataTransformationService.transformOrganization(result as Organization);
+          await offlineDB.saveOrganization(realOrg);
+
+          setOrganizations((prev) => [...prev, realOrg]);
+          toast.success("Organization created successfully.");
+
+          // Notify other components
+          window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
+
+          return realOrg;
+        }
+      } catch (error) {
+        console.error("Online creation failed, falling back to offline queue:", error);
+        // Fallthrough to offline logic below
+      }
+    }
+
     try {
-      await offlineDB.saveOrganization(newOrg);
+      await offlineDB.saveOrganization(newOrgOffline);
       await offlineDB.addToSyncQueue({
         id: uuidv4(),
         entity_type: "organization",
         entity_id: tempId,
         operation: "create",
-        data: requestBody, // Send original request body for creation
+        data: requestBody,
         retry_count: 0,
         max_retries: 3,
         priority: "normal",
         created_at: now,
       });
-      setOrganizations((prev) => [...prev, newOrg]);
+      setOrganizations((prev) => [...prev, newOrgOffline]);
       toast.success("Organization created offline. Syncing soon.");
-      return newOrg;
+      return newOrgOffline;
     } catch (error) {
       console.error("Failed to create organization offline:", error);
-      toast.error("Failed to create organization offline.");
+      toast.error("Failed to create organization.");
       throw error;
     }
   }, []);
@@ -97,45 +123,85 @@ export const useOfflineOrganizations = () => {
       throw new Error("Organization not found for update.");
     }
 
-    const updatedOrg: OfflineOrganization = {
+    const updatedOrgOffline: OfflineOrganization = {
       ...existingOrg,
       name: requestBody.name,
-      domains: requestBody.domains.map(d => d.name), // Correctly map to string[]
+      domains: requestBody.domains.map(d => d.name),
       redirectUrl: requestBody.redirectUrl,
       attributes: requestBody.attributes,
-      // enabled is not part of OfflineOrganization, it's handled in attributes if needed
       updated_at: now,
       sync_status: 'pending',
       local_changes: true,
     };
 
+    if (navigator.onLine && !id.startsWith('temp_') && !existingOrg.local_changes) {
+      try {
+        await OrganizationsService.putAdminOrganizationsById({
+          id: id,
+          requestBody: requestBody
+        });
+
+        // Update local DB with the new values but marked as synced
+        const updatedOrgSynced: OfflineOrganization = {
+          ...updatedOrgOffline,
+          sync_status: 'synced',
+          local_changes: false
+        };
+
+        await offlineDB.saveOrganization(updatedOrgSynced);
+        setOrganizations((prev) =>
+          prev.map((org) => (org.organization_id === id ? updatedOrgSynced : org))
+        );
+
+        toast.success("Organization updated successfully.");
+        window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
+        return updatedOrgSynced;
+      } catch (error) {
+        console.error("Online update failed, falling back to offline queue:", error);
+      }
+    }
+
     try {
-      await offlineDB.saveOrganization(updatedOrg);
+      await offlineDB.saveOrganization(updatedOrgOffline);
       await offlineDB.addToSyncQueue({
         id: uuidv4(),
         entity_type: "organization",
         entity_id: id,
         operation: "update",
-        data: requestBody, // Send original request body for update
+        data: requestBody,
         retry_count: 0,
         max_retries: 3,
         priority: "normal",
         created_at: now,
       });
       setOrganizations((prev) =>
-        prev.map((org) => (org.organization_id === id ? updatedOrg : org))
+        prev.map((org) => (org.organization_id === id ? updatedOrgOffline : org))
       );
       toast.success("Organization updated offline. Syncing soon.");
-      return updatedOrg;
+      return updatedOrgOffline;
     } catch (error) {
       console.error("Failed to update organization offline:", error);
-      toast.error("Failed to update organization offline.");
+      toast.error("Failed to update organization.");
       throw error;
     }
   }, [organizations]);
 
   const deleteOrganizationOffline = useCallback(async (id: string) => {
     const now = new Date().toISOString();
+
+    if (navigator.onLine && !id.startsWith('temp_')) {
+      try {
+        await OrganizationsService.deleteAdminOrganizationsById({ id });
+        await offlineDB.deleteOrganization(id);
+        setOrganizations((prev) => prev.filter((org) => org.organization_id !== id));
+        toast.success("Organization deleted successfully.");
+        window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
+        return;
+      } catch (error) {
+        console.error("Online delete failed, falling back to offline queue:", error);
+      }
+    }
+
     try {
       await offlineDB.deleteOrganization(id);
       await offlineDB.addToSyncQueue({
@@ -143,7 +209,7 @@ export const useOfflineOrganizations = () => {
         entity_type: "organization",
         entity_id: id,
         operation: "delete",
-        data: { id }, // Only need the ID for deletion
+        data: { id },
         retry_count: 0,
         max_retries: 3,
         priority: "normal",
@@ -153,7 +219,7 @@ export const useOfflineOrganizations = () => {
       toast.success("Organization deleted offline. Syncing soon.");
     } catch (error) {
       console.error("Failed to delete organization offline:", error);
-      toast.error("Failed to delete organization offline.");
+      toast.error("Failed to delete organization.");
       throw error;
     }
   }, []);

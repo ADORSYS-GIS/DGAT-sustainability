@@ -19,7 +19,12 @@ pub struct KeycloakService {
 
 impl KeycloakService {
     pub fn new(config: KeycloakConfigs) -> Self {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert("X-Forwarded-Proto", reqwest::header::HeaderValue::from_static("https"));
+        headers.insert("X-Forwarded-Port", reqwest::header::HeaderValue::from_static("443"));
+
         let client = Client::builder()
+            .default_headers(headers)
             .danger_accept_invalid_certs(true)
             .build().expect("Failed to create reqwest client");
 
@@ -134,6 +139,7 @@ impl KeycloakService {
                                      org_id: &str,
                                      name: &str,
                                      domains: Vec<crate::web::api::models::OrganizationDomainRequest>,
+                                     redirect_url: Option<String>,
                                      attributes: Option<std::collections::HashMap<String, Vec<String>>>
     ) -> Result<()> {
         let url = format!("{}/admin/realms/{}/organizations/{}", self.config.url, self.config.realm, org_id);
@@ -142,6 +148,10 @@ impl KeycloakService {
             "name": name,
             "domains": domains,
         });
+
+        if let Some(url) = redirect_url {
+            payload["redirectUrl"] = json!(url);
+        }
 
         if let Some(attrs) = attributes {
             payload["attributes"] = json!(attrs);

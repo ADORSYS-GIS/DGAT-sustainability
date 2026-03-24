@@ -83,7 +83,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5430:5432"
+      - "5431:5432"
     networks: [tool-net]
 
   #
@@ -103,7 +103,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
       KEYCLOAK_FRONTEND_URL: "${KEYCLOAK_FRONTEND_URL:-https://localhost/keycloak}"
-      KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-http://localhost:8080}"
+      KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-http://localhost:8081}"
       KC_PROXY_HEADERS: "xforwarded"
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
@@ -161,7 +161,7 @@ services:
       retries: 10
       start_period: 60s
     ports:
-      - "8080:8080"
+      - "8081:8080"
     networks: [tool-net]
 
   #

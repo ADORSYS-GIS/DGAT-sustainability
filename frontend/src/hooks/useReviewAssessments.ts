@@ -56,6 +56,7 @@ export function useSubmitReview() {
         review_status: status,
         reviewed_at: now,
         review_comments: recommendation,
+        sync_status: 'pending', // Mark as pending sync
       };
       await offlineDB.saveSubmission(updatedSubmission);
 
@@ -70,6 +71,27 @@ export function useSubmitReview() {
         status,
       };
       await offlineDB.savePendingReviewSubmission(pendingReview);
+
+      // 3. Add to sync queue for API synchronization
+      // We import apiInterceptor dynamically to avoid circular dependencies if any
+      const { apiInterceptor } = await import('@/services/apiInterceptor');
+      await apiInterceptor.addToSyncQueue(
+        {
+          submission_id,
+          recommendation,
+          status,
+          reviewer
+        },
+        'report',
+        'create'
+      );
+
+      // Trigger immediate sync if online
+      if (apiInterceptor['isOnline']) {
+        // We can't easily access the private method, so we'll just let the event listener or interval handle it
+        // Or we could trigger a manual sync if exposed
+        // apiInterceptor.manualSync();
+      }
 
       return updatedSubmission;
     },
@@ -91,6 +113,11 @@ export function useSubmitReview() {
         [REVIEW_ASSESSMENTS_QUERY_KEY, updatedSubmission.submission_id],
         updatedSubmission
       );
+
+      // Force immediate sync check
+      import('@/services/syncService').then(({ syncService }) => {
+        syncService.performFullSync();
+      });
     },
   });
 }

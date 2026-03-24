@@ -37,7 +37,7 @@ export const ManageOrganizations: React.FC = () => {
   const [formData, setFormData] = useState<OrganizationCreateRequest>({
     name: "",
     domains: [{ name: "" }],
-    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://localhost/",
+    redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-63-177-64-129.eu-central-1.compute.amazonaws.com",
     enabled: "true",
     attributes: { categories: [] },
   });
@@ -141,7 +141,7 @@ export const ManageOrganizations: React.FC = () => {
     setFormData({ // Reset form data
       name: "",
       domains: [{ name: "" }],
-      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://localhost/",
+      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-63-177-64-129.eu-central-1.compute.amazonaws.com",
       enabled: "true",
       attributes: { categories: [] },
     });
@@ -158,9 +158,11 @@ export const ManageOrganizations: React.FC = () => {
           ? org.domains.map((d) => (typeof d === "string" ? { name: d } : d))
           : [{ name: "" }],
       redirectUrl:
-        (orgAttributes.redirect_url && orgAttributes.redirect_url[0]) ||
-        import.meta.env.VITE_ORGANIZATION_REDIRECT_URL ||
-        "https://localhost/",
+        (orgAttributes.redirect_url &&
+          orgAttributes.redirect_url[0] &&
+          !orgAttributes.redirect_url[0].includes("localhost"))
+          ? orgAttributes.redirect_url[0]
+          : (import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://ec2-63-177-64-129.eu-central-1.compute.amazonaws.com"),
       enabled: ((orgAttributes.enabled && orgAttributes.enabled[0]) || "true") as "true" | "false",
       attributes: {
         categories: orgAttributes.categories || [],
