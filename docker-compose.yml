@@ -103,7 +103,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
       KEYCLOAK_REALM: "sustainability-realm"
       KEYCLOAK_FRONTEND_URL: "${KEYCLOAK_FRONTEND_URL:-https://localhost/keycloak}"
-      KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-http://localhost:8081}"
+      KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-http://localhost:8080}"
       KC_PROXY_HEADERS: "xforwarded"
       KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
@@ -195,8 +195,8 @@ services:
       retries: 5
       start_period: 15s
     ports:
-      - "80:80"
-      - "443:443"
+      - "8082:80"
+      - "8443:443"
     volumes:
       - ./ssl:/etc/nginx/ssl:ro
       - openapi-volume:/openapi
