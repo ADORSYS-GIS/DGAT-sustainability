@@ -105,14 +105,10 @@ services:
       KEYCLOAK_FRONTEND_URL: "${KEYCLOAK_FRONTEND_URL:-https://localhost:8443/keycloak}"
       KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-http://localhost:8080}"
       KC_PROXY_HEADERS: "xforwarded"
-      KC_PROXY: "edge"
       KC_FEATURES: "preview,organization"
-      # Hostname v2 configuration
-      KC_HOSTNAME: "${KC_HOSTNAME:-158.220.84.249}"
-      KC_HOSTNAME_URL: "${KC_HOSTNAME_URL:-https://localhost:8443/keycloak}"
-      KC_HOSTNAME_PATH: "/keycloak"
-      KC_HOSTNAME_STRICT: "${KC_HOSTNAME_STRICT:-false}"
-      KC_HOSTNAME_STRICT_HTTPS: "${KC_HOSTNAME_STRICT_HTTPS:-false}"
+      # Hostname v2 configuration (Keycloak 26.x)
+      # KC_HOSTNAME as full URL replaces v1 options: KC_HOSTNAME_URL, KC_HOSTNAME_PATH, KC_HOSTNAME_STRICT, KC_HOSTNAME_STRICT_HTTPS
+      KC_HOSTNAME: "${KC_HOSTNAME_URL:-https://158.220.84.249:8443/keycloak}"
       KC_HTTP_ENABLED: "true"
       # if you also want to allow HTTP, for debugging only
       # Fernando user password
