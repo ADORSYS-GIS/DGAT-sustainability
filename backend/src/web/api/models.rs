@@ -148,7 +148,6 @@ pub struct CreateQuestionRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateQuestionRequest {
     pub category_id: Uuid,
-    pub category: String, // Keep this for the response
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
 }
