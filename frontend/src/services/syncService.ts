@@ -5,7 +5,7 @@
 import { offlineDB } from "./indexeddb";
 import { DataTransformationService } from "./dataTransformation";
 import {
-  QuestionsService,
+  QuestionService,
   CategoryCatalogService,
   AssessmentsService,
   SubmissionsService,
@@ -144,7 +144,7 @@ export class SyncService {
 
       // Collect results
       let taskIndex = 0;
-      
+
       // Questions and categories are always synced
       const questionsResult = syncResults[taskIndex];
       if (questionsResult?.status === 'fulfilled') {
@@ -255,8 +255,16 @@ export class SyncService {
 
     try {
       // Get server questions
-      const serverQuestionsResponse = await QuestionsService.getQuestions();
+      const serverQuestionsResponse = await QuestionService.getQuestions();
       const serverQuestions: Question[] = serverQuestionsResponse.questions.map(q => q.question); // Extract Question from QuestionWithRevisionsResponse
+
+      // Get sync queue to check for pending deletions
+      const syncQueue = await offlineDB.getSyncQueue();
+      const pendingDeletions = new Set(
+        syncQueue
+          .filter(item => item.entity_type === 'question' && item.operation === 'delete')
+          .map(item => item.entity_id)
+      );
 
       // If server returns no questions, clear the local store completely
       if (serverQuestions.length === 0) {
@@ -266,7 +274,7 @@ export class SyncService {
         result.deleted = currentLocalQuestions.length; // All local questions are considered deleted
         return result;
       }
-      
+
       const serverQuestionIds = new Set(serverQuestions.map(q => q.question_id));
 
       // Get local questions
@@ -276,9 +284,13 @@ export class SyncService {
       // Find questions to add/update
       for (const serverQuestion of serverQuestions) {
         const localQuestion = localQuestions.find(q => q.question_id === serverQuestion.question_id);
-        
+
         if (!localQuestion) {
-          // Add new question
+          // Add new question, but ONLY if it's not pending deletion
+          if (pendingDeletions.has(serverQuestion.question_id)) {
+            console.log(`Skipping restoration of locally deleted question: ${serverQuestion.question_id}`);
+            continue;
+          }
           const categories = await offlineDB.getAllCategoryCatalogs();
           const categoryIdToNameMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
           const offlineQuestion = DataTransformationService.transformQuestion(serverQuestion, categoryIdToNameMap);
@@ -320,7 +332,7 @@ export class SyncService {
       // Get server categories
       const serverCategoriesResponse = await CategoryCatalogService.getCategoryCatalog();
       const serverCategories = serverCategoriesResponse.category_catalogs;
-      
+
       // If server returns no categories, clear the local store completely
       if (serverCategories.length === 0) {
         const currentLocalCategories = await offlineDB.getAllCategoryCatalogs();
@@ -337,7 +349,7 @@ export class SyncService {
       // Find categories to add/update
       for (const serverCategory of serverCategories) {
         const localCategory = localCategories.find(c => c.category_catalog_id === serverCategory.category_catalog_id);
-        
+
         if (!localCategory) {
           // Add new category
           const offlineCategory = DataTransformationService.transformCategoryCatalog(serverCategory);
@@ -521,7 +533,7 @@ export class SyncService {
       // Get server submissions (user submissions)
       const serverSubmissionsResponse = await SubmissionsService.getSubmissions();
       const serverSubmissions = serverSubmissionsResponse.submissions;
-      
+
       // If server returns no submissions, clear the local store completely
       if (serverSubmissions.length === 0) {
         const currentLocalSubmissions = await offlineDB.getAllSubmissions();
@@ -529,7 +541,7 @@ export class SyncService {
         result.deleted = currentLocalSubmissions.length;
         return result;
       }
-      
+
       const serverSubmissionIds = new Set(serverSubmissions.map(s => s.submission_id));
 
       // Get local submissions
@@ -539,7 +551,7 @@ export class SyncService {
       // Find submissions to add/update
       for (const serverSubmission of serverSubmissions) {
         const localSubmission = localSubmissions.find(s => s.submission_id === serverSubmission.submission_id);
-        
+
         if (!localSubmission) {
           // Add new submission
           const offlineSubmission = DataTransformationService.transformSubmission(serverSubmission);
@@ -586,7 +598,7 @@ export class SyncService {
         result.deleted = currentLocalReports.length;
         return result;
       }
-      
+
       const serverReportIds = new Set(serverReports.map(r => r.report_id));
 
       // Get local reports
@@ -596,7 +608,7 @@ export class SyncService {
       // Find reports to add/update
       for (const serverReport of serverReports) {
         const localReport = localReports.find(r => r.report_id === serverReport.report_id);
-        
+
         if (!localReport) {
           // Add new report
           const offlineReport = DataTransformationService.transformReport(serverReport);
@@ -643,7 +655,7 @@ export class SyncService {
         result.deleted = currentLocalOrganizations.length;
         return result;
       }
-      
+
       const serverOrgIds = new Set(serverOrganizations.map(o => o.id));
 
       // Get local organizations
@@ -653,7 +665,7 @@ export class SyncService {
       // Find organizations to add/update
       for (const serverOrg of serverOrganizations) {
         const localOrg = localOrganizations.find(o => o.id === serverOrg.id);
-        
+
         if (!localOrg) {
           // Add new organization
           const offlineOrg = DataTransformationService.transformOrganizationResponseToOffline(serverOrg);
@@ -836,7 +848,7 @@ export class SyncService {
         } catch (error) {
           console.error(`❌ Failed to sync pending review ${review.id}:`, error);
           result.errors.push(`Failed to sync review ${review.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          
+
           // If sync fails, update status to 'failed' so it can be retried
           review.sync_status = 'failed';
           await offlineDB.savePendingReviewSubmission(review);
@@ -916,7 +928,7 @@ export class SyncService {
         } catch (error) {
           console.error(`❌ Failed to sync organization operation ${item.operation} for ID ${item.entity_id}:`, error);
           result.errors.push(`Failed to sync organization ${item.entity_id} (${item.operation}): ${error instanceof Error ? error.message : 'Unknown error'}`);
-          
+
           // Increment retry count and update sync queue item
           item.retry_count++;
           if (item.retry_count >= item.max_retries) {
@@ -989,7 +1001,7 @@ export class SyncService {
         } catch (error) {
           console.error(`❌ Failed to sync draft submission ${item.entity_id}:`, error);
           result.errors.push(`Failed to sync draft submission ${item.entity_id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          
+
           // Increment retry count and update sync queue item
           item.retry_count++;
           if (item.retry_count >= item.max_retries) {

@@ -64,7 +64,7 @@ export class ApiInterceptor {
 
     this.setupNetworkListeners();
     this.setupPeriodicSync();
-    
+
     // Clean up invalid responses on startup
     this.cleanupInvalidResponses();
   }
@@ -75,15 +75,15 @@ export class ApiInterceptor {
   private setupNetworkListeners(): void {
     window.addEventListener('online', () => {
       this.isOnline = true;
-      
+
       // Immediate sync attempt with debounce
       this.debouncedProcessQueue();
-      
+
       // Also trigger full sync after a short delay to ensure all components are ready
       setTimeout(() => {
         syncService.performFullSync();
       }, 1000);
-      
+
       toast.success('Connection restored. Syncing data...');
     });
 
@@ -455,7 +455,7 @@ export class ApiInterceptor {
         max_retries: 3,
         priority: this.getPriority(entityType, operation)
       };
-      
+
       await offlineDB.addToSyncQueue(queueItem);
     } catch (error) {
       console.error('Failed to add item to sync queue:', error);
@@ -468,13 +468,13 @@ export class ApiInterceptor {
   private getPriority(entityType: string, operation: 'create' | 'update' | 'delete' | 'submit'): 'low' | 'normal' | 'high' | 'critical' {
     // Critical: submissions (user data)
     if (entityType === 'submissions' || entityType === 'drafts_endpoint' || entityType === 'draft_submission') return 'critical';
-    
+
     // High: assessments, responses (user work)
     if (entityType === 'assessments' || entityType === 'responses') return 'high';
-    
+
     // Normal: questions, category_catalogs (reference data)
     if (entityType === 'questions' || entityType === 'category_catalogs') return 'normal';
-    
+
     // Low: reports, organizations (admin data)
     return 'low';
   }
@@ -505,12 +505,12 @@ export class ApiInterceptor {
 
       for (const question of pendingQuestions) {
         try {
-          
+
           // Skip if this is a temporary question that might have already been processed
           if (question.question_id.startsWith('temp_')) {
             continue;
           }
-          
+
           // Create the request data from the offline question
           const questionData = {
             category: question.category,
@@ -519,32 +519,32 @@ export class ApiInterceptor {
             weight: question.latest_revision.weight
           };
 
-          const { QuestionsService } = await import('@/openapi-rq/requests/services.gen');
-          const response = await QuestionsService.postQuestions({ requestBody: questionData });
-          
+          const { QuestionService } = await import('@/openapi-rq/requests/services.gen');
+          const response = await QuestionService.postQuestions({ requestBody: questionData });
+
           if (response && typeof response === 'object' && 'question' in response) {
             const realQuestion = (response as { question: { question_id: string } }).question;
             const realQuestionId = realQuestion.question_id;
-            
+
             // Delete the temporary question first
             await offlineDB.deleteQuestion(question.question_id);
-            
+
             // Check if a question with the same category and text already exists (to prevent duplicates)
             const existingQuestions = await offlineDB.getAllQuestions();
             const duplicateQuestion = existingQuestions.find(q => {
               if (q.category !== question.category || q.question_id === question.question_id) {
                 return false;
               }
-              
+
               // Compare text in all available languages
               const qText = q.latest_revision.text;
               const questionText = question.latest_revision.text;
-              
+
               if (typeof qText === 'object' && typeof questionText === 'object') {
                 // Compare all language keys
                 const qKeys = Object.keys(qText);
                 const questionKeys = Object.keys(questionText);
-                
+
                 // Check if any language has the same text
                 for (const key of qKeys) {
                   if (questionKeys.includes(key) && qText[key] === questionText[key]) {
@@ -554,14 +554,14 @@ export class ApiInterceptor {
               } else if (qText === questionText) {
                 return true;
               }
-              
+
               return false;
             });
             if (duplicateQuestion) {
               console.warn('⚠️ Found duplicate question, deleting:', duplicateQuestion.question_id);
               await offlineDB.deleteQuestion(duplicateQuestion.question_id);
             }
-            
+
             successCount++;
           }
         } catch (error) {
@@ -576,7 +576,7 @@ export class ApiInterceptor {
 
       // Scan responses table for pending items
       const allResponses = await offlineDB.getResponsesWithFilters({});
-      
+
       // Clean up invalid responses before processing
       const invalidResponses = allResponses.filter(r => !r.assessment_id || r.assessment_id.trim() === '');
       if (invalidResponses.length > 0) {
@@ -586,11 +586,11 @@ export class ApiInterceptor {
           await offlineDB.deleteResponse(invalidResponse.response_id);
         }
       }
-      
+
       const pendingResponses = allResponses.filter(r => r.sync_status === 'pending' && r.assessment_id && r.assessment_id.trim() !== '');
 
       console.log(`🔄 Processing ${pendingResponses.length} pending responses`);
-      
+
       // Log details of pending responses for debugging
       for (const response of pendingResponses) {
         console.log(`🔍 Pending response: ${response.response_id}, assessment_id: "${response.assessment_id}", sync_status: ${response.sync_status}`);
@@ -598,12 +598,12 @@ export class ApiInterceptor {
 
       for (const response of pendingResponses) {
         try {
-          
+
           // Skip if this is a temporary response that might have already been processed
           if (response.response_id.startsWith('temp_')) {
             continue;
           }
-          
+
           // Create the request data from the offline response
           const responseData = {
             question_revision_id: response.question_revision_id,
@@ -618,22 +618,22 @@ export class ApiInterceptor {
           }
 
           const { ResponsesService } = await import('@/openapi-rq/requests/services.gen');
-          const apiResponse = await ResponsesService.postAssessmentsByAssessmentIdResponses({ 
-            assessmentId: response.assessment_id, 
-            requestBody: [responseData] 
+          const apiResponse = await ResponsesService.postAssessmentsByAssessmentIdResponses({
+            assessmentId: response.assessment_id,
+            requestBody: [responseData]
           });
-          
+
           if (apiResponse && typeof apiResponse === 'object' && 'responses' in apiResponse) {
             const realResponses = (apiResponse as { responses: { response_id: string }[] }).responses;
             const realResponseId = realResponses[0]?.response_id;
-            
+
             // Delete the temporary response first
             await offlineDB.deleteResponse(response.response_id);
-            
+
             // Check if a response with the same properties already exists (to prevent duplicates)
             const existingResponses = await offlineDB.getResponsesWithFilters({});
-            const duplicateResponse = existingResponses.find(r => 
-              r.question_revision_id === response.question_revision_id && 
+            const duplicateResponse = existingResponses.find(r =>
+              r.question_revision_id === response.question_revision_id &&
               r.assessment_id === response.assessment_id &&
               r.response_id !== response.response_id
             );
@@ -641,7 +641,7 @@ export class ApiInterceptor {
               console.warn('⚠️ Found duplicate response, deleting:', duplicateResponse.response_id);
               await offlineDB.deleteResponse(duplicateResponse.response_id);
             }
-            
+
             successCount++;
           }
         } catch (error) {
@@ -656,16 +656,16 @@ export class ApiInterceptor {
 
       for (const submission of pendingSubmissions) {
         try {
-          
+
           // For submissions, we need to submit the assessment
           const { AssessmentsService } = await import('@/openapi-rq/requests/services.gen');
-          const apiResponse = await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ 
-            assessmentId: submission.assessment_id 
+          const apiResponse = await AssessmentsService.postAssessmentsByAssessmentIdSubmit({
+            assessmentId: submission.assessment_id
           });
-          
+
           if (apiResponse && typeof apiResponse === 'object' && 'submission' in apiResponse) {
             const realSubmission = (apiResponse as { submission: Submission }).submission;
-            
+
             // Update the local submission with the synced data
             const updatedLocalSubmission = {
               ...submission,
@@ -678,12 +678,12 @@ export class ApiInterceptor {
             // If the real submission has a different ID than the local one, and the local one was a temporary ID,
             // then delete the temporary one. This scenario is less likely for approvals, but good to handle.
             if (submission.submission_id.startsWith('temp_') && realSubmission.submission_id !== submission.submission_id) {
-                await offlineDB.deleteSubmission(submission.submission_id);
+              await offlineDB.deleteSubmission(submission.submission_id);
             }
-            
+
             // Invalidate queries to reflect the change
             window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'submission' } }));
-            
+
             successCount++;
           }
         } catch (error) {
@@ -694,11 +694,11 @@ export class ApiInterceptor {
 
       if (successCount > 0 || failureCount > 0) {
         console.log(`🔄 Sync completed: ${successCount} successful, ${failureCount} failed`);
-        
+
         if (successCount > 0) {
           toast.success(`Synced ${successCount} items successfully`);
         }
-        
+
         if (failureCount > 0) {
           toast.error(`${failureCount} items failed to sync`);
         }
@@ -707,11 +707,11 @@ export class ApiInterceptor {
       // Process sync queue items (for report generation and other queued operations)
       const syncQueue = await offlineDB.getSyncQueue();
       console.log(`🔄 Processing ${syncQueue.length} sync queue items`);
-      
+
       for (const queueItem of syncQueue) {
         try {
           console.log(`🔄 Processing sync queue item: ${queueItem.entity_type} - ${queueItem.operation} - ID: ${queueItem.id}`);
-          
+
           if (queueItem.entity_type === 'report' && queueItem.operation === 'create') {
             const reviewData = queueItem.data as { submission_id: string; recommendation: string; status: 'approved' | 'rejected'; reviewer: string };
             const submissionId = reviewData.submission_id;
@@ -722,7 +722,7 @@ export class ApiInterceptor {
               await offlineDB.removeFromSyncQueue(queueItem.id);
               continue;
             }
-            
+
             // Handle report generation
             const { ReportsService } = await import('@/openapi-rq/requests/services.gen');
             const recommendationsArray = JSON.parse(reviewData.recommendation) as { id: string; category: string; recommendation: string; timestamp: string }[];
@@ -736,9 +736,9 @@ export class ApiInterceptor {
               submissionId: submissionId,
               requestBody: requestBody,
             });
-            
+
             console.log(`✅ Report generation successful: ${result.report_id}`);
-            
+
             // Update the local submission status
             const originalSubmission = await offlineDB.getSubmission(submissionId);
             if (originalSubmission) {
@@ -804,7 +804,7 @@ export class ApiInterceptor {
               });
             }
           } else if (queueItem.entity_type === 'question') {
-            const { QuestionsService } = await import('@/openapi-rq/requests/services.gen');
+            const { QuestionService } = await import('@/openapi-rq/requests/services.gen');
             const questionData = queueItem.data as OfflineQuestion;
 
             if (queueItem.operation === 'create') {
@@ -813,7 +813,7 @@ export class ApiInterceptor {
                 text: questionData.latest_revision.text,
                 weight: questionData.latest_revision.weight,
               };
-              const result = await QuestionsService.postQuestions({ requestBody });
+              const result = await QuestionService.postQuestions({ requestBody });
               if (result && result.question) {
                 await offlineDB.deleteQuestion(questionData.question_id);
                 const categories = await offlineDB.getAllCategoryCatalogs();
@@ -832,7 +832,7 @@ export class ApiInterceptor {
                 text: questionData.latest_revision.text,
                 weight: questionData.latest_revision.weight,
               };
-              const result = await QuestionsService.putQuestionsByQuestionId({
+              const result = await QuestionService.putQuestionsByQuestionId({
                 questionId: questionData.question_id,
                 requestBody,
               });
@@ -848,7 +848,7 @@ export class ApiInterceptor {
                 await offlineDB.saveQuestion(updatedOfflineQuestion);
               }
             } else if (queueItem.operation === 'delete') {
-              await QuestionsService.deleteQuestionsRevisionsByQuestionRevisionId({
+              await QuestionService.deleteQuestionsRevisionsByQuestionRevisionId({
                 questionRevisionId: questionData.latest_revision.question_revision_id,
               });
             }
@@ -896,7 +896,7 @@ export class ApiInterceptor {
 
             if (apiResponse && typeof apiResponse === 'object' && 'submission' in apiResponse) {
               const realSubmission = (apiResponse as { submission: Submission }).submission;
-              
+
               // Fetch the original submission from IndexedDB to update its status
               const originalSubmission = await offlineDB.getSubmission(submissionData.submissionId);
               if (originalSubmission) {
@@ -943,26 +943,26 @@ export class ApiInterceptor {
               failureCount++;
             }
           }
-          
+
           // Notify the UI that data has changed before removing the item from the queue
           window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: queueItem.entity_type } }));
-          
+
           // Remove the processed item from the queue immediately after successful processing
           await offlineDB.removeFromSyncQueue(queueItem.id);
           console.log(`✅ Removed sync queue item: ${queueItem.id}`);
           successCount++;
-          
+
         } catch (error) {
           console.error(`❌ Failed to process sync queue item ${queueItem.id}:`, error);
-          
+
           // Increment retry count
           queueItem.retry_count++;
-          
+
           if (queueItem.retry_count >= queueItem.max_retries) {
             console.error(`❌ Max retries reached for sync queue item ${queueItem.id}, removing from queue`);
             await offlineDB.removeFromSyncQueue(queueItem.id);
           }
-          
+
           failureCount++;
         }
       }
@@ -1033,7 +1033,7 @@ export class ApiInterceptor {
       if (deletedCount > 0) {
         console.log(`🧹 Cleaned up ${deletedCount} invalid responses on startup`);
       }
-      
+
       // Also clean up any responses with empty assessment_id that might have been missed
       const allResponses = await offlineDB.getResponsesWithFilters({});
       const invalidResponses = allResponses.filter(r => !r.assessment_id || r.assessment_id.trim() === '');
@@ -1067,29 +1067,29 @@ export const debugUtils = {
    */
   async comprehensiveCleanup(): Promise<{ deletedResponses: number; deletedSubmissions: number }> {
     console.log('🧹 Starting comprehensive cleanup...');
-    
+
     // Clean up responses with empty assessment_id
     const allResponses = await offlineDB.getResponsesWithFilters({});
     const invalidResponses = allResponses.filter(r => !r.assessment_id || r.assessment_id.trim() === '');
     let deletedResponses = 0;
-    
+
     for (const invalidResponse of invalidResponses) {
       console.warn(`🧹 Deleting invalid response: ${invalidResponse.response_id}`);
       await offlineDB.deleteResponse(invalidResponse.response_id);
       deletedResponses++;
     }
-    
+
     // Clean up submissions with empty assessment_id
     const allSubmissions = await offlineDB.getAllSubmissions();
     const invalidSubmissions = allSubmissions.filter(s => !s.assessment_id || s.assessment_id.trim() === '');
     let deletedSubmissions = 0;
-    
+
     for (const invalidSubmission of invalidSubmissions) {
       console.warn(`🧹 Deleting invalid submission: ${invalidSubmission.submission_id}`);
       await offlineDB.deleteSubmission(invalidSubmission.submission_id);
       deletedSubmissions++;
     }
-    
+
     console.log(`🧹 Comprehensive cleanup completed: ${deletedResponses} responses, ${deletedSubmissions} submissions deleted`);
     return { deletedResponses, deletedSubmissions };
   },

@@ -4,6 +4,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use sea_orm::{DatabaseConnection, TransactionError, TransactionTrait};
 use serde::Deserialize;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -384,5 +385,83 @@ pub async fn delete_question_revision_by_id(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question revision: {e}")))?;
 
     Ok(StatusCode::NO_CONTENT)
-
 }
+
+/// Delete a question and all its revisions
+#[utoipa::path(
+    delete,
+    path = "/questions/{question_id}",
+    tag = "Question",
+    operation_id = "delete_questions_by_question_id",
+    params(("question_id" = uuid::Uuid, Path, description = "Question ID")),
+    responses((status = 204, description = "Deleted"), (status = 400, description = "In use"), (status = 404, description = "Not found"))
+)]
+pub async fn delete_question(
+    State(app_state): State<AppState>,
+    Path(question_id): Path<Uuid>,
+) -> Result<StatusCode, ApiError> {
+    // Check if the question exists
+    let question_exists = app_state
+        .database
+        .questions
+        .get_question_by_id(question_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question: {e}")))?;
+
+    if question_exists.is_none() {
+        return Err(ApiError::NotFound("Question not found".to_string()));
+    }
+
+    // Check if any of the question's revisions have assessment responses
+    let revisions = app_state
+        .database
+        .questions_revisions
+        .get_revisions_by_question(question_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revisions: {e}")))?;
+
+    for revision in revisions {
+        let has_responses = app_state
+            .database
+            .assessments_response
+            .has_responses_for_question_revision(revision.question_revision_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to check assessment responses: {e}")))?;
+
+        if has_responses {
+            return Err(ApiError::BadRequest(
+                "Cannot delete question: One or more of its revisions are currently being used in assessment responses.".to_string()
+            ));
+        }
+    }
+
+    // Use a transaction to delete revisions and the question
+    let questions = app_state.database.questions.clone();
+    let revisions = app_state.database.questions_revisions.clone();
+    
+    app_state.database.get_connection().transaction::<_, (), ApiError>(move |txn| {
+        Box::pin(async move {
+            // Delete all revisions first
+            revisions
+                .delete_revisions_by_question_id(question_id, Some(txn))
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question revisions: {e}")))?;
+
+            // Delete the question record
+            questions
+                .delete_question(question_id, Some(txn))
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to delete question: {e}")))?;
+
+            Ok(())
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        TransactionError::Connection(e) => ApiError::DatabaseError(e.to_string()),
+        TransactionError::Transaction(e) => e,
+    })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+

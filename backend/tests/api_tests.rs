@@ -43,6 +43,7 @@ async fn mock_auth_middleware(
         iat: 1000000000, // Past issued time
         aud: serde_json::Value::String("test-audience".to_string()),
         iss: "test-issuer".to_string(),
+        resource_access: None,
     };
 
     // Add claims to request extensions
@@ -63,8 +64,12 @@ async fn create_test_app_state() -> AppState {
     let app_database = AppDatabase::new(Arc::new(db)).await;
 
     AppState::new(
-        "http://localhost:8080".to_string(),
-        "test-realm".to_string(),
+        sustainability_tool::common::config::KeycloakConfigs {
+            url: "http://localhost:8080".to_string(),
+            realm: "test-realm".to_string(),
+            client_id: "test-client".to_string(),
+            expected_issuer: "http://localhost:8080/realms/test-realm".to_string(),
+        },
         app_database,
     )
     .await
@@ -505,3 +510,102 @@ async fn test_get_question_not_found() {
         .unwrap()
         .contains("Question not found"));
 }
+
+#[tokio::test]
+async fn test_delete_question_success() {
+    let app = create_test_app().await;
+
+    // 1. Create a question
+    let new_question = json!({
+        "category_id": uuid::Uuid::new_v4(), // Mock category ID
+        "text": {
+            "en": "Question to be deleted"
+        },
+        "weight": 1.0
+    });
+
+    // We need a real category in the DB for the creation to succeed if it checks for it.
+    // In api_tests.rs, create_test_app_state runs migrations.
+    // Let's assume create_question handler succeeds or we create a category first if needed.
+    // Looking at create_question handler, it fetches category.
+    
+    // Create a category catalog first
+    let new_category = json!({
+        "name": "Test Category",
+        "template_id": "test-template"
+    });
+
+    let cat_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/category-catalog")
+                .header("content-type", "application/json")
+                .body(Body::from(new_category.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(cat_response.status(), StatusCode::CREATED);
+    let cat_body = to_bytes(cat_response.into_body(), usize::MAX).await.unwrap();
+    let cat_json: Value = serde_json::from_slice(&cat_body).unwrap();
+    let category_id = cat_json["category_catalog"]["category_catalog_id"].as_str().unwrap();
+
+    let new_question = json!({
+        "category_id": category_id,
+        "text": {
+            "en": "Question to be deleted"
+        },
+        "weight": 1.0
+    });
+
+    let create_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/questions")
+                .header("content-type", "application/json")
+                .body(Body::from(new_question.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(create_response.status(), StatusCode::CREATED);
+
+    let create_body = to_bytes(create_response.into_body(), usize::MAX).await.unwrap();
+    let create_json: Value = serde_json::from_slice(&create_body).unwrap();
+    let question_id = create_json["question"]["question_id"].as_str().unwrap();
+
+    // 2. Delete the question
+    let delete_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/api/questions/{question_id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(delete_response.status(), StatusCode::NO_CONTENT);
+
+    // 3. Verify it's gone
+    let get_response = app
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/api/questions/{question_id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(get_response.status(), StatusCode::NOT_FOUND);
+}
+

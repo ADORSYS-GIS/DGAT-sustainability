@@ -1116,7 +1116,7 @@ pub async fn remove_member(
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct OrgAdminMemberRequest {
     pub email: String,
     pub first_name: Option<String>,
@@ -1125,7 +1125,7 @@ pub struct OrgAdminMemberRequest {
     pub categories: Option<Vec<String>>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, utoipa::ToSchema)]
 pub struct OrgAdminUserInvitationResponse {
     pub user_id: String,
     pub email: String,
@@ -1134,6 +1134,18 @@ pub struct OrgAdminUserInvitationResponse {
 }
 
 /// Add a new member to an organization (Org Admin only)
+#[utoipa::path(
+    post,
+    path = "/organizations/{org_id}/org-admin/members",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID")),
+    request_body = OrgAdminMemberRequest,
+    responses(
+        (status = 201, description = "Member added and invitation sent", body = OrgAdminUserInvitationResponse),
+        (status = 400, description = "Bad Request"),
+        (status = 409, description = "Conflict")
+    )
+)]
 pub async fn add_org_admin_member(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
@@ -1353,7 +1365,7 @@ pub async fn remove_org_admin_member(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct OrgAdminMemberCategoryUpdateRequest {
     pub categories: Vec<String>,
 }

@@ -37,6 +37,19 @@ impl IntoResponse for ApiError {
     }
 }
 
+impl std::fmt::Display for ApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ApiError::BadRequest(msg) => write!(f, "Bad Request: {msg}"),
+            ApiError::NotFound(msg) => write!(f, "Not Found: {msg}"),
+            ApiError::Forbidden(msg) => write!(f, "Forbidden: {msg}"),
+            ApiError::Conflict(msg) => write!(f, "Conflict: {msg}"),
+            ApiError::InternalServerError(msg) => write!(f, "Internal Server Error: {msg}"),
+            ApiError::DatabaseError(msg) => write!(f, "Database Error: {msg}"),
+        }
+    }
+}
+
 impl From<anyhow::Error> for ApiError {
     fn from(err: anyhow::Error) -> Self {
         ApiError::InternalServerError(err.to_string())

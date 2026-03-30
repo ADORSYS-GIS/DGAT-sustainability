@@ -19,7 +19,7 @@ use crate::web::api::handlers::{
         update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
         update_org_admin_member_categories,
     },
-    questions::{create_question, delete_question_revision_by_id, get_question, list_questions, update_question},
+    questions::{create_question, delete_question, delete_question_revision_by_id, get_question, list_questions, update_question},
     reports::{delete_report, generate_report, get_report, list_reports, list_user_reports, list_all_action_plans, update_recommendation_status, list_all_reports},
     responses::{create_response, delete_response, get_response, list_responses, update_response},
     submissions::{delete_submission, get_submission, list_user_submissions},
@@ -62,6 +62,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/questions", post(create_question))
         .route("/api/questions/:question_id", get(get_question))
         .route("/api/questions/:question_id", put(update_question))
+        .route("/api/questions/:question_id", delete(delete_question))
         .route("/api/questions/revisions/:revision_id", delete(delete_question_revision_by_id))
         // Category endpoints
         // Category Catalog endpoints

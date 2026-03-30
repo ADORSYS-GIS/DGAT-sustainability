@@ -206,8 +206,12 @@ mod tests {
         let app_database = AppDatabase::new(std::sync::Arc::new(db)).await;
 
         let app_state = AppState::new(
-            "http://localhost:8080".to_string(),
-            "test-realm".to_string(),
+            crate::common::config::KeycloakConfigs {
+                url: "http://localhost:8080".to_string(),
+                realm: "test-realm".to_string(),
+                client_id: "test-client".to_string(),
+                expected_issuer: "http://localhost:8080/realms/test-realm".to_string(),
+            },
             app_database,
         )
         .await;
@@ -234,8 +238,12 @@ mod tests {
         let app_database = AppDatabase::new(std::sync::Arc::new(db)).await;
 
         let app_state = AppState::new(
-            "http://localhost:8080".to_string(),
-            "test-realm".to_string(),
+            crate::common::config::KeycloakConfigs {
+                url: "http://localhost:8080".to_string(),
+                realm: "test-realm".to_string(),
+                client_id: "test-client".to_string(),
+                expected_issuer: "http://localhost:8080/realms/test-realm".to_string(),
+            },
             app_database,
         )
         .await;

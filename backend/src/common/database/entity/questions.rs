@@ -100,9 +100,19 @@ impl QuestionsService {
         self.db_service.update(question).await
     }
 
-    pub async fn delete_question(&self, id: Uuid) -> Result<DeleteResult, DbErr> {
-        self.db_service.delete(id).await
+    pub async fn delete_question(
+        &self,
+        id: Uuid,
+        txn: Option<&sea_orm::DatabaseTransaction>,
+    ) -> Result<DeleteResult, DbErr> {
+        let query = Entity::delete_by_id(id);
+        if let Some(txn) = txn {
+            query.exec(txn).await
+        } else {
+            query.exec(self.db_service.get_connection()).await
+        }
     }
+
 
     pub async fn delete_questions_by_category_id(
         &self,
@@ -169,7 +179,7 @@ mod tests {
 
         // Test delete question
         let delete_result = questions_service
-            .delete_question(question.question_id)
+            .delete_question(question.question_id, None)
             .await?;
         assert_eq!(delete_result.rows_affected, 1);
 

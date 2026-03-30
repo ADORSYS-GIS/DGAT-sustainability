@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { offlineDB } from "../services/indexeddb";
 import { apiInterceptor } from "../services/apiInterceptor";
-import { QuestionsService } from "@/openapi-rq/requests/services.gen";
+import { QuestionService } from "@/openapi-rq/requests/services.gen";
 import type {
   CreateQuestionRequest,
   UpdateQuestionRequest,
@@ -18,7 +18,7 @@ export function useOfflineQuestions() {
       try {
         // Attempt to sync with the server, but don't block
         apiInterceptor.interceptGet(
-          () => QuestionsService.getQuestions(),
+          () => QuestionService.getQuestions(),
           async () => null, // We don't need a fallback, just the sync trigger
           'questions'
         );
@@ -67,7 +67,7 @@ export function useOfflineQuestionsMutation() {
       };
 
       const response = await apiInterceptor.interceptMutation(
-        () => QuestionsService.postQuestions({ requestBody: question }),
+        () => QuestionService.postQuestions({ requestBody: question }),
         localMutation,
         offlineQuestion as unknown as Record<string, unknown>,
         'question',
@@ -79,11 +79,11 @@ export function useOfflineQuestionsMutation() {
         await offlineDB.deleteQuestion(tempId);
         const categories = await offlineDB.getAllCategoryCatalogs();
         const categoryIdToNameMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
-        const finalQuestion = DataTransformationService.transformQuestion(response.question, categoryIdToNameMap);
+        const finalQuestion = DataTransformationService.transformQuestion(response.question as any, categoryIdToNameMap);
         await offlineDB.saveQuestion(finalQuestion);
         return { finalQuestion, tempId };
       }
-      
+
       return { finalQuestion: offlineQuestion, tempId };
     },
     onSuccess: (data) => {
@@ -106,7 +106,7 @@ export function useOfflineQuestionsMutation() {
     mutationFn: async ({ questionId, question }: { questionId: string, question: UpdateQuestionRequest }) => {
       const categories = queryClient.getQueryData<OfflineCategoryCatalog[]>(['category-catalogs']) || [];
       const categoryMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
-      
+
       const existingQuestion = await offlineDB.getQuestion(questionId);
       if (!existingQuestion) {
         throw new Error("Question not found for update");
@@ -132,7 +132,7 @@ export function useOfflineQuestionsMutation() {
       };
 
       await apiInterceptor.interceptMutation(
-        () => QuestionsService.putQuestionsByQuestionId({ questionId, requestBody: question }),
+        () => QuestionService.putQuestionsByQuestionId({ questionId, requestBody: question }),
         localMutation,
         updatedQuestion as unknown as Record<string, unknown>,
         'question',
@@ -161,8 +161,8 @@ export function useOfflineQuestionsMutation() {
 
       await apiInterceptor.interceptMutation(
         async () => {
-          if (revisionId && !questionId.startsWith('temp_')) {
-            await QuestionsService.deleteQuestionsRevisionsByQuestionRevisionId({ questionRevisionId: revisionId });
+          if (!questionId.startsWith('temp_')) {
+            await QuestionService.deleteQuestionsByQuestionId({ questionId });
           }
           return { success: true, question_id: questionId };
         },

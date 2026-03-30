@@ -69,7 +69,7 @@ impl From<crate::web::api::error::ApiError> for ApiErrorWrapper {
 
 // =============== Common Models ===============
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ErrorResponse {
     pub error: String,
     pub code: String,
@@ -79,7 +79,7 @@ pub struct ErrorResponse {
 
 // =============== Health Models ===============
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct HealthResponse {
     pub status: String,
     pub timestamp: String,
@@ -87,13 +87,13 @@ pub struct HealthResponse {
     pub checks: HealthChecks,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct HealthChecks {
     pub database: String,
     pub keycloak: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct MetricsResponse {
     pub uptime: f64,
     pub requests: RequestMetrics,
@@ -101,19 +101,19 @@ pub struct MetricsResponse {
     pub database: DatabaseMetrics,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct RequestMetrics {
     pub total: u64,
     pub per_second: f64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct MemoryMetrics {
     pub used: u64,
     pub total: u64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct DatabaseMetrics {
     pub connections: u32,
     pub queries_per_second: f64,
@@ -121,7 +121,7 @@ pub struct DatabaseMetrics {
 
 // =============== Question Models ===============
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Question {
     pub question_id: Uuid,
     pub category: String,

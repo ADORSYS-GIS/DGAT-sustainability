@@ -1,4 +1,5 @@
 use crate::web::api::models::*;
+use crate::web::api::handlers::organizations::{OrgAdminMemberRequest, OrgAdminUserInvitationResponse, OrgAdminMemberCategoryUpdateRequest};
 use axum::response::IntoResponse;
 use utoipa::OpenApi;
 /// OpenAPI documentation structure
@@ -24,16 +25,11 @@ use utoipa::OpenApi;
         crate::web::api::handlers::questions::create_question,
         crate::web::api::handlers::questions::get_question,
         crate::web::api::handlers::questions::update_question,
+        crate::web::api::handlers::questions::delete_question,
         crate::web::api::handlers::questions::delete_question_revision_by_id,
         // Health
         crate::web::api::handlers::health::health_check,
         crate::web::api::handlers::health::metrics,
-        // Questions
-        crate::web::api::handlers::questions::list_questions,
-        crate::web::api::handlers::questions::create_question,
-        crate::web::api::handlers::questions::get_question,
-        crate::web::api::handlers::questions::update_question,
-        crate::web::api::handlers::questions::delete_question_revision_by_id,
         // Responses
         crate::web::api::handlers::responses::list_responses,
         crate::web::api::handlers::responses::create_response,
@@ -83,7 +79,8 @@ use utoipa::OpenApi;
         crate::web::api::handlers::organizations::remove_member,
         crate::web::api::handlers::organizations::get_org_admin_members,
         crate::web::api::handlers::organizations::remove_org_admin_member,
-        crate::web::api::handlers::organizations::update_org_admin_member_categories
+        crate::web::api::handlers::organizations::update_org_admin_member_categories,
+        crate::web::api::handlers::organizations::add_org_admin_member
     ),
     components(schemas(
         QuestionRevision,
@@ -158,7 +155,20 @@ use utoipa::OpenApi;
         UpdateOrganizationCategoryRequest,
         AssignCategoriesToOrganizationRequest,
         OrganizationCategoryResponse,
-        OrganizationCategoryListResponse
+        OrganizationCategoryListResponse,
+        HealthResponse,
+        HealthChecks,
+        MetricsResponse,
+        RequestMetrics,
+        MemoryMetrics,
+        DatabaseMetrics,
+        Question,
+        AdminReport,
+        AdminReportListResponse,
+        ErrorResponse,
+        OrgAdminMemberRequest,
+        OrgAdminUserInvitationResponse,
+        OrgAdminMemberCategoryUpdateRequest
     )),
     tags(
         (name = "User", description = "Operations related to user management"),
