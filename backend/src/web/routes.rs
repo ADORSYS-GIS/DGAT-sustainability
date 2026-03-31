@@ -252,6 +252,8 @@ mod tests {
             keycloak: crate::common::config::KeycloakConfigs {
                 url: "http://localhost:8080".to_string(),
                 realm: "test-realm".to_string(),
+                client_id: "test-client".to_string(),
+                expected_issuer: "http://localhost:8080/realms/test-realm".to_string(),
             },
             server: crate::common::config::ServerConfigs {
                 host: "0.0.0.0".to_string(),

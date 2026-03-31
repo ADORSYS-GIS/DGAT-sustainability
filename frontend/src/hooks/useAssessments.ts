@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { offlineDB } from "@/services/indexeddb";
-import type { OfflineAssessment, SyncQueueItem } from "@/types/offline";
+import type { OfflineAssessment, SyncQueueItem, OfflineCategoryCatalog } from "@/types/offline";
 import type { Assessment } from "@/openapi-rq/requests";
 
 const ASSESSMENTS_QUERY_KEY = "assessments";
@@ -44,6 +44,12 @@ export function useCreateAssessment() {
       const tempId = `temp-${uuidv4()}`;
       const now = new Date().toISOString();
 
+      // Fetch all category catalogs to map IDs to objects
+      const allCategoryCatalogs = await offlineDB.getAllCategoryCatalogs();
+      const offlineCategories = (newAssessmentData.categories || [])
+        .map(id => allCategoryCatalogs.find(c => c.category_catalog_id === id))
+        .filter((c): c is OfflineCategoryCatalog => c !== undefined);
+
       // Construct the full OfflineAssessment object, ensuring all required fields are present
       const offlineAssessment: OfflineAssessment = {
         assessment_id: tempId,
@@ -55,7 +61,7 @@ export function useCreateAssessment() {
         updated_at: now,
         sync_status: 'pending',
         organization_id: newAssessmentData.org_id, // Also populate the offline-specific field
-        categories: newAssessmentData.categories,
+        categories: offlineCategories,
       };
 
       await offlineDB.saveAssessment(offlineAssessment);
@@ -178,21 +184,42 @@ export function useDeleteAssessment() {
 
   return useMutation({
     mutationFn: async (assessmentId: string) => {
+      // If it's a temp ID, check if we can just cancel the pending create
+      if (assessmentId.startsWith('temp-')) {
+        const syncQueue = await offlineDB.getSyncQueue();
+        const pendingCreate = syncQueue.find(
+          item => item.entity_type === 'assessment' &&
+            item.entity_id === assessmentId &&
+            item.operation === 'create'
+        );
+
+        if (pendingCreate) {
+          console.log(`🗑️ Cancelling pending create for ${assessmentId}`);
+          await offlineDB.removeFromSyncQueue(pendingCreate.id);
+          await offlineDB.deleteAssessment(assessmentId);
+          return assessmentId;
+        }
+      }
+
+      // Normal deletion flow
       await offlineDB.deleteAssessment(assessmentId);
 
-      const syncItem: SyncQueueItem<{ assessment_id: string }> = {
-        id: uuidv4(),
-        entity_type: "assessment",
-        entity_id: assessmentId,
-        operation: "delete",
-        data: { assessment_id: assessmentId },
-        retry_count: 0,
-        max_retries: 5,
-        priority: "normal",
-        created_at: new Date().toISOString(),
-      };
+      // Only add to sync queue if it's not a temp ID
+      if (!assessmentId.startsWith('temp-')) {
+        const syncItem: SyncQueueItem<{ assessment_id: string }> = {
+          id: uuidv4(),
+          entity_type: "assessment",
+          entity_id: assessmentId,
+          operation: "delete",
+          data: { assessment_id: assessmentId },
+          retry_count: 0,
+          max_retries: 5,
+          priority: "normal",
+          created_at: new Date().toISOString(),
+        };
 
-      await offlineDB.addToSyncQueue(syncItem);
+        await offlineDB.addToSyncQueue(syncItem);
+      }
 
       return assessmentId;
     },

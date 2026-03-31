@@ -27,7 +27,9 @@ import type {
   OrganizationMember,
   AdminSubmissionDetail,
   OrganizationResponse, // Add OrganizationResponse import
-  OrganizationCreateRequest // Import OrganizationCreateRequest
+  OrganizationCreateRequest, // Import OrganizationCreateRequest
+  CreateAssessmentRequest,
+  UpdateAssessmentRequest
 } from "@/openapi-rq/requests/types.gen";
 import type {
   OfflineOrganization, // Import OfflineOrganization
@@ -123,11 +125,11 @@ export class SyncService {
       // Only sync assessments, submissions, and reports for non-DGRV admin users
       if (!isDrgvAdmin) {
         syncTasks.push(
-          this.syncPendingAssessments(),
+          this.syncPendingAssessmentOperations(), // Replaces syncPendingAssessments
           this.syncSubmissions(),
           this.syncReports(),
           this.syncPendingReviewSubmissions(),
-          this.syncPendingDraftSubmissions(), // Add this line
+          this.syncPendingDraftSubmissions(),
         );
       }
 
@@ -464,58 +466,120 @@ export class SyncService {
 
 
   /**
-   * Sync pending assessments (created offline) to server
+   * Sync pending assessment operations (created, updated, deleted offline) to server
    */
-  private async syncPendingAssessments(): Promise<SyncResult> {
+  private async syncPendingAssessmentOperations(): Promise<SyncResult> {
     const result: SyncResult = { entityType: 'pending_assessments', added: 0, updated: 0, deleted: 0, errors: [] };
 
     try {
-      // Get all pending assessments (created offline)
-      const allAssessments = await offlineDB.getAllAssessments();
-      const pendingAssessments = allAssessments.filter(a => a.sync_status === 'pending' && a.assessment_id.startsWith('temp_'));
+      const syncQueueItems = await offlineDB.getSyncQueue();
+      const assessmentSyncItems = syncQueueItems.filter(item => item.entity_type === 'assessment');
 
-      console.log(`🔄 Found ${pendingAssessments.length} pending assessments to sync`);
+      console.log(`🔄 Found ${assessmentSyncItems.length} pending assessment sync items`);
 
-      for (const pendingAssessment of pendingAssessments) {
+      for (const item of assessmentSyncItems) {
         try {
-          // Create assessment request from offline assessment
-          const createAssessmentRequest = {
-            name: pendingAssessment.name,
-            language: pendingAssessment.language || 'en',
-            categories: pendingAssessment.categories?.map(cat => cat.category_catalog_id) || [],
-          };
+          switch (item.operation) {
+            case 'create': {
+              // Extract relevant data for creation
+              const pendingAssessment = item.data as any;
+              const createAssessmentRequest: CreateAssessmentRequest = {
+                name: pendingAssessment.name,
+                language: pendingAssessment.language || 'en',
+                categories: pendingAssessment.categories?.map((cat: any) =>
+                  typeof cat === 'string' ? cat : cat.category_catalog_id
+                ) || [],
+              };
 
-          // Call the API to create the assessment
-          const response = await AssessmentsService.postAssessments({ requestBody: createAssessmentRequest });
+              // Call the API to create the assessment
+              const response = await AssessmentsService.postAssessments({ requestBody: createAssessmentRequest });
 
-          if (response && response.assessment) {
-            const realAssessment = response.assessment;
+              if (response && response.assessment) {
+                const realAssessment = response.assessment;
 
-            // Delete the temporary assessment
-            await offlineDB.deleteAssessment(pendingAssessment.assessment_id);
+                // Delete the temporary assessment from IndexedDB
+                await offlineDB.deleteAssessment(item.entity_id!);
 
-            // Save the real assessment with proper context
-            const categories = await offlineDB.getAllCategoryCatalogs();
-            const categoryMap = new Map(categories.map(c => [c.category_catalog_id, c]));
-            const finalOfflineAssessment = DataTransformationService.transformAssessment(
-              realAssessment,
-              categoryMap,
-              pendingAssessment.organization_id,
-              pendingAssessment.user_email
-            );
-            await offlineDB.saveAssessment(finalOfflineAssessment);
+                // Save the real assessment with proper context
+                const categories = await offlineDB.getAllCategoryCatalogs();
+                const categoryMap = new Map(categories.map(c => [c.category_catalog_id, c]));
+                const finalOfflineAssessment = DataTransformationService.transformAssessment(
+                  realAssessment,
+                  categoryMap,
+                  pendingAssessment.organization_id || pendingAssessment.org_id,
+                  pendingAssessment.user_email
+                );
+                await offlineDB.saveAssessment(finalOfflineAssessment);
 
-            result.added++;
-            console.log(`✅ Successfully synced pending assessment: ${pendingAssessment.name} -> ${realAssessment.assessment_id}`);
-          } else {
-            throw new Error('API did not return a valid assessment');
+                result.added++;
+                console.log(`✅ Successfully synced pending assessment creation: ${pendingAssessment.name} -> ${realAssessment.assessment_id}`);
+              } else {
+                throw new Error('API did not return a valid assessment');
+              }
+              break;
+            }
+            case 'update': {
+              const assessmentData = item.data as any;
+              const updateRequestBody: UpdateAssessmentRequest = {
+                language: assessmentData.language,
+                // Add other updateable fields as they are implemented in the API
+              };
+
+              await AssessmentsService.putAssessmentsByAssessmentId({
+                assessmentId: item.entity_id!,
+                requestBody: updateRequestBody
+              });
+
+              // Update local assessment status to synced
+              const updatedAssessment = await offlineDB.getAssessment(item.entity_id!);
+              if (updatedAssessment) {
+                updatedAssessment.sync_status = 'synced';
+                updatedAssessment.local_changes = false;
+                updatedAssessment.last_synced = new Date().toISOString();
+                await offlineDB.saveAssessment(updatedAssessment);
+                result.updated++;
+              }
+              break;
+            }
+            case 'delete': {
+              // Delete from server if it's not a temporary ID
+              if (!item.entity_id?.startsWith('temp-')) {
+                await AssessmentsService.deleteAssessmentsByAssessmentId({ assessmentId: item.entity_id! });
+              } else {
+                console.warn(`🗑️ Skipping server delete for temporary ID ${item.entity_id}`);
+              }
+
+              // Local assessment should already be deleted, just confirm sync queue removal
+              result.deleted++;
+              console.log(`✅ Successfully synced assessment deletion for ID: ${item.entity_id}`);
+              break;
+            }
+            default:
+              console.warn(`Unknown assessment sync operation: ${item.operation}`);
           }
+          await offlineDB.removeFromSyncQueue(item.id);
         } catch (error) {
-          console.error(`❌ Failed to sync pending assessment ${pendingAssessment.assessment_id}:`, error);
-          result.errors.push(`Failed to sync assessment ${pendingAssessment.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          console.error(`❌ Failed to sync assessment operation ${item.operation} for ID ${item.entity_id}:`, error);
+          result.errors.push(`Failed to sync assessment ${item.entity_id} (${item.operation}): ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+          // Increment retry count and update sync queue item
+          item.retry_count++;
+          if (item.retry_count >= item.max_retries) {
+            // Mark as failed if max retries reached and it's not a deletion (since local is already gone)
+            if (item.operation !== 'delete') {
+              const failedAssessment = await offlineDB.getAssessment(item.entity_id!);
+              if (failedAssessment) {
+                failedAssessment.sync_status = 'failed';
+                await offlineDB.saveAssessment(failedAssessment);
+              }
+            }
+            await offlineDB.removeFromSyncQueue(item.id); // Remove from queue after max retries
+            console.error(`❌ Assessment sync item ${item.id} failed after ${item.max_retries} retries.`);
+          } else {
+            await offlineDB.updateSyncQueueItem(item);
+          }
         }
       }
-
     } catch (error) {
       result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }

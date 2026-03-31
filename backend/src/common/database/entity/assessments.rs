@@ -149,13 +149,13 @@ impl AssessmentsService {
         // Check if a submission exists for this assessment
         let submission = self.submission_service.get_submission_by_assessment_id(id).await?;
 
-        if submission.is_none() {
+        if submission.is_some() {
             return Err(DbErr::Custom(
-                "Cannot delete assessment: No submission found. Assessment can only be deleted after submission has been created.".to_string()
+                "Cannot delete assessment: Submission exists. Submitted assessments cannot be deleted to maintain historical integrity.".to_string()
             ));
         }
 
-        // If submission exists, proceed with deletion (cascade will handle assessment_response deletion)
+        // Proceed with deletion if no submission exists (draft)
         self.db_service.delete(id).await
     }
 
@@ -240,8 +240,19 @@ mod tests {
         let found = found.unwrap();
         assert_eq!(found.org_id, assessment.org_id);
 
-        // Test delete assessment
-        let delete_result = assessments_service
+        // Test delete assessment (without submission - draft)
+        // Clear previous mock results for submissions_db to return None
+        let submissions_db_no = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results([
+                vec![] as Vec<SubmissionModel>,
+            ])
+            .into_connection();
+        let assessments_service_no = AssessmentsService {
+            db_service: assessments_service.db_service.clone(),
+            submission_service: AssessmentsSubmissionService::new(Arc::new(submissions_db_no)),
+        };
+
+        let delete_result = assessments_service_no
             .delete_assessment(assessment.assessment_id)
             .await?;
         assert_eq!(delete_result.rows_affected, 1);
@@ -295,11 +306,14 @@ mod tests {
             language: "en".to_string(),
             name: "Test Assessment".to_string(),
             created_at: Utc::now(),
+            org_name: "Test Org".to_string(),
+            is_active: true,
         };
 
         let mock_submission = SubmissionModel {
             submission_id: assessment_id,
             org_id: "test_org".to_string(),
+            org_name: "Test Org".to_string(),
             content: json!({}),
             submitted_at: Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -413,8 +427,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_delete_assessment_without_submission_fails() -> Result<(), Box<dyn std::error::Error>> {
-        use crate::common::database::entity::assessments_submission::Model as SubmissionModel;
+    async fn test_delete_assessment_with_submission_fails() -> Result<(), Box<dyn std::error::Error>> {
+        use crate::common::database::entity::assessments_submission::{Model as SubmissionModel, SubmissionStatus};
+        use serde_json::json;
 
         let assessment_id = Uuid::new_v4();
 
@@ -435,7 +450,15 @@ mod tests {
 
         let submissions_db = MockDatabase::new(DatabaseBackend::Postgres)
             .append_query_results([
-                vec![] as Vec<SubmissionModel>, // get_submission_by_assessment_id result (empty - no submission)
+                vec![SubmissionModel {
+                    submission_id: assessment_id,
+                    org_id: "test_org".to_string(),
+                    org_name: "Test Org".to_string(),
+                    content: json!({}),
+                    submitted_at: Utc::now(),
+                    status: SubmissionStatus::UnderReview,
+                    reviewed_at: None,
+                }], // get_submission_by_assessment_id result (with submission)
             ])
             .into_connection();
 
@@ -449,7 +472,7 @@ mod tests {
             .create_assessment("test_org".to_string(), "en".to_string(), "Test Assessment".to_string(), vec![])
             .await?;
 
-        // Try to delete the assessment without creating a submission - this should fail
+        // Try to delete the assessment with a submission - this should fail
         let delete_result = assessments_service
             .delete_assessment(assessment.assessment_id)
             .await;
@@ -457,9 +480,9 @@ mod tests {
         assert!(delete_result.is_err());
 
         if let Err(DbErr::Custom(msg)) = delete_result {
-            assert!(msg.contains("Cannot delete assessment: No submission found"));
+            assert!(msg.contains("Cannot delete assessment: Submission exists"));
         } else {
-            panic!("Expected custom error about missing submission");
+            panic!("Expected custom error about existing submission");
         }
 
         Ok(())

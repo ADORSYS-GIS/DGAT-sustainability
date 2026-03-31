@@ -156,6 +156,7 @@ mod tests {
         let mock_question = Model {
             question_id: Uuid::new_v4(),
             category_id: Uuid::new_v4(),
+            is_active: true,
             created_at: Utc::now(),
         };
 

@@ -643,6 +643,7 @@ mod tests {
         let mock_question = crate::common::database::entity::questions::Model {
             question_id,
             category_id: Uuid::new_v4(),
+            is_active: true,
             created_at: chrono::Utc::now(),
         };
 

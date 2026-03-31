@@ -104,6 +104,7 @@ impl_database_entity!(Entity, Column::SubmissionId);
 pub struct AssessmentsSubmissionService {
     db_service: DatabaseService<Entity>,
     assessments_service: Option<Arc<super::assessments::AssessmentsService>>,
+    temp_submission_service: Option<Arc<super::temp_submission::TempSubmissionService>>,
 }
 
 #[allow(dead_code)]
@@ -112,11 +113,17 @@ impl AssessmentsSubmissionService {
         Self {
             db_service: DatabaseService::new(db),
             assessments_service: None,
+            temp_submission_service: None,
         }
     }
 
     pub fn with_assessments_service(mut self, assessments_service: Arc<super::assessments::AssessmentsService>) -> Self {
         self.assessments_service = Some(assessments_service);
+        self
+    }
+
+    pub fn with_temp_submission_service(mut self, temp_submission_service: Arc<super::temp_submission::TempSubmissionService>) -> Self {
+        self.temp_submission_service = Some(temp_submission_service);
         self
     }
 
@@ -160,6 +167,19 @@ impl AssessmentsSubmissionService {
                 Err(e) => {
                     // Log the error but don't fail the submission creation
                     eprintln!("Warning: Failed to auto-delete assessment {}: {}", assessment_id, e);
+                }
+            }
+        }
+
+        // Also delete the temporary submission if it exists
+        if let Some(ref temp_submission_service) = self.temp_submission_service {
+            match temp_submission_service.delete_temp_submission(assessment_id).await {
+                Ok(_) => {
+                    tracing::info!("Temporary submission {} automatically deleted after successful final submission", assessment_id);
+                }
+                Err(e) => {
+                     // Log the error but don't fail the submission creation
+                     eprintln!("Warning: Failed to auto-delete temporary submission {}: {}", assessment_id, e);
                 }
             }
         }
@@ -306,6 +326,7 @@ mod tests {
         let mock_submission = Model {
             submission_id: assessment_id,
             org_id: "test_org".to_string(),
+            org_name: "Test Org".to_string(),
             content: json!({"question1": "answer1"}),
             submitted_at: chrono::Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -354,6 +375,7 @@ mod tests {
             .create_submission(
                 assessment_id,
                 "test_user".to_string(),
+                "Test Org".to_string(),
                 json!({"question1": "answer1"}),
                 Some("Test Assessment".to_string()),
             )
@@ -376,6 +398,7 @@ mod tests {
         let mock_submission = Model {
             submission_id: Uuid::new_v4(),
             org_id: "test_org".to_string(),
+            org_name: "Test Org".to_string(),
             content: json!({"question1": "answer1", "question2": "answer2"}),
             submitted_at: Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -402,6 +425,7 @@ mod tests {
             .create_submission(
                 mock_submission.submission_id,
                 "test_user".to_string(),
+                "Test Org".to_string(),
                 json!({"question1": "answer1", "question2": "answer2"}),
                 Some("Test Assessment".to_string()),
             )

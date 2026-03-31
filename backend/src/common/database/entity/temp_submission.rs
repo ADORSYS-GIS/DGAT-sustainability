@@ -216,11 +216,11 @@ mod tests {
         let mock_submission = SubmissionModel {
             submission_id: assessment_id,
             org_id: "test_org".to_string(),
+            org_name: "Test Org".to_string(),
             content: json!({"question1": "answer1"}),
             submitted_at: chrono::Utc::now(),
             status: SubmissionStatus::UnderReview,
             reviewed_at: None,
-            name: Some("Test Assessment".to_string()),
         };
 
         let mock_temp_submission = Model {
