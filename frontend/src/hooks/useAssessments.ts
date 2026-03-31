@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { offlineDB } from "@/services/indexeddb";
+import { syncService } from "@/services/syncService";
 import type { OfflineAssessment, SyncQueueItem, OfflineCategoryCatalog } from "@/types/offline";
 import type { Assessment } from "@/openapi-rq/requests";
 
@@ -219,6 +220,14 @@ export function useDeleteAssessment() {
         };
 
         await offlineDB.addToSyncQueue(syncItem);
+
+        // Trigger immediate sync if online
+        if (navigator.onLine) {
+          console.log('🔄 Triggering immediate sync for assessment deletion');
+          syncService.performFullSync().catch(err =>
+            console.error('❌ Immediate sync failed:', err)
+          );
+        }
       }
 
       return assessmentId;

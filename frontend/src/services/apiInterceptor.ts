@@ -151,11 +151,31 @@ export class ApiInterceptor {
           console.log(`🔍 interceptGet: About to call apiCall() function`);
           const result = await apiCall();
           console.log(`🔍 interceptGet: API call successful for ${entityType}:`, result);
-          console.log(`🔍 interceptGet: Result type:`, typeof result);
-          console.log(`🔍 interceptGet: Result keys:`, Object.keys(result || {}));
-          // Store the result locally for offline access
-          await this.storeLocally(result, entityType);
-          return result;
+
+          // Filter out items that are marked for deletion in the sync queue
+          let processedResult = result;
+          if (entityType === 'draft_assessments' || entityType === 'assessments') {
+            const syncQueue = await offlineDB.getSyncQueue();
+            const pendingDeletes = new Set(
+              syncQueue
+                .filter(item => item.entity_type === 'assessment' && item.operation === 'delete')
+                .map(item => item.entity_id)
+            );
+
+            if (pendingDeletes.size > 0 && result.assessments && Array.isArray(result.assessments)) {
+              console.log(`🔍 interceptGet: Filtering ${pendingDeletes.size} pending deletes from result`);
+              processedResult = {
+                ...result,
+                assessments: (result.assessments as Assessment[]).filter(
+                  a => !pendingDeletes.has(a.assessment_id)
+                )
+              };
+            }
+          }
+
+          // Store the processed result locally for offline access
+          await this.storeLocally(processedResult, entityType);
+          return processedResult;
         } catch (apiError) {
           console.warn(`API call failed for ${entityType}, falling back to local data:`, apiError);
         }
@@ -291,46 +311,52 @@ export class ApiInterceptor {
           }
           break;
         case 'assessments':
-          if (data.assessments && Array.isArray(data.assessments)) {
+        case 'draft_assessments': {
+          const isDraftOnly = entityType === 'draft_assessments';
+          const assessmentsToProcess = Array.isArray(data.assessments)
+            ? data.assessments as Assessment[]
+            : (data.assessment ? [data.assessment as Assessment] : []);
+
+          if (assessmentsToProcess.length > 0 || isDraftOnly) {
+            const syncQueue = await offlineDB.getSyncQueue();
+            const pendingDeletes = new Set(
+              syncQueue
+                .filter(item => item.entity_type === 'assessment' && item.operation === 'delete')
+                .map(item => item.entity_id)
+            );
+
             const categories = await offlineDB.getAllCategoryCatalogs();
             const categoryIdToCategoryMap = new Map(
               categories.map(cat => [cat.category_catalog_id, cat])
             );
-            for (const assessment of data.assessments as Assessment[]) {
-              const offlineAssessment = DataTransformationService.transformAssessment(assessment, categoryIdToCategoryMap);
-              await offlineDB.saveAssessment(offlineAssessment);
+
+            if (isDraftOnly) {
+              const localDrafts = await offlineDB.getAssessmentsByStatus('draft');
+              // Only delete local drafts that are NOT pending sync
+              const draftIdsToDelete = localDrafts
+                .filter(a => a.sync_status !== 'pending')
+                .map(a => a.assessment_id);
+              await offlineDB.deleteAssessments(draftIdsToDelete);
             }
-          } else if (data.assessment) {
-            const categories = await offlineDB.getAllCategoryCatalogs();
-            const categoryIdToCategoryMap = new Map(
-              categories.map(cat => [cat.category_catalog_id, cat])
-            );
-            const offlineAssessment = DataTransformationService.transformAssessment(data.assessment as Assessment, categoryIdToCategoryMap);
-            await offlineDB.saveAssessment(offlineAssessment);
+
+            for (const assessment of assessmentsToProcess) {
+              // Skip if there's a pending delete for this assessment
+              if (pendingDeletes.has(assessment.assessment_id)) {
+                console.log(`🔍 storeLocally: Skipping assessment ${assessment.assessment_id} due to pending delete`);
+                continue;
+              }
+
+              const offlineAssessment = DataTransformationService.transformAssessment(assessment, categoryIdToCategoryMap);
+
+              // Only overwrite if not pending sync locally
+              const existing = await offlineDB.getAssessment(assessment.assessment_id);
+              if (!existing || existing.sync_status !== 'pending') {
+                await offlineDB.saveAssessment(offlineAssessment);
+              }
+            }
           }
           break;
-        case 'draft_assessments':
-          if (data.assessments && Array.isArray(data.assessments)) {
-            const draftAssessments = await offlineDB.getAssessmentsByStatus('draft');
-            const draftAssessmentIds = draftAssessments.map(a => a.assessment_id);
-            await offlineDB.deleteAssessments(draftAssessmentIds);
-            for (const assessment of data.assessments as Assessment[]) {
-              const categories = await offlineDB.getAllCategoryCatalogs();
-              const categoryIdToCategoryMap = new Map(
-                categories.map(cat => [cat.category_catalog_id, cat])
-              );
-              const offlineAssessment = DataTransformationService.transformAssessment(assessment, categoryIdToCategoryMap);
-              await offlineDB.saveAssessment(offlineAssessment);
-            }
-          } else if (data.assessment) {
-            const categories = await offlineDB.getAllCategoryCatalogs();
-            const categoryIdToCategoryMap = new Map(
-              categories.map(cat => [cat.category_catalog_id, cat])
-            );
-            const offlineAssessment = DataTransformationService.transformAssessment(data.assessment as Assessment, categoryIdToCategoryMap);
-            await offlineDB.saveAssessment(offlineAssessment);
-          }
-          break;
+        }
         case 'responses':
           if (data.responses && Array.isArray(data.responses)) {
             for (const response of data.responses as Response[]) {
