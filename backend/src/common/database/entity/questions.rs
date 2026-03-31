@@ -11,6 +11,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub question_id: Uuid,
     pub category_id: Uuid,
+    pub is_active: bool,
     pub created_at: DateTime<Utc>,
 }
 
@@ -60,6 +61,7 @@ impl QuestionsService {
         let question = ActiveModel {
             question_id: Set(Uuid::new_v4()),
             category_id: Set(category_id),
+            is_active: Set(true),
             created_at: Set(Utc::now()),
         };
 
@@ -73,6 +75,14 @@ impl QuestionsService {
     pub async fn get_questions_by_category(&self, category_id: Uuid) -> Result<Vec<Model>, DbErr> {
         Entity::find()
             .filter(Column::CategoryId.eq(category_id))
+            .all(self.db_service.get_connection())
+            .await
+    }
+
+
+    pub async fn get_all_active_questions(&self) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .filter(Column::IsActive.eq(true))
             .all(self.db_service.get_connection())
             .await
     }
@@ -98,6 +108,13 @@ impl QuestionsService {
         }
 
         self.db_service.update(question).await
+    }
+
+    pub async fn update_question_active_model(
+        &self,
+        active_model: ActiveModel,
+    ) -> Result<Model, DbErr> {
+        self.db_service.update(active_model).await
     }
 
     pub async fn delete_question(

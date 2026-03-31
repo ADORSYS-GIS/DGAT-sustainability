@@ -97,6 +97,7 @@ export class DataTransformationService {
       category_id: categoryId || '',
       created_at: question.created_at,
       updated_at: question.created_at,
+      is_active: question.is_active,
       sync_status: 'synced',
       local_changes: false,
       last_synced: question.created_at,
@@ -109,7 +110,7 @@ export class DataTransformationService {
    */
   static transformCategoryCatalog(categoryCatalog: CategoryCatalog): OfflineCategoryCatalog {
     const now = new Date().toISOString();
-    
+
     return {
       ...categoryCatalog,
       question_count: 0, // Will be calculated when questions are loaded
@@ -169,17 +170,17 @@ export class DataTransformationService {
     assessmentId?: string
   ): OfflineResponse {
     const now = new Date().toISOString();
-    
+
     // Handle both Response objects (from API) and CreateResponseRequest objects (for creation)
     const responseId = 'response_id' in response ? response.response_id : crypto.randomUUID();
     const assessmentIdValue = 'assessment_id' in response ? response.assessment_id : assessmentId;
     const version = 'version' in response ? response.version : 1;
     const updatedAt = 'updated_at' in response ? response.updated_at : now;
-    
+
     // Determine sync status based on whether this is a new response or from API
     const isNewResponse = !('response_id' in response) || (typeof responseId === 'string' && responseId.startsWith('temp_'));
     const syncStatus = isNewResponse ? 'pending' as const : 'synced' as const;
-    
+
     return {
       response_id: responseId,
       assessment_id: assessmentIdValue || '',
@@ -206,7 +207,7 @@ export class DataTransformationService {
     reviewerEmail?: string
   ): OfflineSubmission {
     const now = new Date().toISOString();
-    
+
     return {
       submission_id: submission.submission_id || '',
       assessment_id: submission.assessment_id || '',
@@ -238,7 +239,7 @@ export class DataTransformationService {
     reviewerEmail?: string
   ): OfflineDraftSubmission {
     const now = new Date().toISOString();
-    
+
     return {
       submission_id: submission.submission_id || `temp_draft_${crypto.randomUUID()}`,
       assessment_id: submission.assessment_id || '',
@@ -266,7 +267,7 @@ export class DataTransformationService {
     reviewerEmail?: string
   ): OfflineSubmission {
     const now = new Date().toISOString();
-    
+
     // Convert AdminSubmissionDetail to regular Submission format for IndexedDB
     const submission: Submission = {
       submission_id: adminSubmission.submission_id,
@@ -278,7 +279,7 @@ export class DataTransformationService {
       submitted_at: adminSubmission.submitted_at,
       reviewed_at: adminSubmission.reviewed_at
     };
-    
+
     return {
       ...submission,
       organization_id: userOrganizationId || (adminSubmission.org_id || 'unknown'),
@@ -325,7 +326,7 @@ export class DataTransformationService {
     userId?: string
   ): OfflineReport {
     const now = new Date().toISOString();
-    
+
     return {
       ...report,
       organization_id: userOrganizationId,
@@ -358,7 +359,7 @@ export class DataTransformationService {
    */
   static transformOrganization(organization: Organization): OfflineOrganization {
     const now = new Date().toISOString();
-    
+
     const domains = (organization.attributes?.domains && Array.isArray(organization.attributes.domains))
       ? organization.attributes.domains
       : [];
@@ -393,7 +394,7 @@ export class DataTransformationService {
    */
   static transformOrganizationResponseToOffline(organizationResponse: OrganizationResponse): OfflineOrganization {
     const now = new Date().toISOString();
-    
+
     // Ensure 'id' is present, it should be for a valid organization response
     if (!organizationResponse.id) {
       throw new Error('OrganizationResponse missing required id for transformation to OfflineOrganization');
@@ -432,7 +433,7 @@ export class DataTransformationService {
     organizationId: string
   ): OfflineUser {
     const now = new Date().toISOString();
-    
+
     return {
       ...user,
       organization_id: organizationId,
@@ -456,7 +457,7 @@ export class DataTransformationService {
     organizationName?: string
   ): OfflineInvitation {
     const now = new Date().toISOString();
-    
+
     return {
       ...invitation,
       inviter_email: inviterEmail,
@@ -502,22 +503,22 @@ export class DataTransformationService {
         questionRevisionMap.set(question.latest_revision.question_revision_id, question);
       }
     });
-    
+
     return responses.map(response => {
       const question = questionRevisionMap.get(response.question_revision_id);
       let questionText = '';
       if (question?.latest_revision?.text) {
         const text = question.latest_revision.text;
         if (typeof text === 'object' && text !== null) {
-          questionText = (text as Record<string, unknown>)[language] as string || 
-                        (text as Record<string, unknown>).en as string || 
-                        Object.values(text).find(val => typeof val === 'string') as string || '';
+          questionText = (text as Record<string, unknown>)[language] as string ||
+            (text as Record<string, unknown>).en as string ||
+            Object.values(text).find(val => typeof val === 'string') as string || '';
         } else if (typeof text === 'string') {
           questionText = text;
         }
       }
       const questionCategory = (question as Question & { category: string })?.category || '';
-      
+
       return this.transformResponse(response, questionText, questionCategory);
     });
   }
@@ -530,7 +531,7 @@ export class DataTransformationService {
     userOrganizationId?: string,
     reviewerEmail?: string
   ): OfflineSubmission[] {
-    return submissions.map(submission => 
+    return submissions.map(submission =>
       this.transformSubmission(submission, userOrganizationId, reviewerEmail)
     );
   }
@@ -559,7 +560,7 @@ export class DataTransformationService {
     userOrganizationId?: string,
     userId?: string
   ): OfflineReport[] {
-    return reports.map(report => 
+    return reports.map(report =>
       this.transformReport(report, userOrganizationId, userId)
     );
   }
@@ -582,7 +583,7 @@ export class DataTransformationService {
     inviterEmail?: string,
     organizationName?: string
   ): OfflineInvitation[] {
-    return invitations.map(invitation => 
+    return invitations.map(invitation =>
       this.transformInvitation(invitation, inviterEmail, organizationName)
     );
   }
@@ -593,12 +594,12 @@ export class DataTransformationService {
   private static generateSearchText(question: Question): string {
     const text = question.latest_revision?.text;
     if (!text) return '';
-    
+
     // Extract text from multilingual object
     const searchableText = Object.values(text)
       .filter(val => typeof val === 'string')
       .join(' ');
-    
+
     return searchableText.toLowerCase();
   }
 
@@ -607,24 +608,24 @@ export class DataTransformationService {
    */
   private static generatePermissions(roles: string[] | undefined): string[] {
     const permissions: string[] = [];
-    
+
     if (!roles || !Array.isArray(roles)) {
       console.warn('⚠️ No roles provided for user, using default permissions');
       return ['view_own_data']; // Default minimal permissions
     }
-    
+
     if (roles.includes('drgv_admin')) {
       permissions.push('admin_all', 'manage_organizations', 'manage_users', 'manage_categories', 'manage_questions', 'review_submissions');
     }
-    
+
     if (roles.includes('org_admin')) {
       permissions.push('manage_Org_Users', 'create_assessments', 'view_org_data', 'manage_org_settings');
     }
-    
+
     if (roles.includes('Org_User')) {
       permissions.push('answer_assessments', 'view_own_data', 'export_reports');
     }
-    
+
     return permissions;
   }
 
@@ -731,7 +732,7 @@ export class DataTransformationService {
     const normalizedCategory = normalizeText(category);
     const normalizedText = normalizeText(recommendationText);
     const contentString = `${reportId}|${normalizedCategory}|${normalizedText}`;
-    
+
     // Simple hash function to generate a consistent ID
     let hash = 0;
     for (let i = 0; i < contentString.length; i++) {
@@ -739,7 +740,7 @@ export class DataTransformationService {
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    
+
     // Convert to positive hex string and ensure it's a valid UUID format
     const positiveHash = Math.abs(hash).toString(16).padStart(8, '0');
     return `${positiveHash.substring(0, 8)}-${positiveHash.substring(0, 4)}-${positiveHash.substring(0, 4)}-${positiveHash.substring(0, 4)}-${positiveHash.substring(0, 12)}`;
@@ -804,15 +805,15 @@ export class DataTransformationService {
     const now = new Date().toISOString();
     const recommendations = actionPlan.recommendations.map(
       (rec) =>
-        ({
-          ...rec,
-          organization_id: actionPlan.organization_id,
-          organization_name: actionPlan.organization_name,
-          updated_at: now,
-          sync_status: 'synced' as const,
-          local_changes: false,
-          last_synced: now,
-        } as OfflineRecommendation)
+      ({
+        ...rec,
+        organization_id: actionPlan.organization_id,
+        organization_name: actionPlan.organization_name,
+        updated_at: now,
+        sync_status: 'synced' as const,
+        local_changes: false,
+        last_synced: now,
+      } as OfflineRecommendation)
     );
 
     return {

@@ -22,6 +22,7 @@ mod m20250916_000016_add_categories_to_assessments;
 mod m20250917_000017_create_assessment_categories_join_table;
 mod m20251010_082000_refactor_questions_category_link;
 mod m20251104_153200_add_org_name_to_submissions;
+mod m20260331_114000_add_is_active_to_questions;
 
 pub struct Migrator;
 
@@ -51,6 +52,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250917_000017_create_assessment_categories_join_table::Migration),
             Box::new(m20251010_082000_refactor_questions_category_link::Migration),
             Box::new(m20251104_153200_add_org_name_to_submissions::Migration),
+            Box::new(m20260331_114000_add_is_active_to_questions::Migration),
         ]
     }
 }

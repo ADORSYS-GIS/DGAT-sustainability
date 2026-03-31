@@ -36,15 +36,15 @@ export type { OfflineCategoryCatalog };
 class OfflineDB {
   private dbPromise: Promise<IDBPDatabase<OfflineDatabaseSchema>>;
   private readonly DB_NAME = "dgat-offline-db";
-  private readonly DB_VERSION = 12; // Increment DB_VERSION to trigger upgrade
+  private readonly DB_VERSION = 13; // Increment DB_VERSION to trigger upgrade
 
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
-      upgrade: (db, oldVersion, newVersion) => {
+      upgrade: (db, oldVersion, newVersion, transaction) => {
         console.log(`Upgrading database from version ${oldVersion} to ${newVersion}`);
         // The createObjectStores function is idempotent and will create any missing stores.
         // Calling it on every upgrade is a safe way to ensure all stores are present.
-        this.createObjectStores(db);
+        this.createObjectStores(db, transaction);
       },
       blocked: () => {
         console.warn("IndexedDB upgrade is blocked. Please close other tabs.");
@@ -70,7 +70,7 @@ class OfflineDB {
     }
   }
 
-  private createObjectStores(db: IDBPDatabase<OfflineDatabaseSchema>) {
+  private createObjectStores(db: IDBPDatabase<OfflineDatabaseSchema>, transaction?: any) {
     // Check if object stores already exist before creating them
     const existingStores = Array.from(db.objectStoreNames);
 
@@ -80,6 +80,13 @@ class OfflineDB {
       questionsStore.createIndex("category", "category", { unique: false });
       questionsStore.createIndex("sync_status", "sync_status", { unique: false });
       questionsStore.createIndex("updated_at", "updated_at", { unique: false });
+      questionsStore.createIndex("is_active", "is_active", { unique: false });
+    } else if (transaction) {
+      // If store exists, we handle adding index in the upgrade callback using the transaction
+      const store = transaction.objectStore("questions");
+      if (!store.indexNames.contains("is_active")) {
+        store.createIndex("is_active", "is_active", { unique: false });
+      }
     }
 
     // Category Catalogs store with indexes
@@ -89,7 +96,7 @@ class OfflineDB {
       categoryCatalogsStore.createIndex("sync_status", "sync_status", { unique: false });
       categoryCatalogsStore.createIndex("updated_at", "updated_at", { unique: false });
     }
-    
+
     // Assessments store with indexes
     if (!existingStores.includes("assessments")) {
       const assessmentsStore = db.createObjectStore("assessments", { keyPath: "assessment_id" });
@@ -314,16 +321,24 @@ class OfflineDB {
     return db.get("questions", questionId);
   }
 
-  async getAllQuestions(): Promise<OfflineQuestion[]> {
+  async getAllQuestions(includeInactive = false): Promise<OfflineQuestion[]> {
     const db = await this.dbPromise;
-    return db.getAll("questions");
+    const all = await db.getAll("questions");
+    if (includeInactive) {
+      return all;
+    }
+    return all.filter(q => q.is_active !== false);
   }
 
-  async getQuestionsByCategory(categoryId: string): Promise<OfflineQuestion[]> {
+  async getQuestionsByCategory(categoryId: string, includeInactive = false): Promise<OfflineQuestion[]> {
     const db = await this.dbPromise;
     const tx = db.transaction("questions", "readonly");
-    const index = tx.store.index("category_id");
-    return index.getAll(categoryId);
+    const index = tx.store.index("category");
+    const questions = await index.getAll(categoryId);
+    if (includeInactive) {
+      return questions;
+    }
+    return questions.filter(q => q.is_active !== false);
   }
 
   async searchQuestions(searchText: string): Promise<OfflineQuestion[]> {
@@ -438,29 +453,29 @@ class OfflineDB {
     const result = await db.put("category_catalogs", categoryCatalog);
     return result as string;
   }
-  
+
   async saveCategoryCatalogs(categoryCatalogs: OfflineCategoryCatalog[]): Promise<void> {
     const db = await this.dbPromise;
     const tx = db.transaction("category_catalogs", "readwrite");
     await Promise.all(categoryCatalogs.map(c => tx.store.put(c)));
     await tx.done;
   }
-  
+
   async getCategoryCatalog(categoryCatalogId: string): Promise<OfflineCategoryCatalog | undefined> {
     const db = await this.dbPromise;
     return db.get("category_catalogs", categoryCatalogId);
   }
-  
+
   async getAllCategoryCatalogs(): Promise<OfflineCategoryCatalog[]> {
     const db = await this.dbPromise;
     return db.getAll("category_catalogs");
   }
-  
+
   async deleteCategoryCatalog(categoryCatalogId: string): Promise<void> {
     const db = await this.dbPromise;
     await db.delete("category_catalogs", categoryCatalogId);
   }
-  
+
   async getOrganizationCategories(organizationId: string): Promise<OfflineCategoryCatalog[]> {
     const db = await this.dbPromise;
     const tx = db.transaction(["organization_categories", "category_catalogs"], "readonly");
@@ -820,7 +835,7 @@ class OfflineDB {
   // ===== DATABASE STATISTICS =====
   async updateDatabaseStats(): Promise<void> {
     const db = await this.dbPromise;
-    
+
     const [
       questions,
       assessments,
@@ -890,7 +905,7 @@ class OfflineDB {
 
   async clearAllData(): Promise<void> {
     const db = await this.dbPromise;
-    
+
     // Delete all object stores
     const objectStoreNames = Array.from(db.objectStoreNames);
     for (const storeName of objectStoreNames) {
@@ -899,13 +914,13 @@ class OfflineDB {
       await store.clear();
       await tx.done;
     }
-    
+
     // Close the database connection
     db.close();
-    
+
     // Delete the database completely
     await deleteDB(this.DB_NAME);
-    
+
     // Recreate the database by reopening it
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
       upgrade: (db, oldVersion, newVersion) => {
@@ -917,10 +932,10 @@ class OfflineDB {
   async deleteDatabase(): Promise<void> {
     const db = await this.dbPromise;
     db.close();
-    
+
     // Delete the database completely
     await deleteDB(this.DB_NAME);
-    
+
     // Recreate the database
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
       upgrade: (db, oldVersion, newVersion) => {
@@ -939,25 +954,25 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("questions", "readonly");
     const store = tx.store;
-    
+
     let questions = await store.getAll();
-    
+
     if (filters.category_id) {
       questions = questions.filter(q => q.category_id === filters.category_id);
     }
-    
+
     if (filters.search_text) {
       const searchLower = filters.search_text.toLowerCase();
-      questions = questions.filter(q => 
+      questions = questions.filter(q =>
         q.search_text?.toLowerCase().includes(searchLower) ||
         q.latest_revision.text.toString().toLowerCase().includes(searchLower)
       );
     }
-    
+
     if (filters.is_active !== undefined) {
       questions = questions.filter(q => q.sync_status !== 'failed');
     }
-    
+
     return questions;
   }
 
@@ -965,29 +980,29 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("assessments", "readonly");
     const store = tx.store;
-    
+
     let assessments = await store.getAll();
-    
+
     if (filters.user_id) {
       assessments = assessments.filter(a => a.user_id === filters.user_id);
     }
-    
+
     if (filters.organization_id) {
       assessments = assessments.filter(a => a.organization_id === filters.organization_id);
     }
-    
+
     if (filters.status) {
       assessments = assessments.filter(a => a.status === filters.status);
     }
-    
+
     if (filters.created_after) {
       assessments = assessments.filter(a => a.created_at >= filters.created_after);
     }
-    
+
     if (filters.created_before) {
       assessments = assessments.filter(a => a.created_at <= filters.created_before);
     }
-    
+
     return assessments;
   }
 
@@ -995,25 +1010,25 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("responses", "readonly");
     const store = tx.store;
-    
+
     let responses = await store.getAll();
-    
+
     if (filters.assessment_id) {
       responses = responses.filter(r => r.assessment_id === filters.assessment_id);
     }
-    
+
     if (filters.question_category) {
       responses = responses.filter(r => r.question_category === filters.question_category);
     }
-    
+
     if (filters.is_draft !== undefined) {
       responses = responses.filter(r => r.is_draft === filters.is_draft);
     }
-    
+
     if (filters.updated_after) {
       responses = responses.filter(r => r.updated_at >= filters.updated_after);
     }
-    
+
     return responses;
   }
 
@@ -1021,29 +1036,29 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("submissions", "readonly");
     const store = tx.store;
-    
+
     let submissions = await store.getAll();
-    
+
     if (filters.user_id) {
       submissions = submissions.filter(s => s.user_id === filters.user_id);
     }
-    
+
     if (filters.organization_id) {
       submissions = submissions.filter(s => s.organization_id === filters.organization_id);
     }
-    
+
     if (filters.review_status) {
       submissions = submissions.filter(s => s.review_status === filters.review_status);
     }
-    
+
     if (filters.submitted_after) {
       submissions = submissions.filter(s => s.submitted_at >= filters.submitted_after);
     }
-    
+
     if (filters.submitted_before) {
       submissions = submissions.filter(s => s.submitted_at <= filters.submitted_before);
     }
-    
+
     return submissions;
   }
 
@@ -1051,9 +1066,9 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("users", "readonly");
     const store = tx.objectStore("users");
-    
+
     let users = await store.getAll();
-    
+
     // Apply filters
     if (filters.organization_id) { // Renamed from organizationId
       users = users.filter(user => user.organization_id === filters.organization_id);
@@ -1074,7 +1089,7 @@ class OfflineDB {
         user.last_name?.toLowerCase().includes(searchLower)
       );
     }
-    
+
     return users;
   }
 
@@ -1099,7 +1114,7 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("pending_review_submissions", "readonly");
     const store = tx.objectStore("pending_review_submissions");
-    
+
     let pendingReviews = await store.getAll();
 
     if (submissionId) {
@@ -1119,13 +1134,13 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("pending_review_submissions", "readwrite");
     const store = tx.objectStore("pending_review_submissions");
-    
+
     const pendingReview = await store.get(id);
     if (pendingReview) {
       const updatedReview = { ...pendingReview, ...updates, timestamp: new Date().toISOString() };
       await store.put(updatedReview);
     }
-    
+
     await tx.done;
   }
 
@@ -1159,7 +1174,7 @@ class OfflineDB {
     const index = tx.store.index("organization_id");
     return index.getAll(organizationId);
   }
-  
+
   async getRecommendationsByReportId(reportId: string): Promise<OfflineRecommendation[]> {
     const db = await this.dbPromise;
     const tx = db.transaction("recommendations", "readonly");
@@ -1171,7 +1186,7 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("recommendations", "readwrite");
     const store = tx.objectStore("recommendations");
-    
+
     const recommendation = await store.get(recommendationId);
     if (recommendation) {
       recommendation.status = status;
@@ -1179,7 +1194,7 @@ class OfflineDB {
       recommendation.updated_at = new Date().toISOString();
       await store.put(recommendation);
     }
-    
+
     await tx.done;
   }
 
@@ -1192,7 +1207,7 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("pending_review_submissions", "readwrite");
     const store = tx.objectStore("pending_review_submissions");
-    
+
     await store.delete(id);
     await tx.done;
   }
@@ -1204,10 +1219,10 @@ class OfflineDB {
     const db = await this.dbPromise;
     const tx = db.transaction("responses", "readwrite");
     const store = tx.objectStore("responses");
-    
+
     const allResponses = await store.getAll();
     let deletedCount = 0;
-    
+
     for (const response of allResponses) {
       if (!response.assessment_id || response.assessment_id.trim() === '') {
         console.warn('🧹 Cleaning up invalid response with empty assessment_id:', response.response_id);
@@ -1215,7 +1230,7 @@ class OfflineDB {
         deletedCount++;
       }
     }
-    
+
     await tx.done;
     console.log(`🧹 Cleaned up ${deletedCount} invalid responses`);
     return deletedCount;

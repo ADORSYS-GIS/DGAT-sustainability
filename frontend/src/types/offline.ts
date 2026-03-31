@@ -63,6 +63,7 @@ export interface OfflineQuestion extends Omit<Question, 'latest_revision'>, Offl
   revisions: QuestionRevision[];
   category: string;
   category_id: string;
+  is_active: boolean;
   search_text?: string; // For efficient text search
   latest_revision: QuestionRevision & { text: Record<string, string> };
   order?: number;
@@ -121,7 +122,7 @@ export interface OfflineReport extends Report, OfflineEntity {
 }
 
 // Enhanced AdminReport with offline fields
-export interface OfflineAdminReport extends AdminReport, OfflineEntity {}
+export interface OfflineAdminReport extends AdminReport, OfflineEntity { }
 
 // Enhanced Recommendation with offline fields
 export interface OfflineRecommendation extends RecommendationWithStatus, OfflineEntity {

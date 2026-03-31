@@ -7,6 +7,7 @@ use axum::{
 use sea_orm::{ActiveModelTrait, EntityTrait, ModelTrait, TransactionTrait, Set};
 use uuid::Uuid;
 
+use std::collections::HashMap;
 use crate::common::models::claims::Claims;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
@@ -389,9 +390,38 @@ pub async fn get_assessment(
             });
         }
 
+        // Fetch the question revisions for these responses to provide context (even if archived)
+        let mut questions = Vec::new();
+        let mut revision_ids: Vec<Uuid> = responses.iter().map(|r| r.question_revision_id).collect();
+        revision_ids.sort();
+        revision_ids.dedup();
+
+        for rid in revision_ids {
+            if let Some(rev) = app_state.database.questions_revisions.get_revision_by_id(rid).await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch revision: {}", e)))? {
+                
+                let text_map: HashMap<String, String> = if let Some(obj) = rev.text.as_object() {
+                    obj.iter()
+                        .map(|(k, v)| (k.clone(), v.as_str().unwrap_or_default().to_string()))
+                        .collect()
+                } else {
+                    HashMap::new()
+                };
+
+                questions.push(crate::web::api::models::QuestionRevision {
+                    question_revision_id: rev.question_revision_id,
+                    question_id: rev.question_id,
+                    text: text_map,
+                    weight: rev.weight as f64,
+                    created_at: rev.created_at.to_rfc3339(),
+                });
+            }
+        }
+
         Ok(Json(AssessmentWithResponsesResponse {
             assessment,
             responses,
+            questions,
         }))
     })
 }

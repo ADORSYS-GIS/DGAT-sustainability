@@ -125,6 +125,7 @@ pub struct DatabaseMetrics {
 pub struct Question {
     pub question_id: Uuid,
     pub category: String,
+    pub is_active: bool,
     pub created_at: String,
     pub latest_revision: QuestionRevision,
 }
@@ -234,6 +235,7 @@ pub struct AssessmentResponse {
 pub struct AssessmentWithResponsesResponse {
     pub assessment: Assessment,
     pub responses: Vec<Response>,
+    pub questions: Vec<QuestionRevision>,
 }
 
 // =============== Response Models ===============

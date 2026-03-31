@@ -28,11 +28,11 @@ pub struct QuestionRevisionQuery {
 pub async fn list_questions(
     State(app_state): State<AppState>,
 ) -> Result<Json<QuestionListResponse>, ApiError> {
-    // Fetch all questions from the database
+    // Fetch all active questions from the database
     let db_questions = app_state
         .database
         .questions
-        .get_all_questions()
+        .get_all_active_questions()
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch questions: {e}")))?;
 
@@ -71,6 +71,7 @@ pub async fn list_questions(
             let question = Question {
                 question_id: db_question.question_id,
                 category: category.name,
+                is_active: db_question.is_active,
                 created_at: db_question.created_at.to_rfc3339(),
                 latest_revision: QuestionRevision {
                     question_revision_id: revision_model.question_revision_id,
@@ -143,6 +144,7 @@ pub async fn create_question(
     let question = Question {
         question_id: question_model.question_id,
         category: category.name,
+        is_active: question_model.is_active,
         created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
@@ -249,6 +251,7 @@ pub async fn get_question(
     let question = Question {
         question_id: question_model.question_id,
         category: category.name,
+        is_active: question_model.is_active,
         created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision.question_revision_id,
@@ -325,6 +328,7 @@ pub async fn update_question(
     let question = Question {
         question_id: updated_question_model.question_id,
         category: category.name,
+        is_active: updated_question_model.is_active,
         created_at: updated_question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
@@ -429,9 +433,16 @@ pub async fn delete_question(
             .map_err(|e| ApiError::InternalServerError(format!("Failed to check assessment responses: {e}")))?;
 
         if has_responses {
-            return Err(ApiError::BadRequest(
-                "Cannot delete question: One or more of its revisions are currently being used in assessment responses.".to_string()
-            ));
+            // Soft delete: set is_active = false
+            let mut question_active_model: crate::common::database::entity::questions::ActiveModel = question_exists.unwrap().into();
+            question_active_model.is_active = sea_orm::Set(false);
+            
+            app_state.database.questions.clone()
+                .update_question_active_model(question_active_model)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to archive question: {e}")))?;
+                
+            return Ok(StatusCode::NO_CONTENT);
         }
     }
 
