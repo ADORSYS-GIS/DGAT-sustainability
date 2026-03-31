@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { offlineDB } from "@/services/indexeddb";
 import { syncService } from "@/services/syncService";
+import { apiInterceptor } from "@/services/apiInterceptor";
+import { AssessmentsService } from "@/openapi-rq/requests/services.gen";
 import type { OfflineAssessment, SyncQueueItem, OfflineCategoryCatalog } from "@/types/offline";
 import type { Assessment } from "@/openapi-rq/requests";
 
@@ -185,52 +187,15 @@ export function useDeleteAssessment() {
 
   return useMutation({
     mutationFn: async (assessmentId: string) => {
-      // If it's a temp ID, check if we can just cancel the pending create
-      if (assessmentId.startsWith('temp-')) {
-        const syncQueue = await offlineDB.getSyncQueue();
-        const pendingCreate = syncQueue.find(
-          item => item.entity_type === 'assessment' &&
-            item.entity_id === assessmentId &&
-            item.operation === 'create'
-        );
-
-        if (pendingCreate) {
-          console.log(`🗑️ Cancelling pending create for ${assessmentId}`);
-          await offlineDB.removeFromSyncQueue(pendingCreate.id);
+      return apiInterceptor.interceptMutation(
+        () => AssessmentsService.deleteAssessmentsByAssessmentId({ assessmentId }),
+        async () => {
           await offlineDB.deleteAssessment(assessmentId);
-          return assessmentId;
-        }
-      }
-
-      // Normal deletion flow
-      await offlineDB.deleteAssessment(assessmentId);
-
-      // Only add to sync queue if it's not a temp ID
-      if (!assessmentId.startsWith('temp-')) {
-        const syncItem: SyncQueueItem<{ assessment_id: string }> = {
-          id: uuidv4(),
-          entity_type: "assessment",
-          entity_id: assessmentId,
-          operation: "delete",
-          data: { assessment_id: assessmentId },
-          retry_count: 0,
-          max_retries: 5,
-          priority: "normal",
-          created_at: new Date().toISOString(),
-        };
-
-        await offlineDB.addToSyncQueue(syncItem);
-
-        // Trigger immediate sync if online
-        if (navigator.onLine) {
-          console.log('🔄 Triggering immediate sync for assessment deletion');
-          syncService.performFullSync().catch(err =>
-            console.error('❌ Immediate sync failed:', err)
-          );
-        }
-      }
-
-      return assessmentId;
+        },
+        { assessment_id: assessmentId },
+        "assessment",
+        "delete"
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ASSESSMENTS_QUERY_KEY] });

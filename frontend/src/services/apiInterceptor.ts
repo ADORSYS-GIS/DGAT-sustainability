@@ -198,7 +198,7 @@ export class ApiInterceptor {
   /**
    * Intercept mutation requests (POST, PUT, DELETE) with offline-first behavior
    */
-  async interceptMutation<T extends Record<string, unknown>>(
+  async interceptMutation<T extends Record<string, unknown> | void>(
     apiCall: () => Promise<T>,
     localMutation: (data: Record<string, unknown>) => Promise<void>,
     data: Record<string, unknown>,
@@ -444,10 +444,12 @@ export class ApiInterceptor {
   /**
    * Update local data with server response
    */
-  private async updateLocalData(data: Record<string, unknown>, entityType: string): Promise<void> {
+  private async updateLocalData(data: Record<string, unknown> | void, entityType: string): Promise<void> {
     // This method is called when we get a successful API response
     // We can use it to update local data with the server response
-    await this.storeLocally(data, entityType);
+    if (data) {
+      await this.storeLocally(data as Record<string, unknown>, entityType);
+    }
   }
 
   /**
