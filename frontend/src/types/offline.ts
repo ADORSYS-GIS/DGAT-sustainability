@@ -66,7 +66,7 @@ export interface OfflineQuestion extends Omit<Question, 'latest_revision'>, Offl
   is_active: boolean;
   search_text?: string; // For efficient text search
   latest_revision: QuestionRevision & { text: Record<string, string> };
-  order?: number;
+  display_order: number;
 }
 
 // Enhanced Assessment with offline fields

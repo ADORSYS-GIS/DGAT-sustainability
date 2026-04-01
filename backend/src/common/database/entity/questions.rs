@@ -2,7 +2,7 @@ use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
-use sea_orm::{DeleteResult, Set};
+use sea_orm::{DeleteResult, Set, QueryOrder};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -12,6 +12,7 @@ pub struct Model {
     pub question_id: Uuid,
     pub category_id: Uuid,
     pub is_active: bool,
+    pub display_order: i32,
     pub created_at: DateTime<Utc>,
 }
 
@@ -57,11 +58,12 @@ impl QuestionsService {
         }
     }
 
-    pub async fn create_question(&self, category_id: Uuid) -> Result<Model, DbErr> {
+    pub async fn create_question(&self, category_id: Uuid, display_order: i32) -> Result<Model, DbErr> {
         let question = ActiveModel {
             question_id: Set(Uuid::new_v4()),
             category_id: Set(category_id),
             is_active: Set(true),
+            display_order: Set(display_order),
             created_at: Set(Utc::now()),
         };
 
@@ -75,6 +77,7 @@ impl QuestionsService {
     pub async fn get_questions_by_category(&self, category_id: Uuid) -> Result<Vec<Model>, DbErr> {
         Entity::find()
             .filter(Column::CategoryId.eq(category_id))
+            .order_by_asc(Column::DisplayOrder)
             .all(self.db_service.get_connection())
             .await
     }
@@ -95,16 +98,21 @@ impl QuestionsService {
         &self,
         id: Uuid,
         category_id: Option<Uuid>,
+        display_order: Option<i32>,
     ) -> Result<Model, DbErr> {
         let question = self
             .get_question_by_id(id)
             .await?
-            .ok_or(DbErr::Custom("Question not found".to_string()))?;
+            .ok_or(DbErr::RecordNotFound("Question not found".to_string()))?;
 
         let mut question: ActiveModel = question.into();
 
-        if let Some(category_id) = category_id {
-            question.category_id = Set(category_id);
+        if let Some(cat_id) = category_id {
+            question.category_id = Set(cat_id);
+        }
+
+        if let Some(order) = display_order {
+            question.display_order = Set(order);
         }
 
         self.db_service.update(question).await

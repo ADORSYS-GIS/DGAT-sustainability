@@ -98,6 +98,7 @@ export class DataTransformationService {
       created_at: question.created_at,
       updated_at: question.created_at,
       is_active: question.is_active,
+      display_order: (question as any).display_order || 0,
       sync_status: 'synced',
       local_changes: false,
       last_synced: question.created_at,

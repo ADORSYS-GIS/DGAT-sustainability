@@ -38,7 +38,7 @@ export function useOfflineQuestionsMutation() {
   // CREATE MUTATION
   const createQuestionMutation = useMutation({
     networkMode: 'always',
-    mutationFn: async (question: CreateQuestionRequest & { order?: number }) => {
+    mutationFn: async (question: CreateQuestionRequest & { display_order?: number }) => {
       const categories = queryClient.getQueryData<OfflineCategoryCatalog[]>(['category-catalogs']) || [];
       const categoryMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
       const categoryName = categoryMap.get(question.category_id) || "Unknown Category";
@@ -51,7 +51,7 @@ export function useOfflineQuestionsMutation() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         sync_status: 'pending',
-        order: question.order,
+        display_order: question.display_order || 0,
         latest_revision: {
           question_revision_id: `temp_rev_${crypto.randomUUID()}`,
           question_id: tempId,
@@ -60,6 +60,7 @@ export function useOfflineQuestionsMutation() {
           created_at: new Date().toISOString(),
         },
         revisions: [],
+        is_active: true,
       };
 
       const localMutation = async () => {
@@ -67,7 +68,7 @@ export function useOfflineQuestionsMutation() {
       };
 
       const response = await apiInterceptor.interceptMutation(
-        () => QuestionService.postQuestions({ requestBody: question }),
+        () => QuestionService.postQuestions({ requestBody: question as any }),
         localMutation,
         offlineQuestion as unknown as Record<string, unknown>,
         'question',
@@ -75,11 +76,11 @@ export function useOfflineQuestionsMutation() {
       );
 
       // After successful API call, replace the temporary question with the real one
-      if (response && response.question) {
+      if (response && (response as any).question) {
         await offlineDB.deleteQuestion(tempId);
         const categories = await offlineDB.getAllCategoryCatalogs();
         const categoryIdToNameMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
-        const finalQuestion = DataTransformationService.transformQuestion(response.question as any, categoryIdToNameMap);
+        const finalQuestion = DataTransformationService.transformQuestion((response as any).question, categoryIdToNameMap);
         await offlineDB.saveQuestion(finalQuestion);
         return { finalQuestion, tempId };
       }
@@ -103,7 +104,7 @@ export function useOfflineQuestionsMutation() {
   // UPDATE MUTATION
   const updateQuestionMutation = useMutation({
     networkMode: 'always',
-    mutationFn: async ({ questionId, question }: { questionId: string, question: UpdateQuestionRequest }) => {
+    mutationFn: async ({ questionId, question }: { questionId: string, question: UpdateQuestionRequest & { display_order?: number } }) => {
       const categories = queryClient.getQueryData<OfflineCategoryCatalog[]>(['category-catalogs']) || [];
       const categoryMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
 
@@ -117,6 +118,7 @@ export function useOfflineQuestionsMutation() {
         ...existingQuestion,
         category_id: question.category_id,
         category: categoryName,
+        display_order: question.display_order ?? existingQuestion.display_order,
         latest_revision: {
           ...existingQuestion.latest_revision,
           text: question.text as Record<string, string>,
@@ -132,7 +134,7 @@ export function useOfflineQuestionsMutation() {
       };
 
       await apiInterceptor.interceptMutation(
-        () => QuestionService.putQuestionsByQuestionId({ questionId, requestBody: question }),
+        () => QuestionService.putQuestionsByQuestionId({ questionId, requestBody: question as any }),
         localMutation,
         updatedQuestion as unknown as Record<string, unknown>,
         'question',

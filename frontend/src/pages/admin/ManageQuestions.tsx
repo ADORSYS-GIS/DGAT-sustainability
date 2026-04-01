@@ -60,7 +60,7 @@ interface QuestionFormData {
   text: Record<string, string>;
   weight: number;
   categoryName: string;
-  order: number;
+  display_order: number;
 }
 
 const QuestionForm: React.FC<{
@@ -82,172 +82,172 @@ const QuestionForm: React.FC<{
   editingQuestion,
   onCancel,
 }) => {
-  const { t } = useTranslation();
+    const { t } = useTranslation();
 
-  return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <div className="text-center pb-4">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
-          <FileText className="w-6 h-6 text-blue-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900">
-          {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
-        </h3>
-        {selectedCategory && (
-          <p className="text-sm text-gray-500 mt-1">
-            Adding to category: <span className="font-medium text-blue-600">{selectedCategory}</span>
-          </p>
-        )}
-      </div>
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-gray-700">
-          {t('manageQuestions.category')} <span className="text-red-500">*</span>
-        </Label>
-        <Select
-          value={formData.categoryName}
-          onValueChange={(value) =>
-            setFormData((prev) => ({
-              ...prev,
-              categoryName: value,
-            }))
-          }
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={t('manageQuestions.selectCategoryPlaceholder')} />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.category_catalog_id} value={category.name}>
-                <div className="flex items-center space-x-2">
-                  <Layers className="w-4 h-4 text-gray-500" />
-                  <span>{category.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="text_en" className="text-sm font-medium text-gray-700">
-          🇺🇸 English Question <span className="text-red-500">*</span>
-        </Label>
-        <Textarea
-          id="text_en"
-          value={formData.text["en"] || ""}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              text: { ...prev.text, en: e.target.value },
-            }))
-          }
-          placeholder="Enter the question in English..."
-          className="min-h-[100px] resize-none"
-          required
-        />
-      </div>
-      <div className="space-y-3">
-        <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-          <Globe className="w-4 h-4" />
-          <span>Additional Languages (Optional)</span>
-        </Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
-            <div key={lang.code} className="space-y-2">
-              <Label className="text-xs font-medium text-gray-600 flex items-center space-x-1">
-                <span>{lang.flag}</span>
-                <span>{lang.name}</span>
-              </Label>
-              <Textarea
-                id={`text_${lang.code}`}
-                value={formData.text[lang.code] || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    text: { ...prev.text, [lang.code]: e.target.value },
-                  }))
-                }
-                placeholder={`Enter the question in ${lang.name}...`}
-                className="min-h-[80px] resize-none text-sm"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="weight" className="text-sm font-medium text-gray-700 flex items-center space-x-1">
-            <Target className="w-4 h-4" />
-            <span>{t('manageQuestions.weightLabel')}</span>
-          </Label>
-          <Input
-            id="weight"
-            type="number"
-            min="1"
-            max="10"
-            value={formData.weight}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                weight: parseInt(e.target.value) || 1,
-              }))
-            }
-            className="text-center"
-            required
-          />
-          <p className="text-xs text-gray-500">Higher weight = more important</p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="order" className="text-sm font-medium text-gray-700">
-            {t('manageQuestions.displayOrder')}
-          </Label>
-          <Input
-            id="order"
-            type="number"
-            min="1"
-            value={formData.order}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                order: parseInt(e.target.value) || 1,
-              }))
-            }
-            className="text-center"
-            required
-          />
-          <p className="text-xs text-gray-500">Display sequence</p>
-        </div>
-      </div>
-      <div className="flex space-x-3 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          className="flex-1"
-          disabled={isPending}
-        >
-          Cancel
-        </Button>
-      <Button
-        type="submit"
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
-        disabled={isPending}
-      >
-          {isPending ? (
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Saving...</span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Sparkles className="w-4 h-4" />
-              <span>{editingQuestion ? 'Update Question' : 'Create Question'}</span>
-            </div>
+    return (
+      <form onSubmit={onSubmit} className="space-y-6">
+        <div className="text-center pb-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
+            <FileText className="w-6 h-6 text-blue-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {editingQuestion ? t('manageQuestions.editQuestion') : t('manageQuestions.addNewQuestion')}
+          </h3>
+          {selectedCategory && (
+            <p className="text-sm text-gray-500 mt-1">
+              Adding to category: <span className="font-medium text-blue-600">{selectedCategory}</span>
+            </p>
           )}
-      </Button>
-      </div>
-    </form>
-  );
-};
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-gray-700">
+            {t('manageQuestions.category')} <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formData.categoryName}
+            onValueChange={(value) =>
+              setFormData((prev) => ({
+                ...prev,
+                categoryName: value,
+              }))
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={t('manageQuestions.selectCategoryPlaceholder')} />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category.category_catalog_id} value={category.name}>
+                  <div className="flex items-center space-x-2">
+                    <Layers className="w-4 h-4 text-gray-500" />
+                    <span>{category.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="text_en" className="text-sm font-medium text-gray-700">
+            🇺🇸 English Question <span className="text-red-500">*</span>
+          </Label>
+          <Textarea
+            id="text_en"
+            value={formData.text["en"] || ""}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                text: { ...prev.text, en: e.target.value },
+              }))
+            }
+            placeholder="Enter the question in English..."
+            className="min-h-[100px] resize-none"
+            required
+          />
+        </div>
+        <div className="space-y-3">
+          <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+            <Globe className="w-4 h-4" />
+            <span>Additional Languages (Optional)</span>
+          </Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
+              <div key={lang.code} className="space-y-2">
+                <Label className="text-xs font-medium text-gray-600 flex items-center space-x-1">
+                  <span>{lang.flag}</span>
+                  <span>{lang.name}</span>
+                </Label>
+                <Textarea
+                  id={`text_${lang.code}`}
+                  value={formData.text[lang.code] || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      text: { ...prev.text, [lang.code]: e.target.value },
+                    }))
+                  }
+                  placeholder={`Enter the question in ${lang.name}...`}
+                  className="min-h-[80px] resize-none text-sm"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="weight" className="text-sm font-medium text-gray-700 flex items-center space-x-1">
+              <Target className="w-4 h-4" />
+              <span>{t('manageQuestions.weightLabel')}</span>
+            </Label>
+            <Input
+              id="weight"
+              type="number"
+              min="1"
+              max="10"
+              value={formData.weight}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  weight: parseInt(e.target.value) || 1,
+                }))
+              }
+              className="text-center"
+              required
+            />
+            <p className="text-xs text-gray-500">Higher weight = more important</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="order" className="text-sm font-medium text-gray-700">
+              {t('manageQuestions.displayOrder')}
+            </Label>
+            <Input
+              id="order"
+              type="number"
+              min="1"
+              value={formData.display_order}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  display_order: parseInt(e.target.value) || 1,
+                }))
+              }
+              className="text-center"
+              required
+            />
+            <p className="text-xs text-gray-500">Display sequence</p>
+          </div>
+        </div>
+        <div className="flex space-x-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="flex-1"
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            disabled={isPending}
+          >
+            {isPending ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Saving...</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4" />
+                <span>{editingQuestion ? 'Update Question' : 'Create Question'}</span>
+              </div>
+            )}
+          </Button>
+        </div>
+      </form>
+    );
+  };
 
 export const ManageQuestions = () => {
   const { t } = useTranslation();
@@ -264,7 +264,7 @@ export const ManageQuestions = () => {
     ),
     weight: 5,
     categoryName: "",
-    order: 1,
+    display_order: 1,
   });
 
   useEffect(() => {
@@ -287,7 +287,7 @@ export const ManageQuestions = () => {
     cleanupTemporaryItems();
   }, []);
 
-  const { 
+  const {
     data: categoriesData,
     isLoading: categoriesLoading,
     error: categoriesError
@@ -300,19 +300,19 @@ export const ManageQuestions = () => {
     refetch: refetchQuestions,
   } = useOfflineQuestions();
 
- useEffect(() => {
-   const handleDataSync = (event: Event) => {
-     const customEvent = event as CustomEvent;
-     if (customEvent.detail.entityType === 'question') {
-       refetchQuestions();
-     }
-   };
+  useEffect(() => {
+    const handleDataSync = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.entityType === 'question') {
+        refetchQuestions();
+      }
+    };
 
-   window.addEventListener('datasync', handleDataSync);
-   return () => {
-     window.removeEventListener('datasync', handleDataSync);
-   };
- }, [refetchQuestions]);
+    window.addEventListener('datasync', handleDataSync);
+    return () => {
+      window.removeEventListener('datasync', handleDataSync);
+    };
+  }, [refetchQuestions]);
 
   const { createQuestion, updateQuestion, deleteQuestion, isPending } = useOfflineQuestionsMutation();
 
@@ -359,20 +359,22 @@ export const ManageQuestions = () => {
 
     try {
       if (editingQuestion) {
-        const updateBody: UpdateQuestionRequest = {
+        const updateBody: UpdateQuestionRequest & { display_order: number } = {
           category_id: category.category_catalog_id,
           text,
           weight: formData.weight,
+          display_order: formData.display_order,
         };
         await updateQuestion({ questionId: editingQuestion.question_id, question: updateBody });
         toast.success(t('manageQuestions.updateSuccess'));
       } else {
-        const createBody: CreateQuestionRequest = {
+        const createBody: CreateQuestionRequest & { display_order: number } = {
           category_id: category.category_catalog_id,
           text,
           weight: formData.weight,
+          display_order: formData.display_order,
         };
-        await createQuestion({ ...createBody, order: formData.order });
+        await createQuestion(createBody);
         toast.success(t('manageQuestions.createSuccess'));
       }
       setIsDialogOpen(false);
@@ -394,7 +396,7 @@ export const ManageQuestions = () => {
       ),
       weight: 5,
       categoryName: categoryName,
-      order: questionCount + 1,
+      display_order: questionCount + 1,
     });
     setIsDialogOpen(true);
   };
@@ -404,7 +406,7 @@ export const ManageQuestions = () => {
     setSelectedCategory(undefined);
     const weight = question.latest_revision?.weight || 5;
     const text = question.latest_revision?.text || {};
-    
+
     setFormData({
       text: LANGUAGES.reduce(
         (acc, lang) => {
@@ -415,7 +417,7 @@ export const ManageQuestions = () => {
       ),
       weight,
       categoryName: question.category,
-      order: 1, // Order is not directly editable in this form for now
+      display_order: question.display_order || 1,
     });
     setIsDialogOpen(true);
   };
@@ -514,9 +516,9 @@ export const ManageQuestions = () => {
             {categories.map((category) => {
               const categoryQuestions = (questions || [])
                 .filter((q) => q.category === category.name)
-                .sort((a, b) => (a.order || 0) - (b.order || 0));
+                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
               const questionCount = categoryQuestions.length;
-              
+
               return (
                 <Card key={category.category_catalog_id} className="overflow-hidden border shadow-lg bg-white">
                   <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
@@ -549,18 +551,18 @@ export const ManageQuestions = () => {
                             <ChevronRight className="w-4 h-4" />
                           )}
                         </Button>
-                  <Button
+                        <Button
                           onClick={() => handleAddQuestion(category.name)}
                           className="bg-blue-600 hover:bg-blue-700 text-white"
                           size="sm"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
                           Add Question
-                  </Button>
+                        </Button>
                       </div>
                     </div>
-            </CardHeader>
-                  
+                  </CardHeader>
+
                   <CardContent className="p-0">
                     {expandedCategories.has(category.name) && (
                       <>
@@ -575,7 +577,7 @@ export const ManageQuestions = () => {
                                         {index + 1}
                                       </div>
                                       <div className="flex-1">
-                                      <QuestionText question={question} />
+                                        <QuestionText question={question} />
                                         <div className="flex items-center space-x-4 mt-3">
                                           <Badge variant="outline" className="text-xs">
                                             Weight: {question.latest_revision?.weight || 5}
@@ -584,7 +586,7 @@ export const ManageQuestions = () => {
                                             {new Date(question.created_at).toLocaleDateString()}
                                           </span>
                                         </div>
-                                    </div>
+                                      </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center space-x-2 ml-4">
@@ -596,14 +598,14 @@ export const ManageQuestions = () => {
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Button>
-                                        <Button
+                                    <Button
                                       variant="ghost"
-                                          size="sm"
+                                      size="sm"
                                       onClick={() => handleDelete(question.question_id)}
                                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
                                   </div>
                                 </div>
                               </div>
@@ -629,18 +631,18 @@ export const ManageQuestions = () => {
                     )}
                   </CardContent>
                 </Card>
-                  );
-                })}
-            
-                {categories.length === 0 && (
+              );
+            })}
+
+            {categories.length === 0 && (
               <Card className="text-center py-12 border shadow-lg bg-white">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                   <BookOpen className="w-8 h-8 text-gray-400" />
-                  </div>
+                </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories Available</h3>
                 <p className="text-gray-500">{t('manageQuestions.noCategories')}</p>
               </Card>
-                )}
+            )}
           </div>
         </div>
       </div>
@@ -696,7 +698,7 @@ const QuestionText = ({
           <p className="text-gray-900 leading-relaxed">{text.en}</p>
         </div>
       )}
-      
+
       {languages.filter(lang => lang !== 'en').map((lang) => {
         const langText = text[lang];
         if (!langText) return null;

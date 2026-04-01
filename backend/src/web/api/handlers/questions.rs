@@ -72,6 +72,7 @@ pub async fn list_questions(
                 question_id: db_question.question_id,
                 category: category.name,
                 is_active: db_question.is_active,
+                display_order: db_question.display_order,
                 created_at: db_question.created_at.to_rfc3339(),
                 latest_revision: QuestionRevision {
                     question_revision_id: revision_model.question_revision_id,
@@ -116,7 +117,7 @@ pub async fn create_question(
     let question_model = app_state
         .database
         .questions
-        .create_question(request.category_id)
+        .create_question(request.category_id, request.display_order)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create question: {e}")))?;
 
@@ -145,6 +146,7 @@ pub async fn create_question(
         question_id: question_model.question_id,
         category: category.name,
         is_active: question_model.is_active,
+        display_order: question_model.display_order,
         created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,
@@ -252,6 +254,7 @@ pub async fn get_question(
         question_id: question_model.question_id,
         category: category.name,
         is_active: question_model.is_active,
+        display_order: question_model.display_order,
         created_at: question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision.question_revision_id,
@@ -290,11 +293,15 @@ pub async fn update_question(
         ));
     }
 
-    // Update the question category in the database
+    // Update the question category and order in the database
     let updated_question_model = app_state
         .database
         .questions
-        .update_question(question_id, Some(request.category_id))
+        .update_question(
+            question_id,
+            Some(request.category_id),
+            Some(request.display_order),
+        )
         .await
         .map_err(|e| {
             if e.to_string().contains("Question not found") {
@@ -329,6 +336,7 @@ pub async fn update_question(
         question_id: updated_question_model.question_id,
         category: category.name,
         is_active: updated_question_model.is_active,
+        display_order: updated_question_model.display_order,
         created_at: updated_question_model.created_at.to_rfc3339(),
         latest_revision: QuestionRevision {
             question_revision_id: revision_model.question_revision_id,

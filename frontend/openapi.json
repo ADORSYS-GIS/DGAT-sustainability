@@ -3630,6 +3630,9 @@
           },
           "latest_revision": {
             "$ref": "#/components/schemas/QuestionRevision"
+          },
+          "display_order": {
+            "type": "integer"
           }
         }
       },
@@ -3683,6 +3686,10 @@
           "weight": {
             "type": "number",
             "default": 1.0
+          },
+          "display_order": {
+            "type": "integer",
+            "default": 0
           }
         }
       },
@@ -3698,6 +3705,9 @@
           },
           "weight": {
             "type": "number"
+          },
+          "display_order": {
+            "type": "integer"
           }
         }
       },

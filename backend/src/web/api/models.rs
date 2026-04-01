@@ -127,6 +127,7 @@ pub struct Question {
     pub category: String,
     pub is_active: bool,
     pub created_at: String,
+    pub display_order: i32,
     pub latest_revision: QuestionRevision,
 }
 
@@ -144,6 +145,7 @@ pub struct CreateQuestionRequest {
     pub category_id: Uuid,
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
+    pub display_order: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -151,6 +153,7 @@ pub struct UpdateQuestionRequest {
     pub category_id: Uuid,
     pub text: HashMap<String, String>, // Multilingual text
     pub weight: f64,
+    pub display_order: i32,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
