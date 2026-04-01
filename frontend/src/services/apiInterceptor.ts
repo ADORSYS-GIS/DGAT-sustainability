@@ -293,6 +293,20 @@ export class ApiInterceptor {
             }
           }
           break;
+        case 'question':
+          if (data && typeof data === 'object') {
+            const questionData = (data.question || data) as Question;
+            const categories = await offlineDB.getAllCategoryCatalogs();
+            const categoryNameToIdMap = new Map<string, string>();
+            categories.forEach(cat => {
+              if (cat.name && cat.category_catalog_id) {
+                categoryNameToIdMap.set(cat.name.toLowerCase(), cat.category_catalog_id);
+              }
+            });
+            const offlineQuestion = DataTransformationService.transformQuestion(questionData, categoryNameToIdMap);
+            await offlineDB.saveQuestion(offlineQuestion);
+          }
+          break;
         case 'category_catalogs':
           if (data.category_catalogs && Array.isArray(data.category_catalogs)) {
             for (const catalog of data.category_catalogs as CategoryCatalog[]) {
@@ -544,7 +558,8 @@ export class ApiInterceptor {
             category: question.category,
             category_id: question.category_id,
             text: question.latest_revision.text,
-            weight: question.latest_revision.weight
+            weight: question.latest_revision.weight,
+            display_order: (question as any).display_order || 0
           };
 
           const { QuestionService } = await import('@/openapi-rq/requests/services.gen');

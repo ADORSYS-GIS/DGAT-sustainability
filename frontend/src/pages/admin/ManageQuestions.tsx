@@ -573,8 +573,8 @@ export const ManageQuestions = () => {
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-start space-x-3">
-                                      <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full text-sm font-medium text-gray-600 mt-1">
-                                        {index + 1}
+                                      <div className="flex items-center justify-center min-w-8 h-8 px-2 bg-blue-50 rounded-full text-xs font-semibold text-blue-600 mt-1" title="Display Order">
+                                        {question.display_order || 0}
                                       </div>
                                       <div className="flex-1">
                                         <QuestionText question={question} />
