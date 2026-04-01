@@ -130,16 +130,22 @@ export const ReportHistory: React.FC = () => {
   const { data: questionsData } = useOfflineQuestions();
 
   // Build a map from question revision ID -> display_order for sorting
-  const questionOrderMap = React.useMemo(() => {
+  const [questionOrderMap, questionsTextMap] = React.useMemo(() => {
     const map = new Map<string, number>();
+    const textMap = new Map<string, number>();
     if (questionsData) {
       questionsData.forEach(q => {
         if (q.latest_revision) {
-          map.set(q.latest_revision.question_revision_id, q.display_order || 0);
+          const displayOrder = q.display_order || 0;
+          map.set(q.latest_revision.question_revision_id, displayOrder);
+          const qText = (q.latest_revision.text as { en?: string })?.en || '';
+          if (qText) {
+            textMap.set(qText, displayOrder);
+          }
         }
       });
     }
-    return map;
+    return [map, textMap];
   }, [questionsData]);
   const navigate = useNavigate();
   const chartRef = React.useRef<ChartJS<"radar">>(null);
@@ -607,9 +613,16 @@ export const ReportHistory: React.FC = () => {
                       const responsesForCategory = responses
                         .filter(r => r.question_category === category)
                         .sort((a, b) => {
-                          const orderA = (a as any).question_revision_id ? (questionOrderMap.get((a as any).question_revision_id) || 0) : 0;
-                          const orderB = (b as any).question_revision_id ? (questionOrderMap.get((b as any).question_revision_id) || 0) : 0;
-                          return orderA - orderB;
+                          const getOrder = (resp: any) => {
+                            const questionTextStr = typeof resp.question === 'object' ? resp.question.en : resp.question;
+                            if (resp.question_revision_id && questionOrderMap.has(resp.question_revision_id)) {
+                              return questionOrderMap.get(resp.question_revision_id)!;
+                            } else if (questionTextStr && questionsTextMap.has(questionTextStr)) {
+                              return questionsTextMap.get(questionTextStr)!;
+                            }
+                            return 9999;
+                          };
+                          return getOrder(a) - getOrder(b);
                         });
                       const isExpanded = expandedCategories.has(category);
 

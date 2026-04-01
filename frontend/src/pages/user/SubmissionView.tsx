@@ -51,16 +51,22 @@ export const SubmissionView: React.FC = () => {
 
   const { data: questionsData } = useOfflineQuestions();
 
-  const questionsMap = React.useMemo(() => {
+  const [questionsMap, questionsTextMap] = React.useMemo(() => {
     const map = new Map<string, number>();
+    const textMap = new Map<string, number>();
     if (questionsData) {
       questionsData.forEach(q => {
         if (q.latest_revision) {
-          map.set(q.latest_revision.question_revision_id, q.display_order || 0);
+          const displayOrder = q.display_order || 0;
+          map.set(q.latest_revision.question_revision_id, displayOrder);
+          const qText = (q.latest_revision.text as { en?: string })?.en || '';
+          if (qText) {
+            textMap.set(qText, displayOrder);
+          }
         }
       });
     }
-    return map;
+    return [map, textMap];
   }, [questionsData]);
 
   // Group responses by category and sort them
@@ -72,7 +78,15 @@ export const SubmissionView: React.FC = () => {
         if (!groups[cat]) groups[cat] = [];
 
         // Enrich with display_order for sorting
-        const displayOrder = resp.question_revision_id ? questionsMap.get(resp.question_revision_id) : 0;
+        const questionTextStr = typeof resp.question === 'object' ? (resp.question as any).en : resp.question;
+        let displayOrder = 9999;
+
+        if (resp.question_revision_id && questionsMap.has(resp.question_revision_id)) {
+          displayOrder = questionsMap.get(resp.question_revision_id)!;
+        } else if (questionTextStr && questionsTextMap.has(questionTextStr)) {
+          displayOrder = questionsTextMap.get(questionTextStr)!;
+        }
+
         groups[cat].push({ ...resp, display_order: displayOrder });
       }
 

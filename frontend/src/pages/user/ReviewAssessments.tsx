@@ -106,20 +106,24 @@ const ReviewAssessments: React.FC = () => {
     return map;
   }, [categoriesData]);
 
-  const questionsMap = useMemo(() => {
-    if (!questionsData) return new Map();
+  const [questionsMap, questionsTextMap] = useMemo(() => {
+    if (!questionsData) return [new Map(), new Map()];
     const map = new Map<string, { text: string; category: string; display_order: number }>();
+    const textMap = new Map<string, number>();
     questionsData.forEach(q => {
       if (q.latest_revision) {
         const categoryName = categoryIdMap.get(q.category_id) || 'Unknown Category';
+        const qText = (q.latest_revision.text as { en: string })?.en || '';
+        const displayOrder = q.display_order || 0;
         map.set(q.latest_revision.question_revision_id, {
-          text: (q.latest_revision.text as { en: string })?.en || '',
+          text: qText,
           category: categoryName,
-          display_order: q.display_order || 0,
+          display_order: displayOrder,
         });
+        textMap.set(qText, displayOrder);
       }
     });
-    return map;
+    return [map, textMap];
   }, [questionsData, categoryIdMap]);
 
   const organizationsMap = useMemo(() => {
@@ -346,8 +350,8 @@ const ReviewAssessments: React.FC = () => {
                   <div>
                     <span className="font-medium">{t('reviewAssessments.organization', { defaultValue: 'Organization' })}:</span>
                     <p className="text-gray-600">
-                      {organizationsMap.get(selectedSubmission.organization_id) ||
-                        (selectedSubmission as any).organization_name ||
+                      {organizationsMap.get((selectedSubmission as any).org_id) ||
+                        (selectedSubmission as any).org_name ||
                         t('reviewAssessments.unknown', { defaultValue: 'Unknown' })}
                     </p>
                   </div>
@@ -381,17 +385,29 @@ const ReviewAssessments: React.FC = () => {
                         if (!acc[category]) {
                           acc[category] = [];
                         }
+                        const questionTextStr = typeof customResponse.question === 'object'
+                          ? (customResponse.question as any).en
+                          : customResponse.question;
+
                         const questionText =
                           (questionDetails?.text) ||
-                          customResponse.question?.en ||
+                          questionTextStr ||
                           'Question text not found';
+
+                        // Fallback: If revision ID lookup fails, try matching by question text exact string.
+                        // If it completely fails, put it at the bottom (9999) rather than the top (0).
+                        const getDisplayOrder = () => {
+                          if (questionDetails && questionDetails.display_order !== undefined) return questionDetails.display_order;
+                          if (questionTextStr && questionsTextMap.has(questionTextStr)) return questionsTextMap.get(questionTextStr)!;
+                          return 9999;
+                        };
 
                         const categorizedResponse: CategorizedResponse = {
                           response: customResponse.response,
                           files: customResponse.files,
                           question: customResponse.question,
                           question_text: questionText,
-                          display_order: questionDetails?.display_order || 0,
+                          display_order: getDisplayOrder(),
                         };
                         acc[category].push(categorizedResponse);
                         return acc;
