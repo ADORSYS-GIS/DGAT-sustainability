@@ -58,9 +58,9 @@ const LANGUAGES = [
 
 interface QuestionFormData {
   text: Record<string, string>;
-  weight: number;
+  weight: number | string;
   categoryName: string;
-  display_order: number;
+  display_order: number | string;
 }
 
 const QuestionForm: React.FC<{
@@ -188,7 +188,7 @@ const QuestionForm: React.FC<{
               onChange={(e) =>
                 setFormData((prev) => ({
                   ...prev,
-                  weight: parseInt(e.target.value) || 1,
+                  weight: e.target.value === "" ? "" : parseInt(e.target.value),
                 }))
               }
               className="text-center"
@@ -208,7 +208,7 @@ const QuestionForm: React.FC<{
               onChange={(e) =>
                 setFormData((prev) => ({
                   ...prev,
-                  display_order: parseInt(e.target.value) || 1,
+                  display_order: e.target.value === "" ? "" : parseInt(e.target.value),
                 }))
               }
               className="text-center"
@@ -338,12 +338,30 @@ export const ManageQuestions = () => {
       toast.error(t('manageQuestions.categoryRequired'));
       return;
     }
-    if (formData.weight < 1 || formData.weight > 10) {
+    if (Number(formData.weight) < 1 || Number(formData.weight) > 10) {
       toast.error(t('manageQuestions.weightRangeError'));
       return;
     }
 
+    if (formData.display_order === "") {
+      toast.error("Display order is required");
+      return;
+    }
+
+    const orderNum = Number(formData.display_order);
     const categoryName = selectedCategory || formData.categoryName;
+
+    // Check for duplicate display_order in the same category
+    const isDuplicate = (questions || []).some(q =>
+      q.category === categoryName &&
+      q.display_order === orderNum &&
+      q.question_id !== editingQuestion?.question_id
+    );
+
+    if (isDuplicate) {
+      toast.error(`Sorry, another question in the category "${categoryName}" already has this order, change it`);
+      return;
+    }
     const category = categories.find((c) => c.name === categoryName);
     if (!category) {
       toast.error("Category not found");
@@ -362,8 +380,8 @@ export const ManageQuestions = () => {
         const updateBody: UpdateQuestionRequest & { display_order: number } = {
           category_id: category.category_catalog_id,
           text,
-          weight: formData.weight,
-          display_order: formData.display_order,
+          weight: Number(formData.weight),
+          display_order: orderNum,
         };
         await updateQuestion({ questionId: editingQuestion.question_id, question: updateBody });
         toast.success(t('manageQuestions.updateSuccess'));
@@ -371,8 +389,8 @@ export const ManageQuestions = () => {
         const createBody: CreateQuestionRequest & { display_order: number } = {
           category_id: category.category_catalog_id,
           text,
-          weight: formData.weight,
-          display_order: formData.display_order,
+          weight: Number(formData.weight),
+          display_order: orderNum,
         };
         await createQuestion(createBody);
         toast.success(t('manageQuestions.createSuccess'));

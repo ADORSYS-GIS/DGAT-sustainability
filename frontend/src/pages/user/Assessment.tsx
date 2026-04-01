@@ -127,7 +127,7 @@ export const Assessment: React.FC = () => {
     console.log('🔍 Loading existing responses:', existingResponses);
     if (existingResponses?.responses && existingResponses.responses.length > 0) {
       const loadedAnswers: Record<string, LocalAnswer> = {};
-      
+
       existingResponses.responses.forEach((response: CreateResponseRequest) => {
         try {
           console.log('🔍 Processing response:', response);
@@ -145,7 +145,7 @@ export const Assessment: React.FC = () => {
           console.warn('Failed to parse response data:', error, response);
         }
       });
-      
+
       console.log('📝 Setting loaded answers:', loadedAnswers);
       setAnswers(loadedAnswers);
       setHasExistingResponses(true);
@@ -191,14 +191,14 @@ export const Assessment: React.FC = () => {
   // Extract assessment category IDs from assessment detail
   const assessmentCategoryIds = React.useMemo(() => {
     if (!assessmentDetail) return [];
-    
+
     let actualAssessment: AssessmentType;
     if (isAssessmentDetailResponse(assessmentDetail)) {
       actualAssessment = assessmentDetail.assessment;
     } else {
       actualAssessment = assessmentDetail as AssessmentType;
     }
-    
+
     return actualAssessment.categories || [];
   }, [assessmentDetail]);
 
@@ -230,25 +230,25 @@ export const Assessment: React.FC = () => {
     setIsCreatingAssessment(true);
     setHasCreatedAssessment(true);
     setCreationAttempts((prev) => prev + 1);
-    
+
     const newAssessment: CreateAssessmentRequest = {
       language: currentLanguage,
       name: assessmentName,
       categories: categories,
     };
-    
+
     createAssessment(newAssessment, {
       onSuccess: (result: unknown) => {
         console.log("Assessment creation onSuccess result:", result);
         if (result && isAssessmentResult(result) && result.assessment?.assessment_id) {
           const assessmentIdToNavigate = result.assessment.assessment_id;
-          
+
           // Invalidate and refetch the assessments query to ensure immediate visibility
           invalidateAndRefetch(queryClient, ['assessments']);
-          
+
           // Navigate immediately to the assessment, whether it's a temp_ ID or a real ID
           navigate(`/user/assessment/${assessmentIdToNavigate}`);
-          
+
           // If it's a temporary assessment, we don't need to wait for it to be saved
           // The useOfflineAssessment hook will handle loading it from IndexedDB
           if (assessmentIdToNavigate.startsWith("temp_")) {
@@ -380,7 +380,7 @@ export const Assessment: React.FC = () => {
     });
 
     const groups: Record<string, { question: Question; revision: QuestionRevision }[]> = {};
-    
+
     // Group questions by their proper category ID, handling legacy data
     (questionsData as unknown as QuestionWithCategory[]).forEach((question) => {
       if (question) {
@@ -412,17 +412,24 @@ export const Assessment: React.FC = () => {
 
     const filtered: typeof groups = {};
 
-    // Filter questions based on user role using category IDs
+    // Filter questions based on user role using category IDs and sort them
     for (const assessmentCatId of assessmentCategoryIds) {
       if (groups[assessmentCatId]) {
+        // Sort questions by display_order
+        const sortedQuestions = [...groups[assessmentCatId]].sort((a, b) => {
+          const orderA = (a.question as any).display_order || 0;
+          const orderB = (b.question as any).display_order || 0;
+          return orderA - orderB;
+        });
+
         if (isOrgAdmin) {
           // Admins see all categories assigned to the assessment
-          filtered[assessmentCatId] = groups[assessmentCatId];
+          filtered[assessmentCatId] = sortedQuestions;
         } else {
           // Regular users see only the intersection of their categories and assessment categories
           const userHasCategory = orgInfo.categories.includes(assessmentCatId);
           if (userHasCategory) {
-            filtered[assessmentCatId] = groups[assessmentCatId];
+            filtered[assessmentCatId] = sortedQuestions;
           }
         }
       }
@@ -434,7 +441,7 @@ export const Assessment: React.FC = () => {
 
   // Check if we have any categories - only show this message for Org_User, not org_admin
   const isOrgUser = allRoles.includes("org_user") && !isOrgAdmin;
-  
+
   if (assessmentCategoryIds.length > 0 && categories.length === 0 && isOrgUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
