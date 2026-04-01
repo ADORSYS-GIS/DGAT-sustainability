@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { useOfflineAdminReports } from "@/hooks/useOfflineReports";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 import type {
   AdminReport,
   AdminSubmissionDetail,
@@ -74,46 +75,46 @@ interface FileAttachment {
 }
 // Using generated AdminReport type
 
-  const isAdminReportData = (obj: unknown): obj is { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
-    if (!obj || typeof obj !== 'object') return false;
-    const maybe = obj as { submissions?: unknown; recommendations?: unknown };
-    return Array.isArray(maybe.submissions) && Array.isArray(maybe.recommendations);
-  };
+const isAdminReportData = (obj: unknown): obj is { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
+  if (!obj || typeof obj !== 'object') return false;
+  const maybe = obj as { submissions?: unknown; recommendations?: unknown };
+  return Array.isArray(maybe.submissions) && Array.isArray(maybe.recommendations);
+};
 
-  type NormalizedCategory = {
-    name: string;
-    responses: Array<{ question_text: string; response: { yesNo?: boolean; percentage?: number; text?: string } }>;
-    recommendations?: { id: string; text: string; status: string }[];
-  };
+type NormalizedCategory = {
+  name: string;
+  responses: Array<{ question_text: string; response: { yesNo?: boolean; percentage?: number; text?: string } }>;
+  recommendations?: { id: string; text: string; status: string }[];
+};
 
-  const normalizeGenericReportData = (data: unknown): NormalizedCategory[] => {
-    if (!Array.isArray(data) || data.length === 0) return [];
-    const categories: NormalizedCategory[] = [];
-    const reportData = data[0] as Record<string, unknown>;
-    for (const [key, value] of Object.entries(reportData)) {
-      if (!value || typeof value !== 'object') continue;
-      const obj = value as Record<string, unknown>;
-      const arr = Array.isArray(obj.questions)
-        ? (obj.questions as Array<Record<string, unknown>>)
-        : [];
-      const responses: NormalizedCategory['responses'] = [];
-      arr.forEach((q) => {
-        const questionText = (q.question as string) || (q.question_text as string) || '';
-        const answer = (q.answer as Record<string, unknown>) || (q.response as Record<string, unknown>) || {};
-        const yesNo = typeof answer.yesNo === 'boolean' ? (answer.yesNo as boolean) : undefined;
-        const percentage = typeof answer.percentage === 'number' ? (answer.percentage as number) : undefined;
-        const text = typeof answer.text === 'string' ? (answer.text as string) : undefined;
-        responses.push({ question_text: questionText, response: { yesNo, percentage, text } });
-      });
-      const recommendations = Array.isArray(obj.recommendations)
-        ? (obj.recommendations as { id: string; text: string; status: string }[])
-        : [];
-      if (responses.length > 0 || recommendations.length > 0) {
-        categories.push({ name: key, responses, recommendations });
-      }
+const normalizeGenericReportData = (data: unknown): NormalizedCategory[] => {
+  if (!Array.isArray(data) || data.length === 0) return [];
+  const categories: NormalizedCategory[] = [];
+  const reportData = data[0] as Record<string, unknown>;
+  for (const [key, value] of Object.entries(reportData)) {
+    if (!value || typeof value !== 'object') continue;
+    const obj = value as Record<string, unknown>;
+    const arr = Array.isArray(obj.questions)
+      ? (obj.questions as Array<Record<string, unknown>>)
+      : [];
+    const responses: NormalizedCategory['responses'] = [];
+    arr.forEach((q) => {
+      const questionText = (q.question as string) || (q.question_text as string) || '';
+      const answer = (q.answer as Record<string, unknown>) || (q.response as Record<string, unknown>) || {};
+      const yesNo = typeof answer.yesNo === 'boolean' ? (answer.yesNo as boolean) : undefined;
+      const percentage = typeof answer.percentage === 'number' ? (answer.percentage as number) : undefined;
+      const text = typeof answer.text === 'string' ? (answer.text as string) : undefined;
+      responses.push({ question_text: questionText, response: { yesNo, percentage, text } });
+    });
+    const recommendations = Array.isArray(obj.recommendations)
+      ? (obj.recommendations as { id: string; text: string; status: string }[])
+      : [];
+    if (responses.length > 0 || recommendations.length > 0) {
+      categories.push({ name: key, responses, recommendations });
     }
-    return categories;
-  };
+  }
+  return categories;
+};
 
 export const ReportHistory: React.FC = () => {
   const { t } = useTranslation();
@@ -126,6 +127,20 @@ export const ReportHistory: React.FC = () => {
     refetch: loadReports,
   } = useOfflineAdminReports();
   const reports = (data?.reports as AdminReport[]) || [];
+  const { data: questionsData } = useOfflineQuestions();
+
+  // Build a map from question revision ID -> display_order for sorting
+  const questionOrderMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    if (questionsData) {
+      questionsData.forEach(q => {
+        if (q.latest_revision) {
+          map.set(q.latest_revision.question_revision_id, q.display_order || 0);
+        }
+      });
+    }
+    return map;
+  }, [questionsData]);
   const navigate = useNavigate();
   const chartRef = React.useRef<ChartJS<"radar">>(null);
   const recommendationChartRef = React.useRef<ChartJS<"bar">>(null);
@@ -294,10 +309,10 @@ export const ReportHistory: React.FC = () => {
     const matchesSearch =
       report.org_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.report_id.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || report.status === statusFilter;
     const matchesOrg = !selectedOrgId || report.org_id === selectedOrgId;
-    
+
     return matchesSearch && matchesStatus && matchesOrg;
   });
 
@@ -435,7 +450,7 @@ export const ReportHistory: React.FC = () => {
                 </p>
               </div>
 
-              <Button 
+              <Button
                 onClick={loadReports}
                 variant="outline"
                 className="flex items-center space-x-2"
@@ -557,7 +572,7 @@ export const ReportHistory: React.FC = () => {
             const submissions: AdminSubmissionDetail[] = isAdminReportData(data) ? data.submissions : [];
             const recommendations: RecommendationWithStatus[] = isAdminReportData(data) ? data.recommendations : [];
             const responses: AdminSubmissionDetail_content_responses[] = submissions.flatMap(s => (s.content?.responses as AdminSubmissionDetail_content_responses[] | undefined) || []);
-            
+
             const categoriesSet = new Set<string>([
               ...responses.map((r) => r.question_category as string).filter(Boolean),
               ...recommendations.map(r => r.category).filter(Boolean)
@@ -589,9 +604,15 @@ export const ReportHistory: React.FC = () => {
                   {categories.length > 0 ? (
                     categories.map(category => {
                       const recsForCategory = recommendations.filter(r => r.category === category);
-                      const responsesForCategory = responses.filter(r => r.question_category === category);
+                      const responsesForCategory = responses
+                        .filter(r => r.question_category === category)
+                        .sort((a, b) => {
+                          const orderA = (a as any).question_revision_id ? (questionOrderMap.get((a as any).question_revision_id) || 0) : 0;
+                          const orderB = (b as any).question_revision_id ? (questionOrderMap.get((b as any).question_revision_id) || 0) : 0;
+                          return orderA - orderB;
+                        });
                       const isExpanded = expandedCategories.has(category);
-                       
+
                       return (
                         <div key={category} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm transition-all duration-200 hover:shadow-md">
                           {/* Category Header - Clickable to expand/collapse */}
@@ -657,7 +678,7 @@ export const ReportHistory: React.FC = () => {
                                   </div>
                                 </div>
                               )}
-                              
+
                               {/* Questions and Responses */}
                               <div className="space-y-6">
                                 <div className="flex items-center gap-3">
@@ -666,7 +687,7 @@ export const ReportHistory: React.FC = () => {
                                   </div>
                                   <h4 className="text-lg font-semibold text-green-800">Questions & Responses</h4>
                                 </div>
-                                
+
                                 {responsesForCategory.map((res, idx) => {
                                   let responseData: { yesNo?: boolean; percentage?: number; text?: string; files?: FileAttachment[] };
                                   try {
@@ -674,7 +695,7 @@ export const ReportHistory: React.FC = () => {
                                   } catch {
                                     responseData = { text: res.response };
                                   }
-                                  
+
                                   return (
                                     <div key={idx} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                                       {/* Question Header */}
@@ -686,7 +707,7 @@ export const ReportHistory: React.FC = () => {
                                           <h5 className="text-base font-semibold text-gray-900 leading-relaxed">{res.question_text}</h5>
                                         </div>
                                       </div>
-                                      
+
                                       {/* Response Content */}
                                       <div className="p-5 space-y-4">
                                         {/* Response Types Grid */}
@@ -706,7 +727,7 @@ export const ReportHistory: React.FC = () => {
                                               </Badge>
                                             </div>
                                           )}
-                                          
+
                                           {/* Percentage Response */}
                                           {responseData.percentage !== undefined && (
                                             <div className="bg-gray-50 rounded-lg p-4">
@@ -725,7 +746,7 @@ export const ReportHistory: React.FC = () => {
                                               </div>
                                             </div>
                                           )}
-                                          
+
                                           {/* Text Response Indicator */}
                                           {responseData.text && (
                                             <div className="bg-gray-50 rounded-lg p-4">
@@ -737,7 +758,7 @@ export const ReportHistory: React.FC = () => {
                                             </div>
                                           )}
                                         </div>
-                                        
+
                                         {/* Detailed Text Response */}
                                         {responseData.text && (
                                           <div className="bg-gray-50 rounded-lg p-4">
@@ -750,7 +771,7 @@ export const ReportHistory: React.FC = () => {
                                             </div>
                                           </div>
                                         )}
-                                        
+
                                         {/* Files Section */}
                                         {(responseData.files && Array.isArray(responseData.files) && responseData.files.length > 0) || (res.files && Array.isArray(res.files) && res.files.length > 0) ? (
                                           <div className="bg-blue-50 rounded-lg p-4">
@@ -758,7 +779,7 @@ export const ReportHistory: React.FC = () => {
                                               <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
                                               <span className="text-sm font-medium text-blue-700">Attachments</span>
                                             </div>
-                                            
+
                                             {/* Files in responseData */}
                                             {responseData.files && Array.isArray(responseData.files) && responseData.files.length > 0 && (
                                               <div className="mb-4">
@@ -768,7 +789,7 @@ export const ReportHistory: React.FC = () => {
                                                 />
                                               </div>
                                             )}
-                                            
+
                                             {/* Files attached to the response itself */}
                                             {res.files && Array.isArray(res.files) && res.files.length > 0 && (
                                               <div>
@@ -814,7 +835,7 @@ export const ReportHistory: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Generic Category Content */}
                           <div className="p-6 bg-gray-50 space-y-6">
                             {/* Generic Recommendation */}
@@ -836,14 +857,14 @@ export const ReportHistory: React.FC = () => {
                                 </div>
                               </div>
                             )}
-                            
+
                             {/* Generic Questions */}
                             <div className="space-y-4">
                               <div className="flex items-center gap-2 mb-4">
                                 <FileText className="w-5 h-5 text-purple-600" />
                                 <span className="font-semibold text-purple-800">Questions & Answers</span>
                               </div>
-                              
+
                               {cat.responses.map((res, idx) => (
                                 <div key={idx} className="bg-white rounded-lg border border-gray-200 p-4">
                                   <div className="flex items-start gap-3 mb-3">
@@ -852,7 +873,7 @@ export const ReportHistory: React.FC = () => {
                                     </div>
                                     <h5 className="font-semibold text-gray-900">{res.question_text}</h5>
                                   </div>
-                                  
+
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     {res.response.text && (
                                       <div className="bg-gray-50 rounded-lg p-3">
@@ -863,7 +884,7 @@ export const ReportHistory: React.FC = () => {
                                         <p className="text-sm text-gray-800">{res.response.text}</p>
                                       </div>
                                     )}
-                                    
+
                                     {res.response.yesNo !== undefined && (
                                       <div className="bg-gray-50 rounded-lg p-3">
                                         <div className="flex items-center gap-2 mb-2">
@@ -878,7 +899,7 @@ export const ReportHistory: React.FC = () => {
                                         </Badge>
                                       </div>
                                     )}
-                                    
+
                                     {res.response.percentage !== undefined && (
                                       <div className="bg-gray-50 rounded-lg p-3">
                                         <div className="flex items-center gap-2 mb-2">
@@ -910,10 +931,10 @@ export const ReportHistory: React.FC = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="mt-6 flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setViewReportId(null);
                       setExpandedCategories(new Set());
@@ -921,11 +942,11 @@ export const ReportHistory: React.FC = () => {
                   >
                     {t('reportHistory.close', { defaultValue: 'Close' })}
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleDownloadReport(report.report_id, report.org_name)}
                     className="bg-dgrv-blue hover:bg-dgrv-blue-dark"
                   >
-                    <Download className="w-4 h-4 mr-2" /> 
+                    <Download className="w-4 h-4 mr-2" />
                     {t('reportHistory.exportAsPDF', { defaultValue: 'Export as PDF' })}
                   </Button>
                 </div>

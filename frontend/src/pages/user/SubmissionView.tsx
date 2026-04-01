@@ -14,11 +14,14 @@ import {
 } from "@/components/ui/accordion";
 import { useTranslation } from "react-i18next";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 
 // Locally extend the type to include question_category
 interface SubmissionResponseWithCategory extends Submission_content_responses {
   question_category?: string;
-  question_text?: string; // Add question_text
+  question_text?: string;
+  display_order?: number;
+  question_revision_id?: string;
 }
 
 export const SubmissionView: React.FC = () => {
@@ -30,9 +33,9 @@ export const SubmissionView: React.FC = () => {
     isLoading: submissionLoading,
     error: submissionError,
   } = useOfflineSubmissions();
-  
+
   const submission = submissionsData?.submissions?.find(s => s.submission_id === submissionId);
-  
+
   const { deleteSubmission: deleteSubmissionMutation } = useOfflineSubmissionsMutation();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
 
@@ -43,21 +46,43 @@ export const SubmissionView: React.FC = () => {
     }
     setIsDeleteDialogOpen(false);
   };
-  
+
   const responses = submission?.content?.responses as SubmissionResponseWithCategory[] | undefined;
 
-  // Group responses by category
+  const { data: questionsData } = useOfflineQuestions();
+
+  const questionsMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    if (questionsData) {
+      questionsData.forEach(q => {
+        if (q.latest_revision) {
+          map.set(q.latest_revision.question_revision_id, q.display_order || 0);
+        }
+      });
+    }
+    return map;
+  }, [questionsData]);
+
+  // Group responses by category and sort them
   const groupedByCategory = React.useMemo(() => {
     const groups: Record<string, SubmissionResponseWithCategory[]> = {};
     if (responses) {
       for (const resp of responses) {
         const cat = resp.question_category || "Uncategorized";
         if (!groups[cat]) groups[cat] = [];
-        groups[cat].push(resp);
+
+        // Enrich with display_order for sorting
+        const displayOrder = resp.question_revision_id ? questionsMap.get(resp.question_revision_id) : 0;
+        groups[cat].push({ ...resp, display_order: displayOrder });
+      }
+
+      // Sort each group
+      for (const cat in groups) {
+        groups[cat].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
       }
     }
     return groups;
-  }, [responses]);
+  }, [responses, questionsMap]);
   const categories = Object.keys(groupedByCategory);
 
   // Helper to parse and display the answer
@@ -115,8 +140,8 @@ export const SubmissionView: React.FC = () => {
         : "";
     const files: { name?: string; url?: string }[] =
       typeof answer === "object" &&
-      answer !== null &&
-      Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
+        answer !== null &&
+        Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
         ? (answer as { files: { name?: string; url?: string }[] }).files
         : [];
     return (
@@ -242,7 +267,7 @@ export const SubmissionView: React.FC = () => {
       <Navbar />
       <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Remove online status indicator */}
-        
+
         <div className="mb-6">
           <Card className="shadow-md bg-white/90 border-0">
             <CardHeader className="border-b pb-2 mb-2">

@@ -54,6 +54,7 @@ interface FileAttachment {
 
 interface CategorizedResponse extends Omit<Submission_content_responses, 'question'> {
   question_text: string;
+  display_order: number;
   question?: {
     en?: string;
   };
@@ -107,13 +108,14 @@ const ReviewAssessments: React.FC = () => {
 
   const questionsMap = useMemo(() => {
     if (!questionsData) return new Map();
-    const map = new Map<string, { text: string; category: string }>();
+    const map = new Map<string, { text: string; category: string; display_order: number }>();
     questionsData.forEach(q => {
       if (q.latest_revision) {
         const categoryName = categoryIdMap.get(q.category_id) || 'Unknown Category';
         map.set(q.latest_revision.question_revision_id, {
           text: (q.latest_revision.text as { en: string })?.en || '',
           category: categoryName,
+          display_order: q.display_order || 0,
         });
       }
     });
@@ -124,7 +126,7 @@ const ReviewAssessments: React.FC = () => {
     if (!organizationsData) return new Map();
     const map = new Map<string, string>();
     organizationsData.forEach(o => {
-      map.set(o.id, o.name);
+      map.set(o.id || (o as any).organization_id, o.name);
     });
     return map;
   }, [organizationsData]);
@@ -257,7 +259,7 @@ const ReviewAssessments: React.FC = () => {
             <p className="text-gray-600">{t('reviewAssessments.subtitle', { defaultValue: 'Review and approve submitted assessments' })}</p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           {/* Pending Reviews Count */}
           {pendingReviewsData && pendingReviewsData.length > 0 && (
@@ -343,7 +345,11 @@ const ReviewAssessments: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-medium">{t('reviewAssessments.organization', { defaultValue: 'Organization' })}:</span>
-                    <p className="text-gray-600">{organizationsMap.get(selectedSubmission.organization_id) || t('reviewAssessments.unknown', { defaultValue: 'Unknown' })}</p>
+                    <p className="text-gray-600">
+                      {organizationsMap.get(selectedSubmission.organization_id) ||
+                        (selectedSubmission as any).organization_name ||
+                        t('reviewAssessments.unknown', { defaultValue: 'Unknown' })}
+                    </p>
                   </div>
                   <div>
                     <span className="font-medium">{t('reviewAssessments.submissionDate', { defaultValue: 'Submission Date' })}:</span>
@@ -359,7 +365,7 @@ const ReviewAssessments: React.FC = () => {
               {/* Assessment Responses */}
               <div>
                 <h3 className="font-semibold text-lg mb-4">{t('reviewAssessments.assessmentResponses', { defaultValue: 'Assessment Responses' })}</h3>
-                
+
                 {submissionResponses.length === 0 ? (
                   <p className="text-gray-500">{t('reviewAssessments.noResponsesFound', { defaultValue: 'No responses found' })}</p>
                 ) : (
@@ -379,19 +385,21 @@ const ReviewAssessments: React.FC = () => {
                           (questionDetails?.text) ||
                           customResponse.question?.en ||
                           'Question text not found';
-                        
+
                         const categorizedResponse: CategorizedResponse = {
                           response: customResponse.response,
                           files: customResponse.files,
                           question: customResponse.question,
                           question_text: questionText,
+                          display_order: questionDetails?.display_order || 0,
                         };
                         acc[category].push(categorizedResponse);
                         return acc;
                       }, {})
                     ).map(([category, categoryResponses]) => {
                       const recsForCategory = categoryRecommendations.filter(rec => rec.category === category);
-                      
+                      const sortedCategoryResponses = [...categoryResponses].sort((a, b) => a.display_order - b.display_order);
+
                       return (
                         <Card key={category} className="border-l-4 border-blue-500">
                           <CardHeader className="pb-3">
@@ -447,7 +455,7 @@ const ReviewAssessments: React.FC = () => {
                               </div>
                             </div>
                           </CardHeader>
-                          
+
                           {/* Category recommendation display */}
                           {recsForCategory.length > 0 && (
                             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-400 rounded-lg">
@@ -531,7 +539,7 @@ const ReviewAssessments: React.FC = () => {
                           {/* Questions in this category - Collapsible */}
                           {expandedCategories.has(category) ? (
                             <div className="space-y-4">
-                              {categoryResponses.map((response, index) => {
+                              {sortedCategoryResponses.map((response, index) => {
                                 let responseData;
                                 try {
                                   responseData = JSON.parse(response.response);
@@ -564,19 +572,19 @@ const ReviewAssessments: React.FC = () => {
                                             <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{responseData.text}</p>
                                           </div>
                                         )}
-                                                                                {/* Files in responseData */}
+                                        {/* Files in responseData */}
                                         {responseData.files && responseData.files.length > 0 && (
-                                          <FileDisplay 
-                                            files={responseData.files as FileAttachment[]} 
+                                          <FileDisplay
+                                            files={responseData.files as FileAttachment[]}
                                             title={t('reviewAssessments.attachments', { defaultValue: 'Attachments' })}
                                           />
                                         )}
                                       </div>
-                                      
+
                                       {/* Files attached to the response itself */}
                                       {response.files && response.files.length > 0 && (
-                                        <FileDisplay 
-                                          files={response.files as FileAttachment[]} 
+                                        <FileDisplay
+                                          files={response.files as FileAttachment[]}
                                           title={t('reviewAssessments.attachments', { defaultValue: 'Attachments' })}
                                         />
                                       )}
