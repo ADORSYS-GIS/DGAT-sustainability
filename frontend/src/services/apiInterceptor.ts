@@ -287,7 +287,21 @@ export class ApiInterceptor {
                 categoryNameToIdMap.set(cat.name.toLowerCase(), cat.category_catalog_id);
               }
             });
-            for (const question of data.questions as Question[]) {
+            const incomingQuestions = data.questions as Question[];
+
+            // Delete questions from local DB that are not in the API response
+            // (meaning they were soft-deleted/inactivated on the server), unless pending sync
+            const localQuestions = await offlineDB.getAllQuestions(true);
+            const incomingIds = new Set(incomingQuestions.map(q => q.question_id));
+            const questionsToDelete = localQuestions
+              .filter(q => q.sync_status !== 'pending' && !incomingIds.has(q.question_id))
+              .map(q => q.question_id);
+
+            for (const id of questionsToDelete) {
+              await offlineDB.deleteQuestion(id);
+            }
+
+            for (const question of incomingQuestions) {
               const offlineQuestion = DataTransformationService.transformQuestion(question, categoryNameToIdMap);
               await offlineDB.saveQuestion(offlineQuestion);
             }
