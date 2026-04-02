@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Edit, Plus, Trash2, ListTree } from "lucide-react";
+import { Building2, Edit, Plus, Trash2, ListTree, AlertCircle } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 
@@ -26,6 +26,19 @@ import AssignCategories from "./AssignCategories";
 
 import type { OfflineCategoryCatalog } from "@/types/offline";
 import { useOfflineOrganizations } from "@/hooks/useOfflineOrganizations"; // Import the new hook
+
+// Reserved characters that cannot be used in organization names (Keycloak alias restriction)
+const RESERVED_CHARS = /[<>/\\:;"'*?|&%$#@!(){}[\]^~`+=, ]/;
+
+/**
+ * Validate organization name for reserved characters
+ */
+const validateOrgName = (name: string): string | null => {
+  if (RESERVED_CHARS.test(name)) {
+    return "Name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.";
+  }
+  return null;
+};
 
 export const ManageOrganizations: React.FC = () => {
   const { t } = useTranslation();
@@ -44,6 +57,7 @@ export const ManageOrganizations: React.FC = () => {
   const [categories, setCategories] = useState<OfflineCategoryCatalog[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0); // New state for pending sync items
+  const [nameError, setNameError] = useState<string | null>(null); // Name validation error
 
   // Category creation state
 
@@ -299,15 +313,25 @@ export const ManageOrganizations: React.FC = () => {
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const newName = e.target.value;
                           setFormData((prev) => ({
                             ...prev,
-                            name: e.target.value,
-                          }))
-                        }
+                            name: newName,
+                          }));
+                          // Real-time validation
+                          const error = validateOrgName(newName);
+                          setNameError(error);
+                        }}
                         placeholder="Enter organization name"
-                        className="mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm"
+                        className={`mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${nameError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                       />
+                      {nameError && (
+                        <div className="flex items-center mt-2 text-sm text-red-600">
+                          <AlertCircle className="w-4 h-4 mr-1 flex-shrink-0" />
+                          <span>{nameError}</span>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label className="font-semibold text-dgrv-blue">
@@ -354,7 +378,8 @@ export const ManageOrganizations: React.FC = () => {
                     <div className="flex space-x-2 pt-4">
                       <Button
                         onClick={handleSubmit}
-                        className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow"
+                        disabled={!!nameError || !formData.name.trim()}
+                        className="bg-dgrv-green hover:bg-green-700 px-6 py-2 text-base font-semibold rounded shadow disabled:opacity-50 disabled:cursor-not-allowed"
                       // No longer need to disable based on mutation pending state as operations are offline
                       >
                         {editingOrg

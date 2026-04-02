@@ -9,6 +9,49 @@ import { OrganizationsService } from "@/openapi-rq/requests/services.gen";
 import type { Organization } from "@/openapi-rq/requests/types.gen";
 import { DataTransformationService } from "@/services/dataTransformation";
 
+// Reserved characters that cannot be used in organization names (Keycloak alias restriction)
+const RESERVED_CHARS = /[<>/\\:;"'*?|&%$#@!(){}[\]^~`+=, ]/;
+
+/**
+ * Extract error message from API error response
+ */
+const extractErrorMessage = (error: unknown): string => {
+  if (error && typeof error === "object") {
+    // Check for errorMessage field (backend format)
+    if ("errorMessage" in error && typeof error.errorMessage === "string") {
+      return error.errorMessage;
+    }
+    // Check for message field
+    if ("message" in error && typeof error.message === "string") {
+      return error.message;
+    }
+    // Check for body.errorMessage (some API clients wrap it)
+    if ("body" in error && error.body && typeof error.body === "object") {
+      const body = error.body as Record<string, unknown>;
+      if (body.errorMessage && typeof body.errorMessage === "string") {
+        return body.errorMessage;
+      }
+      if (body.message && typeof body.message === "string") {
+        return body.message;
+      }
+    }
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "An unexpected error occurred";
+};
+
+/**
+ * Validate organization name for reserved characters
+ */
+const validateOrganizationName = (name: string): string | null => {
+  if (RESERVED_CHARS.test(name)) {
+    return "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.";
+  }
+  return null;
+};
+
 export const useOfflineOrganizations = () => {
   const [organizations, setOrganizations] = useState<OfflineOrganization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +95,13 @@ export const useOfflineOrganizations = () => {
   }, [fetchOrganizations]);
 
   const createOrganizationOffline = useCallback(async (requestBody: OrganizationCreateRequest) => {
+    // Client-side validation for reserved characters
+    const nameError = validateOrganizationName(requestBody.name);
+    if (nameError) {
+      toast.error(nameError);
+      throw new Error(nameError);
+    }
+
     const tempId = uuidv4();
     const now = new Date().toISOString();
 
@@ -89,8 +139,9 @@ export const useOfflineOrganizations = () => {
     } catch (error) {
       // Only fall back to offline create when the browser is actually offline.
       if (navigator.onLine) {
+        const errorMessage = extractErrorMessage(error);
         console.error("Online creation failed:", error);
-        toast.error("Failed to create organization.");
+        toast.error(errorMessage);
         throw error;
       }
     }
