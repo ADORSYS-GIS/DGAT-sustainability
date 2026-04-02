@@ -85,6 +85,8 @@ services:
     ports:
       - "5431:5432"
     networks: [tool-net]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
   #
   # ────────────────────────────── KEYCLOAK ──────────────────────────────

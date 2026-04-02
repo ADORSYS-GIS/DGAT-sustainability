@@ -103,8 +103,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
 volumes:
+  postgres-data:
   openapi-volume:
     external: false
 
