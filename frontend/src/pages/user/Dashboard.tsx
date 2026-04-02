@@ -128,6 +128,22 @@ export const Dashboard: React.FC = () => {
   const submissionsLoading = userSubmissionsLoading;
   const submissionsError = userSubmissionsError;
 
+  // Deduplicate reports by submission_id, keeping only the latest generated_at
+  const uniqueReports = React.useMemo(() => {
+    if (!reportsData?.reports) return [];
+
+    const latestReportsMap = new Map<string, Report>();
+
+    reportsData.reports.forEach(report => {
+      const existingReport = latestReportsMap.get(report.submission_id);
+      if (!existingReport || new Date(report.generated_at) > new Date(existingReport.generated_at)) {
+        latestReportsMap.set(report.submission_id, report);
+      }
+    });
+
+    return Array.from(latestReportsMap.values());
+  }, [reportsData?.reports]);
+
   // Filter assessments by organization and status
   const filteredAssessments = React.useMemo(() => {
     if (!assessmentsData?.assessments || !user?.organizations) {
@@ -720,7 +736,7 @@ export const Dashboard: React.FC = () => {
       <ReportSelectionDialog
         open={isReportDialogOpen}
         onOpenChange={setIsReportDialogOpen}
-        reports={reportsData?.reports || []}
+        reports={uniqueReports}
         onReportSelect={handleSelectReportToExport}
         assessments={assessmentsData?.assessments || []}
         submissions={submissionsData?.submissions || []}

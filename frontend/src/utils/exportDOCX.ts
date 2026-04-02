@@ -47,14 +47,14 @@ const groupDataByCategory = (
           let textAnswer = "N/A";
 
           if (response.response) {
-              try {
-                  const parsed = JSON.parse(response.response);
-                  answer = parsed.yesNo ? "Yes" : "No";
-                  percentage = `${parsed.percentage || 0}%`;
-                  textAnswer = parsed.text || "N/A";
-              } catch (e) {
-                  textAnswer = response.response;
-              }
+            try {
+              const parsed = JSON.parse(response.response);
+              answer = parsed.yesNo ? "Yes" : "No";
+              percentage = `${parsed.percentage || 0}%`;
+              textAnswer = parsed.text || "N/A";
+            } catch (e) {
+              textAnswer = response.response;
+            }
           }
 
           groupedData[category].push({
@@ -130,75 +130,75 @@ const createAssessmentsTable = (
 };
 
 const createKanbanBoard = (recommendations: RecommendationWithStatus[]) => {
-    const tasksByColumn = {
-      todo: recommendations.filter(r => r.status === 'todo'),
-      in_progress: recommendations.filter(r => r.status === 'in_progress'),
-      done: recommendations.filter(r => r.status === 'done'),
-      approved: recommendations.filter(r => r.status === 'approved'),
-    };
-  
-    const columnTitles = {
-      todo: "To Do",
-      in_progress: "In Progress",
-      done: "Done",
-      approved: "Approved",
-    };
-  
-    const maxTasks = Math.max(
-      tasksByColumn.todo.length,
-      tasksByColumn.in_progress.length,
-      tasksByColumn.done.length,
-      tasksByColumn.approved.length
-    );
-  
-    const headerRow = new TableRow({
-      children: Object.keys(columnTitles).map(key => new TableCell({
-        children: [new Paragraph({
-          children: [new TextRun({ text: columnTitles[key as keyof typeof columnTitles], bold: true })],
-        })],
-      })),
-    });
-  
-    const taskRows = [];
-    for (let i = 0; i < maxTasks; i++) {
-      const rowCells = [];
-      const columns = ['todo', 'in_progress', 'done', 'approved'];
-  
-      for (const col of columns) {
-        const tasks = tasksByColumn[col as keyof typeof tasksByColumn];
-        if (tasks[i]) {
-          const task = tasks[i];
-          rowCells.push(new TableCell({
-            children: [new Paragraph({
-              children: [
-                new TextRun({ text: task.category, bold: true, color: dgrvBlue }),
-                new TextRun({ text: `\n${task.recommendation}` }),
-              ],
-            })],
-            verticalAlign: VerticalAlign.TOP,
-          }));
-        } else {
-          rowCells.push(new TableCell({ children: [new Paragraph("")] }));
-        }
-      }
-      taskRows.push(new TableRow({ children: rowCells }));
-    }
-  
-    const table = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [headerRow, ...taskRows],
-    });
-  
-    return [
-      new Paragraph({ text: "", pageBreakBefore: true }),
-      new Paragraph({
-        children: [new TextRun({ text: "Action Plan Kanban Board", size: 36, bold: true, color: dgrvBlue })],
-        spacing: { after: 100 },
-      }),
-      new Paragraph("This Kanban board provides a visual tool to track the progress of each recommendation."),
-      table,
-    ];
+  const tasksByColumn = {
+    todo: recommendations.filter(r => r.status === 'todo'),
+    in_progress: recommendations.filter(r => r.status === 'in_progress'),
+    done: recommendations.filter(r => r.status === 'done'),
+    approved: recommendations.filter(r => r.status === 'approved'),
   };
+
+  const columnTitles = {
+    todo: "To Do",
+    in_progress: "In Progress",
+    done: "Done",
+    approved: "Approved",
+  };
+
+  const maxTasks = Math.max(
+    tasksByColumn.todo.length,
+    tasksByColumn.in_progress.length,
+    tasksByColumn.done.length,
+    tasksByColumn.approved.length
+  );
+
+  const headerRow = new TableRow({
+    children: Object.keys(columnTitles).map(key => new TableCell({
+      children: [new Paragraph({
+        children: [new TextRun({ text: columnTitles[key as keyof typeof columnTitles], bold: true })],
+      })],
+    })),
+  });
+
+  const taskRows = [];
+  for (let i = 0; i < maxTasks; i++) {
+    const rowCells = [];
+    const columns = ['todo', 'in_progress', 'done', 'approved'];
+
+    for (const col of columns) {
+      const tasks = tasksByColumn[col as keyof typeof tasksByColumn];
+      if (tasks[i]) {
+        const task = tasks[i];
+        rowCells.push(new TableCell({
+          children: [new Paragraph({
+            children: [
+              new TextRun({ text: task.category, bold: true, color: dgrvBlue }),
+              new TextRun({ text: `\n${task.recommendation}` }),
+            ],
+          })],
+          verticalAlign: VerticalAlign.TOP,
+        }));
+      } else {
+        rowCells.push(new TableCell({ children: [new Paragraph("")] }));
+      }
+    }
+    taskRows.push(new TableRow({ children: rowCells }));
+  }
+
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [headerRow, ...taskRows],
+  });
+
+  return [
+    new Paragraph({ text: "", pageBreakBefore: true }),
+    new Paragraph({
+      children: [new TextRun({ text: "Action Plan Kanban Board", size: 36, bold: true, color: dgrvBlue })],
+      spacing: { after: 100 },
+    }),
+    new Paragraph("This Kanban board provides a visual tool to track the progress of each recommendation."),
+    table,
+  ];
+};
 
 
 // Main export function
@@ -224,28 +224,28 @@ export async function exportAllAssessmentsDOCX(
       }
     }
     if (!imageBuffer) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 500; canvas.height = 500;
-        if (ctx) {
-          ctx.fillStyle = '#1e3a8a';
-          ctx.fillRect(0, 0, 150, 150);
-          ctx.fillStyle = 'white';
-          ctx.font = 'bold 24px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText('DGRV', 75, 75);
-          ctx.font = '16px Arial';
-          ctx.fillText('Sustainability', 75, 110);
-        }
-        const base64 = canvas.toDataURL('image/png');
-        const response = await fetch(base64);
-        const blob = await response.blob();
-        imageBuffer = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as ArrayBuffer);
-            reader.onerror = reject;
-            reader.readAsArrayBuffer(blob);
-        });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 500; canvas.height = 500;
+      if (ctx) {
+        ctx.fillStyle = '#1e3a8a';
+        ctx.fillRect(0, 0, 150, 150);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('DGRV', 75, 75);
+        ctx.font = '16px Arial';
+        ctx.fillText('Sustainability', 75, 110);
+      }
+      const base64 = canvas.toDataURL('image/png');
+      const response = await fetch(base64);
+      const blob = await response.blob();
+      imageBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(blob);
+      });
     }
   } catch (error) {
     console.error("Error in logo processing:", error);
@@ -278,7 +278,7 @@ export async function exportAllAssessmentsDOCX(
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: "SUSTAINABILITY REPORT 2025",
+            text: `SUSTAINABILITY REPORT ${new Date().getFullYear()}`,
             bold: true,
             size: 48,
             color: dgrvBlue,
@@ -289,7 +289,7 @@ export async function exportAllAssessmentsDOCX(
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: "This document presents the findings of the 2025 sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions. It provides a comprehensive overview of the assessment results, data-driven recommendations for measurable improvements, and an actionable roadmap to help guide future sustainability initiatives.",
+            text: `This document presents the findings of the ${new Date().getFullYear()} sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions. It provides a comprehensive overview of the assessment results, data-driven recommendations for measurable improvements, and an actionable roadmap to help guide future sustainability initiatives.`,
             size: 24,
           }),
         ],

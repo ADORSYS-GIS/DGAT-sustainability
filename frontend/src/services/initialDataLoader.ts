@@ -16,7 +16,7 @@ import {
 
 import { DataTransformationService } from "./dataTransformation";
 import { offlineDB } from "./indexeddb";
-import type { DataLoadingProgress } from "@/types/offline";
+import type { DataLoadingProgress, OfflineRecommendation, DetailedReport } from "@/types/offline";
 import type { Question } from "@/openapi-rq/requests/types.gen";
 
 export interface UserContext {
@@ -224,8 +224,8 @@ export class InitialDataLoader {
     try {
       this.updateProgress('Loading organization categories...', 1);
       const orgCategoriesData = await OrganizationsService.getOrganizationsByKeycloakOrganizationIdCategories({ keycloakOrganizationId: userContext.organizationId });
-      if (orgCategoriesData?.categories) {
-        const transformedOrgCategories = orgCategoriesData.categories.map(
+      if (orgCategoriesData?.organization_categories) {
+        const transformedOrgCategories = orgCategoriesData.organization_categories.map(
           orgCat => DataTransformationService.transformOrganizationCategory(orgCat, userContext.organizationId!)
         );
         if (DataTransformationService.validateTransformedData(transformedOrgCategories, 'organization_categories')) {
@@ -450,8 +450,32 @@ export class InitialDataLoader {
           report => DataTransformationService.transformReport(report, userContext.organizationId, userContext.userId)
         );
 
-        if (DataTransformationService.validateTransformedData(transformedReports, 'reports')) {
+        if (DataTransformationService.validateTransformedData(transformedReports, "reports")) {
           await offlineDB.saveReports(transformedReports);
+
+          // Also transform reports into individual recommendations and save them
+          // to populate the recommendations object store for the Action Plan list
+          const allOfflineRecommendations: OfflineRecommendation[] = [];
+          const submissions = await offlineDB.getAllSubmissions();
+          const submissionMap = new Map(submissions.map((s) => [s.submission_id, s.assessment_name]));
+
+          for (const report of transformedReports) {
+            const assessmentName = submissionMap.get(report.submission_id);
+            const transformedRecs = DataTransformationService.transformReportToOfflineRecommendations(
+              report as unknown as DetailedReport,
+              userContext.organizationId,
+              userContext.organizationName,
+              assessmentName
+            );
+            allOfflineRecommendations.push(...transformedRecs);
+          }
+
+          if (allOfflineRecommendations.length > 0) {
+            console.log(
+              `📦 InitialDataLoader: Saving ${allOfflineRecommendations.length} recommendations from ${transformedReports.length} reports`
+            );
+            await offlineDB.saveRecommendations(allOfflineRecommendations);
+          }
         }
       }
 

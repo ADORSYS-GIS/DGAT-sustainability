@@ -7,6 +7,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useOfflineUserSubmissions } from "@/hooks/useOfflineUserSubmissions";
+import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
 import { OfflineSubmission } from "@/types/offline";
 
 export const AssessmentSubmissionsList: React.FC = () => {
@@ -15,6 +16,14 @@ export const AssessmentSubmissionsList: React.FC = () => {
   const { user } = useAuth();
 
   const { data: submissionsData, isLoading: submissionsLoading } = useOfflineUserSubmissions();
+  const { isLoading: initialLoading, getLoadingStatus } = useInitialDataLoad();
+
+  const isSyncing = React.useMemo(() => {
+    const status = getLoadingStatus();
+    return initialLoading || status === 'loading' || status === 'not_loaded';
+  }, [initialLoading, getLoadingStatus]);
+
+  const isLoading = submissionsLoading || isSyncing;
 
   const availableSubmissions = React.useMemo(() => {
     return submissionsData?.submissions || [];
@@ -38,7 +47,7 @@ export const AssessmentSubmissionsList: React.FC = () => {
               <ArrowLeft className="w-4 h-4" />
               <span>{t("backToDashboard", { defaultValue: "Back to Dashboard" })}</span>
             </Button>
-            
+
             <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
               {t('assessment.selectAssessmentToViewActionPlan', { defaultValue: 'Select Assessment to View Action Plan' })}
             </h1>
@@ -47,7 +56,7 @@ export const AssessmentSubmissionsList: React.FC = () => {
             </p>
           </div>
 
-          {submissionsLoading ? (
+          {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-dgrv-blue"></div>
             </div>

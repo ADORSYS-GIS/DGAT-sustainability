@@ -133,12 +133,12 @@ export async function exportAllAssessmentsPDF(
   doc.setFontSize(40);
   doc.setTextColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
   doc.setFont("helvetica", "bold");
-  doc.text("SUSTAINABILITY REPORT 2025", pageWidth / 2, 175, { align: 'center' });
-  
+  doc.text(`SUSTAINABILITY REPORT ${new Date().getFullYear()}`, pageWidth / 2, 175, { align: 'center' });
+
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(0, 0, 0);
-  const introText = "This document presents the findings of the 2025 sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions. It provides a comprehensive overview of the assessment results, data-driven recommendations for measurable improvements, and an actionable roadmap to help guide future sustainability initiatives.";
+  const introText = `This document presents the findings of the ${new Date().getFullYear()} sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions. It provides a comprehensive overview of the assessment results, data-driven recommendations for measurable improvements, and an actionable roadmap to help guide future sustainability initiatives.`;
   const splitText = doc.splitTextToSize(introText, pageWidth - 100);
   doc.text(splitText, pageWidth / 2, 185, { align: 'center' });
 
@@ -152,7 +152,7 @@ export async function exportAllAssessmentsPDF(
     doc.setTextColor(0, 0, 0);
     const radarIntro = "The following chart visualizes the performance across key sustainability dimensions, providing a high-level overview of strengths and areas for improvement.";
     doc.text(doc.splitTextToSize(radarIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 30);
-    
+
     const chartHeight = 150; // Maximize height within page
     const chartWidth = 400; // Maintain aspect ratio
     const x = (pageWidth - chartWidth) / 2;
@@ -187,7 +187,7 @@ export async function exportAllAssessmentsPDF(
   const introLines = doc.splitTextToSize(tableIntro, pageWidth - (PAGE_MARGIN * 2));
   doc.text(introLines, PAGE_MARGIN, 30);
   const introTextHeight = doc.getTextDimensions(introLines).h;
-  
+
   const tableStartY = 30 + introTextHeight + 10; // Start table 10 units below intro text
 
   // drawAssessmentsTable will now start on the current page at the calculated Y position.
