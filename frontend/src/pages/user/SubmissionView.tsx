@@ -15,6 +15,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
+import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 
 // Locally extend the type to include question_category
 interface SubmissionResponseWithCategory extends Submission_content_responses {
@@ -50,31 +51,71 @@ export const SubmissionView: React.FC = () => {
   const responses = submission?.content?.responses as SubmissionResponseWithCategory[] | undefined;
 
   const { data: questionsData } = useOfflineQuestions();
+  const { data: categoriesData } = useOfflineCategoryCatalogs();
 
-  const [questionsMap, questionsTextMap] = React.useMemo(() => {
+  const [questionsMap, questionsTextMap, qRevToCategoryMap] = React.useMemo(() => {
     const map = new Map<string, number>();
     const textMap = new Map<string, number>();
+    const catMap = new Map<string, string>();
+
+    // Create a mapping from category_id to category name
+    const categoryIdToName = new Map<string, string>();
+    const categoryNameToId = new Map<string, string>();
+    if (categoriesData) {
+      categoriesData.forEach(cat => {
+        categoryIdToName.set(cat.category_catalog_id, cat.name);
+        categoryNameToId.set(cat.name.toLowerCase(), cat.category_catalog_id);
+      });
+    }
+
     if (questionsData) {
       questionsData.forEach(q => {
         if (q.latest_revision) {
+          const revId = q.latest_revision.question_revision_id;
           const displayOrder = q.display_order || 0;
-          map.set(q.latest_revision.question_revision_id, displayOrder);
+          map.set(revId, displayOrder);
+
           const qText = (q.latest_revision.text as { en?: string })?.en || '';
           if (qText) {
             textMap.set(qText, displayOrder);
           }
+
+          // Map the revision ID to the actual proper category name
+          let catName = 'Uncategorized';
+          const qCat = q.category || q.category_id; // Frontend returns category as string or UUID
+          if (qCat) {
+            if (categoryIdToName.has(qCat)) {
+              catName = categoryIdToName.get(qCat)!;
+            } else if (categoryNameToId.has(qCat.toLowerCase())) {
+              catName = categoryIdToName.get(categoryNameToId.get(qCat.toLowerCase())!) || qCat;
+            } else {
+              catName = qCat;
+            }
+          }
+          catMap.set(revId, catName);
         }
       });
     }
-    return [map, textMap];
-  }, [questionsData]);
+    return [map, textMap, catMap];
+  }, [questionsData, categoriesData]);
 
   // Group responses by category and sort them
   const groupedByCategory = React.useMemo(() => {
     const groups: Record<string, SubmissionResponseWithCategory[]> = {};
     if (responses) {
       for (const resp of responses) {
-        const cat = resp.question_category || "Uncategorized";
+        // Find category from backend enrichment OR local lookup map
+        let cat = resp.question_category;
+
+        // If it's a completely local draft lacking enrichment, or the backend returned 'Unknown'/'Unknown category'
+        if (!cat || cat.toLowerCase() === 'uncategorized' || cat.toLowerCase().includes('unknown')) {
+          if (resp.question_revision_id && qRevToCategoryMap.has(resp.question_revision_id)) {
+            cat = qRevToCategoryMap.get(resp.question_revision_id);
+          }
+        }
+
+        cat = cat || 'Uncategorized';
+
         if (!groups[cat]) groups[cat] = [];
 
         // Enrich with display_order for sorting
@@ -96,7 +137,7 @@ export const SubmissionView: React.FC = () => {
       }
     }
     return groups;
-  }, [responses, questionsMap]);
+  }, [responses, questionsMap, qRevToCategoryMap]);
   const categories = Object.keys(groupedByCategory);
 
   // Helper to parse and display the answer

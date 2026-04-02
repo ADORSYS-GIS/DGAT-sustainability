@@ -309,6 +309,8 @@ export const Assessment: React.FC = () => {
 
     try {
       const allResponsesToSave: CreateResponseRequest[] = [];
+      let allQuestionsAnswered = true;
+
       for (const categoryName of categories) {
         const categoryQuestions = groupedQuestions[categoryName] || [];
         for (const { revision } of categoryQuestions) {
@@ -317,8 +319,15 @@ export const Assessment: React.FC = () => {
           const answer = answers[key];
           if (answer && isAnswerComplete(answer)) {
             allResponsesToSave.push(createResponseToSave(key, answer));
+          } else {
+            allQuestionsAnswered = false;
           }
         }
+      }
+
+      if (!allQuestionsAnswered) {
+        toast.error(t("assessment.incompleteCategories", { defaultValue: "All categories and questions must be answered before submitting." }));
+        return;
       }
 
       if (allResponsesToSave.length > 0) {

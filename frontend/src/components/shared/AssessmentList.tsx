@@ -8,6 +8,7 @@ import type { OfflineAssessment } from "@/types/offline";
 import { useDeleteAssessment } from "@/hooks/useAssessments";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/shared/useAuth";
 
 interface AssessmentListProps {
   assessments: OfflineAssessment[];
@@ -26,6 +27,13 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   const { mutate: deleteAssessment, isPending } = useDeleteAssessment();
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = React.useState<string | null>(null);
+
+  const { user } = useAuth();
+  const isOrgAdmin = React.useMemo(() => {
+    if (!user) return false;
+    const allRoles = [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
+    return allRoles.includes("org_admin");
+  }, [user]);
 
   const handleDeleteAssessment = async (assessmentId: string) => {
     try {
@@ -99,7 +107,7 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                       </span>
                     </div>
                   </div>
-                  
+
                   {/* Display assigned categories */}
                   {assessment.categories && assessment.categories.length > 0 && (
                     <div className="mt-2">
@@ -132,22 +140,24 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                 >
                   {t('assessment.continueAssessment', { defaultValue: 'Continue' })}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => confirmDelete(assessment.assessment_id)}
-                  disabled={isPending}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  {t('assessment.delete', { defaultValue: 'Delete' })}
-                </Button>
+                {isOrgAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => confirmDelete(assessment.assessment_id)}
+                    disabled={isPending}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    {t('assessment.delete', { defaultValue: 'Delete' })}
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
         </Card>
       ))}
-      
+
       <ConfirmationDialog
         isOpen={deleteDialogOpen}
         onClose={() => {

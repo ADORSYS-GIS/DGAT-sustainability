@@ -9,21 +9,24 @@ import { useOfflineDraftSubmissions, useOfflineDraftSubmissionsMutation } from "
 import { toast } from "sonner";
 import {
   Clock,
-  CheckCircle, 
-  Eye, 
-  ArrowLeft, 
-  Building2, 
+  CheckCircle,
+  Eye,
+  ArrowLeft,
+  Building2,
   Calendar,
   FileText,
   Users,
   TrendingUp
 } from "lucide-react";
 import type { Submission_content_responses } from "@/openapi-rq/requests/types.gen";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
+import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 
 // Locally extend the type to include question_category and question_text
 interface SubmissionResponseWithCategory extends Submission_content_responses {
   question_category?: string;
   question_text?: string;
+  question_revision_id?: string;
 }
 
 interface DraftSubmission {
@@ -141,8 +144,8 @@ export default function DraftSubmissions() {
         : "";
     const files: { name?: string; url?: string }[] =
       typeof answer === "object" &&
-      answer !== null &&
-      Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
+        answer !== null &&
+        Array.isArray((answer as { files?: { name?: string; url?: string }[] }).files)
         ? (answer as { files: { name?: string; url?: string }[] }).files
         : [];
     return (
@@ -179,7 +182,7 @@ export default function DraftSubmissions() {
             </Button>
           </div>
         </div>
-        
+
         {/* Percentage */}
         <div className="flex flex-col gap-2">
           <span className="font-semibold text-gray-700">{t("user.draftSubmissions.percentageResponse", { defaultValue: "Percentage Response" })}</span>
@@ -202,7 +205,7 @@ export default function DraftSubmissions() {
             ))}
           </div>
         </div>
-        
+
         {/* Text Input */}
         <div className="flex flex-col gap-2">
           <span className="font-semibold text-gray-700">{t("user.draftSubmissions.textResponse", { defaultValue: "Text Response" })}</span>
@@ -215,7 +218,7 @@ export default function DraftSubmissions() {
             style={{ opacity: 1 }}
           />
         </div>
-        
+
         {/* File List */}
         <div className="flex flex-col gap-2">
           <span className="font-semibold text-gray-700">{t("user.draftSubmissions.attachedFiles", { defaultValue: "Attached Files" })}</span>
@@ -280,12 +283,60 @@ export default function DraftSubmissions() {
   // Handle both possible response structures
   const submissions = (draftSubmissions.draft_submissions || []) as unknown as DraftSubmission[];
 
+  const { data: questionsData } = useOfflineQuestions();
+  const { data: categoriesData } = useOfflineCategoryCatalogs();
+
+  const qRevToCategoryMap = React.useMemo(() => {
+    const catMap = new Map<string, string>();
+
+    // Create a mapping from category_id to category name
+    const categoryIdToName = new Map<string, string>();
+    const categoryNameToId = new Map<string, string>();
+    if (categoriesData) {
+      categoriesData.forEach((cat: { category_catalog_id: string; name: string }) => {
+        categoryIdToName.set(cat.category_catalog_id, cat.name);
+        categoryNameToId.set(cat.name.toLowerCase(), cat.category_catalog_id);
+      });
+    }
+
+    if (questionsData) {
+      questionsData.forEach(q => {
+        if (q.latest_revision) {
+          const revId = q.latest_revision.question_revision_id;
+
+          let catName = 'Uncategorized';
+          const qCat = q.category || q.category_id;
+          if (qCat) {
+            if (categoryIdToName.has(qCat)) {
+              catName = categoryIdToName.get(qCat)!;
+            } else if (categoryNameToId.has(qCat.toLowerCase())) {
+              catName = categoryIdToName.get(categoryNameToId.get(qCat.toLowerCase())!) || qCat;
+            } else {
+              catName = qCat;
+            }
+          }
+          catMap.set(revId, catName);
+        }
+      });
+    }
+    return catMap;
+  }, [questionsData, categoriesData]);
+
   // If viewing a specific submission
   if (selectedSubmission) {
     const groupedByCategory: Record<string, SubmissionResponseWithCategory[]> = {};
     if (selectedSubmission.content?.responses) {
       for (const resp of selectedSubmission.content.responses) {
-        const cat = resp.question_category || "Uncategorized";
+        let cat = resp.question_category;
+
+        // If it's a completely local draft lacking enrichment, or the backend returned 'Unknown'/'Unknown category'
+        if (!cat || cat.toLowerCase() === 'uncategorized' || cat.toLowerCase().includes('unknown')) {
+          if (resp.question_revision_id && qRevToCategoryMap.has(resp.question_revision_id)) {
+            cat = qRevToCategoryMap.get(resp.question_revision_id);
+          }
+        }
+
+        cat = cat || 'Uncategorized';
         if (!groupedByCategory[cat]) groupedByCategory[cat] = [];
         groupedByCategory[cat].push(resp);
       }
@@ -305,7 +356,7 @@ export default function DraftSubmissions() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               {t("user.draftSubmissions.backToDraftSubmissions", { defaultValue: "Back to Draft Submissions" })}
             </Button>
-            
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-start justify-between mb-6">
                 <div>
@@ -316,8 +367,8 @@ export default function DraftSubmissions() {
                     {t("user.draftSubmissions.reviewAndApprove", { defaultValue: "Review and approve this draft submission" })}
                   </p>
                 </div>
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className="px-3 py-1 text-sm font-medium bg-amber-100 text-amber-800 border-amber-200"
                 >
                   {selectedSubmission.review_status
@@ -439,8 +490,8 @@ export default function DraftSubmissions() {
                 {t("user.draftSubmissions.noDraftSubmissions", { defaultValue: "No Draft Submissions" })}
               </h3>
               <p className="text-gray-500 text-center max-w-md">
-                {t("user.draftSubmissions.noDraftSubmissionsDescription", { 
-                  defaultValue: "There are currently no draft submissions pending approval. Check back later for new submissions." 
+                {t("user.draftSubmissions.noDraftSubmissionsDescription", {
+                  defaultValue: "There are currently no draft submissions pending approval. Check back later for new submissions."
                 })}
               </p>
             </CardContent>
@@ -459,8 +510,8 @@ export default function DraftSubmissions() {
                             {submission.org_name}
                           </span>
                         </div>
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className="bg-amber-100 text-amber-800 border-amber-200"
                         >
                           {submission.review_status
@@ -468,7 +519,7 @@ export default function DraftSubmissions() {
                             .replace(/\b\w/g, (c) => c.toUpperCase())}
                         </Badge>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                         <div className="flex items-center space-x-2">
                           <FileText className="h-4 w-4" />
@@ -484,7 +535,7 @@ export default function DraftSubmissions() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <Button
                       onClick={() => handleViewDetails(submission)}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
