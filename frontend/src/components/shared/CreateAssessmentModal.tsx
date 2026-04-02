@@ -34,6 +34,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
   const { t } = useTranslation();
   const [assessmentName, setAssessmentName] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const hasShownNoCategoriesToastRef = React.useRef(false);
   
   const {
     organizationCategories: availableOrganizationCategories = [],
@@ -42,6 +43,8 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
   } = useOfflineOrganizationCategories();
 
   const [availableCategories, setAvailableCategories] = useState<OfflineCategoryCatalog[]>([]);
+
+  const noCategoriesAssigned = !isLoadingCategories && availableOrganizationCategories.length === 0;
 
   useEffect(() => {
     const fetchCategoryDetails = async () => {
@@ -66,9 +69,34 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
     }
   }, [orgCategoriesError, t]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      hasShownNoCategoriesToastRef.current = false;
+      return;
+    }
+
+    if (noCategoriesAssigned && !hasShownNoCategoriesToastRef.current) {
+      hasShownNoCategoriesToastRef.current = true;
+      toast.error(
+        t('assessment.noCategoriesAssigned', {
+          defaultValue: 'Sorry, no categories have been assigned yet to your organisation. Contact the admin.'
+        })
+      );
+    }
+  }, [isOpen, noCategoriesAssigned, t]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (assessmentName.trim()) {
+      if (noCategoriesAssigned) {
+        toast.error(
+          t('assessment.noCategoriesAssigned', {
+            defaultValue: 'Sorry, no categories have been assigned yet to your organisation. Contact the admin.'
+          })
+        );
+        return;
+      }
+
       if (isOrgAdmin && selectedCategories.length === 0) {
         toast.error(t('assessment.categoriesRequired', { defaultValue: 'Please select at least one category for this assessment.' }));
         return;
@@ -147,7 +175,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
                     ))
                   ) : (
                     <p className="text-sm text-gray-500 text-center p-4">
-                      {t('assessment.noCategoriesFound', { defaultValue: 'No categories found for your organization.' })}
+                      {t('assessment.noCategoriesAssigned', { defaultValue: 'Sorry, no categories have been assigned yet to your organisation. Contact the admin.' })}
                     </p>
                   )}
                 </div>
@@ -170,7 +198,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
             <Button
               type="submit"
               className="bg-dgrv-blue hover:bg-blue-700"
-              disabled={isLoading || !assessmentName.trim() || (isOrgAdmin && selectedCategories.length === 0)}
+              disabled={isLoading || !assessmentName.trim() || noCategoriesAssigned || (isOrgAdmin && selectedCategories.length === 0)}
             >
               {isLoading
                 ? t('common.creating', { defaultValue: 'Creating...' })

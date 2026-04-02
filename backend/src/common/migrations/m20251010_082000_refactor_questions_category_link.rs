@@ -28,22 +28,8 @@ impl MigrationTrait for Migration {
                 .to_owned()
         ).await?;
 
-        // 2. Ensure a default "Uncategorized" category exists.
-        let db = manager.get_connection();
-        db.execute_unprepared(
-            r#"
-            INSERT INTO category_catalog (category_catalog_id, name, description, template_id, is_active, created_at, updated_at)
-            VALUES ('00000000-0000-0000-0000-000000000000', 'Uncategorized', 'Default category for questions without a specific category', 'default', true, NOW(), NOW())
-            ON CONFLICT (category_catalog_id) DO NOTHING;
-            "#
-        ).await?;
-
-        // 3. Set a default category_id for all questions first.
-        db.execute_unprepared(
-            "UPDATE questions SET category_id = '00000000-0000-0000-0000-000000000000'"
-        ).await?;
-
         // 4. Populate the new category_id column from the existing category name where matches are found.
+        let db = manager.get_connection();
         db.execute_unprepared(
             "UPDATE questions SET category_id = category_catalog.category_catalog_id
              FROM category_catalog WHERE questions.category = category_catalog.name"

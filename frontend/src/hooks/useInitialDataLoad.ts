@@ -122,9 +122,21 @@ export function useInitialDataLoad() {
 
   // Effect to load data when user authenticates
   useEffect(() => {
-    if (isAuthenticated && user && isOnline) {
+    if (!isAuthenticated || !user || !isOnline) return;
+    if (isLoading) return;
+
+    const requestIdleCallback = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: { timeout?: number }) => void);
+    const schedule = (fn: () => void) => {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(fn, { timeout: 1500 });
+      } else {
+        window.setTimeout(fn, 0);
+      }
+    };
+
+    schedule(() => {
       loadInitialData();
-    }
+    });
   }, [isAuthenticated, user, isOnline, loadInitialData]);
 
   // Effect to monitor progress
@@ -140,10 +152,12 @@ export function useInitialDataLoad() {
     if (isAuthenticated && user) {
       if (isOnline && !hasLoadedData) {
         // User came back online and hasn't loaded data yet
-        loadInitialData();
+        if (!isLoading) {
+          loadInitialData();
+        }
       }
     }
-  }, [isOnline, isAuthenticated, user, hasLoadedData, loadInitialData]);
+  }, [isOnline, isAuthenticated, user, hasLoadedData, loadInitialData, isLoading]);
 
   // Manual refresh function
   const refreshData = useCallback(async () => {

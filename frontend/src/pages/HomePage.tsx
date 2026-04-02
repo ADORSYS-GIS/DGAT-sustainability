@@ -3,7 +3,7 @@ import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
 import { Leaf, CheckSquare, Users, Globe, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -12,28 +12,19 @@ export const Welcome: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  useEffect(() => {
-    if (loading) return;
-    if (!isAuthenticated) return;
-    const isDrgvAdmin = roles.includes("drgv_admin");
-    const isOrgAdmin = roles.includes("org_admin");
-    const isOrgUser = roles.includes("Org_User");
-    if (isDrgvAdmin && window.location.pathname !== "/admin/") {
-      navigate("/admin/dashboard", { replace: true });
-    } else if (
-      isOrgAdmin &&
-      window.location.pathname !== "/dashboard"
-    ) {
-      navigate("/dashboard", { replace: true });
-    } else if (
-      isOrgUser &&
-      user?.organizations &&
-      Object.keys(user.organizations).length > 0 &&
-      window.location.pathname !== "/dashboard"
-    ) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, loading, user, roles, navigate]);
+  const isDrgvAdmin = roles.includes("drgv_admin");
+  const isOrgAdmin = roles.includes("org_admin");
+  const isOrgUser = roles.includes("Org_User");
+
+  const targetPath = isDrgvAdmin
+    ? "/admin/dashboard"
+    : (isOrgAdmin || (isOrgUser && user?.organizations && Object.keys(user.organizations).length > 0))
+      ? "/dashboard"
+      : null;
+
+  if (!loading && isAuthenticated && targetPath && window.location.pathname !== targetPath) {
+    return <Navigate to={targetPath} replace />;
+  }
 
   const features = [
     {

@@ -69,25 +69,29 @@ export const useOfflineOrganizations = () => {
       local_changes: true,
     };
 
-    if (navigator.onLine) {
-      try {
-        const result = await OrganizationsService.postAdminOrganizations({ requestBody });
-        if (result && result.id) {
-          // Success! Transform and save the REAL organization
-          const realOrg = DataTransformationService.transformOrganization(result as Organization);
-          await offlineDB.saveOrganization(realOrg);
+    try {
+      const result = await OrganizationsService.postAdminOrganizations({ requestBody });
+      if (result && result.id) {
+        // Success! Transform and save the REAL organization
+        const realOrg = DataTransformationService.transformOrganization(result as Organization);
+        await offlineDB.saveOrganization(realOrg);
 
-          setOrganizations((prev) => [...prev, realOrg]);
-          toast.success("Organization created successfully.");
+        setOrganizations((prev) => [...prev, realOrg]);
+        toast.success("Organization created successfully.");
 
-          // Notify other components
-          window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
+        // Notify other components
+        window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
 
-          return realOrg;
-        }
-      } catch (error) {
-        console.error("Online creation failed, falling back to offline queue:", error);
-        // Fallthrough to offline logic below
+        return realOrg;
+      }
+
+      throw new Error("API did not return a valid organization ID on creation.");
+    } catch (error) {
+      // Only fall back to offline create when the browser is actually offline.
+      if (navigator.onLine) {
+        console.error("Online creation failed:", error);
+        toast.error("Failed to create organization.");
+        throw error;
       }
     }
 

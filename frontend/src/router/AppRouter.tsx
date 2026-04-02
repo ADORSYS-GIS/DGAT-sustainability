@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import routes from "./routes";
 import MainLayout from "@/layouts/MainLayout";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -48,9 +49,11 @@ const AppRouter = () => (
   <QueryClientProvider client={queryClient}>
     <Router>
       <MainLayout>
-        <Routes>
-          {renderRoutes(routes)}
-        </Routes>
+        <React.Suspense fallback={<LoadingSpinner />}> 
+          <Routes>
+            {renderRoutes(routes)}
+          </Routes>
+        </React.Suspense>
       </MainLayout>
     </Router>
   </QueryClientProvider>

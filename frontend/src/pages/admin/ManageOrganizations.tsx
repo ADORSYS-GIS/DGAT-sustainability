@@ -111,7 +111,7 @@ export const ManageOrganizations: React.FC = () => {
     console.log('FormData categories:', formData.attributes?.categories);
   }, [formData]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name.trim()) {
       toast.error("Name is required");
       return;
@@ -131,21 +131,27 @@ export const ManageOrganizations: React.FC = () => {
       },
     };
 
-    if (editingOrg) {
-      updateOrganizationOffline(editingOrg.id, requestBody);
-    } else {
-      createOrganizationOffline(requestBody);
+    try {
+      if (editingOrg) {
+        await updateOrganizationOffline(editingOrg.id, requestBody);
+      } else {
+        await createOrganizationOffline(requestBody);
+      }
+      await updatePendingSyncCount();
+      refetchOrganizations();
+
+      setShowAddDialog(false); // Close the dialog after submission
+      setEditingOrg(null); // Clear editing state
+      setFormData({ // Reset form data
+        name: "",
+        domains: [{ name: "" }],
+        redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://158.220.84.249:8443",
+        enabled: "true",
+        attributes: { categories: [] },
+      });
+    } catch {
+      // Errors are already surfaced by the hook
     }
-    setShowAddDialog(false); // Close the dialog after submission
-    setEditingOrg(null); // Clear editing state
-    setFormData({ // Reset form data
-      name: "",
-      domains: [{ name: "" }],
-      redirectUrl: import.meta.env.VITE_ORGANIZATION_REDIRECT_URL || "https://158.220.84.249:8443",
-      enabled: "true",
-      attributes: { categories: [] },
-    });
-    updatePendingSyncCount(); // Update pending sync count after an offline operation
   };
 
   const handleEdit = (org: OrganizationResponse) => {
@@ -390,8 +396,8 @@ export const ManageOrganizations: React.FC = () => {
                     {org.domains && org.domains.length > 0 && (
                       <div className="text-sm text-gray-600">
                         <b>{t('manageOrganizations.domains', { defaultValue: 'Domains' })}:</b>{" "}
-                        {org.domains
-                          .map((d: { name: string }) => d.name) // Access the 'name' property of each domain object
+                        {(org.domains as Array<string | { name: string }> )
+                          .map((d) => (typeof d === "string" ? d : d.name))
                           .join(", ")}
                       </div>
                     )}
