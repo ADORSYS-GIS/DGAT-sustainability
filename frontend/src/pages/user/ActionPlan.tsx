@@ -14,6 +14,8 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/shared/useAuth"; // Import useAuth hook
 import { useOfflineRecommendationStatusMutation, useOfflineReport } from "@/hooks/useOfflineReports";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
+import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 import { useParams } from "react-router-dom";
 
 export const ActionPlan: React.FC = () => {
@@ -22,7 +24,56 @@ export const ActionPlan: React.FC = () => {
   const { data, isLoading, error } = useOfflineReport(submissionId);
   const { updateRecommendationStatus } = useOfflineRecommendationStatusMutation();
   const { roles } = useAuth();
-  const isAdmin = roles.includes("org_admin");
+  const isAdmin = roles.includes("org_admin") || roles.includes("Org_admin");
+
+  const { data: questionsData } = useOfflineQuestions();
+  const { data: categoriesData } = useOfflineCategoryCatalogs();
+
+  const [questionsMap, questionsTextMap, qRevToCategoryMap] = React.useMemo(() => {
+    const map = new Map<string, number>();
+    const textMap = new Map<string, string>(); // question text -> category name
+    const catMap = new Map<string, string>();
+
+    // Create a mapping from category_id to category name
+    const categoryIdToName = new Map<string, string>();
+    const categoryNameToId = new Map<string, string>();
+    if (categoriesData) {
+      categoriesData.forEach(cat => {
+        categoryIdToName.set(cat.category_catalog_id, cat.name);
+        categoryNameToId.set(cat.name.toLowerCase(), cat.category_catalog_id);
+      });
+    }
+
+    if (questionsData) {
+      questionsData.forEach(q => {
+        if (q.latest_revision) {
+          const revId = q.latest_revision.question_revision_id;
+          const displayOrder = q.display_order || 0;
+          map.set(revId, displayOrder);
+
+          const qText = (q.latest_revision.text as { en?: string })?.en || '';
+
+          // Map the revision ID to the actual proper category name
+          let catName = 'Uncategorized';
+          const qCat = q.category || q.category_id;
+          if (qCat) {
+            if (categoryIdToName.has(qCat)) {
+              catName = categoryIdToName.get(qCat)!;
+            } else if (categoryNameToId.has(qCat.toLowerCase())) {
+              catName = categoryIdToName.get(categoryNameToId.get(qCat.toLowerCase())!) || qCat;
+            } else {
+              catName = qCat;
+            }
+          }
+          catMap.set(revId, catName);
+          if (qText) {
+            textMap.set(qText, catName);
+          }
+        }
+      });
+    }
+    return [map, textMap, catMap];
+  }, [questionsData, categoriesData]);
 
   type KanbanRecommendation = OfflineRecommendation & { id: string; assessment_name?: string };
 
@@ -33,8 +84,21 @@ export const ActionPlan: React.FC = () => {
 
     if (report?.data) {
       report.data.forEach((categoryData) => {
-        Object.keys(categoryData).forEach((category) => {
-          const recommendations = categoryData[category]?.recommendations;
+        Object.keys(categoryData).forEach((categoryKey) => {
+          let category = categoryKey;
+          const categoryContent = categoryData[categoryKey];
+
+          // If category is "Unknown" or empty, try to resolve it from the questions in this category
+          if (!category || category.toLowerCase() === 'uncategorized' || category.toLowerCase().includes('unknown')) {
+            if (categoryContent.questions && categoryContent.questions.length > 0) {
+              const firstQName = categoryContent.questions[0].question;
+              if (questionsTextMap.has(firstQName)) {
+                category = questionsTextMap.get(firstQName)!;
+              }
+            }
+          }
+
+          const recommendations = categoryContent?.recommendations;
           if (recommendations) {
             recommendations.forEach((rec) => {
               if (rec.text !== "No recommendation provided") {
