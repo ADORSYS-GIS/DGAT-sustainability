@@ -41,6 +41,8 @@ import { useOfflineReports, useOfflineUserRecommendations } from "@/hooks/useOff
 import { useOfflineAssessments } from "@/hooks/useOfflineAssessments";
 import { useOfflineAdminSubmissions } from "@/hooks/useOfflineAdminSubmissions";
 import { useInitialDataLoad } from "@/hooks/useInitialDataLoad";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
+import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 import { ReportSelectionDialog } from "@/components/shared/ReportSelectionDialog";
 import type { Report, AdminSubmissionDetail, RecommendationWithStatus, OrganizationCategory } from "@/openapi-rq/requests/types.gen";
 import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
@@ -66,7 +68,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const chartRef = React.useRef<ChartJS<"radar">>(null);
   const recommendationChartRef = React.useRef<ChartJS<"bar">>(null);
-  
+
   // Always call both hooks to avoid React hooks violation
   const { data: userSubmissionsData, isLoading: userSubmissionsLoading, error: userSubmissionsError } = useOfflineSubmissions();
   const { data: adminSubmissionsData, isLoading: adminSubmissionsLoading, error: adminSubmissionsError } = useOfflineAdminSubmissions();
@@ -74,55 +76,97 @@ export const Dashboard: React.FC = () => {
   const { data: assessmentsData } = useOfflineAssessments();
   const { data: userRecommendations } = useOfflineUserRecommendations();
   const { organizationCategories: organizationCategoriesData } = useOfflineOrganizationCategories();
-  
+
+  const { data: questionsData } = useOfflineQuestions();
+  const { data: categoriesData } = useOfflineCategoryCatalogs();
+
+  const questionsTextMap = React.useMemo(() => {
+    const textMap = new Map<string, string>(); // question text -> category name
+
+    // Create a mapping from category_id to category name
+    const categoryIdToName = new Map<string, string>();
+    const categoryNameToId = new Map<string, string>();
+    if (categoriesData) {
+      categoriesData.forEach(cat => {
+        categoryIdToName.set(cat.category_catalog_id, cat.name);
+        categoryNameToId.set(cat.name.toLowerCase(), cat.category_catalog_id);
+      });
+    }
+
+    if (questionsData) {
+      questionsData.forEach(q => {
+        if (q.latest_revision) {
+          const qText = (q.latest_revision.text as { en?: string })?.en || '';
+
+          // Map the revision ID to the actual proper category name
+          let catName = 'Uncategorized';
+          const qCat = q.category || q.category_id;
+          if (qCat) {
+            if (categoryIdToName.has(qCat)) {
+              catName = categoryIdToName.get(qCat)!;
+            } else if (categoryNameToId.has(qCat.toLowerCase())) {
+              catName = categoryIdToName.get(categoryNameToId.get(qCat.toLowerCase())!) || qCat;
+            } else {
+              catName = qCat;
+            }
+          }
+          if (qText) {
+            textMap.set(qText, catName);
+          }
+        }
+      });
+    }
+    return textMap;
+  }, [questionsData, categoriesData]);
+
   // Add initial data loading hook
   const { refreshData } = useInitialDataLoad();
-  
+
   // Both org_admin and Org_User use the same data source - no differentiation
   // All users load the same data to their local storage
   const submissionsData = userSubmissionsData;
   const submissionsLoading = userSubmissionsLoading;
   const submissionsError = userSubmissionsError;
-  
+
   // Filter assessments by organization and status
   const filteredAssessments = React.useMemo(() => {
     if (!assessmentsData?.assessments || !user?.organizations) {
       return [];
     }
-    
+
     // Get the user's organization ID
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length === 0) {
       return [];
     }
-    
+
     const orgData = (user.organizations as Record<string, { id: string; categories: string[] }>)[orgKeys[0]];
     const organizationId = orgData?.id;
-    
+
     if (!organizationId) {
       return [];
     }
-    
+
     // Filter by organization and status
     const filtered = assessmentsData.assessments.filter((assessment) => {
-      const assessmentData = assessment as unknown as { 
+      const assessmentData = assessment as unknown as {
         assessment_id?: string;
-        status: string; 
+        status: string;
         organization_id?: string;
         org_id?: string;
       };
-      
+
       const isDraft = assessmentData.status === "draft";
       // Check both org_id and organization_id fields
-      const isInOrganization = assessmentData.organization_id === organizationId || 
-                              assessmentData.org_id === organizationId;
-      
+      const isInOrganization = assessmentData.organization_id === organizationId ||
+        assessmentData.org_id === organizationId;
+
       return isDraft && isInOrganization;
     });
-    
+
     return filtered;
   }, [assessmentsData?.assessments, user?.organizations]);
-  
+
   const submissions: Submission[] = submissionsData?.submissions?.slice(0, 5) || [];
   const recommendations: OfflineRecommendation[] = reportsData?.recommendations || [];
   const [showManageUsers, setShowManageUsers] = React.useState(false);
@@ -243,62 +287,62 @@ export const Dashboard: React.FC = () => {
     // 1. Start Assessment (org_admin)
     ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
       ? [
-          {
-            title: t('user.dashboard.startAssessment.title'),
-            description: t('user.dashboard.startAssessment.description'),
-            icon: Leaf,
-            color: "green" as const,
-            onClick: () => navigate("/assessment/sustainability"),
-          },
-        ]
+        {
+          title: t('user.dashboard.startAssessment.title'),
+          description: t('user.dashboard.startAssessment.description'),
+          icon: Leaf,
+          color: "green" as const,
+          onClick: () => navigate("/assessment/sustainability"),
+        },
+      ]
       : []),
     // Answer Assessment (Org_User)
     ...(!user?.roles?.includes("org_admin") && !user?.realm_access?.roles?.includes("org_admin")
       ? [
-          {
-            title: t('user.dashboard.answerAssessment.title'),
-            description: t('user.dashboard.answerAssessment.description'),
-            icon: FileText,
-            color: "blue" as const,
-            onClick: () => navigate("/user/assessment-list"),
-          },
-        ]
+        {
+          title: t('user.dashboard.answerAssessment.title'),
+          description: t('user.dashboard.answerAssessment.description'),
+          icon: FileText,
+          color: "blue" as const,
+          onClick: () => navigate("/user/assessment-list"),
+        },
+      ]
       : []),
     // 2. Manage Users (org_admin)
     ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
       ? [
-          {
-            title: t('user.dashboard.manageUsers.title'),
-            description: t('user.dashboard.manageUsers.description'),
-            icon: Users,
-            color: "blue" as const,
-            onClick: () => navigate("/user/manage-users"),
-          },
-        ]
+        {
+          title: t('user.dashboard.manageUsers.title'),
+          description: t('user.dashboard.manageUsers.description'),
+          icon: Users,
+          color: "blue" as const,
+          onClick: () => navigate("/user/manage-users"),
+        },
+      ]
       : []),
     // 3. Draft Submissions (org_admin)
     ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
       ? [
-          {
-            title: t('user.dashboard.draftSubmissions.title'),
-            description: t('user.dashboard.draftSubmissions.description'),
-            icon: CheckSquare,
-            color: "green" as const,
-            onClick: () => navigate("/user/draft-submissions"),
-          },
-        ]
+        {
+          title: t('user.dashboard.draftSubmissions.title'),
+          description: t('user.dashboard.draftSubmissions.description'),
+          icon: CheckSquare,
+          color: "green" as const,
+          onClick: () => navigate("/user/draft-submissions"),
+        },
+      ]
       : []),
     // 4. Review Assessments (org_admin)
     ...(user?.roles?.includes("org_admin") || user?.realm_access?.roles?.includes("org_admin")
       ? [
-          {
-            title: t('user.dashboard.reviewAssessments.title'),
-            description: t('user.dashboard.reviewAssessments.description'),
-            icon: CheckSquare,
-            color: "blue" as const,
-            onClick: () => navigate("/user/reviews"),
-          },
-        ]
+        {
+          title: t('user.dashboard.reviewAssessments.title'),
+          description: t('user.dashboard.reviewAssessments.description'),
+          icon: CheckSquare,
+          color: "blue" as const,
+          onClick: () => navigate("/user/reviews"),
+        },
+      ]
       : []),
     // 5. View Assessments (all users)
     {
@@ -400,7 +444,7 @@ export const Dashboard: React.FC = () => {
   let orgName = t('user.dashboard.org');
   let orgId = "";
   let categories: string[] = [];
-  
+
   if (user?.organizations && typeof user.organizations === "object") {
     const orgKeys = Object.keys(user.organizations);
     if (orgKeys.length > 0) {
@@ -432,10 +476,35 @@ export const Dashboard: React.FC = () => {
 
   const radarChartData = React.useMemo(() => {
     if (reportsData?.reports && organizationCategoriesData) {
-      return generateRadarChartData({ reports: reportsData.reports, organizationCategories: organizationCategoriesData });
+      // Enrich reports to avoid "Unknown" labels in radar chart
+      const enrichedReports = reportsData.reports.map(report => {
+        if (!report.data || !Array.isArray(report.data)) return report;
+
+        const enrichedData = report.data.map(categoryObj => {
+          const newCategoryObj: Record<string, any> = {};
+          Object.entries(categoryObj).forEach(([catKey, catVal]) => {
+            let label = catKey;
+            if (!label || label.toLowerCase() === 'uncategorized' || label.toLowerCase().includes('unknown')) {
+              const questions = (catVal as any).questions;
+              if (questions && Array.isArray(questions) && questions.length > 0) {
+                const qText = questions[0].question;
+                if (questionsTextMap.has(qText)) {
+                  label = questionsTextMap.get(qText)!;
+                }
+              }
+            }
+            newCategoryObj[label] = catVal;
+          });
+          return newCategoryObj;
+        });
+
+        return { ...report, data: enrichedData };
+      });
+
+      return generateRadarChartData({ reports: enrichedReports as any, organizationCategories: organizationCategoriesData });
     }
     return null;
-  }, [reportsData, organizationCategoriesData]);
+  }, [reportsData, organizationCategoriesData, questionsTextMap]);
 
 
   const radarChartOptions = {
@@ -463,7 +532,7 @@ export const Dashboard: React.FC = () => {
     }
     return null;
   }, [userRecommendations]);
- 
+
   return (
     <div className="min-h-screen bg-gray-50">
       {recommendationChartInfo && (
@@ -618,9 +687,9 @@ export const Dashboard: React.FC = () => {
                   <p className="text-sm text-gray-600 mb-4">
                     {t('user.dashboard.getSupport')}
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full bg-dgrv-green text-white hover:bg-green-700"
                     onClick={() => navigate("/user/guide")}
                   >
