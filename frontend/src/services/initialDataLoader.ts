@@ -596,11 +596,17 @@ export class InitialDataLoader {
    * Check if data loading is required
    */
   async isDataLoadingRequired(userContext?: UserContext): Promise<boolean> {
-    // Always load for DGRV admin to ensure /api/admin/submissions is called and stored
-    if (userContext?.roles?.includes('drgv_admin')) {
-      return true;
-    }
     const stats = await offlineDB.getDatabaseStats();
+
+    // Check if questions exist (basic requirement)
+    const hasBaseData = stats && stats.questions_count > 0 && stats.categories_count > 0;
+
+    // For DGRV admin, check for organizations instead of always loading
+    if (userContext?.roles?.includes('drgv_admin')) {
+      if (!hasBaseData) return true;
+      const orgs = await offlineDB.getAllOrganizations();
+      return orgs.length === 0;
+    }
 
     // Always load if no stats exist
     if (!stats) {

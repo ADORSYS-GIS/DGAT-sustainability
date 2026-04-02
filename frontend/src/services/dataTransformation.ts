@@ -768,6 +768,9 @@ export class DataTransformationService {
 
     report.data.forEach((categoryData: ReportCategoryData) => {
       Object.entries(categoryData).forEach(([categoryName, categoryContent]) => {
+        // Trim category name to handle potential trailing spaces from API
+        const trimmedCategoryName = categoryName.trim();
+
         if (categoryContent?.recommendations && Array.isArray(categoryContent.recommendations)) {
           categoryContent.recommendations.forEach(rec => {
             const deterministicId = this.generateDeterministicRecommendationId(
@@ -781,8 +784,8 @@ export class DataTransformationService {
               report_id: report.report_id,
               submission_id: report.submission_id,
               assessment_id: report.assessment_id,
-              assessment_name: report.assessment_name,
-              category: categoryName,
+              assessment_name: report.assessment_name || assessmentName || 'Unknown Assessment',
+              category: trimmedCategoryName,
               recommendation: rec.text,
               status: rec.status,
               created_at: report.generated_at || now,

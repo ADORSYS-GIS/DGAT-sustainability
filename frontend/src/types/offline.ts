@@ -114,11 +114,13 @@ export interface OfflineDraftSubmission extends Omit<Submission, 'review_status'
 }
 
 // Enhanced Report with offline fields
-export interface OfflineReport extends Report, OfflineEntity {
+export interface OfflineReport extends Omit<Report, 'data'>, OfflineEntity {
   organization_id?: string;
   user_id?: string;
   file_path?: string; // Local file path if downloaded
   is_downloaded?: boolean;
+  assessment_name: string;
+  data: ReportCategoryData[] | { [key: string]: unknown };
 }
 
 // Enhanced AdminReport with offline fields

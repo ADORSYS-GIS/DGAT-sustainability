@@ -6,7 +6,7 @@ import {
   ReportsService,
   AdminService
 } from "@/openapi-rq/requests/services.gen";
-import type { 
+import type {
   Report,
   ActionPlanListResponse,
   AdminReport,
@@ -105,27 +105,12 @@ export function useOfflineUserRecommendations() {
             assessment_name: submissionMap.get(report.submission_id)
           }));
 
-          const reportsToSave = uiReports.map(report => {
-            const reportData: { [key: string]: { weight: number; questions: { answer: unknown; question: string }[]; recommendations: string[] } } = {};
-            for (const item of (report.data || [])) {
-              const key = Object.keys(item)[0];
-              if (key) {
-                const content = item[key] as ReportCategoryContent;
-                reportData[key] = {
-                  weight: 0,
-                  questions: content?.questions || [],
-                  recommendations: (content?.recommendations || []).map(rec => rec.text),
-                };
-              }
-            }
-        
-            return {
-              ...report,
-              updated_at: new Date().toISOString(),
-              sync_status: 'synced' as const,
-              data: reportData,
-            };
-          });
+          const reportsToSave = uiReports.map(report => ({
+            ...report,
+            updated_at: new Date().toISOString(),
+            sync_status: 'synced' as const,
+            data: report.data, // Keep the original array structure
+          }));
 
           for (const report of reports) {
             const assessmentName = submissionMap.get(report.submission_id);
@@ -139,7 +124,7 @@ export function useOfflineUserRecommendations() {
           }
           await offlineDB.saveRecommendations(allOfflineRecommendations);
           await offlineDB.saveReports(reportsToSave);
-          
+
           return { reports: uiReports };
         },
         async () => {
@@ -171,15 +156,15 @@ export function useOfflineUserRecommendations() {
                 data: [],
               });
             }
-        
+
             const report = reportsMap.get(rec.report_id)!;
-            
+
             let categoryObj = report.data.find(d => d[rec.category]);
             if (!categoryObj) {
               categoryObj = { [rec.category]: { recommendations: [] } };
               report.data.push(categoryObj);
             }
-        
+
             const categoryContent = categoryObj[rec.category];
             if (categoryContent && categoryContent.recommendations) {
               categoryContent.recommendations.push({
@@ -189,7 +174,7 @@ export function useOfflineUserRecommendations() {
               });
             }
           }
-          
+
           const reconstructedReports = Array.from(reportsMap.values());
           return { reports: reconstructedReports };
         },
@@ -227,7 +212,7 @@ export function useOfflineRecommendationStatusMutation() {
 
       // Optimistically update the local state first
       await offlineDB.updateRecommendationStatus(reportId, category, recommendationId, newStatus);
-      
+
       // Invalidate relevant queries for immediate UI feedback
       await invalidateAndRefetch(queryClient, ['user_recommendations', 'admin_action_plans']);
 
@@ -260,7 +245,7 @@ export function useOfflineRecommendationStatusMutation() {
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to update recommendation status');
       console.error('❌ updateRecommendationStatus error:', error);
-      
+
       // Revert optimistic update on error if possible and desired
       const originalRecommendation = await offlineDB.getRecommendation(recommendationId);
       if (originalRecommendation) {
@@ -339,7 +324,7 @@ export function useOfflineReport(submissionId?: string) {
           const response = await ReportsService.getUserReports();
           const reports = (response.reports || []) as unknown as DetailedReport[];
           const report = reports.find(r => r.submission_id === submissionId);
-          
+
           if (report) {
             // Save the fetched report to IndexedDB
             const submissions = await offlineDB.getAllSubmissions();
@@ -351,21 +336,7 @@ export function useOfflineReport(submissionId?: string) {
               assessment_name: assessmentName,
               updated_at: new Date().toISOString(),
               sync_status: 'synced' as const,
-              data: (() => {
-                const reportData: { [key: string]: { weight: number; questions: { answer: unknown; question: string }[]; recommendations: string[] } } = {};
-                for (const item of (report.data || [])) {
-                  const key = Object.keys(item)[0];
-                  if (key) {
-                    const content = item[key] as ReportCategoryContent;
-                    reportData[key] = {
-                      weight: 0,
-                      questions: content?.questions || [],
-                      recommendations: (content?.recommendations || []).map(rec => rec.text),
-                    };
-                  }
-                }
-                return reportData;
-              })(),
+              data: report.data, // Keep the original array structure
             };
             await offlineDB.saveReports([reportToSave]);
             return { report };

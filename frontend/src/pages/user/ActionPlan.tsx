@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DetailedReport, OfflineRecommendation } from "@/types/offline"; // Import DetailedReport
+import { DetailedReport, OfflineRecommendation, ReportCategoryContent } from "@/types/offline"; // Import types
 import {
   AlertCircle,
   CheckCircle,
@@ -83,10 +83,17 @@ export const ActionPlan: React.FC = () => {
     const grouped: Record<string, KanbanRecommendation[]> = {};
 
     if (report?.data) {
-      report.data.forEach((categoryData) => {
+      // Handle both array and object formats for robustness
+      // API normally sends an array of objects: [{ "Category": { ... } }]
+      // But some legacy or cached data might be an object: { "Category": { ... } }
+      const dataItems = Array.isArray(report.data)
+        ? report.data
+        : Object.entries(report.data).map(([key, value]) => ({ [key]: value }));
+
+      dataItems.forEach((categoryData) => {
         Object.keys(categoryData).forEach((categoryKey) => {
-          let category = categoryKey;
-          const categoryContent = categoryData[categoryKey];
+          let category = categoryKey.trim(); // Trim category key
+          const categoryContent = categoryData[categoryKey] as ReportCategoryContent;
 
           // If category is "Unknown" or empty, try to resolve it from the questions in this category
           if (!category || category.toLowerCase() === 'uncategorized' || category.toLowerCase().includes('unknown')) {

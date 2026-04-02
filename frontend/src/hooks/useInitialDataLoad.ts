@@ -68,10 +68,11 @@ export function useInitialDataLoad() {
 
     // Check if we need to load data
     const needsLoading = await checkDataLoadingRequired(userContext);
-    
+
     // Both org_admin and Org_User load the same data - no differentiation
     // Always load if needed, regardless of hasLoadedData state
     if (!needsLoading) {
+      setHasLoadedData(true);
       return;
     }
 
@@ -80,6 +81,7 @@ export function useInitialDataLoad() {
       return;
     }
 
+    // Set loading state to prevent concurrent loads
     setIsLoading(true);
     const loader = new InitialDataLoader();
 
@@ -99,14 +101,14 @@ export function useInitialDataLoad() {
 
     } catch (error) {
       console.error('Initial data loading failed:', error);
-      
+
       // Update progress to failed state
       const failedProgress = await loader.getProgress();
       setProgress(failedProgress);
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, user, createUserContext, checkDataLoadingRequired, isOnline, hasLoadedData]);
+  }, [isAuthenticated, user, createUserContext, checkDataLoadingRequired, isOnline]);
 
   // Monitor progress updates
   const monitorProgress = useCallback(async () => {
@@ -114,7 +116,7 @@ export function useInitialDataLoad() {
 
     const loader = new InitialDataLoader();
     const currentProgress = await loader.getProgress();
-    
+
     if (currentProgress && currentProgress.status === 'loading') {
       setProgress(currentProgress);
     }
@@ -122,8 +124,7 @@ export function useInitialDataLoad() {
 
   // Effect to load data when user authenticates
   useEffect(() => {
-    if (!isAuthenticated || !user || !isOnline) return;
-    if (isLoading) return;
+    if (isLoading || hasLoadedData) return;
 
     const requestIdleCallback = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: { timeout?: number }) => void);
     const schedule = (fn: () => void) => {
@@ -137,7 +138,7 @@ export function useInitialDataLoad() {
     schedule(() => {
       loadInitialData();
     });
-  }, [isAuthenticated, user, isOnline, loadInitialData]);
+  }, [isAuthenticated, user, isOnline, loadInitialData, isLoading, hasLoadedData]);
 
   // Effect to monitor progress
   useEffect(() => {

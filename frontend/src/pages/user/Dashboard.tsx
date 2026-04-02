@@ -720,7 +720,12 @@ export const Dashboard: React.FC = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
               <Card className="animate-fade-in">
                 <CardHeader>
-                  <CardTitle>{t('user.dashboard.sustainabilityOverview')}</CardTitle>
+                  <CardTitle>
+                    {t('user.dashboard.sustainabilityOverview')} - {(() => {
+                      const latestReport = reportsData?.reports?.[reportsData.reports.length - 1];
+                      return latestReport?.assessment_name || t('user.dashboard.sustainabilityAssessment');
+                    })()}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div style={{ height: '400px' }}>
