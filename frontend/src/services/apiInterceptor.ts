@@ -918,8 +918,9 @@ export class ApiInterceptor {
               const requestBody: OrganizationCreateRequest = {
                 name: organizationData.name,
                 domains: organizationData.domains.map(name => ({ name })),
-                redirectUrl: 'http://localhost:3000',
+                redirectUrl: organizationData.redirectUrl || 'http://localhost:3000',
                 enabled: organizationData.is_active ? 'true' : 'false',
+                attributes: (organizationData.attributes as Record<string, string[]> | undefined),
               };
               const result = await OrganizationsService.postAdminOrganizations({ requestBody });
               if (result && result.id) {
@@ -931,8 +932,9 @@ export class ApiInterceptor {
               const requestBody: OrganizationCreateRequest = {
                 name: organizationData.name,
                 domains: organizationData.domains.map(name => ({ name })),
-                redirectUrl: 'http://localhost:3000',
+                redirectUrl: organizationData.redirectUrl || 'http://localhost:3000',
                 enabled: organizationData.is_active ? 'true' : 'false',
+                attributes: (organizationData.attributes as Record<string, string[]> | undefined),
               };
               await OrganizationsService.putAdminOrganizationsById({
                 id: organizationData.organization_id!,

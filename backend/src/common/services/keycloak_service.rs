@@ -59,18 +59,32 @@ impl KeycloakService {
             .send()
             .await?;
 
-        match response.status() {
+        let status = response.status();
+        let location_id = response
+            .headers()
+            .get(reqwest::header::LOCATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|loc| loc.rsplit('/').next())
+            .map(|s| s.to_string());
+
+        match status {
             StatusCode::CREATED | StatusCode::NO_CONTENT => {
                 let text = response.text().await?;
                 tracing::warn!("Create organization response: {}", text);
+
                 if !text.trim().is_empty() {
-                    let org: KeycloakOrganization = serde_json::from_str(&text)?;
+                    let mut org: KeycloakOrganization = serde_json::from_str(&text)?;
+                    if org.id.trim().is_empty() {
+                        if let Some(id) = location_id {
+                            org.id = id;
+                        }
+                    }
                     tracing::warn!("Created organization: {:?}", org);
                     Ok(org)
                 } else {
                     // If no body, return a minimal KeycloakOrganization with only the name and domains
                     let created_org = KeycloakOrganization {
-                        id: String::new(),
+                        id: location_id.unwrap_or_default(),
                         name: name.to_string(),
                         alias: None,
                         enabled: enabled == "true",

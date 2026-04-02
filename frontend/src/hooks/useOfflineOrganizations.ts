@@ -113,6 +113,22 @@ export const useOfflineOrganizations = () => {
   const fetchOrganizations = useCallback(async () => {
     setIsLoading(true);
     try {
+      if (navigator.onLine) {
+        try {
+          const organizationsData = await OrganizationsService.getAdminOrganizations();
+          const transformedOrganizations = (organizationsData || []).map(
+            DataTransformationService.transformOrganization
+          );
+          await offlineDB.saveOrganizations(transformedOrganizations);
+          setOrganizations(transformedOrganizations);
+          return;
+        } catch (error) {
+          const errorMessage = extractErrorMessage(error);
+          console.error("Failed to fetch organizations from API, falling back to IndexedDB:", error);
+          toast.error(errorMessage);
+        }
+      }
+
       const storedOrgs = await offlineDB.getAllOrganizations();
       setOrganizations(storedOrgs);
     } catch (error) {
@@ -242,7 +258,7 @@ export const useOfflineOrganizations = () => {
       local_changes: true,
     };
 
-    if (navigator.onLine && !id.startsWith('temp_') && !existingOrg.local_changes) {
+    if (navigator.onLine && !id.startsWith('temp_') && existingOrg.sync_status === 'synced') {
       try {
         await OrganizationsService.putAdminOrganizationsById({
           id: id,
@@ -265,8 +281,17 @@ export const useOfflineOrganizations = () => {
         window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
         return updatedOrgSynced;
       } catch (error) {
-        console.error("Online update failed, falling back to offline queue:", error);
+        const errorMessage = extractErrorMessage(error);
+        console.error("Online update failed:", error);
+        toast.error(errorMessage);
+        throw error;
       }
+    }
+
+    if (navigator.onLine) {
+      const message = "Organization is not synced yet. Please wait for sync to complete before updating.";
+      toast.error(message);
+      throw new Error(message);
     }
 
     try {
@@ -306,8 +331,17 @@ export const useOfflineOrganizations = () => {
         window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
         return;
       } catch (error) {
-        console.error("Online delete failed, falling back to offline queue:", error);
+        const errorMessage = extractErrorMessage(error);
+        console.error("Online delete failed:", error);
+        toast.error(errorMessage);
+        throw error;
       }
+    }
+
+    if (navigator.onLine) {
+      const message = "Cannot delete a local-only organization while online. Please wait for sync to complete.";
+      toast.error(message);
+      throw new Error(message);
     }
 
     try {
