@@ -361,9 +361,11 @@ export class DataTransformationService {
   static transformOrganization(organization: Organization): OfflineOrganization {
     const now = new Date().toISOString();
 
-    const domains = (organization.attributes?.domains && Array.isArray(organization.attributes.domains))
-      ? organization.attributes.domains
-      : [];
+    const domains = (Array.isArray((organization as any).domains) && (organization as any).domains.length > 0)
+      ? (organization as any).domains
+      : ((organization.attributes?.domains && Array.isArray(organization.attributes.domains))
+        ? organization.attributes.domains
+        : []);
 
     const redirectUrl = (organization.attributes?.redirect_url && organization.attributes.redirect_url.length > 0)
       ? organization.attributes.redirect_url[0]

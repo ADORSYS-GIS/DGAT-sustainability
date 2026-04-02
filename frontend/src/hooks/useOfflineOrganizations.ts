@@ -16,24 +16,77 @@ const RESERVED_CHARS = /[<>/\\:;"'*?|&%$#@!(){}[\]^~`+=, ]/;
  * Extract error message from API error response
  */
 const extractErrorMessage = (error: unknown): string => {
+  const tryParseJsonString = (value: string): Record<string, unknown> | null => {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const extractFromRecord = (record: Record<string, unknown>): string | null => {
+    const candidates = [
+      record.errorMessage,
+      record.message,
+      record.error,
+      record.detail,
+      record.title,
+    ];
+
+    for (const c of candidates) {
+      if (typeof c === 'string' && c.trim()) return c;
+    }
+
+    return null;
+  };
+
+  if (typeof error === 'string') {
+    const parsed = tryParseJsonString(error);
+    if (parsed) {
+      const msg = extractFromRecord(parsed);
+      if (msg) return msg;
+    }
+    return error;
+  }
+
   if (error && typeof error === "object") {
-    // Check for errorMessage field (backend format)
-    if ("errorMessage" in error && typeof error.errorMessage === "string") {
-      return error.errorMessage;
-    }
-    // Check for message field
-    if ("message" in error && typeof error.message === "string") {
-      return error.message;
-    }
-    // Check for body.errorMessage (some API clients wrap it)
-    if ("body" in error && error.body && typeof error.body === "object") {
-      const body = error.body as Record<string, unknown>;
-      if (body.errorMessage && typeof body.errorMessage === "string") {
-        return body.errorMessage;
+    const asRecord = error as Record<string, unknown>;
+
+    const topLevel = extractFromRecord(asRecord);
+    if (topLevel) return topLevel;
+
+    // OpenAPI/axios-like: error.response.data
+    const response = asRecord.response;
+    if (response && typeof response === 'object') {
+      const responseRecord = response as Record<string, unknown>;
+      const data = responseRecord.data;
+      if (data && typeof data === 'object') {
+        const dataMsg = extractFromRecord(data as Record<string, unknown>);
+        if (dataMsg) return dataMsg;
       }
-      if (body.message && typeof body.message === "string") {
-        return body.message;
+      if (typeof data === 'string') {
+        const parsed = tryParseJsonString(data);
+        if (parsed) {
+          const msg = extractFromRecord(parsed);
+          if (msg) return msg;
+        }
       }
+    }
+
+    // Some clients: error.body may be an object or JSON string
+    const body = asRecord.body;
+    if (body && typeof body === 'object') {
+      const bodyMsg = extractFromRecord(body as Record<string, unknown>);
+      if (bodyMsg) return bodyMsg;
+    }
+    if (typeof body === 'string') {
+      const parsed = tryParseJsonString(body);
+      if (parsed) {
+        const msg = extractFromRecord(parsed);
+        if (msg) return msg;
+      }
+      if (body.trim()) return body;
     }
   }
   if (error instanceof Error) {

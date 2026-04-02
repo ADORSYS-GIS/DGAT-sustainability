@@ -947,15 +947,18 @@ export class SyncService {
                 // Update local organization with real ID and synced status
                 const tempOrg = await offlineDB.getOrganization(item.entity_id!);
                 if (tempOrg) {
-                  const newOrg: OfflineOrganization = {
+                  const serverOrg = DataTransformationService.transformOrganization(createResponse as unknown as Organization);
+                  const mergedOrg: OfflineOrganization = {
                     ...tempOrg,
+                    ...serverOrg,
                     organization_id: createResponse.id,
                     id: createResponse.id,
                     sync_status: 'synced',
                     local_changes: false,
                     last_synced: new Date().toISOString(),
                   };
-                  await offlineDB.saveOrganization(newOrg);
+
+                  await offlineDB.saveOrganization(mergedOrg);
                   await offlineDB.deleteOrganization(item.entity_id!); // Delete the temporary one
                   result.added++;
                 }

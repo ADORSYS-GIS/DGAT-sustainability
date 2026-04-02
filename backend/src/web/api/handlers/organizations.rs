@@ -257,7 +257,20 @@ pub async fn create_organization(
         },
         Err(e) => {
             tracing::error!("Failed to create organization: {}", e);
-            Err(ApiError::InternalServerError("Failed to create organization".to_string()))
+            // Extract the actual Keycloak error message from the anyhow error
+            let error_msg = e.to_string();
+            // Try to parse the Keycloak error JSON to extract errorMessage
+            let keycloak_error = error_msg.strip_prefix("Failed to create organization: ").unwrap_or(&error_msg);
+            if let Ok(json_err) = serde_json::from_str::<serde_json::Value>(keycloak_error) {
+                if let Some(error_message) = json_err.get("errorMessage").and_then(|v| v.as_str()) {
+                    return Err(ApiError::BadRequest(error_message.to_string()));
+                }
+                if let Some(error) = json_err.get("error").and_then(|v| v.as_str()) {
+                    return Err(ApiError::BadRequest(error.to_string()));
+                }
+            }
+            // If we can't parse the JSON, return the raw Keycloak error
+            Err(ApiError::BadRequest(keycloak_error.to_string()))
         }
     }
 }
@@ -342,7 +355,18 @@ pub async fn update_organization(
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(e) => {
             tracing::error!("Failed to update organization: {}", e);
-            Err(ApiError::InternalServerError("Failed to update organization".to_string()))
+            // Extract the actual Keycloak error message
+            let error_msg = e.to_string();
+            let keycloak_error = error_msg.strip_prefix("Failed to update organization: ").unwrap_or(&error_msg);
+            if let Ok(json_err) = serde_json::from_str::<serde_json::Value>(keycloak_error) {
+                if let Some(error_message) = json_err.get("errorMessage").and_then(|v| v.as_str()) {
+                    return Err(ApiError::BadRequest(error_message.to_string()));
+                }
+                if let Some(error) = json_err.get("error").and_then(|v| v.as_str()) {
+                    return Err(ApiError::BadRequest(error.to_string()));
+                }
+            }
+            Err(ApiError::BadRequest(keycloak_error.to_string()))
         }
     }
 }
@@ -396,7 +420,18 @@ pub async fn delete_organization(
         },
         Err(e) => {
             tracing::error!("Failed to delete organization {}: {}", org_id, e);
-            Err(ApiError::InternalServerError("Failed to delete organization".to_string()))
+            // Extract the actual Keycloak error message
+            let error_msg = e.to_string();
+            let keycloak_error = error_msg.strip_prefix("Failed to delete organization: ").unwrap_or(&error_msg);
+            if let Ok(json_err) = serde_json::from_str::<serde_json::Value>(keycloak_error) {
+                if let Some(error_message) = json_err.get("errorMessage").and_then(|v| v.as_str()) {
+                    return Err(ApiError::BadRequest(error_message.to_string()));
+                }
+                if let Some(error) = json_err.get("error").and_then(|v| v.as_str()) {
+                    return Err(ApiError::BadRequest(error.to_string()));
+                }
+            }
+            Err(ApiError::BadRequest(keycloak_error.to_string()))
         }
     }
 }
