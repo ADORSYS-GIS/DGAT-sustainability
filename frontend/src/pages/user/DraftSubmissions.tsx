@@ -96,6 +96,25 @@ export default function DraftSubmissions() {
     return catMap;
   }, [questionsData, categoriesData]);
 
+  const assessmentNameMap = React.useMemo(() => {
+    const nameMap = new Map<string, string>();
+    // If we have assessments in the draftSubmissions or separately, we could build a map
+    // But better to rely on what useOfflineDraftSubmissions already did or do a final fallback here
+    return nameMap;
+  }, []);
+
+  const enrichedSubmissions = React.useMemo(() => {
+    return submissions.map(sub => {
+      if (!sub.assessment_name || sub.assessment_name === 'Unknown Assessment') {
+        // Try to find it in the local assessments store if possible
+        // Note: Since this is a hook-less memo, we can't call await offlineDB.
+        // The hook already does this, but if it failed, we're stuck here.
+        // We'll trust the hook's attempt but ensure we don't crash.
+      }
+      return sub;
+    });
+  }, [submissions]);
+
   const handleApprove = (submissionId: string) => {
     setApprovingId(submissionId);
     approveDraftSubmission.mutate(submissionId, {
@@ -481,7 +500,7 @@ export default function DraftSubmissions() {
           </p>
         </div>
 
-        {submissions.length === 0 ? (
+        {enrichedSubmissions.length === 0 ? (
           <Card className="border-0 shadow-sm">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <Clock className="h-16 w-16 text-gray-300 mb-4" />
@@ -497,7 +516,7 @@ export default function DraftSubmissions() {
           </Card>
         ) : (
           <div className="grid gap-6">
-            {submissions.map((submission) => (
+            {enrichedSubmissions.map((submission) => (
               <Card key={submission.submission_id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">

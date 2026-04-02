@@ -4,7 +4,7 @@ import { apiInterceptor } from "../services/apiInterceptor";
 import {
   AssessmentsService,
 } from "@/openapi-rq/requests/services.gen";
-import type { 
+import type {
   Assessment,
   Submission,
   CreateAssessmentRequest,
@@ -33,7 +33,7 @@ export function useOfflineAssessments() {
         async () => {
           // For offline fallback, get all assessments and filter by organization
           const allAssessments = await offlineDB.getAllAssessments();
-          
+
           // For now, return all assessments and let the component filter them
           // This avoids the React Hook issue
           // Transform OfflineAssessment back to Assessment for API compatibility
@@ -77,12 +77,8 @@ export function useOfflineDraftAssessments() {
       const result = await apiInterceptor.interceptGet(
         () => {
           console.log('🔍 useOfflineDraftAssessments: Making API call with status=draft');
-          // Add cache-busting parameter to force fresh request
-          const cacheBuster = Date.now();
           return AssessmentsService.getAssessments({
             status: 'draft',
-            language: 'en', // Add language parameter to ensure fresh request
-            cache_buster: cacheBuster,
           });
         },
         async () => {
@@ -147,9 +143,9 @@ export function useOfflineAssessment(assessmentId: string) {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       console.log(`🔍 useOfflineAssessment: Loading assessment ${assessmentId}`);
-      
+
       const result = await apiInterceptor.interceptGet(
         () => {
           console.log(`🔍 useOfflineAssessment: Making API call for assessment ${assessmentId}`);
@@ -157,10 +153,10 @@ export function useOfflineAssessment(assessmentId: string) {
         },
         async () => {
           console.log(`🔍 useOfflineAssessment: Using offline fallback for assessment ${assessmentId}`);
-          
+
           // For offline fallback, get assessment and construct AssessmentDetailResponse
           let offlineAssessment = await offlineDB.getAssessment(assessmentId);
-          
+
           // If it's a temporary assessment and not found immediately, retry a few times
           if (!offlineAssessment && assessmentId.startsWith('temp_')) {
             let attempts = 0;
@@ -178,7 +174,7 @@ export function useOfflineAssessment(assessmentId: string) {
             throw new Error(`Assessment ${assessmentId} not found. Please try refreshing the page or contact support if the problem persists.`);
           }
           console.log(`🔍 useOfflineAssessment: Retrieved from IndexedDB:`, offlineAssessment);
-          
+
           const [responses, allQuestions, allCategories] = await Promise.all([
             offlineDB.getResponsesByAssessment(assessmentId),
             offlineDB.getAllQuestions(),
@@ -235,7 +231,7 @@ export function useOfflineAssessment(assessmentId: string) {
             responses: apiResponses,
             categories: filteredCategories, // Add filtered categories to the response
           };
-          
+
           console.log(`🔍 useOfflineAssessment: Constructed AssessmentDetailResponse:`, assessmentDetailResponse);
           return assessmentDetailResponse;
         },
@@ -365,10 +361,10 @@ export function useOfflineAssessmentsMutation() {
         type AssessmentResponse = { assessment: Assessment };
         const isAssessmentResponse = (res: unknown): res is AssessmentResponse => {
           return (
-              typeof res === 'object' &&
-              res !== null &&
-              'assessment' in res &&
-              typeof (res as { assessment: { assessment_id: unknown } }).assessment.assessment_id === 'string'
+            typeof res === 'object' &&
+            res !== null &&
+            'assessment' in res &&
+            typeof (res as { assessment: { assessment_id: unknown } }).assessment.assessment_id === 'string'
           );
         }
 
@@ -417,13 +413,13 @@ export function useOfflineAssessmentsMutation() {
             console.warn('Received request data instead of API response - API call may have failed');
             return;
           }
-          
+
           const realAssessment = data.assessment as Assessment;
           if (!realAssessment || !realAssessment.assessment_id) {
             console.error('API did not return a valid assessment:', data);
             throw new Error('API did not return a valid assessment');
           }
-          
+
           const categories = await offlineDB.getAllCategoryCatalogs();
           const categoryIdToCategoryMap = new Map(
             categories.map(cat => [cat.category_catalog_id, cat])
@@ -497,7 +493,7 @@ export function useOfflineAssessmentsMutation() {
         draft_submission_id: tempId,
         assessment_id: assessmentId,
         user_id: "current_user", // This will be replaced by the server's response
-        content: { 
+        content: {
           assessment: { assessment_id: assessmentId },
           responses: [] // Will be populated from responses in IndexedDB
         },
@@ -507,12 +503,14 @@ export function useOfflineAssessmentsMutation() {
 
       // Always store in IndexedDB first for offline support
       try {
+        const assessment = await offlineDB.getAssessment(assessmentId);
+
         // Note: We'll need to add draft submission storage to IndexedDB
         // For now, we'll store it as a regular submission with a special status
         const offlineSubmission = DataTransformationService.transformSubmission({
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
-          assessment_name: 'Unknown Assessment',
+          assessment_name: assessment?.name || 'Unknown Assessment',
           review_status: 'pending_review', // Changed to 'pending_review'
         });
         await offlineDB.saveSubmission(offlineSubmission);
@@ -536,10 +534,10 @@ export function useOfflineAssessmentsMutation() {
       type SubmissionResponse = { submission: Submission };
       const isSubmissionResponse = (res: unknown): res is SubmissionResponse => {
         return (
-            typeof res === 'object' &&
-            res !== null &&
-            'submission' in res &&
-            typeof (res as { submission: { submission_id: unknown } }).submission.submission_id === 'string'
+          typeof res === 'object' &&
+          res !== null &&
+          'submission' in res &&
+          typeof (res as { submission: { submission_id: unknown } }).submission.submission_id === 'string'
         );
       }
 
@@ -551,30 +549,32 @@ export function useOfflineAssessmentsMutation() {
 
       // Check if we're online to determine success behavior
       const isOnline = navigator.onLine;
-      
+
       if (result && typeof result === 'object' && 'submission' in result) {
         // Online draft submission successful
         options?.onSuccess?.(result);
       } else if (!isOnline) {
         // Offline draft submission - stored in IndexedDB, will sync later
+        const assessment = await offlineDB.getAssessment(assessmentId);
         const offlineSubmission = DataTransformationService.transformSubmission({
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
-          assessment_name: 'Unknown Assessment',
+          assessment_name: assessment?.name || 'Unknown Assessment',
           review_status: 'pending_review', // Changed to 'pending_review'
         });
         options?.onSuccess?.({ submission: offlineSubmission });
       } else {
         // Online but API failed - still stored in IndexedDB for retry
+        const assessment = await offlineDB.getAssessment(assessmentId);
         const offlineSubmission = DataTransformationService.transformSubmission({
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
-          assessment_name: 'Unknown Assessment',
+          assessment_name: assessment?.name || 'Unknown Assessment',
           review_status: 'pending_review', // Changed to 'pending_review'
         });
         options?.onSuccess?.({ submission: offlineSubmission });
       }
-      
+
       return result;
     } catch (err) {
       console.error('❌ Error in submitDraftAssessment:', err);

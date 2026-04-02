@@ -345,24 +345,51 @@ export const Assessment: React.FC = () => {
           },
         });
 
-        await submitDraftAssessmentHook(actualAssessment.assessment_id, {
-          onSuccess: () => {
-            toast.success(
-              isOnline
-                ? t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" })
-                : t("assessment.draftQueuedForSync", { defaultValue: "Assessment saved offline and will be submitted for approval when online." })
-            );
-            navigate("/dashboard");
-          },
-          onError: () => {
-            if (!isOnline) {
-              // Removed offline saved success toast
-              navigate("/dashboard");
-            } else {
-              toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
+        // Check if the COMPLETE assessment across ALL categories is answered
+        const isEntireAssessmentComplete = allAssessmentQuestions.every(q => {
+          const key = getRevisionKey(q.revision);
+          if (!key) return false;
+
+          const currentAnswer = answers[key];
+          if (currentAnswer && isAnswerComplete(currentAnswer)) return true;
+
+          const existingResponse = existingResponses?.responses?.find((r: any) => r.question_revision_id === key);
+          if (existingResponse) {
+            try {
+              const parsed = JSON.parse(Array.isArray(existingResponse.response) ? existingResponse.response[0] : existingResponse.response);
+              return isAnswerComplete(parsed);
+            } catch (e) {
+              return false;
             }
-          },
+          }
+
+          return false;
         });
+
+        if (isEntireAssessmentComplete) {
+          await submitDraftAssessmentHook(actualAssessment.assessment_id, {
+            onSuccess: () => {
+              toast.success(
+                isOnline
+                  ? t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" })
+                  : t("assessment.draftQueuedForSync", { defaultValue: "Assessment saved offline and will be submitted for approval when online." })
+              );
+              navigate("/dashboard");
+            },
+            onError: () => {
+              if (!isOnline) {
+                navigate("/dashboard");
+              } else {
+                toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
+              }
+            },
+          });
+        } else {
+          toast.success(t("assessment.responsesSavedPortionComplete", {
+            defaultValue: "Your responses have been saved. The assessment remains in draft until all other assigned categories are completed."
+          }));
+          navigate("/dashboard");
+        }
       } else {
         toast.error(t("assessment.noResponsesToSubmit", { defaultValue: "No responses to submit for the current category." }));
       }
@@ -445,6 +472,43 @@ export const Assessment: React.FC = () => {
     }
     return filtered;
   }, [questionsData, categoriesData, assessmentCategoryIds, orgInfo.categories, user, isOrgAdmin]);
+
+  // Get ALL questions for the entire assessment to check for full completion
+  const allAssessmentQuestions = React.useMemo(() => {
+    if (!questionsData || !categoriesData || !assessmentCategoryIds.length) return [];
+
+    const categoryIdToNameMap = new Map<string, string>();
+    const categoryNameToIdMap = new Map<string, string>();
+    categoriesData.forEach((cat: { category_catalog_id: string; name: string; }) => {
+      categoryIdToNameMap.set(cat.category_catalog_id, cat.name);
+      categoryNameToIdMap.set(cat.name.toLowerCase(), cat.category_catalog_id);
+    });
+
+    const questions: { question: Question; revision: QuestionRevision; category_id: string }[] = [];
+
+    (questionsData as unknown as QuestionWithCategory[]).forEach((q) => {
+      if (q) {
+        let catId: string | undefined;
+        if (q.category_id && categoryIdToNameMap.has(q.category_id)) {
+          catId = q.category_id;
+        } else if (q.category_id && categoryNameToIdMap.has(q.category_id.toLowerCase())) {
+          catId = categoryNameToIdMap.get(q.category_id.toLowerCase());
+        } else if (q.category && categoryNameToIdMap.has(q.category.toLowerCase())) {
+          catId = categoryNameToIdMap.get(q.category.toLowerCase());
+        }
+
+        if (catId && assessmentCategoryIds.includes(catId)) {
+          questions.push({
+            question: q,
+            revision: q.latest_revision,
+            category_id: catId
+          });
+        }
+      }
+    });
+
+    return questions;
+  }, [questionsData, categoriesData, assessmentCategoryIds]);
 
   const categories = Object.keys(groupedQuestions);
 
