@@ -57,6 +57,45 @@ export default function DraftSubmissions() {
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<DraftSubmission | null>(null);
 
+  // Handle both possible response structures
+  const submissions = (draftSubmissions?.draft_submissions || []) as unknown as DraftSubmission[];
+
+  const qRevToCategoryMap = React.useMemo(() => {
+    const catMap = new Map<string, string>();
+
+    // Create a mapping from category_id to category name
+    const categoryIdToName = new Map<string, string>();
+    const categoryNameToId = new Map<string, string>();
+    if (categoriesData) {
+      categoriesData.forEach((cat: { category_catalog_id: string; name: string }) => {
+        categoryIdToName.set(cat.category_catalog_id, cat.name);
+        categoryNameToId.set(cat.name.toLowerCase(), cat.category_catalog_id);
+      });
+    }
+
+    if (questionsData) {
+      questionsData.forEach(q => {
+        if (q.latest_revision) {
+          const revId = q.latest_revision.question_revision_id;
+
+          let catName = 'Uncategorized';
+          const qCat = q.category || q.category_id;
+          if (qCat) {
+            if (categoryIdToName.has(qCat)) {
+              catName = categoryIdToName.get(qCat)!;
+            } else if (categoryNameToId.has(qCat.toLowerCase())) {
+              catName = categoryIdToName.get(categoryNameToId.get(qCat.toLowerCase())!) || qCat;
+            } else {
+              catName = qCat;
+            }
+          }
+          catMap.set(revId, catName);
+        }
+      });
+    }
+    return catMap;
+  }, [questionsData, categoriesData]);
+
   const handleApprove = (submissionId: string) => {
     setApprovingId(submissionId);
     approveDraftSubmission.mutate(submissionId, {
@@ -281,45 +320,6 @@ export default function DraftSubmissions() {
       </div>
     );
   }
-
-  // Handle both possible response structures
-  const submissions = (draftSubmissions?.draft_submissions || []) as unknown as DraftSubmission[];
-
-  const qRevToCategoryMap = React.useMemo(() => {
-    const catMap = new Map<string, string>();
-
-    // Create a mapping from category_id to category name
-    const categoryIdToName = new Map<string, string>();
-    const categoryNameToId = new Map<string, string>();
-    if (categoriesData) {
-      categoriesData.forEach((cat: { category_catalog_id: string; name: string }) => {
-        categoryIdToName.set(cat.category_catalog_id, cat.name);
-        categoryNameToId.set(cat.name.toLowerCase(), cat.category_catalog_id);
-      });
-    }
-
-    if (questionsData) {
-      questionsData.forEach(q => {
-        if (q.latest_revision) {
-          const revId = q.latest_revision.question_revision_id;
-
-          let catName = 'Uncategorized';
-          const qCat = q.category || q.category_id;
-          if (qCat) {
-            if (categoryIdToName.has(qCat)) {
-              catName = categoryIdToName.get(qCat)!;
-            } else if (categoryNameToId.has(qCat.toLowerCase())) {
-              catName = categoryIdToName.get(categoryNameToId.get(qCat.toLowerCase())!) || qCat;
-            } else {
-              catName = qCat;
-            }
-          }
-          catMap.set(revId, catName);
-        }
-      });
-    }
-    return catMap;
-  }, [questionsData, categoriesData]);
 
   // If viewing a specific submission
   if (selectedSubmission) {
