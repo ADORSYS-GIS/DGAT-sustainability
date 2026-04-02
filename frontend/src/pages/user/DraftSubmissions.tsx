@@ -51,6 +51,8 @@ export default function DraftSubmissions() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: draftSubmissions, isLoading, error, refetch } = useOfflineDraftSubmissions();
+  const { data: questionsData } = useOfflineQuestions();
+  const { data: categoriesData } = useOfflineCategoryCatalogs();
   const { approveDraftSubmission } = useOfflineDraftSubmissionsMutation();
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<DraftSubmission | null>(null);
@@ -281,10 +283,7 @@ export default function DraftSubmissions() {
   }
 
   // Handle both possible response structures
-  const submissions = (draftSubmissions.draft_submissions || []) as unknown as DraftSubmission[];
-
-  const { data: questionsData } = useOfflineQuestions();
-  const { data: categoriesData } = useOfflineCategoryCatalogs();
+  const submissions = (draftSubmissions?.draft_submissions || []) as unknown as DraftSubmission[];
 
   const qRevToCategoryMap = React.useMemo(() => {
     const catMap = new Map<string, string>();
