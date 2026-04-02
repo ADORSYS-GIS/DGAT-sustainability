@@ -1,5 +1,4 @@
 import type { UserOptions } from "jspdf-autotable";
-import type jsPDF from "jspdf";
 
 export const getTableStyles = (): Partial<UserOptions> => ({
   styles: {
@@ -31,12 +30,5 @@ export const getTableStyles = (): Partial<UserOptions> => ({
     2: { cellWidth: 25 }, // Percentage
     3: { cellWidth: 60 }, // Text Answer
     4: { cellWidth: 'auto' }, // Recommendations
-  },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  didDrawPage: (data: any) => {
-    const doc = data.doc as jsPDF;
-    doc.setFontSize(18);
-    doc.setTextColor(40);
-    doc.text("Assessment Details", data.settings.margin.left, 22);
   },
 });

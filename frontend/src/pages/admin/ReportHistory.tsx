@@ -401,7 +401,9 @@ export const ReportHistory: React.FC = () => {
         singleSubmissions,
         singleRecs,
         radarChartDataUrl,
-        recommendationChartDataUrl
+        recommendationChartDataUrl,
+        report.org_name,
+        reportToExport.assessment_name
       );
       toast.success(t('reportHistory.downloadSuccess', { defaultValue: 'Report downloaded successfully' }));
     } catch (error) {

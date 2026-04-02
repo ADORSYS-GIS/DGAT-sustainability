@@ -15,8 +15,8 @@ export const AssessmentSubmissionsList: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { data: submissionsData, isLoading: submissionsLoading } = useOfflineUserSubmissions();
-  const { isLoading: initialLoading, getLoadingStatus } = useInitialDataLoad();
+  const { isLoading: initialLoading, getLoadingStatus, hasLoadedData } = useInitialDataLoad();
+  const { data: submissionsData, isLoading: submissionsLoading } = useOfflineUserSubmissions(hasLoadedData);
 
   const isSyncing = React.useMemo(() => {
     const status = getLoadingStatus();

@@ -8,7 +8,7 @@ import type { OfflineImage } from "@/types/offline";
 const PAGE_MARGIN = 14;
 const dgrvBlue = [30, 58, 138];
 
-const addHeader = (doc: jsPDF) => {
+export const addHeader = (doc: jsPDF) => {
   const pageCount = doc.getNumberOfPages();
   doc.setFontSize(10);
   doc.setTextColor(100);
@@ -85,7 +85,9 @@ export async function exportAllAssessmentsPDF(
   submissions: AdminSubmissionDetail[],
   recommendations: RecommendationWithStatus[],
   radarChartDataUrl?: string,
-  recommendationChartDataUrl?: string
+  recommendationChartDataUrl?: string,
+  organizationName?: string,
+  assessmentName?: string
 ) {
   const doc = new jsPDF({ orientation: "landscape" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -130,10 +132,22 @@ export async function exportAllAssessmentsPDF(
     doc.addImage(base64, "PNG", x, 20, imgWidth, imgHeight);
   }
 
-  doc.setFontSize(40);
+  doc.setFontSize(36);
   doc.setTextColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
   doc.setFont("helvetica", "bold");
-  doc.text(`SUSTAINABILITY REPORT ${new Date().getFullYear()}`, pageWidth / 2, 175, { align: 'center' });
+  doc.text(`SUSTAINABILITY REPORT ${new Date().getFullYear()}`, pageWidth / 2, 160, { align: 'center' });
+
+  if (organizationName) {
+    doc.setFontSize(18);
+    doc.setTextColor(60, 60, 60);
+    doc.text(organizationName, pageWidth / 2, 172, { align: 'center' });
+  }
+
+  if (assessmentName && assessmentName !== "All Assessments") {
+    doc.setFontSize(14);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Assessment: ${assessmentName}`, pageWidth / 2, 180, { align: 'center' });
+  }
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
@@ -178,9 +192,6 @@ export async function exportAllAssessmentsPDF(
 
   // --- Detailed Assessments Table Section ---
   addNewPageWithHeader(doc);
-  doc.setFontSize(18);
-  doc.setTextColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
-  doc.text("Detailed Assessment Results", PAGE_MARGIN, 22);
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
   const tableIntro = "The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations.";
@@ -191,7 +202,7 @@ export async function exportAllAssessmentsPDF(
   const tableStartY = 30 + introTextHeight + 10; // Start table 10 units below intro text
 
   // drawAssessmentsTable will now start on the current page at the calculated Y position.
-  drawAssessmentsTable(doc, submissions, recommendations, tableStartY);
+  drawAssessmentsTable(doc, submissions, recommendations, tableStartY, organizationName, assessmentName);
 
   // --- Action Plan Kanban Board Section ---
   addNewPageWithHeader(doc);

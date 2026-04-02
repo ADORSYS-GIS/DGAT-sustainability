@@ -272,7 +272,9 @@ export const Dashboard: React.FC = () => {
           singleSubmissions,
           singleRecs,
           radarChartDataUrl,
-          recommendationChartDataUrl
+          recommendationChartDataUrl,
+          (fullReport as any).org_name || orgName,
+          (fullReport as any).assessment_name
         );
       } else {
         await exportAllAssessmentsDOCX(
@@ -431,7 +433,9 @@ export const Dashboard: React.FC = () => {
       adminSubmissionsData?.submissions || [],
       allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
       radarChartDataUrl,
-      recommendationChartDataUrl
+      recommendationChartDataUrl,
+      orgName,
+      "All Assessments"
     );
   };
 

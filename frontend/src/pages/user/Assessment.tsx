@@ -346,7 +346,10 @@ export const Assessment: React.FC = () => {
         });
 
         // Check if the COMPLETE assessment across ALL categories is answered
-        const isEntireAssessmentComplete = allAssessmentQuestions.every(q => {
+        const categoriesInQuestions = new Set(allAssessmentQuestions.map(q => q.category_id));
+        const allCategoriesAccountedFor = assessmentCategoryIds.length > 0 && assessmentCategoryIds.every(cid => categoriesInQuestions.has(cid));
+
+        const isEntireAssessmentComplete = allCategoriesAccountedFor && allAssessmentQuestions.every(q => {
           const key = getRevisionKey(q.revision);
           if (!key) return false;
 

@@ -503,7 +503,18 @@ export function useOfflineAssessmentsMutation() {
 
       // Always store in IndexedDB first for offline support
       try {
-        const assessment = await offlineDB.getAssessment(assessmentId);
+        let assessment = await offlineDB.getAssessment(assessmentId);
+
+        // Retry logic if not found immediately (e.g. if just created)
+        if (!assessment) {
+          let attempts = 0;
+          const maxAttempts = 5;
+          while (!assessment && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            assessment = await offlineDB.getAssessment(assessmentId);
+            attempts++;
+          }
+        }
 
         // Note: We'll need to add draft submission storage to IndexedDB
         // For now, we'll store it as a regular submission with a special status

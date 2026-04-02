@@ -4,7 +4,7 @@ import { OfflineSubmission } from "@/types/offline";
 import { useAuth } from "./shared/useAuth";
 import { useOffline } from "./useOffline";
 
-export function useOfflineUserSubmissions() {
+export function useOfflineUserSubmissions(syncTrigger?: boolean) {
   const { user } = useAuth();
   const isOffline = useOffline();
   const [data, setData] = useState<{ submissions: OfflineSubmission[] }>({ submissions: [] });
@@ -70,7 +70,7 @@ export function useOfflineUserSubmissions() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData, isOffline]);
+  }, [fetchData, isOffline, syncTrigger]);
 
   return { data, isLoading, error, refetch: fetchData };
 }

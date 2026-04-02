@@ -637,6 +637,17 @@ export class InitialDataLoader {
         return true;
       }
 
+      // Check if recommendations exist for these submissions (required for Action Plan)
+      const recommendations = await offlineDB.getAllRecommendations();
+      const orgRecommendations = recommendations.filter(r =>
+        orgSubmissions.some(s => s.submission_id === r.submission_id)
+      );
+
+      if (orgRecommendations.length === 0) {
+        // If we have submissions but no recommendations, we MUST load reports to populate them
+        return true;
+      }
+
       return false;
     }
 

@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import { getTableStyles } from "./tableStyles";
 import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 import type { UserOptions } from 'jspdf-autotable';
+import { addHeader } from "./exportPDF"; // Import addHeader
 
 interface jsPDFWithAutoTable extends jsPDF {
   lastAutoTable: {
@@ -42,14 +43,14 @@ const groupDataByCategory = (
           let textAnswer = "N/A";
 
           if (response.response) {
-              try {
-                  const parsed = JSON.parse(response.response);
-                  answer = parsed.yesNo ? "Yes" : "No";
-                  percentage = `${parsed.percentage || 0}%`;
-                  textAnswer = parsed.text || "N/A";
-              } catch (e) {
-                  textAnswer = response.response;
-              }
+            try {
+              const parsed = JSON.parse(response.response);
+              answer = parsed.yesNo ? "Yes" : "No";
+              percentage = `${parsed.percentage || 0}%`;
+              textAnswer = parsed.text || "N/A";
+            } catch (e) {
+              textAnswer = response.response;
+            }
           }
 
           groupedData[category].push({
@@ -73,7 +74,9 @@ export const drawAssessmentsTable = (
   doc: jsPDF,
   submissions: AdminSubmissionDetail[],
   recommendations: RecommendationWithStatus[],
-  startY: number
+  startY: number,
+  organizationName?: string,
+  assessmentName?: string
 ) => {
   if (!submissions || submissions.length === 0) {
     return;
@@ -82,6 +85,8 @@ export const drawAssessmentsTable = (
   const groupedData = groupDataByCategory(submissions);
   const styles = getTableStyles();
   let isFirstCategory = true;
+  const sectionTitle = "Detailed Assessment Results";
+  const fullTitle = assessmentName ? `${sectionTitle} - ${assessmentName}` : sectionTitle;
 
   Object.keys(groupedData).forEach(category => {
     const tableData = groupedData[category];
@@ -113,11 +118,20 @@ export const drawAssessmentsTable = (
       isFirstCategory = false;
     } else {
       currentY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY;
+
+      // If the next category title wouldn't fit on this page, start a new page
+      if (currentY + 40 > doc.internal.pageSize.height) {
+        doc.addPage();
+        addHeader(doc);
+        currentY = 30; // Start below the header area
+      }
     }
-    
+
     doc.setFontSize(14);
+    doc.setTextColor(30, 58, 138); // dgrvBlue
+    doc.setFont("helvetica", "bold");
     doc.text(category, 14, currentY + 15); // Category title
-    
+
     autoTable(doc, {
       startY: currentY + 20,
       tableWidth: "auto",
@@ -132,6 +146,21 @@ export const drawAssessmentsTable = (
       ],
       body: body as UserOptions['body'],
       ...styles,
+      didDrawPage: (data) => {
+        // Apply header and title to every page of the table
+        addHeader(doc);
+        doc.setFontSize(18);
+        doc.setTextColor(30, 58, 138);
+        doc.setFont("helvetica", "bold");
+        doc.text(fullTitle, 14, 22);
+
+        if (organizationName) {
+          doc.setFontSize(10);
+          doc.setTextColor(100);
+          doc.setFont("helvetica", "normal");
+          doc.text(`Organization: ${organizationName}`, 14, 28);
+        }
+      },
       didParseCell: (data) => {
         if (data.column.dataKey === 4) { // 'Recommendations' column
           let rawValue = data.cell.raw;
