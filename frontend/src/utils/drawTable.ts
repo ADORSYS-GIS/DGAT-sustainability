@@ -123,17 +123,17 @@ export const drawAssessmentsTable = (
       if (currentY + 40 > doc.internal.pageSize.height) {
         doc.addPage();
         addHeader(doc);
-        currentY = 30; // Start below the header area
+        currentY = 32; // Start below the header + title area
       }
     }
 
     doc.setFontSize(14);
     doc.setTextColor(30, 58, 138); // dgrvBlue
     doc.setFont("helvetica", "bold");
-    doc.text(category, 14, currentY + 15); // Category title
+    doc.text(category, 14, currentY + 10); // Category title
 
     autoTable(doc, {
-      startY: currentY + 20,
+      startY: currentY + 16,
       tableWidth: "auto",
       head: [
         [
@@ -149,18 +149,24 @@ export const drawAssessmentsTable = (
       didDrawPage: (data) => {
         // Apply header and title to every page of the table
         addHeader(doc);
-        doc.setFontSize(18);
+        doc.setFontSize(16);
         doc.setTextColor(30, 58, 138);
         doc.setFont("helvetica", "bold");
-        doc.text(fullTitle, 14, 22);
+        doc.text(fullTitle, 14, 20);
 
         if (organizationName) {
-          doc.setFontSize(10);
+          doc.setFontSize(9);
           doc.setTextColor(100);
           doc.setFont("helvetica", "normal");
-          doc.text(`Organization: ${organizationName}`, 14, 28);
+          doc.text(`Organisation: ${organizationName}`, 14, 27);
+        }
+
+        // Ensure the table body doesn't start before the header area
+        if (data.cursor && data.cursor.y < 32) {
+          data.cursor.y = 32;
         }
       },
+      margin: { top: 32 },
       didParseCell: (data) => {
         if (data.column.dataKey === 4) { // 'Recommendations' column
           let rawValue = data.cell.raw;

@@ -137,16 +137,22 @@ export async function exportAllAssessmentsPDF(
   doc.setFont("helvetica", "bold");
   doc.text(`SUSTAINABILITY REPORT ${new Date().getFullYear()}`, pageWidth / 2, 160, { align: 'center' });
 
+  let coverY = 172;
+
   if (organizationName) {
-    doc.setFontSize(18);
-    doc.setTextColor(60, 60, 60);
-    doc.text(organizationName, pageWidth / 2, 172, { align: 'center' });
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 58, 138); // dgrvBlue
+    doc.text(`Organisation: ${organizationName}`, pageWidth / 2, coverY, { align: 'center' });
+    coverY += 14;
   }
 
   if (assessmentName && assessmentName !== "All Assessments") {
-    doc.setFontSize(14);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Assessment: ${assessmentName}`, pageWidth / 2, 180, { align: 'center' });
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(22, 163, 74); // green-600
+    doc.text(`Assessment: ${assessmentName}`, pageWidth / 2, coverY, { align: 'center' });
+    coverY += 12;
   }
 
   doc.setFontSize(12);
@@ -154,7 +160,7 @@ export async function exportAllAssessmentsPDF(
   doc.setTextColor(0, 0, 0);
   const introText = `This document presents the findings of the ${new Date().getFullYear()} sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions. It provides a comprehensive overview of the assessment results, data-driven recommendations for measurable improvements, and an actionable roadmap to help guide future sustainability initiatives.`;
   const splitText = doc.splitTextToSize(introText, pageWidth - 100);
-  doc.text(splitText, pageWidth / 2, 185, { align: 'center' });
+  doc.text(splitText, pageWidth / 2, coverY + 6, { align: 'center' });
 
   // --- Radar Chart Section ---
   if (radarChartDataUrl) {
