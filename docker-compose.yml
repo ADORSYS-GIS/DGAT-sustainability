@@ -89,6 +89,27 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   #
+  # ────────────────────────────── POSTGRES (Keycloak) ──────────────────────────────
+  #
+  keycloak-db:
+    image: postgres:17-alpine
+    container_name: sustainability-keycloak-db
+    environment:
+      POSTGRES_DB:       "${KEYCLOAK_DB:-keycloak}"
+      POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5432"
+    networks: [tool-net]
+    volumes:
+      - keycloak-postgres-data:/var/lib/postgresql/data
+
+  #
   # ────────────────────────────── KEYCLOAK ──────────────────────────────
   #
   keycloak:
@@ -96,9 +117,9 @@ services:
     container_name: sustainability-keycloak
     environment:
       KC_DB: "postgres"
-      KC_DB_URL_HOST: db
+      KC_DB_URL_HOST: keycloak-db
       KC_DB_URL_PORT: 5432
-      KC_DB_URL_DATABASE: "${POSTGRES_DB:-sustainability}"
+      KC_DB_URL_DATABASE: "${KEYCLOAK_DB:-keycloak}"
       KC_DB_USERNAME: "${POSTGRES_USER:-postgres}"
       KC_DB_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
       KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
@@ -149,7 +170,7 @@ services:
       - ./scripts/admin.sh:/admin.sh:ro
       - ./keycloak-startup.sh:/keycloak-startup.sh:ro
     depends_on:
-      db:
+      keycloak-db:
         condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "exit 0" ]
@@ -214,6 +235,7 @@ services:
 # ────────────────────────────── VOLUMES / NETS ───────────────────────────
 volumes:
   postgres-data:
+  keycloak-postgres-data:
   openapi-volume:
     name: sustainability-openapi-volume
   ssl-certs:
