@@ -41,6 +41,9 @@ set -uo pipefail
 # Note: -e is intentionally omitted so individual step failures are handled
 # explicitly and the script can still package whatever was collected.
 
+# ── Ensure pg tools are on PATH (cron has a minimal environment) ──────────────
+export PATH="/usr/lib/postgresql/17/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 # ── Resolve script/repo root ──────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
