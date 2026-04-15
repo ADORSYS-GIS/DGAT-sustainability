@@ -68,6 +68,10 @@ KEYCLOAK_DB_HOST="${KEYCLOAK_DB_HOST:-localhost}"
 KEYCLOAK_DB_PORT="${KEYCLOAK_DB_PORT:-5433}"
 KEYCLOAK_CONTAINER="${KEYCLOAK_CONTAINER:-sustainability-keycloak}"
 KEYCLOAK_REALM="${KEYCLOAK_REALM:-sustainability-realm}"
+# Admin credentials for REST API export (must match .env)
+KEYCLOAK_ADMIN="${KEYCLOAK_ADMIN:-admin}"
+KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
+KEYCLOAK_INTERNAL_URL="${KEYCLOAK_INTERNAL_URL:-http://localhost:8081}"
 
 export PGPASSWORD="$POSTGRES_PASSWORD"
 
@@ -119,21 +123,39 @@ else
 fi
 
 # ── 4. Keycloak realm export ──────────────────────────────────────────────────
+# Uses the Keycloak Admin REST API against the running instance.
+# kc.sh export cannot run while the server is already running (Keycloak 26+).
 log "[4/4] Exporting Keycloak realm: ${KEYCLOAK_REALM}"
+
 if docker inspect "$KEYCLOAK_CONTAINER" &>/dev/null; then
   mkdir -p "${BUNDLE_DIR}/keycloak-realm-export"
-  # Run export inside the container; suppress verbose Keycloak startup noise
-  if docker exec "$KEYCLOAK_CONTAINER" \
-      /opt/keycloak/bin/kc.sh export \
-      --dir /tmp/kc-export \
-      --realm "$KEYCLOAK_REALM" \
-      --users realm_file 2>&1 | grep -v "^[0-9]\{4\}-" | grep -v "^$"; then
-    docker cp "${KEYCLOAK_CONTAINER}:/tmp/kc-export/." "${BUNDLE_DIR}/keycloak-realm-export/"
-    docker exec "$KEYCLOAK_CONTAINER" rm -rf /tmp/kc-export 2>/dev/null || true
-    log "      OK — realm JSON exported"
-  else
-    warn "Keycloak realm export failed — skipping (DB backup still valid)"
+
+  # Step 1 — get admin access token
+  TOKEN=$(curl -s -X POST \
+    "${KEYCLOAK_INTERNAL_URL}/keycloak/realms/master/protocol/openid-connect/token" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "username=${KEYCLOAK_ADMIN}" \
+    -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+    -d "grant_type=password" \
+    -d "client_id=admin-cli" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+
+  if [[ -z "$TOKEN" ]]; then
+    warn "Could not obtain Keycloak admin token — skipping realm export"
     rmdir "${BUNDLE_DIR}/keycloak-realm-export" 2>/dev/null || true
+  else
+    # Step 2 — export the realm via REST API
+    HTTP_STATUS=$(curl -s -o "${BUNDLE_DIR}/keycloak-realm-export/${KEYCLOAK_REALM}.json" \
+      -w "%{http_code}" \
+      "${KEYCLOAK_INTERNAL_URL}/keycloak/admin/realms/${KEYCLOAK_REALM}" \
+      -H "Authorization: Bearer ${TOKEN}")
+
+    if [[ "$HTTP_STATUS" == "200" ]]; then
+      log "      OK — realm JSON exported via REST API"
+    else
+      warn "Realm export API returned HTTP ${HTTP_STATUS} — skipping"
+      rm -f "${BUNDLE_DIR}/keycloak-realm-export/${KEYCLOAK_REALM}.json"
+      rmdir "${BUNDLE_DIR}/keycloak-realm-export" 2>/dev/null || true
+    fi
   fi
 else
   warn "Container '${KEYCLOAK_CONTAINER}' not found — skipping realm export"
