@@ -122,6 +122,17 @@ impl SubmissionReportsService {
     pub async fn delete_report(&self, id: Uuid) -> Result<DeleteResult, DbErr> {
         self.db_service.delete(id).await
     }
+
+    pub async fn delete_reports_by_submission_ids(&self, submission_ids: &[Uuid]) -> Result<u64, DbErr> {
+        if submission_ids.is_empty() {
+            return Ok(0);
+        }
+        let result = Entity::delete_many()
+            .filter(Column::SubmissionId.is_in(submission_ids.to_vec()))
+            .exec(self.db_service.get_connection())
+            .await?;
+        Ok(result.rows_affected)
+    }
 }
 
 #[cfg(test)]

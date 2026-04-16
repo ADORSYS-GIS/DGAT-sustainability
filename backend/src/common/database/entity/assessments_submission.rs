@@ -209,6 +209,14 @@ impl AssessmentsSubmissionService {
         self.db_service.delete(assessment_id).await
     }
 
+    pub async fn delete_submissions_by_org(&self, org_id: &str) -> Result<u64, DbErr> {
+        let result = Entity::delete_many()
+            .filter(Column::OrgId.eq(org_id))
+            .exec(self.db_service.get_connection())
+            .await?;
+        Ok(result.rows_affected)
+    }
+
     pub async fn update_submission_status(
         &self,
         assessment_id: Uuid,

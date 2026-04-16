@@ -8,22 +8,18 @@ export REALM=sustainability-realm
 export ADMIN_USER=admin
 export ADMIN_PASS=admin123
 export TRUSTSTORE_PASS=changeit
-export NEW_USER_EMAIL=fespinosatest@dgrv.coop
-export TEMP_PASSWORD=changeme123
-export NEW_USER_FIRSTNAME=fernando
-export NEW_USER_LASTNAME=espinosa
+export NEW_USER_EMAIL=360@dgrv.coop
+export TEMP_PASSWORD=dgrv@coop360
+export NEW_USER_FIRSTNAME=dgrv
+export NEW_USER_LASTNAME=admin
 
 echo "[a.sh] Current working directory: $(pwd)"
 echo "[a.sh] Changing directory to ${KEYCLOAK_BIN_DIR}"
 cd "${KEYCLOAK_BIN_DIR}"
 echo "[a.sh] Now in: $(pwd)"
 
-# Run-once guard to avoid re-provisioning
-RUN_ONCE_MARKER="${KEYCLOAK_BIN_DIR}/.provisioning_done"
-if [ -f "${RUN_ONCE_MARKER}" ]; then
-  echo "[a.sh] Provisioning already completed previously; exiting."
-  exit 0
-fi
+# Run-once guard removed — provisioning runs on every startup.
+# User creation is idempotent: existing user is deleted and recreated.
 
 # Import certificate into truststore; robust handling with preference for nginx.crt file
 CERT_PATH="/etc/x509/https/nginx.crt"
@@ -144,14 +140,27 @@ if [ "$login_ok" != true ]; then
   exit 1
 fi
 
-# --- 2. CREATE THE USER ---
+# --- 2. CREATE THE USER (idempotent — delete first if already exists) ---
+echo "[a.sh] Checking if user ${NEW_USER_EMAIL} already exists..."
+EXISTING_USER_ID=$(./kcadm.sh get users -r "${REALM}" \
+    --server "http://localhost:8080/keycloak" \
+    --truststore "${TRUSTSTORE}" \
+    --trustpass "${TRUSTSTORE_PASS}" \
+    -q "email=${NEW_USER_EMAIL}" 2>/dev/null | grep '"id"' | head -1 | sed 's/.*"id" : "\([^"]*\)".*/\1/')
+
+if [ -n "${EXISTING_USER_ID}" ]; then
+  echo "[a.sh] User ${NEW_USER_EMAIL} exists (id: ${EXISTING_USER_ID}), deleting before recreating..."
+  ./kcadm.sh delete users/"${EXISTING_USER_ID}" -r "${REALM}" \
+      --server "http://localhost:8080/keycloak" \
+      --truststore "${TRUSTSTORE}" \
+      --trustpass "${TRUSTSTORE_PASS}" || true
+fi
+
 ./kcadm.sh create users \
     -r "${REALM}" \
     -s username="${NEW_USER_EMAIL}" \
     -s email="${NEW_USER_EMAIL}" \
     -s enabled=true \
-    -s firstName="${NEW_USER_FIRSTNAME}" \
-    -s lastName="${NEW_USER_LASTNAME}" \
     -s firstName="${NEW_USER_FIRSTNAME}" \
     -s lastName="${NEW_USER_LASTNAME}" \
     --server "http://localhost:8080/keycloak" \
@@ -227,7 +236,4 @@ echo "[a.sh] Configuring realm email settings..."
   --trustpass "${TRUSTSTORE_PASS}"
 
 echo "[a.sh] Email configuration completed successfully"
-
-# Mark provisioning as done to avoid re-running on subsequent starts
-touch "${RUN_ONCE_MARKER}"
-echo "[a.sh] Provisioning completed; marker created at ${RUN_ONCE_MARKER}"
+echo "[a.sh] Provisioning completed."

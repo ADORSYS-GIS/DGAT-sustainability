@@ -159,6 +159,16 @@ impl AssessmentsService {
         self.db_service.delete(id).await
     }
 
+    /// Force-delete all assessments for an org, bypassing the submission guard.
+    /// Used only during full organisation deletion where submissions are also being wiped.
+    pub async fn force_delete_assessments_by_org(&self, org_id: &str) -> Result<u64, DbErr> {
+        let result = Entity::delete_many()
+            .filter(Column::OrgId.eq(org_id))
+            .exec(self.db_service.get_connection())
+            .await?;
+        Ok(result.rows_affected)
+    }
+
 }
 
 #[cfg(test)]

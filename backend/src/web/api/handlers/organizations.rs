@@ -388,12 +388,63 @@ pub async fn delete_organization(
 ) -> Result<StatusCode, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
-    // Check if user has appropriate permissions
     if !claims.can_manage_organization(&org_id) {
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    // First, get all members of the organization
+    // ── 1. Clean up app database ──────────────────────────────────────────────
+
+    // Get all submissions for this org so we can delete their reports first
+    let submissions = app_state.database.assessments_submission
+        .get_submissions_by_org(&org_id)
+        .await
+        .unwrap_or_default();
+
+    let submission_ids: Vec<uuid::Uuid> = submissions.iter().map(|s| s.submission_id).collect();
+
+    // Delete submission reports (FK → submissions)
+    if let Err(e) = app_state.database.submission_reports
+        .delete_reports_by_submission_ids(&submission_ids)
+        .await
+    {
+        tracing::warn!("Failed to delete submission reports for org {}: {}", org_id, e);
+    }
+
+    // Delete final submissions
+    if let Err(e) = app_state.database.assessments_submission
+        .delete_submissions_by_org(&org_id)
+        .await
+    {
+        tracing::warn!("Failed to delete submissions for org {}: {}", org_id, e);
+    }
+
+    // Delete temp/draft submissions
+    if let Err(e) = app_state.database.temp_submission
+        .delete_temp_submissions_by_org(&org_id)
+        .await
+    {
+        tracing::warn!("Failed to delete temp submissions for org {}: {}", org_id, e);
+    }
+
+    // Delete draft assessments (responses cascade via DB FK)
+    if let Err(e) = app_state.database.assessments
+        .force_delete_assessments_by_org(&org_id)
+        .await
+    {
+        tracing::warn!("Failed to delete assessments for org {}: {}", org_id, e);
+    }
+
+    // Delete organisation category assignments
+    if let Err(e) = app_state.database.organization_categories
+        .delete_organization_categories_by_keycloak_organization_id(&org_id)
+        .await
+    {
+        tracing::warn!("Failed to delete organization categories for org {}: {}", org_id, e);
+    }
+
+    tracing::info!("App data cleaned up for organization {}", org_id);
+
+    // ── 2. Delete Keycloak users ───────────────────────────────────────────────
     let members = match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
         Ok(members) => members,
         Err(e) => {
@@ -402,17 +453,14 @@ pub async fn delete_organization(
         }
     };
 
-    // Iterate and delete each member
     for member in members {
-        tracing::info!("Attempting to delete user {} from Keycloak as part of organization deletion", member.id);
+        tracing::info!("Deleting user {} from Keycloak as part of organization deletion", member.id);
         if let Err(e) = app_state.keycloak_service.delete_user(&token, &member.id).await {
-            tracing::warn!("Failed to delete user {} from Keycloak: {}. Continuing with other users.", member.id, e);
-            // We log the error but continue to attempt deleting other users and the organization.
-            // A full rollback/transaction is complex with external services like Keycloak.
+            tracing::warn!("Failed to delete user {} from Keycloak: {}. Continuing.", member.id, e);
         }
     }
 
-    // Finally, delete the organization
+    // ── 3. Delete the organisation from Keycloak ──────────────────────────────
     match app_state.keycloak_service.delete_organization(&token, &org_id).await {
         Ok(()) => {
             tracing::info!("Organization {} and all its associated users deleted successfully", org_id);
