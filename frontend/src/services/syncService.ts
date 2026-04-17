@@ -764,6 +764,13 @@ export class SyncService {
   /**
    * Sync recommendations from server to local (DGRV admin only)
    */
+  /**
+   * Public method to sync admin submissions on demand
+   */
+  async syncAdminSubmissionsPublic(): Promise<SyncResult> {
+    return this.syncAdminSubmissions();
+  }
+
   private async syncAdminSubmissions(): Promise<SyncResult> {
     const result: SyncResult = { entityType: 'admin_submissions', added: 0, updated: 0, deleted: 0, errors: [] };
 
@@ -771,17 +778,21 @@ export class SyncService {
       const serverSubmissionsResponse = await AdminService.getAdminSubmissions();
       const serverSubmissions = serverSubmissionsResponse.submissions;
 
+      const localSubmissions = await offlineDB.getAllSubmissions();
+
+      // Server returned empty — clear all local submissions
       if (serverSubmissions.length === 0) {
-        // We might not want to clear all submissions, just the ones visible to the admin.
-        // This requires more sophisticated logic. For now, we'll just add/update.
+        for (const local of localSubmissions) {
+          await offlineDB.deleteSubmission(local.submission_id);
+          result.deleted++;
+        }
         return result;
       }
 
-      const localSubmissions = await offlineDB.getAllSubmissions();
       const allAssessments = await offlineDB.getAllAssessments();
-      const allOrganizations = await offlineDB.getAllOrganizations();
       const serverSubmissionIds = new Set(serverSubmissions.map(s => s.submission_id));
 
+      // Add or update submissions from server
       for (const serverSubmission of serverSubmissions) {
         const localSubmission = localSubmissions.find(s => s.submission_id === serverSubmission.submission_id);
         const assessment = allAssessments.find(a => a.assessment_id === serverSubmission.assessment_id);
@@ -799,9 +810,13 @@ export class SyncService {
         }
       }
 
-      // Optionally, delete local admin-visible submissions that are no longer on the server
-      // This is complex because a submission might be visible to both a user and an admin.
-      // We will skip deletion for now to avoid accidentally removing user data.
+      // Delete local submissions that no longer exist on the server
+      for (const local of localSubmissions) {
+        if (!serverSubmissionIds.has(local.submission_id)) {
+          await offlineDB.deleteSubmission(local.submission_id);
+          result.deleted++;
+        }
+      }
 
     } catch (error) {
       result.errors.push(error instanceof Error ? error.message : 'Unknown error');

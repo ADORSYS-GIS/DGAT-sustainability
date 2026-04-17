@@ -3,6 +3,7 @@ import { offlineDB } from "../services/indexeddb";
 import { AdminSubmissionWithNames } from "@/types/offline";
 import { useAuth } from "./shared/useAuth";
 import { AdminSubmissionDetail } from "@/openapi-rq/requests/types.gen";
+import { syncService } from "../services/syncService";
 
 export function useOfflineAdminSubmissions(organizationId?: string) {
   const { user } = useAuth();
@@ -14,6 +15,11 @@ export function useOfflineAdminSubmissions(organizationId?: string) {
     try {
       setIsLoading(true);
       setError(null);
+
+      // Always sync from server first when online so stale IndexedDB data is cleared
+      if (navigator.onLine) {
+        await syncService.syncAdminSubmissionsPublic();
+      }
 
       const submissions = await offlineDB.getAllSubmissions();
       const result = { submissions: submissions as unknown as AdminSubmissionDetail[] };
