@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KEYCLOAK_START_CMD="${KEYCLOAK_START_CMD:-/opt/keycloak/bin/kc.sh start}"
-PROVISION_DONE_FILE="/opt/keycloak/data/import/.provisioned"
+PROVISION_DONE_FILE="/opt/keycloak/bin/.provisioned"
 
 log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
 
@@ -25,7 +25,7 @@ trap cleanup INT TERM
 if [ ! -f "$PROVISION_DONE_FILE" ]; then
   log "Running first-time provisioning..."
   if "$SCRIPT_DIR/admin.sh"; then
-    touch "$PROVISION_DONE_FILE"
+    touch "$PROVISION_DONE_FILE" 2>/dev/null || true
     log "Provisioning complete. Guard file written."
   else
     log "Provisioning failed — will retry on next restart."
