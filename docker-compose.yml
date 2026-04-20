@@ -48,8 +48,8 @@ services:
         condition: service_healthy
     restart: "no"
     networks: [tool-net]
-  
-    # OpenAPI fetcher service
+
+  # OpenAPI fetcher service
   openapi-fetcher:
     image: node:18
     container_name: openapi-fetcher
@@ -68,7 +68,7 @@ services:
       - tool-net
 
   #
-  # ────────────────────────────── POSTGRES ──────────────────────────────
+  # ────────────────────────────── POSTGRES (App) ──────────────────────────────
   #
   db:
     image: postgres:17-alpine
@@ -78,7 +78,7 @@ services:
       POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -98,8 +98,11 @@ services:
       POSTGRES_DB:       "${KEYCLOAK_DB:-keycloak}"
       POSTGRES_USER:     "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+    command: >
+      postgres
+      -c password_encryption=md5
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -129,21 +132,14 @@ services:
       KEYCLOAK_SERVER: "${KEYCLOAK_SERVER:-http://localhost:8080}"
       KC_PROXY_HEADERS: "xforwarded"
       KC_FEATURES: "preview,organization"
-      # Hostname v2 configuration (Keycloak 26.x)
-      # KC_HOSTNAME as full URL replaces v1 options: KC_HOSTNAME_URL, KC_HOSTNAME_PATH, KC_HOSTNAME_STRICT, KC_HOSTNAME_STRICT_HTTPS
       KC_HOSTNAME: "${KC_HOSTNAME_URL:-https://158.220.84.249:8443/keycloak}"
       KC_HTTP_ENABLED: "true"
-      # if you also want to allow HTTP, for debugging only
-      # Fernando user password
       FERNANDO_PASSWORD: "${FERNANDO_PASSWORD:-SecurePassword123!}"
       KC_URL: "${KC_URL:-localhost}"
-      # Use the nginx certificate paths
       SSL_CERT_PATH: "/etc/x509/https/nginx.crt"
       SSL_KEY_PATH: "/etc/x509/https/nginx.key"
       KC_SSL_TRUSTSTORE_FILE: "/opt/keycloak/conf/nginx-truststore.jks"
       KC_SSL_TRUSTSTORE_PASSWORD: "changeit"
-
-      # SMTP Configuration - Keycloak official method
       KC_SPI_EMAIL_DEFAULT_HOST: "${EMAIL_HOST:-smtp.gmail.com}"
       KC_SPI_EMAIL_DEFAULT_PORT: "${EMAIL_PORT:-587}"
       KC_SPI_EMAIL_DEFAULT_FROM: "${EMAIL_FROM:-noreply@dgrv.coop}"
@@ -153,27 +149,21 @@ services:
       KC_SPI_EMAIL_DEFAULT_SSL: "${EMAIL_SSL:-false}"
       KC_SPI_EMAIL_DEFAULT_STARTTLS: "${EMAIL_STARTTLS:-true}"
       KC_SPI_EMAIL_DEFAULT_AUTH: "${EMAIL_AUTH:-true}"
-      
-      # Debug logging
-      KC_LOG_LEVEL: "info,org.keycloak.services.resources.admin:debug,org.keycloak.services.managers:debug,org.keycloak:debug"
-
-      # Startup command to be executed by wrapper
+      KC_LOG_LEVEL: "info"
       KEYCLOAK_START_CMD: "/opt/keycloak/bin/kc.sh start-dev --import-realm --spi-import-ignore-unknown=true --http-relative-path=/keycloak"
     entrypoint: ["/bin/bash", "/keycloak-startup.sh"]
     volumes:
       - ./infrastructure/keycloak:/opt/keycloak/data/import:rw
       - ./infrastructure/themes/theme-vaam-01.jar:/opt/keycloak/providers/theme-vaam-01.jar
-      # Mount the same SSL certificates used by the frontend container
       - ./ssl/nginx.crt:/etc/x509/https/nginx.crt:ro
       - ./ssl/nginx.key:/etc/x509/https/nginx.key:ro
-      # Mount startup scripts
       - ./scripts/admin.sh:/admin.sh:ro
       - ./keycloak-startup.sh:/keycloak-startup.sh:ro
     depends_on:
       keycloak-db:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "exit 0" ]
+      test: ["CMD-SHELL", "exit 0"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -183,7 +173,7 @@ services:
     networks: [tool-net]
 
   #
-  # ────────────────────────────── USER PWA ──────────────────────────────
+  # ────────────────────────────── FRONTEND ──────────────────────────────
   #
   frontend:
     build:
@@ -199,7 +189,6 @@ services:
         VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://localhost}"
         VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://localhost/callback}"
         VITE_ORGANIZATION_REDIRECT_URL: "${VITE_ORGANIZATION_REDIRECT_URL:-https://localhost}"
-
     image: ghcr.io/adorsys-gis/dgat-sustainability/frontend:latest
     container_name: sustainability-frontend
     env_file: .env
@@ -220,8 +209,8 @@ services:
       - openapi-volume:/openapi
     entrypoint: >
       /bin/sh -c "
-        : $${SERVER_NAME:=_};
-        envsubst '$$SERVER_NAME' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
+        : ${SERVER_NAME:=_};
+        envsubst '$SERVER_NAME' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
         while [ ! -f /openapi/openapi.json ]; do
           echo 'Waiting for openapi.json...';
           sleep 2;

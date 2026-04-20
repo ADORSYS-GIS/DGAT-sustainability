@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KEYCLOAK_START_CMD="${KEYCLOAK_START_CMD:-/opt/keycloak/bin/kc.sh start}"
+PROVISION_DONE_FILE="/opt/keycloak/data/import/.provisioned"
 
 log() { echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] $*"; }
 
@@ -17,9 +18,21 @@ cleanup() {
 }
 trap cleanup INT TERM
 
-# Wait for readiness and run provisioning
+# Wait for Keycloak to be ready
 "$SCRIPT_DIR/admin.sh" --wait-only || true
-"$SCRIPT_DIR/admin.sh" || true
 
-# Keep the container/process alive with Keycloak in foreground
+# Only run full provisioning once (guard file persists in the volume)
+if [ ! -f "$PROVISION_DONE_FILE" ]; then
+  log "Running first-time provisioning..."
+  if "$SCRIPT_DIR/admin.sh"; then
+    touch "$PROVISION_DONE_FILE"
+    log "Provisioning complete. Guard file written."
+  else
+    log "Provisioning failed — will retry on next restart."
+  fi
+else
+  log "Provisioning already done, skipping."
+fi
+
+# Keep the container alive with Keycloak in foreground
 wait "$KC_PID"
