@@ -12,12 +12,12 @@ use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
 
-/// Resolve the category name for a given question_revision_id.
-/// Walks: question_revision -> question -> category_catalog
-async fn get_category_name_for_revision(
+/// Resolve the category_catalog_id UUID for a given question_revision_id.
+/// Walks: question_revision -> question -> category_catalog_id
+async fn get_category_id_for_revision(
     app_state: &AppState,
     question_revision_id: Uuid,
-) -> Result<Option<String>, ApiError> {
+) -> Result<Option<Uuid>, ApiError> {
     let revision = app_state
         .database
         .questions_revisions
@@ -37,19 +37,7 @@ async fn get_category_name_for_revision(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question: {e}")))?;
 
-    let question = match question {
-        Some(q) => q,
-        None => return Ok(None),
-    };
-
-    let category = app_state
-        .database
-        .category_catalog
-        .get_category_catalog_by_id(question.category_id)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?;
-
-    Ok(category.map(|c| c.name))
+    Ok(question.map(|q| q.category_id))
 }
 
 /// For an org_admin caller, verify that none of the question_revision_ids being
@@ -60,27 +48,25 @@ async fn enforce_org_admin_category_restriction(
     org_id: &str,
     question_revision_ids: &[Uuid],
 ) -> Result<(), ApiError> {
-    let assigned_categories = app_state
+    let assigned_ids = app_state
         .database
         .user_category_assignments
-        .get_assigned_categories_for_org(org_id)
+        .get_assigned_category_ids_for_org(org_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category assignments: {e}")))?;
 
-    if assigned_categories.is_empty() {
+    if assigned_ids.is_empty() {
         return Ok(());
     }
 
     for &revision_id in question_revision_ids {
-        if let Some(category_name) = get_category_name_for_revision(app_state, revision_id).await? {
-            // Normalise both sides: lowercase + trim so "Governance aspects" == "governance aspects"
-            let normalised = category_name.trim().to_lowercase();
-            if assigned_categories.contains(&normalised) {
-                return Err(ApiError::Forbidden(format!(
-                    "Category '{}' has been assigned to an organization user. \
-                     The org admin cannot answer or edit questions in this category.",
-                    category_name
-                )));
+        if let Some(category_id) = get_category_id_for_revision(app_state, revision_id).await? {
+            if assigned_ids.contains(&category_id) {
+                return Err(ApiError::Forbidden(
+                    "This category has been assigned to an organization user. \
+                     The org admin cannot answer or edit questions in this category."
+                        .to_string(),
+                ));
             }
         }
     }

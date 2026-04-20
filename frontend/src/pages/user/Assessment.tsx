@@ -548,14 +548,10 @@ export const Assessment: React.FC = () => {
   const isCurrentCategoryDelegated = React.useMemo(() => {
     if (!isOrgAdmin || delegatedCategories.length === 0) return false;
     const currentCategoryId = categories[currentCategoryIndex];
-    const currentCategoryObject = categoriesData?.find(
-      (c: { category_catalog_id: string }) => c.category_catalog_id === currentCategoryId
-    );
-    if (!currentCategoryObject) return false;
-    // Normalise both sides: lowercase + trim to handle casing/trailing punctuation mismatches
-    const normalisedName = currentCategoryObject.name.trim().toLowerCase();
-    return delegatedCategories.some((d: string) => d.trim().toLowerCase() === normalisedName);
-  }, [isOrgAdmin, delegatedCategories, categories, currentCategoryIndex, categoriesData]);
+    if (!currentCategoryId) return false;
+    // delegatedCategories contains category_catalog_id UUIDs — direct comparison, no name matching
+    return delegatedCategories.includes(currentCategoryId);
+  }, [isOrgAdmin, delegatedCategories, categories, currentCategoryIndex]);
 
   if (assessmentCategoryIds.length > 0 && categories.length === 0 && isOrgUser) {
     return (

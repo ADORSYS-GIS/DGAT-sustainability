@@ -12,7 +12,8 @@ pub struct Model {
     pub id: Uuid,
     pub keycloak_org_id: String,
     pub keycloak_user_id: String,
-    pub category_name: String,
+    /// The category_catalog UUID — stable, no casing issues
+    pub category_catalog_id: Uuid,
     pub assigned_at: DateTime<Utc>,
 }
 
@@ -36,12 +37,12 @@ impl UserCategoryAssignmentsService {
     }
 
     /// Replace all category assignments for a user in an org.
-    /// Deletes existing rows for (org, user) then inserts the new set.
+    /// `category_ids` are `category_catalog_id` UUIDs sent by the frontend.
     pub async fn set_user_categories(
         &self,
         keycloak_org_id: &str,
         keycloak_user_id: &str,
-        categories: &[String],
+        category_ids: &[Uuid],
     ) -> Result<(), DbErr> {
         let conn = self.db_service.get_connection();
 
@@ -52,16 +53,13 @@ impl UserCategoryAssignmentsService {
             .exec(conn)
             .await?;
 
-        // Insert the new set
         let now = Utc::now();
-        for category_name in categories {
-            // Normalise on write so comparisons are always consistent
-            let normalised = category_name.trim().to_lowercase();
+        for &category_catalog_id in category_ids {
             let row = ActiveModel {
                 id: Set(Uuid::new_v4()),
                 keycloak_org_id: Set(keycloak_org_id.to_string()),
                 keycloak_user_id: Set(keycloak_user_id.to_string()),
-                category_name: Set(normalised),
+                category_catalog_id: Set(category_catalog_id),
                 assigned_at: Set(now),
             };
             let _ = self.db_service.create(row).await;
@@ -70,39 +68,21 @@ impl UserCategoryAssignmentsService {
         Ok(())
     }
 
-    /// Returns all distinct category names that have been assigned to at least
-    /// one Org_User in the given organization.
-    /// The org_admin uses this to know which categories are "taken".
-    pub async fn get_assigned_categories_for_org(
+    /// Returns all distinct `category_catalog_id` UUIDs that have been assigned
+    /// to at least one Org_User in the given organization.
+    pub async fn get_assigned_category_ids_for_org(
         &self,
         keycloak_org_id: &str,
-    ) -> Result<Vec<String>, DbErr> {
+    ) -> Result<Vec<Uuid>, DbErr> {
         let rows = Entity::find()
             .filter(Column::KeycloakOrgId.eq(keycloak_org_id))
             .all(self.db_service.get_connection())
             .await?;
 
-        // Deduplicate, trim whitespace, and normalise to lowercase for consistent comparison
-        let mut names: Vec<String> = rows
-            .into_iter()
-            .map(|r| r.category_name.trim().to_lowercase())
-            .collect();
-        names.sort();
-        names.dedup();
-        Ok(names)
-    }
-
-    /// Returns all assignments for a specific user in an org (useful for auditing).
-    pub async fn get_user_assignments(
-        &self,
-        keycloak_org_id: &str,
-        keycloak_user_id: &str,
-    ) -> Result<Vec<Model>, DbErr> {
-        Entity::find()
-            .filter(Column::KeycloakOrgId.eq(keycloak_org_id))
-            .filter(Column::KeycloakUserId.eq(keycloak_user_id))
-            .all(self.db_service.get_connection())
-            .await
+        let mut ids: Vec<Uuid> = rows.into_iter().map(|r| r.category_catalog_id).collect();
+        ids.sort();
+        ids.dedup();
+        Ok(ids)
     }
 
     /// Remove all assignments for a user (called when a user is removed from the org).

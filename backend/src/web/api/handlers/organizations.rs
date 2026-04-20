@@ -1292,11 +1292,16 @@ pub async fn add_org_admin_member(
                     // Mirror category assignments in our database
                     let categories = request.categories.as_deref().unwrap_or(&[]);
                     if !categories.is_empty() {
-                        if let Err(e) = app_state.database.user_category_assignments
-                            .set_user_categories(&org_id, &user_id, categories)
-                            .await
-                        {
-                            tracing::warn!(user_id = %user_id, error = %e, "Failed to mirror category assignments in database, but user was created");
+                        let category_ids: Vec<uuid::Uuid> = categories.iter()
+                            .filter_map(|s| uuid::Uuid::parse_str(s).ok())
+                            .collect();
+                        if !category_ids.is_empty() {
+                            if let Err(e) = app_state.database.user_category_assignments
+                                .set_user_categories(&org_id, &user_id, &category_ids)
+                                .await
+                            {
+                                tracing::warn!(user_id = %user_id, error = %e, "Failed to mirror category assignments in database, but user was created");
+                            }
                         }
                     }
 
@@ -1502,8 +1507,11 @@ pub async fn update_org_admin_member_categories(
     })?;
     
     // Mirror the assignment in our database
+    let category_ids: Vec<uuid::Uuid> = request.categories.iter()
+        .filter_map(|s| uuid::Uuid::parse_str(s).ok())
+        .collect();
     app_state.database.user_category_assignments
-        .set_user_categories(&org_id, &member_id, &request.categories)
+        .set_user_categories(&org_id, &member_id, &category_ids)
         .await
         .map_err(|e| {
             tracing::error!("Failed to mirror category assignments in database: {}", e);
@@ -1541,7 +1549,7 @@ pub async fn get_org_admin_assigned_categories(
     let mut assigned = app_state
         .database
         .user_category_assignments
-        .get_assigned_categories_for_org(&org_id)
+        .get_assigned_category_ids_for_org(&org_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assigned categories: {e}")))?;
 
@@ -1560,11 +1568,16 @@ pub async fn get_org_admin_assigned_categories(
                         .await
                     {
                         Ok(categories) if !categories.is_empty() => {
-                            if let Err(e) = app_state.database.user_category_assignments
-                                .set_user_categories(&org_id, &member.id, &categories)
-                                .await
-                            {
-                                tracing::warn!(member_id = %member.id, error = %e, "Failed to persist synced categories");
+                            let category_ids: Vec<uuid::Uuid> = categories.iter()
+                                .filter_map(|s| uuid::Uuid::parse_str(s).ok())
+                                .collect();
+                            if !category_ids.is_empty() {
+                                if let Err(e) = app_state.database.user_category_assignments
+                                    .set_user_categories(&org_id, &member.id, &category_ids)
+                                    .await
+                                {
+                                    tracing::warn!(member_id = %member.id, error = %e, "Failed to persist synced categories");
+                                }
                             }
                         }
                         Ok(_) => {}
@@ -1578,7 +1591,7 @@ pub async fn get_org_admin_assigned_categories(
                 assigned = app_state
                     .database
                     .user_category_assignments
-                    .get_assigned_categories_for_org(&org_id)
+                    .get_assigned_category_ids_for_org(&org_id)
                     .await
                     .unwrap_or_default();
             }
@@ -1588,5 +1601,7 @@ pub async fn get_org_admin_assigned_categories(
         }
     }
 
-    Ok((StatusCode::OK, Json(serde_json::json!({ "assigned_categories": assigned }))))
+    // Return as strings for the frontend
+    let assigned_strings: Vec<String> = assigned.iter().map(|id| id.to_string()).collect();
+    Ok((StatusCode::OK, Json(serde_json::json!({ "assigned_categories": assigned_strings }))))
 }
