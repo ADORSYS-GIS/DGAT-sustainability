@@ -83,7 +83,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5431:5432"
+      - "127.0.0.1:5431:5432"
     networks: [tool-net]
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -104,7 +104,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     networks: [tool-net]
     volumes:
       - keycloak-postgres-data:/var/lib/postgresql/data
@@ -115,6 +115,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.1
     container_name: sustainability-keycloak
+    restart: unless-stopped
     environment:
       KC_DB: "postgres"
       KC_DB_URL_HOST: keycloak-db
