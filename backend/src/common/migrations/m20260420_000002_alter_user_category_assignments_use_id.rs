@@ -31,6 +31,7 @@ impl MigrationTrait for Migration {
                 Index::drop()
                     .name("idx_user_category_assignments_unique")
                     .table(UserCategoryAssignments::Table)
+                    .if_exists()
                     .to_owned(),
             )
             .await?;
@@ -40,6 +41,7 @@ impl MigrationTrait for Migration {
                 Index::drop()
                     .name("idx_user_category_assignments_org_category")
                     .table(UserCategoryAssignments::Table)
+                    .if_exists()
                     .to_owned(),
             )
             .await?;
