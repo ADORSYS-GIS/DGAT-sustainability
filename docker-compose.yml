@@ -209,8 +209,8 @@ services:
       - openapi-volume:/openapi
     entrypoint: >
       /bin/sh -c "
-        : ${SERVER_NAME:=_};
-        envsubst '$SERVER_NAME' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
+        : $${SERVER_NAME:=_};
+        envsubst '$$SERVER_NAME' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf;
         while [ ! -f /openapi/openapi.json ]; do
           echo 'Waiting for openapi.json...';
           sleep 2;
