@@ -1530,6 +1530,7 @@ pub async fn update_org_admin_member_categories(
 )]
 pub async fn get_org_admin_assigned_categories(
     Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
     State(app_state): State<AppState>,
     Path(org_id): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -1537,12 +1538,55 @@ pub async fn get_org_admin_assigned_categories(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    let assigned = app_state
+    let mut assigned = app_state
         .database
         .user_category_assignments
         .get_assigned_categories_for_org(&org_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assigned categories: {e}")))?;
+
+    // If the table is empty this org may have been set up before this feature was deployed.
+    // Sync from Keycloak now and persist so future calls are fast.
+    if assigned.is_empty() {
+        tracing::info!(org_id = %org_id, "No category assignments in DB, syncing from Keycloak");
+        match app_state.keycloak_service
+            .get_organization_members_by_role(&token, &org_id, "Org_User")
+            .await
+        {
+            Ok(members) => {
+                for member in &members {
+                    match app_state.keycloak_service
+                        .get_user_categories_by_id(&token, &member.id)
+                        .await
+                    {
+                        Ok(categories) if !categories.is_empty() => {
+                            if let Err(e) = app_state.database.user_category_assignments
+                                .set_user_categories(&org_id, &member.id, &categories)
+                                .await
+                            {
+                                tracing::warn!(member_id = %member.id, error = %e, "Failed to persist synced categories");
+                            }
+                        }
+                        Ok(_) => {}
+                        Err(e) => {
+                            tracing::warn!(member_id = %member.id, error = %e, "Failed to fetch categories for member during sync");
+                        }
+                    }
+                }
+
+                // Re-query now that we've synced
+                assigned = app_state
+                    .database
+                    .user_category_assignments
+                    .get_assigned_categories_for_org(&org_id)
+                    .await
+                    .unwrap_or_default();
+            }
+            Err(e) => {
+                tracing::warn!(org_id = %org_id, error = %e, "Failed to fetch org members from Keycloak during sync");
+            }
+        }
+    }
 
     Ok((StatusCode::OK, Json(serde_json::json!({ "assigned_categories": assigned }))))
 }

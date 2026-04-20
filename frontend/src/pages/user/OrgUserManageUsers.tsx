@@ -119,40 +119,34 @@ function useUserMutations() {
   const updateUser = async (data: { id: string; memberId: string; requestBody: OrgAdminMemberCategoryUpdateRequest }) => {
     setIsPending(true);
     try {
-      // Get existing user from IndexedDB
+      // Call the API directly — this is the source of truth for category assignments
+      await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories({
+        id: data.id,
+        memberId: data.memberId,
+        requestBody: data.requestBody
+      });
+
+      // Also update local IndexedDB if the user exists there
       const existingUser = await offlineDB.getUser(data.memberId);
-      if (!existingUser) {
-        throw new Error('User not found');
-      }
-      
-      // Update user locally - categories are stored separately in the API response
-      const updatedUser: OfflineUser = {
-        ...existingUser,
-        sync_status: 'pending',
-        updated_at: new Date().toISOString()
-      };
-      
-      await offlineDB.saveUser(updatedUser);
-      
-      // Attempt API call
-      try {
-        await OrganizationMembersService.putOrganizationsByIdOrgAdminMembersByMemberIdCategories({
-          id: data.id,
-          memberId: data.memberId,
-          requestBody: data.requestBody
-        });
-        
-        // API call succeeded, mark as synced
+      if (existingUser) {
         await offlineDB.saveUser({
-          ...updatedUser,
+          ...existingUser,
           sync_status: 'synced',
           updated_at: new Date().toISOString()
         });
-        
-        toast.success("User updated successfully");
-        return { success: true };
-      } catch (apiError) {
-        // API call failed, queue for sync
+      }
+
+      toast.success("User updated successfully");
+      return { success: true };
+    } catch (apiError) {
+      // API call failed — queue for sync if we have the user locally
+      const existingUser = await offlineDB.getUser(data.memberId);
+      if (existingUser) {
+        await offlineDB.saveUser({
+          ...existingUser,
+          sync_status: 'pending',
+          updated_at: new Date().toISOString()
+        });
         await offlineDB.addToSyncQueue({
           id: crypto.randomUUID(),
           operation: 'update',
@@ -164,13 +158,9 @@ function useUserMutations() {
           priority: 'normal',
           created_at: new Date().toISOString()
         });
-        
-        // Removed offline mode toast
-        return { success: true };
       }
-    } catch (error) {
-      toast.error("Failed to update user");
-      throw error;
+      toast.error("Failed to update user categories. Will retry when online.");
+      throw apiError;
     } finally {
       setIsPending(false);
     }

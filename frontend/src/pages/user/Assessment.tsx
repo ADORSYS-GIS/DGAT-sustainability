@@ -543,6 +543,18 @@ export const Assessment: React.FC = () => {
   // Check if we have any categories - only show this message for Org_User, not org_admin
   const isOrgUser = allRoles.includes("org_user") && !isOrgAdmin;
 
+  // Returns true if the org_admin has delegated the current category to an Org_User.
+  // Must be defined before any early returns to satisfy React's rules of hooks.
+  const isCurrentCategoryDelegated = React.useMemo(() => {
+    if (!isOrgAdmin || delegatedCategories.length === 0) return false;
+    const currentCategoryId = categories[currentCategoryIndex];
+    const currentCategoryObject = categoriesData?.find(
+      (c: { category_catalog_id: string }) => c.category_catalog_id === currentCategoryId
+    );
+    if (!currentCategoryObject) return false;
+    return delegatedCategories.includes(currentCategoryObject.name);
+  }, [isOrgAdmin, delegatedCategories, categories, currentCategoryIndex, categoriesData]);
+
   if (assessmentCategoryIds.length > 0 && categories.length === 0 && isOrgUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -638,17 +650,6 @@ export const Assessment: React.FC = () => {
       const key = getRevisionKey(q.revision);
       return isAnswerComplete(answers[key]);
     });
-
-  // Returns true if the org_admin has delegated the current category to an Org_User
-  const isCurrentCategoryDelegated = React.useMemo(() => {
-    if (!isOrgAdmin || delegatedCategories.length === 0) return false;
-    const currentCategoryId = categories[currentCategoryIndex];
-    const currentCategoryObject = categoriesData?.find(
-      (c: { category_catalog_id: string }) => c.category_catalog_id === currentCategoryId
-    );
-    if (!currentCategoryObject) return false;
-    return delegatedCategories.includes(currentCategoryObject.name);
-  }, [isOrgAdmin, delegatedCategories, categories, currentCategoryIndex, categoriesData]);
 
   const handleFileUpload = (questionId: string, files: FileList | null) => {
     if (!files || files.length === 0) return;
