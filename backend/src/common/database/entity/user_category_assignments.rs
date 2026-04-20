@@ -55,14 +55,15 @@ impl UserCategoryAssignmentsService {
         // Insert the new set
         let now = Utc::now();
         for category_name in categories {
+            // Normalise on write so comparisons are always consistent
+            let normalised = category_name.trim().to_lowercase();
             let row = ActiveModel {
                 id: Set(Uuid::new_v4()),
                 keycloak_org_id: Set(keycloak_org_id.to_string()),
                 keycloak_user_id: Set(keycloak_user_id.to_string()),
-                category_name: Set(category_name.clone()),
+                category_name: Set(normalised),
                 assigned_at: Set(now),
             };
-            // ON CONFLICT DO NOTHING equivalent: ignore duplicate errors
             let _ = self.db_service.create(row).await;
         }
 
@@ -81,8 +82,11 @@ impl UserCategoryAssignmentsService {
             .all(self.db_service.get_connection())
             .await?;
 
-        // Deduplicate category names
-        let mut names: Vec<String> = rows.into_iter().map(|r| r.category_name).collect();
+        // Deduplicate, trim whitespace, and normalise to lowercase for consistent comparison
+        let mut names: Vec<String> = rows
+            .into_iter()
+            .map(|r| r.category_name.trim().to_lowercase())
+            .collect();
         names.sort();
         names.dedup();
         Ok(names)

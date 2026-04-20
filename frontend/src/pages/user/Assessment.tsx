@@ -552,7 +552,9 @@ export const Assessment: React.FC = () => {
       (c: { category_catalog_id: string }) => c.category_catalog_id === currentCategoryId
     );
     if (!currentCategoryObject) return false;
-    return delegatedCategories.includes(currentCategoryObject.name);
+    // Normalise both sides: lowercase + trim to handle casing/trailing punctuation mismatches
+    const normalisedName = currentCategoryObject.name.trim().toLowerCase();
+    return delegatedCategories.some((d: string) => d.trim().toLowerCase() === normalisedName);
   }, [isOrgAdmin, delegatedCategories, categories, currentCategoryIndex, categoriesData]);
 
   if (assessmentCategoryIds.length > 0 && categories.length === 0 && isOrgUser) {

@@ -73,7 +73,9 @@ async fn enforce_org_admin_category_restriction(
 
     for &revision_id in question_revision_ids {
         if let Some(category_name) = get_category_name_for_revision(app_state, revision_id).await? {
-            if assigned_categories.contains(&category_name) {
+            // Normalise both sides: lowercase + trim so "Governance aspects" == "governance aspects"
+            let normalised = category_name.trim().to_lowercase();
+            if assigned_categories.contains(&normalised) {
                 return Err(ApiError::Forbidden(format!(
                     "Category '{}' has been assigned to an organization user. \
                      The org admin cannot answer or edit questions in this category.",
