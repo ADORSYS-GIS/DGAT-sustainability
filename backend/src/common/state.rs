@@ -9,6 +9,7 @@ use crate::common::database::entity::questions::QuestionsService;
 use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
 use crate::common::database::entity::submission_reports::SubmissionReportsService;
 use crate::common::database::entity::temp_submission::TempSubmissionService;
+use crate::common::database::entity::user_category_assignments::UserCategoryAssignmentsService;
 use sea_orm::{DatabaseConnection, TransactionTrait};
 use std::sync::Arc;
 
@@ -27,6 +28,7 @@ pub struct AppDatabase {
     pub questions_revisions: QuestionsRevisionsService,
     pub submission_reports: SubmissionReportsService,
     pub temp_submission: TempSubmissionService,
+    pub user_category_assignments: UserCategoryAssignmentsService,
 }
 
 #[allow(dead_code)]
@@ -44,6 +46,7 @@ impl AppDatabase {
             questions_revisions: QuestionsRevisionsService::new(conn.clone()),
             submission_reports: SubmissionReportsService::new(conn.clone()),
             temp_submission: TempSubmissionService::new(conn.clone()),
+            user_category_assignments: UserCategoryAssignmentsService::new(conn.clone()),
             conn,
         }
     }

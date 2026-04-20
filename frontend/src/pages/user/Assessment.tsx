@@ -18,7 +18,7 @@ import type {
 } from "@/openapi-rq/requests/types.gen";
 import type { OfflineSubmission } from "@/types/offline";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, FileText, Info, Paperclip, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Info, Lock, Paperclip, Send } from "lucide-react";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -89,6 +89,9 @@ export const Assessment: React.FC = () => {
   }, [user]);
 
   const isOrgAdmin = React.useMemo(() => allRoles.includes("org_admin"), [allRoles]);
+
+  // Categories that the org_admin has delegated to Org_Users — they cannot answer these
+  const [delegatedCategories, setDelegatedCategories] = useState<string[]>([]);
 
   const [currentCategoryIndex, setCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, LocalAnswer>>({});
@@ -178,8 +181,30 @@ export const Assessment: React.FC = () => {
     return { orgId, categories: userCategories };
   }, [user]);
 
-  const organizationCategories = React.useMemo(() => {
-    if (!categoriesData || !orgInfo.categories) {
+  // Fetch delegated categories for org_admin so we can lock those in the UI
+  useEffect(() => {
+    if (!isOrgAdmin || !orgInfo.orgId) return;
+
+    const fetchDelegated = async () => {
+      try {
+        const token = (await import("@/services/shared/keycloakConfig")).keycloak.token;
+        const res = await fetch(
+          `/api/organizations/${orgInfo.orgId}/org-admin/assigned-categories`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setDelegatedCategories(data.assigned_categories || []);
+        }
+      } catch (e) {
+        console.warn("Failed to fetch delegated categories", e);
+      }
+    };
+
+    fetchDelegated();
+  }, [isOrgAdmin, orgInfo.orgId]);
+
+  const organizationCategories = React.useMemo(() => {    if (!categoriesData || !orgInfo.categories) {
       return [];
     }
     const orgCategoryNames = new Set(orgInfo.categories.map((c: string) => c.toLowerCase()));
@@ -614,6 +639,17 @@ export const Assessment: React.FC = () => {
       return isAnswerComplete(answers[key]);
     });
 
+  // Returns true if the org_admin has delegated the current category to an Org_User
+  const isCurrentCategoryDelegated = React.useMemo(() => {
+    if (!isOrgAdmin || delegatedCategories.length === 0) return false;
+    const currentCategoryId = categories[currentCategoryIndex];
+    const currentCategoryObject = categoriesData?.find(
+      (c: { category_catalog_id: string }) => c.category_catalog_id === currentCategoryId
+    );
+    if (!currentCategoryObject) return false;
+    return delegatedCategories.includes(currentCategoryObject.name);
+  }, [isOrgAdmin, delegatedCategories, categories, currentCategoryIndex, categoriesData]);
+
   const handleFileUpload = (questionId: string, files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
@@ -679,12 +715,25 @@ export const Assessment: React.FC = () => {
     }
   };
 
-  const renderQuestionInput = (revision: QuestionRevision) => {
+  const renderQuestionInput = (revision: QuestionRevision, disabled = false) => {
     const key = getRevisionKey(revision);
     const yesNoValue = answers[key]?.yesNo;
     const percentageValue = answers[key]?.percentage;
     const textValue = answers[key]?.text || "";
     const files: FileData[] = answers[key]?.files || [];
+
+    if (disabled) {
+      return (
+        <div className="rounded-md border border-gray-200 bg-gray-50 p-4 flex items-center space-x-3 text-gray-400">
+          <Lock className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm">
+            {t("assessment.categoryDelegated", {
+              defaultValue: "This category has been assigned to an organization user. You cannot answer or edit these questions.",
+            })}
+          </span>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-4">
@@ -917,6 +966,17 @@ export const Assessment: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
+            {isCurrentCategoryDelegated && (
+              <div className="flex items-center space-x-3 rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-800 mb-2">
+                <Lock className="w-5 h-5 flex-shrink-0" />
+                <p className="text-sm font-medium">
+                  {t("assessment.categoryDelegatedBanner", {
+                    defaultValue:
+                      "This category has been assigned to an organization user. You cannot answer or edit questions in this category.",
+                  })}
+                </p>
+              </div>
+            )}
             {currentQuestions.map((question, index) => {
               let questionText = "";
               if (typeof question.revision.text === "object" && question.revision.text !== null) {
@@ -932,7 +992,7 @@ export const Assessment: React.FC = () => {
                       {index + 1}. {questionText}
                     </h3>
                   </div>
-                  {renderQuestionInput(question.revision)}
+                  {renderQuestionInput(question.revision, isCurrentCategoryDelegated)}
                 </div>
               );
             })}
@@ -949,7 +1009,7 @@ export const Assessment: React.FC = () => {
               <Button
                 onClick={submitAssessment}
                 className="bg-dgrv-green hover:bg-green-700 flex items-center space-x-2"
-                disabled={!isCurrentCategoryComplete()}
+                disabled={!isCurrentCategoryComplete() || isCurrentCategoryDelegated}
               >
                 <Send className="w-4 h-4" />
                 <span>{t("submit")}</span>
@@ -958,7 +1018,7 @@ export const Assessment: React.FC = () => {
               <Button
                 onClick={nextCategory}
                 className="bg-dgrv-blue hover:bg-blue-700 flex items-center space-x-2"
-                disabled={!isCurrentCategoryComplete()}
+                disabled={!isCurrentCategoryComplete() && !isCurrentCategoryDelegated}
               >
                 <span>{t("next")}</span>
                 <ChevronRight className="w-4 h-4" />

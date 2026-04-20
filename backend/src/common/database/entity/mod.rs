@@ -10,3 +10,4 @@ pub mod questions;
 pub mod questions_revisions;
 pub mod submission_reports;
 pub mod temp_submission;
+pub mod user_category_assignments;

@@ -12,6 +12,80 @@ use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
 
+/// Resolve the category name for a given question_revision_id.
+/// Walks: question_revision -> question -> category_catalog
+async fn get_category_name_for_revision(
+    app_state: &AppState,
+    question_revision_id: Uuid,
+) -> Result<Option<String>, ApiError> {
+    let revision = app_state
+        .database
+        .questions_revisions
+        .get_revision_by_id(question_revision_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question revision: {e}")))?;
+
+    let revision = match revision {
+        Some(r) => r,
+        None => return Ok(None),
+    };
+
+    let question = app_state
+        .database
+        .questions
+        .get_question_by_id(revision.question_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch question: {e}")))?;
+
+    let question = match question {
+        Some(q) => q,
+        None => return Ok(None),
+    };
+
+    let category = app_state
+        .database
+        .category_catalog
+        .get_category_catalog_by_id(question.category_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category: {e}")))?;
+
+    Ok(category.map(|c| c.name))
+}
+
+/// For an org_admin caller, verify that none of the question_revision_ids being
+/// answered belong to a category that has already been assigned to an Org_User
+/// in this organization.
+async fn enforce_org_admin_category_restriction(
+    app_state: &AppState,
+    org_id: &str,
+    question_revision_ids: &[Uuid],
+) -> Result<(), ApiError> {
+    let assigned_categories = app_state
+        .database
+        .user_category_assignments
+        .get_assigned_categories_for_org(org_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch category assignments: {e}")))?;
+
+    if assigned_categories.is_empty() {
+        return Ok(());
+    }
+
+    for &revision_id in question_revision_ids {
+        if let Some(category_name) = get_category_name_for_revision(app_state, revision_id).await? {
+            if assigned_categories.contains(&category_name) {
+                return Err(ApiError::Forbidden(format!(
+                    "Category '{}' has been assigned to an organization user. \
+                     The org admin cannot answer or edit questions in this category.",
+                    category_name
+                )));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[derive(Debug, Serialize)]
 pub struct ResponseHistoryResponse {
     pub response_id: Uuid,
@@ -206,6 +280,13 @@ pub async fn create_response(
         return Err(ApiError::BadRequest(
             "You don't have permission to answer assessments. Only Org_User and org_admin roles can answer assessments.".to_string(),
         ));
+    }
+
+    // If the caller is an org_admin, block them from answering categories
+    // that have been delegated to Org_Users in their organization.
+    if claims.is_org_admin() && !claims.is_super_user() {
+        let revision_ids: Vec<Uuid> = requests.iter().map(|r| r.question_revision_id).collect();
+        enforce_org_admin_category_restriction(&app_state, &org_id, &revision_ids).await?;
     }
 
     // Verify that the current organization is the owner of the assessment
@@ -490,6 +571,17 @@ pub async fn update_response(
         return Err(ApiError::BadRequest(
             "Response does not belong to the specified assessment".to_string(),
         ));
+    }
+
+    // If the caller is an org_admin, block them from editing questions in categories
+    // that have been delegated to Org_Users in their organization.
+    if claims.is_org_admin() && !claims.is_super_user() {
+        enforce_org_admin_category_restriction(
+            &app_state,
+            &org_id,
+            &[existing_response.question_revision_id],
+        )
+        .await?;
     }
 
     // Check for version conflicts

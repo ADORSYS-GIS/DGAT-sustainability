@@ -1272,7 +1272,7 @@ pub async fn add_org_admin_member(
         attributes: Some(serde_json::json!({
             "organization_id": org_id,
             "pending_roles": request.roles,
-            "pending_categories": request.categories.unwrap_or_default(),
+            "pending_categories": request.categories.clone().unwrap_or_default(),
             "invitation_status": "pending_email_verification"
         })),
         credentials: None,
@@ -1289,6 +1289,17 @@ pub async fn add_org_admin_member(
                 Ok(_invitation) => {
                     tracing::info!(user_id = %user_id, org_id = %org_id, "Organization invitation sent immediately");
                     
+                    // Mirror category assignments in our database
+                    let categories = request.categories.as_deref().unwrap_or(&[]);
+                    if !categories.is_empty() {
+                        if let Err(e) = app_state.database.user_category_assignments
+                            .set_user_categories(&org_id, &user_id, categories)
+                            .await
+                        {
+                            tracing::warn!(user_id = %user_id, error = %e, "Failed to mirror category assignments in database, but user was created");
+                        }
+                    }
+
                     let response = OrgAdminUserInvitationResponse {
                         user_id: user.id,
                         email: user.email,
@@ -1445,6 +1456,15 @@ pub async fn remove_org_admin_member(
     }
 
     tracing::info!("Successfully removed user {} from organization {} and removed all associated roles", member_id, org_id);
+    
+    // Clean up category assignments from our database
+    if let Err(e) = app_state.database.user_category_assignments
+        .remove_user_assignments(&org_id, &member_id)
+        .await
+    {
+        tracing::warn!(member_id = %member_id, org_id = %org_id, error = %e, "Failed to remove category assignments from database during user removal");
+    }
+    
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -1474,9 +1494,55 @@ pub async fn update_org_admin_member_categories(
         tracing::error!(?claims, org_id = %org_id, member_id = %member_id, "Permission denied: not org_admin or not member of org");
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
+    
+    // Update categories in Keycloak
     app_state.keycloak_service.set_user_categories_by_id(&token, &member_id, &request.categories).await.map_err(|e| {
         tracing::error!("Failed to update user categories: {}", e);
         ApiError::InternalServerError("Failed to update user categories".to_string())
     })?;
+    
+    // Mirror the assignment in our database
+    app_state.database.user_category_assignments
+        .set_user_categories(&org_id, &member_id, &request.categories)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to mirror category assignments in database: {}", e);
+            ApiError::InternalServerError("Failed to save category assignments".to_string())
+        })?;
+    
+    tracing::info!(org_id = %org_id, member_id = %member_id, categories = ?request.categories, "Successfully updated user categories in Keycloak and database");
     Ok(StatusCode::NO_CONTENT)
+}
+
+// GET /api/organizations/:org_id/org-admin/assigned-categories
+/// Returns the list of category names that have been delegated to at least one
+/// Org_User in this organization. The org_admin uses this to know which
+/// categories they are blocked from answering in assessments.
+#[utoipa::path(
+    get,
+    path = "/organizations/{org_id}/org-admin/assigned-categories",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID")),
+    responses(
+        (status = 200, description = "List of delegated category names"),
+        (status = 400, description = "Insufficient permissions")
+    )
+)]
+pub async fn get_org_admin_assigned_categories(
+    Extension(claims): Extension<Claims>,
+    State(app_state): State<AppState>,
+    Path(org_id): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    if !claims.is_organization_admin() && !claims.is_application_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    let assigned = app_state
+        .database
+        .user_category_assignments
+        .get_assigned_categories_for_org(&org_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assigned categories: {e}")))?;
+
+    Ok((StatusCode::OK, Json(serde_json::json!({ "assigned_categories": assigned }))))
 }
