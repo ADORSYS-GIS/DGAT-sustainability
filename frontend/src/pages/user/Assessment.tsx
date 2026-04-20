@@ -668,11 +668,14 @@ export const Assessment: React.FC = () => {
   };
 
   const nextCategory = async () => {
-    if (!isCurrentCategoryComplete()) {
+    if (!isCurrentCategoryDelegated && !isCurrentCategoryComplete()) {
       toast.error(t("assessment.completeAllQuestionsNext"));
       return;
     }
-    const currentQuestions = getCurrentCategoryQuestions();
+
+    // Only save responses if this category is not delegated
+    if (!isCurrentCategoryDelegated) {
+      const currentQuestions = getCurrentCategoryQuestions();
     const responsesToSend = currentQuestions
       .map((question) => {
         const key = getRevisionKey(question.revision);
@@ -702,6 +705,7 @@ export const Assessment: React.FC = () => {
         toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
       }
     }
+    } // end if (!isCurrentCategoryDelegated)
 
     if (currentCategoryIndex < categories.length - 1) {
       setCategoryIndex(currentCategoryIndex + 1);
@@ -723,13 +727,26 @@ export const Assessment: React.FC = () => {
 
     if (disabled) {
       return (
-        <div className="rounded-md border border-gray-200 bg-gray-50 p-4 flex items-center space-x-3 text-gray-400">
-          <Lock className="w-4 h-4 flex-shrink-0" />
-          <span className="text-sm">
-            {t("assessment.categoryDelegated", {
-              defaultValue: "This category has been assigned to an organization user. You cannot answer or edit these questions.",
-            })}
-          </span>
+        <div className="space-y-4 opacity-50 pointer-events-none select-none">
+          <div>
+            <Label>{t("assessment.yesNo")} <span className="text-red-500">*</span></Label>
+            <div className="flex space-x-4 mt-1">
+              <Button type="button" variant="outline" disabled>Yes</Button>
+              <Button type="button" variant="outline" disabled>No</Button>
+            </div>
+          </div>
+          <div>
+            <Label>{t("assessment.percentage")} <span className="text-red-500">*</span></Label>
+            <div className="flex space-x-2 mt-1">
+              {[0, 25, 50, 75, 100].map((val) => (
+                <Button key={val} type="button" variant="outline" disabled>{val}%</Button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label>{t("assessment.yourResponse")} <span className="text-red-500">*</span></Label>
+            <Textarea className="mt-1" rows={4} disabled placeholder={t("assessment.enterYourResponse")} />
+          </div>
         </div>
       );
     }
