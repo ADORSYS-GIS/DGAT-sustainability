@@ -25,6 +25,13 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // Clear all stale rows — they were written with category names (strings) and now
+        // have nil UUIDs as placeholders. They will be re-synced from Keycloak on next request.
+        manager
+            .get_connection()
+            .execute_unprepared("DELETE FROM user_category_assignments")
+            .await?;
+
         // Replace the unique index with one on the new column
         manager
             .drop_index(
