@@ -448,11 +448,20 @@ pub async fn list_temp_submissions_by_assessment(
             .cloned()
             .unwrap_or_else(|| format!("Unknown Organization ({})", model.org_id));
 
+        // Extract assessment name from content blob
+        let assessment_name = content_obj
+            .get("assessment_name")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .unwrap_or("Unknown Assessment")
+            .to_string();
+
         let submission = AdminSubmissionDetail {
             submission_id: model.temp_id, // Use temp_id as submission_id for consistency
             assessment_id: model.temp_id, // temp_id is the assessment_id in temp_submission
             org_id: model.org_id,
             org_name, // Include organization name
+            assessment_name,
             content: AdminSubmissionContent {
                 assessment: assessment_info,
                 responses,
