@@ -169,6 +169,11 @@ impl AssessmentsService {
         Ok(result.rows_affected)
     }
 
+    /// Force-delete a single assessment by ID, bypassing the submission guard.
+    pub async fn force_delete_assessment(&self, id: Uuid) -> Result<DeleteResult, DbErr> {
+        self.db_service.delete(id).await
+    }
+
 }
 
 #[cfg(test)]

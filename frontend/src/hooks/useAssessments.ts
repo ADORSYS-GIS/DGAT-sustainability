@@ -187,15 +187,17 @@ export function useDeleteAssessment() {
 
   return useMutation({
     mutationFn: async (assessmentId: string) => {
-      return apiInterceptor.interceptMutation(
-        () => AssessmentsService.deleteAssessmentsByAssessmentId({ assessmentId }),
-        async () => {
-          await offlineDB.deleteAssessment(assessmentId);
-        },
-        { assessment_id: assessmentId },
-        "assessment",
-        "delete"
-      );
+      // Always check the API first — don't touch IndexedDB until the server confirms.
+      await AssessmentsService.deleteAssessmentsByAssessmentId({ assessmentId });
+      // Clean up everything locally after server confirms
+      await offlineDB.deleteAssessment(assessmentId);
+      await offlineDB.deleteSubmission(assessmentId).catch(() => {});
+      await offlineDB.deleteDraftSubmission(assessmentId).catch(() => {});
+      // Remove any responses for this assessment
+      const responses = await offlineDB.getResponsesByAssessment(assessmentId).catch(() => []);
+      for (const r of responses) {
+        await offlineDB.deleteResponse(r.response_id).catch(() => {});
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ASSESSMENTS_QUERY_KEY] });

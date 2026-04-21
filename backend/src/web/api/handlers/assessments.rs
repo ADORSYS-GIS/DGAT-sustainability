@@ -584,38 +584,52 @@ pub async fn delete_assessment(
     };
 
     // Verify that the current organization is the owner of the assessment
-    if assessment.org_id != org_id {
+    if assessment.org_id != org_id && !claims.is_application_admin() {
         return Err(ApiError::BadRequest(
             "You don't have permission to delete this assessment".to_string(),
         ));
     }
 
-    // Check if an assessment has been submitted (cannot delete submitted assessments)
-    let has_submission = app_state
+    // Delete in dependency order:
+    // 1. Final submission (assessments_submission)
+    let _ = app_state
         .database
         .assessments_submission
-        .get_submission_by_assessment_id(assessment_id)
-        .await
-        .map_err(|e| {
-            ApiError::InternalServerError(format!("Failed to check submission status: {e}"))
-        })?
-        .is_some();
+        .delete_submission(assessment_id)
+        .await; // ignore "not found" errors
 
-    if has_submission {
-        return Err(ApiError::BadRequest(
-            "Cannot delete a submitted assessment".to_string(),
-        ));
+    // 2. Temp/draft submission
+    let _ = app_state
+        .database
+        .temp_submission
+        .delete_temp_submission(assessment_id)
+        .await;
+
+    // 3. Responses (cascade via FK but be explicit)
+    let responses = app_state
+        .database
+        .assessments_response
+        .get_latest_responses_by_assessment(assessment_id)
+        .await
+        .unwrap_or_default();
+
+    for response in responses {
+        let _ = app_state
+            .database
+            .assessments_response
+            .delete_response(response.response_id)
+            .await;
     }
 
-    // Delete the assessment from the database (this will cascade delete responses due to a foreign key)
+    // 4. The assessment itself (use force delete to bypass submission guard)
     app_state
         .database
         .assessments
-        .delete_assessment(assessment_id)
+        .force_delete_assessment(assessment_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to delete assessment: {e}")))?;
 
-    // Invalidate user's session cache since we deleted an assessment
+    app_state.session_cache.invalidate_user(&claims.sub);
 
     Ok(StatusCode::NO_CONTENT)
 }
