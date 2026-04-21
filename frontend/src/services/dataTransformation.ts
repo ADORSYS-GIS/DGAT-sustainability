@@ -269,11 +269,16 @@ export class DataTransformationService {
   ): OfflineSubmission {
     const now = new Date().toISOString();
 
+    const resolvedAssessmentName =
+      (adminSubmission as any).assessment_name && String((adminSubmission as any).assessment_name).trim().length > 0
+        ? String((adminSubmission as any).assessment_name)
+        : assessmentName;
+
     // Convert AdminSubmissionDetail to regular Submission format for IndexedDB
     const submission: Submission = {
       submission_id: adminSubmission.submission_id,
       assessment_id: adminSubmission.assessment_id,
-      assessment_name: assessmentName,
+      assessment_name: resolvedAssessmentName,
       user_id: adminSubmission.user_id,
       content: adminSubmission.content as Submission['content'], // Type assertion for compatibility
       review_status: adminSubmission.review_status,

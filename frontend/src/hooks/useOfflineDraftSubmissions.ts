@@ -86,7 +86,7 @@ export function useOfflineDraftSubmissions() {
         const offlineDrafts = (adminSubmissions as AdminSubmissionDetail[]).map(
           (submission) => DataTransformationService.transformAdminSubmission(
               submission,
-              assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
+              (submission as any).assessment_name || assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
           )
         );
         await offlineDB.saveDraftSubmissions(offlineDrafts as unknown as OfflineDraftSubmission[]);

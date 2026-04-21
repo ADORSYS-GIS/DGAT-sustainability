@@ -10,6 +10,10 @@ use axum::{
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
+fn normalize_category_name(category_name: &str) -> String {
+    category_name.trim().to_string()
+}
+
 /// Helper function to extract question revision ID from a response object
 fn extract_question_revision_id(response_obj: &serde_json::Map<String, serde_json::Value>) -> Option<Uuid> {
     response_obj
@@ -77,7 +81,7 @@ async fn process_response(
                         Ok(Some(c)) => c.name,
                         _ => "Unknown".to_string(),
                     };
-                    (revision.text, category_name)
+                    (revision.text, normalize_category_name(&category_name))
                 }
                 _ => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
             }
@@ -93,8 +97,23 @@ async fn process_response(
     // Remove question_revision_id and replace with question text and category
     response_obj.remove("question_revision_id");
     response_obj.insert("question".to_string(), question_text);
-    response_obj.insert("question_category".to_string(), serde_json::Value::String(question_category));
+    response_obj.insert(
+        "question_category".to_string(),
+        serde_json::Value::String(normalize_category_name(&question_category)),
+    );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_category_name_trims_whitespace() {
+        assert_eq!(normalize_category_name(" Environmental aspects  "), "Environmental aspects");
+        assert_eq!(normalize_category_name("Governance aspects"), "Governance aspects");
+        assert_eq!(normalize_category_name(""), "");
+    }
 }
 
 /// Enhance submission content by fetching question data for each question_revision_id

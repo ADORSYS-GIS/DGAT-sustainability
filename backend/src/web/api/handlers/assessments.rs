@@ -1,11 +1,27 @@
 use axum::{
-    extract::{Extension, Path, Query, State},
+    extract::{Extension, Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
 use sea_orm::{ActiveModelTrait, EntityTrait, ModelTrait, TransactionTrait, Set};
 use uuid::Uuid;
+
+fn build_draft_content(
+    assessment_id: Uuid,
+    language: String,
+    assessment_name: String,
+    responses_with_files: Vec<serde_json::Value>,
+) -> serde_json::Value {
+    serde_json::json!({
+        "assessment": {
+            "assessment_id": assessment_id,
+            "language": language
+        },
+        "assessment_name": assessment_name,
+        "responses": responses_with_files
+    })
+}
 
 use std::collections::HashMap;
 use crate::common::models::claims::Claims;
@@ -686,13 +702,12 @@ pub async fn user_submit_draft_assessment(
         }));
     }
 
-    let draft_content = serde_json::json!({
-        "assessment": {
-            "assessment_id": assessment_id,
-            "language": assessment_model.language
-        },
-        "responses": responses_with_files
-    });
+    let draft_content = build_draft_content(
+        assessment_id,
+        assessment_model.language,
+        assessment_model.name,
+        responses_with_files,
+    );
 
     // Insert or update the draft in temp_submission using service API
     let existing_temp = app_state.database.temp_submission.get_temp_submission_by_assessment_id(assessment_id)
@@ -712,6 +727,27 @@ pub async fn user_submit_draft_assessment(
     }
 
     Ok((StatusCode::OK, Json(draft_content)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn build_draft_content_includes_assessment_name() {
+        let assessment_id = Uuid::new_v4();
+        let v = build_draft_content(
+            assessment_id,
+            "en".to_string(),
+            "NCFE 25".to_string(),
+            vec![],
+        );
+
+        assert_eq!(v["assessment"]["assessment_id"], assessment_id.to_string());
+        assert_eq!(v["assessment"]["language"], "en");
+        assert_eq!(v["assessment_name"], "NCFE 25");
+        assert!(v["responses"].is_array());
+    }
 }
 
 /// API handler to move a user's temp_submission to assessments_submission (approval/finalize)

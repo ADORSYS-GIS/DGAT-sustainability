@@ -168,7 +168,7 @@ pub async fn list_all_submissions(
                                     .flatten()
                                     .map(|c| c.name)
                                     .unwrap_or("Unknown".to_string());
-                                (text, category)
+                                (text, category.trim().to_string())
                             }
                             _ => ("Unknown question".to_string(), "Unknown".to_string()),
                         }
@@ -210,11 +210,32 @@ pub async fn list_all_submissions(
             .cloned()
             .unwrap_or_else(|| format!("Unknown Organization ({})", model.org_id));
 
+        // Extract assessment name from content blob, fallback to assessments table
+        let mut assessment_name = content_obj
+            .get("assessment_name")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .unwrap_or("")
+            .to_string();
+
+        if assessment_name.is_empty() {
+            if let Ok(Some(assessment)) = app_state.database.assessments.get_assessment_by_id(assessment_info.assessment_id).await {
+                if !assessment.name.trim().is_empty() {
+                    assessment_name = assessment.name;
+                }
+            }
+        }
+
+        if assessment_name.trim().is_empty() {
+            assessment_name = "Unknown Assessment".to_string();
+        }
+
         let submission = AdminSubmissionDetail {
             submission_id: model.submission_id,
             assessment_id: model.submission_id,
             org_id: model.org_id,
-            org_name, // Include organization name
+            org_name,
+            assessment_name,
             content: AdminSubmissionContent {
                 assessment: assessment_info,
                 responses,
