@@ -334,31 +334,26 @@ export const Assessment: React.FC = () => {
       return;
     }
 
+    if (!isCurrentCategoryComplete()) {
+      toast.error(t("assessment.completeAllQuestionsNext", { defaultValue: "Please answer all questions in this category before continuing." }));
+      return;
+    }
+
     try {
-      const allResponsesToSave: CreateResponseRequest[] = [];
-      let allQuestionsAnswered = true;
-
-      for (const categoryName of categories) {
-        const categoryQuestions = groupedQuestions[categoryName] || [];
-        for (const { revision } of categoryQuestions) {
+      // Only save the current category's responses (same as nextCategory does)
+      const currentQuestions = getCurrentCategoryQuestions();
+      const responsesToSave: CreateResponseRequest[] = currentQuestions
+        .map(({ revision }) => {
           const key = getRevisionKey(revision);
-          if (!key) continue;
+          if (!key) return null;
           const answer = answers[key];
-          if (answer && isAnswerComplete(answer)) {
-            allResponsesToSave.push(createResponseToSave(key, answer));
-          } else {
-            allQuestionsAnswered = false;
-          }
-        }
-      }
+          if (!answer) return null;
+          return createResponseToSave(key, answer);
+        })
+        .filter((r): r is CreateResponseRequest => r !== null);
 
-      if (!allQuestionsAnswered) {
-        toast.error(t("assessment.incompleteCategories", { defaultValue: "All categories and questions must be answered before submitting." }));
-        return;
-      }
-
-      if (allResponsesToSave.length > 0) {
-        await createResponses(actualAssessment.assessment_id, allResponsesToSave, {
+      if (responsesToSave.length > 0) {
+        await createResponses(actualAssessment.assessment_id, responsesToSave, {
           onSuccess: async () => {
             toast.success(t("assessment.responsesSavedPortionComplete", {
               defaultValue: "Your responses have been saved. The assessment remains in draft until all other assigned categories are completed."
@@ -370,7 +365,8 @@ export const Assessment: React.FC = () => {
           },
         });
       } else {
-        toast.error(t("assessment.noResponsesToSubmit", { defaultValue: "No responses to submit for the current category." }));
+        // Nothing to save (e.g. delegated category) — just navigate
+        navigate("/dashboard");
       }
     } catch (error) {
       if (!navigator.onLine) {
@@ -603,54 +599,6 @@ export const Assessment: React.FC = () => {
   }, [questionsData, categoriesData, assessmentCategoryIds]);
 
   const categories = Object.keys(groupedQuestions);
-
-  // Compute whether ALL assessment categories are fully answered (using IndexedDB + in-memory answers).
-  // This drives the "Submit Assessment" button visibility.
-  const [isEntireAssessmentComplete, setIsEntireAssessmentComplete] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!allAssessmentQuestions.length || !assessmentCategoryIds.length) {
-      setIsEntireAssessmentComplete(false);
-      return;
-    }
-
-    let cancelled = false;
-    (async () => {
-      const assessmentIdValue = assessmentId || "";
-      if (!assessmentIdValue) return;
-
-      const savedResponses = await offlineDB.getResponsesByAssessment(assessmentIdValue);
-      if (cancelled) return;
-
-      const savedResponseMap = new Map(savedResponses.map((r: any) => [r.question_revision_id, r]));
-
-      const categoriesInQuestions = new Set(allAssessmentQuestions.map(q => q.category_id));
-      const allCategoriesAccountedFor = assessmentCategoryIds.every(cid => categoriesInQuestions.has(cid));
-
-      const complete = allCategoriesAccountedFor && allAssessmentQuestions.every(q => {
-        const key = getRevisionKey(q.revision);
-        if (!key) return false;
-
-        const currentAnswer = answers[key];
-        if (currentAnswer && isAnswerComplete(currentAnswer)) return true;
-
-        const savedResponse = savedResponseMap.get(key);
-        if (savedResponse) {
-          try {
-            const parsed = JSON.parse(Array.isArray(savedResponse.response) ? savedResponse.response[0] : savedResponse.response);
-            return isAnswerComplete(parsed);
-          } catch {
-            return typeof savedResponse.response === 'object' && savedResponse.response !== null;
-          }
-        }
-        return false;
-      });
-
-      setIsEntireAssessmentComplete(complete);
-    })();
-
-    return () => { cancelled = true; };
-  }, [allAssessmentQuestions, assessmentCategoryIds, answers, assessmentId]);
 
   // Check if we have any categories - only show this message for Org_User, not org_admin
   const isOrgUser = allRoles.includes("org_user") && !isOrgAdmin;
@@ -1150,15 +1098,6 @@ export const Assessment: React.FC = () => {
               >
                 <span>{t("next")}</span>
                 <ChevronRight className="w-4 h-4" />
-              </Button>
-            )}
-            {isEntireAssessmentComplete && (
-              <Button
-                onClick={submitAssessment}
-                className="bg-dgrv-green hover:bg-green-700 flex items-center space-x-2"
-              >
-                <Send className="w-4 h-4" />
-                <span>{t("assessment.submitAssessment", { defaultValue: "Submit Assessment" })}</span>
               </Button>
             )}
           </div>

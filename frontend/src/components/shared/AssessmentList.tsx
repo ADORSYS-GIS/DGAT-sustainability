@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
-import { Calendar, Clock, FileText, Tag, Trash2 } from "lucide-react";
+import { Calendar, Clock, FileText, Send, Tag, Trash2 } from "lucide-react";
 import type { OfflineAssessment } from "@/types/offline";
 import { useDeleteAssessment } from "@/hooks/useAssessments";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/shared/useAuth";
+import { AssessmentsService } from "@/openapi-rq/requests/services.gen";
 
 interface AssessmentListProps {
   assessments: OfflineAssessment[];
@@ -27,6 +28,8 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   const { mutate: deleteAssessment, isPending } = useDeleteAssessment();
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = React.useState<string | null>(null);
+  const [completionStatus, setCompletionStatus] = React.useState<Record<string, { complete: boolean; answered: number; total: number }>>({});
+  const [submittingId, setSubmittingId] = React.useState<string | null>(null);
 
   const { user } = useAuth();
   const isOrgAdmin = React.useMemo(() => {
@@ -34,6 +37,41 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
     const allRoles = [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
     return allRoles.includes("org_admin");
   }, [user]);
+
+  // For org_admin, check completion status of each assessment from the backend
+  React.useEffect(() => {
+    if (!isOrgAdmin || assessments.length === 0) return;
+
+    assessments.forEach(async (assessment) => {
+      try {
+        const result = await fetch(`/api/assessments/${assessment.assessment_id}/status`, {
+          headers: {
+            Authorization: `Bearer ${(await import("@/services/shared/keycloakConfig")).keycloak.token}`,
+          },
+        });
+        if (result.ok) {
+          const data = await result.json();
+          setCompletionStatus(prev => ({ ...prev, [assessment.assessment_id]: data }));
+        }
+      } catch {
+        // silently ignore — button just won't show
+      }
+    });
+  }, [isOrgAdmin, assessments]);
+
+  const handleSubmitAssessment = async (assessmentId: string) => {
+    setSubmittingId(assessmentId);
+    try {
+      await AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId });
+      await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId });
+      toast.success(t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" }));
+      onAssessmentDeleted?.(); // refetch list
+    } catch (err) {
+      toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
+    } finally {
+      setSubmittingId(null);
+    }
+  };
 
   const handleDeleteAssessment = async (assessmentId: string) => {
     try {
@@ -140,6 +178,16 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                 >
                   {t('assessment.continueAssessment', { defaultValue: 'Continue' })}
                 </Button>
+                {isOrgAdmin && completionStatus[assessment.assessment_id]?.complete && (
+                  <Button
+                    onClick={() => handleSubmitAssessment(assessment.assessment_id)}
+                    disabled={submittingId === assessment.assessment_id}
+                    className="bg-dgrv-green hover:bg-green-700 flex items-center space-x-1"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>{t('assessment.submitAssessment', { defaultValue: 'Submit Assessment' })}</span>
+                  </Button>
+                )}
                 {isOrgAdmin && (
                   <Button
                     variant="outline"

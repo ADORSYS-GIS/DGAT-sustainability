@@ -878,3 +878,68 @@ pub async fn submit_assessment(
         }
     }
 }
+
+/// Check whether all questions for an assessment's categories have been answered.
+/// Returns { complete: bool, answered: usize, total: usize }
+#[utoipa::path(
+    get,
+    path = "/assessments/{assessment_id}/status",
+    tag = "Assessment",
+    params(("assessment_id" = uuid::Uuid, Path, description = "Assessment ID")),
+    responses(
+        (status = 200, description = "Completion status"),
+        (status = 404, description = "Assessment not found"),
+        (status = 500, description = "Server error")
+    )
+)]
+pub async fn get_assessment_status(
+    State(app_state): State<AppState>,
+    Extension(_claims): Extension<crate::common::models::claims::Claims>,
+    Path(assessment_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    // Fetch the assessment to get its categories
+    let assessment = app_state
+        .database
+        .assessments
+        .get_assessment_by_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Assessment not found".to_string()))?;
+
+    // Get the category IDs assigned to this assessment
+    let category_ids: Vec<Uuid> = assessment
+        .find_related(crate::common::database::entity::assessment_categories::Entity)
+        .all(app_state.database.get_connection())
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch categories: {e}")))?
+        .into_iter()
+        .map(|c| c.category_catalog_id)
+        .collect();
+
+    // Count active questions across all assessment categories
+    use sea_orm::{ColumnTrait, QueryFilter};
+    let total_questions = crate::common::database::entity::questions::Entity::find()
+        .filter(crate::common::database::entity::questions::Column::CategoryId.is_in(category_ids))
+        .filter(crate::common::database::entity::questions::Column::IsActive.eq(true))
+        .all(app_state.database.get_connection())
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to count questions: {e}")))?
+        .len();
+
+    // Count distinct responses saved for this assessment
+    let answered = app_state
+        .database
+        .assessments_response
+        .get_latest_responses_by_assessment(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to count responses: {e}")))?
+        .len();
+
+    let complete = total_questions > 0 && answered >= total_questions;
+
+    Ok(Json(serde_json::json!({
+        "complete": complete,
+        "answered": answered,
+        "total": total_questions
+    })))
+}

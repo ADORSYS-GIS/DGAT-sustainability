@@ -110,7 +110,9 @@ export function useOfflineDraftSubmissions() {
         .filter((submission) => ['draft', 'pending_review', 'under_review'].includes(submission.review_status))
         .map((submission) => ({
           ...submission,
-          assessment_name: assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
+          assessment_name: submission.assessment_name && submission.assessment_name.trim() !== '' && submission.assessment_name !== 'Unknown Assessment'
+            ? submission.assessment_name
+            : assessmentsMap.get(submission.assessment_id) || submission.assessment_name || 'Unknown Assessment'
         }));
 
       setData({ draft_submissions: submissions });

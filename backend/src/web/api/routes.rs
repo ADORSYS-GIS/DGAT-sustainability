@@ -2,8 +2,8 @@
 use crate::web::api::handlers::{
     admin::{list_all_submissions, list_temp_submissions_by_assessment, create_user_invitation, get_user_invitation_status, delete_user},
     assessments::{
-        create_assessment, delete_assessment, get_assessment, list_assessments, submit_assessment,
-        update_assessment, user_submit_draft_assessment,
+        create_assessment, delete_assessment, get_assessment, get_assessment_status,
+        list_assessments, submit_assessment, update_assessment, user_submit_draft_assessment,
     },
     files::{attach_file, delete_file, download_file, get_file_metadata, remove_file, upload_file},
     health::{health_check, metrics},
@@ -82,6 +82,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/assessments/:assessment_id", get(get_assessment))
         .route("/api/assessments/:assessment_id", put(update_assessment)) 
         .route("/api/assessments/:assessment_id", delete(delete_assessment))
+        .route("/api/assessments/:assessment_id/status", get(get_assessment_status))
         .route(
             "/api/assessments/:assessment_id/submit",
             post(submit_assessment),
