@@ -90,10 +90,6 @@ impl TempSubmissionService {
 
 
     pub async fn get_all_temp_submissions(&self) -> Result<Vec<Model>, DbErr> {
-        self.db_service.find_all().await
-    }
-
-    pub async fn get_all_temp_submissions(&self) -> Result<Vec<Model>, DbErr> {
         Entity::find()
             .all(self.db_service.get_connection())
             .await
