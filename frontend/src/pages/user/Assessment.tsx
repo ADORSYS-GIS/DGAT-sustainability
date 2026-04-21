@@ -314,6 +314,74 @@ export const Assessment: React.FC = () => {
   }, [hasCreatedAssessment, assessmentId, navigate, t]);
 
   // Submit assessment
+  // Save current user's visible category responses and navigate away.
+  // Does NOT submit the whole assessment to draft — that only happens when ALL categories are answered.
+  const finishCurrentCategories = async () => {
+    if (!assessmentDetail) {
+      toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment details not loaded. Please try again." }));
+      return;
+    }
+
+    let actualAssessment: AssessmentType;
+    if (isAssessmentDetailResponse(assessmentDetail)) {
+      actualAssessment = assessmentDetail.assessment;
+    } else {
+      actualAssessment = assessmentDetail as AssessmentType;
+    }
+
+    if (!actualAssessment.assessment_id) {
+      toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment ID is missing. Please try again." }));
+      return;
+    }
+
+    try {
+      const allResponsesToSave: CreateResponseRequest[] = [];
+      let allQuestionsAnswered = true;
+
+      for (const categoryName of categories) {
+        const categoryQuestions = groupedQuestions[categoryName] || [];
+        for (const { revision } of categoryQuestions) {
+          const key = getRevisionKey(revision);
+          if (!key) continue;
+          const answer = answers[key];
+          if (answer && isAnswerComplete(answer)) {
+            allResponsesToSave.push(createResponseToSave(key, answer));
+          } else {
+            allQuestionsAnswered = false;
+          }
+        }
+      }
+
+      if (!allQuestionsAnswered) {
+        toast.error(t("assessment.incompleteCategories", { defaultValue: "All categories and questions must be answered before submitting." }));
+        return;
+      }
+
+      if (allResponsesToSave.length > 0) {
+        await createResponses(actualAssessment.assessment_id, allResponsesToSave, {
+          onSuccess: async () => {
+            toast.success(t("assessment.responsesSavedPortionComplete", {
+              defaultValue: "Your responses have been saved. The assessment remains in draft until all other assigned categories are completed."
+            }));
+            navigate("/dashboard");
+          },
+          onError: () => {
+            toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+          },
+        });
+      } else {
+        toast.error(t("assessment.noResponsesToSubmit", { defaultValue: "No responses to submit for the current category." }));
+      }
+    } catch (error) {
+      if (!navigator.onLine) {
+        navigate("/dashboard");
+      } else {
+        toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
+      }
+    }
+  };
+
+  // Submit the entire assessment to draft — only callable when ALL categories are answered.
   const submitAssessment = async () => {
     if (!assessmentDetail) {
       toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment details not loaded. Please try again." }));
@@ -358,72 +426,68 @@ export const Assessment: React.FC = () => {
       if (allResponsesToSave.length > 0) {
         await createResponses(actualAssessment.assessment_id, allResponsesToSave, {
           onSuccess: async () => {
-            // Removed responses saved success toast
-            // Removed responses queued for sync info toast
+            // Fetch the latest saved responses from IndexedDB (includes just-saved ones)
             const savedResponses = await offlineDB.getResponsesByAssessment(actualAssessment.assessment_id);
-            if (savedResponses.length !== allResponsesToSave.length) {
-              // Removed partial save warning toast
+            const savedResponseMap = new Map(savedResponses.map((r: any) => [r.question_revision_id, r]));
+
+            // Check if the COMPLETE assessment across ALL categories is answered
+            // using the fresh IndexedDB data instead of stale existingResponses
+            const categoriesInQuestions = new Set(allAssessmentQuestions.map(q => q.category_id));
+            const allCategoriesAccountedFor = assessmentCategoryIds.length > 0 && assessmentCategoryIds.every(cid => categoriesInQuestions.has(cid));
+
+            const isEntireAssessmentComplete = allCategoriesAccountedFor && allAssessmentQuestions.every(q => {
+              const key = getRevisionKey(q.revision);
+              if (!key) return false;
+
+              // Check in-memory answers first (current session)
+              const currentAnswer = answers[key];
+              if (currentAnswer && isAnswerComplete(currentAnswer)) return true;
+
+              // Check freshly saved IndexedDB responses
+              const savedResponse = savedResponseMap.get(key);
+              if (savedResponse) {
+                try {
+                  const parsed = JSON.parse(Array.isArray(savedResponse.response) ? savedResponse.response[0] : savedResponse.response);
+                  return isAnswerComplete(parsed);
+                } catch (e) {
+                  return typeof savedResponse.response === 'object' && savedResponse.response !== null;
+                }
+              }
+
+              return false;
+            });
+
+            if (isEntireAssessmentComplete) {
+              await submitDraftAssessmentHook(actualAssessment.assessment_id, {
+                onSuccess: () => {
+                  toast.success(
+                    isOnline
+                      ? t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" })
+                      : t("assessment.draftQueuedForSync", { defaultValue: "Assessment saved offline and will be submitted for approval when online." })
+                  );
+                  navigate("/dashboard");
+                },
+                onError: () => {
+                  if (!isOnline) {
+                    navigate("/dashboard");
+                  } else {
+                    toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
+                  }
+                },
+              });
+            } else {
+              toast.error(t("assessment.incompleteCategories", { defaultValue: "All categories and questions must be answered before submitting." }));
             }
           },
           onError: () => {
             toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
           },
         });
-
-        // Check if the COMPLETE assessment across ALL categories is answered
-        const categoriesInQuestions = new Set(allAssessmentQuestions.map(q => q.category_id));
-        const allCategoriesAccountedFor = assessmentCategoryIds.length > 0 && assessmentCategoryIds.every(cid => categoriesInQuestions.has(cid));
-
-        const isEntireAssessmentComplete = allCategoriesAccountedFor && allAssessmentQuestions.every(q => {
-          const key = getRevisionKey(q.revision);
-          if (!key) return false;
-
-          const currentAnswer = answers[key];
-          if (currentAnswer && isAnswerComplete(currentAnswer)) return true;
-
-          const existingResponse = existingResponses?.responses?.find((r: any) => r.question_revision_id === key);
-          if (existingResponse) {
-            try {
-              const parsed = JSON.parse(Array.isArray(existingResponse.response) ? existingResponse.response[0] : existingResponse.response);
-              return isAnswerComplete(parsed);
-            } catch (e) {
-              return false;
-            }
-          }
-
-          return false;
-        });
-
-        if (isEntireAssessmentComplete) {
-          await submitDraftAssessmentHook(actualAssessment.assessment_id, {
-            onSuccess: () => {
-              toast.success(
-                isOnline
-                  ? t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" })
-                  : t("assessment.draftQueuedForSync", { defaultValue: "Assessment saved offline and will be submitted for approval when online." })
-              );
-              navigate("/dashboard");
-            },
-            onError: () => {
-              if (!isOnline) {
-                navigate("/dashboard");
-              } else {
-                toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
-              }
-            },
-          });
-        } else {
-          toast.success(t("assessment.responsesSavedPortionComplete", {
-            defaultValue: "Your responses have been saved. The assessment remains in draft until all other assigned categories are completed."
-          }));
-          navigate("/dashboard");
-        }
       } else {
         toast.error(t("assessment.noResponsesToSubmit", { defaultValue: "No responses to submit for the current category." }));
       }
     } catch (error) {
       if (!navigator.onLine) {
-        // Removed offline saved success toast
         navigate("/dashboard");
       } else {
         toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
@@ -539,6 +603,54 @@ export const Assessment: React.FC = () => {
   }, [questionsData, categoriesData, assessmentCategoryIds]);
 
   const categories = Object.keys(groupedQuestions);
+
+  // Compute whether ALL assessment categories are fully answered (using IndexedDB + in-memory answers).
+  // This drives the "Submit Assessment" button visibility.
+  const [isEntireAssessmentComplete, setIsEntireAssessmentComplete] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!allAssessmentQuestions.length || !assessmentCategoryIds.length) {
+      setIsEntireAssessmentComplete(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const assessmentIdValue = assessmentId || "";
+      if (!assessmentIdValue) return;
+
+      const savedResponses = await offlineDB.getResponsesByAssessment(assessmentIdValue);
+      if (cancelled) return;
+
+      const savedResponseMap = new Map(savedResponses.map((r: any) => [r.question_revision_id, r]));
+
+      const categoriesInQuestions = new Set(allAssessmentQuestions.map(q => q.category_id));
+      const allCategoriesAccountedFor = assessmentCategoryIds.every(cid => categoriesInQuestions.has(cid));
+
+      const complete = allCategoriesAccountedFor && allAssessmentQuestions.every(q => {
+        const key = getRevisionKey(q.revision);
+        if (!key) return false;
+
+        const currentAnswer = answers[key];
+        if (currentAnswer && isAnswerComplete(currentAnswer)) return true;
+
+        const savedResponse = savedResponseMap.get(key);
+        if (savedResponse) {
+          try {
+            const parsed = JSON.parse(Array.isArray(savedResponse.response) ? savedResponse.response[0] : savedResponse.response);
+            return isAnswerComplete(parsed);
+          } catch {
+            return typeof savedResponse.response === 'object' && savedResponse.response !== null;
+          }
+        }
+        return false;
+      });
+
+      setIsEntireAssessmentComplete(complete);
+    })();
+
+    return () => { cancelled = true; };
+  }, [allAssessmentQuestions, assessmentCategoryIds, answers, assessmentId]);
 
   // Check if we have any categories - only show this message for Org_User, not org_admin
   const isOrgUser = allRoles.includes("org_user") && !isOrgAdmin;
@@ -1023,12 +1135,12 @@ export const Assessment: React.FC = () => {
           <div className="flex space-x-4">
             {isLastCategory ? (
               <Button
-                onClick={submitAssessment}
+                onClick={finishCurrentCategories}
                 className="bg-dgrv-green hover:bg-green-700 flex items-center space-x-2"
                 disabled={!isCurrentCategoryComplete() || isCurrentCategoryDelegated}
               >
                 <Send className="w-4 h-4" />
-                <span>{t("submit")}</span>
+                <span>{t("assessment.finish", { defaultValue: "Finish" })}</span>
               </Button>
             ) : (
               <Button
@@ -1038,6 +1150,15 @@ export const Assessment: React.FC = () => {
               >
                 <span>{t("next")}</span>
                 <ChevronRight className="w-4 h-4" />
+              </Button>
+            )}
+            {isEntireAssessmentComplete && (
+              <Button
+                onClick={submitAssessment}
+                className="bg-dgrv-green hover:bg-green-700 flex items-center space-x-2"
+              >
+                <Send className="w-4 h-4" />
+                <span>{t("assessment.submitAssessment", { defaultValue: "Submit Assessment" })}</span>
               </Button>
             )}
           </div>

@@ -2,7 +2,7 @@ use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::{
     AdminAssessmentInfo, AdminResponseDetail, AdminSubmissionContent, AdminSubmissionDetail,
-    AdminSubmissionListResponse,
+    AdminSubmissionListResponse, DraftSubmissionListResponse,
 };
 use crate::common::models::claims::Claims;
 use crate::common::models::keycloak::{UserInvitationRequest, UserInvitationResponse, UserInvitationStatus};
@@ -262,7 +262,7 @@ pub async fn list_temp_submissions_by_assessment(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-) -> Result<Json<AdminSubmissionListResponse>, ApiError> {
+) -> Result<Json<DraftSubmissionListResponse>, ApiError> {
     // Check if user has admin permissions (similar to other admin endpoints)
     if !claims.can_create_assessments() {
         return Err(ApiError::BadRequest(
@@ -270,18 +270,25 @@ pub async fn list_temp_submissions_by_assessment(
         ));
     }
 
-    // Extract org_id from claims instead of path parameter
-    let org_id = claims.get_org_id().ok_or_else(|| {
-        ApiError::BadRequest("No organization found in user claims".to_string())
-    })?;
-
-    // Fetch temp submissions for the specific organization from the database
-    let temp_submissions = app_state
-        .database
-        .temp_submission
-        .get_temp_submissions_by_org_id(&org_id)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch temp submissions: {e}")))?;
+    // application_admin sees all orgs; org_admin sees only their own org
+    let temp_submissions = if claims.is_application_admin() {
+        app_state
+            .database
+            .temp_submission
+            .get_all_temp_submissions()
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch temp submissions: {e}")))?
+    } else {
+        let org_id = claims.get_org_id().ok_or_else(|| {
+            ApiError::BadRequest("No organization found in user claims".to_string())
+        })?;
+        app_state
+            .database
+            .temp_submission
+            .get_temp_submissions_by_org_id(&org_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch temp submissions: {e}")))?
+    };
 
     // Get all organizations from Keycloak to map org_id to org_name
     let organizations = match app_state.keycloak_service.get_organizations(&token).await {
@@ -474,7 +481,7 @@ pub async fn list_temp_submissions_by_assessment(
         submissions.push(submission);
     }
 
-    Ok(Json(AdminSubmissionListResponse { submissions }))
+    Ok(Json(DraftSubmissionListResponse { draft_submissions: submissions }))
 }
 
 /// Create a new user invitation with email verification

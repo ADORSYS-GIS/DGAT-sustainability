@@ -30,15 +30,15 @@ function isOnlineAssessmentList(response: unknown): response is AssessmentListRe
 }
 
 // Type guard to check if the response is from the online API
-function isOnlineAdminSubmissionList(response: unknown): response is AdminSubmissionListResponse {
-  if (!response || typeof response !== 'object' || !('submissions' in response)) {
+function isOnlineAdminSubmissionList(response: unknown): response is { draft_submissions: AdminSubmissionDetail[] } {
+  if (!response || typeof response !== 'object' || !('draft_submissions' in response)) {
     return false;
   }
-  const { submissions } = response as { submissions: unknown };
-  if (!Array.isArray(submissions)) {
+  const { draft_submissions } = response as { draft_submissions: unknown };
+  if (!Array.isArray(draft_submissions)) {
     return false;
   }
-  return submissions.length === 0 || 'org_id' in submissions[0];
+  return draft_submissions.length === 0 || 'org_id' in draft_submissions[0];
 }
 
 export function useOfflineDraftSubmissions() {
@@ -77,7 +77,7 @@ export function useOfflineDraftSubmissions() {
       }
 
       if (isOnlineAdminSubmissionList(onlineDraftsResult)) {
-        const adminSubmissions = onlineDraftsResult.submissions;
+        const adminSubmissions = onlineDraftsResult.draft_submissions;
         const allAssessments = await offlineDB.getAllAssessments();
         const assessmentsMap = new Map<string, string>(
             allAssessments.map(a => [a.assessment_id, a.name])

@@ -7,6 +7,11 @@ pub struct AdminSubmissionListResponse {
     pub submissions: Vec<AdminSubmissionDetail>,
 }
 
+#[derive(serde::Serialize, ToSchema)]
+pub struct DraftSubmissionListResponse {
+    pub draft_submissions: Vec<AdminSubmissionDetail>,
+}
+
 // These models will be properly implemented for UserInvitationRequest/Response
 // in the common models keycloak module
 
