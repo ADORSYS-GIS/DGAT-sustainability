@@ -63,7 +63,6 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
     setSubmittingId(assessmentId);
     try {
       await AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId });
-      await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId });
       toast.success(t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" }));
       onAssessmentDeleted?.(); // refetch list
     } catch (err) {
