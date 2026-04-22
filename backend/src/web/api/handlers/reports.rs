@@ -38,7 +38,8 @@ async fn generate_report_content(
         if !request.category.is_empty() {
             // Create a stable, unique ID based on the category and recommendation text.
             let recommendation_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("{}-{}", request.category, request.recommendation).as_bytes());
-            recommendations.entry(request.category.clone())
+            // Normalize category name to lowercase for case-insensitive matching
+            recommendations.entry(request.category.to_lowercase())
                 .or_default()
                 .push(json!({
                     "id": recommendation_id.to_string(),
@@ -73,7 +74,8 @@ async fn generate_report_content(
 
     let mut result_object = serde_json::Map::new();
     for (category, questions) in categories {
-        let category_recommendations = recommendations.remove(&category).unwrap_or_else(|| {
+        // Normalize to lowercase for case-insensitive lookup
+        let category_recommendations = recommendations.remove(&category.to_lowercase()).unwrap_or_else(|| {
             let default_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("{}-{}", category, "No recommendation provided").as_bytes());
             vec![json!({"id": default_id.to_string(), "text": "No recommendation provided", "status": "todo"})]
         });
@@ -82,6 +84,22 @@ async fn generate_report_content(
             "questions": questions,
             "recommendations": category_recommendations,
         }));
+    }
+
+    // Include any remaining recommendations whose category didn't match any response category
+    // This handles cases where question lookups fail but recommendations were still provided
+    for (category_key, recs) in recommendations {
+        if !result_object.contains_key(&category_key) {
+            // Try to find the original casing from the requests
+            let original_category = requests.iter()
+                .find(|r| r.category.to_lowercase() == category_key)
+                .map(|r| r.category.clone())
+                .unwrap_or(category_key);
+            result_object.insert(original_category, json!({
+                "questions": [],
+                "recommendations": recs,
+            }));
+        }
     }
 
     Ok(json!([result_object]))
