@@ -350,8 +350,8 @@ const ReviewAssessments: React.FC = () => {
                   <div>
                     <span className="font-medium">{t('reviewAssessments.organization', { defaultValue: 'Organization' })}:</span>
                     <p className="text-gray-600">
-                      {organizationsMap.get((selectedSubmission as any).org_id) ||
-                        (selectedSubmission as any).org_name ||
+                      {(selectedSubmission as any).org_name ||
+                        organizationsMap.get((selectedSubmission as any).org_id) ||
                         t('reviewAssessments.unknown', { defaultValue: 'Unknown' })}
                     </p>
                   </div>

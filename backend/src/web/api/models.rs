@@ -297,6 +297,7 @@ pub struct AssessmentSubmission {
 pub struct Submission {
     pub submission_id: Uuid,
     pub org_id: String,
+    pub org_name: String,
     pub assessment_name: String,
     pub content: serde_json::Value,
     pub submitted_at: String,

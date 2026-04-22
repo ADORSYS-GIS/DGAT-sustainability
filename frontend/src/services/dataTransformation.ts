@@ -219,6 +219,7 @@ export class DataTransformationService {
       submitted_at: submission.submitted_at || now,
       reviewed_at: submission.reviewed_at,
       organization_id: userOrganizationId,
+      org_name: (submission as any).org_name || '',
       reviewer_id: submission.reviewed_at ? submission.submission_id : undefined,
       reviewer_email: reviewerEmail,
       review_comments: '',

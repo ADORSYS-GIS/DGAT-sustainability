@@ -208,6 +208,7 @@ pub async fn list_user_submissions(
         submissions.push(Submission {
             submission_id: submission_model.submission_id,
             org_id: submission_model.org_id,
+            org_name: submission_model.org_name,
             assessment_name,
             content: enhanced_content,
             submitted_at: submission_model.submitted_at.to_rfc3339(),
@@ -278,6 +279,7 @@ pub async fn get_submission(
     let submission = Submission {
         submission_id: submission_model.submission_id,
         org_id: submission_model.org_id,
+        org_name: submission_model.org_name,
         assessment_name,
         content: enhanced_content,
         submitted_at: submission_model.submitted_at.to_rfc3339(),
