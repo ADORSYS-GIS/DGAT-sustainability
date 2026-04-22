@@ -10,6 +10,7 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { AssessmentsService } from "@/openapi-rq/requests/services.gen";
+import { offlineDB } from "@/services/indexeddb";
 
 interface AssessmentListProps {
   assessments: OfflineAssessment[];
@@ -63,6 +64,11 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
     setSubmittingId(assessmentId);
     try {
       await AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId });
+      // Update local IndexedDB status so it's filtered out immediately
+      const assessment = await offlineDB.getAssessment(assessmentId);
+      if (assessment) {
+        await offlineDB.saveAssessment({ ...assessment, status: 'submitted', sync_status: 'synced' });
+      }
       toast.success(t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" }));
       onAssessmentDeleted?.(); // refetch list
     } catch (err) {

@@ -348,16 +348,10 @@ pub async fn get_assessment(
         let is_owner = assessment_model.org_id == org_id;
         let is_super_user = claims.is_super_user();
 
-        // For now, we'll allow any user to access any assessment if they have the assessment_id
-        // This enables the sharing functionality described in the requirements
-        // In a production system, you might want to add more specific access controls
         if !is_owner && !is_super_user {
-            // Allow access to any assessment - this enables the sharing use case
-            // where super users create assessments and share the assessment_id
-            // Comment out the permission check to enable sharing
-            // return Err(ApiError::BadRequest(
-            //     "You don't have permission to access this assessment".to_string(),
-            // ));
+            return Err(ApiError::BadRequest(
+                "You don't have permission to access this assessment".to_string(),
+            ));
         }
 
         // Determine status using three-tier system (under_review, submitted, reviewed)
