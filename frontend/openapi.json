@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://158.220.84.249:8443/api",
+      "url": "https://sustainability.decidel.app/api",
       "description": "Production server"
     },
     {
-      "url": "https://158.220.84.249:8443/api",
+      "url": "https://sustainability.decidel.app/api",
       "description": "Staging server"
     },
     {
-      "url": "https://158.220.84.249:8443/api",
+      "url": "https://sustainability.decidel.app/api",
       "description": "Development server"
     }
   ],
