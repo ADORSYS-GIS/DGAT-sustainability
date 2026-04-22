@@ -56,8 +56,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy .env file for runtime environment variables (optional)
 COPY .env /usr/share/nginx/html/.env
 
-# Copy nginx configuration template; rendered at runtime via envsubst
-COPY frontend/nginx.conf.template /etc/nginx/conf.d/default.conf.template
+# Copy nginx configuration directly as the active config
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Create SSL directory
 RUN mkdir -p /etc/nginx/ssl
