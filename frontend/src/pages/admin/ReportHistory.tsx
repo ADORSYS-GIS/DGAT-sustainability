@@ -394,24 +394,49 @@ export const ReportHistory: React.FC = () => {
       const report = reports.find(r => r.report_id === reportId);
       if (!report || !report.data) throw new Error('No data available for this report');
 
-      let submissionId: string = report.report_id;
-      // Assuming report.data might contain submissions if it's an AdminReportData structure
-      if (isAdminReportData(report.data) && report.data.submissions.length > 0) {
-        submissionId = report.data.submissions[0].submission_id || report.report_id;
+      let singleSubmissions: AdminSubmissionDetail[];
+      let singleRecs: RecommendationWithStatus[];
+
+      // Handle different data structures
+      if (isAdminReportData(report.data)) {
+        // Admin report data structure - use directly but apply deduplication
+        singleSubmissions = report.data.submissions;
+        
+        // Apply the same deduplication logic as other exports
+        const deduplicatedMap = new Map<string, RecommendationWithStatus>();
+        
+        report.data.recommendations
+          .filter((rec) => rec.recommendation !== "No recommendation provided" && rec.recommendation !== "No action plan given")
+          .forEach((rec) => {
+            const normalizedCategory = rec.category.toLowerCase().trim();
+            const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
+            
+            // Keep the most recent recommendation if duplicates exist
+            if (!deduplicatedMap.has(key) ||
+              new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
+              deduplicatedMap.set(key, rec);
+            }
+          });
+        
+        singleRecs = Array.from(deduplicatedMap.values());
+      } else {
+        // Generic report data structure - use mapReportToExportInputs
+        let submissionId: string = report.report_id;
+        
+        const reportToExport: Report = {
+          report_id: report.report_id,
+          submission_id: submissionId,
+          generated_at: report.generated_at,
+          status: report.status as "generating" | "completed" | "failed",
+          data: report.data,
+          assessment_id: report.submission_id || '',
+          assessment_name: report.assessment_name || 'Unknown Assessment',
+        };
+
+        const result = mapReportToExportInputs(reportToExport);
+        singleSubmissions = result.submissions;
+        singleRecs = result.recommendations;
       }
-
-      const reportToExport: Report = {
-        report_id: report.report_id,
-        submission_id: submissionId,
-        generated_at: report.generated_at,
-        status: report.status as "generating" | "completed" | "failed", // Cast to the correct literal type
-        data: report.data,
-        assessment_id: report.submission_id || '',
-        assessment_name: report.assessment_name || 'Unknown Assessment',
-      };
-
-      const { submissions: singleSubmissions, recommendations: singleRecs } =
-        mapReportToExportInputs(reportToExport);
 
       // Generate chart data URLs (if charts are present in this view)
       const radarChartDataUrl = chartRef.current?.toBase64Image();

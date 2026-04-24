@@ -446,23 +446,15 @@ export const Dashboard: React.FC = () => {
       return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
     });
 
-    const allRecommendations = latestReport ? (() => {
-      const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0 ? latestReport.data[0] : {};
-      return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
-        (category.recommendations || []).map(r => ({ 
-          ...r, 
-          report_id: latestReport.report_id, 
-          created_at: latestReport.generated_at, 
-          assessment_id: latestReport.assessment_id, 
-          assessment_name: latestReport.assessment_name, 
-          category: categoryName 
-        }))
-      );
-    })() : [];
+    if (!latestReport) return;
+
+    // Use the same mapReportToExportInputs function to ensure consistency
+    const { submissions: singleSubmissions, recommendations: singleRecs } =
+      mapReportToExportInputs(latestReport as unknown as Report);
 
     await exportAllAssessmentsPDF(
-      adminSubmissionsData?.submissions || [],
-      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
+      singleSubmissions,
+      singleRecs,
       radarChartDataUrl,
       recommendationChartDataUrl,
       orgName,
@@ -480,23 +472,15 @@ export const Dashboard: React.FC = () => {
       return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
     });
 
-    const allRecommendations = latestReport ? (() => {
-      const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0 ? latestReport.data[0] : {};
-      return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
-        (category.recommendations || []).map(r => ({ 
-          ...r, 
-          report_id: latestReport.report_id, 
-          created_at: latestReport.generated_at, 
-          assessment_id: latestReport.assessment_id, 
-          assessment_name: latestReport.assessment_name, 
-          category: categoryName 
-        }))
-      );
-    })() : [];
+    if (!latestReport) return;
+
+    // Use the same mapReportToExportInputs function to ensure consistency
+    const { submissions: singleSubmissions, recommendations: singleRecs } =
+      mapReportToExportInputs(latestReport as unknown as Report);
 
     await exportAllAssessmentsDOCX(
-      adminSubmissionsData?.submissions || [],
-      allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
+      singleSubmissions,
+      singleRecs,
       radarChartDataUrl,
       recommendationChartDataUrl
     );
