@@ -394,13 +394,22 @@ export const ReportHistory: React.FC = () => {
       const report = reports.find(r => r.report_id === reportId);
       if (!report || !report.data) throw new Error('No data available for this report');
 
+      console.log('Admin report data structure:', { 
+        reportId, 
+        isAdminData: isAdminReportData(report.data),
+        dataKeys: Object.keys(report.data as any)
+      });
+
       let singleSubmissions: AdminSubmissionDetail[];
       let singleRecs: RecommendationWithStatus[];
 
       // Handle different data structures
       if (isAdminReportData(report.data)) {
+        console.log('Processing AdminReportData structure');
         // Admin report data structure - use directly but apply deduplication
         singleSubmissions = report.data.submissions;
+        
+        console.log('Original recommendations count:', report.data.recommendations.length);
         
         // Apply the same deduplication logic as other exports
         const deduplicatedMap = new Map<string, RecommendationWithStatus>();
@@ -419,7 +428,9 @@ export const ReportHistory: React.FC = () => {
           });
         
         singleRecs = Array.from(deduplicatedMap.values());
+        console.log('Deduplicated recommendations count:', singleRecs.length);
       } else {
+        console.log('Processing generic report structure');
         // Generic report data structure - use mapReportToExportInputs
         let submissionId: string = report.report_id;
         
@@ -436,11 +447,19 @@ export const ReportHistory: React.FC = () => {
         const result = mapReportToExportInputs(reportToExport);
         singleSubmissions = result.submissions;
         singleRecs = result.recommendations;
+        console.log('Mapped recommendations count:', singleRecs.length);
       }
 
       // Generate chart data URLs (if charts are present in this view)
       const radarChartDataUrl = chartRef.current?.toBase64Image();
       const recommendationChartDataUrl = recommendationChartRef.current?.toBase64Image();
+
+      console.log('Calling exportAllAssessmentsPDF with:', {
+        submissionsCount: singleSubmissions.length,
+        recommendationsCount: singleRecs.length,
+        orgName: report.org_name,
+        assessmentName: report.assessment_name
+      });
 
       await exportAllAssessmentsPDF(
         singleSubmissions,
@@ -448,7 +467,7 @@ export const ReportHistory: React.FC = () => {
         radarChartDataUrl,
         recommendationChartDataUrl,
         report.org_name,
-        reportToExport.assessment_name
+        report.assessment_name || 'Unknown Assessment'
       );
       toast.success(t('reportHistory.downloadSuccess', { defaultValue: 'Report downloaded successfully' }));
     } catch (error) {
