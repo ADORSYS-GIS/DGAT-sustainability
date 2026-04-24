@@ -37,8 +37,7 @@ export const ActionPlan: React.FC = () => {
   const { data: questionsData } = useOfflineQuestions();
   const { data: categoriesData } = useOfflineCategoryCatalogs();
 
-  const [questionsMap, questionsTextMap, qRevToCategoryMap] = React.useMemo(() => {
-    const map = new Map<string, number>();
+  const [questionsTextMap, qRevToCategoryMap] = React.useMemo(() => {
     const textMap = new Map<string, string>(); // question text -> category name
     const catMap = new Map<string, string>();
 
@@ -56,8 +55,6 @@ export const ActionPlan: React.FC = () => {
       questionsData.forEach(q => {
         if (q.latest_revision) {
           const revId = q.latest_revision.question_revision_id;
-          const displayOrder = q.display_order || 0;
-          map.set(revId, displayOrder);
 
           const qText = (q.latest_revision.text as { en?: string })?.en || '';
 
@@ -80,7 +77,7 @@ export const ActionPlan: React.FC = () => {
         }
       });
     }
-    return [map, textMap, catMap];
+    return [textMap, catMap];
   }, [questionsData, categoriesData]);
 
   type KanbanRecommendation = OfflineRecommendation & { id: string; assessment_name?: string; created_at: string };
@@ -292,172 +289,104 @@ export const ActionPlan: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ height: '100vh', overflow: 'hidden' }}>
+    <div className="h-screen bg-gray-50 overflow-hidden">
       <Navbar />
-      <div 
-        className="px-4 sm:px-6 lg:px-8"
-        style={{ 
-          height: 'calc(100vh - 80px)', 
-          overflowY: 'auto',
-          paddingBottom: '2rem'
-        }}
-      >
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8 animate-fade-in pt-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center space-x-3 mb-4">
-                  <Kanban className="w-8 h-8 text-dgrv-blue" />
-                  <h1 className="text-3xl font-bold text-dgrv-blue">
-                    {t("user.actionPlan.title", { defaultValue: "Action Plan" })}
-                  </h1>
+      <div className="h-full flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
+        <div className="flex-shrink-0 px-4 sm:px-6 lg:px-8 pt-6 pb-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-3 mb-2">
+                    <Kanban className="w-8 h-8 text-dgrv-blue" />
+                    <h1 className="text-3xl font-bold text-dgrv-blue">
+                      {t("user.actionPlan.title", { defaultValue: "Action Plan" })}
+                    </h1>
+                  </div>
+                  <p className="text-lg text-gray-600">
+                    {t("user.dashboard.actionPlan.subtitle", { defaultValue: "Track your sustainability improvement tasks" })}
+                  </p>
                 </div>
-                <p className="text-lg text-gray-600">
-                  {t("user.dashboard.actionPlan.subtitle", { defaultValue: "Track your sustainability improvement tasks" })}
-                </p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Kanban Board */}
-          {Object.keys(groupedRecs).length === 0 && !isLoading ? (
-            <div className="text-center py-12">
-              <Kanban className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                {t("user.actionPlan.noRecommendations", { defaultValue: "No Recommendations Available" })}
-              </h2>
-              <p className="text-gray-600">
-                {t("user.actionPlan.noRecommendationsDescription", { defaultValue: "There are no recommendations for this submission." })}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {Object.entries(groupedRecs).map(([assessmentName, recs]) => (
-                <div key={assessmentName}>
-                  <h2 className="text-2xl font-bold text-dgrv-blue mb-4">{assessmentName}</h2>
-                  <div 
-                    className="grid grid-cols-1 md:grid-cols-4 gap-6"
-                    style={{ 
-                      height: 'calc(100vh - 300px)', 
-                      minHeight: '600px',
-                      maxHeight: '800px'
-                    }}
-                  >
-                    {columns.map((column) => {
-                      const columnTasks = recs.filter(
-                        (rec) => rec.status === column.id,
-                      );
-                      const IconComponent = column.icon;
-                      return (
-                        <Card 
-                          key={column.id} 
-                          className="animate-fade-in"
-                          style={{ 
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column'
-                          }}
-                        >
-                          <CardHeader className="pb-3 flex-shrink-0">
-                            <CardTitle
-                              className={`flex items-center space-x-2 ${column.color}`}
-                            >
-                              <IconComponent className="w-5 h-5" />
-                              <span>{column.title}</span>
-                              <Badge variant="outline" className="ml-auto">
-                                {columnTasks.length}
-                              </Badge>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent 
-                            className="flex-1 p-4"
-                            style={{ 
-                              overflow: 'hidden',
-                              display: 'flex',
-                              flexDirection: 'column'
-                            }}
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 overflow-hidden">
+          <div className="max-w-7xl mx-auto h-full">
+            {/* Kanban Board */}
+            {Object.keys(groupedRecs).length === 0 && !isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Kanban className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                    {t("user.actionPlan.noRecommendations", { defaultValue: "No Recommendations Available" })}
+                  </h2>
+                  <p className="text-gray-600">
+                    {t("user.actionPlan.noRecommendationsDescription", { defaultValue: "There are no recommendations for this submission." })}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col space-y-4">
+                {Object.entries(groupedRecs).map(([assessmentName, recs]) => (
+                  <div key={assessmentName} className="flex-1 flex flex-col min-h-0">
+                    <h2 className="text-2xl font-bold text-dgrv-blue mb-4 flex-shrink-0">{assessmentName}</h2>
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 min-h-0">
+                      {columns.map((column) => {
+                        const columnTasks = recs.filter(
+                          (rec) => rec.status === column.id,
+                        );
+                        const IconComponent = column.icon;
+                        return (
+                          <Card 
+                            key={column.id} 
+                            className="animate-fade-in flex flex-col h-full"
                           >
-                            <div 
-                              className="space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 kanban-column-scroll"
-                              style={{ 
-                                height: '100%',
-                                overflowY: 'auto',
-                                overflowX: 'hidden',
-                                paddingRight: '8px'
-                              }}
-                            >
-                              {columnTasks.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500">
-                                  <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                  <p className="text-sm">
-                                    {t("user.actionPlan.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
-                                  </p>
-                                </div>
-                              ) : (
-                                columnTasks.map((task) => (
-                                  <Card
-                                    key={task.id}
-                                    className={`${getStatusColor(task.status)} flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow`}
-                                    onClick={() => setSelectedTask(task)}
-                                  >
-                                    <CardContent className="p-4">
-                                      <div className="flex flex-col gap-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <div className="font-bold text-dgrv-blue text-xs uppercase tracking-wider truncate">
-                                            {task.category}
+                            <CardHeader className="pb-3 flex-shrink-0">
+                              <CardTitle
+                                className={`flex items-center space-x-2 ${column.color}`}
+                              >
+                                <IconComponent className="w-5 h-5" />
+                                <span>{column.title}</span>
+                                <Badge variant="outline" className="ml-auto">
+                                  {columnTasks.length}
+                                </Badge>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-4 min-h-0">
+                              <div 
+                                className="h-full overflow-y-auto overflow-x-hidden space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                                style={{ paddingRight: '8px' }}
+                              >
+                                {columnTasks.length === 0 ? (
+                                  <div className="text-center py-8 text-gray-500">
+                                    <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">
+                                      {t("user.actionPlan.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  columnTasks.map((task) => (
+                                    <Card
+                                      key={task.id}
+                                      className={`${getStatusColor(task.status)} flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow`}
+                                      onClick={() => setSelectedTask(task)}
+                                    >
+                                      <CardContent className="p-4">
+                                        <div className="flex flex-col gap-1">
+                                          <div className="flex items-center justify-between mb-1">
+                                            <div className="font-bold text-dgrv-blue text-xs uppercase tracking-wider truncate">
+                                              {task.category}
+                                            </div>
+                                            <Eye className="w-3 h-3 text-gray-400" />
                                           </div>
-                                          <Eye className="w-3 h-3 text-gray-400" />
-                                        </div>
-                                        <div className="text-sm text-gray-900 mb-2 line-clamp-3 leading-relaxed">
-                                          {task.recommendation}
-                                        </div>
-                                        <div className="flex gap-2 mt-auto pt-2 border-t border-black/5">
-                                          {isAdmin && task.status === "todo" && (
-                                            <button
-                                              className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                                              onClick={() =>
-                                                moveRecommendation(
-                                                  assessmentName,
-                                                  task.id,
-                                                  "in_progress",
-                                                )
-                                              }
-                                            >
-                                              {t("user.actionPlan.kanban.moveToInProgress", { defaultValue: "Move to In Progress" })}
-                                            </button>
-                                          )}
-                                          {isAdmin &&
-                                            task.status === "in_progress" && (
-                                              <>
-                                                <button
-                                                  className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                                                  onClick={() =>
-                                                    moveRecommendation(
-                                                      assessmentName,
-                                                      task.id,
-                                                      "todo",
-                                                    )
-                                                  }
-                                                >
-                                                  {t("user.actionPlan.kanban.backToTodo", { defaultValue: "Back to To Do" })}
-                                                </button>
-                                                <button
-                                                  className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
-                                                  onClick={() =>
-                                                    moveRecommendation(
-                                                      assessmentName,
-                                                      task.id,
-                                                      "done",
-                                                    )
-                                                  }
-                                                >
-                                                  {t("user.actionPlan.kanban.moveToDone", { defaultValue: "Move to Done" })}
-                                                </button>
-                                              </>
-                                            )}
-                                          {isAdmin && task.status === "done" && (
-                                            <>
+                                          <div className="text-sm text-gray-900 mb-2 line-clamp-3 leading-relaxed">
+                                            {task.recommendation}
+                                          </div>
+                                          <div className="flex gap-2 mt-auto pt-2 border-t border-black/5">
+                                            {isAdmin && task.status === "todo" && (
                                               <button
                                                 className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                                                 onClick={() =>
@@ -468,53 +397,98 @@ export const ActionPlan: React.FC = () => {
                                                   )
                                                 }
                                               >
-                                                {t("user.actionPlan.kanban.backToInProgress", { defaultValue: "Back to In Progress" })}
-                                              </button>
-                                              <button
-                                                className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"
-                                                onClick={() =>
-                                                  moveRecommendation(
-                                                    assessmentName,
-                                                    task.id,
-                                                    "approved",
-                                                  )
-                                                }
-                                              >
-                                                Approve
-                                              </button>
-                                            </>
-                                          )}
-                                          {isAdmin &&
-                                            task.status === "approved" && (
-                                              <button
-                                                className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
-                                                onClick={() =>
-                                                  moveRecommendation(
-                                                    assessmentName,
-                                                    task.id,
-                                                    "done",
-                                                  )
-                                                }
-                                              >
-                                                {t("user.actionPlan.kanban.backToDone", { defaultValue: "Back to Done" })}
+                                                {t("user.actionPlan.kanban.moveToInProgress", { defaultValue: "Move to In Progress" })}
                                               </button>
                                             )}
+                                            {isAdmin &&
+                                              task.status === "in_progress" && (
+                                                <>
+                                                  <button
+                                                    className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                                                    onClick={() =>
+                                                      moveRecommendation(
+                                                        assessmentName,
+                                                        task.id,
+                                                        "todo",
+                                                      )
+                                                    }
+                                                  >
+                                                    {t("user.actionPlan.kanban.backToTodo", { defaultValue: "Back to To Do" })}
+                                                  </button>
+                                                  <button
+                                                    className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                                                    onClick={() =>
+                                                      moveRecommendation(
+                                                        assessmentName,
+                                                        task.id,
+                                                        "done",
+                                                      )
+                                                    }
+                                                  >
+                                                    {t("user.actionPlan.kanban.moveToDone", { defaultValue: "Move to Done" })}
+                                                  </button>
+                                                </>
+                                              )}
+                                            {isAdmin && task.status === "done" && (
+                                              <>
+                                                <button
+                                                  className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                                  onClick={() =>
+                                                    moveRecommendation(
+                                                      assessmentName,
+                                                      task.id,
+                                                      "in_progress",
+                                                    )
+                                                  }
+                                                >
+                                                  {t("user.actionPlan.kanban.backToInProgress", { defaultValue: "Back to In Progress" })}
+                                                </button>
+                                                <button
+                                                  className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"
+                                                  onClick={() =>
+                                                    moveRecommendation(
+                                                      assessmentName,
+                                                      task.id,
+                                                      "approved",
+                                                    )
+                                                  }
+                                                >
+                                                  Approve
+                                                </button>
+                                              </>
+                                            )}
+                                            {isAdmin &&
+                                              task.status === "approved" && (
+                                                <button
+                                                  className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                                                  onClick={() =>
+                                                    moveRecommendation(
+                                                      assessmentName,
+                                                      task.id,
+                                                      "done",
+                                                    )
+                                                  }
+                                                >
+                                                  {t("user.actionPlan.kanban.backToDone", { defaultValue: "Back to Done" })}
+                                                </button>
+                                              )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                ))
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                                      </CardContent>
+                                    </Card>
+                                  ))
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

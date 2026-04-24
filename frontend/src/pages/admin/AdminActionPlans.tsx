@@ -250,49 +250,43 @@ const AdminActionPlans: React.FC = () => {
 
   // Show selected organization's action plan
   return (
-    <>
-      <div 
-        className="container mx-auto p-6"
-        style={{ 
-          height: '100vh', 
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        {/* Header content ... */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
+    <div className="h-screen bg-gray-50 overflow-hidden">
+      <div className="h-full flex flex-col">
+        {/* Header content */}
+        <div className="flex-shrink-0 px-6 pt-6 pb-4">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedAssessment(null)}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>{t('adminActionPlans.backToAssessments', { defaultValue: 'Back to Assessments' })}</span>
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{selectedOrganization.organization_name}</h1>
+                <p className="text-gray-600">{selectedAssessment.assessment_name}</p>
+              </div>
+            </div>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => setSelectedAssessment(null)}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
               className="flex items-center space-x-2"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>{t('adminActionPlans.backToAssessments', { defaultValue: 'Back to Assessments' })}</span>
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{t('adminActionPlans.refresh', { defaultValue: 'Refresh' })}</span>
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{selectedOrganization.organization_name}</h1>
-              <p className="text-gray-600">{selectedAssessment.assessment_name}</p>
-            </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{t('adminActionPlans.refresh', { defaultValue: 'Refresh' })}</span>
-          </Button>
         </div>
 
         {/* Kanban Board */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div className="flex-1 px-6 overflow-hidden">
           {actionPlansLoading ? (
-            <div className="flex justify-center items-center py-12">
+            <div className="flex justify-center items-center h-full">
               <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-dgrv-blue"></div>
             </div>
           ) : actionPlansError ? (
@@ -302,96 +296,72 @@ const AdminActionPlans: React.FC = () => {
               <p className="text-gray-600">{actionPlansError.message}</p>
             </div>
           ) : (
-          <div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-            style={{ 
-              height: 'calc(100vh - 250px)', 
-              minHeight: '600px',
-              maxHeight: '800px'
-            }}
-          >
-            {columns.map((column) => {
-              const columnTasks = getTasksByStatus(column.id);
-              const IconComponent = column.icon;
-              return (
-                <Card 
-                  key={column.id} 
-                  className="animate-fade-in"
-                  style={{ 
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}
-                >
-                  <CardHeader className="pb-3 flex-shrink-0">
-                    <CardTitle
-                      className={`flex items-center space-x-2 ${column.color}`}
-                    >
-                      <IconComponent className="w-5 h-5" />
-                      <span>{column.title}</span>
-                      <Badge variant="outline" className="ml-auto">
-                        {columnTasks.length}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent 
-                    className="flex-1 p-4"
-                    style={{ 
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}
+            <div className="h-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {columns.map((column) => {
+                const columnTasks = getTasksByStatus(column.id);
+                const IconComponent = column.icon;
+                return (
+                  <Card 
+                    key={column.id} 
+                    className="animate-fade-in flex flex-col h-full"
                   >
-                    <div 
-                      className="space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 kanban-column-scroll"
-                      style={{ 
-                        height: '100%',
-                        overflowY: 'auto',
-                        overflowX: 'hidden',
-                        paddingRight: '8px'
-                      }}
-                    >
-                      {columnTasks.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">
-                            {t("adminActionPlans.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
-                          </p>
-                        </div>
-                      ) : (
-                        columnTasks.map((task) => (
-                          <Card
-                            key={task.recommendation_id}
-                            className="bg-gray-50 border-gray-200 flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow"
-                            onClick={() => setSelectedTask(task)}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="font-bold text-blue-600 text-xs uppercase tracking-wider truncate">
-                                    {task.category}
+                    <CardHeader className="pb-3 flex-shrink-0">
+                      <CardTitle
+                        className={`flex items-center space-x-2 ${column.color}`}
+                      >
+                        <IconComponent className="w-5 h-5" />
+                        <span>{column.title}</span>
+                        <Badge variant="outline" className="ml-auto">
+                          {columnTasks.length}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 p-4 min-h-0">
+                      <div 
+                        className="h-full overflow-y-auto overflow-x-hidden space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                        style={{ paddingRight: '8px' }}
+                      >
+                        {columnTasks.length === 0 ? (
+                          <div className="text-center py-8 text-gray-500">
+                            <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">
+                              {t("adminActionPlans.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
+                            </p>
+                          </div>
+                        ) : (
+                          columnTasks.map((task) => (
+                            <Card
+                              key={task.recommendation_id}
+                              className="bg-gray-50 border-gray-200 flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow"
+                              onClick={() => setSelectedTask(task)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="font-bold text-blue-600 text-xs uppercase tracking-wider truncate">
+                                      {task.category}
+                                    </div>
+                                    <Eye className="w-3 h-3 text-gray-400" />
                                   </div>
-                                  <Eye className="w-3 h-3 text-gray-400" />
+                                  <div className="text-sm text-gray-900 mb-2 line-clamp-3 leading-relaxed">
+                                    {task.recommendation}
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px] text-gray-500 pt-2 border-t border-gray-100">
+                                    <span>{new Date(task.created_at).toLocaleDateString()}</span>
+                                    {getStatusBadge(task.status)}
+                                  </div>
                                 </div>
-                                <div className="text-sm text-gray-900 mb-2 line-clamp-3 leading-relaxed">
-                                  {task.recommendation}
-                                </div>
-                                <div className="flex items-center justify-between text-[10px] text-gray-500 pt-2 border-t border-gray-100">
-                                  <span>{new Date(task.created_at).toLocaleDateString()}</span>
-                                  {getStatusBadge(task.status)}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                              </CardContent>
+                            </Card>
+                          ))
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -429,7 +399,7 @@ const AdminActionPlans: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 
