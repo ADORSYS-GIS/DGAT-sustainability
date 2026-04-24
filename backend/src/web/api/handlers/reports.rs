@@ -275,6 +275,23 @@ pub async fn generate_report(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
 
+    // Check if a report already exists for this submission
+    let existing_reports = app_state
+        .database
+        .submission_reports
+        .get_reports_by_submission(submission_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to check existing reports: {e}")))?;
+
+    // If a report already exists, return it instead of creating a new one
+    if let Some(existing_report) = existing_reports.first() {
+        let response = ReportGenerationResponse {
+            report_id: existing_report.report_id,
+            status: existing_report.status.clone(),
+        };
+        return Ok((StatusCode::OK, Json(response)));
+    }
+
     // Generate the actual report content using the provided data
     let report_content = generate_report_content(&request, submission_id, &app_state).await?;
 
