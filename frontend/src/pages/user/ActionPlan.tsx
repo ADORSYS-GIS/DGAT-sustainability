@@ -292,12 +292,19 @@ export const ActionPlan: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 kanban-page">
+    <div className="min-h-screen bg-gray-50" style={{ height: '100vh', overflow: 'hidden' }}>
       <Navbar />
-      <div className="kanban-page-content">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div 
+        className="px-4 sm:px-6 lg:px-8"
+        style={{ 
+          height: 'calc(100vh - 80px)', 
+          overflowY: 'auto',
+          paddingBottom: '2rem'
+        }}
+      >
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8 animate-fade-in">
+          <div className="mb-8 animate-fade-in pt-8">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-3 mb-4">
@@ -329,14 +336,29 @@ export const ActionPlan: React.FC = () => {
               {Object.entries(groupedRecs).map(([assessmentName, recs]) => (
                 <div key={assessmentName}>
                   <h2 className="text-2xl font-bold text-dgrv-blue mb-4">{assessmentName}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 kanban-container">
+                  <div 
+                    className="grid grid-cols-1 md:grid-cols-4 gap-6"
+                    style={{ 
+                      height: 'calc(100vh - 300px)', 
+                      minHeight: '600px',
+                      maxHeight: '800px'
+                    }}
+                  >
                     {columns.map((column) => {
                       const columnTasks = recs.filter(
                         (rec) => rec.status === column.id,
                       );
                       const IconComponent = column.icon;
                       return (
-                        <Card key={column.id} className="animate-fade-in kanban-column">
+                        <Card 
+                          key={column.id} 
+                          className="animate-fade-in"
+                          style={{ 
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}
+                        >
                           <CardHeader className="pb-3 flex-shrink-0">
                             <CardTitle
                               className={`flex items-center space-x-2 ${column.color}`}
@@ -348,8 +370,23 @@ export const ActionPlan: React.FC = () => {
                               </Badge>
                             </CardTitle>
                           </CardHeader>
-                          <CardContent className="flex-1 overflow-hidden p-4">
-                            <div className="kanban-column-content space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                          <CardContent 
+                            className="flex-1 p-4"
+                            style={{ 
+                              overflow: 'hidden',
+                              display: 'flex',
+                              flexDirection: 'column'
+                            }}
+                          >
+                            <div 
+                              className="space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 kanban-column-scroll"
+                              style={{ 
+                                height: '100%',
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                paddingRight: '8px'
+                              }}
+                            >
                               {columnTasks.length === 0 ? (
                                 <div className="text-center py-8 text-gray-500">
                                   <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />

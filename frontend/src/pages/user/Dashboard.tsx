@@ -136,8 +136,16 @@ export const Dashboard: React.FC = () => {
 
     reportsData.reports.forEach(report => {
       const existingReport = latestReportsMap.get(report.submission_id);
-      if (!existingReport || new Date(report.generated_at) > new Date(existingReport.generated_at)) {
+      if (!existingReport) {
         latestReportsMap.set(report.submission_id, report);
+      } else {
+        const existingDate = new Date(existingReport.generated_at);
+        const currentDate = new Date(report.generated_at);
+        
+        if (currentDate > existingDate || 
+           (currentDate.getTime() === existingDate.getTime() && report.report_id > existingReport.report_id)) {
+          latestReportsMap.set(report.submission_id, report);
+        }
       }
     });
 
@@ -771,7 +779,21 @@ export const Dashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle>
                     {t('user.dashboard.sustainabilityOverview')} - {(() => {
-                      const latestReport = reportsData?.reports?.[reportsData.reports.length - 1];
+                      // Find the most recent report by generated_at date
+                      // If timestamps are identical, use report_id as tiebreaker
+                      const latestReport = reportsData?.reports?.reduce((latest, current) => {
+                        const latestDate = new Date(latest.generated_at);
+                        const currentDate = new Date(current.generated_at);
+                        
+                        if (currentDate > latestDate) {
+                          return current;
+                        } else if (currentDate.getTime() === latestDate.getTime()) {
+                          // If timestamps are identical, use report_id as tiebreaker
+                          return current.report_id > latest.report_id ? current : latest;
+                        } else {
+                          return latest;
+                        }
+                      });
                       return latestReport?.assessment_name || t('user.dashboard.sustainabilityAssessment');
                     })()}
                   </CardTitle>

@@ -38,7 +38,28 @@ interface RadarChartData {
 
 export const generateRadarChartData = (apiResponse: ReportData): RadarChartData | null => {
   const categories: { [key: string]: number } = {};
-  const report = apiResponse.reports[apiResponse.reports.length - 1];
+  
+  // Check if there are any reports
+  if (!apiResponse.reports || apiResponse.reports.length === 0) {
+    return null;
+  }
+  
+  // Find the most recent report by generated_at date instead of using array position
+  // If timestamps are identical, use report_id as tiebreaker (assuming newer reports have newer IDs)
+  const report = apiResponse.reports.reduce((latest, current) => {
+    const latestDate = new Date(latest.generated_at);
+    const currentDate = new Date(current.generated_at);
+    
+    if (currentDate > latestDate) {
+      return current;
+    } else if (currentDate.getTime() === latestDate.getTime()) {
+      // If timestamps are identical, use report_id as tiebreaker
+      return current.report_id > latest.report_id ? current : latest;
+    } else {
+      return latest;
+    }
+  });
+  
   const { organizationCategories } = apiResponse;
 
   if (report && report.data) {
