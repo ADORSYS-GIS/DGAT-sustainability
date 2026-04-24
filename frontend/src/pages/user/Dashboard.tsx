@@ -423,19 +423,32 @@ export const Dashboard: React.FC = () => {
     const recommendationChartDataUrl =
       recommendationChartRef.current?.toBase64Image();
 
-    const allRecommendations = userRecommendations?.reports.flatMap(report => {
-      const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
+    // Use only the latest report to avoid duplicates
+    const latestReport = userRecommendations?.reports?.reduce((latest, current) => {
+      return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
+    });
+
+    const allRecommendations = latestReport ? (() => {
+      const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0 ? latestReport.data[0] : {};
       return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
-        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
+        (category.recommendations || []).map(r => ({ 
+          ...r, 
+          report_id: latestReport.report_id, 
+          created_at: latestReport.generated_at, 
+          assessment_id: latestReport.assessment_id, 
+          assessment_name: latestReport.assessment_name, 
+          category: categoryName 
+        }))
       );
-    }) || [];
+    })() : [];
+
     await exportAllAssessmentsPDF(
       adminSubmissionsData?.submissions || [],
       allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
       radarChartDataUrl,
       recommendationChartDataUrl,
       orgName,
-      "All Assessments"
+      latestReport?.assessment_name || "Assessment"
     );
   };
 
@@ -444,12 +457,25 @@ export const Dashboard: React.FC = () => {
     const recommendationChartDataUrl =
       recommendationChartRef.current?.toBase64Image();
 
-    const allRecommendations = userRecommendations?.reports.flatMap(report => {
-      const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
+    // Use only the latest report to avoid duplicates
+    const latestReport = userRecommendations?.reports?.reduce((latest, current) => {
+      return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
+    });
+
+    const allRecommendations = latestReport ? (() => {
+      const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0 ? latestReport.data[0] : {};
       return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
-        (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
+        (category.recommendations || []).map(r => ({ 
+          ...r, 
+          report_id: latestReport.report_id, 
+          created_at: latestReport.generated_at, 
+          assessment_id: latestReport.assessment_id, 
+          assessment_name: latestReport.assessment_name, 
+          category: categoryName 
+        }))
       );
-    }) || [];
+    })() : [];
+
     await exportAllAssessmentsDOCX(
       adminSubmissionsData?.submissions || [],
       allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })),
@@ -541,14 +567,30 @@ export const Dashboard: React.FC = () => {
   };
 
   const recommendationChartInfo = React.useMemo(() => {
-    if (userRecommendations?.reports) {
-      const allRecommendations = userRecommendations.reports.flatMap(report => {
-        const categoriesObj = Array.isArray(report.data) && report.data.length > 0 ? report.data[0] : {};
-        return Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
-          (category.recommendations || []).map(r => ({ ...r, report_id: report.report_id, created_at: report.generated_at, assessment_id: report.assessment_id, assessment_name: report.assessment_name, category: categoryName }))
-        );
+    if (userRecommendations?.reports && userRecommendations.reports.length > 0) {
+      // Use only the latest report to avoid duplicates
+      const latestReport = userRecommendations.reports.reduce((latest, current) => {
+        return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
       });
-      return generateRecommendationChartData(allRecommendations.map(r => ({ ...r, recommendation_id: r.id, recommendation: r.text, status: r.status as RecommendationWithStatus['status'] })));
+      
+      const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0 ? latestReport.data[0] : {};
+      const reportRecommendations = Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
+        (category.recommendations || []).map(r => ({ 
+          ...r, 
+          report_id: latestReport.report_id, 
+          created_at: latestReport.generated_at, 
+          assessment_id: latestReport.assessment_id, 
+          assessment_name: latestReport.assessment_name, 
+          category: categoryName 
+        }))
+      );
+      
+      return generateRecommendationChartData(reportRecommendations.map(r => ({ 
+        ...r, 
+        recommendation_id: r.id, 
+        recommendation: r.text, 
+        status: r.status as RecommendationWithStatus['status'] 
+      })));
     }
     return null;
   }, [userRecommendations]);

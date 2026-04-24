@@ -566,10 +566,24 @@ pub async fn list_all_reports(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch all submissions: {e}")))?;
 
+    // Get all assessments to map assessment_id to assessment name
+    let all_assessments = app_state
+        .database
+        .assessments
+        .get_all_assessments()
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch all assessments: {e}")))?;
+
     // Create a mapping from submission_id to (org_id, org_name)
     let submission_org_map: std::collections::HashMap<Uuid, (String, String)> = all_submissions
         .into_iter()
         .map(|submission| (submission.submission_id, (submission.org_id, submission.org_name)))
+        .collect();
+
+    // Create a mapping from assessment_id to assessment_name
+    let assessment_name_map: std::collections::HashMap<Uuid, String> = all_assessments
+        .into_iter()
+        .map(|assessment| (assessment.assessment_id, assessment.name))
         .collect();
 
     // Convert database models to AdminReport models with organization information
@@ -581,11 +595,17 @@ pub async fn list_all_reports(
             .cloned()
             .unwrap_or_else(|| ("unknown".to_string(), "Unknown Organization".to_string()));
 
+        // Get assessment name using submission_id as assessment_id (they are the same)
+        let assessment_name = assessment_name_map.get(&submission_id)
+            .cloned()
+            .unwrap_or_else(|| "Unknown Assessment".to_string());
+
         admin_reports.push(AdminReport {
             report_id: report_model.report_id,
             submission_id,
             org_id,
             org_name,
+            assessment_name,
             status: report_model.status,
             generated_at: report_model.generated_at.to_rfc3339(),
             data: report_model.data.unwrap_or(serde_json::Value::Null),

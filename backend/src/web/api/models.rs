@@ -413,6 +413,7 @@ pub struct AdminReport {
     pub submission_id: Uuid,
     pub org_id: String,
     pub org_name: String,
+    pub assessment_name: String,
     pub status: String,
     pub generated_at: String,
     pub data: serde_json::Value,

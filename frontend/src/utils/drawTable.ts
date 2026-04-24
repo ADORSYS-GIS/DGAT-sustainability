@@ -123,7 +123,7 @@ export const drawAssessmentsTable = (
       if (currentY + 40 > doc.internal.pageSize.height) {
         doc.addPage();
         addHeader(doc);
-        currentY = 34; // Start below the header + title area (increased from 32 to 34)
+        currentY = 38; // Start below the header + title area (increased from 34 to 38)
       }
     }
 
@@ -152,21 +152,21 @@ export const drawAssessmentsTable = (
         doc.setFontSize(16);
         doc.setTextColor(30, 58, 138);
         doc.setFont("helvetica", "bold");
-        doc.text(fullTitle, 14, 22); // Moved down from 20 to 22 to avoid overlay
+        doc.text(fullTitle, 14, 26); // Moved down from 22 to 26 to avoid overlay
 
         if (organizationName) {
           doc.setFontSize(9);
           doc.setTextColor(100);
           doc.setFont("helvetica", "normal");
-          doc.text(`Organisation: ${organizationName}`, 14, 29); // Moved down from 27 to 29
+          doc.text(`Organisation: ${organizationName}`, 14, 33); // Moved down from 29 to 33
         }
 
         // Ensure the table body doesn't start before the header area
-        if (data.cursor && data.cursor.y < 34) { // Increased from 32 to 34 to provide more space
-          data.cursor.y = 34;
+        if (data.cursor && data.cursor.y < 38) { // Increased from 34 to 38 to provide more space
+          data.cursor.y = 38;
         }
       },
-      margin: { top: 34 }, // Increased from 32 to 34
+      margin: { top: 38 }, // Increased from 34 to 38
       didParseCell: (data) => {
         if (data.column.dataKey === 4) { // 'Recommendations' column
           let rawValue = data.cell.raw;

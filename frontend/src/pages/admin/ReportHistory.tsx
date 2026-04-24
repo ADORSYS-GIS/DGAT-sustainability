@@ -297,7 +297,7 @@ export const ReportHistory: React.FC = () => {
           status: (rec.status as RecommendationWithStatus["status"]) || "todo",
           created_at: report.generated_at,
           assessment_id: report.submission_id || '',
-          assessment_name: 'N/A',
+          assessment_name: report.assessment_name || 'Unknown Assessment',
         }));
       }
     );
@@ -314,6 +314,7 @@ export const ReportHistory: React.FC = () => {
   const filteredReports = reports.filter(report => {
     const matchesSearch =
       report.org_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.assessment_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.report_id.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || report.status === statusFilter;
@@ -387,7 +388,7 @@ export const ReportHistory: React.FC = () => {
         status: report.status as "generating" | "completed" | "failed", // Cast to the correct literal type
         data: report.data,
         assessment_id: report.submission_id || '',
-        assessment_name: 'N/A',
+        assessment_name: report.assessment_name || 'Unknown Assessment',
       };
 
       const { submissions: singleSubmissions, recommendations: singleRecs } =
@@ -527,6 +528,7 @@ export const ReportHistory: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-semibold text-dgrv-blue">{report.org_name}</div>
+                        <div className="text-sm text-gray-600">{report.assessment_name}</div>
                         <div className="text-xs text-gray-500">{t('reportHistory.report', { defaultValue: 'Report' })}</div>
                       </div>
                     </div>
@@ -541,6 +543,10 @@ export const ReportHistory: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <Building2 className="w-4 h-4" />
                         <span>{report.org_name}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <FileText className="w-4 h-4" />
+                        <span>{report.assessment_name}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4" />
@@ -594,7 +600,7 @@ export const ReportHistory: React.FC = () => {
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-bold text-dgrv-blue flex items-center gap-2">
                     <Building2 className="w-6 h-6" />
-                    {report.org_name} - Report Details
+                    {report.org_name} - {report.assessment_name}
                   </DialogTitle>
                   <div className="flex flex-wrap gap-2 mt-2">
                     <Badge variant="outline" className="flex items-center gap-1">

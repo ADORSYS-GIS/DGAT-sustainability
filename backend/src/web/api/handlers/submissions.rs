@@ -77,7 +77,14 @@ async fn process_response(
                 .await
             {
                 Ok(Some(question)) => {
-                    // Use the revision text directly (it's already a JSON Value)
+                    // Extract text from JSON (assuming "en" language for now) - FIX: Same logic as admin endpoint
+                    let text = revision
+                        .text
+                        .get("en")
+                        .and_then(|t| t.as_str())
+                        .unwrap_or("Question text not found")
+                        .to_string();
+                    
                     let category_name = match app_state
                         .database
                         .category_catalog
@@ -87,7 +94,10 @@ async fn process_response(
                         Ok(Some(c)) => c.name,
                         _ => "Unknown".to_string(),
                     };
-                    (revision.text, normalize_category_name(&category_name))
+                    
+                    // Create a proper JSON object for the question text
+                    let question_json = serde_json::json!({"en": text});
+                    (question_json, normalize_category_name(&category_name))
                 }
                 _ => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
             }

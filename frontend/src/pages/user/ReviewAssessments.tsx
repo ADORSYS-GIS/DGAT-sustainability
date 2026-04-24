@@ -398,14 +398,22 @@ const ReviewAssessments: React.FC = () => {
                               : questionDetails.text;
                           }
                           
-                          // Second try: Use the question text from response
-                          if (questionTextStr && questionTextStr !== 'Question text not found') {
+                          // Second try: Use the question text from response (enhanced by backend)
+                          if (questionTextStr && questionTextStr !== 'Question text not found' && questionTextStr !== 'Question not found') {
                             return questionTextStr;
                           }
                           
-                          // Third try: Look up by revision ID in questions text map
-                          if (customResponse.question_revision_id && questionsTextMap.has(customResponse.question_revision_id)) {
-                            return questionsTextMap.get(customResponse.question_revision_id);
+                          // Third try: Look up by question text in questions text map
+                          if (questionTextStr && questionsTextMap.has(questionTextStr)) {
+                            return questionTextStr;
+                          }
+                          
+                          // Fourth try: If we have a revision ID, try to find it in questionsMap
+                          if (customResponse.question_revision_id && questionsMap.has(customResponse.question_revision_id)) {
+                            const details = questionsMap.get(customResponse.question_revision_id);
+                            if (details?.text) {
+                              return details.text;
+                            }
                           }
                           
                           // Final fallback: Use a more descriptive message

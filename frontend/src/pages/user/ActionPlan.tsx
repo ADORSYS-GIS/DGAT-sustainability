@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/shared/Navbar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DetailedReport, OfflineRecommendation, ReportCategoryContent } from "@/types/offline"; // Import types
 import {
@@ -7,8 +8,15 @@ import {
   CheckCircle,
   Kanban,
   PlayCircle,
-  ThumbsUp
+  ThumbsUp,
+  Eye
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -137,6 +145,7 @@ export const ActionPlan: React.FC = () => {
   const [groupedRecs, setGroupedRecs] = React.useState<
     Record<string, KanbanRecommendation[]>
   >({});
+  const [selectedTask, setSelectedTask] = React.useState<KanbanRecommendation | null>(null);
 
   React.useEffect(() => {
     if (data?.report) {
@@ -297,7 +306,7 @@ export const ActionPlan: React.FC = () => {
               {Object.entries(groupedRecs).map(([assessmentName, recs]) => (
                 <div key={assessmentName}>
                   <h2 className="text-2xl font-bold text-dgrv-blue mb-4">{assessmentName}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-300px)]">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-320px)] min-h-[500px]">
                     {columns.map((column) => {
                       const columnTasks = recs.filter(
                         (rec) => rec.status === column.id,
@@ -329,17 +338,21 @@ export const ActionPlan: React.FC = () => {
                                 columnTasks.map((task) => (
                                   <Card
                                     key={task.id}
-                                    className={`${getStatusColor(task.status)} flex-shrink-0`}
+                                    className={`${getStatusColor(task.status)} flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow`}
+                                    onClick={() => setSelectedTask(task)}
                                   >
                                     <CardContent className="p-4">
                                       <div className="flex flex-col gap-1">
-                                        <div className="font-bold text-dgrv-blue mb-1">
-                                          {task.category}
+                                        <div className="flex items-center justify-between mb-1">
+                                          <div className="font-bold text-dgrv-blue text-xs uppercase tracking-wider truncate">
+                                            {task.category}
+                                          </div>
+                                          <Eye className="w-3 h-3 text-gray-400" />
                                         </div>
-                                        <div className="text-sm text-gray-900 mb-2">
+                                        <div className="text-sm text-gray-900 mb-2 line-clamp-3 leading-relaxed">
                                           {task.recommendation}
                                         </div>
-                                        <div className="flex gap-2 mt-2">
+                                        <div className="flex gap-2 mt-auto pt-2 border-t border-black/5">
                                           {isAdmin && task.status === "todo" && (
                                             <button
                                               className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
@@ -444,6 +457,106 @@ export const ActionPlan: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Recommendation Detail Modal */}
+      <Dialog open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              {selectedTask && getStatusIcon(selectedTask.status)}
+              <Badge variant="outline" className="text-xs">
+                {selectedTask && columns.find(c => c.id === selectedTask.status)?.title}
+              </Badge>
+            </div>
+            <DialogTitle className="text-2xl font-bold text-dgrv-blue">
+              {selectedTask?.category}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <h4 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Recommendation</h4>
+            <div className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-lg border">
+              {selectedTask?.recommendation}
+            </div>
+
+            {selectedTask && (
+              <div className="mt-6 flex flex-wrap gap-3 pt-6 border-t">
+                {isAdmin && selectedTask.status === "todo" && (
+                  <Button
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => {
+                      moveRecommendation(selectedTask.assessment_name || "", selectedTask.id, "in_progress");
+                      setSelectedTask(null);
+                    }}
+                  >
+                    Move to In Progress
+                  </Button>
+                )}
+                {isAdmin && selectedTask.status === "in_progress" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        moveRecommendation(selectedTask.assessment_name || "", selectedTask.id, "todo");
+                        setSelectedTask(null);
+                      }}
+                    >
+                      Back to To Do
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        moveRecommendation(selectedTask.assessment_name || "", selectedTask.id, "done");
+                        setSelectedTask(null);
+                      }}
+                    >
+                      Move to Done
+                    </Button>
+                  </>
+                )}
+                {isAdmin && selectedTask.status === "done" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        moveRecommendation(selectedTask.assessment_name || "", selectedTask.id, "in_progress");
+                        setSelectedTask(null);
+                      }}
+                    >
+                      Back to In Progress
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => {
+                        moveRecommendation(selectedTask.assessment_name || "", selectedTask.id, "approved");
+                        setSelectedTask(null);
+                      }}
+                    >
+                      Approve
+                    </Button>
+                  </>
+                )}
+                {isAdmin && selectedTask.status === "approved" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      moveRecommendation(selectedTask.assessment_name || "", selectedTask.id, "done");
+                      setSelectedTask(null);
+                    }}
+                  >
+                    Back to Done
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
