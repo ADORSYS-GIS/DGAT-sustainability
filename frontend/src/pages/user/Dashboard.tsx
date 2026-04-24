@@ -238,20 +238,38 @@ export const Dashboard: React.FC = () => {
         const categoryRecommendations = Array.isArray(categoryData?.recommendations)
           ? categoryData.recommendations
           : [];
-        return categoryRecommendations.map((rec) => ({
-          recommendation_id: rec.id,
-          report_id: report.report_id,
-          assessment_id: report.assessment_id,
-          assessment_name: report.assessment_name,
-          category,
-          recommendation: rec.text,
-          status: (rec.status as RecommendationWithStatus["status"]) || "todo",
-          created_at: report.generated_at,
+        return categoryRecommendations
+          .filter((rec) => rec.text !== "No recommendation provided" && rec.text !== "No action plan given")
+          .map((rec) => ({
+            recommendation_id: rec.id,
+            report_id: report.report_id,
+            assessment_id: report.assessment_id,
+            assessment_name: report.assessment_name,
+            category,
+            recommendation: rec.text,
+            status: (rec.status as RecommendationWithStatus["status"]) || "todo",
+            created_at: report.generated_at,
         }));
       }
     );
 
-    return { submissions, recommendations };
+    // Deduplicate recommendations by category + recommendation text (same logic as admin)
+    const deduplicatedMap = new Map<string, RecommendationWithStatus>();
+    
+    recommendations.forEach((rec) => {
+      const normalizedCategory = rec.category.toLowerCase().trim();
+      const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
+      
+      // Keep the most recent recommendation if duplicates exist
+      if (!deduplicatedMap.has(key) ||
+        new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
+        deduplicatedMap.set(key, rec);
+      }
+    });
+
+    const deduplicatedRecommendations = Array.from(deduplicatedMap.values());
+
+    return { submissions, recommendations: deduplicatedRecommendations };
   };
 
   const handleSelectReportToExport = async (report: { report_id: string }) => {

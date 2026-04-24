@@ -108,6 +108,7 @@ const normalizeGenericReportData = (data: unknown): NormalizedCategory[] => {
     });
     const recommendations = Array.isArray(obj.recommendations)
       ? (obj.recommendations as { id: string; text: string; status: string }[])
+        .filter(rec => rec.text !== "No recommendation provided" && rec.text !== "No action plan given")
       : [];
     if (responses.length > 0 || recommendations.length > 0) {
       categories.push({ name: key, responses, recommendations });
@@ -289,20 +290,38 @@ export const ReportHistory: React.FC = () => {
         const categoryRecommendations = Array.isArray(categoryData?.recommendations)
           ? categoryData.recommendations
           : [];
-        return categoryRecommendations.map((rec) => ({
-          recommendation_id: rec.id,
-          report_id: report.report_id,
-          category,
-          recommendation: rec.text,
-          status: (rec.status as RecommendationWithStatus["status"]) || "todo",
-          created_at: report.generated_at,
-          assessment_id: report.submission_id || '',
-          assessment_name: report.assessment_name || 'Unknown Assessment',
+        return categoryRecommendations
+          .filter((rec) => rec.text !== "No recommendation provided" && rec.text !== "No action plan given")
+          .map((rec) => ({
+            recommendation_id: rec.id,
+            report_id: report.report_id,
+            category,
+            recommendation: rec.text,
+            status: (rec.status as RecommendationWithStatus["status"]) || "todo",
+            created_at: report.generated_at,
+            assessment_id: report.submission_id || '',
+            assessment_name: report.assessment_name || 'Unknown Assessment',
         }));
       }
     );
 
-    return { submissions, recommendations };
+    // Deduplicate recommendations by category + recommendation text (same logic as admin)
+    const deduplicatedMap = new Map<string, RecommendationWithStatus>();
+    
+    recommendations.forEach((rec) => {
+      const normalizedCategory = rec.category.toLowerCase().trim();
+      const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
+      
+      // Keep the most recent recommendation if duplicates exist
+      if (!deduplicatedMap.has(key) ||
+        new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
+        deduplicatedMap.set(key, rec);
+      }
+    });
+
+    const deduplicatedRecommendations = Array.from(deduplicatedMap.values());
+
+    return { submissions, recommendations: deduplicatedRecommendations };
   };
 
   useEffect(() => {
@@ -618,7 +637,11 @@ export const ReportHistory: React.FC = () => {
                 <div className="mt-6 space-y-3">
                   {categories.length > 0 ? (
                     categories.map(category => {
-                      const recsForCategory = recommendations.filter(r => r.category === category);
+                      const recsForCategory = recommendations.filter(r => 
+                        r.category === category && 
+                        r.recommendation !== "No recommendation provided" && 
+                        r.recommendation !== "No action plan given"
+                      );
                       const responsesForCategory = responses
                         .filter(r => r.question_category === category)
                         .sort((a, b) => {

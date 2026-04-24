@@ -83,7 +83,7 @@ export const ActionPlan: React.FC = () => {
     return [map, textMap, catMap];
   }, [questionsData, categoriesData]);
 
-  type KanbanRecommendation = OfflineRecommendation & { id: string; assessment_name?: string };
+  type KanbanRecommendation = OfflineRecommendation & { id: string; assessment_name?: string; created_at: string };
 
   const groupRecommendationsByAssessment = (
     report: DetailedReport,
@@ -97,6 +97,8 @@ export const ActionPlan: React.FC = () => {
       const dataItems = Array.isArray(report.data)
         ? report.data
         : Object.entries(report.data).map(([key, value]) => ({ [key]: value }));
+
+      const allRecommendations: KanbanRecommendation[] = [];
 
       dataItems.forEach((categoryData) => {
         Object.keys(categoryData).forEach((categoryKey) => {
@@ -119,12 +121,9 @@ export const ActionPlan: React.FC = () => {
           const recommendations = categoryContent?.recommendations;
           if (recommendations) {
             recommendations.forEach((rec) => {
-              if (rec.text !== "No recommendation provided") {
+              if (rec.text !== "No recommendation provided" && rec.text !== "No action plan given") {
                 const assessmentName = report.assessment_name || "Unknown Assessment";
-                if (!grouped[assessmentName]) {
-                  grouped[assessmentName] = [];
-                }
-                grouped[assessmentName].push({
+                allRecommendations.push({
                   recommendation_id: rec.id,
                   report_id: report.report_id,
                   category,
@@ -132,11 +131,35 @@ export const ActionPlan: React.FC = () => {
                   status: rec.status,
                   id: rec.id,
                   assessment_name: assessmentName,
+                  created_at: report.generated_at || new Date().toISOString(),
                 } as KanbanRecommendation);
               }
             });
           }
         });
+      });
+
+      // Deduplicate recommendations by category + recommendation text (same logic as admin)
+      const deduplicatedMap = new Map<string, KanbanRecommendation>();
+      
+      allRecommendations.forEach((rec) => {
+        const normalizedCategory = rec.category.toLowerCase().trim();
+        const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
+        
+        // Keep the most recent recommendation if duplicates exist
+        if (!deduplicatedMap.has(key) ||
+          new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
+          deduplicatedMap.set(key, rec);
+        }
+      });
+
+      // Group deduplicated recommendations by assessment
+      Array.from(deduplicatedMap.values()).forEach((rec) => {
+        const assessmentName = rec.assessment_name || "Unknown Assessment";
+        if (!grouped[assessmentName]) {
+          grouped[assessmentName] = [];
+        }
+        grouped[assessmentName].push(rec);
       });
     }
     return grouped;

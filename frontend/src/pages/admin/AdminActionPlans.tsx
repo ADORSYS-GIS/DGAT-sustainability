@@ -95,7 +95,7 @@ const AdminActionPlans: React.FC = () => {
     },
   ];
 
-  // Filter recommendations by status and deduplicate by category
+  // Filter recommendations by status and deduplicate by category + recommendation text
   const getTasksByStatus = (status: string) => {
     if (!selectedAssessment || !selectedOrganization) {
       return [];
@@ -112,6 +112,7 @@ const AdminActionPlans: React.FC = () => {
     );
 
     // Deduplicate by category and recommendation text (normalize category names)
+    // This matches the admin backend logic
     const deduplicatedMap = new Map<string, OfflineRecommendation>();
 
     filteredRecommendations.forEach((rec) => {

@@ -32,7 +32,7 @@ export const getActionPlans = async () => {
                   const recommendations = categoryData[category]?.recommendations;
                   if (recommendations && Array.isArray(recommendations)) {
                     recommendations.forEach((rec: { id: string; text: string; status: "todo" | "in_progress" | "done" | "approved"; }) => {
-                      if (rec.text !== 'No recommendation provided') {
+                      if (rec.text !== 'No recommendation provided' && rec.text !== 'No action plan given') {
                         const now = new Date().toISOString();
                         org.recommendations.push({
                           recommendation_id: rec.id,
@@ -60,6 +60,25 @@ export const getActionPlans = async () => {
           }
         }
       }
+
+      // Deduplicate recommendations for each organization (same logic as admin backend)
+      organizationsMap.forEach((org) => {
+        const deduplicatedMap = new Map<string, OfflineRecommendation>();
+        
+        org.recommendations.forEach((rec) => {
+          const normalizedCategory = rec.category.toLowerCase().trim();
+          const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
+          
+          // Keep the most recent recommendation if duplicates exist
+          if (!deduplicatedMap.has(key) ||
+            new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
+            deduplicatedMap.set(key, rec);
+          }
+        });
+        
+        org.recommendations = Array.from(deduplicatedMap.values());
+      });
+
       return { organizations: Array.from(organizationsMap.values()) };
     },
     'action-plans'
