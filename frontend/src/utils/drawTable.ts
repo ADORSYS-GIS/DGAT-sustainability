@@ -74,7 +74,6 @@ export const drawAssessmentsTable = (
   doc: jsPDF,
   submissions: AdminSubmissionDetail[],
   recommendations: RecommendationWithStatus[],
-  startY: number,
   organizationName?: string,
   assessmentName?: string
 ) => {
@@ -84,9 +83,28 @@ export const drawAssessmentsTable = (
 
   const groupedData = groupDataByCategory(submissions);
   const styles = getTableStyles();
-  let isFirstCategory = true;
   const sectionTitle = "Detailed Assessment Results";
   const fullTitle = assessmentName ? `${sectionTitle} - ${assessmentName}` : sectionTitle;
+
+  // Add the section's first page and introduction
+  doc.addPage();
+  addHeader(doc);
+  doc.setFontSize(18);
+  doc.setTextColor(30, 58, 138); // dgrvBlue
+  doc.setFont("helvetica", "bold");
+  doc.text(sectionTitle, 14, 28);
+
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "normal");
+  const tableIntro = "The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations.";
+  const introLines = doc.splitTextToSize(tableIntro, doc.internal.pageSize.getWidth() - 28);
+  doc.text(introLines, 14, 36);
+
+  const introTextHeight = doc.getTextDimensions(introLines).h;
+  const initialTableY = 36 + introTextHeight + 10;
+
+  let isFirstCategory = true;
 
   Object.keys(groupedData).forEach(category => {
     const tableData = groupedData[category];
@@ -96,34 +114,27 @@ export const drawAssessmentsTable = (
       .join("\n");
 
     const body = tableData.map((row, index) => {
-      const rowContent: (string | { content: string; rowSpan: number; styles: { valign: 'middle' } })[] = [
+      return [
         row.question,
         row.answer,
         row.percentage,
         row.textAnswer,
+        index === 0 ? (categoryRecs || "") : "", // Keep data in first row of category but as regular cell
       ];
-      if (index === 0) {
-        rowContent.push({
-          content: categoryRecs || "", // Leave empty instead of showing "No recommendations for this category."
-          rowSpan: tableData.length,
-          styles: { valign: 'middle' },
-        });
-      }
-      return rowContent;
     });
 
     let currentY;
     if (isFirstCategory) {
-      currentY = startY;
+      currentY = initialTableY;
       isFirstCategory = false;
     } else {
-      currentY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || startY;
+      currentY = (doc as jsPDFWithAutoTable).lastAutoTable?.finalY || initialTableY;
 
       // If the next category title wouldn't fit on this page, start a new page
       if (currentY + 40 > doc.internal.pageSize.height) {
         doc.addPage();
         addHeader(doc);
-        currentY = 38; // Start below the header + title area (increased from 34 to 38)
+        currentY = 38;
       }
     }
 
@@ -147,12 +158,17 @@ export const drawAssessmentsTable = (
       body: body as UserOptions['body'],
       ...styles,
       didDrawPage: (data) => {
-        // Apply header and title to every page of the table
+        // Apply header and title to every page of the table EXCEPT the one that autoTable just added if we already handled it?
+        // Actually, autoTable didDrawPage runs after each page finish.
         addHeader(doc);
         doc.setFontSize(16);
         doc.setTextColor(30, 58, 138);
         doc.setFont("helvetica", "bold");
-        doc.text(fullTitle, 14, 26); // Moved down from 22 to 26 to avoid overlay
+
+        // We only draw the title on pages that are not where the section started, 
+        // to avoid double drawing if drawAssessmentsTable already drew it.
+        // Or we just rely on standard spacing.
+        doc.text(fullTitle, 14, 26);
 
         if (organizationName) {
           doc.setFontSize(9);

@@ -197,21 +197,8 @@ export async function exportAllAssessmentsPDF(
   }
 
   // --- Detailed Assessments Table Section ---
-  addNewPageWithHeader(doc);
-  doc.setFontSize(18);
-  doc.setTextColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
-  doc.text("Detailed Assessment Results", PAGE_MARGIN, 28); // Moved down from 24 to 28
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  const tableIntro = "The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations.";
-  const introLines = doc.splitTextToSize(tableIntro, pageWidth - (PAGE_MARGIN * 2));
-  doc.text(introLines, PAGE_MARGIN, 36); // Moved down from 32 to 36
-  const introTextHeight = doc.getTextDimensions(introLines).h;
-
-  const tableStartY = 36 + introTextHeight + 14; // Increased spacing from 12 to 14
-
-  // drawAssessmentsTable will now start on the current page at the calculated Y position.
-  drawAssessmentsTable(doc, submissions, recommendations, tableStartY, organizationName, assessmentName);
+  // drawAssessmentsTable now handles its own section start and page management.
+  drawAssessmentsTable(doc, submissions, recommendations, organizationName, assessmentName);
 
   // --- Action Plan Kanban Board Section ---
   addNewPageWithHeader(doc);

@@ -29,6 +29,6 @@ export const getTableStyles = (): Partial<UserOptions> => ({
     1: { cellWidth: 20 }, // Answer
     2: { cellWidth: 25 }, // Percentage
     3: { cellWidth: 60 }, // Text Answer
-    4: { cellWidth: 'auto' }, // Recommendations
+    4: { cellWidth: 104 }, // Recommendations
   },
 });

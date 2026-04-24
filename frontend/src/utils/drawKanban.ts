@@ -67,7 +67,7 @@ const drawCard = (doc: jsPDF, x: number, y: number, width: number, recommendatio
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.dgrvBlue[0], COLORS.dgrvBlue[1], COLORS.dgrvBlue[2]);
   doc.text(recommendation.category, x + CARD_PADDING, y + CARD_PADDING + 2);
-  
+
   // Recommendation Text
   doc.setFont("helvetica", "normal");
   doc.setFontSize(FONT_SIZES.cardText);
@@ -147,9 +147,9 @@ export const drawKanbanBoard = (
     columns.forEach((column, index) => {
       const columnX = PAGE_MARGIN + index * (COLUMN_WIDTH + COLUMN_MARGIN);
       const tasks = tasksByColumn.get(column.id) || [];
-      
+
       for (const task of tasks) {
-        const taskId = `${task.category}-${task.recommendation}`;
+        const taskId = task.recommendation_id;
         if (drawnTasks.has(taskId)) continue;
 
         const estCardHeight = (doc.splitTextToSize(task.recommendation, COLUMN_WIDTH - 2 * CARD_PADDING).length * 4) + 20;
@@ -172,9 +172,9 @@ export const drawKanbanBoard = (
       drawColumns(doc, startY, columns, tasksByColumn);
       cardYPositions.fill(cardStartY); // Reset Y positions for new page
     } else if (tasksToDraw > 0 && !pageHasContent) {
-        // Handle case where a single card is too large for a page
-        console.error("A card is too large to fit on a single page and was skipped.");
-        break;
+      // Handle case where a single card is too large for a page
+      console.error("A card is too large to fit on a single page and was skipped.");
+      break;
     }
   }
 };
