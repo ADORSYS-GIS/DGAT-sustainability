@@ -292,9 +292,9 @@ export const ActionPlan: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 kanban-page">
       <Navbar />
-      <div className="pb-8">
+      <div className="kanban-page-content">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 animate-fade-in">
@@ -329,14 +329,14 @@ export const ActionPlan: React.FC = () => {
               {Object.entries(groupedRecs).map(([assessmentName, recs]) => (
                 <div key={assessmentName}>
                   <h2 className="text-2xl font-bold text-dgrv-blue mb-4">{assessmentName}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-320px)] min-h-[500px]">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 kanban-container">
                     {columns.map((column) => {
                       const columnTasks = recs.filter(
                         (rec) => rec.status === column.id,
                       );
                       const IconComponent = column.icon;
                       return (
-                        <Card key={column.id} className="animate-fade-in flex flex-col h-full">
+                        <Card key={column.id} className="animate-fade-in kanban-column">
                           <CardHeader className="pb-3 flex-shrink-0">
                             <CardTitle
                               className={`flex items-center space-x-2 ${column.color}`}
@@ -348,8 +348,8 @@ export const ActionPlan: React.FC = () => {
                               </Badge>
                             </CardTitle>
                           </CardHeader>
-                          <CardContent className="flex-1 overflow-hidden">
-                            <div className="h-full overflow-y-auto pr-2 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                          <CardContent className="flex-1 overflow-hidden p-4">
+                            <div className="kanban-column-content space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                               {columnTasks.length === 0 ? (
                                 <div className="text-center py-8 text-gray-500">
                                   <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />

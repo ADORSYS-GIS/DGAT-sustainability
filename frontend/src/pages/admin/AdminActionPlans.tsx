@@ -251,7 +251,7 @@ const AdminActionPlans: React.FC = () => {
   // Show selected organization's action plan
   return (
     <>
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 kanban-page">
         {/* Header content ... */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
@@ -293,12 +293,12 @@ const AdminActionPlans: React.FC = () => {
             <p className="text-gray-600">{actionPlansError.message}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 h-[calc(100vh-220px)] min-h-[500px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 kanban-container">
             {columns.map((column) => {
               const columnTasks = getTasksByStatus(column.id);
               const IconComponent = column.icon;
               return (
-                <Card key={column.id} className="animate-fade-in flex flex-col h-full">
+                <Card key={column.id} className="animate-fade-in kanban-column">
                   <CardHeader className="pb-3 flex-shrink-0">
                     <CardTitle
                       className={`flex items-center space-x-2 ${column.color}`}
@@ -310,8 +310,8 @@ const AdminActionPlans: React.FC = () => {
                       </Badge>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="flex-1 overflow-hidden">
-                    <div className="h-full overflow-y-auto pr-2 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  <CardContent className="flex-1 overflow-hidden p-4">
+                    <div className="kanban-column-content space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                       {columnTasks.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                           <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
