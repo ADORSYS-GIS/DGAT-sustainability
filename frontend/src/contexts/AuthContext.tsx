@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { keycloak } from "../services/shared/keycloakConfig";
 import {
   getAuthState,
+  getStoredUserProfile,
   login as authLogin,
   logout as authLogout,
   initializeAuth,
@@ -25,27 +26,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
-    const updateAuthState = () => {
+    const updateAuthState = async () => {
       const state = getAuthState();
-      setAuthState(state);
+
+      // If Keycloak says not authenticated but we're offline, try the stored profile
+      if (!state.isAuthenticated && !navigator.onLine) {
+        const storedProfile = await getStoredUserProfile();
+        if (storedProfile) {
+          console.log("Offline: restoring auth state from stored profile.");
+          setAuthState({
+            isAuthenticated: true,
+            user: storedProfile,
+            roles: storedProfile.roles || storedProfile.realm_access?.roles || [],
+            loading: false,
+          });
+          return;
+        }
+      }
+
+      setAuthState({ ...state, loading: false });
     };
 
     const initializeKeycloak = async () => {
+      // Fast path: if offline, immediately restore from stored profile before doing anything else
+      if (!navigator.onLine) {
+        const storedProfile = await getStoredUserProfile();
+        if (storedProfile) {
+          console.log("Offline fast path: restoring session immediately.");
+          setAuthState({
+            isAuthenticated: true,
+            user: storedProfile,
+            roles: storedProfile.roles || storedProfile.realm_access?.roles || [],
+            loading: false,
+          });
+          // Still run initializeAuth in background to set up keycloak.tokenParsed
+          initializeAuth().catch(() => {});
+          return;
+        }
+      }
+
       // Prevent re-initialization if we already have a valid token
       if (keycloak.authenticated || keycloak.token) {
-        updateAuthState();
+        await updateAuthState();
         return;
       }
 
       try {
         const authenticated = await initializeAuth();
-        if (authenticated) {
+        if (authenticated && navigator.onLine) {
           setupTokenRefresh();
         }
       } catch (error) {
         console.error("Failed to initialize Keycloak in AuthProvider:", error);
       } finally {
-        updateAuthState();
+        await updateAuthState();
       }
     };
 
@@ -59,16 +93,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("User logged out (AuthProvider)");
       setAuthState({ isAuthenticated: false, user: null, roles: [], loading: false });
     };
-    const onAuthError = (error) => {
+    const onAuthError = (error: unknown) => {
       console.error("Authentication error (AuthProvider):", error);
+      // Don't clear auth state on error if offline — keep the stored session
+      if (!navigator.onLine) {
+        console.log("Offline: ignoring auth error, keeping existing state.");
+        updateAuthState();
+        return;
+      }
       setAuthState({ isAuthenticated: false, user: null, roles: [], loading: false });
     };
     const onTokenExpired = () => {
       console.log("Token expired, attempting refresh... (AuthProvider)");
+      if (!navigator.onLine) {
+        console.log("Offline — skipping token refresh, keeping existing auth state.");
+        return;
+      }
       keycloak.updateToken(30).then(refreshed => {
         if (refreshed) {
           updateAuthState();
         }
+      }).catch(err => {
+        console.warn("Token refresh failed:", err);
       });
     };
 

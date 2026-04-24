@@ -126,6 +126,24 @@ export function useOfflineDraftAssessments() {
     fetchData();
   }, [fetchData]);
 
+  // Listen for cache invalidation events
+  useEffect(() => {
+    const handleDataSync = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.entityType === 'assessments' || 
+          customEvent.detail.entityType === 'draft_assessments' ||
+          customEvent.detail.entityType === 'submissions') {
+        console.log('🔍 useOfflineDraftAssessments: Received datasync event, refetching...', customEvent.detail.entityType);
+        fetchData();
+      }
+    };
+
+    window.addEventListener('datasync', handleDataSync);
+    return () => {
+      window.removeEventListener('datasync', handleDataSync);
+    };
+  }, [fetchData]);
+
   return { data, isLoading, error, refetch: fetchData };
 }
 
@@ -537,9 +555,9 @@ export function useOfflineAssessmentsMutation() {
         async () => {
           // Optimistic update is already done by saving the temp submission.
         },
-        { assessmentId } as Record<string, unknown>,
+        { assessmentId, tempId } as Record<string, unknown>,
         'draft_submission',
-        'create'
+        'submit'
       );
 
       type SubmissionResponse = { submission: Submission };

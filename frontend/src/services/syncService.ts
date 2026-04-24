@@ -511,6 +511,16 @@ export class SyncService {
                 );
                 await offlineDB.saveAssessment(finalOfflineAssessment);
 
+                // Re-associate any responses that were saved against the temp assessment ID
+                const tempResponses = await offlineDB.getResponsesByAssessment(item.entity_id!);
+                if (tempResponses.length > 0) {
+                  console.log(`🔄 Re-associating ${tempResponses.length} responses from temp ID ${item.entity_id} to real ID ${realAssessment.assessment_id}`);
+                  for (const tempResponse of tempResponses) {
+                    // Save with the real assessment_id (same response_id is fine — just updating the field)
+                    await offlineDB.saveResponse({ ...tempResponse, assessment_id: realAssessment.assessment_id });
+                  }
+                }
+
                 result.added++;
                 console.log(`✅ Successfully synced pending assessment creation: ${pendingAssessment.name} -> ${realAssessment.assessment_id}`);
               } else {
@@ -598,11 +608,14 @@ export class SyncService {
       const serverSubmissionsResponse = await SubmissionsService.getSubmissions();
       const serverSubmissions = serverSubmissionsResponse.submissions;
 
-      // If server returns no submissions, clear the local store completely
+      // If server returns no submissions, only clear synced ones — keep pending offline submissions
       if (serverSubmissions.length === 0) {
         const currentLocalSubmissions = await offlineDB.getAllSubmissions();
-        await offlineDB.clearStore('submissions');
-        result.deleted = currentLocalSubmissions.length;
+        const toDelete = currentLocalSubmissions.filter(s => s.sync_status !== 'pending');
+        for (const s of toDelete) {
+          await offlineDB.deleteSubmission(s.submission_id);
+        }
+        result.deleted = toDelete.length;
         return result;
       }
 
@@ -612,26 +625,28 @@ export class SyncService {
       const localSubmissions = await offlineDB.getAllSubmissions();
       const localSubmissionIds = new Set(localSubmissions.map(s => s.submission_id));
 
-      // Find submissions to add/update
+      // Find submissions to add/update — skip local pending ones to avoid overwriting offline work
       for (const serverSubmission of serverSubmissions) {
         const localSubmission = localSubmissions.find(s => s.submission_id === serverSubmission.submission_id);
 
         if (!localSubmission) {
-          // Add new submission
           const offlineSubmission = DataTransformationService.transformSubmission(serverSubmission);
           await offlineDB.saveSubmission(offlineSubmission);
           result.added++;
         } else {
-          // Update existing submission if different
+          // Don't overwrite a pending local submission with server data
+          if (localSubmission.sync_status === 'pending') {
+            continue;
+          }
           const offlineSubmission = DataTransformationService.transformSubmission(serverSubmission);
           await offlineDB.saveSubmission(offlineSubmission);
           result.updated++;
         }
       }
 
-      // Find submissions to delete (local submissions not on server)
+      // Find submissions to delete (local submissions not on server) — but keep pending ones
       for (const localSubmission of localSubmissions) {
-        if (!serverSubmissionIds.has(localSubmission.submission_id)) {
+        if (!serverSubmissionIds.has(localSubmission.submission_id) && localSubmission.sync_status !== 'pending') {
           await offlineDB.deleteSubmission(localSubmission.submission_id);
           result.deleted++;
         }
@@ -1050,36 +1065,27 @@ export class SyncService {
 
       for (const item of draftSubmissionSyncItems) {
         try {
-          const submissionId = item.entity_id;
-          if (!submissionId) {
-            console.error(`[SyncService] No entity_id found for sync queue item: ${item.id}`);
-            result.errors.push(`No entity_id found for sync queue item: ${item.id}`);
-            await offlineDB.removeFromSyncQueue(item.id); // Remove invalid item
-            continue;
-          }
+          // assessmentId is stored directly in item.data or as entity_id
+          const itemData = item.data as { assessmentId?: string; tempId?: string };
+          const assessmentId = itemData?.assessmentId || item.entity_id;
 
-          const draft = await offlineDB.getDraftSubmission(submissionId);
-          if (!draft) {
-            console.warn(`[SyncService] Draft submission with ID ${submissionId} not found in local DB, assuming already synced or deleted.`);
+          if (!assessmentId) {
+            console.error(`[SyncService] No assessmentId found for sync queue item: ${item.id}`);
+            result.errors.push(`No assessmentId found for sync queue item: ${item.id}`);
             await offlineDB.removeFromSyncQueue(item.id);
             continue;
           }
 
-          const assessmentId = draft.assessment_id;
-          if (!assessmentId) {
-            console.error(`[SyncService] No assessment_id found for draft submission: ${submissionId}`);
-            result.errors.push(`No assessment_id found for draft submission: ${submissionId}`);
-            await offlineDB.removeFromSyncQueue(item.id); // Remove invalid item
-            continue;
+          await AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId });
+
+          // Clean up the temp submission from the submissions store and remove from queue
+          const tempId = itemData?.tempId;
+          if (tempId) {
+            await offlineDB.deleteSubmission(tempId);
           }
-
-          await AssessmentsService.postAssessmentsByAssessmentIdSubmit({ assessmentId });
-
-          // If successful, remove the draft from local draft_submissions and the sync queue
-          await offlineDB.deleteDraftSubmission(submissionId);
           await offlineDB.removeFromSyncQueue(item.id);
-          result.updated++; // Represents a successful sync and removal
-          console.log(`✅ Successfully synced draft submission: ${submissionId}`);
+          result.updated++;
+          console.log(`✅ Successfully synced draft submission for assessment: ${assessmentId}`);
         } catch (error) {
           console.error(`❌ Failed to sync draft submission ${item.entity_id}:`, error);
           result.errors.push(`Failed to sync draft submission ${item.entity_id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1087,11 +1093,15 @@ export class SyncService {
           // Increment retry count and update sync queue item
           item.retry_count++;
           if (item.retry_count >= item.max_retries) {
-            // Mark as failed if max retries reached
-            const failedDraft = await offlineDB.getDraftSubmission(item.entity_id!);
-            if (failedDraft) {
-              failedDraft.sync_status = 'failed';
-              await offlineDB.saveDraftSubmission(failedDraft);
+            // Mark as failed if max retries reached — update the temp submission status
+            const itemData2 = item.data as { assessmentId?: string; tempId?: string };
+            const failedTempId = itemData2?.tempId;
+            if (failedTempId) {
+              const failedSubmission = await offlineDB.getSubmission(failedTempId);
+              if (failedSubmission) {
+                failedSubmission.sync_status = 'failed';
+                await offlineDB.saveSubmission(failedSubmission);
+              }
             }
             await offlineDB.removeFromSyncQueue(item.id); // Remove from queue after max retries
             console.error(`❌ Draft submission sync item ${item.id} failed after ${item.max_retries} retries.`);

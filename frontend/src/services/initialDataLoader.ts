@@ -353,14 +353,23 @@ export class InitialDataLoader {
     try {
       this.updateProgress('Loading responses...', 1);
 
-      // Load responses for user's assessments
-      const assessments = await offlineDB.getAssessmentsByUser(userContext.userId);
+      // Load responses for user's assessments.
+      // Try by userId first; fall back to all draft assessments if none found
+      // (user_id may not be stored on older cached assessments).
+      let assessments = await offlineDB.getAssessmentsByUser(userContext.userId);
+      if (assessments.length === 0) {
+        assessments = await offlineDB.getAssessmentsByStatus('draft');
+      }
 
       for (const assessment of assessments) {
         try {
-          // Validate assessment ID
           if (!assessment.assessment_id || assessment.assessment_id.trim() === '') {
             console.warn('⚠️ Skipping assessment with empty assessment_id:', assessment);
+            continue;
+          }
+
+          // Skip temp assessments — they don't exist on the server yet
+          if (assessment.assessment_id.startsWith('temp_')) {
             continue;
           }
 
@@ -372,7 +381,6 @@ export class InitialDataLoader {
 
           if (responsesData?.responses) {
             const questions = await offlineDB.getAllQuestions();
-            // Get current language from localStorage or default to "en"
             const currentLanguage = typeof window !== 'undefined' ?
               localStorage.getItem('i18n_language') || "en" : "en";
             const transformedResponses = DataTransformationService.transformResponsesWithContext(

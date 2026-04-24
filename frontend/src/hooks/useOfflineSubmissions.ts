@@ -201,6 +201,9 @@ export function useOfflineSubmissionsMutation() {
         throw error;
       }
 
+      // Store the assessment_id before deletion for cache invalidation
+      const assessmentId = existingSubmission.assessment_id;
+
       // Try to delete from the API first
       const result = await apiInterceptor.interceptMutation(
         async () => {
@@ -222,6 +225,23 @@ export function useOfflineSubmissionsMutation() {
       if (result) {
         await offlineDB.deleteSubmission(submissionId);
       }
+
+      // CRITICAL: When a submission is deleted, the backend also deletes the associated assessment
+      // We need to remove it from the local cache to prevent it from appearing as a draft assessment
+      if (assessmentId) {
+        console.log('🔍 deleteSubmission: Removing associated assessment from cache', assessmentId);
+        try {
+          await offlineDB.deleteAssessment(assessmentId);
+        } catch (assessmentDeleteError) {
+          console.warn('⚠️ Failed to delete associated assessment from cache:', assessmentDeleteError);
+          // Don't fail the entire operation if assessment deletion fails
+        }
+      }
+
+      // Dispatch cache invalidation events for both submissions and assessments
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'submissions' } }));
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'assessments' } }));
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'draft_assessments' } }));
 
       const successResult = { 
         success: true, 

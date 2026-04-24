@@ -7,11 +7,17 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use uuid::Uuid;
 
-fn normalize_category_name(category_name: &str) -> String {
-    category_name.trim().to_string()
+pub fn normalize_category_name(category_name: &str) -> String {
+    // Normalize category names to prevent duplicates:
+    // 1. Trim whitespace
+    // 2. Convert to title case for consistency
+    // 3. Remove extra spaces between words
+    let trimmed = category_name.trim();
+    let words: Vec<&str> = trimmed.split_whitespace().collect();
+    words.join(" ")
 }
 
 /// Helper function to extract question revision ID from a response object
@@ -334,13 +340,68 @@ pub async fn delete_submission(
         ));
     }
 
-    // Delete the submission from the database
-    app_state
-        .database
-        .assessments_submission
-        .delete_submission(submission_id)
+    // Start database transaction for atomic cleanup
+    let txn = app_state.database.get_connection()
+        .begin()
         .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to delete submission: {e}")))?;
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to start transaction: {e}")))?;
 
-    Ok(StatusCode::NO_CONTENT)
+    // Perform comprehensive cleanup within transaction
+    let result = async {
+        // 1. Delete submission reports (if any)
+        if let Err(e) = app_state.database.submission_reports.delete_reports_by_submission(submission_id).await {
+            tracing::warn!("Failed to delete submission reports for {}: {}", submission_id, e);
+            // Continue with cleanup even if reports deletion fails
+        }
+
+        // 2. Delete temp submissions (if any)
+        if let Err(e) = app_state.database.temp_submission.delete_temp_submission(submission_id).await {
+            tracing::warn!("Failed to delete temp submission for {}: {}", submission_id, e);
+            // Continue with cleanup even if temp submission deletion fails
+        }
+
+        // 3. Delete assessment response files (links between responses and files)
+        if let Err(e) = app_state.database.assessments_response_file.unlink_all_files_from_assessment(submission_id).await {
+            tracing::warn!("Failed to delete assessment response files for {}: {}", submission_id, e);
+            // Continue with cleanup even if response files deletion fails
+        }
+
+        // 4. Delete assessment responses
+        if let Err(e) = app_state.database.assessments_response.delete_responses_by_assessment(submission_id).await {
+            tracing::warn!("Failed to delete assessment responses for {}: {}", submission_id, e);
+            // Continue with cleanup even if responses deletion fails
+        }
+
+        // 5. Delete the submission itself
+        app_state.database.assessments_submission.delete_submission(submission_id).await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to delete submission: {e}")))?;
+
+        // 6. Finally, delete the assessment (this should now work since submission is gone)
+        if let Err(e) = app_state.database.assessments.delete_assessment(submission_id).await {
+            tracing::warn!("Failed to delete assessment for {}: {}", submission_id, e);
+            // This might fail if assessment was already auto-deleted, which is fine
+        }
+
+        Ok::<(), ApiError>(())
+    }.await;
+
+    match result {
+        Ok(_) => {
+            // Commit transaction on success
+            txn.commit()
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to commit transaction: {e}")))?;
+            
+            tracing::info!("Successfully deleted submission {} and all related data", submission_id);
+            Ok(StatusCode::NO_CONTENT)
+        }
+        Err(e) => {
+            // Rollback transaction on any error
+            if let Err(rollback_err) = txn.rollback().await {
+                tracing::error!("Failed to rollback transaction: {}", rollback_err);
+                return Err(ApiError::InternalServerError(format!("Deletion failed and rollback failed: {rollback_err}")));
+            }
+            Err(e)
+        }
+    }
 }

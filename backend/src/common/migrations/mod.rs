@@ -26,6 +26,7 @@ mod m20260331_114000_add_is_active_to_questions;
 mod m20260401_091000_add_display_order_to_questions;
 mod m20260420_000001_create_user_category_assignments_table;
 mod m20260420_000002_alter_user_category_assignments_use_id;
+mod m20260424_000001_add_unique_constraint_assessments_submission;
 
 pub struct Migrator;
 
@@ -59,6 +60,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260401_091000_add_display_order_to_questions::Migration),
             Box::new(m20260420_000001_create_user_category_assignments_table::Migration),
             Box::new(m20260420_000002_alter_user_category_assignments_use_id::Migration),
+            Box::new(m20260424_000001_add_unique_constraint_assessments_submission::Migration),
         ]
     }
 }

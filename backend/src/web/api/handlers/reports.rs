@@ -8,6 +8,7 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
+use super::submissions::normalize_category_name;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
@@ -38,8 +39,9 @@ async fn generate_report_content(
         if !request.category.is_empty() {
             // Create a stable, unique ID based on the category and recommendation text.
             let recommendation_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("{}-{}", request.category, request.recommendation).as_bytes());
-            // Normalize category name to lowercase for case-insensitive matching
-            recommendations.entry(request.category.to_lowercase())
+            // Normalize category name consistently
+            let normalized_category = normalize_category_name(&request.category);
+            recommendations.entry(normalized_category)
                 .or_default()
                 .push(json!({
                     "id": recommendation_id.to_string(),
@@ -62,7 +64,10 @@ async fn generate_report_content(
                             let question_text = revision.text.get("en").and_then(|t| t.as_str()).unwrap_or("Unknown question");
                             let answer = serde_json::from_str(response_str).unwrap_or(json!({ "text": response_str }));
                             
-                            categories.entry(category_model.name)
+                            // Normalize category name to prevent duplicates
+                            let normalized_category = normalize_category_name(&category_model.name);
+                            
+                            categories.entry(normalized_category)
                                 .or_default()
                                 .push(json!({ "question": question_text, "answer": answer }));
                         }
@@ -74,30 +79,53 @@ async fn generate_report_content(
 
     let mut result_object = serde_json::Map::new();
     for (category, questions) in categories {
-        // Normalize to lowercase for case-insensitive lookup
-        let category_recommendations = recommendations.remove(&category.to_lowercase()).unwrap_or_else(|| {
-            let default_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("{}-{}", category, "No recommendation provided").as_bytes());
-            vec![json!({"id": default_id.to_string(), "text": "No recommendation provided", "status": "todo"})]
-        });
-
-        result_object.insert(category, json!({
-            "questions": questions,
-            "recommendations": category_recommendations,
-        }));
+        // Use the same normalized category for lookup
+        let category_recommendations = recommendations.remove(&category).unwrap_or_default();
+        
+        // Only include categories that have actual recommendations (not empty or default)
+        if !category_recommendations.is_empty() {
+            // Filter out any "No recommendation provided" entries
+            let filtered_recommendations: Vec<serde_json::Value> = category_recommendations
+                .into_iter()
+                .filter(|rec| {
+                    if let Some(text) = rec.get("text").and_then(|t| t.as_str()) {
+                        text != "No recommendation provided" && text != "No action plan given"
+                    } else {
+                        false
+                    }
+                })
+                .collect();
+            
+            // Only include the category if it has valid recommendations
+            if !filtered_recommendations.is_empty() {
+                result_object.insert(category, json!({
+                    "questions": questions,
+                    "recommendations": filtered_recommendations,
+                }));
+            }
+        }
     }
 
     // Include any remaining recommendations whose category didn't match any response category
     // This handles cases where question lookups fail but recommendations were still provided
     for (category_key, recs) in recommendations {
-        if !result_object.contains_key(&category_key) {
-            // Try to find the original casing from the requests
-            let original_category = requests.iter()
-                .find(|r| r.category.to_lowercase() == category_key)
-                .map(|r| r.category.clone())
-                .unwrap_or(category_key);
-            result_object.insert(original_category, json!({
+        // Filter out "No recommendation provided" entries
+        let filtered_recs: Vec<serde_json::Value> = recs
+            .into_iter()
+            .filter(|rec| {
+                if let Some(text) = rec.get("text").and_then(|t| t.as_str()) {
+                    text != "No recommendation provided" && text != "No action plan given"
+                } else {
+                    false
+                }
+            })
+            .collect();
+            
+        if !filtered_recs.is_empty() && !result_object.contains_key(&category_key) {
+            // Use the normalized category key directly
+            result_object.insert(category_key, json!({
                 "questions": [],
-                "recommendations": recs,
+                "recommendations": filtered_recs,
             }));
         }
     }
@@ -433,17 +461,26 @@ pub async fn list_all_action_plans(
                                                             status_value.as_str()
                                                         ) {
                                                             if let Ok(recommendation_id) = Uuid::parse_str(id_str) {
+                                                                // Skip "No recommendation provided" entries
+                                                                if text_str == "No recommendation provided" || text_str == "No action plan given" {
+                                                                    continue;
+                                                                }
+                                                                
                                                                 let assessment_name = submission.content
                                                                     .get("assessment_name")
                                                                     .and_then(|n| n.as_str())
                                                                     .unwrap_or("Unknown Assessment")
                                                                     .to_string();
+                                                                    
+                                                                // Normalize category name to prevent duplicates
+                                                                let normalized_category = normalize_category_name(category_name);
+                                                                
                                                                 org_recommendations.push(RecommendationWithStatus {
                                                                     recommendation_id,
                                                                     report_id: report.report_id,
                                                                     assessment_id: submission.submission_id,
                                                                     assessment_name,
-                                                                    category: category_name.clone(),
+                                                                    category: normalized_category, // Use normalized category
                                                                     recommendation: text_str.to_string(),
                                                                     status: status_str.to_string(),
                                                                     created_at: report.generated_at.to_rfc3339(),
@@ -464,10 +501,30 @@ pub async fn list_all_action_plans(
         }
 
         if !org_recommendations.is_empty() {
+            // Deduplicate recommendations by category + recommendation text (case-insensitive)
+            let mut dedup_map: std::collections::HashMap<String, RecommendationWithStatus> = std::collections::HashMap::new();
+            
+            for rec in org_recommendations {
+                // Use normalized category for deduplication key
+                let normalized_category = normalize_category_name(&rec.category);
+                let key = format!("{}-{}", normalized_category, rec.recommendation.to_lowercase().trim());
+                
+                // Keep the most recent recommendation if duplicates exist
+                if let Some(existing) = dedup_map.get(&key) {
+                    if rec.created_at > existing.created_at {
+                        dedup_map.insert(key, rec);
+                    }
+                } else {
+                    dedup_map.insert(key, rec);
+                }
+            }
+            
+            let deduplicated_recommendations: Vec<RecommendationWithStatus> = dedup_map.into_values().collect();
+            
             action_plans.push(OrganizationActionPlan {
                 organization_id: Uuid::parse_str(&org_id).unwrap_or_else(|_| Uuid::nil()),
                 organization_name: org_name,
-                recommendations: org_recommendations,
+                recommendations: deduplicated_recommendations,
             });
         }
     }

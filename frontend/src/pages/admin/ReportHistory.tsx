@@ -431,6 +431,7 @@ export const ReportHistory: React.FC = () => {
             ref={recommendationChartRef}
             data={recommendationChartInfo.data}
             options={recommendationChartInfo.options}
+            plugins={recommendationChartInfo.plugins}
           />
         </div>
       )}

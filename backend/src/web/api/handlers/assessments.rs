@@ -790,6 +790,11 @@ pub async fn submit_assessment(
 
     // Perform all operations within the transaction
     let result = async {
+        // Check if submission already exists to prevent duplicates
+        if let Ok(Some(_existing)) = app_state.database.assessments_submission.get_submission_by_assessment_id(assessment_id).await {
+            return Err(ApiError::Conflict("Assessment has already been submitted".to_string()));
+        }
+
         // Fetch the temp submission (must exist) - this read operation doesn't need transaction
         let temp_submission = match app_state.database.temp_submission.get_temp_submission_by_assessment_id(assessment_id).await {
             Ok(Some(ts)) => ts,
@@ -850,7 +855,14 @@ pub async fn submit_assessment(
         
         submission.insert(&txn)
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to create final submission: {e}")))?;
+            .map_err(|e| {
+                // Handle potential duplicate key errors from database
+                if e.to_string().contains("duplicate key") || e.to_string().contains("UNIQUE constraint") {
+                    ApiError::Conflict("Assessment has already been submitted".to_string())
+                } else {
+                    ApiError::InternalServerError(format!("Failed to create final submission: {e}"))
+                }
+            })?;
 
         // Delete the temp submission after successful final submission
         // Only delete the temp submission if it exists

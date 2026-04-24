@@ -87,7 +87,7 @@ const AdminActionPlans: React.FC = () => {
     },
   ];
 
-  // Filter recommendations by status
+  // Filter recommendations by status and deduplicate by category
   const getTasksByStatus = (status: string) => {
     if (!selectedAssessment || !selectedOrganization) {
       return [];
@@ -95,7 +95,29 @@ const AdminActionPlans: React.FC = () => {
     const submissionRecommendations = selectedOrganization.recommendations.filter(
       (rec) => rec.assessment_id === selectedAssessment.assessment_id
     );
-    return submissionRecommendations.filter((rec) => rec.status === status);
+    
+    // Filter by status and exclude "No recommendation provided" entries
+    const filteredRecommendations = submissionRecommendations.filter((rec) => 
+      rec.status === status && 
+      rec.recommendation !== "No recommendation provided" &&
+      rec.recommendation !== "No action plan given"
+    );
+    
+    // Deduplicate by category and recommendation text (normalize category names)
+    const deduplicatedMap = new Map<string, OfflineRecommendation>();
+    
+    filteredRecommendations.forEach((rec) => {
+      const normalizedCategory = rec.category.toLowerCase().trim();
+      const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
+      
+      // Keep the most recent recommendation if duplicates exist
+      if (!deduplicatedMap.has(key) || 
+          new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
+        deduplicatedMap.set(key, rec);
+      }
+    });
+    
+    return Array.from(deduplicatedMap.values());
   };
 
   const getStatusBadge = (status: string) => {
@@ -261,13 +283,13 @@ const AdminActionPlans: React.FC = () => {
           <p className="text-gray-600">{actionPlansError.message}</p>
         </div>
       ) : (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)]">
         {columns.map((column) => {
           const columnTasks = getTasksByStatus(column.id);
           const IconComponent = column.icon;
           return (
-            <Card key={column.id} className="animate-fade-in">
-              <CardHeader className="pb-3">
+            <Card key={column.id} className="animate-fade-in flex flex-col h-full">
+              <CardHeader className="pb-3 flex-shrink-0">
                 <CardTitle
                   className={`flex items-center space-x-2 ${column.color}`}
                 >
@@ -278,37 +300,39 @@ const AdminActionPlans: React.FC = () => {
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {columnTasks.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">
-                      {t("adminActionPlans.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
-                    </p>
-                  </div>
-                ) : (
-                  columnTasks.map((task) => (
-                    <Card
-                      key={task.recommendation_id}
-                      className="bg-gray-50 border-gray-200"
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="font-bold text-blue-600 mb-1">
-                            {task.category}
+              <CardContent className="flex-1 overflow-hidden">
+                <div className="h-full overflow-y-auto pr-2 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  {columnTasks.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">
+                        {t("adminActionPlans.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
+                      </p>
+                    </div>
+                  ) : (
+                    columnTasks.map((task) => (
+                      <Card
+                        key={task.recommendation_id}
+                        className="bg-gray-50 border-gray-200 flex-shrink-0"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex flex-col gap-1">
+                            <div className="font-bold text-blue-600 mb-1">
+                              {task.category}
+                            </div>
+                            <div className="text-sm text-gray-900 mb-2">
+                              {task.recommendation}
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>{t('adminActionPlans.createdAt', { defaultValue: 'Created' })}: {new Date(task.created_at).toLocaleDateString()}</span>
+                              {getStatusBadge(task.status)}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-900 mb-2">
-                            {task.recommendation}
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>{t('adminActionPlans.createdAt', { defaultValue: 'Created' })}: {new Date(task.created_at).toLocaleDateString()}</span>
-                            {getStatusBadge(task.status)}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
           );

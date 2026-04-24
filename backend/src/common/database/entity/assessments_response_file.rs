@@ -1,5 +1,5 @@
 use sea_orm::entity::prelude::*;
-use sea_orm::{DeleteResult, JoinType, QuerySelect, Set};
+use sea_orm::{DeleteResult, JoinType, QuerySelect, QueryTrait, Set};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -117,6 +117,25 @@ impl AssessmentsResponseFileService {
     ) -> Result<DeleteResult, DbErr> {
         Entity::delete_many()
             .filter(Column::ResponseId.eq(response_id))
+            .exec(self.db.as_ref())
+            .await
+    }
+
+    pub async fn unlink_all_files_from_assessment(
+        &self,
+        assessment_id: Uuid,
+    ) -> Result<DeleteResult, DbErr> {
+        // Delete all file links for responses belonging to an assessment
+        Entity::delete_many()
+            .filter(
+                Column::ResponseId.in_subquery(
+                    super::assessments_response::Entity::find()
+                        .filter(super::assessments_response::Column::AssessmentId.eq(assessment_id))
+                        .select_only()
+                        .column(super::assessments_response::Column::ResponseId)
+                        .into_query()
+                )
+            )
             .exec(self.db.as_ref())
             .await
     }

@@ -2,7 +2,7 @@ use crate::common::entitytrait::{DatabaseEntity, DatabaseService};
 use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
-use sea_orm::{DeleteResult, Set};
+use sea_orm::{DeleteResult, Set, Statement};
 use sea_orm::prelude::StringLen;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -202,7 +202,19 @@ impl AssessmentsSubmissionService {
     }
 
     pub async fn get_all_submissions(&self) -> Result<Vec<Model>, DbErr> {
-        self.db_service.find_all().await
+        // Use a query that deduplicates by submission_id, keeping the latest submission
+        Entity::find()
+            .from_raw_sql(Statement::from_string(
+                sea_orm::DatabaseBackend::Postgres,
+                r#"
+                SELECT DISTINCT ON (submission_id) 
+                    submission_id, org_id, org_name, content, submitted_at, status, reviewed_at
+                FROM assessments_submission 
+                ORDER BY submission_id, submitted_at DESC
+                "#.to_string(),
+            ))
+            .all(self.db_service.get_connection())
+            .await
     }
 
     pub async fn delete_submission(&self, assessment_id: Uuid) -> Result<DeleteResult, DbErr> {

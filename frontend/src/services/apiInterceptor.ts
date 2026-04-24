@@ -383,6 +383,17 @@ export class ApiInterceptor {
               }
             }
           }
+
+          // Also cache responses if this is an AssessmentDetailResponse (single assessment detail)
+          if (data.responses && Array.isArray(data.responses)) {
+            for (const response of data.responses as Response[]) {
+              const existing = await offlineDB.getResponse(response.response_id);
+              if (!existing || existing.sync_status !== 'pending') {
+                const offlineResponse = DataTransformationService.transformResponse(response);
+                await offlineDB.saveResponse(offlineResponse);
+              }
+            }
+          }
           break;
         }
         case 'responses':
@@ -488,6 +499,8 @@ export class ApiInterceptor {
       let entityId: string | undefined;
       if (entityType === 'draft_submission' && 'submission_id' in data && typeof data.submission_id === 'string') {
         entityId = data.submission_id;
+      } else if (entityType === 'draft_submission' && 'assessmentId' in data && typeof data.assessmentId === 'string') {
+        entityId = data.assessmentId;
       } else if (entityType === 'submission' && 'submission_id' in data && typeof data.submission_id === 'string') {
         entityId = data.submission_id;
       } else if (entityType === 'assessment' && 'assessment_id' in data && typeof data.assessment_id === 'string') {
@@ -970,6 +983,22 @@ export class ApiInterceptor {
               } else {
                 console.warn(`⚠️ Original submission ${submissionData.submissionId} not found in local DB during sync queue processing.`);
               }
+            }
+          } else if (queueItem.entity_type === 'submission' && queueItem.operation === 'submit') {
+            // User submitting an assessment for admin approval (draft endpoint)
+            const submitData = queueItem.data as { assessmentId?: string; tempId?: string };
+            const assessmentId = submitData?.assessmentId || queueItem.entity_id;
+            if (!assessmentId) {
+              console.error(`[processQueue] No assessmentId for draft submission queue item: ${queueItem.id}`);
+            } else {
+              const { AssessmentsService } = await import('@/openapi-rq/requests/services.gen');
+              await AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId });
+
+              // Clean up the temp submission
+              if (submitData?.tempId) {
+                await offlineDB.deleteSubmission(submitData.tempId);
+              }
+              successCount++;
             }
           } else if (queueItem.entity_type === 'draft_submission' && queueItem.operation === 'submit') {
             const draftSubmissionData = queueItem.data as OfflineDraftSubmission;

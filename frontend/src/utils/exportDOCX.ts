@@ -105,7 +105,7 @@ const createAssessmentsTable = (
       .join("\n");
 
     const recommendationCell = new TableCell({
-      children: [new Paragraph(categoryRecs || "No recommendations for this category.")],
+      children: [new Paragraph(categoryRecs || "")], // Leave empty instead of showing "No recommendations for this category."
       rowSpan: groupedData[category].length,
       verticalAlign: VerticalAlign.CENTER,
     });
@@ -278,7 +278,7 @@ export async function exportAllAssessmentsDOCX(
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: `SUSTAINABILITY REPORT ${new Date().getFullYear()}`,
+            text: `SUSTAINABILITY REPORT`,
             bold: true,
             size: 48,
             color: dgrvBlue,
@@ -289,7 +289,7 @@ export async function exportAllAssessmentsDOCX(
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: `This document presents the findings of the ${new Date().getFullYear()} sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions. It provides a comprehensive overview of the assessment results, data-driven recommendations for measurable improvements, and an actionable roadmap to help guide future sustainability initiatives.`,
+            text: `This document presents the findings of the sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions.`,
             size: 24,
           }),
         ],

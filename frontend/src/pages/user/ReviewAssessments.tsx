@@ -389,10 +389,28 @@ const ReviewAssessments: React.FC = () => {
                           ? (customResponse.question as any).en
                           : customResponse.question;
 
-                        const questionText =
-                          (questionDetails?.text) ||
-                          questionTextStr ||
-                          'Question text not found';
+                        // Improved question text retrieval with better fallbacks
+                        const questionText = (() => {
+                          // First try: Get from questionDetails (most reliable)
+                          if (questionDetails?.text) {
+                            return typeof questionDetails.text === 'object' 
+                              ? (questionDetails.text as any).en || (questionDetails.text as any).text || questionDetails.text
+                              : questionDetails.text;
+                          }
+                          
+                          // Second try: Use the question text from response
+                          if (questionTextStr && questionTextStr !== 'Question text not found') {
+                            return questionTextStr;
+                          }
+                          
+                          // Third try: Look up by revision ID in questions text map
+                          if (customResponse.question_revision_id && questionsTextMap.has(customResponse.question_revision_id)) {
+                            return questionsTextMap.get(customResponse.question_revision_id);
+                          }
+                          
+                          // Final fallback: Use a more descriptive message
+                          return `Question (ID: ${customResponse.question_revision_id || 'unknown'}) - Text unavailable`;
+                        })();
 
                         // Fallback: If revision ID lookup fails, try matching by question text exact string.
                         // If it completely fails, put it at the bottom (9999) rather than the top (0).

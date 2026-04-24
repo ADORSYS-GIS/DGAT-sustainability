@@ -104,7 +104,7 @@ export const drawAssessmentsTable = (
       ];
       if (index === 0) {
         rowContent.push({
-          content: categoryRecs || "No recommendations for this category.",
+          content: categoryRecs || "", // Leave empty instead of showing "No recommendations for this category."
           rowSpan: tableData.length,
           styles: { valign: 'middle' },
         });
@@ -123,7 +123,7 @@ export const drawAssessmentsTable = (
       if (currentY + 40 > doc.internal.pageSize.height) {
         doc.addPage();
         addHeader(doc);
-        currentY = 32; // Start below the header + title area
+        currentY = 34; // Start below the header + title area (increased from 32 to 34)
       }
     }
 
@@ -152,21 +152,21 @@ export const drawAssessmentsTable = (
         doc.setFontSize(16);
         doc.setTextColor(30, 58, 138);
         doc.setFont("helvetica", "bold");
-        doc.text(fullTitle, 14, 20);
+        doc.text(fullTitle, 14, 22); // Moved down from 20 to 22 to avoid overlay
 
         if (organizationName) {
           doc.setFontSize(9);
           doc.setTextColor(100);
           doc.setFont("helvetica", "normal");
-          doc.text(`Organisation: ${organizationName}`, 14, 27);
+          doc.text(`Organisation: ${organizationName}`, 14, 29); // Moved down from 27 to 29
         }
 
         // Ensure the table body doesn't start before the header area
-        if (data.cursor && data.cursor.y < 32) {
-          data.cursor.y = 32;
+        if (data.cursor && data.cursor.y < 34) { // Increased from 32 to 34 to provide more space
+          data.cursor.y = 34;
         }
       },
-      margin: { top: 32 },
+      margin: { top: 34 }, // Increased from 32 to 34
       didParseCell: (data) => {
         if (data.column.dataKey === 4) { // 'Recommendations' column
           let rawValue = data.cell.raw;

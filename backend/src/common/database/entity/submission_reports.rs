@@ -133,6 +133,14 @@ impl SubmissionReportsService {
             .await?;
         Ok(result.rows_affected)
     }
+
+    pub async fn delete_reports_by_submission(&self, submission_id: Uuid) -> Result<u64, DbErr> {
+        let result = Entity::delete_many()
+            .filter(Column::SubmissionId.eq(submission_id))
+            .exec(self.db_service.get_connection())
+            .await?;
+        Ok(result.rows_affected)
+    }
 }
 
 #[cfg(test)]

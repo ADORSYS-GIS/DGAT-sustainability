@@ -3,7 +3,7 @@ import type { RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 
 export const generateRecommendationChartData = (
   recommendations: RecommendationWithStatus[]
-): { data: ChartData<"bar">; options: ChartOptions<"bar"> } | null => {
+): { data: ChartData<"bar">; options: ChartOptions<"bar">; plugins?: any[] } | null => {
   if (!recommendations || recommendations.length === 0) {
     return null;
   }
@@ -26,6 +26,36 @@ export const generateRecommendationChartData = (
     todo: (statusCounts.todo / total) * 100,
     in_progress: (statusCounts.in_progress / total) * 100,
     done: (statusCounts.done + statusCounts.approved) / total * 100,
+  };
+
+  // Custom plugin to display percentage values on bars
+  const percentagePlugin = {
+    id: 'percentageLabels',
+    afterDatasetsDraw: (chart: any) => {
+      const ctx = chart.ctx;
+      chart.data.datasets.forEach((dataset: any, datasetIndex: number) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        meta.data.forEach((bar: any, index: number) => {
+          const value = dataset.data[index];
+          const percentage = Math.round(value);
+          
+          if (percentage > 0) { // Only show percentage if greater than 0
+            // Set font style
+            ctx.fillStyle = '#374151';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            // Position text above the bar
+            const x = bar.x;
+            const y = bar.y - 8;
+            
+            // Draw the percentage text
+            ctx.fillText(percentage + '%', x, y);
+          }
+        });
+      });
+    }
   };
 
   const data: ChartData<"bar"> = {
@@ -64,6 +94,8 @@ export const generateRecommendationChartData = (
           weight: "bold",
         },
       },
+      // Register our custom plugin
+      percentageLabels: {},
     },
     scales: {
       y: {
@@ -78,5 +110,5 @@ export const generateRecommendationChartData = (
     },
   };
 
-  return { data, options };
+  return { data, options, plugins: [percentagePlugin] };
 };
