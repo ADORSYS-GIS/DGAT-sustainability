@@ -250,65 +250,60 @@ const AdminActionPlans: React.FC = () => {
 
   // Show selected organization's action plan
   return (
-    <div className="h-screen bg-gray-50 overflow-hidden">
-      <div className="h-full flex flex-col">
-        {/* Header content */}
-        <div className="flex-shrink-0 px-6 pt-6 pb-4">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedAssessment(null)}
-                className="flex items-center space-x-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>{t('adminActionPlans.backToAssessments', { defaultValue: 'Back to Assessments' })}</span>
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{selectedOrganization.organization_name}</h1>
-                <p className="text-gray-600">{selectedAssessment.assessment_name}</p>
-              </div>
-            </div>
+    <div className="fixed inset-0 bg-gray-50 flex flex-col">
+      {/* Header content */}
+      <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b bg-white">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
+              onClick={() => setSelectedAssessment(null)}
               className="flex items-center space-x-2"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>{t('adminActionPlans.refresh', { defaultValue: 'Refresh' })}</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span>{t('adminActionPlans.backToAssessments', { defaultValue: 'Back to Assessments' })}</span>
             </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{selectedOrganization.organization_name}</h1>
+              <p className="text-gray-600">{selectedAssessment.assessment_name}</p>
+            </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center space-x-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{t('adminActionPlans.refresh', { defaultValue: 'Refresh' })}</span>
+          </Button>
         </div>
+      </div>
 
-        {/* Kanban Board */}
-        <div className="flex-1 px-6 overflow-hidden">
-          {actionPlansLoading ? (
-            <div className="flex justify-center items-center h-full">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-dgrv-blue"></div>
-            </div>
-          ) : actionPlansError ? (
-            <div className="text-center py-12">
-              <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-red-700 mb-2">{t("error.title", { defaultValue: "An Error Occurred" })}</h2>
-              <p className="text-gray-600">{actionPlansError.message}</p>
-            </div>
-          ) : (
-            <div className="h-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {columns.map((column) => {
-                const columnTasks = getTasksByStatus(column.id);
-                const IconComponent = column.icon;
-                return (
-                  <Card 
-                    key={column.id} 
-                    className="animate-fade-in flex flex-col h-full"
-                  >
+      {/* Kanban Board */}
+      <div className="flex-1 px-6 py-6 overflow-hidden">
+        {actionPlansLoading ? (
+          <div className="flex justify-center items-center h-full">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-dgrv-blue"></div>
+          </div>
+        ) : actionPlansError ? (
+          <div className="text-center py-12">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-700 mb-2">{t("error.title", { defaultValue: "An Error Occurred" })}</h2>
+            <p className="text-gray-600">{actionPlansError.message}</p>
+          </div>
+        ) : (
+          <div className="h-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {columns.map((column) => {
+              const columnTasks = getTasksByStatus(column.id);
+              const IconComponent = column.icon;
+              return (
+                <div key={column.id} className="flex flex-col" style={{ minHeight: 0 }}>
+                  <Card className="flex flex-col h-full">
                     <CardHeader className="pb-3 flex-shrink-0">
-                      <CardTitle
-                        className={`flex items-center space-x-2 ${column.color}`}
-                      >
+                      <CardTitle className={`flex items-center space-x-2 ${column.color}`}>
                         <IconComponent className="w-5 h-5" />
                         <span>{column.title}</span>
                         <Badge variant="outline" className="ml-auto">
@@ -316,14 +311,19 @@ const AdminActionPlans: React.FC = () => {
                         </Badge>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1 p-4 min-h-0">
+                    <CardContent className="flex-1 p-4" style={{ minHeight: 0 }}>
                       <div 
-                        className="h-full overflow-y-auto overflow-x-hidden space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-                        style={{ paddingRight: '8px' }}
+                        className="space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                        style={{ 
+                          height: '100%',
+                          overflowY: 'auto',
+                          overflowX: 'hidden',
+                          paddingRight: '8px'
+                        }}
                       >
                         {columnTasks.length === 0 ? (
                           <div className="text-center py-8 text-gray-500">
-                            <column.icon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />
                             <p className="text-sm">
                               {t("adminActionPlans.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
                             </p>
@@ -358,11 +358,11 @@ const AdminActionPlans: React.FC = () => {
                       </div>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <Dialog open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
