@@ -7,6 +7,7 @@ interface FeatureCardProps {
   icon: LucideIcon;
   color?: "blue" | "green" | "gray";
   onClick?: () => void;
+  className?: string; // Add className prop
 }
 
 export const FeatureCard: React.FC<FeatureCardProps> = ({
@@ -15,6 +16,7 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
   icon: Icon,
   color = "blue",
   onClick,
+  className = "", // Destructure className
 }) => {
   const colorClasses = {
     blue: "border-blue-200 hover:border-dgrv-blue bg-blue-50/50",
@@ -30,7 +32,7 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
 
   return (
     <div
-      className={`p-6 rounded-lg border-2 transition-all duration-300 hover-lift cursor-pointer h-full ${colorClasses[color]}`}
+      className={`p-6 rounded-lg border-2 transition-all duration-300 hover-lift cursor-pointer h-full ${colorClasses[color]} ${className}`}
       onClick={onClick}
     >
       <div className="flex items-center space-x-4 mb-3">

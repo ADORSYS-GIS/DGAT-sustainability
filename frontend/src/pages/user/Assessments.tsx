@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineSubmissions";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
@@ -115,13 +116,7 @@ export const Assessments: React.FC = () => {
 
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="pb-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text="Retrieving your submissions..." />;
   }
 
   // Card for each submission

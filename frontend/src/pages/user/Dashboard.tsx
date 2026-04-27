@@ -2,9 +2,11 @@ import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
 import { exportAllAssessmentsDOCX } from "@/utils/exportDOCX";
 import {
+  Calendar,
   CheckSquare,
   Download,
   FileText,
@@ -12,6 +14,7 @@ import {
   Leaf,
   Star,
   Users,
+  TrendingUp,
 } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -141,9 +144,9 @@ export const Dashboard: React.FC = () => {
       } else {
         const existingDate = new Date(existingReport.generated_at);
         const currentDate = new Date(report.generated_at);
-        
-        if (currentDate > existingDate || 
-           (currentDate.getTime() === existingDate.getTime() && report.report_id > existingReport.report_id)) {
+
+        if (currentDate > existingDate ||
+          (currentDate.getTime() === existingDate.getTime() && report.report_id > existingReport.report_id)) {
           latestReportsMap.set(report.submission_id, report);
         }
       }
@@ -257,17 +260,17 @@ export const Dashboard: React.FC = () => {
             recommendation: rec.text,
             status: (rec.status as RecommendationWithStatus["status"]) || "todo",
             created_at: report.generated_at,
-        }));
+          }));
       }
     );
 
     // Deduplicate recommendations by category + recommendation text (same logic as admin)
     const deduplicatedMap = new Map<string, RecommendationWithStatus>();
-    
+
     recommendations.forEach((rec) => {
       const normalizedCategory = rec.category.toLowerCase().trim();
       const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
-      
+
       // Keep the most recent recommendation if duplicates exist
       if (!deduplicatedMap.has(key) ||
         new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
@@ -582,231 +585,259 @@ export const Dashboard: React.FC = () => {
       const latestReport = userRecommendations.reports.reduce((latest, current) => {
         return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
       });
-      
+
       const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0 ? latestReport.data[0] : {};
       const reportRecommendations = Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
-        (category.recommendations || []).map(r => ({ 
-          ...r, 
-          report_id: latestReport.report_id, 
-          created_at: latestReport.generated_at, 
-          assessment_id: latestReport.assessment_id, 
-          assessment_name: latestReport.assessment_name, 
-          category: categoryName 
+        (category.recommendations || []).map(r => ({
+          ...r,
+          report_id: latestReport.report_id,
+          created_at: latestReport.generated_at,
+          assessment_id: latestReport.assessment_id,
+          assessment_name: latestReport.assessment_name,
+          category: categoryName
         }))
       );
-      
-      return generateRecommendationChartData(reportRecommendations.map(r => ({ 
-        ...r, 
-        recommendation_id: r.id, 
-        recommendation: r.text, 
-        status: r.status as RecommendationWithStatus['status'] 
+
+      return generateRecommendationChartData(reportRecommendations.map(r => ({
+        ...r,
+        recommendation_id: r.id,
+        recommendation: r.text,
+        status: r.status as RecommendationWithStatus['status']
       })));
     }
     return null;
   }, [userRecommendations]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50/50">
       {recommendationChartInfo && (
         <div style={{ width: '800px', height: '400px', position: 'absolute', zIndex: -1, opacity: 0 }}>
           <Bar
-            ref={recommendationChartRef}
-            data={recommendationChartInfo.data}
-            options={recommendationChartInfo.options}
-            plugins={recommendationChartInfo.plugins}
+            ref={recommendationChartRef as any}
+            data={recommendationChartInfo.data as any}
+            options={recommendationChartInfo.options as any}
           />
         </div>
       )}
-      <div className="pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <Star className="w-8 h-8 text-dgrv-green" />
-                <h1 className="text-3xl font-bold text-dgrv-blue">
-                  {t('user.dashboard.welcome', { user: userName, org: orgName })}
-                </h1>
+
+      {/* Premium Hero Section */}
+      <div className="relative overflow-hidden bg-white border-b shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/60 via-white to-blue-50/60" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+          <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+            {/* Branded Logo Container */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-blue-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <div className="relative w-44 h-44 md:w-56 md:h-56 bg-white rounded-[2.2rem] shadow-2xl p-6 flex items-center justify-center border border-slate-100">
+                <img
+                  src="/coopsustainability-removebg-preview.png"
+                  alt="Coop Sustainability Logo"
+                  className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700"
+                />
               </div>
             </div>
-            <p className="text-lg text-gray-600">
-              {t('user.dashboard.readyToContinue')}
-            </p>
-          </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
+            {/* Welcome Typography */}
+            <div className="text-center md:text-left space-y-6 max-w-2xl">
+              <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 animate-in fade-in slide-in-from-left-4 duration-1000">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('systemActive', { defaultValue: 'Platform Active' })}</span>
+              </div>
+
+              <div className="space-y-2">
+                <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
+                  {t('user.dashboard.welcome', { user: userName, org: orgName })}
+                </h1>
+                <p className="text-xl text-slate-500 font-medium leading-relaxed">
+                  {t('user.dashboard.readyToContinue')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+        {/* Modern Quick Actions Grid */}
+        <section>
+          <div className="flex items-center space-x-2 mb-8 ml-1">
+            <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest">{t('quickActions', { defaultValue: 'Quick Actions' })}</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dashboardActions.map((action, index) => (
               <div
                 key={action.title}
-                className="animate-fade-in"
+                className="group animate-in fade-in slide-in-from-bottom-4 duration-700"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <FeatureCard {...action} />
+                <FeatureCard
+                  {...action}
+                  className="h-full border border-slate-200/60 shadow-sm hover:shadow-2xl hover:shadow-emerald-900/5 transition-all duration-500 bg-white group-hover:-translate-y-1"
+                />
               </div>
             ))}
           </div>
+        </section>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            <Card className="lg:col-span-2 animate-fade-in">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center space-x-2">
-                  <History className="w-5 h-5 text-dgrv-blue" />
-                  <span>{t('user.dashboard.recentSubmissions')}</span>
-                </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/assessments")}
-                >
-                  {t('user.dashboard.viewAll')}
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {submissionsLoading ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>{t('user.dashboard.loadingSubmissionsInline')}</p>
-                    </div>
-                  ) : (
-                    submissions.map((submission) => (
-                      <div
-                        key={submission.submission_id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="p-2 rounded-full bg-gray-100">
-                            <Leaf className="w-5 h-5 text-dgrv-green" />
-                          </div>
-                          <div>
-                            <h3 className="font-medium">
-                              {submission.assessment_name || t('user.dashboard.sustainabilityAssessment')}
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                              {new Date(
-                                submission.submitted_at,
-                              ).toLocaleDateString()}
-                            </p>
-                          </div>
+        {/* Dynamic Content Grid */}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Recent Activity Card */}
+          <Card className="lg:col-span-2 border-slate-200/60 shadow-sm overflow-hidden bg-white/50 backdrop-blur-md">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 bg-white/50">
+              <CardTitle className="flex items-center space-x-3 text-slate-800">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <History className="w-5 h-5 text-blue-600" />
+                </div>
+                <span className="font-bold tracking-tight">{t('user.dashboard.recentSubmissions')}</span>
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold"
+                onClick={() => navigate("/assessments")}
+              >
+                {t('user.dashboard.viewAll')}
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                {submissionsLoading ? (
+                  <LoadingSpinner
+                    size="md"
+                    text={t('user.dashboard.loadingSubmissionsInline')}
+                  />
+                ) : (
+                  submissions.map((submission) => (
+                    <div
+                      key={submission.submission_id}
+                      className="group flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:border-emerald-200 transition-all duration-300 hover:shadow-md"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2.5 rounded-xl bg-slate-50 group-hover:bg-emerald-50 transition-colors">
+                          <Leaf className="w-5 h-5 text-slate-400 group-hover:text-emerald-500 transition-colors" />
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <Badge
-                            className={getStatusColor(submission.review_status)}
-                          >
-                            {formatStatus(submission.review_status)}
-                          </Badge>
+                        <div>
+                          <h3 className="font-bold text-slate-800">
+                            {submission.assessment_name || t('user.dashboard.sustainabilityAssessment')}
+                          </h3>
+                          <p className="text-xs font-semibold text-slate-400 flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {new Date(submission.submitted_at).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
-                    ))
-                  )}
-                  {submissions.length === 0 && !submissionsLoading && (
-                    <div className="text-center py-8 text-gray-500">
-                      <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>
-                        {t('user.dashboard.noSubmissions')}
-                      </p>
+                      <Badge className={`${getStatusColor(submission.review_status)} px-3 py-1 rounded-lg font-bold border-none shadow-sm`}>
+                        {formatStatus(submission.review_status)}
+                      </Badge>
                     </div>
-                  )}
+                  ))
+                )}
+                {submissions.length === 0 && !submissionsLoading && (
+                  <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
+                    <History className="w-16 h-16 mx-auto mb-4 text-slate-200" />
+                    <p className="text-slate-400 font-bold tracking-tight">
+                      {t('user.dashboard.noSubmissions')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Side Utility Cards */}
+          <div className="space-y-6">
+            {/* Export Card */}
+            <Card className="border-slate-200/60 shadow-sm bg-gradient-to-br from-white to-slate-50/50">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-3 text-slate-800">
+                  <div className="p-2 bg-slate-100 rounded-lg">
+                    <Download className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <span className="font-bold tracking-tight">{t('user.dashboard.exportReports')}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                  {t('user.dashboard.downloadReportsDescription')}
+                </p>
+                <div className="grid grid-cols-1 gap-3">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between hover:border-blue-300 hover:bg-blue-50 group h-11"
+                    onClick={() => handleOpenReportDialog("pdf")}
+                    disabled={reportsLoading}
+                  >
+                    <span className="font-bold">{t('user.dashboard.exportAsPDF')}</span>
+                    <FileText className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between hover:border-slate-300 hover:bg-slate-50 group h-11"
+                    onClick={() => handleOpenReportDialog("docx")}
+                    disabled={reportsLoading}
+                  >
+                    <span className="font-bold">{t('user.dashboard.exportAsDOCX')}</span>
+                    <FileText className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="space-y-6">
-              <Card
-                className="animate-fade-in"
-                style={{ animationDelay: "200ms" }}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Download className="w-5 h-5 text-dgrv-blue" />
-                    <span>{t('user.dashboard.exportReports')}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {t('user.dashboard.downloadReportsDescription')}
-                  </p>
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => handleOpenReportDialog("pdf")}
-                      disabled={reportsLoading}
-                    >
-                      {t('user.dashboard.exportAsPDF')}
-                    </Button>
-                    {/* Keep bulk export available if needed */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => handleOpenReportDialog("docx")}
-                      disabled={reportsLoading}
-                    >
-                      {t('user.dashboard.exportAsDOCX')}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card
-                className="animate-fade-in"
-                style={{ animationDelay: "300ms" }}
-              >
-                <CardHeader>
-                  <CardTitle className="text-dgrv-green">{t('user.dashboard.needHelp')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {t('user.dashboard.getSupport')}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-dgrv-green text-white hover:bg-green-700"
-                    onClick={() => navigate("/user/guide")}
-                  >
-                    {t('user.dashboard.viewUserGuide')}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Help Card */}
+            <Card className="border-none bg-slate-900 text-white shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-colors duration-500" />
+              <CardHeader>
+                <CardTitle className="text-emerald-400 font-black tracking-widest text-xs uppercase">{t('user.dashboard.needHelp')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <p className="text-sm text-slate-300 font-medium">
+                  {t('user.dashboard.getSupport')}
+                </p>
+                <Button
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black h-12 shadow-lg shadow-emerald-500/20"
+                  onClick={() => navigate("/user/guide")}
+                >
+                  {t('user.dashboard.viewUserGuide')}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
+        </div>
 
-          {radarChartData && (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-              <Card className="animate-fade-in">
-                <CardHeader>
-                  <CardTitle>
-                    {t('user.dashboard.sustainabilityOverview')} - {(() => {
-                      // Find the most recent report by generated_at date
-                      // If timestamps are identical, use report_id as tiebreaker
+        {/* Data Visualization Section */}
+        {radarChartData && (
+          <section className="animate-in fade-in zoom-in duration-1000">
+            <Card className="border-slate-200/60 shadow-xl bg-white">
+              <CardHeader className="border-b border-slate-50">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-emerald-50 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <span className="font-bold tracking-tight">{t('user.dashboard.sustainabilityOverview')}</span>
+                  </div>
+                  <Badge variant="outline" className="text-slate-400 font-bold border-slate-200 bg-slate-50">
+                    {(() => {
                       const latestReport = reportsData?.reports?.reduce((latest, current) => {
-                        const latestDate = new Date(latest.generated_at);
-                        const currentDate = new Date(current.generated_at);
-                        
-                        if (currentDate > latestDate) {
-                          return current;
-                        } else if (currentDate.getTime() === latestDate.getTime()) {
-                          // If timestamps are identical, use report_id as tiebreaker
-                          return current.report_id > latest.report_id ? current : latest;
-                        } else {
-                          return latest;
-                        }
+                        return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
                       });
                       return latestReport?.assessment_name || t('user.dashboard.sustainabilityAssessment');
                     })()}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div style={{ height: '400px' }}>
-                    <Radar ref={chartRef} data={radarChartData} options={radarChartOptions} />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8">
+                <div className="h-[450px] flex items-center justify-center">
+                  <Radar ref={chartRef} data={radarChartData} options={radarChartOptions} />
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
       </div>
 
       <ReportSelectionDialog

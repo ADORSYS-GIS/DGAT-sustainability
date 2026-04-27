@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useOfflineDraftSubmissions, useOfflineDraftSubmissionsMutation } from "@/hooks/useOfflineDraftSubmissions";
@@ -320,18 +321,7 @@ export default function DraftSubmissions() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <div className="text-lg text-gray-600">{t("user.draftSubmissions.loadingDraftSubmissions", { defaultValue: "Loading draft submissions..." })}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text={t("user.draftSubmissions.loadingDraftSubmissions", { defaultValue: "Loading draft submissions..." })} />;
   }
 
   if (error) {

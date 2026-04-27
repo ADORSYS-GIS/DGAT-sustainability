@@ -88,7 +88,7 @@ const initializeFromStoredTokens = async (): Promise<boolean> => {
         if (parts.length === 3) {
           (keycloak as any).tokenParsed = JSON.parse(atob(parts[1]));
         }
-      } catch {}
+      } catch { }
       (keycloak as any).authenticated = true;
       return true;
     }
@@ -148,7 +148,7 @@ const storeTokens = async (): Promise<void> => {
       idToken: keycloak.idToken,
       expiresAt: keycloak.tokenParsed?.exp,
     };
-    
+
     await set("auth_tokens", tokens);
 
     // Also persist the parsed user profile so it's available offline even if token expires
@@ -219,36 +219,73 @@ export const logout = async (redirectUri?: string): Promise<void> => {
  */
 export const getAccessToken = async (): Promise<string | null> => {
   try {
+    // Check if Keycloak is initialized
+    if (!keycloak.authenticated && !keycloak.token) {
+      // Try to load from storage as a fallback
+      const stored = await getStoredTokens();
+      if (stored?.accessToken) {
+        // Basic check if stored token is expired
+        const parts = stored.accessToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          const now = Math.floor(Date.now() / 1000);
+          if (payload.exp && payload.exp < now) {
+            console.warn("Stored token is expired.");
+            return null;
+          }
+        }
+        return stored.accessToken;
+      }
+      return null;
+    }
+
     // Check if token needs refresh (refresh 30 seconds before expiry)
     if (keycloak.tokenParsed?.exp) {
       const now = Math.floor(Date.now() / 1000);
       const timeUntilExpiry = keycloak.tokenParsed.exp - now;
-      
+
+      // If token is already expired, return null immediately if offline is not allowed
+      // or if we are online but refresh failed
       if (timeUntilExpiry <= 30) {
-        // Only attempt refresh if online
         if (navigator.onLine) {
           try {
-            await keycloak.updateToken(30);
-            await storeTokens();
+            // updateToken(5) ensures we have at least 5 seconds of validity left
+            const refreshed = await keycloak.updateToken(30);
+            if (refreshed) {
+              await storeTokens();
+            }
           } catch (refreshError) {
-            console.warn("Token refresh failed, using existing token:", refreshError);
+            console.error("Token refresh failed during request:", refreshError);
+            // If online and refresh failed, the token is dead
+            return null;
+          }
+        } else {
+          // Offline and token is expiring/expired
+          // We'll return it anyway as it's our only hope for the local interceptor
+          // BUT processQueue should ideally wait for online status.
+          if (timeUntilExpiry < 0) {
+            console.warn("Using expired token while offline.");
           }
         }
-        // Offline: use the existing token even if expired — the server will reject it
-        // but the user can still interact with the local IndexedDB data
       }
     }
-    
-    return keycloak.token || null;
+
+    // Final check for token existence
+    if (!keycloak.token) return null;
+
+    // Second safety check: is it actually expired right now?
+    if (keycloak.tokenParsed?.exp) {
+      const now = Math.floor(Date.now() / 1000);
+      if (keycloak.tokenParsed.exp < now && navigator.onLine) {
+        console.error("Token is expired and we are online. Returning null to prevent 401.");
+        return null;
+      }
+    }
+
+    return keycloak.token;
   } catch (error) {
     console.error("Failed to get access token:", error);
-    // Return stored token as fallback
-    try {
-      const stored = await getStoredTokens();
-      return stored?.accessToken || null;
-    } catch {
-      return null;
-    }
+    return null;
   }
 };
 
@@ -258,9 +295,9 @@ export const getAccessToken = async (): Promise<string | null> => {
 export const getUserProfile = (): UserProfile | null => {
   try {
     if (!keycloak.tokenParsed) return null;
-    
+
     const token = keycloak.tokenParsed;
-    
+
     let organizationId: string | undefined;
     if (token.organizations) {
       const orgKeys = Object.keys(token.organizations);
@@ -306,7 +343,7 @@ export const getAuthState = (): AuthState => {
   const isAuthenticated = !!keycloak.authenticated;
   const user = getUserProfile();
   const roles = user?.roles || [];
-  
+
   return {
     isAuthenticated,
     user,
@@ -322,8 +359,8 @@ export const getAuthState = (): AuthState => {
 export const hasRole = (requiredRoles: string[]): boolean => {
   const { roles } = getAuthState();
   const userRoles = roles.map(role => role.toLowerCase());
-  
-  return requiredRoles.some(role => 
+
+  return requiredRoles.some(role =>
     userRoles.includes(role.toLowerCase())
   );
 };
@@ -370,16 +407,16 @@ export const fetchWithAuth = async (
   init?: RequestInit
 ): Promise<Response> => {
   const token = await getAccessToken();
-  
+
   if (token) {
     const headers = new Headers(init?.headers);
     headers.set("Authorization", `Bearer ${token}`);
-    
+
     return fetch(input, {
       ...init,
       headers,
     });
   }
-  
+
   return fetch(input, init);
 }; 

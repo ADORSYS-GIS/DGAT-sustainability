@@ -5,6 +5,7 @@
 
 import { offlineDB } from "./indexeddb";
 import { toast } from "sonner";
+import { refreshToken } from "./shared/authService";
 import type { OfflineQuestion, SyncQueueItem, OfflineOrganization, OfflineDraftSubmission, SyncableEntityType } from "@/types/offline";
 import { DataTransformationService } from "./dataTransformation";
 import { syncService } from "./syncService";
@@ -619,6 +620,8 @@ export class ApiInterceptor {
     this.isProcessingQueue = true;
 
     try {
+      // Ensure we have a fresh token before replaying mutations
+      await refreshToken();
       let successCount = 0;
       let failureCount = 0;
 

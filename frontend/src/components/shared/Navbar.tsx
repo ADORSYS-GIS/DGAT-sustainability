@@ -138,7 +138,7 @@ export const Navbar = () => {
             <div className="flex items-center space-x-3">
               <div className="w-28 h-28 flex items-center justify-center">
                 <img
-                  src="/dgrv.jpg"
+                  src="/coopsustainability-removebg-preview.png"
                   alt="DGRV Logo"
                   className="w-full h-full object-contain"
                 />

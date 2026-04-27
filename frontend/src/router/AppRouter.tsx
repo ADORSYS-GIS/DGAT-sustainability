@@ -49,7 +49,7 @@ const AppRouter = () => (
   <QueryClientProvider client={queryClient}>
     <Router>
       <MainLayout>
-        <React.Suspense fallback={<LoadingSpinner />}> 
+        <React.Suspense fallback={<LoadingSpinner size="hero" fullPage text="Loading Sustainability Portal..." />}>
           <Routes>
             {renderRoutes(routes)}
           </Routes>
