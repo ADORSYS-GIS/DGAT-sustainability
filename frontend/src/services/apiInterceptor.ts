@@ -173,9 +173,10 @@ export class ApiInterceptor {
             }
           }
 
-          // Store the processed result locally for offline access
-          await this.storeLocally(processedResult, entityType);
-          return processedResult;
+          // Merge with local pending changes before returning and storing
+          const mergedResult = await this.mergePendingChanges(processedResult, entityType, entityId);
+          await this.storeLocally(mergedResult, entityType);
+          return mergedResult;
         } catch (apiError) {
           console.warn(`API call failed for ${entityType}, falling back to local data:`, apiError);
         }
@@ -481,6 +482,48 @@ export class ApiInterceptor {
   }
 
   /**
+   * Merge pending local changes with server response to prevent overwriting unsynced work
+   */
+  private async mergePendingChanges<T extends Record<string, unknown>>(
+    serverData: T,
+    entityType: string,
+    entityId?: string
+  ): Promise<T> {
+    try {
+      if (entityType === 'responses' && entityId) {
+        // Query IndexedDB for responses that are pending for this assessment
+        const localResponses = await offlineDB.getResponsesByAssessment(entityId);
+        const pendingResponses = localResponses.filter(r => r.sync_status === 'pending');
+
+        if (pendingResponses.length > 0 && serverData.responses && Array.isArray(serverData.responses)) {
+          console.log(`🔍 merging ${pendingResponses.length} pending local responses into server results for assessment ${entityId}`);
+
+          // Use question_revision_id as the unique key to merge
+          const serverResponsesMap = new Map(
+            (serverData.responses as Response[]).map(r => [r.question_revision_id, r])
+          );
+
+          // Overlay pending responses
+          for (const pending of pendingResponses) {
+            // Ensure we use the proper type for the map
+            serverResponsesMap.set(pending.question_revision_id, pending as unknown as Response);
+          }
+
+          return {
+            ...serverData,
+            responses: Array.from(serverResponsesMap.values())
+          } as T;
+        }
+      }
+
+      return serverData;
+    } catch (error) {
+      console.warn(`Failed to merge pending changes for ${entityType}:`, error);
+      return serverData;
+    }
+  }
+
+  /**
    * Update local data with server response
    */
   private async updateLocalData(data: Record<string, unknown> | void, entityType: string): Promise<void> {
@@ -536,6 +579,7 @@ export class ApiInterceptor {
       };
 
       await offlineDB.addToSyncQueue(queueItem);
+      window.dispatchEvent(new CustomEvent('sync-queue-updated'));
     } catch (error) {
       console.error('Failed to add item to sync queue:', error);
     }

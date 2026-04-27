@@ -31,16 +31,18 @@ export function useOfflineSyncStatus() {
     // Set up listeners
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
+    window.addEventListener('sync-queue-updated', updateQueueCount);
 
-    // Update queue count and sync status periodically
+    // Update queue count and sync status periodically as a fallback
     const interval = setInterval(() => {
       updateQueueCount();
       updateSyncStatus();
-    }, 5000);
+    }, 10000); // 10 seconds is enough with event listeners
 
     return () => {
       window.removeEventListener('online', updateStatus);
       window.removeEventListener('offline', updateStatus);
+      window.removeEventListener('sync-queue-updated', updateQueueCount);
       clearInterval(interval);
     };
   }, []);

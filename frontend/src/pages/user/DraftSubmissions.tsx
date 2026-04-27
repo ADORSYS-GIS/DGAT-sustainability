@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useOfflineDraftSubmissions, useOfflineDraftSubmissionsMutation } from "@/hooks/useOfflineDraftSubmissions";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { toast } from "sonner";
+import { ChevronRight } from "lucide-react";
 import {
   Clock,
   CheckCircle,
@@ -436,34 +438,52 @@ export default function DraftSubmissions() {
                 </div>
               </div>
 
-              {/* Responses */}
+              {/* Responses - Now Collapsible */}
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">{t("user.draftSubmissions.assessmentResponses", { defaultValue: "Assessment Responses" })}</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">{t("user.draftSubmissions.assessmentResponses", { defaultValue: "Assessment Responses" })}</h2>
+                  <p className="text-sm text-gray-500 italic">{t("user.draftSubmissions.clickToExpand", { defaultValue: "Click categories to expand" })}</p>
+                </div>
+
                 {categories.length > 0 ? (
-                  categories.map((category) => (
-                    <Card key={category} className="border-0 shadow-sm">
-                      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
-                        <CardTitle className="text-lg font-semibold text-blue-900 flex items-center">
-                          <TrendingUp className="h-5 w-5 mr-2" />
-                          {category}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-6">
-                          {groupedByCategory[category].map((response, idx) => (
-                            <div key={idx} className="border-l-4 border-blue-200 pl-6">
-                              <h3 className="font-semibold text-gray-900 mb-4 text-lg">
-                                {response.question_text || `Question ${idx + 1}`}
-                              </h3>
-                              {renderReadOnlyAnswer(response)}
+                  <Accordion type="multiple" defaultValue={[categories[0]]} className="space-y-4">
+                    {categories.map((category, catIdx) => (
+                      <AccordionItem
+                        key={category}
+                        value={category}
+                        className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+                      >
+                        <AccordionTrigger className="w-full px-6 py-4 hover:no-underline bg-gradient-to-r from-blue-50/50 to-indigo-50/50 hover:from-blue-50 hover:to-indigo-50 transition-colors border-b border-gray-100">
+                          <div className="flex items-center text-left">
+                            <div className="mr-4 p-2 bg-blue-100 rounded-lg">
+                              <TrendingUp className="h-5 w-5 text-blue-600" />
                             </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
+                            <div>
+                              <h3 className="text-lg font-semibold text-blue-900">{category}</h3>
+                              <p className="text-xs text-blue-600/70">{groupedByCategory[category].length} {t("user.draftSubmissions.responses", { defaultValue: "responses" })}</p>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 py-4 pt-6">
+                          <div className="space-y-8">
+                            {groupedByCategory[category].map((response, idx) => (
+                              <div key={idx} className="relative pl-8 border-l-2 border-blue-200 last:pb-0 pb-8 last:border-l-transparent">
+                                <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-sm"></div>
+                                <h3 className="font-semibold text-gray-900 mb-4 text-lg leading-relaxed">
+                                  {response.question_text || `Question ${idx + 1}`}
+                                </h3>
+                                <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100">
+                                  {renderReadOnlyAnswer(response)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 ) : (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-gray-100 shadow-sm">
                     <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>{t("user.draftSubmissions.noResponsesAvailable", { defaultValue: "No responses available" })}</p>
                   </div>

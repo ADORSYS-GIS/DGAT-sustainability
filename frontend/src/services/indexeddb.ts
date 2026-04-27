@@ -724,6 +724,7 @@ class OfflineDB {
   async addToSyncQueue(item: SyncQueueItem): Promise<string> {
     const db = await this.dbPromise;
     const result = await db.add("sync_queue", item);
+    window.dispatchEvent(new CustomEvent('sync-queue-updated'));
     return result as string;
   }
 
@@ -742,16 +743,19 @@ class OfflineDB {
   async removeFromSyncQueue(itemId: string): Promise<void> {
     const db = await this.dbPromise;
     await db.delete("sync_queue", itemId);
+    window.dispatchEvent(new CustomEvent('sync-queue-updated'));
   }
 
   async clearSyncQueue(): Promise<void> {
     const db = await this.dbPromise;
     await db.clear("sync_queue");
+    window.dispatchEvent(new CustomEvent('sync-queue-updated'));
   }
 
   async updateSyncQueueItem(item: SyncQueueItem): Promise<void> {
     const db = await this.dbPromise;
     await db.put("sync_queue", item);
+    window.dispatchEvent(new CustomEvent('sync-queue-updated'));
   }
 
   // ===== STATUS MANAGEMENT =====
