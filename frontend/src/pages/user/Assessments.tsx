@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineSubmissions, useOfflineSubmissionsMutation } from "@/hooks/useOfflineSubmissions";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import type { Assessment, Submission } from "@/openapi-rq/requests/types.gen";
-import { Calendar, Eye, FileText, Trash2 } from "lucide-react";
+import { Calendar, Eye, FileText, Trash2, WifiOff } from "lucide-react";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -135,7 +135,7 @@ export const Assessments: React.FC = () => {
     isOrgAdmin: boolean;
   }> = ({ submission, user, navigate, index, onDelete, isDeleting, isOrgAdmin }) => {
     const { completed } = getCategoryCounts(submission);
-    
+
     return (
       <Card
         key={submission.submission_id}
@@ -168,15 +168,15 @@ export const Assessments: React.FC = () => {
                   submission.review_status === "approved"
                     ? "bg-dgrv-green text-white"
                     : submission.review_status === "rejected"
-                    ? "bg-red-500 text-white"
-                    : submission.review_status === "under_review"
-                    ? "bg-yellow-500 text-white"
-                    : "bg-gray-500 text-white"
+                      ? "bg-red-500 text-white"
+                      : submission.review_status === "under_review"
+                        ? "bg-yellow-500 text-white"
+                        : "bg-gray-500 text-white"
                 }
               >
                 {submission.review_status
                   ? submission.review_status.charAt(0).toUpperCase() +
-                    submission.review_status.slice(1).replace('_', ' ')
+                  submission.review_status.slice(1).replace('_', ' ')
                   : "-"}
               </Badge>
             </div>
@@ -232,6 +232,12 @@ export const Assessments: React.FC = () => {
           <p className="text-lg text-gray-600">
             {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
           </p>
+          {!isOnline && (
+            <div className="flex items-center gap-2 mt-4 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium">
+              <WifiOff className="w-4 h-4 shrink-0" />
+              You are offline — viewing cached submissions. Changes will sync when you reconnect.
+            </div>
+          )}
         </div>
 
         <div className="grid gap-6">

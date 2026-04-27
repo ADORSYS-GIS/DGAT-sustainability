@@ -15,15 +15,15 @@
   },
   "servers": [
     {
-      "url": "https://sustainability.decidel.app/api",
+      "url": "https://sustainability.dgrvcoop360.com/api",
       "description": "Production server"
     },
     {
-      "url": "https://sustainability.decidel.app/api",
+      "url": "https://sustainability.dgrvcoop360.com/api",
       "description": "Staging server"
     },
     {
-      "url": "https://sustainability.decidel.app/api",
+      "url": "https://sustainability.dgrvcoop360.com/api",
       "description": "Development server"
     }
   ],

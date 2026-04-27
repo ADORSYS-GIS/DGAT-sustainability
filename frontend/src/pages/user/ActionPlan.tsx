@@ -24,6 +24,7 @@ import { useAuth } from "../../hooks/shared/useAuth"; // Import useAuth hook
 import { useOfflineRecommendationStatusMutation, useOfflineReport } from "@/hooks/useOfflineReports";
 import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { useParams } from "react-router-dom";
 
 export const ActionPlan: React.FC = () => {
@@ -31,6 +32,7 @@ export const ActionPlan: React.FC = () => {
   const { submissionId } = useParams<{ submissionId: string }>();
   const { data, isLoading, error } = useOfflineReport(submissionId);
   const { updateRecommendationStatus } = useOfflineRecommendationStatusMutation();
+  const { isOnline } = useOfflineSyncStatus();
   const { roles } = useAuth();
   const isAdmin = roles.includes("org_admin") || roles.includes("Org_admin");
 
@@ -138,11 +140,11 @@ export const ActionPlan: React.FC = () => {
 
       // Deduplicate recommendations by category + recommendation text (same logic as admin)
       const deduplicatedMap = new Map<string, KanbanRecommendation>();
-      
+
       allRecommendations.forEach((rec) => {
         const normalizedCategory = rec.category.toLowerCase().trim();
         const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
-        
+
         // Keep the most recent recommendation if duplicates exist
         if (!deduplicatedMap.has(key) ||
           new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
@@ -333,7 +335,7 @@ export const ActionPlan: React.FC = () => {
                 {Object.entries(groupedRecs).map(([assessmentName, recs]) => (
                   <div key={assessmentName} className="h-full flex flex-col">
                     <h2 className="text-2xl font-bold text-dgrv-blue mb-4 flex-shrink-0">{assessmentName}</h2>
-                    
+
                     {/* Kanban Columns */}
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6" style={{ minHeight: 0 }}>
                       {columns.map((column) => {
@@ -354,9 +356,9 @@ export const ActionPlan: React.FC = () => {
                                 </CardTitle>
                               </CardHeader>
                               <CardContent className="flex-1 p-4" style={{ minHeight: 0 }}>
-                                <div 
+                                <div
                                   className="space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-                                  style={{ 
+                                  style={{
                                     height: '100%',
                                     overflowY: 'auto',
                                     overflowX: 'hidden',

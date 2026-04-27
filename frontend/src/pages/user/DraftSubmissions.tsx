@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useOfflineDraftSubmissions, useOfflineDraftSubmissionsMutation } from "@/hooks/useOfflineDraftSubmissions";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { toast } from "sonner";
 import {
   Clock,
@@ -16,7 +17,8 @@ import {
   Calendar,
   FileText,
   Users,
-  TrendingUp
+  TrendingUp,
+  WifiOff,
 } from "lucide-react";
 import type { Submission_content_responses } from "@/openapi-rq/requests/types.gen";
 import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
@@ -54,8 +56,17 @@ export default function DraftSubmissions() {
   const { data: questionsData } = useOfflineQuestions();
   const { data: categoriesData } = useOfflineCategoryCatalogs();
   const { approveDraftSubmission } = useOfflineDraftSubmissionsMutation();
+  const { isOnline } = useOfflineSyncStatus();
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<DraftSubmission | null>(null);
+
+  /** Reusable amber offline notice */
+  const offlineBanner = !isOnline ? (
+    <div className="flex items-center gap-2 px-4 py-3 mb-6 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium">
+      <WifiOff className="w-4 h-4 shrink-0" />
+      You are offline — viewing cached data. Changes will sync when you reconnect.
+    </div>
+  ) : null;
 
   // Handle both possible response structures
   const submissions = (draftSubmissions?.draft_submissions || []) as unknown as DraftSubmission[];
@@ -374,6 +385,7 @@ export default function DraftSubmissions() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               {t("user.draftSubmissions.backToDraftSubmissions", { defaultValue: "Back to Draft Submissions" })}
             </Button>
+            {offlineBanner}
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-start justify-between mb-6">
@@ -492,6 +504,7 @@ export default function DraftSubmissions() {
       <div className="container mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
+          {offlineBanner}
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             {t("user.draftSubmissions.title", { defaultValue: "Draft Submissions" })}
           </h1>

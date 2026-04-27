@@ -130,9 +130,9 @@ export function useOfflineDraftAssessments() {
   useEffect(() => {
     const handleDataSync = (event: Event) => {
       const customEvent = event as CustomEvent;
-      if (customEvent.detail.entityType === 'assessments' || 
-          customEvent.detail.entityType === 'draft_assessments' ||
-          customEvent.detail.entityType === 'submissions') {
+      if (customEvent.detail.entityType === 'assessments' ||
+        customEvent.detail.entityType === 'draft_assessments' ||
+        customEvent.detail.entityType === 'submissions') {
         console.log('🔍 useOfflineDraftAssessments: Received datasync event, refetching...', customEvent.detail.entityType);
         fetchData();
       }
@@ -556,7 +556,7 @@ export function useOfflineAssessmentsMutation() {
           // Optimistic update is already done by saving the temp submission.
         },
         { assessmentId, tempId } as Record<string, unknown>,
-        'draft_submission',
+        'submission',
         'submit'
       );
 

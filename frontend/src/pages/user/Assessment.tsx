@@ -18,7 +18,7 @@ import type {
 } from "@/openapi-rq/requests/types.gen";
 import type { OfflineSubmission } from "@/types/offline";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, FileText, Info, Lock, Paperclip, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Info, Lock, Paperclip, Send, WifiOff } from "lucide-react";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -204,7 +204,8 @@ export const Assessment: React.FC = () => {
     fetchDelegated();
   }, [isOrgAdmin, orgInfo.orgId]);
 
-  const organizationCategories = React.useMemo(() => {    if (!categoriesData || !orgInfo.categories) {
+  const organizationCategories = React.useMemo(() => {
+    if (!categoriesData || !orgInfo.categories) {
       return [];
     }
     const orgCategoryNames = new Set(orgInfo.categories.map((c: string) => c.toLowerCase()));
@@ -736,35 +737,35 @@ export const Assessment: React.FC = () => {
     // Only save responses if this category is not delegated
     if (!isCurrentCategoryDelegated) {
       const currentQuestions = getCurrentCategoryQuestions();
-    const responsesToSend = currentQuestions
-      .map((question) => {
-        const key = getRevisionKey(question.revision);
-        if (!key) return null;
-        const answer = answers[key];
-        if (!answer) return null;
-        return createResponseToSave(key, answer);
-      })
-      .filter((r): r is CreateResponseRequest => r !== null);
+      const responsesToSend = currentQuestions
+        .map((question) => {
+          const key = getRevisionKey(question.revision);
+          if (!key) return null;
+          const answer = answers[key];
+          if (!answer) return null;
+          return createResponseToSave(key, answer);
+        })
+        .filter((r): r is CreateResponseRequest => r !== null);
 
-    if (assessmentId && responsesToSend.length > 0) {
-      try {
-        await createResponses(assessmentId, responsesToSend, {
-          onSuccess: async () => {
-            // Removed responses saved success toast
-            // Removed responses queued for sync info toast
-            const savedResponses = await offlineDB.getResponsesByAssessment(assessmentId);
-            if (savedResponses.length !== responsesToSend.length) {
-              // Removed partial save warning toast
-            }
-          },
-          onError: () => {
-            toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
-          },
-        });
-      } catch (error) {
-        toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+      if (assessmentId && responsesToSend.length > 0) {
+        try {
+          await createResponses(assessmentId, responsesToSend, {
+            onSuccess: async () => {
+              // Removed responses saved success toast
+              // Removed responses queued for sync info toast
+              const savedResponses = await offlineDB.getResponsesByAssessment(assessmentId);
+              if (savedResponses.length !== responsesToSend.length) {
+                // Removed partial save warning toast
+              }
+            },
+            onError: () => {
+              toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+            },
+          });
+        } catch (error) {
+          toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+        }
       }
-    }
     } // end if (!isCurrentCategoryDelegated)
 
     if (currentCategoryIndex < categories.length - 1) {
@@ -957,6 +958,12 @@ export const Assessment: React.FC = () => {
           <p className="text-lg text-gray-600">
             {t("category")} {currentCategoryIndex + 1} {t("of", { defaultValue: "of" })} {categories.length}: {currentCategoryName}
           </p>
+          {!isOnline && (
+            <div className="flex items-center gap-2 mt-4 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium">
+              <WifiOff className="w-4 h-4 shrink-0" />
+              You are offline — your answers are saved locally and will sync automatically when you reconnect.
+            </div>
+          )}
         </div>
 
         {!isOnline && (

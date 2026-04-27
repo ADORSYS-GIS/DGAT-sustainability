@@ -6,12 +6,12 @@ import {
   AssessmentsService,
 } from "@/openapi-rq/requests/services.gen";
 import type {
-Submission,
-Assessment,
-AdminSubmissionDetail,
-AdminSubmissionListResponse,
-AssessmentListResponse,
-SubmissionDetailResponse,
+  Submission,
+  Assessment,
+  AdminSubmissionDetail,
+  AdminSubmissionListResponse,
+  AssessmentListResponse,
+  SubmissionDetailResponse,
 } from "@/openapi-rq/requests/types.gen";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DataTransformationService } from "../services/dataTransformation";
@@ -80,13 +80,13 @@ export function useOfflineDraftSubmissions() {
         const adminSubmissions = onlineDraftsResult.draft_submissions;
         const allAssessments = await offlineDB.getAllAssessments();
         const assessmentsMap = new Map<string, string>(
-            allAssessments.map(a => [a.assessment_id, a.name])
+          allAssessments.map(a => [a.assessment_id, a.name])
         );
 
         const offlineDrafts = (adminSubmissions as AdminSubmissionDetail[]).map(
           (submission) => DataTransformationService.transformAdminSubmission(
-              submission,
-              (submission as any).assessment_name || assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
+            submission,
+            (submission as any).assessment_name || assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
           )
         );
         await offlineDB.saveDraftSubmissions(offlineDrafts as unknown as OfflineDraftSubmission[]);
@@ -125,6 +125,25 @@ export function useOfflineDraftSubmissions() {
 
   useEffect(() => {
     fetchData();
+
+    // Re-fetch when sync events fire (online mutations, queue flushes, etc.)
+    const onDataSync = (e: Event) => {
+      const { entityType } = (e as CustomEvent<{ entityType: string }>).detail || {};
+      if (!entityType || entityType === 'submission' || entityType === 'draft_submission' || entityType === 'assessment') {
+        fetchData();
+      }
+    };
+
+    // Re-fetch when coming back online so stale data is refreshed immediately
+    const onOnline = () => fetchData();
+
+    window.addEventListener('datasync', onDataSync);
+    window.addEventListener('online', onOnline);
+
+    return () => {
+      window.removeEventListener('datasync', onDataSync);
+      window.removeEventListener('online', onOnline);
+    };
   }, [fetchData]);
 
   return { data, isLoading, error, refetch: fetchData };
@@ -137,14 +156,14 @@ export function useOfflineDraftSubmissionsMutation() {
     networkMode: 'always', // Ensure mutation runs regardless of network status
     mutationFn: async (submissionId: string) => {
       console.log(`[Mutation] 1. Starting approval for submissionId: ${submissionId}`);
-      
+
       const draft = await offlineDB.getDraftSubmission(submissionId);
       if (!draft) {
         console.error(`[Mutation] 2. Draft with id ${submissionId} not found in local DB.`);
         throw new Error(`Draft submission with id ${submissionId} not found in local DB.`);
       }
       console.log(`[Mutation] 2. Found draft:`, draft);
-      
+
       const { assessment_id: assessmentId } = draft;
 
       const apiCall = () => {

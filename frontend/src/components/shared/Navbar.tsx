@@ -6,12 +6,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Globe, User, LogOut, Home, Menu, X } from "lucide-react";
+import { Globe, User, LogOut, Home, Menu, X, WifiOff, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import i18n from "@/i18n";
 import React from "react";
+import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 
 const languages = [
   { code: "en", name: "English", flag: "🇺🇸" },
@@ -21,6 +22,40 @@ const languages = [
   { code: "de", name: "Deutsch", flag: "🇩🇪" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
 ];
+
+/** Compact badge shown in the Navbar to indicate offline / syncing / pending state */
+const OfflineStatusBadge: React.FC = () => {
+  const { isOnline, isSyncing, queueCount } = useOfflineSyncStatus();
+
+  if (!isOnline) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 select-none">
+        <WifiOff className="w-3.5 h-3.5" />
+        Offline
+      </span>
+    );
+  }
+
+  if (isSyncing) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-300 select-none">
+        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+        Syncing…
+      </span>
+    );
+  }
+
+  if (queueCount > 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-300 select-none">
+        <RefreshCw className="w-3.5 h-3.5" />
+        {queueCount} pending
+      </span>
+    );
+  }
+
+  return null;
+};
 
 export const Navbar = () => {
   const { t } = useTranslation();
@@ -51,19 +86,19 @@ export const Navbar = () => {
     if (!isAuthenticated || !user) {
       return "/";
     }
-    
+
     // Check if user has drgv_admin role
-    const hasDgrvAdminRole = user.roles?.some(role => 
+    const hasDgrvAdminRole = user.roles?.some(role =>
       role.toLowerCase() === 'drgv_admin'
-    ) || user.realm_access?.roles?.some(role => 
+    ) || user.realm_access?.roles?.some(role =>
       role.toLowerCase() === 'drgv_admin'
     );
-    
+
     if (hasDgrvAdminRole) {
       return "/admin/dashboard";
     }
-    
-    
+
+
     // For org_user, org_admin, or any other authenticated user
     return "/dashboard";
   };
@@ -88,7 +123,7 @@ export const Navbar = () => {
     };
 
     i18n.on('languageChanged', handleLanguageChange);
-    
+
     return () => {
       i18n.off('languageChanged', handleLanguageChange);
     };
@@ -102,9 +137,9 @@ export const Navbar = () => {
             {/* Logo */}
             <div className="flex items-center space-x-3">
               <div className="w-28 h-28 flex items-center justify-center">
-                <img 
-                  src="/dgrv.jpg" 
-                  alt="DGRV Logo" 
+                <img
+                  src="/dgrv.jpg"
+                  alt="DGRV Logo"
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -124,7 +159,11 @@ export const Navbar = () => {
 
 
             {/* Right side */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              {/* Offline status indicator */}
+              <div className="hidden sm:block">
+                <OfflineStatusBadge />
+              </div>
               {/* Language Selector - Always visible */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -219,24 +258,23 @@ export const Navbar = () => {
 
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={closeSidebar}
         />
       )}
 
       {/* Mobile Sidebar */}
-      <div className={`fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-blue-50 to-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div className={`fixed top-0 left-0 h-full w-72 bg-gradient-to-b from-blue-50 to-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between p-6 border-b border-blue-100 bg-white">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 flex items-center justify-center">
-                <img 
-                  src="/dgrv.jpg" 
-                  alt="DGRV Logo" 
+                <img
+                  src="/dgrv.jpg"
+                  alt="DGRV Logo"
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -262,7 +300,7 @@ export const Navbar = () => {
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
                 Navigation
               </h3>
-              
+
               {/* Home Button */}
               <Button
                 variant="ghost"
@@ -283,7 +321,7 @@ export const Navbar = () => {
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
                 Account
               </h3>
-              
+
               {!isAuthenticated ? (
                 <Button
                   variant="outline"
@@ -317,7 +355,7 @@ export const Navbar = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <Button
                     variant="outline"
                     size="lg"

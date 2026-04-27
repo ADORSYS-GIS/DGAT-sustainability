@@ -5,7 +5,7 @@
 
 import { offlineDB } from "./indexeddb";
 import { toast } from "sonner";
-import type { OfflineQuestion, SyncQueueItem, OfflineOrganization, OfflineDraftSubmission } from "@/types/offline";
+import type { OfflineQuestion, SyncQueueItem, OfflineOrganization, OfflineDraftSubmission, SyncableEntityType } from "@/types/offline";
 import { DataTransformationService } from "./dataTransformation";
 import { syncService } from "./syncService";
 import type {
@@ -503,6 +503,8 @@ export class ApiInterceptor {
         entityId = data.assessmentId;
       } else if (entityType === 'submission' && 'submission_id' in data && typeof data.submission_id === 'string') {
         entityId = data.submission_id;
+      } else if (entityType === 'submission' && 'assessmentId' in data && typeof data.assessmentId === 'string') {
+        entityId = data.assessmentId;
       } else if (entityType === 'assessment' && 'assessment_id' in data && typeof data.assessment_id === 'string') {
         entityId = data.assessment_id;
       } else if (entityType === 'question' && 'question_id' in data && typeof data.question_id === 'string') {
@@ -511,11 +513,19 @@ export class ApiInterceptor {
         entityId = data.category_catalog_id;
       } else if (entityType === 'organization' && 'id' in data && typeof data.id === 'string') {
         entityId = data.id;
+      } else if ((entityType === 'response' || entityType === 'responses') && 'response_id' in data && typeof data.response_id === 'string') {
+        entityId = data.response_id;
+      } else if ((entityType === 'response' || entityType === 'responses') && 'assessmentId' in data && typeof data.assessmentId === 'string') {
+        // Batch response create — use assessmentId as the grouping key
+        entityId = data.assessmentId as string;
       }
 
       const queueItem: SyncQueueItem = {
         id: crypto.randomUUID(),
-        entity_type: (entityType === 'drafts_endpoint' || entityType === 'draft_submission' ? 'submission' : entityType) as 'submission' | 'assessment' | 'question' | 'category_catalog' | 'response' | 'report' | 'organization' | 'user' | 'invitation',
+        entity_type: (
+          entityType === 'drafts_endpoint' ? 'submission' :
+            (entityType === 'responses' ? 'response' : entityType)
+        ) as SyncableEntityType,
         entity_id: entityId, // Explicitly set entity_id
         operation,
         data,
@@ -837,6 +847,37 @@ export class ApiInterceptor {
 
             // Mark this submission as processed
             this.processedSubmissions.add(submissionId);
+          } else if (queueItem.entity_type === 'response') {
+            const { ResponsesService } = await import('@/openapi-rq/requests/services.gen');
+            const assessmentId = queueItem.entity_id;
+
+            if (!assessmentId) {
+              console.error(`[processQueue] No assessment_id for response sycn queue item: ${queueItem.id}`);
+            } else {
+              // Extract response data from the queue item
+              const responseData = Array.isArray(queueItem.data) ? queueItem.data : [queueItem.data];
+
+              // Map to the format expected by the API
+              const formattedResponses = responseData.map((r: any) => ({
+                question_revision_id: r.question_revision_id,
+                response: r.response
+              }));
+
+              await ResponsesService.postAssessmentsByAssessmentIdResponses({
+                assessmentId,
+                requestBody: formattedResponses
+              });
+
+              // Clean up any local responses that were temporary
+              for (const r of responseData) {
+                if (r.response_id && r.response_id.startsWith('temp_')) {
+                  await offlineDB.deleteResponse(r.response_id);
+                }
+              }
+
+              console.log(`✅ Synced ${formattedResponses.length} responses for assessment ${assessmentId}`);
+              successCount++;
+            }
           } else if (queueItem.entity_type === 'category_catalog') {
             const { CategoryCatalogService } = await import('@/openapi-rq/requests/services.gen');
             const categoryData = queueItem.data as CategoryCatalog;
