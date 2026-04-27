@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Globe, User, LogOut, Home, Menu, X, WifiOff, RefreshCw } from "lucide-react";
+import { Globe, User, LogOut, Home, Menu, X, WifiOff } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -25,31 +25,13 @@ const languages = [
 
 /** Compact badge shown in the Navbar to indicate offline / syncing / pending state */
 const OfflineStatusBadge: React.FC = () => {
-  const { isOnline, isSyncing, queueCount } = useOfflineSyncStatus();
+  const { isOnline } = useOfflineSyncStatus();
 
   if (!isOnline) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 select-none">
         <WifiOff className="w-3.5 h-3.5" />
         Offline
-      </span>
-    );
-  }
-
-  if (isSyncing) {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-300 select-none">
-        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-        Syncing…
-      </span>
-    );
-  }
-
-  if (queueCount > 0) {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-300 select-none">
-        <RefreshCw className="w-3.5 h-3.5" />
-        {queueCount} pending
       </span>
     );
   }
