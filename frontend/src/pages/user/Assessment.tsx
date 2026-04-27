@@ -41,6 +41,7 @@ import {
 } from "@/hooks/useOfflineResponses";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import { offlineDB } from "../../services/indexeddb";
+import { DataTransformationService } from "../../services/dataTransformation";
 
 type FileData = { name: string; url: string };
 
@@ -135,7 +136,18 @@ export const Assessment: React.FC = () => {
       existingResponses.responses.forEach((response: CreateResponseRequest) => {
         try {
           console.log('🔍 Processing response:', response);
-          const responseData = JSON.parse(response.response[0] || response.response);
+
+          // Standardize response parsing - handle potential older array format or standard string format
+          let responseRaw = response.response;
+          if (Array.isArray(responseRaw) && (responseRaw as any).length > 0) {
+            responseRaw = (responseRaw as any)[0];
+          }
+
+          if (!responseRaw) return;
+
+          const responseData = typeof responseRaw === 'string' ? JSON.parse(responseRaw) : responseRaw;
+          console.log('🔍 Parsed response data:', responseData);
+
           if (responseData && typeof responseData === 'object') {
             loadedAnswers[response.question_revision_id] = {
               yesNo: responseData.yesNo,
@@ -690,12 +702,30 @@ export const Assessment: React.FC = () => {
   };
 
   const handleAnswerChange = (question_revision_id: string, value: Partial<LocalAnswer>) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [question_revision_id]: { ...prev[question_revision_id], ...value } as LocalAnswer,
-    }));
-  };
+    setAnswers((prev) => {
+      const updated = {
+        ...prev,
+        [question_revision_id]: { ...prev[question_revision_id], ...value } as LocalAnswer,
+      };
 
+      // Auto-save to IndexedDB
+      const answer = updated[question_revision_id];
+      if (answer) {
+        const responseToSave = createResponseToSave(question_revision_id, answer);
+        const offlineResponse = DataTransformationService.transformResponse(
+          responseToSave,
+          '', // question text - will be enriched by interceptor if needed
+          '', // category
+          assessmentId
+        );
+        offlineDB.saveResponse(offlineResponse).catch(err =>
+          console.error('Failed to auto-save answer:', err)
+        );
+      }
+
+      return updated;
+    });
+  };
   const createResponseToSave = (key: string, answer: LocalAnswer): CreateResponseRequest => ({
     question_revision_id: key,
     response: JSON.stringify(answer),
@@ -721,10 +751,29 @@ export const Assessment: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const fileData = { name: file.name, url: e.target?.result as string };
-      setAnswers((prev) => ({
-        ...prev,
-        [questionId]: { ...prev[questionId], files: [...(prev[questionId]?.files || []), fileData] },
-      }));
+      setAnswers((prev) => {
+        const updated = {
+          ...prev,
+          [questionId]: { ...prev[questionId], files: [...(prev[questionId]?.files || []), fileData] },
+        };
+
+        // Auto-save to IndexedDB for file uploads
+        const answer = updated[questionId];
+        if (answer) {
+          const responseToSave = createResponseToSave(questionId, answer);
+          const offlineResponse = DataTransformationService.transformResponse(
+            responseToSave,
+            '',
+            '',
+            assessmentId
+          );
+          offlineDB.saveResponse(offlineResponse).catch(err =>
+            console.error('Failed to auto-save after file upload:', err)
+          );
+        }
+
+        return updated;
+      });
     };
     reader.readAsDataURL(file);
   };
