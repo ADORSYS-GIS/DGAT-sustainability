@@ -98,6 +98,10 @@ export function useOfflineDraftAssessments() {
 
       console.log('🔍 useOfflineDraftAssessments: API response received:', result);
 
+      // Fetch submissions to filter out assessments that have already been submitted
+      const allSubmissions = await offlineDB.getAllSubmissions();
+      const submittedAssessmentIds = new Set(allSubmissions.map(s => s.assessment_id));
+
       // Transform API response to match OfflineAssessment type and filter for draft only
       const categories = await offlineDB.getAllCategoryCatalogs();
       const categoryIdToCategoryMap = new Map(
@@ -108,7 +112,9 @@ export function useOfflineDraftAssessments() {
         assessments: DataTransformationService.transformAssessmentsWithContext(
           result.assessments,
           categoryIdToCategoryMap
-        ).filter(assessment => assessment.status === 'draft')
+        ).filter(assessment =>
+          assessment.status === 'draft' && !submittedAssessmentIds.has(assessment.assessment_id)
+        )
       };
 
       console.log('🔍 useOfflineDraftAssessments: Final transformed result:', transformedResult);
@@ -132,6 +138,7 @@ export function useOfflineDraftAssessments() {
       const customEvent = event as CustomEvent;
       if (customEvent.detail.entityType === 'assessments' ||
         customEvent.detail.entityType === 'draft_assessments' ||
+        customEvent.detail.entityType === 'submission' ||
         customEvent.detail.entityType === 'submissions') {
         console.log('🔍 useOfflineDraftAssessments: Received datasync event, refetching...', customEvent.detail.entityType);
         fetchData();

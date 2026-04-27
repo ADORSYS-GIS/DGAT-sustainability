@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { AssessmentsService } from "@/openapi-rq/requests/services.gen";
 import { offlineDB } from "@/services/indexeddb";
+import { useOfflineAssessmentsMutation } from "@/hooks/useOfflineAssessments";
 
 interface AssessmentListProps {
   assessments: OfflineAssessment[];
@@ -32,6 +33,7 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   const [assessmentToDelete, setAssessmentToDelete] = React.useState<string | null>(null);
   const [completionStatus, setCompletionStatus] = React.useState<Record<string, { complete: boolean; answered: number; total: number }>>({});
   const [submittingId, setSubmittingId] = React.useState<string | null>(null);
+  const { submitDraftAssessment } = useOfflineAssessmentsMutation();
 
   const { user } = useAuth();
   const isOrgAdmin = React.useMemo(() => {
@@ -64,16 +66,15 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   const handleSubmitAssessment = async (assessmentId: string) => {
     setSubmittingId(assessmentId);
     try {
-      await AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId });
-      // Update local IndexedDB status so it's filtered out immediately
-      const assessment = await offlineDB.getAssessment(assessmentId);
-      if (assessment) {
-        await offlineDB.saveAssessment({ ...assessment, status: 'submitted', sync_status: 'synced' });
-      }
-      toast.success(t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" }));
-      onAssessmentDeleted?.(); // refetch list
-    } catch (err) {
-      toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
+      await submitDraftAssessment(assessmentId, {
+        onSuccess: () => {
+          toast.success(t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" }));
+          onAssessmentDeleted?.(); // refetch list
+        },
+        onError: () => {
+          toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
+        }
+      });
     } finally {
       setSubmittingId(null);
     }
