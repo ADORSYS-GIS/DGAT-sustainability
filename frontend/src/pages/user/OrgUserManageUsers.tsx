@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Navbar } from "@/components/shared/Navbar";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -35,14 +36,14 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 // Offline-first user mutation hooks
 function useUserMutations() {
   const [isPending, setIsPending] = useState(false);
-  
+
   const createUser = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
     setIsPending(true);
     try {
       // Generate a temporary ID for optimistic updates
       const tempId = `temp_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
-      
+
       // Create a temporary user object for local storage
       const tempUser: OfflineUser = {
         id: tempId,
@@ -56,24 +57,24 @@ function useUserMutations() {
         sync_status: 'pending',
         organization_id: data.id,
       };
-      
+
       // Save to IndexedDB immediately for optimistic UI updates
       await offlineDB.saveUser(tempUser);
-      
+
       // Try to sync with backend if online
       try {
         const result = await OrganizationMembersService.postOrganizationsByIdOrgAdminMembers({
           id: data.id,
           requestBody: data.requestBody
         });
-        
+
         // If successful, replace the temporary user with the real one
         if (result && typeof result === 'object' && 'id' in result) {
           const realUserId = (result as { id: string }).id;
-          
+
           // Delete the temporary user first
           await offlineDB.deleteUser(tempId);
-          
+
           // Verify deletion by checking if user still exists
           const deletedUser = await offlineDB.getUser(tempId);
           if (deletedUser) {
@@ -81,7 +82,7 @@ function useUserMutations() {
             // Try to delete again
             await offlineDB.deleteUser(tempId);
           }
-          
+
           // Save the real user with proper ID
           const realUser: OfflineUser = {
             id: realUserId,
@@ -97,7 +98,7 @@ function useUserMutations() {
             local_changes: false,
             last_synced: new Date().toISOString()
           };
-          
+
           await offlineDB.saveUser(realUser);
           toast.success("User created successfully");
         }
@@ -105,7 +106,7 @@ function useUserMutations() {
         console.warn('API call failed, user saved locally for sync:', apiError);
         // Removed offline sync toast
       }
-      
+
       return { success: true };
     } catch (error) {
       console.error('❌ Error in createUser:', error);
@@ -115,7 +116,7 @@ function useUserMutations() {
       setIsPending(false);
     }
   };
-  
+
   const updateUser = async (data: { id: string; memberId: string; requestBody: OrgAdminMemberCategoryUpdateRequest }) => {
     setIsPending(true);
     try {
@@ -165,7 +166,7 @@ function useUserMutations() {
       setIsPending(false);
     }
   };
-  
+
   const deleteUser = async (data: { id: string; memberId: string }) => {
     setIsPending(true);
     try {
@@ -174,24 +175,24 @@ function useUserMutations() {
       if (!existingUser) {
         throw new Error('User not found');
       }
-      
+
       // Mark as deleted locally
       await offlineDB.saveUser({
         ...existingUser,
         sync_status: 'pending',
         updated_at: new Date().toISOString()
       });
-      
+
       // Attempt API call
       try {
         await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId({
           id: data.id,
           memberId: data.memberId
         });
-        
+
         // API call succeeded, actually delete from IndexedDB
         await offlineDB.deleteUser(data.memberId);
-        
+
         toast.success("User deleted successfully");
         return { success: true };
       } catch (apiError) {
@@ -207,7 +208,7 @@ function useUserMutations() {
           priority: 'normal',
           created_at: new Date().toISOString()
         });
-        
+
         // Removed offline mode toast
         return { success: true };
       }
@@ -218,7 +219,7 @@ function useUserMutations() {
       setIsPending(false);
     }
   };
-  
+
   return {
     createUser: { mutate: createUser, isPending },
     updateUser: { mutate: updateUser, isPending },
@@ -230,7 +231,7 @@ export const OrgUserManageUsers: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+
   const { orgName, orgId } = useMemo(() => {
     if (!user || !user.organizations) return { orgName: "", orgId: "" };
     const orgKeys = Object.keys(user.organizations);
@@ -263,7 +264,7 @@ export const OrgUserManageUsers: React.FC = () => {
     console.log("OrgUserManageUsers - availableCategories:", availableCategories);
     console.log("OrgUserManageUsers - isLoadingCategories:", isLoadingCategories);
   }, [offlineOrgCategories, allCategoryCatalogs, availableCategories, isLoadingCategories]);
-  
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<OrganizationMember | null>(
     null,
@@ -293,7 +294,7 @@ export const OrgUserManageUsers: React.FC = () => {
     try {
       const allUsers = await offlineDB.getAllUsers();
       const tempUsers = allUsers.filter(u => u.id.startsWith('temp_'));
-      
+
       if (tempUsers.length > 0) {
         for (const tempUser of tempUsers) {
           await offlineDB.deleteUser(tempUser.id);
@@ -316,7 +317,7 @@ export const OrgUserManageUsers: React.FC = () => {
     error,
     refetch,
   } = useOfflineUsers(orgId);
-  
+
   const { createUser, updateUser, deleteUser } = useUserMutations();
   // Remove useOfflineSyncStatus, useOfflineSync, sync, isSyncing
 
@@ -334,7 +335,7 @@ export const OrgUserManageUsers: React.FC = () => {
       toast.error("Organization not found");
       return;
     }
-    
+
     if (editingUser) {
       // Only update categories for existing user
       const req: OrgAdminMemberCategoryUpdateRequest = {
@@ -384,7 +385,7 @@ export const OrgUserManageUsers: React.FC = () => {
 
   const confirmDelete = () => {
     if (!userToDelete || !orgId) return;
-    
+
     deleteUser.mutate({ id: orgId, memberId: userToDelete.id }).then(() => {
       refetch();
       setShowDeleteConfirmation(false);
@@ -407,14 +408,7 @@ export const OrgUserManageUsers: React.FC = () => {
   };
 
   if (usersLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text={t("loading")} />;
   }
 
   return (
@@ -422,7 +416,7 @@ export const OrgUserManageUsers: React.FC = () => {
       <Navbar />
       <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Remove Offline Status Indicator and Manual Sync Button */}
-        
+
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="outline"
@@ -513,8 +507,8 @@ export const OrgUserManageUsers: React.FC = () => {
                     className="bg-dgrv-green hover:bg-green-700"
                     disabled={createUser.isPending || updateUser.isPending}
                   >
-                    {createUser.isPending || updateUser.isPending 
-                      ? t('common.processing') 
+                    {createUser.isPending || updateUser.isPending
+                      ? t('common.processing')
                       : editingUser ? t('common.update') : t('common.create')} {t('manageUsers.user')}
                   </Button>
                   <Button variant="outline" onClick={resetForm}>
@@ -648,9 +642,9 @@ export const OrgUserManageUsers: React.FC = () => {
           }}
           onConfirm={confirmDelete}
           title={t('manageUsers.confirmDeleteTitle')}
-          description={t('manageUsers.confirmDeleteDescription', { 
+          description={t('manageUsers.confirmDeleteDescription', {
             email: userToDelete?.email || '',
-            name: userToDelete?.firstName && userToDelete?.lastName 
+            name: userToDelete?.firstName && userToDelete?.lastName
               ? `${userToDelete.firstName} ${userToDelete.lastName}`
               : userToDelete?.email || ''
           })}

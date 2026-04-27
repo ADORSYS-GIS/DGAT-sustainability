@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/shared/Navbar";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
@@ -57,9 +58,7 @@ export const AssessmentSubmissionsList: React.FC = () => {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-dgrv-blue"></div>
-            </div>
+            <LoadingSpinner size="hero" fullPage text={t("loading")} />
           ) : availableSubmissions.length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>

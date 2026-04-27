@@ -1,5 +1,6 @@
 import { UserInvitationForm } from "@/components/shared/UserInvitationForm";
 import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -63,18 +64,18 @@ export const ManageUsers: React.FC = () => {
     email: "",
     roles: ["org_admin"],
   });
-  
+
   // Add local loading state for offline user creation
   const [isCreatingUser, setIsCreatingUser] = useState(false);
-  
+
   // Use direct React Query hooks for data fetching
   const { data: organizations, isLoading: orgsLoading } = useOrganizationsServiceGetAdminOrganizations();
-  
+
   // Add a new state to track the selected organization object
   const [selectedOrg, setSelectedOrg] = useState<OrganizationResponse | null>(
     null,
   );
-  
+
   // Only fetch users when selectedOrg is set
   const {
     data: users,
@@ -85,7 +86,7 @@ export const ManageUsers: React.FC = () => {
     undefined,
     { enabled: !!selectedOrg?.id }
   );
-  
+
   // Use the generated mutation hooks
   const createUserMutation = useOrganizationMembersServicePostOrganizationsByIdMembers({
     onSuccess: (result) => {
@@ -101,7 +102,7 @@ export const ManageUsers: React.FC = () => {
       toast.error("Failed to create user");
     }
   });
-  
+
   const updateUserMutation = useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles({
     onSuccess: () => {
       toast.success("User updated successfully");
@@ -114,7 +115,7 @@ export const ManageUsers: React.FC = () => {
       toast.error("Failed to update user");
     }
   });
-  
+
   const deleteUserMutation = useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId({
     onSuccess: () => {
       toast.success("User removed from organization successfully");
@@ -152,7 +153,7 @@ export const ManageUsers: React.FC = () => {
       // Generate a temporary ID for optimistic updates
       const tempId = `temp_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
-      
+
       // Create a temporary user object for local storage
       const tempUser = {
         id: tempId,
@@ -168,23 +169,23 @@ export const ManageUsers: React.FC = () => {
         local_changes: true,
         last_synced: undefined
       };
-      
+
       // Save to IndexedDB immediately for optimistic UI updates
       await offlineDB.saveUser(tempUser);
-      
+
       // Try to sync with backend if online
       try {
         const result = await createUserMutation.mutateAsync({
           id: data.id,
           requestBody: data.requestBody
         });
-        
+
         // If successful, replace the temporary user with the real one
         if (result && typeof result === 'object' && 'id' in result) {
           const realUserId = (result as { id: string }).id;
           // Delete the temporary user
           await offlineDB.deleteUser(tempId);
-          
+
           // Save the real user with proper ID
           const realUser = {
             id: realUserId,
@@ -200,7 +201,7 @@ export const ManageUsers: React.FC = () => {
             local_changes: false,
             last_synced: new Date().toISOString()
           };
-          
+
           await offlineDB.saveUser(realUser);
           toast.success("User created successfully");
         }
@@ -208,7 +209,7 @@ export const ManageUsers: React.FC = () => {
         console.warn('API call failed, user saved locally for sync:', apiError);
         toast.success("Fail to creat user");
       }
-      
+
       return { success: true };
     } catch (error) {
       toast.error("Failed to create user");
@@ -229,13 +230,13 @@ export const ManageUsers: React.FC = () => {
       toast.error(t('manageUsers.selectOrgRequired'));
       return;
     }
-    
+
     if (editingUser) {
       // For editing, use RoleAssignment
       const roleAssignment: RoleAssignment = {
         roles: formData.roles,
       };
-      
+
       updateUserMutation.mutate({
         id: selectedOrg.id,
         membershipId: editingUser.id,
@@ -247,7 +248,7 @@ export const ManageUsers: React.FC = () => {
         email: formData.email,
         roles: formData.roles,
       };
-      
+
       setIsCreatingUser(true);
       try {
         await createUserOffline({
@@ -282,7 +283,7 @@ export const ManageUsers: React.FC = () => {
 
   const confirmDelete = () => {
     if (!userToDelete) return;
-    
+
     deleteUserEntirelyMutation.mutate({
       userId: userToDelete.id
     });
@@ -324,13 +325,7 @@ export const ManageUsers: React.FC = () => {
   };
 
   if (orgsLoading || usersLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="pt-20 pb-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text={t("loading")} />;
   }
 
   // In the return statement, show org grid if no org is selected
@@ -610,9 +605,9 @@ export const ManageUsers: React.FC = () => {
             }}
             onConfirm={confirmDelete}
             title={t('manageUsers.confirmDeleteTitle')}
-            description={t('manageUsers.confirmDeleteDescription', { 
+            description={t('manageUsers.confirmDeleteDescription', {
               email: userToDelete?.email || '',
-              name: userToDelete?.firstName && userToDelete?.lastName 
+              name: userToDelete?.firstName && userToDelete?.lastName
                 ? `${userToDelete.firstName} ${userToDelete.lastName}`
                 : userToDelete?.email || ''
             })}

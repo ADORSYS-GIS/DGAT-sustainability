@@ -1,4 +1,5 @@
 import { FeatureCard } from "@/components/shared/FeatureCard";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,9 +142,9 @@ export const Dashboard: React.FC = () => {
       } else {
         const existingDate = new Date(existingReport.generated_at);
         const currentDate = new Date(report.generated_at);
-        
-        if (currentDate > existingDate || 
-           (currentDate.getTime() === existingDate.getTime() && report.report_id > existingReport.report_id)) {
+
+        if (currentDate > existingDate ||
+          (currentDate.getTime() === existingDate.getTime() && report.report_id > existingReport.report_id)) {
           latestReportsMap.set(report.submission_id, report);
         }
       }
@@ -257,17 +258,17 @@ export const Dashboard: React.FC = () => {
             recommendation: rec.text,
             status: (rec.status as RecommendationWithStatus["status"]) || "todo",
             created_at: report.generated_at,
-        }));
+          }));
       }
     );
 
     // Deduplicate recommendations by category + recommendation text (same logic as admin)
     const deduplicatedMap = new Map<string, RecommendationWithStatus>();
-    
+
     recommendations.forEach((rec) => {
       const normalizedCategory = rec.category.toLowerCase().trim();
       const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
-      
+
       // Keep the most recent recommendation if duplicates exist
       if (!deduplicatedMap.has(key) ||
         new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
@@ -582,24 +583,24 @@ export const Dashboard: React.FC = () => {
       const latestReport = userRecommendations.reports.reduce((latest, current) => {
         return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
       });
-      
+
       const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0 ? latestReport.data[0] : {};
       const reportRecommendations = Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
-        (category.recommendations || []).map(r => ({ 
-          ...r, 
-          report_id: latestReport.report_id, 
-          created_at: latestReport.generated_at, 
-          assessment_id: latestReport.assessment_id, 
-          assessment_name: latestReport.assessment_name, 
-          category: categoryName 
+        (category.recommendations || []).map(r => ({
+          ...r,
+          report_id: latestReport.report_id,
+          created_at: latestReport.generated_at,
+          assessment_id: latestReport.assessment_id,
+          assessment_name: latestReport.assessment_name,
+          category: categoryName
         }))
       );
-      
-      return generateRecommendationChartData(reportRecommendations.map(r => ({ 
-        ...r, 
-        recommendation_id: r.id, 
-        recommendation: r.text, 
-        status: r.status as RecommendationWithStatus['status'] 
+
+      return generateRecommendationChartData(reportRecommendations.map(r => ({
+        ...r,
+        recommendation_id: r.id,
+        recommendation: r.text,
+        status: r.status as RecommendationWithStatus['status']
       })));
     }
     return null;
@@ -663,10 +664,7 @@ export const Dashboard: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   {submissionsLoading ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>{t('user.dashboard.loadingSubmissionsInline')}</p>
-                    </div>
+                    <LoadingSpinner size="md" text={t('user.dashboard.loadingSubmissionsInline')} />
                   ) : (
                     submissions.map((submission) => (
                       <div
@@ -784,7 +782,7 @@ export const Dashboard: React.FC = () => {
                       const latestReport = reportsData?.reports?.reduce((latest, current) => {
                         const latestDate = new Date(latest.generated_at);
                         const currentDate = new Date(current.generated_at);
-                        
+
                         if (currentDate > latestDate) {
                           return current;
                         } else if (currentDate.getTime() === latestDate.getTime()) {

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -116,7 +117,7 @@ export const ManageCategories: React.FC = () => {
       defaultValue: 'Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.'
     })))
       return;
-    
+
     try {
       await deleteCategory(categoryId);
       toast.success(t('manageCategories.deleteSuccess', { defaultValue: 'Category deleted successfully' }));
@@ -128,13 +129,7 @@ export const ManageCategories: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="pt-20 pb-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text={t("loading")} />;
   }
 
   if (error) {
@@ -166,14 +161,12 @@ export const ManageCategories: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Offline Status Indicator */}
           <div className="mb-4 flex items-center justify-end">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-              isOnline 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${isOnline
+              ? 'bg-green-100 text-green-800'
+              : 'bg-yellow-100 text-yellow-800'
+              }`}>
+              <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-yellow-500'
+                }`}></div>
               <span>{isOnline ? 'Online' : 'Offline'}</span>
             </div>
           </div>
@@ -251,8 +244,8 @@ export const ManageCategories: React.FC = () => {
                     >
                       {isPending
                         ? t('manageCategories.saving', { defaultValue: 'Saving...' })
-                        : editingCategory 
-                          ? t('manageCategories.updateCategory') 
+                        : editingCategory
+                          ? t('manageCategories.updateCategory')
                           : t('manageCategories.createCategory')}
                     </Button>
                   </form>

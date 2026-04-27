@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -145,16 +146,7 @@ const AdminActionPlans: React.FC = () => {
   };
 
   if (actionPlansLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-gray-600">{t('adminActionPlans.loading', { defaultValue: 'Loading action plans...' })}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text="Loading action plans..." />;
   }
 
   if (actionPlansError) {
@@ -286,7 +278,7 @@ const AdminActionPlans: React.FC = () => {
       <div className="flex-1 px-6 py-6 overflow-hidden">
         {actionPlansLoading ? (
           <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-dgrv-blue"></div>
+            <LoadingSpinner size="lg" text={t('adminActionPlans.loading')} />
           </div>
         ) : actionPlansError ? (
           <div className="text-center py-12">
@@ -312,9 +304,9 @@ const AdminActionPlans: React.FC = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1 p-4" style={{ minHeight: 0 }}>
-                      <div 
+                      <div
                         className="space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-                        style={{ 
+                        style={{
                           height: '100%',
                           overflowY: 'auto',
                           overflowX: 'hidden',

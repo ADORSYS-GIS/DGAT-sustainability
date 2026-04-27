@@ -86,41 +86,41 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
     },
     onError: (error: unknown) => {
       console.error('Error creating user invitation:', error);
-      
+
       // Provide specific error messages based on the error type
       let errorMessage = t('userInvitation.errors.unknownError');
-      
+
       // Type guard to check if error has response property
       const isApiError = (err: unknown): err is { response: { status: number; data?: unknown } } => {
         return typeof err === 'object' && err !== null && 'response' in err;
       };
-      
+
       // Type guard to check if error has message property
       const isNetworkError = (err: unknown): err is { message: string } => {
         return typeof err === 'object' && err !== null && 'message' in err && typeof (err as { message: unknown }).message === 'string';
       };
-      
+
       // Type guard to check if error is an ApiError object
       const isApiErrorObject = (err: unknown): err is { message: string; status?: number; data?: unknown } => {
         return typeof err === 'object' && err !== null && 'message' in err && typeof (err as { message: unknown }).message === 'string';
       };
-      
+
       if (isApiError(error)) {
         console.log('API Error Response:', {
           status: error.response.status,
           data: error.response.data,
           fullError: error
         });
-        
+
         const errorData = error.response.data as { message?: string; error?: string } | string;
         const status = error.response.status;
-        
+
         // Check for user already exists in any status code
-        if ((typeof errorData === 'object' && errorData?.error?.includes('already exists')) || 
-            (typeof errorData === 'object' && errorData?.message?.includes('already exists')) || 
-            (typeof errorData === 'object' && errorData?.error?.includes('User exists with same email')) ||
-            (typeof errorData === 'object' && errorData?.message?.includes('User exists with same email')) ||
-            (typeof errorData === 'string' && errorData.includes('already exists'))) {
+        if ((typeof errorData === 'object' && errorData?.error?.includes('already exists')) ||
+          (typeof errorData === 'object' && errorData?.message?.includes('already exists')) ||
+          (typeof errorData === 'object' && errorData?.error?.includes('User exists with same email')) ||
+          (typeof errorData === 'object' && errorData?.message?.includes('User exists with same email')) ||
+          (typeof errorData === 'string' && errorData.includes('already exists'))) {
           console.log('User already exists detected');
           errorMessage = t('userInvitation.errors.userAlreadyExists');
         } else {
@@ -149,10 +149,10 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
               break;
             case 500:
               // Check for user already exists in 500 errors too
-              if ((typeof errorData === 'object' && errorData?.error?.includes('already exists')) || 
-                  (typeof errorData === 'object' && errorData?.message?.includes('already exists')) || 
-                  (typeof errorData === 'object' && errorData?.error?.includes('User exists with same email')) ||
-                  (typeof errorData === 'object' && errorData?.message?.includes('User exists with same email'))) {
+              if ((typeof errorData === 'object' && errorData?.error?.includes('already exists')) ||
+                (typeof errorData === 'object' && errorData?.message?.includes('already exists')) ||
+                (typeof errorData === 'object' && errorData?.error?.includes('User exists with same email')) ||
+                (typeof errorData === 'object' && errorData?.message?.includes('User exists with same email'))) {
                 console.log('User already exists detected in 500 error');
                 errorMessage = t('userInvitation.errors.userAlreadyExists');
               } else if (typeof errorData === 'object' && errorData?.message?.includes('email')) {
@@ -181,7 +181,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
           status: error.status,
           data: error.data
         });
-        
+
         // Handle ApiError objects (like ApiError: Conflict)
         if (error.message === 'Conflict' || error.status === 409) {
           console.log('409 Conflict detected in ApiError object');
@@ -199,7 +199,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
           errorMessage = t('userInvitation.errors.unknownError');
         }
       }
-      
+
       console.log('Final error message:', errorMessage);
       toast.error(errorMessage);
     }
@@ -208,9 +208,9 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
   // Manual trigger mutations
   const triggerVerificationMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdTriggerVerification({ 
-        orgId: organizationId, 
-        userId 
+      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdTriggerVerification({
+        orgId: organizationId,
+        userId
       });
     },
     onSuccess: () => {
@@ -224,9 +224,9 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
 
   const triggerOrgInvitationMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdTriggerOrgInvitation({ 
-        orgId: organizationId, 
-        userId 
+      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdTriggerOrgInvitation({
+        orgId: organizationId,
+        userId
       });
     },
     onSuccess: () => {
@@ -240,9 +240,9 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
 
   const checkAndTriggerMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdCheckAndTrigger({ 
-        orgId: organizationId, 
-        userId 
+      return OrganizationMembersService.postOrganizationsByOrgIdOrgAdminUserInvitationsByUserIdCheckAndTrigger({
+        orgId: organizationId,
+        userId
       });
     },
     onSuccess: (result) => {
@@ -408,7 +408,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
                   Clear
                 </Button>
               </div>
-              
+
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -419,7 +419,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
                 >
                   {triggerVerificationMutation.isPending ? 'Sending...' : 'Resend Verification Email'}
                 </Button>
-                
+
                 <Button
                   type="button"
                   variant="outline"
@@ -429,7 +429,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
                 >
                   {checkAndTriggerMutation.isPending ? 'Checking...' : 'Check & Send Org Invitation'}
                 </Button>
-                
+
                 <Button
                   type="button"
                   variant="outline"
@@ -440,7 +440,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
                   {triggerOrgInvitationMutation.isPending ? 'Sending...' : 'Force Send Org Invitation'}
                 </Button>
               </div>
-              
+
               <div className="text-xs text-gray-500">
                 <p><strong>Resend Verification Email:</strong> Sends the email verification email again</p>
                 <p><strong>Check & Send Org Invitation:</strong> Checks if email is verified, then sends organization invitation</p>

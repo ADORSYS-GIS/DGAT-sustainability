@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/shared/Navbar";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -301,17 +302,17 @@ export const ReportHistory: React.FC = () => {
             created_at: report.generated_at,
             assessment_id: report.submission_id || '',
             assessment_name: report.assessment_name || 'Unknown Assessment',
-        }));
+          }));
       }
     );
 
     // Deduplicate recommendations by category + recommendation text (same logic as admin)
     const deduplicatedMap = new Map<string, RecommendationWithStatus>();
-    
+
     recommendations.forEach((rec) => {
       const normalizedCategory = rec.category.toLowerCase().trim();
       const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
-      
+
       // Keep the most recent recommendation if duplicates exist
       if (!deduplicatedMap.has(key) ||
         new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
@@ -394,8 +395,8 @@ export const ReportHistory: React.FC = () => {
       const report = reports.find(r => r.report_id === reportId);
       if (!report || !report.data) throw new Error('No data available for this report');
 
-      console.log('Admin report data structure:', { 
-        reportId, 
+      console.log('Admin report data structure:', {
+        reportId,
         isAdminData: isAdminReportData(report.data),
         dataKeys: Object.keys(report.data as any)
       });
@@ -408,32 +409,32 @@ export const ReportHistory: React.FC = () => {
         console.log('Processing AdminReportData structure');
         // Admin report data structure - use directly but apply deduplication
         singleSubmissions = report.data.submissions;
-        
+
         console.log('Original recommendations count:', report.data.recommendations.length);
-        
+
         // Apply the same deduplication logic as other exports
         const deduplicatedMap = new Map<string, RecommendationWithStatus>();
-        
+
         report.data.recommendations
           .filter((rec) => rec.recommendation !== "No recommendation provided" && rec.recommendation !== "No action plan given")
           .forEach((rec) => {
             const normalizedCategory = rec.category.toLowerCase().trim();
             const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
-            
+
             // Keep the most recent recommendation if duplicates exist
             if (!deduplicatedMap.has(key) ||
               new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
               deduplicatedMap.set(key, rec);
             }
           });
-        
+
         singleRecs = Array.from(deduplicatedMap.values());
         console.log('Deduplicated recommendations count:', singleRecs.length);
       } else {
         console.log('Processing generic report structure');
         // Generic report data structure - use mapReportToExportInputs
         let submissionId: string = report.report_id;
-        
+
         const reportToExport: Report = {
           report_id: report.report_id,
           submission_id: submissionId,
@@ -477,14 +478,7 @@ export const ReportHistory: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="pb-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text={t("loading")} />;
   }
 
   return (
@@ -681,9 +675,9 @@ export const ReportHistory: React.FC = () => {
                 <div className="mt-6 space-y-3">
                   {categories.length > 0 ? (
                     categories.map(category => {
-                      const recsForCategory = recommendations.filter(r => 
-                        r.category === category && 
-                        r.recommendation !== "No recommendation provided" && 
+                      const recsForCategory = recommendations.filter(r =>
+                        r.category === category &&
+                        r.recommendation !== "No recommendation provided" &&
                         r.recommendation !== "No action plan given"
                       );
                       const responsesForCategory = responses

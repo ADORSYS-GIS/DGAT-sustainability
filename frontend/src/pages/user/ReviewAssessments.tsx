@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/shared/useAuth';
 import { useOfflineOrganizations } from '@/hooks/useOfflineOrganizations';
@@ -216,16 +217,7 @@ const ReviewAssessments: React.FC = () => {
 
 
   if (submissionsLoading || questionsLoading || organizationsLoading || categoriesLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-gray-600">{t('reviewAssessments.loadingSubmissions', { defaultValue: 'Loading submissions...' })}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text={t('reviewAssessments.loadingSubmissions', { defaultValue: 'Loading submissions...' })} />;
   }
 
   if (submissionsError) {
@@ -393,21 +385,21 @@ const ReviewAssessments: React.FC = () => {
                         const questionText = (() => {
                           // First try: Get from questionDetails (most reliable)
                           if (questionDetails?.text) {
-                            return typeof questionDetails.text === 'object' 
+                            return typeof questionDetails.text === 'object'
                               ? (questionDetails.text as any).en || (questionDetails.text as any).text || questionDetails.text
                               : questionDetails.text;
                           }
-                          
+
                           // Second try: Use the question text from response (enhanced by backend)
                           if (questionTextStr && questionTextStr !== 'Question text not found' && questionTextStr !== 'Question not found') {
                             return questionTextStr;
                           }
-                          
+
                           // Third try: Look up by question text in questions text map
                           if (questionTextStr && questionsTextMap.has(questionTextStr)) {
                             return questionTextStr;
                           }
-                          
+
                           // Fourth try: If we have a revision ID, try to find it in questionsMap
                           if (customResponse.question_revision_id && questionsMap.has(customResponse.question_revision_id)) {
                             const details = questionsMap.get(customResponse.question_revision_id);
@@ -415,7 +407,7 @@ const ReviewAssessments: React.FC = () => {
                               return details.text;
                             }
                           }
-                          
+
                           // Final fallback: Use a more descriptive message
                           return `Question (ID: ${customResponse.question_revision_id || 'unknown'}) - Text unavailable`;
                         })();

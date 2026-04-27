@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/shared/Navbar";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -244,14 +245,7 @@ export const ManageOrganizations: React.FC = () => {
 
 
   if (isLoading || categoriesLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="pt-20 pb-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text={t("loading")} />;
   }
 
   return (
@@ -421,7 +415,7 @@ export const ManageOrganizations: React.FC = () => {
                     {org.domains && org.domains.length > 0 && (
                       <div className="text-sm text-gray-600">
                         <b>{t('manageOrganizations.domains', { defaultValue: 'Domains' })}:</b>{" "}
-                        {(org.domains as Array<string | { name: string }> )
+                        {(org.domains as Array<string | { name: string }>)
                           .map((d) => (typeof d === "string" ? d : d.name))
                           .join(", ")}
                       </div>

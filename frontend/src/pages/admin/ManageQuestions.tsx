@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -234,7 +235,7 @@ const QuestionForm: React.FC<{
           >
             {isPending ? (
               <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <LoadingSpinner size="sm" minimal className="text-white" />
                 <span>Saving...</span>
               </div>
             ) : (
@@ -469,16 +470,7 @@ export const ManageQuestions = () => {
   }, []);
 
   if (categoriesLoading || questionsLoading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="pt-20 pb-8 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 font-medium">Loading questions...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage text="Loading questions..." />;
   }
 
   if (categoriesError) {

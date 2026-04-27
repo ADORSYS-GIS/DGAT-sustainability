@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
@@ -103,11 +104,7 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dgrv-blue"></div>
-      </div>
-    );
+    return <LoadingSpinner size="hero" fullPage={false} text={t("loading")} />;
   }
 
   if (assessments.length === 0) {

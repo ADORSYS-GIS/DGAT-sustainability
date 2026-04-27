@@ -1,4 +1,5 @@
 import { FeatureCard } from "@/components/shared/FeatureCard";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
@@ -32,19 +33,19 @@ export const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   // Always call both hooks to avoid React hooks violation
   const { data: submissionsData, isLoading: submissionsLoading, error: error, refetch: refetchSubmissions } = useOfflineAdminSubmissions();
-  
+
   // Both org_admin and DGRV_admin use the same data source - no differentiation
   // All admins load the same data to their local storage
   const submissions = submissionsData?.submissions || [];
-  
+
   // Refetch data when component mounts to ensure fresh data
   React.useEffect(() => {
     refetchSubmissions();
   }, [refetchSubmissions]);
-  
+
   // Debug logging to understand submission statuses
   React.useEffect(() => {
     if (submissions.length > 0) {
@@ -57,25 +58,25 @@ export const AdminDashboard: React.FC = () => {
       console.log('Total submissions:', submissions.length);
     }
   }, [submissions]);
-  
+
   // Filter submissions by status for different views
   const pendingSubmissions = submissions.filter(
     submission => submission.review_status === 'under_review' || submission.review_status === 'pending_review'
   );
-  
+
   const approvedSubmissions = submissions.filter(
     submission => submission.review_status === 'approved'
   );
-  
+
   const rejectedSubmissions = submissions.filter(
     submission => submission.review_status === 'rejected'
   );
-  
+
   // Add filter for reviewed submissions (new status from API)
   const reviewedSubmissions = submissions.filter(
     submission => (submission.review_status as string) === 'reviewed'
   );
-  
+
   const totalSubmissions = submissions.length;
 
   React.useEffect(() => {
@@ -120,7 +121,7 @@ export const AdminDashboard: React.FC = () => {
       title: t('adminDashboard.manageOrganizations'),
       description: t('adminDashboard.manageOrganizationsDesc'),
       icon: Users,
-      color: "blue" as const, 
+      color: "blue" as const,
       onClick: () => navigate("/admin/organizations"),
     },
     {
@@ -219,7 +220,7 @@ export const AdminDashboard: React.FC = () => {
                   <div className="text-2xl font-bold text-dgrv-blue mb-1">
                     {stat.loading ? (
                       <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-dgrv-blue"></div>
+                        <LoadingSpinner size="sm" />
                       </div>
                     ) : (
                       stat.value
@@ -270,8 +271,8 @@ export const AdminDashboard: React.FC = () => {
                       <li>{t('adminDashboard.guideSupport')}</li>
                     </ul>
                     <div className="pt-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         className="w-full bg-dgrv-blue text-white hover:bg-blue-700"
                         onClick={(e) => {

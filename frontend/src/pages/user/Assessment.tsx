@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/shared/useAuth";
 import i18n from "@/i18n";
@@ -930,16 +931,7 @@ export const Assessment: React.FC = () => {
 
 
   if (assessmentLoading || responsesLoading || !assessmentDetail || categoriesLoading) {
-    return (
-      <>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-dgrv-blue mx-auto mb-4"></div>
-            <p className="text-gray-600">{t("loading")}</p>
-          </div>
-        </div>
-      </>
-    );
+    return <LoadingSpinner size="hero" fullPage text={t("loading")} />;
   }
 
   const currentCategoryId = categories[currentCategoryIndex];
