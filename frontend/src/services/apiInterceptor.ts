@@ -211,7 +211,10 @@ export class ApiInterceptor {
     try {
       console.log('[Interceptor] 2. Executing local mutation.');
       await localMutation(data);
-      console.log('[Interceptor] 3. Local mutation completed successfully.');
+      console.log('[Interceptor] 3. Local mutation completed successfully. Dispatching optimistic sync event.');
+
+      // Dispatch an optimistic sync event immediately after local mutation to provide instant UI updates
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType, operation, optimistic: true } }));
 
       if (this.isOnline) {
         console.log('[Interceptor] 4a. [Online] Attempting API call.');
@@ -506,13 +509,42 @@ export class ApiInterceptor {
 
           // Overlay pending responses
           for (const pending of pendingResponses) {
-            // Ensure we use the proper type for the map
             serverResponsesMap.set(pending.question_revision_id, pending as unknown as Response);
           }
 
           return {
             ...serverData,
             responses: Array.from(serverResponsesMap.values())
+          } as T;
+        }
+      }
+
+      // Merge pending assessment changes
+      if ((entityType === 'assessments' || entityType === 'draft_assessments') && serverData.assessments && Array.isArray(serverData.assessments)) {
+        const localAssessments = await offlineDB.getAllAssessments();
+        const pendingAssessments = localAssessments.filter(a => a.sync_status === 'pending');
+
+        if (pendingAssessments.length > 0) {
+          console.log(`🔍 merging ${pendingAssessments.length} pending local assessments into server results`);
+
+          const serverAssessmentsMap = new Map(
+            (serverData.assessments as Assessment[]).map(a => [a.assessment_id, a])
+          );
+
+          // Overlay pending assessments
+          for (const pending of pendingAssessments) {
+            // Transform OfflineAssessment back to Assessment for API compatibility if needed
+            const assessmentForApi = {
+              ...pending,
+              categories: pending.categories?.map(c => c.category_catalog_id) || [],
+            } as unknown as Assessment;
+
+            serverAssessmentsMap.set(pending.assessment_id, assessmentForApi);
+          }
+
+          return {
+            ...serverData,
+            assessments: Array.from(serverAssessmentsMap.values())
           } as T;
         }
       }

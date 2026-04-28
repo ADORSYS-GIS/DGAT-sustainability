@@ -560,7 +560,15 @@ export function useOfflineAssessmentsMutation() {
       const result = await apiInterceptor.interceptMutation(
         () => AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId }),
         async () => {
-          // Optimistic update is already done by saving the temp submission.
+          // Optimistic update: mark assessment as submitted locally
+          const assessment = await offlineDB.getAssessment(assessmentId);
+          if (assessment) {
+            await offlineDB.saveAssessment({
+              ...assessment,
+              status: 'submitted',
+              sync_status: 'pending' // Keep pending so interceptGet merges it
+            });
+          }
         },
         { assessmentId, tempId } as Record<string, unknown>,
         'submission',

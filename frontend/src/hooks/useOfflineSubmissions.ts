@@ -5,7 +5,7 @@ import {
   SubmissionsService,
   AssessmentsService,
 } from "@/openapi-rq/requests/services.gen";
-import type { 
+import type {
   Submission,
 } from "@/openapi-rq/requests/types.gen";
 import type {
@@ -170,6 +170,23 @@ export function useOfflineSubmissions() {
     fetchSubmissions();
   }, [fetchSubmissions]);
 
+  // Listen for data sync events to refetch submissions
+  useEffect(() => {
+    const handleDataSync = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.entityType === 'submissions' ||
+        customEvent.detail.entityType === 'submission') {
+        console.log('🔍 useOfflineSubmissions: Received datasync event, refetching...', customEvent.detail.entityType);
+        fetchSubmissions();
+      }
+    };
+
+    window.addEventListener('datasync', handleDataSync);
+    return () => {
+      window.removeEventListener('datasync', handleDataSync);
+    };
+  }, [fetchSubmissions]);
+
   const deleteSubmission = useCallback(async (submissionId: string) => {
     try {
       await offlineDB.deleteSubmission(submissionId);
@@ -243,12 +260,12 @@ export function useOfflineSubmissionsMutation() {
       window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'assessments' } }));
       window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'draft_assessments' } }));
 
-      const successResult = { 
-        success: true, 
+      const successResult = {
+        success: true,
         message: 'Submission deleted successfully',
-        submissionId 
+        submissionId
       };
-      
+
       options?.onSuccess?.(successResult);
       return successResult;
     } catch (err) {
