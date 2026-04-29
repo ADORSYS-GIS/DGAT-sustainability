@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { offlineDB } from "../services/indexeddb";
-import { OfflineSubmission } from "@/types/offline";
+import { OfflineSubmission, OfflineRecommendation, DetailedReport } from "@/types/offline";
 import { useAuth } from "./shared/useAuth";
 import { useOffline } from "./useOffline";
+import { SubmissionsService, ReportsService } from "@/openapi-rq/requests/services.gen";
+import { DataTransformationService } from "../services/dataTransformation";
+import { apiInterceptor } from "../services/apiInterceptor";
 
 export function useOfflineUserSubmissions(syncTrigger?: boolean) {
   const { user } = useAuth();
@@ -26,6 +29,11 @@ export function useOfflineUserSubmissions(syncTrigger?: boolean) {
         }
       }
 
+      const organizationFallback = (user as any)?.organization;
+      if (!organizationId && organizationFallback) {
+        organizationId = organizationFallback;
+      }
+
       if (!organizationId) {
         const orgs = await offlineDB.getAllOrganizations();
         if (orgs.length > 0) {
@@ -38,6 +46,73 @@ export function useOfflineUserSubmissions(syncTrigger?: boolean) {
         setIsLoading(false);
         return;
       }
+
+      // Sync operation executed via interceptGet. The result isn't directly used
+      // to render UI, it simply ensures the IndexedDB tables are updated first.
+      await apiInterceptor.interceptGet(
+        async () => {
+          // 1. Fetch Submissions
+          const submissionsData = await SubmissionsService.getSubmissions();
+          if (submissionsData?.submissions) {
+            const transformedSubmissions = DataTransformationService.transformSubmissionsWithContext(
+              submissionsData.submissions,
+              organizationId,
+              user?.email
+            );
+            if (DataTransformationService.validateTransformedData(transformedSubmissions, 'submissions')) {
+              // Inject organization_id properly prior to saving
+              const submissionsToSave = transformedSubmissions.map(sub => ({
+                ...sub,
+                organization_id: organizationId
+              }));
+              await offlineDB.saveSubmissions(submissionsToSave as OfflineSubmission[]);
+            }
+          }
+
+          // 2. Fetch Reports
+          const reportsData = await ReportsService.getUserReports();
+          if (reportsData?.reports) {
+            const transformedReports = reportsData.reports.map(
+              report => {
+                const r = DataTransformationService.transformReport(report, organizationId, user?.sub);
+                return { ...r, organization_id: organizationId }; // explicit injection
+              }
+            );
+
+            if (DataTransformationService.validateTransformedData(transformedReports, "reports")) {
+              await offlineDB.saveReports(transformedReports);
+
+              // 3. Process Recommendations
+              const allOfflineRecommendations: OfflineRecommendation[] = [];
+              const allSubmissions = await offlineDB.getAllSubmissions();
+              const submissionMap = new Map(allSubmissions.map((s) => [s.submission_id, s.assessment_name]));
+
+              for (const report of transformedReports) {
+                const assessmentName = submissionMap.get(report.submission_id);
+                const transformedRecs = DataTransformationService.transformReportToOfflineRecommendations(
+                  report as unknown as DetailedReport,
+                  organizationId,
+                  (user as any)?.organization_name,
+                  assessmentName
+                );
+                allOfflineRecommendations.push(...transformedRecs);
+              }
+
+              if (allOfflineRecommendations.length > 0) {
+                await offlineDB.saveRecommendations(allOfflineRecommendations);
+              }
+            }
+          }
+          return { success: true };
+        },
+        async () => {
+          // Offline fallback is implicit since we immediately read from offlineDB below anyway.
+          return { success: true, offline: true };
+        },
+        'user_action_plans_sync' // cache key for interceptor
+      );
+
+      // --- Read directly from updated Local Database to fulfill hook state ---
 
       // 1. Get all submissions and filter by user's org
       const allSubmissions = await offlineDB.getAllSubmissions();
