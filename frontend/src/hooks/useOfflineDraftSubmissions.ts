@@ -50,6 +50,36 @@ const getSubmissionOrganizationId = (submission: OfflineDraftSubmission): string
   return submission.organization_id || (submission as OfflineDraftSubmission & { org_id?: string }).org_id;
 };
 
+const getReviewStatusRank = (status: OfflineDraftSubmission['review_status']): number => {
+  switch (status) {
+    case 'under_review':
+      return 3;
+    case 'pending_review':
+      return 2;
+    case 'draft':
+      return 1;
+    default:
+      return 0;
+  }
+};
+
+const getSyncStatusRank = (status: OfflineDraftSubmission['sync_status']): number => {
+  switch (status) {
+    case 'synced':
+      return 2;
+    case 'pending':
+      return 1;
+    default:
+      return 0;
+  }
+};
+
+const getSubmissionTimestamp = (submission: OfflineDraftSubmission): number => {
+  const candidate = submission.updated_at || submission.submitted_at;
+  const t = candidate ? Date.parse(candidate) : NaN;
+  return Number.isFinite(t) ? t : 0;
+};
+
 export function useOfflineDraftSubmissions() {
   const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<{ draft_submissions: OfflineDraftSubmission[] }>({ draft_submissions: [] });
@@ -142,6 +172,48 @@ export function useOfflineDraftSubmissions() {
           return getSubmissionOrganizationId(submission) === currentOrganizationId;
         });
 
+      // Dedupe drafts: keep a single best record per assessment_id
+      // This prevents showing both a temporary offline draft and a server-synced draft.
+      const draftsByAssessment = new Map<string, OfflineDraftSubmission[]>();
+      for (const submission of visibleDrafts) {
+        const key = submission.assessment_id || submission.submission_id;
+        const list = draftsByAssessment.get(key) || [];
+        list.push(submission);
+        draftsByAssessment.set(key, list);
+      }
+
+      const dedupedDrafts: OfflineDraftSubmission[] = [];
+      const duplicatesToDelete: string[] = [];
+
+      for (const [, drafts] of draftsByAssessment) {
+        if (drafts.length === 1) {
+          dedupedDrafts.push(drafts[0]);
+          continue;
+        }
+
+        const sorted = [...drafts].sort((a, b) => {
+          const reviewRank = getReviewStatusRank(b.review_status) - getReviewStatusRank(a.review_status);
+          if (reviewRank !== 0) return reviewRank;
+
+          const syncRank = getSyncStatusRank(b.sync_status) - getSyncStatusRank(a.sync_status);
+          if (syncRank !== 0) return syncRank;
+
+          return getSubmissionTimestamp(b) - getSubmissionTimestamp(a);
+        });
+
+        const keep = sorted[0];
+        dedupedDrafts.push(keep);
+        for (const extra of sorted.slice(1)) {
+          duplicatesToDelete.push(extra.submission_id);
+        }
+      }
+
+      if (duplicatesToDelete.length > 0) {
+        await Promise.all(
+          duplicatesToDelete.map((id) => offlineDB.deleteDraftSubmission(id).catch(() => undefined))
+        );
+      }
+
       if (navigator.onLine) {
         const missingAssessmentIds = Array.from(new Set(
           visibleDrafts
@@ -166,7 +238,7 @@ export function useOfflineDraftSubmissions() {
         }));
       }
 
-      const submissions = visibleDrafts.map((submission) => ({
+      const submissions = dedupedDrafts.map((submission) => ({
           ...submission,
           assessment_name: isUsableAssessmentName(submission.assessment_name)
             ? submission.assessment_name
