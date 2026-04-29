@@ -248,41 +248,7 @@ pub async fn create_assessment(
             ));
         }
 
-        // Clean up only previous draft assessments (no submission) and their responses for this organization
-        let existing_assessments = app_state
-            .database
-            .assessments
-            .get_assessments_by_org(&org_id)
-            .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch existing assessments: {e}")))?;
-
-        for existing_assessment in existing_assessments {
-            // Check if this assessment has a submission (submitted) - using session-level cache
-            let has_submission = cached_ops::get_submission_with_session(&app_state, &claims, existing_assessment.assessment_id)
-                .await?
-                .is_some();
-
-            if !has_submission {
-                // Only delete responses and the assessment if it is a draft (no submission) - using cached operation
-                let existing_responses = cached_ops::get_latest_responses_by_assessment(&app_state, existing_assessment.assessment_id)
-                    .await?;
-
-                for response in existing_responses {
-                    let _ = app_state
-                        .database
-                        .assessments_response
-                        .delete_response(response.response_id)
-                        .await; // Ignore errors for cleanup
-                }
-
-                // Delete the draft assessment itself
-                let _ = app_state
-                    .database
-                    .assessments
-                    .delete_assessment(existing_assessment.assessment_id)
-                    .await; // Ignore errors for cleanup
-            }
-        }
+        // Allow multiple drafts: Removed the cleanup code that used to delete previous draft assessments.
 
         // Parse categories from JSON to Vec<Uuid>
         // Create the new assessment in the database with categories

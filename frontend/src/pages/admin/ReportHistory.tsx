@@ -20,7 +20,6 @@ import type {
   RecommendationWithStatus,
   Report
 } from "@/openapi-rq/requests/types.gen";
-import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
 import {
   BarElement,
   CategoryScale,
@@ -470,6 +469,7 @@ export const ReportHistory: React.FC = () => {
         assessmentName: report.assessment_name
       });
 
+      const { exportAllAssessmentsPDF } = await import("@/utils/exportPDF");
       await exportAllAssessmentsPDF(
         singleSubmissions,
         singleRecs,

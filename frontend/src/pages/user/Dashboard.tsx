@@ -3,8 +3,6 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { exportAllAssessmentsPDF } from "@/utils/exportPDF";
-import { exportAllAssessmentsDOCX } from "@/utils/exportDOCX";
 import {
   CheckSquare,
   Download,
@@ -296,6 +294,7 @@ export const Dashboard: React.FC = () => {
       const recommendationChartDataUrl = recommendationChartRef.current?.toBase64Image();
 
       if (exportType === "pdf") {
+        const { exportAllAssessmentsPDF } = await import("@/utils/exportPDF");
         await exportAllAssessmentsPDF(
           singleSubmissions,
           singleRecs,
@@ -305,6 +304,7 @@ export const Dashboard: React.FC = () => {
           (fullReport as any).assessment_name
         );
       } else {
+        const { exportAllAssessmentsDOCX } = await import("@/utils/exportDOCX");
         await exportAllAssessmentsDOCX(
           singleSubmissions,
           singleRecs,
@@ -462,6 +462,7 @@ export const Dashboard: React.FC = () => {
     const { submissions: singleSubmissions, recommendations: singleRecs } =
       mapReportToExportInputs(latestReport as unknown as Report);
 
+    const { exportAllAssessmentsPDF } = await import("@/utils/exportPDF");
     await exportAllAssessmentsPDF(
       singleSubmissions,
       singleRecs,
@@ -488,6 +489,7 @@ export const Dashboard: React.FC = () => {
     const { submissions: singleSubmissions, recommendations: singleRecs } =
       mapReportToExportInputs(latestReport as unknown as Report);
 
+    const { exportAllAssessmentsDOCX } = await import("@/utils/exportDOCX");
     await exportAllAssessmentsDOCX(
       singleSubmissions,
       singleRecs,

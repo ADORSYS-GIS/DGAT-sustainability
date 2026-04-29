@@ -67,6 +67,8 @@ export interface FullSyncResult {
 export class SyncService {
   private isOnline: boolean = navigator.onLine;
   private isSyncing: boolean = false;
+  private lastFullSyncAt = 0;
+  private readonly fullSyncCooldownMs = 15_000;
 
   constructor() {
     this.setupNetworkListeners();
@@ -105,7 +107,12 @@ export class SyncService {
       return this.getEmptySyncResult();
     }
 
+    if (Date.now() - this.lastFullSyncAt < this.fullSyncCooldownMs) {
+      return this.getEmptySyncResult();
+    }
+
     this.isSyncing = true;
+    this.lastFullSyncAt = Date.now();
     const results: FullSyncResult = this.getEmptySyncResult();
 
     try {

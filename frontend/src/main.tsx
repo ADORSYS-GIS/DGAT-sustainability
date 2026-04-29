@@ -41,11 +41,11 @@ const queryClient = new QueryClient({
       retry: (failureCount, error) => {
         // Don't retry if offline
         if (!navigator.onLine) return false;
-        // Retry up to 3 times for network errors
-        return failureCount < 3;
+        // Keep retries light so slow endpoints do not multiply startup traffic
+        return failureCount < 1;
       },
-      // Don't refetch on window focus if offline
-      refetchOnWindowFocus: () => navigator.onLine,
+      // Avoid repeating dashboard fetches when switching between the app and DevTools
+      refetchOnWindowFocus: false,
       // Always refetch on reconnect
       refetchOnReconnect: true,
     },

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "./shared/useAuth";
 import { useSyncStatus } from "./shared/useSyncStatus";
 import { InitialDataLoader, type UserContext } from "@/services/initialDataLoader";
@@ -11,6 +11,7 @@ export function useInitialDataLoad() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<DataLoadingProgress | undefined>();
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const wasOnlineRef = useRef(isOnline);
 
   // Create user context from auth data
   const createUserContext = useCallback((): UserContext | null => {
@@ -129,9 +130,9 @@ export function useInitialDataLoad() {
     const requestIdleCallback = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: { timeout?: number }) => void);
     const schedule = (fn: () => void) => {
       if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(fn, { timeout: 1500 });
+        requestIdleCallback(fn, { timeout: 5000 });
       } else {
-        window.setTimeout(fn, 0);
+        window.setTimeout(fn, 3000);
       }
     };
 
@@ -150,8 +151,11 @@ export function useInitialDataLoad() {
 
   // Effect to handle online/offline transitions
   useEffect(() => {
+    const cameBackOnline = !wasOnlineRef.current && isOnline;
+    wasOnlineRef.current = isOnline;
+
     if (isAuthenticated && user) {
-      if (isOnline && !hasLoadedData) {
+      if (cameBackOnline && !hasLoadedData) {
         // User came back online and hasn't loaded data yet
         if (!isLoading) {
           loadInitialData();

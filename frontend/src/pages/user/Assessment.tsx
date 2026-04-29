@@ -46,6 +46,7 @@ import { DataTransformationService } from "../../services/dataTransformation";
 type FileData = { name: string; url: string };
 
 type LocalAnswer = {
+  response_id?: string;
   yesNo?: boolean;
   percentage?: number;
   text?: string;
@@ -133,7 +134,7 @@ export const Assessment: React.FC = () => {
     if (existingResponses?.responses && existingResponses.responses.length > 0) {
       const loadedAnswers: Record<string, LocalAnswer> = {};
 
-      existingResponses.responses.forEach((response: CreateResponseRequest) => {
+      existingResponses.responses.forEach((response: any) => {
         try {
           console.log('🔍 Processing response:', response);
 
@@ -150,6 +151,7 @@ export const Assessment: React.FC = () => {
 
           if (responseData && typeof responseData === 'object') {
             loadedAnswers[response.question_revision_id] = {
+              response_id: response.response_id,
               yesNo: responseData.yesNo,
               percentage: responseData.percentage,
               text: responseData.text || '',
@@ -718,6 +720,8 @@ export const Assessment: React.FC = () => {
           '', // category
           assessmentId
         );
+        // Save the generated response_id back into our state so we don't recreate it
+        updated[question_revision_id] = { ...answer, response_id: offlineResponse.response_id };
         offlineDB.saveResponse(offlineResponse).catch(err =>
           console.error('Failed to auto-save answer:', err)
         );
@@ -726,7 +730,8 @@ export const Assessment: React.FC = () => {
       return updated;
     });
   };
-  const createResponseToSave = (key: string, answer: LocalAnswer): CreateResponseRequest => ({
+  const createResponseToSave = (key: string, answer: LocalAnswer): CreateResponseRequest & { response_id?: string } => ({
+    response_id: answer.response_id,
     question_revision_id: key,
     response: JSON.stringify(answer),
     version: 1,
@@ -767,6 +772,8 @@ export const Assessment: React.FC = () => {
             '',
             assessmentId
           );
+          // Save the generated response_id back into our state so we don't recreate it
+          updated[questionId] = { ...answer, response_id: offlineResponse.response_id };
           offlineDB.saveResponse(offlineResponse).catch(err =>
             console.error('Failed to auto-save after file upload:', err)
           );

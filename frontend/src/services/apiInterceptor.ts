@@ -50,6 +50,9 @@ export class ApiInterceptor {
   private syncInterval: NodeJS.Timeout | null = null;
   private isProcessingQueue: boolean = false;
   private processedSubmissions: Set<string> = new Set(); // Track processed submissions
+  private inFlightGets = new Map<string, Promise<Record<string, unknown>>>();
+  private recentGets = new Map<string, { timestamp: number; data: Record<string, unknown> }>();
+  private readonly recentGetTtlMs = 10_000;
 
   constructor(config: Partial<InterceptorConfig> = {}) {
     this.config = {
@@ -144,6 +147,34 @@ export class ApiInterceptor {
     entityId?: string
   ): Promise<T> {
     console.log(`🔍 interceptGet: Starting for entityType: ${entityType}, isOnline: ${this.isOnline}`);
+    const cacheKey = `${entityType}:${entityId || "list"}`;
+    const recent = this.recentGets.get(cacheKey);
+    if (recent && Date.now() - recent.timestamp < this.recentGetTtlMs) {
+      return recent.data as T;
+    }
+
+    const inFlight = this.inFlightGets.get(cacheKey);
+    if (inFlight) {
+      return inFlight as Promise<T>;
+    }
+
+    const requestPromise = this.executeGet(apiCall, localGet, entityType, entityId, cacheKey);
+    this.inFlightGets.set(cacheKey, requestPromise as Promise<Record<string, unknown>>);
+
+    try {
+      return await requestPromise;
+    } finally {
+      this.inFlightGets.delete(cacheKey);
+    }
+  }
+
+  private async executeGet<T extends Record<string, unknown>>(
+    apiCall: () => Promise<T>,
+    localGet: () => Promise<T | null>,
+    entityType: string,
+    entityId: string | undefined,
+    cacheKey: string
+  ): Promise<T> {
     try {
       // Try API call first if online
       if (this.isOnline) {
@@ -177,6 +208,7 @@ export class ApiInterceptor {
           // Merge with local pending changes before returning and storing
           const mergedResult = await this.mergePendingChanges(processedResult, entityType, entityId);
           await this.storeLocally(mergedResult, entityType);
+          this.recentGets.set(cacheKey, { timestamp: Date.now(), data: mergedResult });
           return mergedResult;
         } catch (apiError) {
           console.warn(`API call failed for ${entityType}, falling back to local data:`, apiError);
@@ -186,6 +218,7 @@ export class ApiInterceptor {
       // Fall back to local data
       const localData = await localGet();
       if (localData) {
+        this.recentGets.set(cacheKey, { timestamp: Date.now(), data: localData });
         return localData;
       }
 
