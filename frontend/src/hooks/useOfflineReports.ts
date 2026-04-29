@@ -22,6 +22,7 @@ import type {
 import { DataTransformationService } from "../services/dataTransformation";
 import { useAuth } from "./shared/useAuth";
 import { invalidateAndRefetch } from "./useOfflineApi";
+import { normalizeCategoryName } from "@/utils/categoryUtils";
 
 
 export function useOfflineReports() {
@@ -146,12 +147,13 @@ export function useOfflineUserRecommendations() {
             }
 
             const pendingReport = pendingReportsMap.get(rec.report_id)!;
-            let categoryObj = pendingReport.data.find(d => d[rec.category]);
+            const categoryName = normalizeCategoryName(rec.category);
+            let categoryObj = pendingReport.data.find(d => d[categoryName]);
             if (!categoryObj) {
-              categoryObj = { [rec.category]: { recommendations: [] } };
+              categoryObj = { [categoryName]: { recommendations: [] } };
               pendingReport.data.push(categoryObj);
             }
-            categoryObj[rec.category]?.recommendations?.push({
+            categoryObj[categoryName]?.recommendations?.push({
               id: rec.recommendation_id,
               status: rec.status as "todo" | "in_progress" | "done" | "approved",
               text: rec.recommendation,
@@ -192,13 +194,14 @@ export function useOfflineUserRecommendations() {
 
             const report = reportsMap.get(rec.report_id)!;
 
-            let categoryObj = report.data.find(d => d[rec.category]);
+            const categoryName = normalizeCategoryName(rec.category);
+            let categoryObj = report.data.find(d => d[categoryName]);
             if (!categoryObj) {
-              categoryObj = { [rec.category]: { recommendations: [] } };
+              categoryObj = { [categoryName]: { recommendations: [] } };
               report.data.push(categoryObj);
             }
 
-            const categoryContent = categoryObj[rec.category];
+            const categoryContent = categoryObj[categoryName];
             if (categoryContent && categoryContent.recommendations) {
               categoryContent.recommendations.push({
                 id: rec.recommendation_id,
@@ -392,10 +395,11 @@ export function useOfflineReport(submissionId?: string) {
             // Group recommendations by category
             const recommendationsByCategory: { [key: string]: ReportRecommendation[] } = {};
             for (const rec of recommendations) {
-              if (!recommendationsByCategory[rec.category]) {
-                recommendationsByCategory[rec.category] = [];
+              const categoryName = normalizeCategoryName(rec.category);
+              if (!recommendationsByCategory[categoryName]) {
+                recommendationsByCategory[categoryName] = [];
               }
-              recommendationsByCategory[rec.category].push({
+              recommendationsByCategory[categoryName].push({
                 id: rec.recommendation_id,
                 status: rec.status as "todo" | "in_progress" | "done" | "approved",
                 text: rec.recommendation,

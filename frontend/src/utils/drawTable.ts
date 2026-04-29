@@ -4,6 +4,7 @@ import { getTableStyles } from "./tableStyles";
 import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 import type { UserOptions } from 'jspdf-autotable';
 import { addHeader } from "./exportPDF"; // Import addHeader
+import { normalizeCategoryName } from "./categoryUtils";
 
 interface jsPDFWithAutoTable extends jsPDF {
   lastAutoTable: {
@@ -29,7 +30,7 @@ const groupDataByCategory = (
   submissions.forEach((submission) => {
     if (submission.content?.responses) {
       submission.content.responses.forEach((response) => {
-        const category = response.question_category || "Uncategorized";
+        const category = normalizeCategoryName(response.question_category);
         const questionText = response.question_text || "N/A";
 
         if (!groupedData[category]) {
@@ -110,7 +111,7 @@ export const drawAssessmentsTable = (
   Object.keys(groupedData).forEach(category => {
     const tableData = groupedData[category];
     const categoryRecs = recommendations
-      .filter((rec) => rec.category === category)
+      .filter((rec) => normalizeCategoryName(rec.category) === category)
       .map((rec) => `- ${rec.recommendation}`)
       .join("\n");
 

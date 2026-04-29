@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
+import { normalizeCategoryName } from "@/utils/categoryUtils";
 
 // Locally extend the type to include question_category
 interface SubmissionResponseWithCategory extends Submission_content_responses {
@@ -115,7 +116,7 @@ export const SubmissionView: React.FC = () => {
           }
         }
 
-        cat = cat || 'Uncategorized';
+        cat = normalizeCategoryName(cat);
 
         if (!groups[cat]) groups[cat] = [];
 

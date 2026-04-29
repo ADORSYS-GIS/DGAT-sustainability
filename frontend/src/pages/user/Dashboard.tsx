@@ -47,6 +47,7 @@ import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 import { ReportSelectionDialog } from "@/components/shared/ReportSelectionDialog";
 import type { Report, AdminSubmissionDetail, RecommendationWithStatus, OrganizationCategory } from "@/openapi-rq/requests/types.gen";
 import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
+import { mergeCategoryBuckets, normalizeCategoryName } from "@/utils/categoryUtils";
 
 // Local types to map report.data into existing export inputs
 interface ReportAnswer {
@@ -208,7 +209,7 @@ export const Dashboard: React.FC = () => {
   ): { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
     const categoriesObj: Record<string, ReportCategoryData> =
       Array.isArray(report.data) && report.data.length > 0
-        ? (report.data[0] as unknown as Record<string, ReportCategoryData>)
+        ? mergeCategoryBuckets(report.data[0] as unknown as Record<string, ReportCategoryData>)
         : {};
 
     // Build a pseudo AdminSubmissionDetail with responses shaped for drawTable
@@ -218,7 +219,7 @@ export const Dashboard: React.FC = () => {
           ? categoryData.questions!
           : [];
         return questions.map((q): { question_category: string; question_text: string; response: string } => ({
-          question_category: category,
+          question_category: normalizeCategoryName(category),
           question_text: q?.question ?? "",
           response: JSON.stringify(q?.answer ?? {}),
         }));
@@ -254,7 +255,7 @@ export const Dashboard: React.FC = () => {
             report_id: report.report_id,
             assessment_id: report.assessment_id,
             assessment_name: report.assessment_name,
-            category,
+            category: normalizeCategoryName(category),
             recommendation: rec.text,
             status: (rec.status as RecommendationWithStatus["status"]) || "todo",
             created_at: report.generated_at,
@@ -266,7 +267,7 @@ export const Dashboard: React.FC = () => {
     const deduplicatedMap = new Map<string, RecommendationWithStatus>();
 
     recommendations.forEach((rec) => {
-      const normalizedCategory = rec.category.toLowerCase().trim();
+      const normalizedCategory = normalizeCategoryName(rec.category).toLowerCase();
       const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
 
       // Keep the most recent recommendation if duplicates exist
@@ -550,7 +551,16 @@ export const Dashboard: React.FC = () => {
                 }
               }
             }
-            newCategoryObj[label] = catVal;
+            const normalizedLabel = normalizeCategoryName(label);
+            const existing = newCategoryObj[normalizedLabel];
+            newCategoryObj[normalizedLabel] = existing
+              ? {
+                ...existing,
+                ...catVal,
+                questions: [...(existing.questions || []), ...(((catVal as any).questions) || [])],
+                recommendations: [...(existing.recommendations || []), ...(((catVal as any).recommendations) || [])],
+              }
+              : catVal;
           });
           return newCategoryObj;
         });
@@ -584,7 +594,9 @@ export const Dashboard: React.FC = () => {
         return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
       });
 
-      const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0 ? latestReport.data[0] : {};
+      const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0
+        ? mergeCategoryBuckets(latestReport.data[0] as Record<string, { recommendations: { id: string; text: string; status: string }[] }>)
+        : {};
       const reportRecommendations = Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
         (category.recommendations || []).map(r => ({
           ...r,
@@ -592,7 +604,7 @@ export const Dashboard: React.FC = () => {
           created_at: latestReport.generated_at,
           assessment_id: latestReport.assessment_id,
           assessment_name: latestReport.assessment_name,
-          category: categoryName
+          category: normalizeCategoryName(categoryName)
         }))
       );
 

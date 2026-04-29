@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Report } from "@/openapi-rq/requests/types.gen";
+import { normalizeCategoryName } from "./categoryUtils";
 
 const answerSchema = z.object({
   percentage: z.number().optional(),
@@ -11,7 +12,7 @@ const questionSchema = z.object({
 });
 
 const categoryDataSchema = z.object({
-  questions: z.array(questionSchema),
+  questions: z.array(questionSchema).optional().default([]),
   weight: z.number().optional(),
 });
 
@@ -68,8 +69,10 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
     if (parsedReportData.success) {
       parsedReportData.data.forEach((item) => {
         Object.entries(item).forEach(([categoryName, category]) => {
-          if (!categories[categoryName]) {
-            categories[categoryName] = 0;
+          const normalizedCategoryName = normalizeCategoryName(categoryName);
+
+          if (!categories[normalizedCategoryName]) {
+            categories[normalizedCategoryName] = 0;
           }
 
           let sustainabilityScore = 0;
@@ -83,10 +86,10 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
           });
 
           const orgCategory = organizationCategories.find(
-            (orgCat) => orgCat.category_name === categoryName
+            (orgCat) => normalizeCategoryName(orgCat.category_name) === normalizedCategoryName
           );
           const weight = orgCategory?.weight || 0;
-          categories[categoryName] = sustainabilityScore * (weight / 100);
+          categories[normalizedCategoryName] += sustainabilityScore * (weight / 100);
         });
       });
     } else {

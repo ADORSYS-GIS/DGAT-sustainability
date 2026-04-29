@@ -51,6 +51,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import FileDisplay from "@/components/shared/FileDisplay";
+import { mergeCategoryBuckets, normalizeCategoryName } from "@/utils/categoryUtils";
 
 // Local types to map report.data into existing export inputs
 interface ReportAnswer {
@@ -90,10 +91,11 @@ type NormalizedCategory = {
 
 const normalizeGenericReportData = (data: unknown): NormalizedCategory[] => {
   if (!Array.isArray(data) || data.length === 0) return [];
-  const categories: NormalizedCategory[] = [];
-  const reportData = data[0] as Record<string, unknown>;
+  const categoriesMap = new Map<string, NormalizedCategory>();
+  const reportData = mergeCategoryBuckets(data[0] as Record<string, Record<string, unknown>>);
   for (const [key, value] of Object.entries(reportData)) {
     if (!value || typeof value !== 'object') continue;
+    const categoryName = normalizeCategoryName(key);
     const obj = value as Record<string, unknown>;
     const arr = Array.isArray(obj.questions)
       ? (obj.questions as Array<Record<string, unknown>>)
@@ -112,10 +114,16 @@ const normalizeGenericReportData = (data: unknown): NormalizedCategory[] => {
         .filter(rec => rec.text !== "No recommendation provided" && rec.text !== "No action plan given")
       : [];
     if (responses.length > 0 || recommendations.length > 0) {
-      categories.push({ name: key, responses, recommendations });
+      const existing = categoriesMap.get(categoryName);
+      if (existing) {
+        existing.responses.push(...responses);
+        existing.recommendations?.push(...recommendations);
+      } else {
+        categoriesMap.set(categoryName, { name: categoryName, responses, recommendations });
+      }
     }
   }
-  return categories;
+  return Array.from(categoriesMap.values());
 };
 
 export const ReportHistory: React.FC = () => {
@@ -252,7 +260,7 @@ export const ReportHistory: React.FC = () => {
   ): { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
     const categoriesObj: Record<string, ReportCategoryData> =
       Array.isArray(report.data) && report.data.length > 0
-        ? (report.data[0] as unknown as Record<string, ReportCategoryData>)
+        ? mergeCategoryBuckets(report.data[0] as unknown as Record<string, ReportCategoryData>)
         : {};
 
     // Build a pseudo AdminSubmissionDetail with responses shaped for drawTable
@@ -262,7 +270,7 @@ export const ReportHistory: React.FC = () => {
           ? categoryData.questions!
           : [];
         return questions.map((q): { question_category: string; question_text: string; response: string } => ({
-          question_category: category,
+          question_category: normalizeCategoryName(category),
           question_text: q?.question ?? "",
           response: JSON.stringify(q?.answer ?? {}),
         }));
@@ -296,7 +304,7 @@ export const ReportHistory: React.FC = () => {
           .map((rec) => ({
             recommendation_id: rec.id,
             report_id: report.report_id,
-            category,
+            category: normalizeCategoryName(category),
             recommendation: rec.text,
             status: (rec.status as RecommendationWithStatus["status"]) || "todo",
             created_at: report.generated_at,
@@ -310,7 +318,7 @@ export const ReportHistory: React.FC = () => {
     const deduplicatedMap = new Map<string, RecommendationWithStatus>();
 
     recommendations.forEach((rec) => {
-      const normalizedCategory = rec.category.toLowerCase().trim();
+      const normalizedCategory = normalizeCategoryName(rec.category).toLowerCase();
       const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
 
       // Keep the most recent recommendation if duplicates exist
@@ -418,7 +426,7 @@ export const ReportHistory: React.FC = () => {
         report.data.recommendations
           .filter((rec) => rec.recommendation !== "No recommendation provided" && rec.recommendation !== "No action plan given")
           .forEach((rec) => {
-            const normalizedCategory = rec.category.toLowerCase().trim();
+            const normalizedCategory = normalizeCategoryName(rec.category).toLowerCase();
             const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
 
             // Keep the most recent recommendation if duplicates exist
@@ -646,8 +654,8 @@ export const ReportHistory: React.FC = () => {
             const responses: AdminSubmissionDetail_content_responses[] = submissions.flatMap(s => (s.content?.responses as AdminSubmissionDetail_content_responses[] | undefined) || []);
 
             const categoriesSet = new Set<string>([
-              ...responses.map((r) => r.question_category as string).filter(Boolean),
-              ...recommendations.map(r => r.category).filter(Boolean)
+              ...responses.map((r) => normalizeCategoryName(r.question_category as string)).filter(Boolean),
+              ...recommendations.map(r => normalizeCategoryName(r.category)).filter(Boolean)
             ]);
             const categories = Array.from(categoriesSet);
             const genericCategories = isAdminReportData(data) ? [] : normalizeGenericReportData(data);
@@ -676,12 +684,12 @@ export const ReportHistory: React.FC = () => {
                   {categories.length > 0 ? (
                     categories.map(category => {
                       const recsForCategory = recommendations.filter(r =>
-                        r.category === category &&
+                        normalizeCategoryName(r.category) === category &&
                         r.recommendation !== "No recommendation provided" &&
                         r.recommendation !== "No action plan given"
                       );
                       const responsesForCategory = responses
-                        .filter(r => r.question_category === category)
+                        .filter(r => normalizeCategoryName(r.question_category as string) === category)
                         .sort((a, b) => {
                           const getOrder = (resp: any) => {
                             const questionTextStr = typeof resp.question === 'object' ? resp.question.en : resp.question;

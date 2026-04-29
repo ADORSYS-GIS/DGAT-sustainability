@@ -19,6 +19,7 @@ import type {
   AdminReport,
 } from "@/openapi-rq/requests/types.gen";
 import type { CategoryCatalog } from "@/openapi-rq/requests/types.gen";
+import { normalizeCategoryName } from "@/utils/categoryUtils";
 
 import type {
   OfflineQuestion,
@@ -775,14 +776,13 @@ export class DataTransformationService {
 
     report.data.forEach((categoryData: ReportCategoryData) => {
       Object.entries(categoryData).forEach(([categoryName, categoryContent]) => {
-        // Trim category name to handle potential trailing spaces from API
-        const trimmedCategoryName = categoryName.trim();
+        const normalizedCategoryName = normalizeCategoryName(categoryName);
 
         if (categoryContent?.recommendations && Array.isArray(categoryContent.recommendations)) {
           categoryContent.recommendations.forEach(rec => {
             const deterministicId = this.generateDeterministicRecommendationId(
               report.report_id,
-              categoryName,
+              normalizedCategoryName,
               rec.text
             );
 
@@ -792,7 +792,7 @@ export class DataTransformationService {
               submission_id: report.submission_id,
               assessment_id: report.assessment_id,
               assessment_name: report.assessment_name || assessmentName || 'Unknown Assessment',
-              category: trimmedCategoryName,
+              category: normalizedCategoryName,
               recommendation: rec.text,
               status: rec.status,
               created_at: report.generated_at || now,
