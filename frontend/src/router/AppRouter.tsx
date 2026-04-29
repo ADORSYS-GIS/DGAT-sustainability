@@ -1,32 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import {
-  QueryClient,
-  QueryClientProvider,
-  QueryCache,
-} from "@tanstack/react-query";
-import { toast } from "sonner";
 import routes from "./routes";
 import MainLayout from "@/layouts/MainLayout";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-
-const queryClient = new QueryClient({
-  queryCache: new QueryCache({
-    onError: (error) => {
-      toast.error(`Something went wrong: ${error.message}`);
-    },
-  }),
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-    mutations: {
-      onError: (error: Error) => {
-        toast.error(error.message || "An unexpected error occurred");
-      },
-    },
-  },
-});
 
 // Helper function to render routes recursively
 const renderRoutes = (routes: any[]) => {
@@ -46,17 +22,15 @@ const renderRoutes = (routes: any[]) => {
 };
 
 const AppRouter = () => (
-  <QueryClientProvider client={queryClient}>
-    <Router>
-      <MainLayout>
-        <React.Suspense fallback={<LoadingSpinner size="hero" fullPage text="Loading Sustainability Portal..." />}>
-          <Routes>
-            {renderRoutes(routes)}
-          </Routes>
-        </React.Suspense>
-      </MainLayout>
-    </Router>
-  </QueryClientProvider>
+  <Router>
+    <MainLayout>
+      <React.Suspense fallback={<LoadingSpinner size="hero" fullPage text="Loading Sustainability Portal..." />}>
+        <Routes>
+          {renderRoutes(routes)}
+        </Routes>
+      </React.Suspense>
+    </MainLayout>
+  </Router>
 );
 
 export default AppRouter;

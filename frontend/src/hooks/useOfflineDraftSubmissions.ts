@@ -110,8 +110,8 @@ export function useOfflineDraftSubmissions() {
       const [onlineDraftsResult, onlineAssessmentsResult] = await Promise.all([
         apiInterceptor.interceptGet(
           () => AdminService.getDrafts(),
-          () => offlineDB.getAllDraftSubmissions().then(submissions => ({ submissions })),
-          'drafts'
+          () => offlineDB.getAllDraftSubmissions().then(draft_submissions => ({ draft_submissions })),
+          'drafts_endpoint'
         ),
         apiInterceptor.interceptGet(
           () => AssessmentsService.getAssessments(),
@@ -267,12 +267,21 @@ export function useOfflineDraftSubmissions() {
     // Re-fetch when coming back online so stale data is refreshed immediately
     const onOnline = () => fetchData();
 
+    // Re-fetch when the tab becomes visible (helps with cross-tab staleness)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+
     window.addEventListener('datasync', onDataSync);
     window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       window.removeEventListener('datasync', onDataSync);
       window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [fetchData]);
 

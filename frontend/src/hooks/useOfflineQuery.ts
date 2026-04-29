@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { offlineDB } from "../services/indexeddb";
-import { syncService, SyncStatus } from "../services/syncService";
+import type { SyncQueueItem } from "@/types/offline";
 
 interface OfflineQueryOptions<T> {
   queryKey: QueryKey;
@@ -42,7 +42,6 @@ interface OfflineMutationOptions<TData, TVariables> {
 // Custom hook for offline-first queries
 export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const queryClient = useQueryClient();
 
   // Listen for online/offline status changes
@@ -59,21 +58,15 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
     };
   }, []);
 
-  // Listen for sync status changes
+  // When the sync queue changes, refresh the query so the UI picks up synced data.
   useEffect(() => {
-    const handleSyncStatus = (status: SyncStatus) => {
-      setSyncStatus(status);
-
-      // Invalidate queries when sync completes
-      if (status.type === "sync_complete") {
-        queryClient.invalidateQueries({ queryKey: options.queryKey });
-      }
+    const onSyncQueueUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: options.queryKey });
     };
 
-    syncService.addSyncListener(handleSyncStatus);
-
+    window.addEventListener('sync-queue-updated', onSyncQueueUpdated);
     return () => {
-      syncService.removeSyncListener(handleSyncStatus);
+      window.removeEventListener('sync-queue-updated', onSyncQueueUpdated);
     };
   }, [queryClient, options.queryKey]);
 
@@ -82,21 +75,13 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
     queryKey: options.queryKey,
     queryFn: async () => {
       try {
-        // Try local data first
-        const localData = await options.localDataFn();
-
-        if (localData && !isOnline) {
-          // Return local data if offline
-          return localData;
-        }
-
         if (isOnline) {
           try {
-            // Try network data if online
-            const networkData = await options.queryFn();
-            return networkData;
+            // Online-first for responsiveness
+            return await options.queryFn();
           } catch (networkError) {
-            // Fallback to local data if network fails
+            // If network fails, fall back to local cache
+            const localData = await options.localDataFn();
             if (localData) {
               console.warn("Network failed, using local data:", networkError);
               return localData;
@@ -105,11 +90,9 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
           }
         }
 
-        // Return local data if available
-        if (localData) {
-          return localData;
-        }
-
+        // Offline: read from IndexedDB
+        const localData = await options.localDataFn();
+        if (localData) return localData;
         throw new Error("No data available offline");
       } catch (error) {
         console.error("Query failed:", error);
@@ -119,7 +102,7 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
     enabled: options.enabled !== false,
     staleTime: options.staleTime ?? (isOnline ? 5 * 60 * 1000 : Infinity), // 5 minutes online, never stale offline
     gcTime: options.cacheTime ?? 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: options.refetchOnWindowFocus ?? isOnline,
+    refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
     refetchOnReconnect: options.refetchOnReconnect ?? true,
     retry: (failureCount, error) => {
       // Don't retry if offline
@@ -132,7 +115,6 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
   return {
     ...query,
     isOnline,
-    syncStatus,
   };
 }
 
@@ -174,15 +156,18 @@ export function useOfflineMutation<TData, TVariables>(
             const result = await options.localMutationFn(variables);
 
             // Add to sync queue with proper details
-            await offlineDB.addToSyncQueue({
+            const queueItem: SyncQueueItem = {
+              id: crypto.randomUUID(),
               operation: options.getOperation?.(variables) || "update",
               entity_type: options.getEntityType?.(variables) || "response",
               entity_id: options.getEntityId?.(variables) || "",
               data: variables,
-              url: options.getUrl?.(variables) || "",
-              method: options.getMethod?.(variables) || "PUT",
+              retry_count: 0,
               max_retries: 3,
-            });
+              priority: "normal",
+              created_at: new Date().toISOString(),
+            };
+            await offlineDB.addToSyncQueue(queueItem);
 
             return result;
           }
@@ -191,15 +176,18 @@ export function useOfflineMutation<TData, TVariables>(
           const result = await options.localMutationFn(variables);
 
           // Add to sync queue with proper details
-          await offlineDB.addToSyncQueue({
+          const queueItem: SyncQueueItem = {
+            id: crypto.randomUUID(),
             operation: options.getOperation?.(variables) || "update",
             entity_type: options.getEntityType?.(variables) || "response",
             entity_id: options.getEntityId?.(variables) || "",
             data: variables,
-            url: options.getUrl?.(variables) || "",
-            method: options.getMethod?.(variables) || "PUT",
+            retry_count: 0,
             max_retries: 3,
-          });
+            priority: "normal",
+            created_at: new Date().toISOString(),
+          };
+          await offlineDB.addToSyncQueue(queueItem);
 
           return result;
         }
@@ -299,7 +287,7 @@ export function useOfflineAssessmentDetail(assessmentId: string) {
     localDataFn: async () => {
       const [assessment, responses, questions] = await Promise.all([
         offlineDB.getAssessment(assessmentId),
-        offlineDB.getLatestResponsesByAssessment(assessmentId),
+        offlineDB.getResponsesByAssessment(assessmentId),
         offlineDB.getAllQuestions(),
       ]);
 
@@ -437,20 +425,28 @@ export function useSyncStatus() {
 
   useEffect(() => {
     const updateStatus = async () => {
-      const syncStatus = await syncService.getSyncStatus();
-      setStatus(syncStatus);
+      const queue = await offlineDB.getSyncQueue();
+      setStatus({
+        isOnline: navigator.onLine,
+        pendingItems: queue.length,
+        conflicts: 0,
+      });
     };
 
     updateStatus();
 
-    const handleSyncStatus = () => {
-      updateStatus();
-    };
+    const onQueueUpdated = () => updateStatus();
+    const onOnline = () => updateStatus();
+    const onOffline = () => updateStatus();
 
-    syncService.addSyncListener(handleSyncStatus);
+    window.addEventListener('sync-queue-updated', onQueueUpdated);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
 
     return () => {
-      syncService.removeSyncListener(handleSyncStatus);
+      window.removeEventListener('sync-queue-updated', onQueueUpdated);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
     };
   }, []);
 
