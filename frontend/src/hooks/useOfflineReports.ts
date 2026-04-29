@@ -103,6 +103,7 @@ export function useOfflineUserRecommendations() {
 
           const uiReports = reports.map(report => ({
             ...report,
+            organization_id: (user as any)?.organization, // Inject organization_id into report
             assessment_name: submissionMap.get(report.submission_id)
           }));
 

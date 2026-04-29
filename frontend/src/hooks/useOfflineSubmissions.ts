@@ -77,10 +77,20 @@ export function useOfflineSubmissions() {
             assessments.map((a) => [a.assessment_id, a.name])
           );
 
+          let organizationId: string | undefined;
+          if (user?.organizations) {
+            const orgKeys = Object.keys(user.organizations);
+            if (orgKeys.length > 0) {
+              const orgData = (user.organizations as Record<string, { id: string }>)[orgKeys[0]];
+              organizationId = orgData?.id;
+            }
+          }
+
           const offlineSubmissions = submissions.map((s) => {
             const content = s.content as { assessment_name?: string };
             return {
               ...s,
+              organization_id: organizationId || (user as any)?.organization,
               assessment_name:
                 content?.assessment_name ||
                 assessmentNameMap.get(s.assessment_id) ||
