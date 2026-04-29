@@ -341,6 +341,7 @@ export class DataTransformationService {
 
     return {
       ...report,
+      data: report.data || [],
       organization_id: userOrganizationId,
       user_id: userId,
       file_path: undefined,
@@ -772,17 +773,22 @@ export class DataTransformationService {
     const recommendations: OfflineRecommendation[] = [];
     const now = new Date().toISOString();
 
-    if (!report.data || !Array.isArray(report.data)) {
-      console.warn('Report data is missing or not an array:', report);
+    if (!report.data) {
+      console.warn('Report data is missing:', report);
       return [];
     }
 
-    report.data.forEach((categoryData: ReportCategoryData) => {
+    // Handle both array and object formats for robustness
+    const dataItems = Array.isArray(report.data)
+      ? report.data
+      : Object.entries(report.data).map(([key, value]) => ({ [key]: value }));
+
+    dataItems.forEach((categoryData: Record<string, any>) => {
       Object.entries(categoryData).forEach(([categoryName, categoryContent]) => {
         const normalizedCategoryName = normalizeCategoryName(categoryName);
 
         if (categoryContent?.recommendations && Array.isArray(categoryContent.recommendations)) {
-          categoryContent.recommendations.forEach(rec => {
+          categoryContent.recommendations.forEach((rec: any) => {
             const deterministicId = this.generateDeterministicRecommendationId(
               report.report_id,
               normalizedCategoryName,
