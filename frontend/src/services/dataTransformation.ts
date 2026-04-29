@@ -174,7 +174,10 @@ export class DataTransformationService {
     const now = new Date().toISOString();
 
     // Handle both Response objects (from API) and CreateResponseRequest objects (for creation)
-    const responseId = 'response_id' in response ? response.response_id : crypto.randomUUID();
+    const responseId =
+      'response_id' in response && typeof response.response_id === 'string' && response.response_id.trim() !== ''
+        ? response.response_id
+        : crypto.randomUUID();
     const assessmentIdValue = 'assessment_id' in response ? response.assessment_id : assessmentId;
     const version = 'version' in response ? response.version : 1;
     const updatedAt = 'updated_at' in response ? response.updated_at : now;
