@@ -1145,11 +1145,21 @@ export class ApiInterceptor {
               console.error(`[processQueue] No assessmentId for draft submission queue item: ${queueItem.id}`);
             } else {
               const { AssessmentsService } = await import('@/openapi-rq/requests/services.gen');
-              await AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId });
+              const apiResponse = await AssessmentsService.postAssessmentsByAssessmentIdDraft({ assessmentId });
 
-              // Clean up the temp submission
+              // If the API returns the created submission, store it as a synced draft submission
+              if (apiResponse && typeof apiResponse === 'object' && 'submission' in apiResponse) {
+                const realSubmission = (apiResponse as { submission: Submission }).submission;
+                const offlineDraftSubmission = DataTransformationService.transformSubmissionToDraft(realSubmission) as OfflineDraftSubmission;
+                offlineDraftSubmission.review_status = 'pending_review';
+                offlineDraftSubmission.sync_status = 'synced';
+                await offlineDB.saveDraftSubmission(offlineDraftSubmission);
+              }
+
+              // Clean up the temp submission + temp draft submission
               if (submitData?.tempId) {
                 await offlineDB.deleteSubmission(submitData.tempId);
+                await offlineDB.deleteDraftSubmission(submitData.tempId);
               }
               successCount++;
             }
