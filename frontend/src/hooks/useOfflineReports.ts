@@ -125,7 +125,40 @@ export function useOfflineUserRecommendations() {
           await offlineDB.saveRecommendations(allOfflineRecommendations);
           await offlineDB.saveReports(reportsToSave);
 
-          return { reports: uiReports };
+          const serverRecommendationIds = new Set(allOfflineRecommendations.map(rec => rec.recommendation_id));
+          const pendingLocalRecommendations = (await offlineDB.getAllRecommendations())
+            .filter(rec => rec.sync_status === 'pending')
+            .filter(rec => !serverRecommendationIds.has(rec.recommendation_id))
+            .filter(rec => !user?.organization || rec.organization_id === user.organization);
+
+          const pendingReportsMap = new Map<string, DetailedReport & { assessment_name?: string }>();
+          for (const rec of pendingLocalRecommendations) {
+            if (!pendingReportsMap.has(rec.report_id)) {
+              pendingReportsMap.set(rec.report_id, {
+                report_id: rec.report_id,
+                submission_id: rec.submission_id || '',
+                assessment_id: rec.assessment_id,
+                assessment_name: rec.assessment_name,
+                status: 'completed',
+                generated_at: rec.created_at || rec.updated_at,
+                data: [],
+              });
+            }
+
+            const pendingReport = pendingReportsMap.get(rec.report_id)!;
+            let categoryObj = pendingReport.data.find(d => d[rec.category]);
+            if (!categoryObj) {
+              categoryObj = { [rec.category]: { recommendations: [] } };
+              pendingReport.data.push(categoryObj);
+            }
+            categoryObj[rec.category]?.recommendations?.push({
+              id: rec.recommendation_id,
+              status: rec.status as "todo" | "in_progress" | "done" | "approved",
+              text: rec.recommendation,
+            });
+          }
+
+          return { reports: [...uiReports, ...Array.from(pendingReportsMap.values())] };
         },
         async () => {
           const [offlineRecommendations, submissions] = await Promise.all([

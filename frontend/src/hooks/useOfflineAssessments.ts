@@ -14,9 +14,11 @@ import type {
 } from "@/openapi-rq/requests/types.gen";
 import type {
   OfflineAssessment,
-  OfflineAssessmentDetailResponse
+  OfflineAssessmentDetailResponse,
+  OfflineDraftSubmission
 } from "@/types/offline";
 import { DataTransformationService } from "../services/dataTransformation";
+import { useAuth } from "./shared/useAuth";
 
 export function useOfflineAssessments() {
   const [data, setData] = useState<{ assessments: Assessment[] }>({ assessments: [] });
@@ -306,6 +308,13 @@ export function useOfflineAssessment(assessmentId: string) {
 
 export function useOfflineAssessmentsMutation() {
   const [isPending, setIsPending] = useState(false);
+  const { user } = useAuth();
+
+  const currentOrganizationId = user?.organization || (
+    user?.organizations
+      ? user.organizations[Object.keys(user.organizations)[0]]?.id
+      : undefined
+  );
 
   const createAssessment = useCallback(async (
     assessment: CreateAssessmentRequest,
@@ -505,6 +514,12 @@ export function useOfflineAssessmentsMutation() {
 
       const tempId = `temp_draft_${crypto.randomUUID()}`;
       const now = new Date().toISOString();
+      const assessment = await offlineDB.getAssessment(assessmentId);
+      const responses = await offlineDB.getResponsesByAssessment(assessmentId);
+      const draftContent = {
+        assessment: { assessment_id: assessmentId, language: assessment?.language },
+        responses,
+      };
 
       // Create a draft submission object for IndexedDB storage
       const tempDraftSubmissionForTransform: {
@@ -517,39 +532,48 @@ export function useOfflineAssessmentsMutation() {
       } = {
         draft_submission_id: tempId,
         assessment_id: assessmentId,
-        user_id: "current_user", // This will be replaced by the server's response
-        content: {
-          assessment: { assessment_id: assessmentId },
-          responses: [] // Will be populated from responses in IndexedDB
-        },
+        user_id: user?.sub || "current_user",
+        content: draftContent,
         status: 'pending_approval',
         submitted_at: now,
       };
 
       // Always store in IndexedDB first for offline support
       try {
-        let assessment = await offlineDB.getAssessment(assessmentId);
+        let storedAssessment = assessment;
 
         // Retry logic if not found immediately (e.g. if just created)
-        if (!assessment) {
+        if (!storedAssessment) {
           let attempts = 0;
           const maxAttempts = 5;
-          while (!assessment && attempts < maxAttempts) {
+          while (!storedAssessment && attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 200));
-            assessment = await offlineDB.getAssessment(assessmentId);
+            storedAssessment = await offlineDB.getAssessment(assessmentId);
             attempts++;
           }
         }
 
-        // Note: We'll need to add draft submission storage to IndexedDB
-        // For now, we'll store it as a regular submission with a special status
+        const assessmentName = storedAssessment?.name || 'Unknown Assessment';
         const offlineSubmission = DataTransformationService.transformSubmission({
           ...tempDraftSubmissionForTransform,
           submission_id: tempId,
-          assessment_name: assessment?.name || 'Unknown Assessment',
+          assessment_name: assessmentName,
           review_status: 'pending_review', // Changed to 'pending_review'
-        });
+        }, currentOrganizationId);
+        offlineSubmission.sync_status = 'synced';
+        offlineSubmission.organization_id = currentOrganizationId;
         await offlineDB.saveSubmission(offlineSubmission);
+
+        const offlineDraftSubmission = DataTransformationService.transformSubmissionToDraft({
+          ...tempDraftSubmissionForTransform,
+          submission_id: tempId,
+          assessment_name: assessmentName,
+          review_status: 'pending_review',
+        }, currentOrganizationId) as OfflineDraftSubmission;
+        offlineDraftSubmission.review_status = 'pending_review';
+        offlineDraftSubmission.sync_status = 'pending';
+        offlineDraftSubmission.organization_id = currentOrganizationId;
+        await offlineDB.saveDraftSubmission(offlineDraftSubmission);
       } catch (storageError) {
         console.error('❌ Failed to store draft submission in IndexedDB:', storageError);
         throw new Error(`Failed to store draft submission: ${storageError}`);
@@ -589,6 +613,16 @@ export function useOfflineAssessmentsMutation() {
         // This was a successful online request, the interceptor saved the real submission.
         // Now we can safely delete the temporary one.
         await offlineDB.deleteSubmission(tempId);
+        await offlineDB.deleteDraftSubmission(tempId);
+
+        const realDraftSubmission = DataTransformationService.transformSubmissionToDraft(
+          result.submission,
+          currentOrganizationId
+        ) as OfflineDraftSubmission;
+        realDraftSubmission.review_status = 'pending_review';
+        realDraftSubmission.sync_status = 'synced';
+        realDraftSubmission.organization_id = currentOrganizationId;
+        await offlineDB.saveDraftSubmission(realDraftSubmission);
       }
 
       // Check if we're online to determine success behavior
@@ -605,7 +639,7 @@ export function useOfflineAssessmentsMutation() {
           submission_id: tempId,
           assessment_name: assessment?.name || 'Unknown Assessment',
           review_status: 'pending_review', // Changed to 'pending_review'
-        });
+        }, currentOrganizationId);
         options?.onSuccess?.({ submission: offlineSubmission });
       } else {
         // Online but API failed - still stored in IndexedDB for retry
@@ -615,7 +649,7 @@ export function useOfflineAssessmentsMutation() {
           submission_id: tempId,
           assessment_name: assessment?.name || 'Unknown Assessment',
           review_status: 'pending_review', // Changed to 'pending_review'
-        });
+        }, currentOrganizationId);
         options?.onSuccess?.({ submission: offlineSubmission });
       }
 
@@ -628,7 +662,7 @@ export function useOfflineAssessmentsMutation() {
     } finally {
       setIsPending(false);
     }
-  }, []);
+  }, [currentOrganizationId, user?.sub]);
 
   return { createAssessment, updateAssessment, deleteAssessment, submitDraftAssessment, isPending };
 }

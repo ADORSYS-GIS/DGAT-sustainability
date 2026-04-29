@@ -16,6 +16,7 @@ import type {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DataTransformationService } from "../services/dataTransformation";
 import type { OfflineAssessment, OfflineDraftSubmission, OfflineCategoryCatalog, OfflineSubmission } from "@/types/offline";
+import { useAuth } from "./shared/useAuth";
 
 // Type guard to check if the response is from the online API for assessments
 function isOnlineAssessmentList(response: unknown): response is AssessmentListResponse {
@@ -41,12 +42,32 @@ function isOnlineAdminSubmissionList(response: unknown): response is { draft_sub
   return draft_submissions.length === 0 || 'org_id' in draft_submissions[0];
 }
 
+const isUsableAssessmentName = (name?: string | null): name is string => {
+  return !!name && name.trim() !== '' && name !== 'Unknown Assessment';
+};
+
+const getSubmissionOrganizationId = (submission: OfflineDraftSubmission): string | undefined => {
+  return submission.organization_id || (submission as OfflineDraftSubmission & { org_id?: string }).org_id;
+};
+
 export function useOfflineDraftSubmissions() {
+  const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<{ draft_submissions: OfflineDraftSubmission[] }>({ draft_submissions: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const currentOrganizationId = user?.organization || (
+    user?.organizations
+      ? user.organizations[Object.keys(user.organizations)[0]]?.id
+      : undefined
+  );
+
   const fetchData = useCallback(async () => {
+    if (authLoading) {
+      setIsLoading(true);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -84,10 +105,15 @@ export function useOfflineDraftSubmissions() {
         );
 
         const offlineDrafts = (adminSubmissions as AdminSubmissionDetail[]).map(
-          (submission) => DataTransformationService.transformAdminSubmission(
-            submission,
-            (submission as any).assessment_name || assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
-          )
+          (submission) => {
+            const apiAssessmentName = (submission as AdminSubmissionDetail & { assessment_name?: string }).assessment_name;
+            return DataTransformationService.transformAdminSubmission(
+              submission,
+              isUsableAssessmentName(apiAssessmentName)
+                ? apiAssessmentName
+                : assessmentsMap.get(submission.assessment_id) || 'Unknown Assessment'
+            );
+          }
         );
         await offlineDB.saveDraftSubmissions(offlineDrafts as unknown as OfflineDraftSubmission[]);
       }
@@ -106,11 +132,43 @@ export function useOfflineDraftSubmissions() {
         }
       }
 
-      const submissions = localDrafts
+      const visibleDrafts = localDrafts
         .filter((submission) => ['draft', 'pending_review', 'under_review'].includes(submission.review_status))
-        .map((submission) => ({
+        .filter((submission) => {
+          if (!currentOrganizationId) {
+            return true;
+          }
+
+          return getSubmissionOrganizationId(submission) === currentOrganizationId;
+        });
+
+      if (navigator.onLine) {
+        const missingAssessmentIds = Array.from(new Set(
+          visibleDrafts
+            .filter((submission) => !isUsableAssessmentName(submission.assessment_name))
+            .filter((submission) => submission.assessment_id && !assessmentsMap.has(submission.assessment_id))
+            .map((submission) => submission.assessment_id)
+        ));
+
+        await Promise.all(missingAssessmentIds.map(async (assessmentId) => {
+          try {
+            const assessmentResult = await AssessmentsService.getAssessmentsByAssessmentId({ assessmentId });
+            const assessment = assessmentResult.assessment;
+            if (assessment?.assessment_id && assessment.name) {
+              assessmentsMap.set(assessment.assessment_id, assessment.name);
+              await offlineDB.saveAssessment(
+                DataTransformationService.transformAssessment(assessment, categoryIdToCategoryMap)
+              );
+            }
+          } catch (assessmentError) {
+            console.warn(`Failed to enrich draft assessment name for ${assessmentId}:`, assessmentError);
+          }
+        }));
+      }
+
+      const submissions = visibleDrafts.map((submission) => ({
           ...submission,
-          assessment_name: submission.assessment_name && submission.assessment_name.trim() !== '' && submission.assessment_name !== 'Unknown Assessment'
+          assessment_name: isUsableAssessmentName(submission.assessment_name)
             ? submission.assessment_name
             : assessmentsMap.get(submission.assessment_id) || submission.assessment_name || 'Unknown Assessment'
         }));
@@ -121,7 +179,7 @@ export function useOfflineDraftSubmissions() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [authLoading, currentOrganizationId]);
 
   useEffect(() => {
     fetchData();
@@ -186,13 +244,30 @@ export function useOfflineDraftSubmissionsMutation() {
         console.log(`[Mutation] 4. Local mutation complete. Draft ${submissionId} moved to submissions and deleted from drafts.`);
       };
 
-      return apiInterceptor.interceptMutation(
+      const result = await apiInterceptor.interceptMutation(
         apiCall,
         localMutation,
         draft as unknown as Record<string, unknown>, // Pass the entire draft object as data for the sync queue
         'draft_submission', // Entity type is 'draft_submission' as it's still in that table
         'submit' // Operation is 'submit'
       );
+
+      if (result && typeof result === 'object' && 'submission' in result) {
+        const realSubmission = (result as { submission: Submission }).submission;
+        await offlineDB.deleteDraftSubmission(submissionId);
+        await offlineDB.deleteDraftSubmission(realSubmission.submission_id);
+
+        const offlineSubmission = DataTransformationService.transformSubmission(realSubmission, draft.organization_id);
+        offlineSubmission.review_status = 'under_review';
+        offlineSubmission.assessment_name = isUsableAssessmentName(realSubmission.assessment_name)
+          ? realSubmission.assessment_name
+          : draft.assessment_name;
+        offlineSubmission.organization_id = draft.organization_id;
+        offlineSubmission.org_name = draft.org_name;
+        await offlineDB.saveSubmission(offlineSubmission);
+      }
+
+      return result;
     },
     onSuccess: (data) => {
       console.log('[Mutation] onSuccess: Mutation was successful. Data:', data);

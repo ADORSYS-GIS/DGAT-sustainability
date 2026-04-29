@@ -89,6 +89,7 @@ export const drawAssessmentsTable = (
   // Add the section's first page and introduction
   doc.addPage();
   addHeader(doc);
+  const sectionStartPage = doc.getNumberOfPages();
   doc.setFontSize(18);
   doc.setTextColor(30, 58, 138); // dgrvBlue
   doc.setFont("helvetica", "bold");
@@ -158,23 +159,21 @@ export const drawAssessmentsTable = (
       body: body as UserOptions['body'],
       ...styles,
       didDrawPage: (data) => {
-        // Apply header and title to every page of the table EXCEPT the one that autoTable just added if we already handled it?
-        // Actually, autoTable didDrawPage runs after each page finish.
         addHeader(doc);
-        doc.setFontSize(16);
-        doc.setTextColor(30, 58, 138);
-        doc.setFont("helvetica", "bold");
 
-        // We only draw the title on pages that are not where the section started, 
-        // to avoid double drawing if drawAssessmentsTable already drew it.
-        // Or we just rely on standard spacing.
-        doc.text(fullTitle, 14, 26);
+        const currentPageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+        if (currentPageNumber !== sectionStartPage) {
+          doc.setFontSize(16);
+          doc.setTextColor(30, 58, 138);
+          doc.setFont("helvetica", "bold");
+          doc.text(fullTitle, 14, 26);
 
-        if (organizationName) {
-          doc.setFontSize(9);
-          doc.setTextColor(100);
-          doc.setFont("helvetica", "normal");
-          doc.text(`Organisation: ${organizationName}`, 14, 33); // Moved down from 29 to 33
+          if (organizationName) {
+            doc.setFontSize(9);
+            doc.setTextColor(100);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Organisation: ${organizationName}`, 14, 33);
+          }
         }
 
         // Ensure the table body doesn't start before the header area

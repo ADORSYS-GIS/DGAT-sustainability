@@ -1,21 +1,45 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { offlineDB } from "@/services/indexeddb";
-import type { OfflineSubmission, OfflinePendingReviewSubmission } from "@/types/offline";
+import type { OfflineSubmission, OfflinePendingReviewSubmission, OfflineRecommendation } from "@/types/offline";
+import { useAuth } from "./shared/useAuth";
 
 const REVIEW_ASSESSMENTS_QUERY_KEY = "review_assessments";
 
 // Hook to get all submissions for review from IndexedDB
 export function useReviewAssessments() {
+  const { user, loading: authLoading } = useAuth();
+  const currentOrganizationId = user?.organization || (
+    user?.organizations
+      ? user.organizations[Object.keys(user.organizations)[0]]?.id
+      : undefined
+  );
+
   return useQuery({
-    queryKey: [REVIEW_ASSESSMENTS_QUERY_KEY],
+    queryKey: [REVIEW_ASSESSMENTS_QUERY_KEY, currentOrganizationId],
     queryFn: async () => {
+      if (authLoading) {
+        return [];
+      }
+
       const submissions = await offlineDB.getAllSubmissions();
       const submissionsToReview = submissions.filter(
         (submission) => submission.review_status === 'under_review'
+      ).filter(
+        (submission) => {
+          if (!currentOrganizationId) {
+            return true;
+          }
+
+          const submissionOrganizationId =
+            submission.organization_id ||
+            (submission as OfflineSubmission & { org_id?: string }).org_id;
+          return submissionOrganizationId === currentOrganizationId;
+        }
       );
       return submissionsToReview.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
     },
+    enabled: !authLoading,
   });
 }
 
@@ -72,6 +96,36 @@ export function useSubmitReview() {
       };
       await offlineDB.savePendingReviewSubmission(pendingReview);
 
+      const parsedRecommendations = JSON.parse(recommendation) as {
+        id: string;
+        category: string;
+        recommendation: string;
+      }[];
+      const reportId = `pending_report_${submission_id}`;
+      const organizationId =
+        existingSubmission.organization_id ||
+        (existingSubmission as OfflineSubmission & { org_id?: string }).org_id ||
+        "unknown";
+      const organizationName = existingSubmission.org_name || "Unknown Organization";
+
+      const offlineRecommendations: OfflineRecommendation[] = parsedRecommendations.map((rec) => ({
+        recommendation_id: rec.id,
+        report_id: reportId,
+        submission_id,
+        assessment_id: existingSubmission.assessment_id,
+        assessment_name: existingSubmission.assessment_name || "Unknown Assessment",
+        category: rec.category,
+        recommendation: rec.recommendation,
+        status: "todo",
+        created_at: now,
+        organization_id: organizationId,
+        organization_name: organizationName,
+        updated_at: now,
+        sync_status: "pending",
+        local_changes: true,
+      }));
+      await offlineDB.saveRecommendations(offlineRecommendations);
+
       // 3. Add to sync queue for API synchronization
       // We import apiInterceptor dynamically to avoid circular dependencies if any
       const { apiInterceptor } = await import('@/services/apiInterceptor');
@@ -92,6 +146,9 @@ export function useSubmitReview() {
         // Or we could trigger a manual sync if exposed
         // apiInterceptor.manualSync();
       }
+
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'user_recommendations' } }));
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'recommendations' } }));
 
       return updatedSubmission;
     },

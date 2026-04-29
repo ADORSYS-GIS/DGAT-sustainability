@@ -1,5 +1,4 @@
 import { FeatureCard } from "@/components/shared/FeatureCard";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/shared/useAuth";
@@ -220,7 +219,10 @@ export const AdminDashboard: React.FC = () => {
                   <div className="text-2xl font-bold text-dgrv-blue mb-1">
                     {stat.loading ? (
                       <div className="flex items-center justify-center">
-                        <LoadingSpinner size="sm" />
+                        <div
+                          className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-dgrv-blue"
+                          aria-label={t("loading")}
+                        />
                       </div>
                     ) : (
                       stat.value

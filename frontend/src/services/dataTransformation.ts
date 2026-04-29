@@ -270,9 +270,10 @@ export class DataTransformationService {
   ): OfflineSubmission {
     const now = new Date().toISOString();
 
+    const apiAssessmentName = (adminSubmission as AdminSubmissionDetail & { assessment_name?: string }).assessment_name;
     const resolvedAssessmentName =
-      (adminSubmission as any).assessment_name && String((adminSubmission as any).assessment_name).trim().length > 0
-        ? String((adminSubmission as any).assessment_name)
+      apiAssessmentName && apiAssessmentName.trim().length > 0 && apiAssessmentName !== 'Unknown Assessment'
+        ? apiAssessmentName
         : assessmentName;
 
     // Convert AdminSubmissionDetail to regular Submission format for IndexedDB
