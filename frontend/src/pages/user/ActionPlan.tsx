@@ -259,7 +259,7 @@ export const ActionPlan: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !data?.report) {
     return <LoadingSpinner size="hero" fullPage text={t("loading")} />;
   }
 

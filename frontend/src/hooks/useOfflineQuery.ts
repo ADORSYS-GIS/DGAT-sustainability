@@ -17,6 +17,7 @@ interface OfflineQueryOptions<T> {
   cacheTime?: number;
   refetchOnWindowFocus?: boolean;
   refetchOnReconnect?: boolean;
+  refetchOnMount?: boolean | "always";
 }
 
 interface OfflineMutationOptions<TData, TVariables> {
@@ -104,6 +105,7 @@ export function useOfflineQuery<T>(options: OfflineQueryOptions<T>) {
     gcTime: options.cacheTime ?? 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
     refetchOnReconnect: options.refetchOnReconnect ?? true,
+    refetchOnMount: options.refetchOnMount,
     retry: (failureCount, error) => {
       // Don't retry if offline
       if (!isOnline) return false;

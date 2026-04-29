@@ -28,6 +28,9 @@ export function useOfflineQuestions() {
       // Always return data from IndexedDB as the single source of truth
       return await offlineDB.getAllQuestions();
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes (allow new questions to appear reasonably quickly)
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours
+    refetchOnWindowFocus: false,
   });
 }
 

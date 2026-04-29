@@ -20,6 +20,9 @@ export const useOfflineCategoryCatalogs = () => {
       );
       return result.category_catalogs as OfflineCategoryCatalog[];
     },
+    staleTime: 60 * 60 * 1000, // 1 hour (reference data)
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours
+    refetchOnWindowFocus: false,
   });
 };
 

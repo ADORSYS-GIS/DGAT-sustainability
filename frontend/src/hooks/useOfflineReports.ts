@@ -342,6 +342,7 @@ export function useOfflineAdminReports() {
 export function useOfflineReport(submissionId?: string) {
   const [data, setData] = useState<{ report: DetailedReport | null }>({ report: null });
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -351,8 +352,30 @@ export function useOfflineReport(submissionId?: string) {
     }
 
     try {
-      setIsLoading(true);
       setError(null);
+
+      // Fast path: if we already have a report, avoid blocking the UI with a full loading state.
+      const hasExistingReport = !!data.report;
+      if (hasExistingReport) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+
+      // Also try to hydrate from IndexedDB immediately (useful on first mount).
+      if (!hasExistingReport) {
+        try {
+          const allReports = await offlineDB.getAllReports();
+          const localReport = allReports.find(r => r.submission_id === submissionId);
+          if (localReport) {
+            setData({ report: localReport as unknown as DetailedReport });
+            setIsLoading(false);
+            setIsRefreshing(true);
+          }
+        } catch {
+          // ignore
+        }
+      }
 
       const result = await apiInterceptor.interceptGet(
         async () => {
@@ -432,8 +455,9 @@ export function useOfflineReport(submissionId?: string) {
       setError(err instanceof Error ? err : new Error('Failed to fetch report'));
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
-  }, [submissionId]);
+  }, [submissionId, data.report]);
 
   useEffect(() => {
     fetchData();

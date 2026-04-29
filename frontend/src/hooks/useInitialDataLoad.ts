@@ -5,6 +5,11 @@ import { InitialDataLoader, type UserContext } from "@/services/initialDataLoade
 import { offlineDB } from "@/services/indexeddb";
 import type { DataLoadingProgress } from "@/types/offline";
 
+let globalLoadPromise: Promise<void> | null = null;
+let globalLastCheckAt = 0;
+let globalHasLoadedData = false;
+const globalCheckCooldownMs = 60_000;
+
 export function useInitialDataLoad() {
   const { isAuthenticated, user, roles } = useAuth();
   const { isOnline } = useSyncStatus();
@@ -12,6 +17,7 @@ export function useInitialDataLoad() {
   const [progress, setProgress] = useState<DataLoadingProgress | undefined>();
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const wasOnlineRef = useRef(isOnline);
+  const userKeyRef = useRef<string>("");
 
   // Create user context from auth data
   const createUserContext = useCallback((): UserContext | null => {
@@ -62,10 +68,36 @@ export function useInitialDataLoad() {
       return;
     }
 
+    // If another instance already completed loading, reflect that immediately.
+    if (globalHasLoadedData) {
+      setHasLoadedData(true);
+      return;
+    }
+
     const userContext = createUserContext();
     if (!userContext) {
       return;
     }
+
+    // If IndexedDB already indicates a completed load, don't trigger the heavy loader.
+    try {
+      const existingProgress = await offlineDB.getLoadingProgress();
+      if (existingProgress?.status === 'completed') {
+        setProgress(existingProgress);
+        setHasLoadedData(true);
+        globalHasLoadedData = true;
+        return;
+      }
+    } catch {
+      // Ignore and proceed with checks
+    }
+
+    // Avoid repeatedly doing the expensive "needsLoading" check on every navigation.
+    if (Date.now() - globalLastCheckAt < globalCheckCooldownMs) {
+      // If we recently checked and didn't load, just exit silently.
+      return;
+    }
+    globalLastCheckAt = Date.now();
 
     // Check if we need to load data
     const needsLoading = await checkDataLoadingRequired(userContext);
@@ -74,6 +106,7 @@ export function useInitialDataLoad() {
     // Always load if needed, regardless of hasLoadedData state
     if (!needsLoading) {
       setHasLoadedData(true);
+      globalHasLoadedData = true;
       return;
     }
 
@@ -82,13 +115,31 @@ export function useInitialDataLoad() {
       return;
     }
 
+    // Singleton: prevent multiple concurrent full loads across pages/components.
+    if (globalLoadPromise) {
+      setIsLoading(true);
+      try {
+        await globalLoadPromise;
+      } finally {
+        setIsLoading(false);
+      }
+      if (globalHasLoadedData) {
+        setHasLoadedData(true);
+      }
+      return;
+    }
+
     // Set loading state to prevent concurrent loads
     setIsLoading(true);
     const loader = new InitialDataLoader();
 
-    try {
+    globalLoadPromise = (async () => {
       // Start loading
       await loader.loadAllData(userContext);
+    })();
+
+    try {
+      await globalLoadPromise;
 
       // Get final progress
       const finalProgress = await loader.getProgress();
@@ -96,10 +147,10 @@ export function useInitialDataLoad() {
 
       if (finalProgress?.status === 'completed') {
         setHasLoadedData(true);
+        globalHasLoadedData = true;
       } else if (finalProgress?.status === 'failed') {
         throw new Error(finalProgress.error_message || 'Data loading failed');
       }
-
     } catch (error) {
       console.error('Initial data loading failed:', error);
 
@@ -107,6 +158,7 @@ export function useInitialDataLoad() {
       const failedProgress = await loader.getProgress();
       setProgress(failedProgress);
     } finally {
+      globalLoadPromise = null;
       setIsLoading(false);
     }
   }, [isAuthenticated, user, createUserContext, checkDataLoadingRequired, isOnline]);
@@ -126,6 +178,23 @@ export function useInitialDataLoad() {
   // Effect to load data when user authenticates
   useEffect(() => {
     if (isLoading || hasLoadedData) return;
+
+    // Fast path: if a previous session completed the load, mark loaded immediately.
+    // This avoids the "loading..." UI on pages like action plan selection.
+    const currentUserKey = user?.sub || '';
+    if (userKeyRef.current !== currentUserKey) {
+      userKeyRef.current = currentUserKey;
+      globalHasLoadedData = false;
+      globalLastCheckAt = 0;
+    }
+
+    offlineDB.getLoadingProgress().then((p) => {
+      if (p?.status === 'completed') {
+        setProgress(p);
+        setHasLoadedData(true);
+        globalHasLoadedData = true;
+      }
+    }).catch(() => undefined);
 
     const requestIdleCallback = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: { timeout?: number }) => void);
     const schedule = (fn: () => void) => {

@@ -145,7 +145,18 @@ export function useOfflineDraftSubmissions() {
             );
           }
         );
-        await offlineDB.saveDraftSubmissions(offlineDrafts as unknown as OfflineDraftSubmission[]);
+
+        // Remove locally cached synced drafts that no longer exist on the server
+        const localDrafts = await offlineDB.getAllDraftSubmissions();
+        const onlineDraftIds = new Set(offlineDrafts.map(d => d.submission_id));
+        const draftsToDelete = localDrafts.filter(d =>
+          d.sync_status === 'synced' && !onlineDraftIds.has(d.submission_id)
+        );
+
+        await Promise.all([
+          ...draftsToDelete.map(d => offlineDB.deleteDraftSubmission(d.submission_id)),
+          offlineDB.saveDraftSubmissions(offlineDrafts as unknown as OfflineDraftSubmission[])
+        ]);
       }
 
       const [localDrafts, localAssessments] = await Promise.all([
@@ -239,11 +250,11 @@ export function useOfflineDraftSubmissions() {
       }
 
       const submissions = dedupedDrafts.map((submission) => ({
-          ...submission,
-          assessment_name: isUsableAssessmentName(submission.assessment_name)
-            ? submission.assessment_name
-            : assessmentsMap.get(submission.assessment_id) || submission.assessment_name || 'Unknown Assessment'
-        }));
+        ...submission,
+        assessment_name: isUsableAssessmentName(submission.assessment_name)
+          ? submission.assessment_name
+          : assessmentsMap.get(submission.assessment_id) || submission.assessment_name || 'Unknown Assessment'
+      }));
 
       setData({ draft_submissions: submissions });
     } catch (err) {
