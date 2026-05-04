@@ -89,7 +89,6 @@ export const drawAssessmentsTable = (
 
   // Add the section's first page and introduction
   doc.addPage();
-  addHeader(doc);
   const sectionStartPage = doc.getNumberOfPages();
   doc.setFontSize(18);
   doc.setTextColor(30, 58, 138); // dgrvBlue

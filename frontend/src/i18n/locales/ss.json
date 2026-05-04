@@ -114,8 +114,7 @@
     "guideOrgsUsers": "Sebentisa tigatja tekuPhatsa Tinhlangano kanye nekuPhatsa Basebenti kute ulawule kufinyelela kanye nebumembu.",
     "guideReview": "Buyeketa kanye nekugunyata tihlolo esigatjeni sekubuyeketa Tihlolo.",
     "guideCategoriesQuestions": "Lungiselela tigaba nemibuto kute ulungiselele inchubo yekuhlola ngetidzingo takho.",
-    "guideDocs": "Ngekufumana imininingwane leyetayelekile, vakashela i-Admin Documentation.",
-    "guideSupport": "Uma udzinga lusito, tsintsana ne support@dgrv.org.",
+    "guideSupport": "Uma udzinga lusito, tsintsana ne eswatini@dgrv.coop.",
     "loadingSubmissions": "Iyalayisha lokutfunyelwe...",
     "viewCompleteGuide": "Buka Umhlahlandzela Lophelele"
   },
@@ -204,8 +203,7 @@
       "orgsUsers": "Sebentisa tigatja tekuPhatsa Tinhlangano kanye nekuPhatsa Basebenti kute ulawule kufinyelela kanye nebumembu.",
       "review": "Buyeketa kanye nekugunyata tihlolo esigatjeni sekubuyeketa Tihlolo.",
       "categoriesQuestions": "Lungiselela tigaba nemibuto kute ulungiselele inchubo yekuhlola ngetidzingo takho.",
-      "docs": "Ngekufumana imininingwane leyetayelekile, vakashela i-Admin Documentation.",
-      "support": "Uma udzinga lusito, tsintsana ne support@dgrv.org."
+      "support": "Uma udzinga lusito, tsintsana ne eswatini@dgrv.coop."
     }
   },
   "questions": {
@@ -805,9 +803,9 @@
     "needHelp": {
       "title": "Udzinga Lusito?",
       "description": "Uma udzinga lusito noma unemibuto mayelana nekusebentisa ipulatifomu:",
-      "email": "📧 I-imeyili: support@dgrv.org",
-      "phone": "📞 Lucingo: +27 (0) 11 000 0000",
-      "website": "🌐 Iwebhusayithi: www.dgrv.org/support",
+      "email": "Email: eswatini@dgrv.coop",
+      "phone": "Phone: +268 7854 2660",
+      "website": "Web: www.dgrv.coop",
       "contactAdmin": "💬 Tsintsana nomphatsi wenhlangano yakho ngetinkinga letikhethekile mayelana nendzima"
     }
   },
@@ -929,10 +927,9 @@
     "contactInfo": {
       "title": "Lusito Lwemphatsi",
       "description": "Ngelusito lwetekhnikhali noma imibuto yekuphatsa ipulatifomu:",
-      "email": "📧 I-imeyili: admin@dgrv.org",
-      "phone": "📞 Lucingo: +27 (0) 11 000 0000",
-      "website": "🌐 Iwebhusayithi: www.dgrv.org/admin",
-      "documentation": "📚 Tidokhumenti: Tiyafumaneka kwi-portal yemphatsi"
+      "email": "Email: eswatini@dgrv.coop",
+      "phone": "Phone: +268 7854 2660",
+      "website": "Web: www.dgrv.coop"
     }
   },
   "reviewAssessments": {

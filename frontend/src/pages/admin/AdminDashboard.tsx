@@ -269,7 +269,6 @@ export const AdminDashboard: React.FC = () => {
                       <li>{t('adminDashboard.guideOrgsUsers')}</li>
                       <li>{t('adminDashboard.guideReview')}</li>
                       <li>{t('adminDashboard.guideCategoriesQuestions')}</li>
-                      <li>{t('adminDashboard.guideDocs')}</li>
                       <li>{t('adminDashboard.guideSupport')}</li>
                     </ul>
                     <div className="pt-2">

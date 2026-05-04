@@ -212,7 +212,6 @@ export const AdminGuide: React.FC = () => {
                 <p>{t('adminGuide.contactInfo.email')}</p>
                 <p>{t('adminGuide.contactInfo.phone')}</p>
                 <p>{t('adminGuide.contactInfo.website')}</p>
-                <p>{t('adminGuide.contactInfo.documentation')}</p>
               </div>
             </CardContent>
           </Card>

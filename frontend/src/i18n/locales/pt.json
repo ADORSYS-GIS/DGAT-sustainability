@@ -114,8 +114,7 @@
     "guideOrgsUsers": "Use as seções Gerenciar Organizações e Gerenciar Usuários para controlar acesso e membros.",
     "guideReview": "Revise e aprove avaliações na seção Revisar Avaliações.",
     "guideCategoriesQuestions": "Configure categorias e perguntas para personalizar o processo de avaliação conforme suas necessidades.",
-    "guideDocs": "Para documentação detalhada, visite a Documentação do Administrador.",
-    "guideSupport": "Se precisar de ajuda, entre em contato com support@dgrv.org.",
+    "guideSupport": "Se precisar de ajuda, entre em contato com eswatini@dgrv.coop.",
     "loadingSubmissions": "Carregando submissões...",
     "viewCompleteGuide": "Ver Guia Completo"
   },
@@ -204,8 +203,7 @@
       "orgsUsers": "Use as seções Gerenciar Organizações e Gerenciar Usuários para controlar acesso e membros.",
       "review": "Revise e aprove avaliações na seção Revisar Avaliações.",
       "categoriesQuestions": "Configure categorias e perguntas para personalizar o processo de avaliação conforme suas necessidades.",
-      "docs": "Para documentação detalhada, visite a Documentação do Administrador.",
-      "support": "Se precisar de ajuda, entre em contato com support@dgrv.org."
+      "support": "Se precisar de ajuda, entre em contato com eswatini@dgrv.coop."
     }
   },
   "questions": {
@@ -804,9 +802,9 @@
     "needHelp": {
       "title": "Precisa de Ajuda?",
       "description": "Se precisar de assistência ou tiver dúvidas sobre o uso da plataforma:",
-      "email": "📧 E-mail: support@dgrv.org",
-      "phone": "📞 Telefone: +27 (0) 11 000 0000",
-      "website": "🌐 Website: www.dgrv.org/support",
+      "email": "Email: eswatini@dgrv.coop",
+      "phone": "Phone: +268 7854 2660",
+      "website": "Web: www.dgrv.coop",
       "contactAdmin": "💬 Contate seu administrador da organização para perguntas específicas sobre papéis"
     }
   },
@@ -928,10 +926,9 @@
     "contactInfo": {
       "title": "Suporte Administrativo",
       "description": "Para suporte técnico ou perguntas sobre administração da plataforma:",
-      "email": "📧 E-mail: admin@dgrv.org",
-      "phone": "📞 Telefone: +27 (0) 11 000 0000",
-      "website": "🌐 Website: www.dgrv.org/admin",
-      "documentation": "📚 Documentação: Disponível no portal de administração"
+      "email": "Email: eswatini@dgrv.coop",
+      "phone": "Phone: +268 7854 2660",
+      "website": "Web: www.dgrv.coop"
     }
   },
   "reviewAssessments": {

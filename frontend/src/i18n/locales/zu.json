@@ -114,8 +114,7 @@
     "guideOrgsUsers": "Sebenzisa izigaba zokuphatha izinhlangano kanye nabasebenzisi ukuze ulawule ukufinyelela kanye nobulungu.",
     "guideReview": "Buyekeza futhi uvume ukuhlola esigabeni sokubuyekeza ukuhlola.",
     "guideCategoriesQuestions": "Lungisa izigaba nemibuzo ukuze uhlele inqubo yokuhlola ngokwezidingo zakho.",
-    "guideDocs": "Ukuze uthole imibhalo enemininingwane, vakashela Imibhalo Yomlawuli.",
-    "guideSupport": "Uma udinga usizo, xhumana ne-support@dgrv.org.",
+    "guideSupport": "Uma udinga usizo, xhumana ne-eswatini@dgrv.coop.",
     "loadingSubmissions": "Iyalayisha okuthunyelwe...",
     "viewCompleteGuide": "Buka Umhlahlandlela Ophelele"
   },
@@ -205,8 +204,7 @@
     "orgsUsers": "Sebenzisa izigaba zokuphatha izinhlangano kanye nabasebenzisi ukuze ulawule ukufinyelela kanye nobulungu.",
     "review": "Buyekeza futhi uvume ukuhlola esigabeni sokubuyekeza ukuhlola.",
     "categoriesQuestions": "Lungisa izigaba nemibuzo ukuze uhlele inqubo yokuhlola ngokwezidingo zakho.",
-    "docs": "Ukuze uthole imibhalo enemininingwane, vakashela Imibhalo Yomlawuli.",
-    "support": "Uma udinga usizo, xhumana ne-support@dgrv.org."
+    "support": "Uma udinga usizo, xhumana ne-eswatini@dgrv.coop."
   },
   "questions": {
     "manage": {
@@ -804,9 +802,9 @@
     "needHelp": {
       "title": "Udinga Usizo?",
       "description": "Uma udinga usizo noma unemibuzo mayelana nokusebenzisa ipulatifomu:",
-      "email": "📧 I-imeyili: support@dgrv.org",
-      "phone": "📞 Ucingo: +27 (0) 11 000 0000",
-      "website": "🌐 Iwebhusayithi: www.dgrv.org/support",
+      "email": "Email: eswatini@dgrv.coop",
+      "phone": "Phone: +268 7854 2660",
+      "website": "Web: www.dgrv.coop",
       "contactAdmin": "💬 Xhumana nomlawuli wenhlangano yakho mayelana nemibuzo ethize yendima"
     }
   },
@@ -928,10 +926,9 @@
     "contactInfo": {
       "title": "Usizo Lokuphatha",
       "description": "Ngokwesekelo lobuchwepheshe noma imibuzo yokuphatha ipulatifomu:",
-      "email": "📧 I-imeyili: admin@dgrv.org",
-      "phone": "📞 Ucingo: +27 (0) 11 000 0000",
-      "website": "🌐 Iwebhusayithi: www.dgrv.org/admin",
-      "documentation": "📚 Imibhalo: Itholakala kwingosi yomlawuli"
+      "email": "Email: eswatini@dgrv.coop",
+      "phone": "Phone: +268 7854 2660",
+      "website": "Web: www.dgrv.coop"
     }
   },
   "reviewAssessments": {
