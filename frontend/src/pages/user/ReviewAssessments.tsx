@@ -42,7 +42,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import type { OfflinePendingReviewSubmission, OfflineSubmission } from '@/types/offline';
+import type { OfflineCategoryCatalog, OfflinePendingReviewSubmission, OfflineSubmission } from '@/types/offline';
 import FileDisplay from '@/components/shared/FileDisplay';
 
 // Type for file attachments
@@ -56,17 +56,14 @@ interface FileAttachment {
 interface CategorizedResponse extends Omit<Submission_content_responses, 'question'> {
   question_text: string;
   display_order: number;
-  question?: {
-    en?: string;
-  };
+  question?: Record<string, string> | string;
 }
 
 interface CustomSubmissionResponse extends Omit<Submission_content_responses, 'question'> {
   question_revision_id?: string;
   question_category?: string;
-  question?: {
-    en?: string;
-  };
+  question_text?: string;
+  question?: Record<string, string> | string;
 }
 
 interface CategoryRecommendation {
@@ -97,35 +94,72 @@ const ReviewAssessments: React.FC = () => {
   const { isOnline } = useOfflineSyncStatus();
   const { organizations: organizationsData, isLoading: organizationsLoading } = useOfflineOrganizations();
   const { mutateAsync: submitReview } = useSubmitReview();
-  // Filter submissions for review
-  const categoryIdMap = useMemo(() => {
+  // Maps for translation-aware display
+  const categoryCatalogMap = useMemo(() => {
     if (!categoriesData) return new Map();
-    const map = new Map<string, string>();
+    const map = new Map<string, OfflineCategoryCatalog>();
     categoriesData.forEach(c => {
-      map.set(c.category_catalog_id, c.name);
+      map.set(c.category_catalog_id, c);
     });
     return map;
   }, [categoriesData]);
 
+  const categoryNameToIdMap = useMemo(() => {
+    if (!categoriesData) return new Map();
+    const map = new Map<string, string>();
+    categoriesData.forEach(c => {
+      map.set(c.name.toLowerCase(), c.category_catalog_id);
+      const translations = (c as any).name_translations as Record<string, string> | undefined;
+      if (translations) {
+        Object.values(translations).forEach(name => {
+          if (name) map.set(name.toLowerCase(), c.category_catalog_id);
+        });
+      }
+    });
+    return map;
+  }, [categoriesData]);
+
+  const getCategoryDisplayName = (rawNameOrId: string, language: string) => {
+    if (!rawNameOrId || rawNameOrId === 'Unknown Category') return 'Unknown Category';
+    const catalog = categoryCatalogMap.get(rawNameOrId);
+    if (catalog) {
+      const translations = (catalog as any).name_translations as Record<string, string> | undefined;
+      return translations?.[language] || catalog.name;
+    }
+    const id = categoryNameToIdMap.get(rawNameOrId.toLowerCase());
+    if (id) {
+      const byId = categoryCatalogMap.get(id);
+      if (byId) {
+        const translations = (byId as any).name_translations as Record<string, string> | undefined;
+        return translations?.[language] || byId.name;
+      }
+    }
+    return rawNameOrId;
+  };
+
   const [questionsMap, questionsTextMap] = useMemo(() => {
     if (!questionsData) return [new Map(), new Map()];
-    const map = new Map<string, { text: string; category: string; display_order: number }>();
+    const map = new Map<string, { text: Record<string, string>; categoryId: string; category: string; display_order: number }>();
     const textMap = new Map<string, number>();
     questionsData.forEach(q => {
       if (q.latest_revision) {
-        const categoryName = categoryIdMap.get(q.category_id) || 'Unknown Category';
-        const qText = (q.latest_revision.text as { en: string })?.en || '';
+        const categoryCatalog = categoryCatalogMap.get(q.category_id);
+        const categoryName = categoryCatalog?.name || 'Unknown Category';
+        const qText = q.latest_revision.text;
         const displayOrder = q.display_order || 0;
+        const textRecord: Record<string, string> = typeof qText === 'string' ? { en: qText } : (qText as Record<string, string>) || {};
         map.set(q.latest_revision.question_revision_id, {
-          text: qText,
+          text: textRecord,
+          categoryId: q.category_id,
           category: categoryName,
           display_order: displayOrder,
         });
-        textMap.set(qText, displayOrder);
+        const primaryText = textRecord.en || Object.values(textRecord).find(v => typeof v === 'string') as string || '';
+        textMap.set(primaryText, displayOrder);
       }
     });
     return [map, textMap];
-  }, [questionsData, categoryIdMap]);
+  }, [questionsData, categoryCatalogMap]);
 
   const organizationsMap = useMemo(() => {
     if (!organizationsData) return new Map();
@@ -140,6 +174,7 @@ const ReviewAssessments: React.FC = () => {
 
   // Get responses from the selected submission (they're already included in the submission data)
   const submissionResponses = selectedSubmission?.content?.responses || [];
+  const submissionLanguage = (selectedSubmission?.content?.assessment?.language as string) || 'en';
 
 
   const addCategoryRecommendation = (category: string, recommendation: string) => {
@@ -373,38 +408,50 @@ const ReviewAssessments: React.FC = () => {
                         const questionDetails = customResponse.question_revision_id
                           ? questionsMap.get(customResponse.question_revision_id)
                           : undefined;
-                        const category = customResponse.question_category || questionDetails?.category || 'Unknown Category';
+                        const rawCategory = customResponse.question_category || questionDetails?.category || 'Unknown Category';
+                        const category = getCategoryDisplayName(rawCategory, submissionLanguage);
                         if (!acc[category]) {
                           acc[category] = [];
                         }
-                        const questionTextStr = typeof customResponse.question === 'object'
-                          ? (customResponse.question as any).en
+                        const questionTextStr = typeof customResponse.question === 'object' && customResponse.question !== null
+                          ? (customResponse.question as Record<string, string>)[submissionLanguage]
+                            || (customResponse.question as Record<string, string>).en
+                            || Object.values(customResponse.question).find(v => typeof v === 'string') as string
                           : customResponse.question;
 
                         // Improved question text retrieval with better fallbacks
                         const questionText = (() => {
-                          // First try: Get from questionDetails (most reliable)
-                          if (questionDetails?.text) {
-                            return typeof questionDetails.text === 'object'
-                              ? (questionDetails.text as any).en || (questionDetails.text as any).text || questionDetails.text
-                              : questionDetails.text;
+                          // First try: stored question_text on the response itself (from offline response)
+                          if (typeof customResponse.question_text === 'string' && customResponse.question_text.trim()) {
+                            return customResponse.question_text;
                           }
 
-                          // Second try: Use the question text from response (enhanced by backend)
+                          // Second try: Get from questionDetails using submission language
+                          if (questionDetails?.text) {
+                            return questionDetails.text[submissionLanguage]
+                              || questionDetails.text.en
+                              || Object.values(questionDetails.text).find(v => typeof v === 'string') as string
+                              || '';
+                          }
+
+                          // Third try: Use the question text from response (enhanced by backend)
                           if (questionTextStr && questionTextStr !== 'Question text not found' && questionTextStr !== 'Question not found') {
                             return questionTextStr;
                           }
 
-                          // Third try: Look up by question text in questions text map
+                          // Fourth try: Look up by question text in questions text map
                           if (questionTextStr && questionsTextMap.has(questionTextStr)) {
                             return questionTextStr;
                           }
 
-                          // Fourth try: If we have a revision ID, try to find it in questionsMap
+                          // Fifth try: If we have a revision ID, try to find it in questionsMap
                           if (customResponse.question_revision_id && questionsMap.has(customResponse.question_revision_id)) {
                             const details = questionsMap.get(customResponse.question_revision_id);
                             if (details?.text) {
-                              return details.text;
+                              return details.text[submissionLanguage]
+                                || details.text.en
+                                || Object.values(details.text).find(v => typeof v === 'string') as string
+                                || '';
                             }
                           }
 

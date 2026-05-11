@@ -54,7 +54,6 @@ export const ManageCategories: React.FC = () => {
       {} as Record<string, string>,
     ),
   });
-  const [enabledTranslationLanguages, setEnabledTranslationLanguages] = useState<string[]>([]);
   // State for add/edit dialog weight error
   const [showDialogWeightError, setShowDialogWeightError] = useState(false);
 
@@ -170,15 +169,6 @@ export const ManageCategories: React.FC = () => {
     const nameTranslations = (category as any).name_translations as Record<string, string> | undefined;
     const descriptionTranslations = (category as any).description_translations as Record<string, string> | undefined;
 
-    const enabled = nonEnglishLanguages
-      .map((l) => l.code)
-      .filter((code) => {
-        const name = nameTranslations?.[code];
-        const desc = descriptionTranslations?.[code];
-        return (typeof name === "string" && name.trim().length > 0) || (typeof desc === "string" && desc.trim().length > 0);
-      });
-    setEnabledTranslationLanguages(enabled);
-
     setFormData({
       name: category.name,
       description: category.description ?? "",
@@ -278,7 +268,6 @@ export const ManageCategories: React.FC = () => {
                     className="bg-dgrv-blue hover:bg-blue-700"
                     onClick={() => {
                       setEditingCategory(null);
-                      setEnabledTranslationLanguages([]);
                       setFormData({
                         name: "",
                         description: "",
@@ -338,102 +327,52 @@ export const ManageCategories: React.FC = () => {
                       <Label className="text-sm font-medium text-gray-700">
                         {t('manageQuestions.additionalLanguagesOptional', { defaultValue: 'Additional Languages (Optional)' })}
                       </Label>
-
-                      <div className="flex flex-col gap-2">
-                        <Label className="text-xs font-medium text-gray-600">
-                          {t('manageCategories.addTranslation', { defaultValue: 'Add translation' })}
-                        </Label>
-                        <select
-                          className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
-                          value={""}
-                          onChange={(e) => {
-                            const code = e.target.value;
-                            if (!code) return;
-                            setEnabledTranslationLanguages((prev) => (prev.includes(code) ? prev : [...prev, code]));
-                          }}
-                        >
-                          <option value="">{t('manageCategories.selectLanguage', { defaultValue: 'Select language' })}</option>
-                          {nonEnglishLanguages
-                            .filter((l) => !enabledTranslationLanguages.includes(l.code))
-                            .map((lang) => (
-                              <option key={lang.code} value={lang.code}>
-                                {lang.name}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-
-                      {enabledTranslationLanguages.length > 0 ? (
-                        <Accordion type="multiple" className="w-full">
-                          {enabledTranslationLanguages
-                            .map((code) => nonEnglishLanguages.find((l) => l.code === code))
-                            .filter(Boolean)
-                            .map((lang) => (
-                              <AccordionItem key={lang!.code} value={lang!.code}>
-                                <AccordionTrigger className="py-2 text-sm">
-                                  <span className="flex items-center gap-2">
-                                    <span>{lang!.flag}</span>
-                                    <span>{lang!.name}</span>
-                                  </span>
-                                </AccordionTrigger>
-                                <AccordionContent className="pt-2">
-                                  <div className="space-y-3">
-                                    <div className="space-y-2">
-                                      <Label className="text-xs font-medium text-gray-600">
-                                        {t('manageCategories.categoryName')}
-                                      </Label>
-                                      <Input
-                                        value={formData.name_translations[lang!.code] || ""}
-                                        onChange={(e) =>
-                                          setFormData((prev) => ({
-                                            ...prev,
-                                            name_translations: { ...prev.name_translations, [lang!.code]: e.target.value },
-                                          }))
-                                        }
-                                        placeholder={t('manageCategories.categoryNamePlaceholder')}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <Label className="text-xs font-medium text-gray-600">
-                                        {t('manageCategories.categoryDescription')}
-                                      </Label>
-                                      <Input
-                                        value={formData.description_translations[lang!.code] || ""}
-                                        onChange={(e) =>
-                                          setFormData((prev) => ({
-                                            ...prev,
-                                            description_translations: { ...prev.description_translations, [lang!.code]: e.target.value },
-                                          }))
-                                        }
-                                        placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
-                                      />
-                                    </div>
-
-                                    <div>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          const code = lang!.code;
-                                          setEnabledTranslationLanguages((prev) => prev.filter((c) => c !== code));
-                                          setFormData((prev) => ({
-                                            ...prev,
-                                            name_translations: { ...prev.name_translations, [code]: "" },
-                                            description_translations: { ...prev.description_translations, [code]: "" },
-                                          }));
-                                        }}
-                                      >
-                                        {t('manageCategories.removeTranslation', { defaultValue: 'Remove translation' })}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            ))}
-                        </Accordion>
-                      ) : null}
+                      <Accordion type="multiple" className="w-full">
+                        {nonEnglishLanguages.map((lang) => (
+                          <AccordionItem key={lang.code} value={lang.code}>
+                            <AccordionTrigger className="py-2 text-sm">
+                              <span className="flex items-center gap-2">
+                                <span>{lang.flag}</span>
+                                <span>{lang.name}</span>
+                              </span>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-2">
+                              <div className="space-y-3">
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-gray-600">
+                                    {t('manageCategories.categoryName')}
+                                  </Label>
+                                  <Input
+                                    value={formData.name_translations[lang.code] || ""}
+                                    onChange={(e) =>
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        name_translations: { ...prev.name_translations, [lang.code]: e.target.value },
+                                      }))
+                                    }
+                                    placeholder={t('manageCategories.categoryNamePlaceholder')}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium text-gray-600">
+                                    {t('manageCategories.categoryDescription')}
+                                  </Label>
+                                  <Input
+                                    value={formData.description_translations[lang.code] || ""}
+                                    onChange={(e) =>
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        description_translations: { ...prev.description_translations, [lang.code]: e.target.value },
+                                      }))
+                                    }
+                                    placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
+                                  />
+                                </div>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
                     </div>
                     <Button
                       type="submit"

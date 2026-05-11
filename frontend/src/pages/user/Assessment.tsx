@@ -714,10 +714,27 @@ export const Assessment: React.FC = () => {
       const answer = updated[question_revision_id];
       if (answer) {
         const responseToSave = createResponseToSave(question_revision_id, answer);
+        // Look up question text and category so review can display them correctly
+        const questionInfo = allAssessmentQuestions.find(q => getRevisionKey(q.revision) === question_revision_id);
+        const qText = questionInfo?.revision?.text;
+        const categoryId = questionInfo?.category_id || '';
+        const categoryCatalog = categoriesData?.find(c => c.category_catalog_id === categoryId);
+        const categoryName = categoryCatalog?.name || '';
+        let questionText = '';
+        if (qText) {
+          if (typeof qText === 'string') {
+            questionText = qText;
+          } else if (typeof qText === 'object' && qText !== null) {
+            questionText = (qText as Record<string, string>)[currentLanguage]
+              || (qText as Record<string, string>).en
+              || Object.values(qText).find(v => typeof v === 'string') as string
+              || '';
+          }
+        }
         const offlineResponse = DataTransformationService.transformResponse(
           responseToSave,
-          '', // question text - will be enriched by interceptor if needed
-          '', // category
+          questionText,
+          categoryName,
           assessmentId
         );
         // Save the generated response_id back into our state so we don't recreate it

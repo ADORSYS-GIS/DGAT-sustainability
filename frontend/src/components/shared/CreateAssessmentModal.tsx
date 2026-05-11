@@ -31,7 +31,13 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
   isLoading = false,
   isOrgAdmin = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
+
+  const getCategoryDisplayName = (category: OfflineCategoryCatalog) => {
+    const translations = (category as any).name_translations as Record<string, string> | undefined;
+    return translations?.[currentLanguage] || category.name;
+  };
   const [assessmentName, setAssessmentName] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const hasShownNoCategoriesToastRef = React.useRef(false);
@@ -169,7 +175,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
                           className="h-4 w-4 text-dgrv-blue focus:ring-dgrv-blue border-gray-300 rounded"
                         />
                         <label htmlFor={`category-${category.category_catalog_id}`} className="text-sm text-gray-700">
-                          {category.name}
+                          {getCategoryDisplayName(category)}
                         </label>
                       </div>
                     ))
