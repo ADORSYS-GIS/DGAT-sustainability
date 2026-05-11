@@ -14,6 +14,7 @@ import {
   useOfflineSyncStatus
 } from "@/hooks/useOfflineSync";
 import { useOfflineCategoryCatalogs, useOfflineCategoryCatalogsMutation } from "@/hooks/useCategoryCatalogs";
+import { OfflineCategoryCatalog } from "@/types/offline";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -21,7 +22,15 @@ import { toast } from "sonner";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
 
-import { OfflineCategoryCatalog } from "@/types/offline";
+const LANGUAGES = [
+  { code: "en", name: "English", flag: "🇺🇸" },
+  { code: "ss", name: "siSwati", flag: "🇸🇿" },
+  { code: "pt", name: "Português", flag: "🇵🇹" },
+  { code: "zu", name: "isiZulu", flag: "🇿🇦" },
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "ar", name: "العربية", flag: "🇸🇦" },
+];
 
 interface ApiError {
   message?: string;
@@ -29,12 +38,20 @@ interface ApiError {
 }
 
 export const ManageCategories: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<OfflineCategoryCatalog | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    name_translations: LANGUAGES.reduce(
+      (acc, lang) => ({ ...acc, [lang.code]: "" }),
+      {} as Record<string, string>,
+    ),
+    description_translations: LANGUAGES.reduce(
+      (acc, lang) => ({ ...acc, [lang.code]: "" }),
+      {} as Record<string, string>,
+    ),
   });
   // State for add/edit dialog weight error
   const [showDialogWeightError, setShowDialogWeightError] = useState(false);
@@ -73,8 +90,34 @@ export const ManageCategories: React.FC = () => {
 
   // Calculate total weight
 
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
+  const getCategoryDisplayName = (category: OfflineCategoryCatalog) => {
+    const translations = (category as any).name_translations as Record<string, string> | undefined;
+    const translated = translations && typeof translations[currentLanguage] === "string" ? translations[currentLanguage] : undefined;
+    return translated || category.name;
+  };
+
+  const getCategoryDisplayDescription = (category: OfflineCategoryCatalog) => {
+    const translations = (category as any).description_translations as Record<string, string> | undefined;
+    const translated = translations && typeof translations[currentLanguage] === "string" ? translations[currentLanguage] : undefined;
+    return translated || category.description;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const name_translations: Record<string, string> = {};
+    for (const code of Object.keys(formData.name_translations)) {
+      if (formData.name_translations[code] && formData.name_translations[code].trim()) {
+        name_translations[code] = formData.name_translations[code].trim();
+      }
+    }
+    const description_translations: Record<string, string> = {};
+    for (const code of Object.keys(formData.description_translations)) {
+      if (formData.description_translations[code] && formData.description_translations[code].trim()) {
+        description_translations[code] = formData.description_translations[code].trim();
+      }
+    }
 
     try {
       if (editingCategory) {
@@ -82,12 +125,16 @@ export const ManageCategories: React.FC = () => {
           ...editingCategory,
           name: formData.name,
           description: formData.description,
+          name_translations,
+          description_translations,
         });
         toast.success(t('manageCategories.updateSuccess', { defaultValue: 'Category updated successfully' }));
       } else {
         await createOrUpdateCategory({
           name: formData.name,
           description: formData.description,
+          name_translations: Object.keys(name_translations).length > 0 ? name_translations : undefined,
+          description_translations: Object.keys(description_translations).length > 0 ? description_translations : undefined,
           template_id: SUSTAINABILITY_TEMPLATE_ID,
           is_active: true,
         } as OfflineCategoryCatalog);
@@ -95,7 +142,18 @@ export const ManageCategories: React.FC = () => {
       }
       setIsDialogOpen(false);
       setEditingCategory(null);
-      setFormData({ name: "", description: "" });
+      setFormData({
+        name: "",
+        description: "",
+        name_translations: LANGUAGES.reduce(
+          (acc, lang) => ({ ...acc, [lang.code]: "" }),
+          {} as Record<string, string>,
+        ),
+        description_translations: LANGUAGES.reduce(
+          (acc, lang) => ({ ...acc, [lang.code]: "" }),
+          {} as Record<string, string>,
+        ),
+      });
     } catch (error) {
       const err = error as ApiError;
       const errorMessage = err.detail || err.message || t('manageCategories.submitError', { defaultValue: 'Failed to save category' });
@@ -105,9 +163,25 @@ export const ManageCategories: React.FC = () => {
 
   const handleEdit = (category: OfflineCategoryCatalog) => {
     setEditingCategory(category);
+    const nameTranslations = (category as any).name_translations as Record<string, string> | undefined;
+    const descriptionTranslations = (category as any).description_translations as Record<string, string> | undefined;
     setFormData({
       name: category.name,
       description: category.description ?? "",
+      name_translations: LANGUAGES.reduce(
+        (acc, lang) => {
+          acc[lang.code] = nameTranslations?.[lang.code] || "";
+          return acc;
+        },
+        {} as Record<string, string>,
+      ),
+      description_translations: LANGUAGES.reduce(
+        (acc, lang) => {
+          acc[lang.code] = descriptionTranslations?.[lang.code] || "";
+          return acc;
+        },
+        {} as Record<string, string>,
+      ),
     });
     setIsDialogOpen(true);
   };
@@ -193,6 +267,14 @@ export const ManageCategories: React.FC = () => {
                       setFormData({
                         name: "",
                         description: "",
+                        name_translations: LANGUAGES.reduce(
+                          (acc, lang) => ({ ...acc, [lang.code]: "" }),
+                          {} as Record<string, string>,
+                        ),
+                        description_translations: LANGUAGES.reduce(
+                          (acc, lang) => ({ ...acc, [lang.code]: "" }),
+                          {} as Record<string, string>,
+                        ),
                       });
                       setShowDialogWeightError(false);
                     }}
@@ -223,6 +305,31 @@ export const ManageCategories: React.FC = () => {
                         required
                       />
                     </div>
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700">
+                        {t('manageCategories.categoryName')} ({t('manageQuestions.additionalLanguagesOptional', { defaultValue: 'Additional Languages (Optional)' })})
+                      </Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
+                          <div key={lang.code} className="space-y-2">
+                            <Label className="text-xs font-medium text-gray-600 flex items-center space-x-1">
+                              <span>{lang.flag}</span>
+                              <span>{lang.name}</span>
+                            </Label>
+                            <Input
+                              value={formData.name_translations[lang.code] || ""}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  name_translations: { ...prev.name_translations, [lang.code]: e.target.value },
+                                }))
+                              }
+                              placeholder={t('manageCategories.categoryNamePlaceholder')}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     <div>
                       <Label htmlFor="description">{t('manageCategories.categoryDescription')}</Label>
                       <Input
@@ -236,6 +343,31 @@ export const ManageCategories: React.FC = () => {
                         }
                         placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
                       />
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700">
+                        {t('manageCategories.categoryDescription')} ({t('manageQuestions.additionalLanguagesOptional', { defaultValue: 'Additional Languages (Optional)' })})
+                      </Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
+                          <div key={lang.code} className="space-y-2">
+                            <Label className="text-xs font-medium text-gray-600 flex items-center space-x-1">
+                              <span>{lang.flag}</span>
+                              <span>{lang.name}</span>
+                            </Label>
+                            <Input
+                              value={formData.description_translations[lang.code] || ""}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  description_translations: { ...prev.description_translations, [lang.code]: e.target.value },
+                                }))
+                              }
+                              placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     <Button
                       type="submit"
@@ -260,9 +392,9 @@ export const ManageCategories: React.FC = () => {
                     className="flex items-center justify-between p-4 border rounded-lg"
                   >
                     <div>
-                      <h3 className="font-medium text-lg">{category.name}</h3>
+                      <h3 className="font-medium text-lg">{getCategoryDisplayName(category)}</h3>
                       <p className="text-sm text-gray-600">
-                        {category.description}
+                        {getCategoryDisplayDescription(category)}
                       </p>
                     </div>
                     <div className="flex space-x-2">

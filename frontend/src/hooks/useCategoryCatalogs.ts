@@ -112,10 +112,10 @@ export const useOfflineCategoryCatalogsMutation = () => {
           if (isUpdate) {
             return CategoryCatalogService.putCategoryCatalogByCategoryCatalogId({
               categoryCatalogId: variables.category_catalog_id!,
-              requestBody: apiRequestBody,
+              requestBody: apiRequestBody as any,
             });
           }
-          return CategoryCatalogService.postCategoryCatalog({ requestBody: apiRequestBody });
+          return CategoryCatalogService.postCategoryCatalog({ requestBody: apiRequestBody as any });
         },
         async () => {},
         data as unknown as Record<string, unknown>,

@@ -10,6 +10,16 @@ import {
   AuthState
 } from "../services/shared/authService";
 
+const INACTIVITY_LOGOUT_MS = 10 * 60 * 1000;
+const ACTIVITY_EVENTS = [
+  "click",
+  "keydown",
+  "mousedown",
+  "mousemove",
+  "scroll",
+  "touchstart",
+] as const;
+
 interface AuthContextState extends AuthState {
   login: () => void;
   logout: () => void;
@@ -152,8 +162,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authLogout();
     } catch (error) {
       console.error("Logout failed:", error);
+    } finally {
+      setAuthState({ isAuthenticated: false, user: null, roles: [], loading: false });
     }
   }, []);
+
+  useEffect(() => {
+    if (!authState.isAuthenticated) {
+      return;
+    }
+
+    let inactivityTimer: ReturnType<typeof window.setTimeout>;
+
+    const resetInactivityTimer = () => {
+      window.clearTimeout(inactivityTimer);
+      inactivityTimer = window.setTimeout(() => {
+        logout();
+      }, INACTIVITY_LOGOUT_MS);
+    };
+
+    resetInactivityTimer();
+
+    ACTIVITY_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, resetInactivityTimer, { passive: true });
+    });
+
+    return () => {
+      window.clearTimeout(inactivityTimer);
+      ACTIVITY_EVENTS.forEach((eventName) => {
+        window.removeEventListener(eventName, resetInactivityTimer);
+      });
+    };
+  }, [authState.isAuthenticated, logout]);
 
   const value = { ...authState, login, logout };
 

@@ -55,6 +55,7 @@ const LANGUAGES = [
   { code: "zu", name: "isiZulu", flag: "🇿🇦" },
   { code: "de", name: "Deutsch", flag: "🇩🇪" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "ar", name: "العربية", flag: "🇸🇦" },
 ];
 
 interface QuestionFormData {

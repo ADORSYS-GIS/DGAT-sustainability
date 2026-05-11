@@ -4,6 +4,7 @@ import fr from './locales/fr.json';
 import ss from './locales/ss.json';
 import zu from './locales/zu.json';
 import pt from './locales/pt.json';
+import ar from './locales/ar.json';
 const resources = {
   en: { translation: en },
   de: { translation: de },
@@ -11,6 +12,7 @@ const resources = {
   ss: { translation: ss },
   zu: { translation: zu },
   pt: { translation: pt },
+  ar: { translation: ar },
 };
 
 export default resources;

@@ -992,7 +992,12 @@ export const Assessment: React.FC = () => {
 
   const currentCategoryId = categories[currentCategoryIndex];
   const currentCategoryObject = categoriesData?.find((c: { category_catalog_id: string; }) => c.category_catalog_id === currentCategoryId);
-  const currentCategoryName = currentCategoryObject?.name || t("assessment.unknownCategory", { defaultValue: "Unknown Category" });
+  const currentCategoryName = (() => {
+    if (!currentCategoryObject) return t("assessment.unknownCategory", { defaultValue: "Unknown Category" });
+    const translations = (currentCategoryObject as any).name_translations as Record<string, string> | undefined;
+    const translated = translations && typeof translations[currentLanguage] === "string" ? translations[currentLanguage] : undefined;
+    return translated || currentCategoryObject.name || t("assessment.unknownCategory", { defaultValue: "Unknown Category" });
+  })();
   const currentQuestions = getCurrentCategoryQuestions();
   const progress = categories.length > 0 ? ((currentCategoryIndex + 1) / categories.length) * 100 : 0;
   const isLastCategory = currentCategoryIndex === categories.length - 1;

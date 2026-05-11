@@ -3,6 +3,7 @@ use crate::impl_database_entity;
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::{QueryOrder, Set};
+use serde_json::Value;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -12,6 +13,8 @@ pub struct Model {
     pub category_catalog_id: Uuid,
     pub name: String,
     pub description: Option<String>,
+    pub name_translations: Value,
+    pub description_translations: Value,
     pub template_id: String,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
@@ -61,6 +64,8 @@ impl CategoryCatalogService {
         category_catalog_id: Uuid,
         name: String,
         description: Option<String>,
+        name_translations: Option<Value>,
+        description_translations: Option<Value>,
         template_id: String,
         is_active: bool,
     ) -> Result<Model, DbErr> {
@@ -69,6 +74,10 @@ impl CategoryCatalogService {
             category_catalog_id: Set(category_catalog_id),
             name: Set(name),
             description: Set(description),
+            name_translations: Set(name_translations.unwrap_or_else(|| serde_json::json!({}))),
+            description_translations: Set(
+                description_translations.unwrap_or_else(|| serde_json::json!({})),
+            ),
             template_id: Set(template_id),
             is_active: Set(is_active),
             created_at: Set(now),
@@ -108,6 +117,8 @@ impl CategoryCatalogService {
         category_catalog_id: Uuid,
         name: Option<String>,
         description: Option<String>,
+        name_translations: Option<Value>,
+        description_translations: Option<Value>,
         is_active: Option<bool>,
     ) -> Result<Model, DbErr> {
         let model = self.db_service.find_by_id(category_catalog_id).await?
@@ -119,6 +130,12 @@ impl CategoryCatalogService {
         }
         if let Some(description) = description {
             active_model.description = Set(Some(description));
+        }
+        if let Some(name_translations) = name_translations {
+            active_model.name_translations = Set(name_translations);
+        }
+        if let Some(description_translations) = description_translations {
+            active_model.description_translations = Set(description_translations);
         }
         if let Some(is_active) = is_active {
             active_model.is_active = Set(is_active);

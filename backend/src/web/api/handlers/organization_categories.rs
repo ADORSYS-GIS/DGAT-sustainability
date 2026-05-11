@@ -13,6 +13,7 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
+use std::collections::HashMap;
 use uuid::Uuid;
 
 // =============== Category Catalog Handlers ===============
@@ -37,14 +38,23 @@ pub async fn get_category_catalogs(
 
     let response_catalogs: Vec<CategoryCatalog> = category_catalogs
         .into_iter()
-        .map(|cat| CategoryCatalog {
-            category_catalog_id: cat.category_catalog_id,
-            name: cat.name,
-            description: cat.description,
-            template_id: cat.template_id,
-            is_active: cat.is_active,
-            created_at: cat.created_at.to_rfc3339(),
-            updated_at: cat.updated_at.to_rfc3339(),
+        .map(|cat| {
+            let name_translations = serde_json::from_value::<HashMap<String, String>>(cat.name_translations)
+                .ok();
+            let description_translations =
+                serde_json::from_value::<HashMap<String, String>>(cat.description_translations).ok();
+
+            CategoryCatalog {
+                category_catalog_id: cat.category_catalog_id,
+                name: cat.name,
+                description: cat.description,
+                name_translations,
+                description_translations,
+                template_id: cat.template_id,
+                is_active: cat.is_active,
+                created_at: cat.created_at.to_rfc3339(),
+                updated_at: cat.updated_at.to_rfc3339(),
+            }
         })
         .collect();
 
@@ -83,21 +93,41 @@ pub async fn create_category_catalog(
     let category_catalog_service = &app_state.database.category_catalog;
     
     let category_catalog_id = Uuid::new_v4();
+    let name_translations_json = request
+        .name_translations
+        .map(|m| serde_json::to_value(m))
+        .transpose()
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to serialize name translations: {e}")))?;
+    let description_translations_json = request
+        .description_translations
+        .map(|m| serde_json::to_value(m))
+        .transpose()
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to serialize description translations: {e}")))?;
+
     let category_catalog_model = category_catalog_service
         .create_category_catalog(
             category_catalog_id,
             request.name,
             request.description,
+            name_translations_json,
+            description_translations_json,
             request.template_id,
             request.is_active.unwrap_or(true),
         )
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to create category catalog: {e}")))?;
 
+    let name_translations = serde_json::from_value::<HashMap<String, String>>(category_catalog_model.name_translations)
+        .ok();
+    let description_translations =
+        serde_json::from_value::<HashMap<String, String>>(category_catalog_model.description_translations).ok();
+
     let category_catalog = CategoryCatalog {
         category_catalog_id: category_catalog_model.category_catalog_id,
         name: category_catalog_model.name,
         description: category_catalog_model.description,
+        name_translations,
+        description_translations,
         template_id: category_catalog_model.template_id,
         is_active: category_catalog_model.is_active,
         created_at: category_catalog_model.created_at.to_rfc3339(),
@@ -236,10 +266,20 @@ pub async fn get_category_catalog(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to get category catalog: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Category catalog not found".to_string()))?;
 
+    let name_translations =
+        serde_json::from_value::<HashMap<String, String>>(category_catalog_model.name_translations)
+            .ok();
+    let description_translations = serde_json::from_value::<HashMap<String, String>>(
+        category_catalog_model.description_translations,
+    )
+    .ok();
+
     let category_catalog = CategoryCatalog {
         category_catalog_id: category_catalog_model.category_catalog_id,
         name: category_catalog_model.name,
         description: category_catalog_model.description,
+        name_translations,
+        description_translations,
         template_id: category_catalog_model.template_id,
         is_active: category_catalog_model.is_active,
         created_at: category_catalog_model.created_at.to_rfc3339(),
@@ -278,11 +318,24 @@ pub async fn update_category_catalog(
 
     let category_catalog_service = &app_state.database.category_catalog;
 
+    let name_translations_json = request
+        .name_translations
+        .map(|m| serde_json::to_value(m))
+        .transpose()
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to serialize name translations: {e}")))?;
+    let description_translations_json = request
+        .description_translations
+        .map(|m| serde_json::to_value(m))
+        .transpose()
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to serialize description translations: {e}")))?;
+
     let updated_model = category_catalog_service
         .update_category_catalog(
             category_catalog_id,
             request.name,
             request.description,
+            name_translations_json,
+            description_translations_json,
             request.is_active,
         )
         .await
@@ -294,10 +347,17 @@ pub async fn update_category_catalog(
             }
         })?;
 
+    let name_translations = serde_json::from_value::<HashMap<String, String>>(updated_model.name_translations)
+        .ok();
+    let description_translations =
+        serde_json::from_value::<HashMap<String, String>>(updated_model.description_translations).ok();
+
     let category_catalog = CategoryCatalog {
         category_catalog_id: updated_model.category_catalog_id,
         name: updated_model.name,
         description: updated_model.description,
+        name_translations,
+        description_translations,
         template_id: updated_model.template_id,
         is_active: updated_model.is_active,
         created_at: updated_model.created_at.to_rfc3339(),

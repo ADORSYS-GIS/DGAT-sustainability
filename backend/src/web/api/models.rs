@@ -608,6 +608,8 @@ pub struct CategoryCatalog {
     pub category_catalog_id: Uuid,
     pub name: String,
     pub description: Option<String>,
+    pub name_translations: Option<HashMap<String, String>>,
+    pub description_translations: Option<HashMap<String, String>>,
     pub template_id: String,
     pub is_active: bool,
     pub created_at: String,
@@ -618,6 +620,8 @@ pub struct CategoryCatalog {
 pub struct CreateCategoryCatalogRequest {
     pub name: String,
     pub description: Option<String>,
+    pub name_translations: Option<HashMap<String, String>>,
+    pub description_translations: Option<HashMap<String, String>>,
     pub template_id: String,
     pub is_active: Option<bool>,
 }
@@ -626,6 +630,8 @@ pub struct CreateCategoryCatalogRequest {
 pub struct UpdateCategoryCatalogRequest {
     pub name: Option<String>,
     pub description: Option<String>,
+    pub name_translations: Option<HashMap<String, String>>,
+    pub description_translations: Option<HashMap<String, String>>,
     pub is_active: Option<bool>,
 }
 

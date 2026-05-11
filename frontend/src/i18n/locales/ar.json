@@ -1,0 +1,796 @@
+{
+  "home": "لوحة القيادة",
+  "homePage": {
+    "hero": {
+      "title": "عزز تعاونيتك",
+      "subtitle": "قيّم أهداف الاستدامة",
+      "description": "بسيط وآمن ومؤثر. ساعد تعاونيتك على الازدهار في عصر الرقمنة مع تطوير ممارسات مستدامة للمستقبل.",
+      "cta": "ابدأ التقييم"
+    },
+    "features": {
+      "title": "الميزات",
+      "items": [
+        {
+          "title": "تقييم الاستدامة",
+          "description": "قيّم الممارسات البيئية والاجتماعية والحوكمة لبناء تعاونية أكثر استدامة ومسؤولية."
+        },
+        {
+          "title": "خطط العمل",
+          "description": "تابع تقدمك باستخدام لوحات كانبان تفاعلية، محولاً رؤى التقييم إلى مهام قابلة للتنفيذ وتحسينات قابلة للقياس."
+        }
+      ]
+    },
+    "benefits": {
+      "title": "المزايا",
+      "items": [
+        {
+          "title": "مصمم للتعاونيات",
+          "description": "مصمم خصيصاً للمنظمات التعاونية في جنوب أفريقيا"
+        },
+        {
+          "title": "دعم متعدد اللغات",
+          "description": "متوفر بالإنجليزية والسوازيلندية والبرتغالية والزولو والألمانية والفرنسية"
+        },
+        {
+          "title": "العمل دون اتصال",
+          "description": "يعمل بشكل موثوق حتى مع اتصال إنترنت محدود"
+        }
+      ]
+    }
+  },
+  "login": "تسجيل الدخول",
+  "logout": "تسجيل الخروج",
+  "profile": "الملف الشخصي",
+  "sustainability": "الاستدامة",
+  "assessment": "تقييم",
+  "submit": "إرسال",
+  "next": "التالي",
+  "previous": "السابق",
+  "saveDraft": "حفظ المسودة",
+  "category": "الفئة",
+  "progress": "التقدم",
+  "viewSubmission": "عرض التقديم",
+  "yourSubmissions": "تقديماتك",
+  "noSubmissions": "لا توجد تقديمات حتى الآن",
+  "submissionDeleted": "تم حذف التقديم بنجاح",
+  "failedToDeleteSubmission": "فشل حذف التقديم",
+  "confirmDeletion": "تأكيد الحذف",
+  "confirmDeletionDescription": "هل أنت متأكد أنك تريد حذف هذا التقديم؟ لا يمكن التراجع عن هذا الإجراء.",
+  "syncData": "مزامنة البيانات",
+  "startAssessment": "ابدأ التقييم",
+  "status": "الحالة",
+  "submittedAt": "تم الإرسال في",
+  "reviewedAt": "تم المراجعة في",
+  "manageUsers": "إدارة المستخدمين",
+  "actionPlan": "خطة العمل",
+  "viewAssessments": "عرض التقييمات",
+  "answerAssessment": "الإجابة على التقييم",
+  "viewAll": "عرض الكل",
+  "welcome": "مرحباً، {{user}} من {{org}} !",
+  "loading": "جاري التحميل...",
+  "noData": "لا توجد بيانات متاحة",
+  "common": {
+    "processing": "جاري المعالجة...",
+    "edit": "تعديل",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "delete": "حذف",
+    "update": "تحديث",
+    "create": "إنشاء",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "tryAgain": "حاول مرة أخرى",
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "adminDashboard": {
+    "welcome": "مرحباً، المسؤول! عزز تأثير التعاونيات!",
+    "intro": "أدر منصة تقييم DGRV وادعم التعاونيات في جنوب أفريقيا.",
+    "numCategories": "عدد الفئات",
+    "numQuestions": "عدد الأسئلة",
+    "numOrganizations": "عدد المنظمات",
+    "pendingReviews": "المراجعات المعلقة",
+    "completedAssessments": "التقييمات المكتملة",
+    "manageOrganizations": "إدارة المنظمات",
+    "manageOrganizationsDesc": "إضافة وتعديل وإدارة المنظمات التعاونية في النظام.",
+    "manageUsers": "إدارة المستخدمين",
+    "manageUsersDesc": "التحكم في الوصول وأدوار المستخدمين في جميع المنظمات.",
+    "manageCategories": "إدارة الفئات",
+    "manageCategoriesDesc": "إعداد فئات التقييم لأدوات الاستدامة.",
+    "manageQuestions": "إدارة الأسئلة",
+    "manageQuestionsDesc": "إنشاء وتعديل الأسئلة في كل فئة تقييم.",
+    "reviewAssessments": "مراجعة التقييمات",
+    "reviewAssessmentsDesc": "مراجعة التقييمات المقدمة وتقديم التوصيات.",
+    "actionPlans": "إدارة خطط العمل",
+    "actionPlansDesc": "عرض وإدارة خطط العمل لجميع المنظمات",
+    "standardRecommendations": "التوصيات القياسية",
+    "standardRecommendationsDesc": "إدارة التوصيات القابلة لإعادة الاستخدام لسيناريوهات التقييم الشائعة.",
+    "pendingReviewsCard": "المراجعات المعلقة",
+    "pendingCount": "{count} معلقة",
+    "sustainabilityAssessment": "تقييم الاستدامة",
+    "byUser": "بواسطة {user}",
+    "underReview": "قيد المراجعة",
+    "reviewRequired": "المراجعة مطلوبة",
+    "allUpToDate": "جميع التقييمات محدثة!",
+    "adminGuide": "دليل المسؤول",
+    "guideIntro": "مرحباً بك في لوحة تحكم مسؤول DGRV! إليك بعض النصائح لمساعدتك في إدارة المنصة:",
+    "guideOrgsUsers": "استخدم أقسام إدارة المنظمات وإدارة المستخدمين للتحكم في الوصول والعضوية.",
+    "guideReview": "راجع ووافق على التقييمات في قسم مراجعة التقييمات.",
+    "guideCategoriesQuestions": "قم بإعداد الفئات والأسئلة لتخصيص عملية التقييم حسب احتياجاتك.",
+    "guideSupport": "إذا كنت بحاجة إلى مساعدة، تواصل مع eswatini@dgrv.coop.",
+    "loadingSubmissions": "جاري تحميل التقديمات...",
+    "viewCompleteGuide": "عرض الدليل الكامل"
+  },
+  "standardRecommendations": {
+    "title": "التوصيات القياسية",
+    "manageDesc": "إدارة التوصيات القابلة لإعادة الاستخدام لمراجعات التقييم",
+    "add": "إضافة توصية",
+    "edit": "تعديل التوصية القياسية",
+    "addDialog": "إضافة توصية قياسية",
+    "textLabel": "نص التوصية",
+    "textPlaceholder": "أدخل نص التوصية...",
+    "update": "تحديث التوصية",
+    "create": "إنشاء توصية",
+    "cancel": "إلغاء",
+    "singleTitle": "توصية قياسية",
+    "editBtn": "تعديل",
+    "emptyTitle": "لا توجد توصيات قياسية حتى الآن",
+    "emptyDesc": "أنشئ توصيات قابلة لإعادة الاستخدام لتسريع مراجعات التقييم.",
+    "addFirst": "أضف التوصية الأولى",
+    "textRequired": "نص التوصية مطلوب",
+    "confirmDelete": "هل أنت متأكد أنك تريد حذف هذه التوصية القياسية؟",
+    "deleteSuccess": "تم حذف التوصية القياسية بنجاح",
+    "updateSuccess": "تم تحديث التوصية بنجاح",
+    "createSuccess": "تم إنشاء التوصية القياسية بنجاح"
+  },
+  "dashboard": {
+    "welcome": {
+      "title": "مرحباً، المسؤول! عزز تأثير التعاونيات!",
+      "description": "أدر منصة تقييم DGRV وادعم التعاونيات في جنوب أفريقيا."
+    },
+    "pendingReviews": {
+      "title": "المراجعات المعلقة",
+      "badge": "معلقة",
+      "assessmentType": "تقييم الاستدامة",
+      "submittedBy": "بواسطة",
+      "reviewRequired": "المراجعة مطلوبة",
+      "upToDate": "جميع التقييمات محدثة!"
+    },
+    "systemHealth": {
+      "title": "صحة النظام",
+      "database": "قاعدة البيانات",
+      "healthy": "سليم",
+      "apiResponse": "استجابة API",
+      "fast": "سريع",
+      "syncQueue": "قائمة المزامنة",
+      "clear": "نظيف"
+    },
+    "quickActions": {
+      "title": "إجراءات سريعة",
+      "exportReport": "تصدير تقرير النظام",
+      "backupDatabase": "نسخ احتياطي لقاعدة البيانات",
+      "viewAuditLogs": "عرض سجلات التدقيق",
+      "systemSettings": "إعدادات النظام"
+    },
+    "stats": {
+      "numCategories": "عدد الفئات",
+      "numQuestions": "عدد الأسئلة",
+      "pendingReviews": "المراجعات المعلقة",
+      "completedAssessments": "التقييمات المكتملة"
+    },
+    "assessments": {
+      "subtitle": "عرض وإدارة جميع تقديمات الاستدامة الخاصة بك",
+      "emptyState": "ابدأ تقييم الاستدامة الأول لمتابعة تقدم تعاونيتك."
+    },
+    "numCategories": "عدد الفئات",
+    "numQuestions": "عدد الأسئلة",
+    "pendingReviews": "المراجعات المعلقة",
+    "completedAssessments": "التقييمات المكتملة",
+    "actions": {
+      "manageOrganizations": "إدارة المنظمات",
+      "manageOrganizationsDesc": "إضافة وتعديل وإدارة المنظمات التعاونية في النظام.",
+      "manageUsers": "إدارة المستخدمين",
+      "manageUsersDesc": "التحكم في الوصول وأدوار المستخدمين في جميع المنظمات.",
+      "manageCategories": "إدارة الفئات",
+      "manageCategoriesDesc": "إعداد فئات التقييم لأدوات الاستدامة.",
+      "manageQuestions": "إدارة الأسئلة",
+      "manageQuestionsDesc": "إنشاء وتعديل الأسئلة في كل فئة تقييم.",
+      "reviewAssessments": "مراجعة التقييمات",
+      "reviewAssessmentsDesc": "مراجعة التقييمات المقدمة وتقديم التوصيات.",
+      "standardRecommendations": "التوصيات القياسية",
+      "standardRecommendationsDesc": "إدارة التوصيات القابلة لإعادة الاستخدام لسيناريوهات التقييم الشائعة."
+    },
+    "guide": {
+      "title": "دليل المسؤول",
+      "intro": "مرحباً بك في لوحة تحكم مسؤول DGRV! إليك بعض النصائح لمساعدتك في إدارة المنصة:",
+      "orgsUsers": "استخدم أقسام إدارة المنظمات وإدارة المستخدمين للتحكم في الوصول والعضوية.",
+      "review": "راجع ووافق على التقييمات في قسم مراجعة التقييمات.",
+      "categoriesQuestions": "قم بإعداد الفئات والأسئلة لتخصيص عملية التقييم حسب احتياجاتك.",
+      "support": "إذا كنت بحاجة إلى مساعدة، تواصل مع eswatini@dgrv.coop."
+    }
+  },
+  "questions": {
+    "manage": {
+      "title": "إدارة الأسئلة",
+      "description": "إنشاء وتعديل الأسئلة في كل فئة تقييم.",
+      "add": "إضافة سؤال جديد",
+      "edit": "تعديل السؤال",
+      "delete": "حذف السؤال",
+      "confirmDelete": "هل أنت متأكد أنك تريد حذف هذا السؤال؟",
+      "success": "تم حذف السؤال بنجاح!",
+      "error": "خطأ أثناء حذف السؤال."
+    },
+    "list": {
+      "title": "جميع الأسئلة",
+      "noQuestions": "لم يتم العثور على أسئلة.",
+      "question": "السؤال",
+      "category": "الفئة",
+      "actions": "الإجراءات"
+    },
+    "form": {
+      "title": "نموذج السؤال",
+      "question": "السؤال",
+      "category": "الفئة",
+      "type": "النوع",
+      "options": "الخيارات",
+      "required": "مطلوب",
+      "save": "حفظ السؤال",
+      "cancel": "إلغاء",
+      "success": "تم حفظ السؤال بنجاح!",
+      "error": "خطأ أثناء حفظ السؤال."
+    }
+  },
+  "categories": {
+    "manage": {
+      "title": "إدارة الفئات",
+      "description": "إعداد فئات التقييم لأدوات الاستدامة.",
+      "add": "إضافة فئة جديدة",
+      "edit": "تعديل الفئة",
+      "delete": "حذف الفئة",
+      "confirmDelete": "هل أنت متأكد أنك تريد حذف هذه الفئة؟ سيؤدي ذلك إلى حذف جميع الأسئلة في هذه الفئة. ملاحظة: سيتم الاحتفاظ بالتقديمات الموجودة التي تحتوي على إجابات لهذه الأسئلة، لكن سجلات الإجابات الفردية ستُحذف.",
+      "success": "تم حذف الفئة بنجاح!",
+      "error": "خطأ أثناء حذف الفئة."
+    },
+    "list": {
+      "title": "جميع الفئات",
+      "noCategories": "لم يتم العثور على فئات.",
+      "category": "الفئة",
+      "actions": "الإجراءات"
+    },
+    "form": {
+      "title": "نموذج الفئة",
+      "name": "الاسم",
+      "description": "الوصف",
+      "save": "حفظ الفئة",
+      "cancel": "إلغاء",
+      "success": "تم حفظ الفئة بنجاح!",
+      "error": "خطأ أثناء حفظ الفئة."
+    }
+  },
+  "organizations": {
+    "manage": {
+      "title": "إدارة المنظمات",
+      "description": "إضافة وتعديل وإدارة المنظمات التعاونية في النظام.",
+      "add": "إضافة منظمة جديدة",
+      "edit": "تعديل المنظمة",
+      "delete": "حذف المنظمة",
+      "confirmDelete": "هل أنت متأكد أنك تريد حذف هذه المنظمة؟",
+      "success": "تم حذف المنظمة بنجاح!",
+      "error": "خطأ أثناء حذف المنظمة."
+    },
+    "list": {
+      "title": "جميع المنظمات",
+      "noOrganizations": "لم يتم العثور على منظمات.",
+      "organization": "المنظمة",
+      "actions": "الإجراءات"
+    },
+    "form": {
+      "title": "نموذج المنظمة",
+      "name": "الاسم",
+      "description": "الوصف",
+      "save": "حفظ المنظمة",
+      "cancel": "إلغاء",
+      "success": "تم حفظ المنظمة بنجاح!",
+      "error": "خطأ أثناء حفظ المنظمة."
+    }
+  },
+  "users": {
+    "manage": {
+      "title": "إدارة المستخدمين",
+      "description": "التحكم في الوصول وأدوار المستخدمين في جميع المنظمات.",
+      "add": "إضافة مستخدم جديد",
+      "edit": "تعديل المستخدم",
+      "delete": "حذف المستخدم",
+      "confirmDelete": "هل أنت متأكد أنك تريد حذف هذا المستخدم؟",
+      "success": "تم حذف المستخدم بنجاح!",
+      "error": "خطأ أثناء حذف المستخدم."
+    },
+    "list": {
+      "title": "جميع المستخدمين",
+      "noUsers": "لم يتم العثور على مستخدمين.",
+      "user": "المستخدم",
+      "actions": "الإجراءات"
+    },
+    "form": {
+      "title": "نموذج المستخدم",
+      "username": "اسم المستخدم",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "organization": "المنظمة",
+      "save": "حفظ المستخدم",
+      "cancel": "إلغاء",
+      "success": "تم حفظ المستخدم بنجاح!",
+      "error": "خطأ أثناء حفظ المستخدم."
+    }
+  },
+  "reviews": {
+    "manage": {
+      "title": "مراجعة التقييمات",
+      "description": "مراجعة التقييمات المقدمة وتقديم التوصيات.",
+      "review": "مراجعة",
+      "approve": "الموافقة",
+      "reject": "رفض",
+      "comments": "التعليقات",
+      "recommendations": "التوصيات",
+      "save": "حفظ المراجعة",
+      "cancel": "إلغاء",
+      "success": "تم حفظ المراجعة بنجاح!",
+      "error": "خطأ أثناء حفظ المراجعة."
+    },
+    "list": {
+      "title": "جميع المراجعات",
+      "noReviews": "لم يتم العثور على مراجعات.",
+      "assessment": "التقييم",
+      "status": "الحالة",
+      "reviewedBy": "تمت المراجعة بواسطة",
+      "actions": "الإجراءات"
+    }
+  },
+  "recommendations": {
+    "manage": {
+      "title": "التوصيات القياسية",
+      "description": "إدارة التوصيات القابلة لإعادة الاستخدام لسيناريوهات التقييم الشائعة.",
+      "add": "إضافة توصية جديدة",
+      "edit": "تعديل التوصية",
+      "delete": "حذف التوصية",
+      "confirmDelete": "هل أنت متأكد أنك تريد حذف هذه التوصية؟",
+      "success": "تم حذف التوصية بنجاح!",
+      "error": "خطأ أثناء حذف التوصية."
+    },
+    "list": {
+      "title": "جميع التوصيات",
+      "noRecommendations": "لم يتم العثور على توصيات.",
+      "recommendation": "التوصية",
+      "actions": "الإجراءات"
+    },
+    "form": {
+      "formTitle": "نموذج التوصية",
+      "title": "العنوان",
+      "description": "الوصف",
+      "save": "حفظ التوصية",
+      "cancel": "إلغاء",
+      "success": "تم حفظ التوصية بنجاح!",
+      "error": "خطأ أثناء حفظ التوصية."
+    }
+  },
+  "manageCategories": {
+    "title": "إدارة الفئات",
+    "configureCategories": "إعداد وإدارة فئات التقييم",
+    "categories": "الفئات",
+    "addCategory": "إضافة فئة",
+    "editCategory": "تعديل الفئة",
+    "categoryName": "اسم الفئة",
+    "categoryNamePlaceholder": "أدخل اسم الفئة...",
+    "weight": "الوزن (%)",
+    "displayOrder": "ترتيب العرض",
+    "createCategory": "إنشاء فئة",
+    "updateCategory": "تحديث الفئة",
+    "loadSuccess": "تم تحميل {{count}} فئة بنجاح!",
+    "saveSuccess": "تم حفظ {{count}} فئة بنجاح!",
+    "deleteSuccess": "تم حذف الفئة بنجاح!",
+    "weightExceedsError": "إجمالي الوزن يتجاوز 100%. يرجى إعادة توزيع الأوزان أو تقليل وزن هذه الفئة.",
+    "redistributeWeights": "إعادة توزيع الأوزان",
+    "totalWeightExceeds": "إجمالي الوزن يتجاوز 100%.",
+    "totalWeightNot100": "إجمالي الوزن هو {{total}}%. يجب أن يكون 100%.",
+    "totalWeightMustBe100": "يجب أن يكون إجمالي الوزن 100%. يرجى تعديل الأوزان أو استخدام زر إعادة التوزيع.",
+    "totalWeightNot100ForNew": "سيكون إجمالي الوزن {{total}}%. يجب أن يكون 100%.",
+    "currentTotal": "الإجمالي الحالي: {{current}}% | الإجمالي الجديد: {{new}}%",
+    "noCategoriesYet": "لم يتم إنشاء أي فئات بعد.",
+    "weightLabel": "الوزن: {{weight}}% | الترتيب: {{order}}",
+    "categoryCreated": "تم إنشاء الفئة بنجاح!",
+    "categoryUpdated": "تم تحديث الفئة بنجاح!",
+    "categoryDeleted": "تم حذف الفئة بنجاح!",
+    "weightsRedistributed": "تم إعادة توزيع الأوزان بالتساوي.",
+    "createError": "فشل إنشاء الفئة",
+    "updateError": "فشل تحديث الفئة",
+    "deleteError": "فشل حذف الفئة",
+    "redistributeError": "فشل إعادة توزيع الأوزان",
+    "loadError": "خطأ أثناء تحميل الفئات",
+    "unknownError": "حدث خطأ غير معروف",
+    "retry": "حاول مرة أخرى",
+    "newCategory": "فئة جديدة"
+  },
+  "manageOrganizations": {
+    "title": "إدارة المنظمات",
+    "subtitle": "إضافة وإدارة المنظمات التعاونية",
+    "addOrganization": "إضافة منظمة",
+    "domains": "النطاقات",
+    "description": "الوصف",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "noOrganizations": "لا توجد منظمات حتى الآن",
+    "getStarted": "أضف منظمتك التعاونية الأولى للبدء.",
+    "addFirstOrganization": "أضف المنظمة الأولى",
+    "update": "تحديث المنظمة",
+    "create": "إنشاء منظمة",
+    "cancel": "إلغاء",
+    "editOrganization": "تعديل المنظمة",
+    "createCategoryWithOrg": "إنشاء فئة مع المنظمة",
+    "createCategoryWithOrgDesc": "إنشاء فئة جديدة اختيارياً وتعيينها لهذه المنظمة",
+    "newCategoryName": "اسم الفئة الجديدة",
+    "newCategoryNamePlaceholder": "أدخل اسم الفئة...",
+    "categoryWeight": "وزن الفئة (%)",
+    "categoryDisplayOrder": "ترتيب العرض",
+    "createCategory": "إنشاء فئة",
+    "skipCategoryCreation": "تخطي إنشاء الفئة"
+  },
+  "user": {
+    "dashboard": {
+      "welcome": "مرحباً، {{user}} من {{org}} !",
+      "readyToContinue": "هل أنت مستعد لمواصلة مسيرة استدامة تعاونيتك؟",
+      "answerAssessment": {
+        "title": "الإجابة على التقييم",
+        "description": "أجب على تقييمات الاستدامة المعلقة لتعاونيتك."
+      },
+      "viewAssessments": {
+        "title": "عرض التقييمات",
+        "description": "راجع جميع تقييمات الاستدامة السابقة والحالية.",
+        "subtitle": "تابع وأدر مهام تحسين استدامة تعاونيتك."
+      },
+      "actionPlan": {
+        "kanban": {
+          "todo": "يجب القيام به",
+          "inProgress": "قيد التنفيذ",
+          "done": "مكتمل",
+          "approved": "معتمد",
+          "approve": "اعتماد",
+          "moveToInProgress": "نقل إلى قيد التنفيذ",
+          "backToTodo": "العودة إلى يجب القيام به",
+          "moveToDone": "نقل إلى مكتمل",
+          "backToInProgress": "العودة إلى قيد التنفيذ",
+          "backToDone": "العودة إلى مكتمل"
+        },
+        "title": "خطة العمل",
+        "description": "تابع وأدر مهام تحسين استدامة تعاونيتك.",
+        "recentSubmissions": "التقديمات الأخيرة",
+        "viewAll": "عرض الكل",
+        "noSubmissions": "لا توجد تقديمات حتى الآن.",
+        "exportReports": "تصدير التقارير",
+        "downloadReportsDescription": "قم بتنزيل تقارير التقييم بتنسيقات مختلفة.",
+        "exportAsPDF": "تصدير إلى PDF",
+        "exportAsWord": "تصدير إلى Word",
+        "exportAsCSV": "تصدير إلى CSV",
+        "selectReport": "اختر تقريراً للتصدير",
+        "selectReportDescription": "اختر أحد تقارير التقييم المُنشأة لتصديرها إلى PDF.",
+        "statusLabel": "الحالة",
+        "reportTypes": {
+          "durability": "الاستدامة",
+          "compliance": "الامتثال",
+          "summary": "ملخص",
+          "detailed": "مفصل"
+        },
+        "reportStatus": {
+          "completed": "مكتمل",
+          "generating": "جاري الإنشاء",
+          "failed": "فشل"
+        },
+        "submissionId": "التقديم",
+        "generatedAt": "تم الإنشاء",
+        "select": "اختر",
+        "noReportsAvailable": "لا توجد تقارير متاحة",
+        "needHelp": "هل تحتاج إلى مساعدة؟",
+        "getSupport": "احصل على الدعم ومواد التدريب لتحقيق أقصى استفادة من تقييماتك.",
+        "viewUserGuide": "عرض دليل المستخدم",
+        "manageUsers": {
+          "title": "إدارة المستخدمين",
+          "description": "إضافة وإدارة المستخدمين في منظمتك."
+        },
+        "status": {
+          "approved": "معتمد",
+          "pendingReview": "في انتظار المراجعة",
+          "underReview": "قيد المراجعة",
+          "rejected": "مرفوض",
+          "revisionRequested": "مطلوب مراجعة",
+          "unknown": "غير معروف"
+        },
+        "loadingSubmissionsInline": "جاري تحميل التقديمات...",
+        "user": "المستخدم",
+        "org": "منظمتك",
+        "startAssessment": {
+          "title": "ابدأ تقييم الاستدامة",
+          "description": "قيّم الممارسات البيئية والاجتماعية والحوكمة لتحقيق نمو مستدام."
+        },
+        "noDraftAssessment": "لا توجد مسودة تقييم متاحة للإجابة.",
+        "sustainabilityAssessment": "تقييم الاستدامة",
+        "noSubmissionsMessage": "لا توجد تقديمات حتى الآن. ابدأ تقييمك الأول أعلاه!"
+      },
+      "sustainabilityOverview": "نظرة عامة على الاستدامة"
+    }
+  },
+  "manageUsers.selectOrganization": "اختر منظمة",
+  "manageUsers.clickOrgToManage": "انقر على منظمة لإدارة مستخدميها",
+  "manageUsers.backToOrganizations": "العودة إلى المنظمات",
+  "manageUsers.addUser": "+ إضافة مستخدم",
+  "manageUsers.manageUsersForOrg": "إضافة وإدارة المستخدمين في {{org}}",
+  "manageUsers.editUser": "تعديل المستخدم",
+  "manageUsers.addNewUser": "إضافة مستخدم جديد",
+  "manageUsers.email": "البريد الإلكتروني",
+  "manageUsers.emailPlaceholder": "أدخل البريد الإلكتروني",
+  "manageUsers.role": "الدور",
+  "manageUsers.organizationAdmin": "مسؤول المنظمة",
+  "manageUsers.organization": "المنظمة",
+  "manageUsers.selectOrganizationPlaceholder": "اختر منظمة",
+  "manageUsers.update": "تحديث",
+  "manageUsers.create": "إنشاء",
+  "manageUsers.user": "المستخدم",
+  "manageUsers.cancel": "إلغاء",
+  "manageUsers.verified": "تم التحقق",
+  "manageUsers.notVerified": "لم يتم التحقق",
+  "manageUsers.edit": "تعديل",
+  "manageUsers.noUsersYet": "لا يوجد مستخدمون حتى الآن",
+  "manageUsers.addFirstUserDesc": "أضف مستخدمك الأول للبدء.",
+  "manageUsers.addFirstUser": "أضف المستخدم الأول",
+  "manageUsers.orgLabel": "المنظمة:",
+  "manageUsers.unknown": "غير معروف",
+  "manageUsers.admin": "مسؤول",
+  "manageUsers.orgAdmin": "مسؤول المنظمة",
+  "manageUsers.orgUser": "مستخدم المنظمة",
+  "manageUsers.createUser": "إنشاء مستخدم",
+  "manageUsers.updateUser": "تحديث المستخدم",
+  "manageUsers.emailRequired": "البريد الإلكتروني مطلوب",
+  "manageUsers.selectOrgRequired": "يرجى اختيار منظمة",
+  "manageUsers.confirmDelete": "هل أنت متأكد أنك تريد حذف هذا المستخدم من المنظمة؟ لا يمكن التراجع عن هذا الإجراء.",
+  "manageQuestions": {
+    "title": "إدارة الأسئلة",
+    "subtitle": "إنشاء وتنظيم أسئلة التقييم حسب الفئة",
+    "cardTitle": "أسئلة التقييم",
+    "addQuestion": "إضافة سؤال",
+    "addNewQuestion": "إضافة سؤال جديد",
+    "editQuestion": "تعديل السؤال",
+    "category": "الفئة",
+    "selectCategoryPlaceholder": "اختر فئة...",
+    "weightLabel": "الوزن (1-10)",
+    "displayOrder": "ترتيب العرض",
+    "questionEnPlaceholder": "أدخل السؤال بالإنجليزية...",
+    "questionLangPlaceholder": "أدخل السؤال بال{{lang}}...",
+    "createQuestion": "إنشاء سؤال",
+    "updateQuestion": "تحديث السؤال",
+    "saving": "جاري الحفظ...",
+    "textRequired": "النص بالإنجليزية مطلوب",
+    "categoryRequired": "الفئة مطلوبة",
+    "weightRangeError": "يجب أن يكون الوزن بين 1 و10",
+    "createSuccess": "تم إنشاء السؤال بنجاح!",
+    "updateSuccess": "تم تحديث السؤال بنجاح!",
+    "deleteSuccess": "تم حذف السؤال بنجاح!",
+    "confirmDelete": "هل أنت متأكد أنك تريد حذف هذا السؤال؟",
+    "noQuestionsInCategory": "لا توجد أسئلة في هذه الفئة حتى الآن.",
+    "noCategories": "لا توجد فئات متاحة. يرجى إنشاء فئات أولاً!",
+    "noText": "لا يوجد نص متاح.",
+    "categoriesLoadError": "فشل تحميل الفئات. يرجى المحاولة مرة أخرى.",
+    "retry": "حاول مرة أخرى"
+  },
+  "assessment.yesNo": "نعم/لا",
+  "assessment.yes": "نعم",
+  "assessment.no": "لا",
+  "assessment.percentage": "نسبة مئوية",
+  "assessment.percentNotStarted": "لم يبدأ",
+  "assessment.percentSomeProgress": "بعض التقدم",
+  "assessment.percentHalfway": "في منتصف الطريق",
+  "assessment.percentAlmostDone": "شبه مكتمل",
+  "assessment.percentFullyAchieved": "مكتمل بالكامل",
+  "assessment.yourResponse": "إجابتك",
+  "assessment.enterYourResponse": "أدخل إجابتك...",
+  "assessment.addFile": "إضافة ملف",
+  "assessment.completeAllQuestions": "يرجى الإجابة على جميع الأسئلة في هذه الفئة قبل الإرسال.",
+  "assessment.existingResponses": "لديك إجابات موجودة لهذا التقييم. يمكنك متابعة التعديل أو إعادة الإرسال.",
+  "assessment.submittedLocally": "تم تقديم التقييم محلياً وسيتم مزامنته عند الاتصال بالإنترنت.",
+  "assessment.failedToCreate": "فشل إنشاء التقييم محلياً.",
+  "assessment.fileTooLarge": "يجب أن يكون حجم الملف أقل من 1 ميغابايت.",
+  "assessment.completeAllQuestionsNext": "يرجى الإجابة على جميع الأسئلة في هذه الفئة قبل المتابعة.",
+  "assessment.noPermissionToCreate": "يمكن فقط لمسؤولي المنظمة إنشاء التقييمات.",
+  "assessment.successTitle": "تم إنشاء التقييم بنجاح!",
+  "assessment.successMessage": "سيقوم مستخدموك بالإجابة على التقييم الذي تم تعيينه لهم.",
+  "assessment.returnToDashboard": "العودة إلى لوحة القيادة",
+  "assessment.draftSubmittedSuccessfully": "تم تقديم التقييم لموافقة المسؤول!",
+  "assessment.draftQueuedForSync": "تم حفظ التقييم دون اتصال وسيتم تقديمه للموافقة عند الاتصال.",
+  "assessment.failedToSubmitDraft": "فشل تقديم التقييم للموافقة.",
+  "assessment.createAssessment": "إنشاء تقييم",
+  "assessment.assessmentName": "اسم التقييم",
+  "assessment.enterAssessmentName": "أدخل اسم التقييم...",
+  "assessment.noAssessmentsAvailable": "لا توجد تقييمات متاحة",
+  "assessment.noAssessmentsDescription": "لم يتم إنشاء أي تقييم بعد لمنظمتك.",
+  "assessment.untitled": "تقييم بدون عنوان",
+  "assessment.status.draft": "مسودة",
+  "assessment.status.submitted": "تم الإرسال",
+  "assessment.continueAssessment": "متابعة",
+  "assessment.viewAssessment": "عرض",
+  "assessment.selectAssessment": "اختر تقييماً",
+  "assessment.selectAssessmentDescription": "اختر تقييماً للمتابعة أو أنشئ تقييماً جديداً.",
+  "assessment.createNewAssessment": "إنشاء تقييم جديد",
+  "common.cancel": "إلغاء",
+  "common.creating": "جاري الإنشاء...",
+  "manageQuestions.noCategories": "لا توجد فئات متاحة. يرجى إنشاء فئات أولاً!",
+  "manageQuestions.noText": "لا يوجد نص متاح.",
+  "userGuide": {
+    "title": "دليل المستخدم للتعاونيات",
+    "subtitle": "دليل شامل لاستخدام منصة تقييم الاستدامة DGRV",
+    "backToDashboard": "العودة إلى لوحة القيادة",
+    "quickStart": {
+      "title": "البدء السريع",
+      "step1": "1. 📋 ابدأ أو أجب على تقييم من لوحة القيادة",
+      "step2": "2. ✏️ أجب على جميع الأسئلة بشرح مفصل",
+      "step3": "3. 📎 أرفق وثائق داعمة إذا لزم الأمر",
+      "step4": "4. ✅ أرسل للمراجعة بعد الانتهاء",
+      "step5": "5. 📊 استخدم النتائج لإنشاء خطط عمل ومتابعة التقدم"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "البدء",
+        "content": [
+          "مرحباً بك في منصة تقييم الاستدامة DGRV! يساعد هذا الأداة تعاونيتك على قياس وتحسين ممارسات الاستدامة.",
+          "تعطيك لوحة القيادة الوصول إلى التقييمات وخطط العمل وأدوات متابعة التقدم.",
+          "إذا كنت مسؤول المنظمة، يمكنك إنشاء تقييمات جديدة وإدارة أعضاء الفريق. يمكن لمستخدمي المنظمة الإجابة على التقييمات ومتابعة التقدم."
+        ]
+      },
+      "roles": {
+        "title": "فهم أدوار المستخدمين",
+        "content": [
+          "مسؤول المنظمة (org_admin): يمكنه إنشاء تقييمات جديدة وإدارة المستخدمين وعرض جميع بيانات المنظمة.",
+          "مستخدم المنظمة (Org_User): يمكنه الإجابة على التقييمات المخصصة وعرض النتائج وإدارة خطط العمل.",
+          "يمكن لكلا الدورين الوصول إلى لوحة القيادة وعرض التقديمات وتصدير التقارير لمنظمتهم."
+        ]
+      },
+      "assessments": {
+        "title": "المشاركة في التقييمات",
+        "content": [
+          "التقييمات منظمة في فئات (مثل: بيئي، اجتماعي، حوكمة) مع أسئلة في كل فئة.",
+          "لكل سؤال، قدم: إجابة نعم/لا، نسبة إنجاز (0%، 25%، 50%، 75%، 100%)، وشرح نصي مفصل.",
+          "يمكنك إرفاق ملفات لدعم إجاباتك (حد أقصى 1 ميغابايت لكل ملف).",
+          "احفظ تقدمك في أي وقت باستخدام 'حفظ المسودة'.",
+          "بعد الإرسال، تمر التقييمات بعملية مراجعة قبل الموافقة النهائية."
+        ]
+      },
+      "actionPlans": {
+        "title": "إدارة خطط العمل",
+        "content": [
+          "تساعدك خطط العمل على متابعة مهام التحسين بناءً على توصيات التقييم.",
+          "استخدم لوحة كانبان لنقل المهام: يجب القيام به → قيد التنفيذ → مكتمل → معتمد.",
+          "أضف مهام جديدة، حدد مواعيد نهائية، وعيّن أعضاء الفريق.",
+          "تصدير خطط العمل لمشاركة التقدم مع أصحاب المصلحة."
+        ]
+      },
+      "viewingResults": {
+        "title": "عرض نتائج التقييمات",
+        "content": [
+          "يمكنك الوصول إلى جميع تقديماتك عبر 'عرض التقييمات'.",
+          "تابع حالة التقديمات: في انتظار المراجعة → قيد المراجعة → معتمد/مرفوض/مطلوب مراجعة.",
+          "راجع التعليقات والتوصيات من المراجعين."
+        ]
+      }
+    },
+    "tipsForSuccess": {
+      "title": "نصائح لتقييمات استدامة ناجحة",
+      "beforeStarting": {
+        "title": "قبل البدء:",
+        "items": [
+          "• اجمع الوثائق والبيانات ذات الصلة",
+          "• شارك أعضاء الفريق من مجالات مختلفة",
+          "• راجع التقييمات السابقة إن وجدت",
+          "• خصص وقتاً كافياً"
+        ]
+      },
+      "duringAssessment": {
+        "title": "أثناء التقييم:",
+        "items": [
+          "• كن صادقاً ودقيقاً في الإجابات",
+          "• قدم أمثلة ملموسة",
+          "• أرفق أدلة داعمة",
+          "• احفظ المسودات بانتظام"
+        ]
+      }
+    },
+    "needHelp": {
+      "title": "هل تحتاج إلى مساعدة؟",
+      "description": "إذا كنت بحاجة إلى مساعدة أو لديك أسئلة حول استخدام المنصة:",
+      "email": "البريد الإلكتروني: eswatini@dgrv.coop",
+      "phone": "الهاتف: +268 7854 2660",
+      "website": "الموقع: www.dgrv.coop",
+      "contactAdmin": "💬 تواصل مع مسؤول منظمتك للأسئلة المتعلقة بالأدوار"
+    }
+  },
+  "adminGuide": {
+    "title": "دليل المسؤول لمنصة DGRV",
+    "subtitle": "دليل شامل لإدارة منصة تقييم الاستدامة DGRV",
+    "backToDashboard": "العودة إلى لوحة القيادة",
+    "quickStart": {
+      "title": "البدء السريع",
+      "step1": "1. 👥 إدارة المنظمات والمستخدمين",
+      "step2": "2. 📋 إعداد الفئات والأسئلة",
+      "step3": "3. ✅ مراجعة واعتماد التقييمات",
+      "step4": "4. 📊 مراقبة صحة النظام وأدائه",
+      "step5": "5. 🎯 دعم التعاونيات في رحلتها نحو الاستدامة"
+    }
+  },
+  "reviewAssessments": {
+    "title": "مراجعة التقييمات",
+    "subtitle": "مراجعة واعتماد التقييمات المقدمة",
+    "syncData": "مزامنة البيانات",
+    "pendingSync": "مزامنة معلقة",
+    "submissionsUnderReview": "التقديمات قيد المراجعة",
+    "noSubmissionsUnderReview": "لا توجد تقديمات قيد المراجعة",
+    "unknownOrganization": "منظمة غير معروفة",
+    "organization": "المنظمة",
+    "submitted": "تم الإرسال",
+    "unknown": "غير معروف",
+    "review": "مراجعة",
+    "underReview": "قيد المراجعة",
+    "approved": "معتمد",
+    "rejected": "مرفوض",
+    "reviewAssessment": "مراجعة التقييم",
+    "reviewDescription": "راجع وقدم توصيات لهذا التقييم للاستدامة",
+    "submissionDetails": "تفاصيل التقديم",
+    "submissionDate": "تاريخ التقديم",
+    "status": "الحالة",
+    "assessmentResponses": "إجابات التقييم",
+    "noResponsesFound": "لم يتم العثور على إجابات",
+    "addRecommendation": "إضافة توصية",
+    "collapse": "طي",
+    "expand": "توسيع",
+    "yourRecommendations": "توصياتك:",
+    "addedAt": "تمت الإضافة في",
+    "addRecommendationFor": "إضافة توصية لـ",
+    "recommendation": "التوصية",
+    "enterRecommendationFor": "أدخل توصيتك لـ",
+    "category": "الفئة",
+    "cancel": "إلغاء",
+    "yesNo": "نعم/لا:",
+    "yes": "نعم",
+    "no": "لا",
+    "percentage": "النسبة:",
+    "response": "الإجابة:",
+    "clickExpandToView": "انقر على \"توسيع\" للعرض",
+    "question": "السؤال",
+    "submitReview": "إرسال المراجعة",
+    "loadingSubmissions": "جاري تحميل التقديمات...",
+    "errorLoadingSubmissions": "خطأ أثناء تحميل التقديمات",
+    "retry": "حاول مرة أخرى",
+    "backToDashboard": "العودة إلى لوحة القيادة",
+    "reviewSubmittedSuccessfully": "تم إرسال المراجعة بنجاح",
+    "reviewSavedLocally": "تم حفظ المراجعة محلياً. سيتم المزامنة عند الاتصال.",
+    "failedToSubmitReview": "فشل إرسال المراجعة",
+    "manualSyncFailed": "فشل المزامنة اليدوية"
+  },
+  "reportHistory": {
+    "title": "سجل التقارير",
+    "subtitle": "عرض وإدارة جميع تقارير المنظمات",
+    "refresh": "تحديث",
+    "offlineError": "تعذر تحميل التقارير دون اتصال",
+    "loadError": "فشل تحميل التقارير",
+    "downloadSuccess": "تم تنزيل التقرير بنجاح",
+    "downloadError": "فشل تنزيل التقرير",
+    "searchPlaceholder": "البحث حسب المنظمة أو معرف التقرير...",
+    "statusFilter": "الحالة",
+    "allStatuses": "جميع الحالات",
+    "completed": "مكتمل",
+    "generating": "جاري الإنشاء",
+    "failed": "فشل",
+    "reportsFound": "تقارير تم العثور عليها",
+    "noReports": "لم يتم العثور على تقارير",
+    "reportId": "التقرير",
+    "view": "عرض",
+    "download": "تنزيل",
+    "organizations": "المنظمات",
+    "backToOrganizations": "العودة إلى المنظمات",
+    "exportAsPDF": "تصدير إلى PDF"
+  }
+}

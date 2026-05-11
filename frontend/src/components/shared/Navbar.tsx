@@ -21,6 +21,7 @@ const languages = [
   { code: "zu", name: "isiZulu", flag: "🇿🇦" },
   { code: "de", name: "Deutsch", flag: "🇩🇪" },
   { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "ar", name: "Arabic", flag: "🇸🇦" },
 ];
 
 /** Compact badge shown in the Navbar to indicate offline / syncing / pending state */

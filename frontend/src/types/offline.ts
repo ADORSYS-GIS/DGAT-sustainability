@@ -92,6 +92,8 @@ export interface OfflineResponse extends Response, OfflineEntity {
 // Enhanced CategoryCatalog with offline fields
 export interface OfflineCategoryCatalog extends CategoryCatalog, OfflineEntity {
   question_count?: number;
+  name_translations?: Record<string, string>;
+  description_translations?: Record<string, string>;
 }
 
 // Enhanced Submission with offline fields
