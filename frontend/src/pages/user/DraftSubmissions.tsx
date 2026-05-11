@@ -26,6 +26,7 @@ import {
 import type { Submission_content_responses } from "@/openapi-rq/requests/types.gen";
 import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
+import type { OfflineCategoryCatalog } from "@/types/offline";
 
 // Locally extend the type to include question_category and question_text
 interface SubmissionResponseWithCategory extends Submission_content_responses {
@@ -74,6 +75,48 @@ export default function DraftSubmissions() {
   // Handle both possible response structures
   const submissions = (draftSubmissions?.draft_submissions || []) as unknown as DraftSubmission[];
 
+  const categoryCatalogMap = React.useMemo(() => {
+    if (!categoriesData) return new Map<string, OfflineCategoryCatalog>();
+    const map = new Map<string, OfflineCategoryCatalog>();
+    categoriesData.forEach(c => {
+      map.set(c.category_catalog_id, c as OfflineCategoryCatalog);
+    });
+    return map;
+  }, [categoriesData]);
+
+  const categoryNameToIdMap = React.useMemo(() => {
+    if (!categoriesData) return new Map<string, string>();
+    const map = new Map<string, string>();
+    categoriesData.forEach(c => {
+      map.set(c.name.toLowerCase(), c.category_catalog_id);
+      const translations = (c as any).name_translations as Record<string, string> | undefined;
+      if (translations) {
+        Object.values(translations).forEach(name => {
+          if (name) map.set(name.toLowerCase(), c.category_catalog_id);
+        });
+      }
+    });
+    return map;
+  }, [categoriesData]);
+
+  const getCategoryDisplayName = (rawNameOrId: string, language: string) => {
+    if (!rawNameOrId || rawNameOrId.toLowerCase() === 'uncategorized' || rawNameOrId.toLowerCase().includes('unknown')) return rawNameOrId;
+    const catalog = categoryCatalogMap.get(rawNameOrId);
+    if (catalog) {
+      const translations = (catalog as any).name_translations as Record<string, string> | undefined;
+      return translations?.[language] || catalog.name;
+    }
+    const id = categoryNameToIdMap.get(rawNameOrId.toLowerCase());
+    if (id) {
+      const byId = categoryCatalogMap.get(id);
+      if (byId) {
+        const translations = (byId as any).name_translations as Record<string, string> | undefined;
+        return translations?.[language] || byId.name;
+      }
+    }
+    return rawNameOrId;
+  };
+
   const qRevToCategoryMap = React.useMemo(() => {
     const catMap = new Map<string, string>();
 
@@ -109,6 +152,20 @@ export default function DraftSubmissions() {
     }
     return catMap;
   }, [questionsData, categoriesData]);
+
+  const questionsTextMap = React.useMemo(() => {
+    if (!questionsData) return new Map<string, Record<string, string>>();
+    const map = new Map<string, Record<string, string>>();
+    questionsData.forEach(q => {
+      if (q.latest_revision) {
+        const revId = q.latest_revision.question_revision_id;
+        const qText = q.latest_revision.text;
+        const textRecord: Record<string, string> = typeof qText === 'string' ? { en: qText } : (qText as Record<string, string>) || {};
+        map.set(revId, textRecord);
+      }
+    });
+    return map;
+  }, [questionsData]);
 
   const assessmentNameMap = React.useMemo(() => {
     const nameMap = new Map<string, string>();
@@ -345,19 +402,52 @@ export default function DraftSubmissions() {
 
   // If viewing a specific submission
   if (selectedSubmission) {
+    const submissionLanguage = (selectedSubmission.content?.assessment?.language as string) || 'en';
+
+    const getQuestionDisplayText = (response: SubmissionResponseWithCategory): string => {
+      // First: if response has a stored question_text, try to see if it matches submission language
+      if (typeof response.question_text === 'string' && response.question_text.trim()) {
+        // If we have the question in questionsTextMap, prefer the submission language version
+        if (response.question_revision_id && questionsTextMap.has(response.question_revision_id)) {
+          const textRecord = questionsTextMap.get(response.question_revision_id)!;
+          const translated = textRecord[submissionLanguage];
+          if (translated && translated.trim()) return translated;
+        }
+        return response.question_text;
+      }
+
+      // Second: look up from questions data by revision ID
+      if (response.question_revision_id && questionsTextMap.has(response.question_revision_id)) {
+        const textRecord = questionsTextMap.get(response.question_revision_id)!;
+        return textRecord[submissionLanguage]
+          || textRecord.en
+          || Object.values(textRecord).find(v => typeof v === 'string') as string
+          || `Question (ID: ${response.question_revision_id})`;
+      }
+
+      // Third: try to parse question field if it's an object
+      if (typeof response.question === 'object' && response.question !== null) {
+        const qObj = response.question as Record<string, string>;
+        return qObj[submissionLanguage] || qObj.en || Object.values(qObj).find(v => typeof v === 'string') as string || `Question`;
+      }
+
+      return `Question`;
+    };
+
     const groupedByCategory: Record<string, SubmissionResponseWithCategory[]> = {};
     if (selectedSubmission.content?.responses) {
       for (const resp of selectedSubmission.content.responses) {
-        let cat = resp.question_category;
+        let rawCat = resp.question_category;
 
         // If it's a completely local draft lacking enrichment, or the backend returned 'Unknown'/'Unknown category'
-        if (!cat || cat.toLowerCase() === 'uncategorized' || cat.toLowerCase().includes('unknown')) {
+        if (!rawCat || rawCat.toLowerCase() === 'uncategorized' || rawCat.toLowerCase().includes('unknown')) {
           if (resp.question_revision_id && qRevToCategoryMap.has(resp.question_revision_id)) {
-            cat = qRevToCategoryMap.get(resp.question_revision_id);
+            rawCat = qRevToCategoryMap.get(resp.question_revision_id);
           }
         }
 
-        cat = cat || 'Uncategorized';
+        rawCat = rawCat || 'Uncategorized';
+        const cat = getCategoryDisplayName(rawCat, submissionLanguage);
         if (!groupedByCategory[cat]) groupedByCategory[cat] = [];
         groupedByCategory[cat].push(resp);
       }
@@ -460,7 +550,7 @@ export default function DraftSubmissions() {
                               <div key={idx} className="relative pl-8 border-l-2 border-blue-200 last:pb-0 pb-8 last:border-l-transparent">
                                 <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-sm"></div>
                                 <h3 className="font-semibold text-gray-900 mb-4 text-lg leading-relaxed">
-                                  {response.question_text || `Question ${idx + 1}`}
+                                  {getQuestionDisplayText(response) || `Question ${idx + 1}`}
                                 </h3>
                                 <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100">
                                   {renderReadOnlyAnswer(response)}
