@@ -10,15 +10,18 @@ export const useOfflineCategoryCatalogs = () => {
   return useQuery({
     queryKey: ["category-catalogs"],
     queryFn: async () => {
-      const result = await apiInterceptor.interceptGet(
-        () => CategoryCatalogService.getCategoryCatalog(),
-        async () => {
-          const catalogs = await offlineDB.getAllCategoryCatalogs();
-          return { category_catalogs: catalogs };
-        },
-        'category_catalogs'
-      );
-      return result.category_catalogs as OfflineCategoryCatalog[];
+      try {
+        // Trigger a background sync attempt, but keep IndexedDB as the source of truth
+        apiInterceptor.interceptGet(
+          () => CategoryCatalogService.getCategoryCatalog(),
+          async () => null,
+          'category_catalogs'
+        );
+      } catch (error) {
+        console.log("Could not sync category catalogs, using local data.", error);
+      }
+
+      return await offlineDB.getAllCategoryCatalogs();
     },
     staleTime: 60 * 60 * 1000, // 1 hour (reference data)
     gcTime: 24 * 60 * 60 * 1000, // 24 hours
@@ -145,6 +148,21 @@ export const useOfflineCategoryCatalogsMutation = () => {
         );
       }
       return { categoryCatalogId };
+    },
+    onMutate: async (categoryCatalogId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['category-catalogs'] });
+      const previousCategories = queryClient.getQueryData<OfflineCategoryCatalog[]>(['category-catalogs']);
+
+      queryClient.setQueryData<OfflineCategoryCatalog[]>(['category-catalogs'], (old) =>
+        old?.filter((c) => c.category_catalog_id !== categoryCatalogId)
+      );
+
+      return { previousCategories };
+    },
+    onError: (_err, _categoryCatalogId, context) => {
+      if (context?.previousCategories) {
+        queryClient.setQueryData(['category-catalogs'], context.previousCategories);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['category-catalogs'] });
