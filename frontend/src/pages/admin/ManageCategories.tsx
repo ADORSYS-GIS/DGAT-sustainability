@@ -15,6 +15,7 @@ import {
 } from "@/hooks/useOfflineSync";
 import { useOfflineCategoryCatalogs, useOfflineCategoryCatalogsMutation } from "@/hooks/useCategoryCatalogs";
 import { OfflineCategoryCatalog } from "@/types/offline";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,8 +54,11 @@ export const ManageCategories: React.FC = () => {
       {} as Record<string, string>,
     ),
   });
+  const [enabledTranslationLanguages, setEnabledTranslationLanguages] = useState<string[]>([]);
   // State for add/edit dialog weight error
   const [showDialogWeightError, setShowDialogWeightError] = useState(false);
+
+  const nonEnglishLanguages = LANGUAGES.filter((lang) => lang.code !== "en");
 
   // Use offline hooks for all data fetching
   const { data: categoriesData, isLoading, error, refetch } = useOfflineCategoryCatalogs();
@@ -165,6 +169,16 @@ export const ManageCategories: React.FC = () => {
     setEditingCategory(category);
     const nameTranslations = (category as any).name_translations as Record<string, string> | undefined;
     const descriptionTranslations = (category as any).description_translations as Record<string, string> | undefined;
+
+    const enabled = nonEnglishLanguages
+      .map((l) => l.code)
+      .filter((code) => {
+        const name = nameTranslations?.[code];
+        const desc = descriptionTranslations?.[code];
+        return (typeof name === "string" && name.trim().length > 0) || (typeof desc === "string" && desc.trim().length > 0);
+      });
+    setEnabledTranslationLanguages(enabled);
+
     setFormData({
       name: category.name,
       description: category.description ?? "",
@@ -264,6 +278,7 @@ export const ManageCategories: React.FC = () => {
                     className="bg-dgrv-blue hover:bg-blue-700"
                     onClick={() => {
                       setEditingCategory(null);
+                      setEnabledTranslationLanguages([]);
                       setFormData({
                         name: "",
                         description: "",
@@ -305,31 +320,6 @@ export const ManageCategories: React.FC = () => {
                         required
                       />
                     </div>
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium text-gray-700">
-                        {t('manageCategories.categoryName')} ({t('manageQuestions.additionalLanguagesOptional', { defaultValue: 'Additional Languages (Optional)' })})
-                      </Label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
-                          <div key={lang.code} className="space-y-2">
-                            <Label className="text-xs font-medium text-gray-600 flex items-center space-x-1">
-                              <span>{lang.flag}</span>
-                              <span>{lang.name}</span>
-                            </Label>
-                            <Input
-                              value={formData.name_translations[lang.code] || ""}
-                              onChange={(e) =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  name_translations: { ...prev.name_translations, [lang.code]: e.target.value },
-                                }))
-                              }
-                              placeholder={t('manageCategories.categoryNamePlaceholder')}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                     <div>
                       <Label htmlFor="description">{t('manageCategories.categoryDescription')}</Label>
                       <Input
@@ -346,28 +336,104 @@ export const ManageCategories: React.FC = () => {
                     </div>
                     <div className="space-y-3">
                       <Label className="text-sm font-medium text-gray-700">
-                        {t('manageCategories.categoryDescription')} ({t('manageQuestions.additionalLanguagesOptional', { defaultValue: 'Additional Languages (Optional)' })})
+                        {t('manageQuestions.additionalLanguagesOptional', { defaultValue: 'Additional Languages (Optional)' })}
                       </Label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
-                          <div key={lang.code} className="space-y-2">
-                            <Label className="text-xs font-medium text-gray-600 flex items-center space-x-1">
-                              <span>{lang.flag}</span>
-                              <span>{lang.name}</span>
-                            </Label>
-                            <Input
-                              value={formData.description_translations[lang.code] || ""}
-                              onChange={(e) =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  description_translations: { ...prev.description_translations, [lang.code]: e.target.value },
-                                }))
-                              }
-                              placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
-                            />
-                          </div>
-                        ))}
+
+                      <div className="flex flex-col gap-2">
+                        <Label className="text-xs font-medium text-gray-600">
+                          {t('manageCategories.addTranslation', { defaultValue: 'Add translation' })}
+                        </Label>
+                        <select
+                          className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                          value={""}
+                          onChange={(e) => {
+                            const code = e.target.value;
+                            if (!code) return;
+                            setEnabledTranslationLanguages((prev) => (prev.includes(code) ? prev : [...prev, code]));
+                          }}
+                        >
+                          <option value="">{t('manageCategories.selectLanguage', { defaultValue: 'Select language' })}</option>
+                          {nonEnglishLanguages
+                            .filter((l) => !enabledTranslationLanguages.includes(l.code))
+                            .map((lang) => (
+                              <option key={lang.code} value={lang.code}>
+                                {lang.name}
+                              </option>
+                            ))}
+                        </select>
                       </div>
+
+                      {enabledTranslationLanguages.length > 0 ? (
+                        <Accordion type="multiple" className="w-full">
+                          {enabledTranslationLanguages
+                            .map((code) => nonEnglishLanguages.find((l) => l.code === code))
+                            .filter(Boolean)
+                            .map((lang) => (
+                              <AccordionItem key={lang!.code} value={lang!.code}>
+                                <AccordionTrigger className="py-2 text-sm">
+                                  <span className="flex items-center gap-2">
+                                    <span>{lang!.flag}</span>
+                                    <span>{lang!.name}</span>
+                                  </span>
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-2">
+                                  <div className="space-y-3">
+                                    <div className="space-y-2">
+                                      <Label className="text-xs font-medium text-gray-600">
+                                        {t('manageCategories.categoryName')}
+                                      </Label>
+                                      <Input
+                                        value={formData.name_translations[lang!.code] || ""}
+                                        onChange={(e) =>
+                                          setFormData((prev) => ({
+                                            ...prev,
+                                            name_translations: { ...prev.name_translations, [lang!.code]: e.target.value },
+                                          }))
+                                        }
+                                        placeholder={t('manageCategories.categoryNamePlaceholder')}
+                                      />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <Label className="text-xs font-medium text-gray-600">
+                                        {t('manageCategories.categoryDescription')}
+                                      </Label>
+                                      <Input
+                                        value={formData.description_translations[lang!.code] || ""}
+                                        onChange={(e) =>
+                                          setFormData((prev) => ({
+                                            ...prev,
+                                            description_translations: { ...prev.description_translations, [lang!.code]: e.target.value },
+                                          }))
+                                        }
+                                        placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const code = lang!.code;
+                                          setEnabledTranslationLanguages((prev) => prev.filter((c) => c !== code));
+                                          setFormData((prev) => ({
+                                            ...prev,
+                                            name_translations: { ...prev.name_translations, [code]: "" },
+                                            description_translations: { ...prev.description_translations, [code]: "" },
+                                          }));
+                                        }}
+                                      >
+                                        {t('manageCategories.removeTranslation', { defaultValue: 'Remove translation' })}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                        </Accordion>
+                      ) : null}
                     </div>
                     <Button
                       type="submit"
