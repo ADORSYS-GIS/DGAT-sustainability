@@ -194,7 +194,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
       onClose();
     } catch (error) {
       console.error('Failed to assign or update categories:', error);
-      alert('An error occurred while saving. Please try again.');
+      alert(t('saveError'));
     }
   };
 

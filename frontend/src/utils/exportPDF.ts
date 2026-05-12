@@ -4,25 +4,26 @@ import { drawKanbanBoard } from "./drawKanban";
 import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 import { offlineDB } from "@/services/indexeddb";
 import type { OfflineImage } from "@/types/offline";
+import type { TFunction } from "i18next";
 
 const PAGE_MARGIN = 14;
 const dgrvBlue = [30, 58, 138];
 
-export const addHeader = (doc: jsPDF) => {
+export const addHeader = (doc: jsPDF, t: TFunction) => {
   const pageCount = doc.getNumberOfPages();
   doc.setFontSize(10);
   doc.setTextColor(100);
-  const headerText = "Sustainability Report";
-  const pageText = `Page ${pageCount}`;
+  const headerText = t('export.sustainabilityReport');
+  const pageText = t('export.page', { count: pageCount });
   doc.text(headerText, PAGE_MARGIN, 10);
   doc.text(pageText, doc.internal.pageSize.width - PAGE_MARGIN - doc.getTextWidth(pageText), 10);
   doc.setDrawColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
   doc.line(PAGE_MARGIN, 12, doc.internal.pageSize.width - PAGE_MARGIN, 12);
 };
 
-const addNewPageWithHeader = (doc: jsPDF) => {
+const addNewPageWithHeader = (doc: jsPDF, t: TFunction) => {
   doc.addPage();
-  addHeader(doc);
+  addHeader(doc, t);
 };
 
 async function loadImageAsBase64(url: string): Promise<string | undefined> {
@@ -87,8 +88,32 @@ export async function exportAllAssessmentsPDF(
   radarChartDataUrl?: string,
   recommendationChartDataUrl?: string,
   organizationName?: string,
-  assessmentName?: string
+  assessmentName?: string,
+  t?: TFunction
 ) {
+  // Default translation function if not provided
+  const translate = t || ((key: string, options?: Record<string, unknown>) => {
+    // Fallback to English
+    const defaults: Record<string, string> = {
+      'export.sustainabilityReport': 'Sustainability Report',
+      'export.page': 'Page',
+      'export.dgrv': 'DGRV',
+      'export.sustainability': 'Sustainability',
+      'export.sustainabilityReportTitle': 'SUSTAINABILITY REPORT',
+      'export.organisation': 'Organisation',
+      'export.assessment': 'Assessment',
+      'export.allAssessments': 'All Assessments',
+      'export.reportIntro': 'This document presents the findings of the sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions.',
+      'export.sustainabilityDimensionsOverview': 'Sustainability Dimensions Overview',
+      'export.sustainabilityDimensionsIntro': 'The following chart visualizes the performance across key sustainability dimensions, providing a high-level overview of strengths and areas for improvement.',
+      'export.recommendationStatusOverview': 'Recommendation Status Overview',
+      'export.recommendationStatusIntro': 'This chart summarizes the current status of all recommendations, illustrating the progress made in implementing the suggested actions.',
+      'export.actionPlanKanbanBoard': 'Action Plan Kanban Board',
+      'export.kanbanBoardIntro': 'This Kanban board provides a visual tool to track the progress of each recommendation. Tasks are organized by their current status, from \'To Do\' to \'Approved\', facilitating effective project management.'
+    };
+    return defaults[key] || key;
+  });
+  
   const doc = new jsPDF({ orientation: "landscape" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -122,9 +147,9 @@ export async function exportAllAssessmentsPDF(
       ctx.fillStyle = 'white';
       ctx.font = 'bold 24px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('DGRV', 75, 75);
+      ctx.fillText(translate('export.dgrv'), 75, 75);
       ctx.font = '16px Arial';
-      ctx.fillText('Sustainability', 75, 110);
+      ctx.fillText(translate('export.sustainability'), 75, 110);
     }
     const base64 = canvas.toDataURL('image/png');
     const imgWidth = 150; const imgHeight = 150;
@@ -135,7 +160,7 @@ export async function exportAllAssessmentsPDF(
   doc.setFontSize(36);
   doc.setTextColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
   doc.setFont("helvetica", "bold");
-  doc.text(`SUSTAINABILITY REPORT`, pageWidth / 2, 160, { align: 'center' });
+  doc.text(translate('export.sustainabilityReportTitle'), pageWidth / 2, 160, { align: 'center' });
 
   let coverY = 172;
 
@@ -143,74 +168,73 @@ export async function exportAllAssessmentsPDF(
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 58, 138); // dgrvBlue
-    doc.text(`Organisation: ${organizationName}`, pageWidth / 2, coverY, { align: 'center' });
+    doc.text(`${translate('export.organisation')}: ${organizationName}`, pageWidth / 2, coverY, { align: 'center' });
     coverY += 14;
   }
 
-  if (assessmentName && assessmentName !== "All Assessments") {
+  if (assessmentName && assessmentName !== translate('export.allAssessments')) {
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(22, 163, 74); // green-600
-    doc.text(`Assessment: ${assessmentName}`, pageWidth / 2, coverY, { align: 'center' });
+    doc.text(`${translate('export.assessment')}: ${assessmentName}`, pageWidth / 2, coverY, { align: 'center' });
     coverY += 12;
   }
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(0, 0, 0);
-  const introText = `This document presents the findings of the sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions.`;
+  const introText = translate('export.reportIntro');
   const splitText = doc.splitTextToSize(introText, pageWidth - 100);
   doc.text(splitText, pageWidth / 2, coverY + 6, { align: 'center' });
 
   // --- Radar Chart Section ---
   if (radarChartDataUrl) {
-    addNewPageWithHeader(doc);
+    addNewPageWithHeader(doc, translate);
     doc.setFontSize(18);
     doc.setTextColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
-    doc.text("Sustainability Dimensions Overview", PAGE_MARGIN, 28); // Moved down from 24 to 28
+    doc.text(translate('export.sustainabilityDimensionsOverview'), PAGE_MARGIN, 28);
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    const radarIntro = "The following chart visualizes the performance across key sustainability dimensions, providing a high-level overview of strengths and areas for improvement.";
-    doc.text(doc.splitTextToSize(radarIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 36); // Moved down from 32 to 36
+    const radarIntro = translate('export.sustainabilityDimensionsIntro');
+    doc.text(doc.splitTextToSize(radarIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 36);
 
-    const chartHeight = 150; // Maximize height within page
-    const chartWidth = 400; // Maintain aspect ratio
+    const chartHeight = 150;
+    const chartWidth = 400;
     const x = (pageWidth - chartWidth) / 2;
-    doc.addImage(radarChartDataUrl, "PNG", x, 51, chartWidth, chartHeight); // Moved down from 47 to 51
+    doc.addImage(radarChartDataUrl, "PNG", x, 51, chartWidth, chartHeight);
   }
 
   // --- Recommendation Status Chart Section ---
   if (recommendationChartDataUrl) {
-    addNewPageWithHeader(doc);
+    addNewPageWithHeader(doc, translate);
     doc.setFontSize(18);
     doc.setTextColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
-    doc.text("Recommendation Status Overview", PAGE_MARGIN, 28); // Moved down from 24 to 28
+    doc.text(translate('export.recommendationStatusOverview'), PAGE_MARGIN, 28);
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    const recIntro = "This chart summarizes the current status of all recommendations, illustrating the progress made in implementing the suggested actions.";
-    doc.text(doc.splitTextToSize(recIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 36); // Moved down from 32 to 36
+    const recIntro = translate('export.recommendationStatusIntro');
+    doc.text(doc.splitTextToSize(recIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 36);
 
-    const chartHeight = 150; // Maximize height within page
-    const chartWidth = chartHeight * 1.5; // Maintain aspect ratio
+    const chartHeight = 150;
+    const chartWidth = chartHeight * 1.5;
     const x = (pageWidth - chartWidth) / 2;
-    doc.addImage(recommendationChartDataUrl, "PNG", x, 51, chartWidth, chartHeight); // Moved down from 47 to 51
+    doc.addImage(recommendationChartDataUrl, "PNG", x, 51, chartWidth, chartHeight);
   }
 
   // --- Detailed Assessments Table Section ---
-  // drawAssessmentsTable now handles its own section start and page management.
-  drawAssessmentsTable(doc, submissions, recommendations, organizationName, assessmentName);
+  drawAssessmentsTable(doc, submissions, recommendations, organizationName, assessmentName, translate);
 
   // --- Action Plan Kanban Board Section ---
-  addNewPageWithHeader(doc);
+  addNewPageWithHeader(doc, translate);
   doc.setFontSize(18);
   doc.setTextColor(dgrvBlue[0], dgrvBlue[1], dgrvBlue[2]);
-  doc.text("Action Plan Kanban Board", PAGE_MARGIN, 28); // Moved down from 24 to 28
+  doc.text(translate('export.actionPlanKanbanBoard'), PAGE_MARGIN, 28);
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
-  const kanbanIntro = "This Kanban board provides a visual tool to track the progress of each recommendation. Tasks are organized by their current status, from 'To Do' to 'Approved', facilitating effective project management.";
-  doc.text(doc.splitTextToSize(kanbanIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 36); // Moved down from 32 to 36
+  const kanbanIntro = translate('export.kanbanBoardIntro');
+  doc.text(doc.splitTextToSize(kanbanIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 36);
 
-  drawKanbanBoard(doc, recommendations, () => addNewPageWithHeader(doc));
+  drawKanbanBoard(doc, recommendations, () => addNewPageWithHeader(doc, translate));
 
   // --- Final Save ---
   doc.save("sustainability-report.pdf");
