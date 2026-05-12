@@ -75,7 +75,8 @@ interface CategoryRecommendation {
 
 
 const ReviewAssessments: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedSubmission, setSelectedSubmission] = useState<OfflineSubmission | null>(null);
@@ -174,7 +175,7 @@ const ReviewAssessments: React.FC = () => {
 
   // Get responses from the selected submission (they're already included in the submission data)
   const submissionResponses = selectedSubmission?.content?.responses || [];
-  const submissionLanguage = (selectedSubmission?.content?.assessment?.language as string) || 'en';
+  const submissionLanguage = (selectedSubmission?.content?.assessment?.language as string) || currentLanguage || 'en';
 
 
   const addCategoryRecommendation = (category: string, recommendation: string) => {

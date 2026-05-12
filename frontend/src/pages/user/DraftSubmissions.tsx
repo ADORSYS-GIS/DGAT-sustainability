@@ -33,6 +33,7 @@ interface SubmissionResponseWithCategory extends Submission_content_responses {
   question_category?: string;
   question_text?: string;
   question_revision_id?: string;
+  questionRevisionId?: string;
 }
 
 interface DraftSubmission {
@@ -54,7 +55,8 @@ interface DraftSubmission {
 }
 
 export default function DraftSubmissions() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
   const navigate = useNavigate();
   const { data: draftSubmissions, isLoading, error, refetch } = useOfflineDraftSubmissions();
   const { data: questionsData } = useOfflineQuestions();
@@ -402,14 +404,24 @@ export default function DraftSubmissions() {
 
   // If viewing a specific submission
   if (selectedSubmission) {
-    const submissionLanguage = (selectedSubmission.content?.assessment?.language as string) || 'en';
+    const submissionLanguage = (selectedSubmission.content?.assessment?.language as string) || currentLanguage || 'en';
+
+    const getRevisionId = (response: SubmissionResponseWithCategory): string | undefined => {
+      return (
+        response.question_revision_id ||
+        response.questionRevisionId ||
+        (response as any)?.question_revision?.question_revision_id ||
+        (response as any)?.question_revision?.id
+      );
+    };
 
     const getQuestionDisplayText = (response: SubmissionResponseWithCategory): string => {
+      const revisionId = getRevisionId(response);
       // First: if response has a stored question_text, try to see if it matches submission language
       if (typeof response.question_text === 'string' && response.question_text.trim()) {
         // If we have the question in questionsTextMap, prefer the submission language version
-        if (response.question_revision_id && questionsTextMap.has(response.question_revision_id)) {
-          const textRecord = questionsTextMap.get(response.question_revision_id)!;
+        if (revisionId && questionsTextMap.has(revisionId)) {
+          const textRecord = questionsTextMap.get(revisionId)!;
           const translated = textRecord[submissionLanguage];
           if (translated && translated.trim()) return translated;
         }
@@ -417,12 +429,12 @@ export default function DraftSubmissions() {
       }
 
       // Second: look up from questions data by revision ID
-      if (response.question_revision_id && questionsTextMap.has(response.question_revision_id)) {
-        const textRecord = questionsTextMap.get(response.question_revision_id)!;
+      if (revisionId && questionsTextMap.has(revisionId)) {
+        const textRecord = questionsTextMap.get(revisionId)!;
         return textRecord[submissionLanguage]
           || textRecord.en
           || Object.values(textRecord).find(v => typeof v === 'string') as string
-          || `Question (ID: ${response.question_revision_id})`;
+          || `Question (ID: ${revisionId})`;
       }
 
       // Third: try to parse question field if it's an object
@@ -438,11 +450,12 @@ export default function DraftSubmissions() {
     if (selectedSubmission.content?.responses) {
       for (const resp of selectedSubmission.content.responses) {
         let rawCat = resp.question_category;
+        const revisionId = getRevisionId(resp);
 
         // If it's a completely local draft lacking enrichment, or the backend returned 'Unknown'/'Unknown category'
         if (!rawCat || rawCat.toLowerCase() === 'uncategorized' || rawCat.toLowerCase().includes('unknown')) {
-          if (resp.question_revision_id && qRevToCategoryMap.has(resp.question_revision_id)) {
-            rawCat = qRevToCategoryMap.get(resp.question_revision_id);
+          if (revisionId && qRevToCategoryMap.has(revisionId)) {
+            rawCat = qRevToCategoryMap.get(revisionId);
           }
         }
 
