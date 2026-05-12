@@ -415,35 +415,34 @@ export default function DraftSubmissions() {
       );
     };
 
+    const getLocalizedQuestionText = (textRecord?: Record<string, string>): string | undefined => {
+      if (!textRecord) return undefined;
+      const translated = textRecord[submissionLanguage];
+      if (typeof translated === 'string' && translated.trim()) return translated;
+      const english = textRecord.en;
+      if (typeof english === 'string' && english.trim()) return english;
+      return Object.values(textRecord).find((v) => typeof v === 'string' && v.trim());
+    };
+
     const getQuestionDisplayText = (response: SubmissionResponseWithCategory): string => {
       const revisionId = getRevisionId(response);
-      // First: if response has a stored question_text, try to see if it matches submission language
+
+      // Prefer the question revision source because cached response.question_text can be in a different UI language.
+      if (revisionId && questionsTextMap.has(revisionId)) {
+        const localizedText = getLocalizedQuestionText(questionsTextMap.get(revisionId));
+        if (localizedText) return localizedText;
+      }
+
+      if (typeof response.question === 'object' && response.question !== null) {
+        const localizedText = getLocalizedQuestionText(response.question as Record<string, string>);
+        if (localizedText) return localizedText;
+      }
+
       if (typeof response.question_text === 'string' && response.question_text.trim()) {
-        // If we have the question in questionsTextMap, prefer the submission language version
-        if (revisionId && questionsTextMap.has(revisionId)) {
-          const textRecord = questionsTextMap.get(revisionId)!;
-          const translated = textRecord[submissionLanguage];
-          if (translated && translated.trim()) return translated;
-        }
         return response.question_text;
       }
 
-      // Second: look up from questions data by revision ID
-      if (revisionId && questionsTextMap.has(revisionId)) {
-        const textRecord = questionsTextMap.get(revisionId)!;
-        return textRecord[submissionLanguage]
-          || textRecord.en
-          || Object.values(textRecord).find(v => typeof v === 'string') as string
-          || `Question (ID: ${revisionId})`;
-      }
-
-      // Third: try to parse question field if it's an object
-      if (typeof response.question === 'object' && response.question !== null) {
-        const qObj = response.question as Record<string, string>;
-        return qObj[submissionLanguage] || qObj.en || Object.values(qObj).find(v => typeof v === 'string') as string || `Question`;
-      }
-
-      return `Question`;
+      return revisionId ? `Question (ID: ${revisionId})` : `Question`;
     };
 
     const groupedByCategory: Record<string, SubmissionResponseWithCategory[]> = {};

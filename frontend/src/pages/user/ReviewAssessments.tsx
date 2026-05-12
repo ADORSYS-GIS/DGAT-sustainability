@@ -177,6 +177,15 @@ const ReviewAssessments: React.FC = () => {
   const submissionResponses = selectedSubmission?.content?.responses || [];
   const submissionLanguage = (selectedSubmission?.content?.assessment?.language as string) || currentLanguage || 'en';
 
+  const getLocalizedQuestionText = (textRecord?: Record<string, string>): string | undefined => {
+    if (!textRecord) return undefined;
+    const translated = textRecord[submissionLanguage];
+    if (typeof translated === 'string' && translated.trim()) return translated;
+    const english = textRecord.en;
+    if (typeof english === 'string' && english.trim()) return english;
+    return Object.values(textRecord).find((v) => typeof v === 'string' && v.trim());
+  };
+
 
   const addCategoryRecommendation = (category: string, recommendation: string) => {
     const newRecommendation: CategoryRecommendation = {
@@ -422,17 +431,17 @@ const ReviewAssessments: React.FC = () => {
 
                         // Improved question text retrieval with better fallbacks
                         const questionText = (() => {
-                          // First try: stored question_text on the response itself (from offline response)
-                          if (typeof customResponse.question_text === 'string' && customResponse.question_text.trim()) {
-                            return customResponse.question_text;
+                          // First try: Get from questionDetails using submission language.
+                          // Cached response.question_text can be in a different UI language.
+                          if (questionDetails?.text) {
+                            const localizedText = getLocalizedQuestionText(questionDetails.text);
+                            if (localizedText) return localizedText;
                           }
 
-                          // Second try: Get from questionDetails using submission language
-                          if (questionDetails?.text) {
-                            return questionDetails.text[submissionLanguage]
-                              || questionDetails.text.en
-                              || Object.values(questionDetails.text).find(v => typeof v === 'string') as string
-                              || '';
+                          // Second try: Use the multilingual question object from the response.
+                          if (typeof customResponse.question === 'object' && customResponse.question !== null) {
+                            const localizedText = getLocalizedQuestionText(customResponse.question);
+                            if (localizedText) return localizedText;
                           }
 
                           // Third try: Use the question text from response (enhanced by backend)
@@ -440,19 +449,22 @@ const ReviewAssessments: React.FC = () => {
                             return questionTextStr;
                           }
 
-                          // Fourth try: Look up by question text in questions text map
+                          // Fourth try: stored question_text on the response itself (from offline response)
+                          if (typeof customResponse.question_text === 'string' && customResponse.question_text.trim()) {
+                            return customResponse.question_text;
+                          }
+
+                          // Fifth try: Look up by question text in questions text map
                           if (questionTextStr && questionsTextMap.has(questionTextStr)) {
                             return questionTextStr;
                           }
 
-                          // Fifth try: If we have a revision ID, try to find it in questionsMap
+                          // Sixth try: If we have a revision ID, try to find it in questionsMap
                           if (customResponse.question_revision_id && questionsMap.has(customResponse.question_revision_id)) {
                             const details = questionsMap.get(customResponse.question_revision_id);
                             if (details?.text) {
-                              return details.text[submissionLanguage]
-                                || details.text.en
-                                || Object.values(details.text).find(v => typeof v === 'string') as string
-                                || '';
+                              const localizedText = getLocalizedQuestionText(details.text);
+                              if (localizedText) return localizedText;
                             }
                           }
 
