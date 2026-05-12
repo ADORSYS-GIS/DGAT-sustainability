@@ -42,10 +42,14 @@ export const Assessments: React.FC = () => {
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
+  const [optimisticallyDeletedIds, setOptimisticallyDeletedIds] = useState<Set<string>>(new Set());
 
   // Fetch all submissions for the current user/org
   const { data: submissionsData, isLoading: submissionsLoading, refetch } = useOfflineSubmissions();
-  const submissions = submissionsData?.submissions || [];
+  const submissions = React.useMemo(
+    () => (submissionsData?.submissions || []).filter((submission) => !optimisticallyDeletedIds.has(submission.submission_id)),
+    [submissionsData?.submissions, optimisticallyDeletedIds]
+  );
 
 
   // Delete submission mutation
@@ -82,6 +86,7 @@ export const Assessments: React.FC = () => {
 
   // Handle delete submission
   const handleDeleteSubmission = async (submissionId: string) => {
+    setOptimisticallyDeletedIds((prev) => new Set(prev).add(submissionId));
     try {
       await deleteSubmission(submissionId, {
         onSuccess: () => {
@@ -89,11 +94,21 @@ export const Assessments: React.FC = () => {
           refetch(); // Refresh the list
         },
         onError: (error) => {
+          setOptimisticallyDeletedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(submissionId);
+            return next;
+          });
           toast.error(t('submission.deleteError', { defaultValue: 'Failed to delete submission' }));
           console.error('Delete submission error:', error);
         }
       });
     } catch (error) {
+      setOptimisticallyDeletedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(submissionId);
+        return next;
+      });
       console.error('Delete submission error:', error);
     }
   };

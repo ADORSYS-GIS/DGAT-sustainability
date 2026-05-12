@@ -18,6 +18,7 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 import { normalizeCategoryName } from "@/utils/categoryUtils";
+import type { OfflineCategoryCatalog } from "@/types/offline";
 
 // Locally extend the type to include question_category
 interface SubmissionResponseWithCategory extends Submission_content_responses {
@@ -46,7 +47,7 @@ export const SubmissionView: React.FC = () => {
   const handleDelete = async () => {
     if (submissionId) {
       await deleteSubmissionMutation(submissionId);
-      navigate("/user/assessments"); // Redirect after deletion
+      navigate("/assessments");
     }
     setIsDeleteDialogOpen(false);
   };
@@ -55,6 +56,53 @@ export const SubmissionView: React.FC = () => {
 
   const { data: questionsData } = useOfflineQuestions();
   const { data: categoriesData } = useOfflineCategoryCatalogs();
+
+  const categoryCatalogMap = React.useMemo(() => {
+    if (!categoriesData) return new Map<string, OfflineCategoryCatalog>();
+    const map = new Map<string, OfflineCategoryCatalog>();
+    categoriesData.forEach((category) => {
+      map.set(category.category_catalog_id, category as OfflineCategoryCatalog);
+    });
+    return map;
+  }, [categoriesData]);
+
+  const categoryNameToIdMap = React.useMemo(() => {
+    if (!categoriesData) return new Map<string, string>();
+    const map = new Map<string, string>();
+    categoriesData.forEach((category) => {
+      map.set(category.name.toLowerCase(), category.category_catalog_id);
+      const translations = (category as any).name_translations as Record<string, string> | undefined;
+      if (translations) {
+        Object.values(translations).forEach((name) => {
+          if (name) map.set(name.toLowerCase(), category.category_catalog_id);
+        });
+      }
+    });
+    return map;
+  }, [categoriesData]);
+
+  const getCategoryDisplayName = React.useCallback((rawNameOrId?: string): string => {
+    if (!rawNameOrId) return "Uncategorized";
+    const normalizedRaw = rawNameOrId.trim();
+    if (!normalizedRaw || normalizedRaw.toLowerCase() === "uncategorized" || normalizedRaw.toLowerCase().includes("unknown")) {
+      return normalizedRaw || "Uncategorized";
+    }
+
+    const byId = categoryCatalogMap.get(normalizedRaw);
+    if (byId) {
+      const translations = (byId as any).name_translations as Record<string, string> | undefined;
+      return translations?.[currentLanguage] || byId.name;
+    }
+
+    const id = categoryNameToIdMap.get(normalizedRaw.toLowerCase());
+    const byName = id ? categoryCatalogMap.get(id) : undefined;
+    if (byName) {
+      const translations = (byName as any).name_translations as Record<string, string> | undefined;
+      return translations?.[currentLanguage] || byName.name;
+    }
+
+    return normalizedRaw;
+  }, [categoryCatalogMap, categoryNameToIdMap, currentLanguage]);
 
   const [questionsMap, questionsTextMap, qRevToCategoryMap, questionTranslationsByRevision, questionsByAnyTextMap] = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -165,7 +213,7 @@ export const SubmissionView: React.FC = () => {
           }
         }
 
-        cat = normalizeCategoryName(cat);
+        cat = normalizeCategoryName(getCategoryDisplayName(cat));
 
         if (!groups[cat]) groups[cat] = [];
 
@@ -188,7 +236,7 @@ export const SubmissionView: React.FC = () => {
       }
     }
     return groups;
-  }, [responses, questionsMap, questionsTextMap, qRevToCategoryMap]);
+  }, [responses, questionsMap, questionsTextMap, qRevToCategoryMap, getCategoryDisplayName]);
   const categories = Object.keys(groupedByCategory);
 
   // Helper to parse and display the answer
