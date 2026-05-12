@@ -93,7 +93,7 @@ export const AdminGuide: React.FC = () => {
               <div className={`w-2 h-2 rounded-full ${
                 isOnline ? 'bg-green-500' : 'bg-yellow-500'
               }`}></div>
-              <span>{isOnline ? 'Online' : 'Offline'}</span>
+              <span>{isOnline ? t('connection.onlineStatus') : t('connection.offlineStatus')}</span>
             </div>
           </div>
 

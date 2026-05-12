@@ -469,7 +469,7 @@ export const Dashboard: React.FC = () => {
       radarChartDataUrl,
       recommendationChartDataUrl,
       orgName,
-      latestReport?.assessment_name || "Assessment"
+      latestReport?.assessment_name || t('assessment')
     );
   };
 

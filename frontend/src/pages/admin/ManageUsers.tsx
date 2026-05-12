@@ -314,7 +314,7 @@ export const ManageUsers: React.FC = () => {
   const formatRole = (role: string) => {
     switch (role) {
       case "admin":
-        return "Admin";
+        return t('manageUsers.admin', { defaultValue: 'Admin' });
       case "org_admin":
         return t('manageUsers.orgAdmin');
       case "Org_User":
@@ -566,7 +566,7 @@ export const ManageUsers: React.FC = () => {
                     onClick={() => setShowInvitationDialog(true)}
                     className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 bg-blue-50"
                   >
-                    Create First User
+                    {t('manageUsers.addFirstUser')}
                   </Button>
                 </CardContent>
               </Card>

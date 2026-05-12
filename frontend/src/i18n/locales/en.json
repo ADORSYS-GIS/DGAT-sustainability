@@ -1,5 +1,41 @@
 {
   "home": "Dashboard",
+  "loadingPortal": "Loading Sustainability Portal...",
+  "loadingQuestions": "Loading questions...",
+  "questionsCount": "{{count}} Question",
+  "questionsCount_plural": "{{count}} Questions",
+  "recommendationsCount": "{{count}} Recommendation",
+  "recommendationsCount_plural": "{{count}} Recommendations",
+  "created": "Created",
+  "addingToCategory": "Adding to category:",
+  "englishQuestion": "English Question",
+  "account": "Account",
+  "brandName": "DGRV Sustainability Platform",
+  "syncNow": "Sync Now",
+  "approve": "Approve",
+  "createFirstUser": "Create First User",
+  "createFirstOrganization": "Create First Organization",
+  "createFirstCategory": "Create First Category",
+  "recommendationsPerCategory": "Recommendations per Category",
+  "unknownAssessment": "Unknown Assessment",
+  "unknown": "Unknown",
+  "unknownError": "Unknown error",
+  "uncategorized": "Uncategorized",
+  "sustainability": "Sustainability",
+  "admin": "Admin",
+  "orgAdmin": "Org Admin",
+  "orgUser": "Org User",
+  "errorOccurred": "An error occurred",
+  "tryAgain": "Please try again.",
+  "saveError": "An error occurred while saving. Please try again.",
+  "languageNames": {
+    "en": "English",
+    "ss": "siSwati",
+    "pt": "Português",
+    "zu": "Zulu",
+    "de": "Deutsch",
+    "fr": "Français"
+  },
   "homePage": {
     "hero": {
       "title": "Empower Your Cooperative",
@@ -637,7 +673,8 @@
     "noCategories": "No categories available. Please create categories first!",
     "noText": "No text available.",
     "categoriesLoadError": "Failed to load categories. Please try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "loadingQuestions": "Loading questions..."
   },
   "userInvitation": {
     "title": "Create User Invitation",
@@ -1119,7 +1156,16 @@
   },
   "adminActionPlans": {
     "recommendation": "Recommendation",
-    "close": "Close"
+    "close": "Close",
+    "todo": "To Do",
+    "inProgress": "In Progress",
+    "done": "Done",
+    "approved": "Approved",
+    "retry": "Retry",
+    "loadingActionPlans": "Loading action plans...",
+    "errorLoadingActionPlans": "Error loading action plans",
+    "noActionPlans": "No action plans available",
+    "noActionPlansDescription": "There are no action plans to display at this time."
   },
   "common": {
     "processing": "Processing...",
@@ -1212,6 +1258,11 @@
   },
   "connection": {
     "restored": "Connection restored. Syncing data...",
-    "offline": "You are now offline. Changes will be synced when connection is restored."
+    "offline": "You are now offline. Changes will be synced when connection is restored.",
+    "onlineStatus": "Online",
+    "offlineStatus": "Offline",
+    "offlineBanner": "You are offline — your answers are saved locally and will sync automatically when you reconnect.",
+    "offlineSubmissions": "You are offline — viewing cached submissions. Changes will sync when you reconnect.",
+    "offlineCache": "You are offline — viewing cached data. Changes will sync when you reconnect."
   }
 }

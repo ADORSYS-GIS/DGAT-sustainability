@@ -97,7 +97,7 @@ const QuestionForm: React.FC<{
           </h3>
           {selectedCategory && (
             <p className="text-sm text-gray-500 mt-1">
-              Adding to category: <span className="font-medium text-blue-600">{selectedCategory}</span>
+              {t('manageQuestions.addingToCategory', { defaultValue: 'Adding to category:' })} <span className="font-medium text-blue-600">{selectedCategory}</span>
             </p>
           )}
         </div>
@@ -130,9 +130,9 @@ const QuestionForm: React.FC<{
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="text_en" className="text-sm font-medium text-gray-700">
-            🇺🇸 English Question <span className="text-red-500">*</span>
-          </Label>
+<Label htmlFor="text_en" className="text-sm font-medium text-gray-700">
+              🇺🇸 {t('manageQuestions.englishQuestion', { defaultValue: 'English Question' })} <span className="text-red-500">*</span>
+            </Label>
           <Textarea
             id="text_en"
             value={formData.text["en"] || ""}
@@ -327,7 +327,7 @@ export const ManageQuestions = () => {
     ) {
       return (error as { message: string }).message;
     }
-    return "Unknown error";
+    return t('unknownError');
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -471,7 +471,7 @@ export const ManageQuestions = () => {
   }, []);
 
   if (categoriesLoading || questionsLoading) {
-    return <LoadingSpinner size="hero" fullPage text="Loading questions..." />;
+    return <LoadingSpinner size="hero" fullPage text={t('manageQuestions.loadingQuestions', { defaultValue: 'Loading questions...' })} />;
   }
 
   if (categoriesError) {
@@ -507,7 +507,7 @@ export const ManageQuestions = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
                 <Badge variant="outline" className="bg-gray-50">
-                  {(questions || []).length} Questions
+                  {t('questionsCount', { count: (questions || []).length, defaultValue: '{{count}} Questions' })}
                 </Badge>
               </div>
             </div>

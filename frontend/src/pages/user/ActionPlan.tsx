@@ -436,7 +436,7 @@ export const ActionPlan: React.FC = () => {
                                                       moveRecommendation(assessmentName, task.id, "approved");
                                                     }}
                                                   >
-                                                    Approve
+{t("user.actionPlan.kanban.approve", { defaultValue: "Approve" })}
                                                   </button>
                                                 </>
                                               )}

@@ -146,7 +146,7 @@ const AdminActionPlans: React.FC = () => {
   };
 
   if (actionPlansLoading) {
-    return <LoadingSpinner size="hero" fullPage text="Loading action plans..." />;
+    return <LoadingSpinner size="hero" fullPage text={t('adminActionPlans.loadingActionPlans')} />;
   }
 
   if (actionPlansError) {
@@ -370,7 +370,7 @@ const AdminActionPlans: React.FC = () => {
                 </Badge>
               </div>
               <div className="text-xs text-gray-500">
-                Created: {selectedTask && new Date(selectedTask.created_at).toLocaleDateString()}
+                {t('created')}: {selectedTask && new Date(selectedTask.created_at).toLocaleDateString()}
               </div>
             </div>
             <DialogTitle className="text-2xl font-bold text-gray-900">

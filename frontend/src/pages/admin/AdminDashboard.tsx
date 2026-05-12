@@ -94,7 +94,7 @@ export const AdminDashboard: React.FC = () => {
     return pendingSubmissions.map((submission) => ({
       id: submission.submission_id,
       organization: submission.org_name || t('unknownOrganization'),
-      type: "Sustainability",
+      type: t('sustainability'),
       submittedAt: new Date(submission.submitted_at).toLocaleDateString(
         "en-CA",
       ),

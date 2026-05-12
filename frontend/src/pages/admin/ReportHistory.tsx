@@ -217,7 +217,7 @@ export const ReportHistory: React.FC = () => {
       };
     }
     return null;
-  }, [reports, viewReportId]);
+  }, [reports, viewReportId, t]);
 
   const recommendationChartInfo = React.useMemo(() => {
     const currentReport = reports.find(r => r.report_id === viewReportId);
@@ -231,7 +231,7 @@ export const ReportHistory: React.FC = () => {
           labels: categories,
           datasets: [
             {
-              label: 'Recommendations',
+              label: t('common.recommendations', { defaultValue: 'Recommendations' }),
               data: recommendationCounts,
               backgroundColor: 'rgba(59, 130, 246, 0.5)',
             },
@@ -245,14 +245,14 @@ export const ReportHistory: React.FC = () => {
             },
             title: {
               display: true,
-              text: 'Recommendations per Category',
+              text: t('recommendationsPerCategory', { defaultValue: 'Recommendations per Category' }),
             },
           },
         },
       };
     }
     return null;
-  }, [reports, viewReportId]);
+  }, [reports, viewReportId, t]);
 
   const mapReportToExportInputs = (
     report: Report
@@ -727,12 +727,12 @@ export const ReportHistory: React.FC = () => {
                                 <h3 className="text-xl font-bold text-dgrv-blue">{category}</h3>
                                 <div className="flex items-center gap-4 mt-1">
                                   <span className="text-sm text-gray-600">
-                                    {responsesForCategory.length} questions
+                                    {t('questionsCount', { count: responsesForCategory.length, defaultValue: '{{count}} questions' })}
                                   </span>
                                   {recsForCategory.length > 0 && (
                                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
                                       <Award className="w-3 h-3 mr-1" />
-                                      {recsForCategory.length} recommendation{recsForCategory.length !== 1 ? 's' : ''}
+                                      {t('recommendationsCount', { count: recsForCategory.length, defaultValue: '{{count}} recommendation(s)' })}
                                     </Badge>
                                   )}
                                 </div>
@@ -915,11 +915,11 @@ export const ReportHistory: React.FC = () => {
                               <div>
                                 <h3 className="text-xl font-bold text-purple-800">{cat.name}</h3>
                                 <div className="flex items-center gap-4 mt-1">
-                                  <span className="text-sm text-gray-600">{cat.responses.length} questions</span>
+                                  <span className="text-sm text-gray-600">{t('questionsCount', { count: cat.responses.length, defaultValue: '{{count}} questions' })}</span>
                                   {cat.recommendations && cat.recommendations.length > 0 && (
                                     <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
                                       <Award className="w-3 h-3 mr-1" />
-                                      {cat.recommendations.length} recommendation{cat.recommendations.length !== 1 ? 's' : ''}
+                                      {t('recommendationsCount', { count: cat.recommendations.length, defaultValue: '{{count}} recommendation(s)' })}
                                     </Badge>
                                   )}
                                 </div>

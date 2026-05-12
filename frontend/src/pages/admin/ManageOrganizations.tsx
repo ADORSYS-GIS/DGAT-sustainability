@@ -34,9 +34,9 @@ const RESERVED_CHARS = /[<>/\\:;"'*?|&%$#@!(){}[\]^~`+=, ]/;
 /**
  * Validate organization name for reserved characters
  */
-const validateOrgName = (name: string): string | null => {
+const validateOrgName = (name: string, t: (key: string, options?: Record<string, unknown>) => string): string | null => {
   if (RESERVED_CHARS.test(name)) {
-    return "Name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.";
+    return t('manageOrganizations.nameContainsReservedChars', { defaultValue: 'Name contains reserved characters. Avoid using: < > / \\ : ; " \' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.' });
   }
   return null;
 };
@@ -314,7 +314,7 @@ export const ManageOrganizations: React.FC = () => {
                             name: newName,
                           }));
                           // Real-time validation
-                          const error = validateOrgName(newName);
+                          const error = validateOrgName(newName, t);
                           setNameError(error);
                         }}
                         placeholder={t("staticText.organizations.organizationNamePlaceholder", { defaultValue: "Enter organization name" })}

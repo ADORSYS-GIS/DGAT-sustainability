@@ -245,7 +245,7 @@ export const Assessments: React.FC = () => {
           {!isOnline && (
             <div className="flex items-center gap-2 mt-4 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium">
               <WifiOff className="w-4 h-4 shrink-0" />
-              You are offline — viewing cached submissions. Changes will sync when you reconnect.
+              {t('connection.offlineSubmissions')}
             </div>
           )}
         </div>

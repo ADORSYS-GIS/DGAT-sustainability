@@ -82,10 +82,10 @@ export const SubmissionView: React.FC = () => {
   }, [categoriesData]);
 
   const getCategoryDisplayName = React.useCallback((rawNameOrId?: string): string => {
-    if (!rawNameOrId) return "Uncategorized";
+    if (!rawNameOrId) return t('uncategorized', { defaultValue: 'Uncategorized' });
     const normalizedRaw = rawNameOrId.trim();
     if (!normalizedRaw || normalizedRaw.toLowerCase() === "uncategorized" || normalizedRaw.toLowerCase().includes("unknown")) {
-      return normalizedRaw || "Uncategorized";
+      return normalizedRaw || t('uncategorized', { defaultValue: 'Uncategorized' });
     }
 
     const byId = categoryCatalogMap.get(normalizedRaw);

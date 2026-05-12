@@ -32,7 +32,7 @@ const OfflineStatusBadge: React.FC = () => {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 select-none">
         <WifiOff className="w-3.5 h-3.5" />
-        Offline
+        {t('connection.offlineStatus')}
       </span>
     );
   }
@@ -302,7 +302,7 @@ export const Navbar = () => {
             {/* Auth Section */}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                Account
+                {t('account')}
               </h3>
 
               {!isAuthenticated ? (
@@ -359,7 +359,7 @@ export const Navbar = () => {
             <div className="mt-auto pt-6 border-t border-blue-100">
               <div className="text-center">
                 <p className="text-xs text-gray-500 mb-2">
-                  DGRV Sustainability Platform
+                  {t('brandName')}
                 </p>
                 <div className="flex justify-center space-x-2">
                   <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
