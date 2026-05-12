@@ -339,6 +339,8 @@ pub struct AdminAssessmentInfo {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AdminResponseDetail {
+    pub question_revision_id: Option<Uuid>,
+    pub question: serde_json::Value,
     pub question_text: String,
     pub question_category: String,
     pub response: String,

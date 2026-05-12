@@ -1,13 +1,15 @@
-use crate::web::routes::AppState;
+use crate::common::models::claims::Claims;
+use crate::common::models::keycloak::{
+    UserInvitationRequest, UserInvitationResponse, UserInvitationStatus,
+};
 use crate::web::api::error::ApiError;
 use crate::web::api::models::{
     AdminAssessmentInfo, AdminResponseDetail, AdminSubmissionContent, AdminSubmissionDetail,
     AdminSubmissionListResponse, DraftSubmissionListResponse,
 };
-use crate::common::models::claims::Claims;
-use crate::common::models::keycloak::{UserInvitationRequest, UserInvitationResponse, UserInvitationStatus};
+use crate::web::routes::AppState;
 use axum::{
-    extract::{Path, Query, State, Extension},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -137,7 +139,7 @@ pub async fn list_all_submissions(
                     .unwrap_or_else(|| Uuid::new_v4()); // fallback to new UUID if parsing fails
 
                 // Fetch question text and category using question_revision_id
-                let (question_text, question_category) = match app_state
+                let (question_text, question, question_category) = match app_state
                     .database
                     .questions_revisions
                     .get_revision_by_id(question_revision_id)
@@ -152,13 +154,15 @@ pub async fn list_all_submissions(
                             .await
                         {
                             Ok(Some(question)) => {
-                                // Extract text from JSON (assuming "en" language for now)
+                                // Extract text in the assessment language, keeping the full translation object for clients.
                                 let text = revision
                                     .text
-                                    .get("en")
+                                    .get(&assessment_info.language)
+                                    .or_else(|| revision.text.get("en"))
                                     .and_then(|t| t.as_str())
                                     .unwrap_or("Unknown question")
                                     .to_string();
+                                let question_text_json = revision.text.clone();
                                 let category = app_state
                                     .database
                                     .category_catalog
@@ -168,12 +172,20 @@ pub async fn list_all_submissions(
                                     .flatten()
                                     .map(|c| c.name)
                                     .unwrap_or("Unknown".to_string());
-                                (text, category.trim().to_string())
+                                (text, question_text_json, category.trim().to_string())
                             }
-                            _ => ("Unknown question".to_string(), "Unknown".to_string()),
+                            _ => (
+                                "Unknown question".to_string(),
+                                serde_json::json!({}),
+                                "Unknown".to_string(),
+                            ),
                         }
                     }
-                    _ => ("Unknown question".to_string(), "Unknown".to_string()),
+                    _ => (
+                        "Unknown question".to_string(),
+                        serde_json::json!({}),
+                        "Unknown".to_string(),
+                    ),
                 };
 
                 // Extract response as string
@@ -196,6 +208,8 @@ pub async fn list_all_submissions(
                     .unwrap_or(1) as i32;
 
                 responses.push(AdminResponseDetail {
+                    question_revision_id: Some(question_revision_id),
+                    question,
                     question_text,
                     question_category,
                     response,
@@ -206,7 +220,8 @@ pub async fn list_all_submissions(
         }
 
         // Get organization name from the map, fallback to org_id if not found
-        let org_name = org_map.get(&model.org_id)
+        let org_name = org_map
+            .get(&model.org_id)
             .cloned()
             .unwrap_or_else(|| format!("Unknown Organization ({})", model.org_id));
 
@@ -219,7 +234,12 @@ pub async fn list_all_submissions(
             .to_string();
 
         if assessment_name.is_empty() {
-            if let Ok(Some(assessment)) = app_state.database.assessments.get_assessment_by_id(assessment_info.assessment_id).await {
+            if let Ok(Some(assessment)) = app_state
+                .database
+                .assessments
+                .get_assessment_by_id(assessment_info.assessment_id)
+                .await
+            {
                 if !assessment.name.trim().is_empty() {
                     assessment_name = assessment.name;
                 }
@@ -277,7 +297,9 @@ pub async fn list_temp_submissions_by_assessment(
             .temp_submission
             .get_all_temp_submissions()
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch temp submissions: {e}")))?
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to fetch temp submissions: {e}"))
+            })?
     } else {
         let org_id = claims.get_org_id().ok_or_else(|| {
             ApiError::BadRequest("No organization found in user claims".to_string())
@@ -287,7 +309,9 @@ pub async fn list_temp_submissions_by_assessment(
             .temp_submission
             .get_temp_submissions_by_org_id(&org_id)
             .await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch temp submissions: {e}")))?
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to fetch temp submissions: {e}"))
+            })?
     };
 
     // Get all organizations from Keycloak to map org_id to org_name
@@ -308,7 +332,7 @@ pub async fn list_temp_submissions_by_assessment(
 
     // Convert database models to API models
     let mut submissions = Vec::new();
-    
+
     for model in temp_submissions {
         // Parse the content to extract assessment and responses information
         let default_map = serde_json::Map::new();
@@ -390,7 +414,7 @@ pub async fn list_temp_submissions_by_assessment(
                     .unwrap_or_else(|| Uuid::new_v4()); // fallback to new UUID if parsing fails
 
                 // Get question text and category from the database
-                let (question_text, question_category) = match app_state
+                let (question_text, question, question_category) = match app_state
                     .database
                     .questions_revisions
                     .get_revision_by_id(question_revision_id)
@@ -399,10 +423,12 @@ pub async fn list_temp_submissions_by_assessment(
                     Ok(Some(revision)) => {
                         let text = revision
                             .text
-                            .get("en")
+                            .get(&assessment_info.language)
+                            .or_else(|| revision.text.get("en"))
                             .and_then(|t| t.as_str())
                             .unwrap_or("Unknown question")
                             .to_string();
+                        let question_text_json = revision.text.clone();
 
                         let category = match app_state
                             .database
@@ -410,23 +436,25 @@ pub async fn list_temp_submissions_by_assessment(
                             .get_question_by_id(revision.question_id)
                             .await
                         {
-                            Ok(Some(question)) => {
-                                app_state
-                                    .database
-                                    .category_catalog
-                                    .get_category_catalog_by_id(question.category_id)
-                                    .await
-                                    .ok()
-                                    .flatten()
-                                    .map(|c| c.name)
-                                    .unwrap_or("Unknown category".to_string())
-                            },
+                            Ok(Some(question)) => app_state
+                                .database
+                                .category_catalog
+                                .get_category_catalog_by_id(question.category_id)
+                                .await
+                                .ok()
+                                .flatten()
+                                .map(|c| c.name)
+                                .unwrap_or("Unknown category".to_string()),
                             _ => "Unknown category".to_string(),
                         };
 
-                        (text, category)
+                        (text, question_text_json, category)
                     }
-                    _ => ("Unknown question".to_string(), "Unknown category".to_string()),
+                    _ => (
+                        "Unknown question".to_string(),
+                        serde_json::json!({}),
+                        "Unknown category".to_string(),
+                    ),
                 };
 
                 let response = response_obj
@@ -441,6 +469,8 @@ pub async fn list_temp_submissions_by_assessment(
                     .unwrap_or(1) as i32;
 
                 responses.push(AdminResponseDetail {
+                    question_revision_id: Some(question_revision_id),
+                    question,
                     question_text,
                     question_category,
                     response,
@@ -451,7 +481,8 @@ pub async fn list_temp_submissions_by_assessment(
         }
 
         // Get organization name from the map, fallback to org_id if not found
-        let org_name = org_map.get(&model.org_id)
+        let org_name = org_map
+            .get(&model.org_id)
             .cloned()
             .unwrap_or_else(|| format!("Unknown Organization ({})", model.org_id));
 
@@ -481,7 +512,9 @@ pub async fn list_temp_submissions_by_assessment(
         submissions.push(submission);
     }
 
-    Ok(Json(DraftSubmissionListResponse { draft_submissions: submissions }))
+    Ok(Json(DraftSubmissionListResponse {
+        draft_submissions: submissions,
+    }))
 }
 
 /// Create a new user invitation with email verification
@@ -502,20 +535,36 @@ pub async fn create_user_invitation(
     }
 
     // Validate required fields
-    if request.email.trim().is_empty() || 
-       request.first_name.as_ref().map_or(true, |name| name.trim().is_empty()) || 
-       request.last_name.as_ref().map_or(true, |name| name.trim().is_empty()) {
-        return Err(ApiError::BadRequest("Email, first name, and last name are required".to_string()));
+    if request.email.trim().is_empty()
+        || request
+            .first_name
+            .as_ref()
+            .map_or(true, |name| name.trim().is_empty())
+        || request
+            .last_name
+            .as_ref()
+            .map_or(true, |name| name.trim().is_empty())
+    {
+        return Err(ApiError::BadRequest(
+            "Email, first name, and last name are required".to_string(),
+        ));
     }
 
     // Validate organization ID
     if request.organization_id.trim().is_empty() {
-        return Err(ApiError::BadRequest("Organization ID is required".to_string()));
+        return Err(ApiError::BadRequest(
+            "Organization ID is required".to_string(),
+        ));
     }
 
     // Generate username from email
-    let username = request.email.split('@').next().unwrap_or(&request.email).to_string();
-    
+    let username = request
+        .email
+        .split('@')
+        .next()
+        .unwrap_or(&request.email)
+        .to_string();
+
     // Create user request for Keycloak
     let create_user_request = crate::common::models::keycloak::CreateUserRequest {
         username: username.clone(),
@@ -534,70 +583,93 @@ pub async fn create_user_invitation(
         required_actions: Some(vec!["VERIFY_EMAIL".to_string()]),
     };
 
-    match app_state.keycloak_service.create_user_with_email_verification(&token, &create_user_request).await {
+    match app_state
+        .keycloak_service
+        .create_user_with_email_verification(&token, &create_user_request)
+        .await
+    {
         Ok(user) => {
             let user_id = user.id.clone();
             let user_email = user.email.clone();
-            
+
             // Send organization invitation immediately (regardless of email verification)
-            match app_state.keycloak_service.send_organization_invitation_immediate(&token, &request.organization_id, &user_id, request.roles.clone()).await {
+            match app_state
+                .keycloak_service
+                .send_organization_invitation_immediate(
+                    &token,
+                    &request.organization_id,
+                    &user_id,
+                    request.roles.clone(),
+                )
+                .await
+            {
                 Ok(_invitation) => {
                     tracing::info!(user_id = %user_id, org_id = %request.organization_id, "Organization invitation sent immediately");
-                    
+
                     let response = UserInvitationResponse {
                         user_id: user.id,
                         email: user.email,
                         status: UserInvitationStatus::Active,
                         message: "User created successfully. Email verification and organization invitation emails have been sent. User roles have been assigned.".to_string(),
                     };
-                    
+
                     tracing::info!(user_id = %user_id, email = %user_email, "User invitation created successfully with immediate organization invitation");
                     Ok(Json(response))
-                },
+                }
                 Err(e) => {
                     tracing::warn!(user_id = %user_id, error = %e, "Failed to send organization invitation immediately, but user was created");
-                    
+
                     let response = UserInvitationResponse {
                         user_id: user.id,
                         email: user.email,
                         status: UserInvitationStatus::PendingEmailVerification,
                         message: "User created successfully. Email verification email has been sent. Organization invitation will be sent after email verification.".to_string(),
                     };
-                    
+
                     tracing::info!(user_id = %user_id, email = %user_email, "User invitation created successfully (organization invitation failed)");
                     Ok(Json(response))
                 }
             }
-        },
+        }
         Err(e) => {
             let error_message = e.to_string();
             tracing::error!("Failed to create user invitation: {}", error_message);
-            
+
             // Provide specific error messages based on the error type
-            if error_message.contains("already exists") || error_message.contains("duplicate") || error_message.contains("User exists with same email") || (error_message.contains("errorMessage") && error_message.contains("User exists with same email")) {
-                Err(ApiError::Conflict("A user with this email address already exists in the system".to_string()))
+            if error_message.contains("already exists")
+                || error_message.contains("duplicate")
+                || error_message.contains("User exists with same email")
+                || (error_message.contains("errorMessage")
+                    && error_message.contains("User exists with same email"))
+            {
+                Err(ApiError::Conflict(
+                    "A user with this email address already exists in the system".to_string(),
+                ))
             } else if error_message.contains("email") && error_message.contains("invalid") {
                 Err(ApiError::BadRequest("Invalid email format".to_string()))
-            } else if error_message.contains("organization") && error_message.contains("not found") {
-                Err(ApiError::NotFound("Selected organization not found".to_string()))
+            } else if error_message.contains("organization") && error_message.contains("not found")
+            {
+                Err(ApiError::NotFound(
+                    "Selected organization not found".to_string(),
+                ))
             } else if error_message.contains("permission") || error_message.contains("access") {
-                Err(ApiError::Forbidden("You don't have permission to create users in this organization".to_string()))
+                Err(ApiError::Forbidden(
+                    "You don't have permission to create users in this organization".to_string(),
+                ))
             } else if error_message.contains("email service") || error_message.contains("mail") {
                 Err(ApiError::InternalServerError("Email service is temporarily unavailable. The user was created but verification email could not be sent".to_string()))
             } else if error_message.contains("network") || error_message.contains("connection") {
-                Err(ApiError::InternalServerError("Service temporarily unavailable. Please try again later".to_string()))
+                Err(ApiError::InternalServerError(
+                    "Service temporarily unavailable. Please try again later".to_string(),
+                ))
             } else {
-                Err(ApiError::InternalServerError("Failed to create user invitation. Please try again later".to_string()))
+                Err(ApiError::InternalServerError(
+                    "Failed to create user invitation. Please try again later".to_string(),
+                ))
             }
         }
     }
 }
-
-
-
-
-
-
 
 /// Get user invitation status
 pub async fn get_user_invitation_status(
@@ -611,11 +683,15 @@ pub async fn get_user_invitation_status(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    let user = app_state.keycloak_service.get_user_by_id(&token, &user_id).await
+    let user = app_state
+        .keycloak_service
+        .get_user_by_id(&token, &user_id)
+        .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to get user: {}", e)))?;
 
     let attributes = user.attributes.unwrap_or_default();
-    let invitation_status = attributes.get("invitation_status")
+    let invitation_status = attributes
+        .get("invitation_status")
         .and_then(|v| v.as_str())
         .unwrap_or("unknown");
 
@@ -649,14 +725,20 @@ pub async fn delete_user(
     }
 
     // Delete the user from Keycloak
-    match app_state.keycloak_service.delete_user(&token, &user_id).await {
+    match app_state
+        .keycloak_service
+        .delete_user(&token, &user_id)
+        .await
+    {
         Ok(()) => {
             tracing::info!(user_id = %user_id, "User deleted successfully");
             Ok(StatusCode::NO_CONTENT)
-        },
+        }
         Err(e) => {
             tracing::error!(user_id = %user_id, error = %e, "Failed to delete user");
-            Err(ApiError::InternalServerError("Failed to delete user".to_string()))
+            Err(ApiError::InternalServerError(
+                "Failed to delete user".to_string(),
+            ))
         }
     }
 }
@@ -668,11 +750,12 @@ mod tests {
     use crate::common::database::entity::questions_revisions::QuestionsRevisionsService;
     use sea_orm::{DatabaseBackend, MockDatabase};
     use serde_json::json;
-    use uuid::Uuid;
     use std::sync::Arc;
+    use uuid::Uuid;
 
     #[tokio::test]
-    async fn test_question_text_and_category_extraction() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_question_text_and_category_extraction() -> Result<(), Box<dyn std::error::Error>>
+    {
         // Create mock question and revision data
         let question_id = Uuid::new_v4();
         let question_revision_id = Uuid::new_v4();

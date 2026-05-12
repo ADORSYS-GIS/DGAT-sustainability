@@ -98,7 +98,6 @@ export function useOfflineSubmissions() {
             };
           });
 
-          await offlineDB.clearStore('submissions');
           await offlineDB.saveSubmissions(
             offlineSubmissions.map((s) => ({
               ...s,

@@ -205,9 +205,15 @@ export default function DraftSubmissions() {
     approveDraftSubmission.mutate(submissionId, {
       onSuccess: () => {
         console.log("Mutation successful for submission:", submissionId);
-        toast.success(t("user.draftSubmissions.approvedOfflineSuccessfully", {
-          defaultValue: "Successfully approved, will sync when you come back online"
-        }));
+        toast.success(
+          (navigator.onLine || isOnline)
+            ? t("user.draftSubmissions.approvedSuccessfully", {
+              defaultValue: "Successfully approved"
+            })
+            : t("user.draftSubmissions.approvedOfflineSuccessfully", {
+              defaultValue: "Successfully approved, will sync when you come back online"
+            })
+        );
         // The query invalidation will remove the item from the list.
         // Reset the selected submission and navigate back to the dashboard.
         setSelectedSubmission(null);

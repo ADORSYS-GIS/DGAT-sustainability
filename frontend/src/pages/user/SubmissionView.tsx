@@ -28,7 +28,8 @@ interface SubmissionResponseWithCategory extends Submission_content_responses {
 }
 
 export const SubmissionView: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
   const { submissionId } = useParams<{ submissionId: string }>();
   const navigate = useNavigate();
   const {
@@ -55,10 +56,12 @@ export const SubmissionView: React.FC = () => {
   const { data: questionsData } = useOfflineQuestions();
   const { data: categoriesData } = useOfflineCategoryCatalogs();
 
-  const [questionsMap, questionsTextMap, qRevToCategoryMap] = React.useMemo(() => {
+  const [questionsMap, questionsTextMap, qRevToCategoryMap, questionTranslationsByRevision, questionsByAnyTextMap] = React.useMemo(() => {
     const map = new Map<string, number>();
     const textMap = new Map<string, number>();
     const catMap = new Map<string, string>();
+    const translationMap = new Map<string, Record<string, string>>();
+    const anyTextMap = new Map<string, Record<string, string>>();
 
     // Create a mapping from category_id to category name
     const categoryIdToName = new Map<string, string>();
@@ -77,10 +80,19 @@ export const SubmissionView: React.FC = () => {
           const displayOrder = q.display_order || 0;
           map.set(revId, displayOrder);
 
-          const qText = (q.latest_revision.text as { en?: string })?.en || '';
+          const rawText = q.latest_revision.text;
+          const textRecord: Record<string, string> = typeof rawText === 'string' ? { en: rawText } : (rawText as Record<string, string>) || {};
+          translationMap.set(revId, textRecord);
+
+          const qText = textRecord.en || Object.values(textRecord).find((v) => typeof v === "string") || "";
           if (qText) {
             textMap.set(qText, displayOrder);
           }
+          Object.values(textRecord).forEach((text) => {
+            if (typeof text === "string" && text.trim()) {
+              anyTextMap.set(text.trim().toLowerCase(), textRecord);
+            }
+          });
 
           // Map the revision ID to the actual proper category name
           let catName = 'Uncategorized';
@@ -98,8 +110,45 @@ export const SubmissionView: React.FC = () => {
         }
       });
     }
-    return [map, textMap, catMap];
+    return [map, textMap, catMap, translationMap, anyTextMap];
   }, [questionsData, categoriesData]);
+
+  const getLocalizedQuestionText = React.useCallback((textRecord?: Record<string, string>): string | undefined => {
+    if (!textRecord) return undefined;
+    const translated = textRecord[currentLanguage];
+    if (typeof translated === "string" && translated.trim()) return translated;
+    const english = textRecord.en;
+    if (typeof english === "string" && english.trim()) return english;
+    return Object.values(textRecord).find((v) => typeof v === "string" && v.trim());
+  }, [currentLanguage]);
+
+  const getQuestionDisplayText = React.useCallback((response: SubmissionResponseWithCategory): string => {
+    if (response.question_revision_id && questionTranslationsByRevision.has(response.question_revision_id)) {
+      const localizedText = getLocalizedQuestionText(questionTranslationsByRevision.get(response.question_revision_id));
+      if (localizedText) return localizedText;
+    }
+
+    if (typeof response.question === "object" && response.question !== null) {
+      const questionObj = response.question as Record<string, string> | { text?: Record<string, string> };
+      const textRecord = "text" in questionObj && typeof questionObj.text === "object" && questionObj.text !== null
+        ? questionObj.text
+        : questionObj as Record<string, string>;
+      const localizedText = getLocalizedQuestionText(textRecord);
+      if (localizedText) return localizedText;
+    }
+
+    const plainText = typeof response.question === "string" && response.question.trim()
+      ? response.question
+      : response.question_text;
+    if (typeof plainText === "string" && plainText.trim()) {
+      const textRecord = questionsByAnyTextMap.get(plainText.trim().toLowerCase());
+      const localizedText = getLocalizedQuestionText(textRecord);
+      if (localizedText) return localizedText;
+      return plainText;
+    }
+
+    return t("question", { defaultValue: "Question" });
+  }, [getLocalizedQuestionText, questionTranslationsByRevision, questionsByAnyTextMap, t]);
 
   // Group responses by category and sort them
   const groupedByCategory = React.useMemo(() => {
@@ -139,7 +188,7 @@ export const SubmissionView: React.FC = () => {
       }
     }
     return groups;
-  }, [responses, questionsMap, qRevToCategoryMap]);
+  }, [responses, questionsMap, questionsTextMap, qRevToCategoryMap]);
   const categories = Object.keys(groupedByCategory);
 
   // Helper to parse and display the answer
@@ -370,7 +419,7 @@ export const SubmissionView: React.FC = () => {
                             <Card key={idx} className="mb-4">
                               <CardHeader>
                                 <CardTitle className="text-base font-semibold text-dgrv-blue">
-                                  {response.question_text || t("category")}
+                                  {getQuestionDisplayText(response)}
                                 </CardTitle>
                               </CardHeader>
                               <CardContent>{renderReadOnlyAnswer(response)}</CardContent>

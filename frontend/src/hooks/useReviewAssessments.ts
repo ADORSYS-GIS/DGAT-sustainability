@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from "uuid";
 import { offlineDB } from "@/services/indexeddb";
 import type { OfflineSubmission, OfflinePendingReviewSubmission, OfflineRecommendation } from "@/types/offline";
 import { useAuth } from "./shared/useAuth";
+import { AdminService } from "@/openapi-rq/requests/services.gen";
+import { DataTransformationService } from "@/services/dataTransformation";
 
 const REVIEW_ASSESSMENTS_QUERY_KEY = "review_assessments";
 
@@ -20,6 +22,22 @@ export function useReviewAssessments() {
     queryFn: async () => {
       if (authLoading) {
         return [];
+      }
+
+      try {
+        const adminSubmissions = await AdminService.getAdminSubmissions({ status: "under_review" });
+        if (adminSubmissions?.submissions) {
+          const assessments = await offlineDB.getAllAssessments();
+          const transformedSubmissions = DataTransformationService.transformAdminSubmissionsWithContext(
+            adminSubmissions.submissions,
+            assessments,
+            currentOrganizationId,
+            user?.email
+          );
+          await offlineDB.saveSubmissions(transformedSubmissions);
+        }
+      } catch (error) {
+        console.warn("Could not refresh review assessments from API, using local data.", error);
       }
 
       const submissions = await offlineDB.getAllSubmissions();

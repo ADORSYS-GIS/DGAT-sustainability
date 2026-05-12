@@ -1,7 +1,7 @@
 use crate::common::models::claims::Claims;
-use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::{Submission, SubmissionDetailResponse, SubmissionListResponse};
+use crate::web::routes::AppState;
 use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,
@@ -21,7 +21,9 @@ pub fn normalize_category_name(category_name: &str) -> String {
 }
 
 /// Helper function to extract question revision ID from a response object
-fn extract_question_revision_id(response_obj: &serde_json::Map<String, serde_json::Value>) -> Option<Uuid> {
+fn extract_question_revision_id(
+    response_obj: &serde_json::Map<String, serde_json::Value>,
+) -> Option<Uuid> {
     response_obj
         .get("question_revision_id")?
         .as_str()?
@@ -30,7 +32,9 @@ fn extract_question_revision_id(response_obj: &serde_json::Map<String, serde_jso
 }
 
 /// Helper function to create question data JSON
-fn create_question_json(question_revision: &crate::common::database::entity::questions_revisions::Model) -> serde_json::Value {
+fn create_question_json(
+    question_revision: &crate::common::database::entity::questions_revisions::Model,
+) -> serde_json::Value {
     serde_json::json!({
         "question_id": question_revision.question_id,
         "question_revision_id": question_revision.question_revision_id,
@@ -77,14 +81,6 @@ async fn process_response(
                 .await
             {
                 Ok(Some(question)) => {
-                    // Extract text from JSON (assuming "en" language for now) - FIX: Same logic as admin endpoint
-                    let text = revision
-                        .text
-                        .get("en")
-                        .and_then(|t| t.as_str())
-                        .unwrap_or("Question text not found")
-                        .to_string();
-                    
                     let category_name = match app_state
                         .database
                         .category_catalog
@@ -94,24 +90,31 @@ async fn process_response(
                         Ok(Some(c)) => c.name,
                         _ => "Unknown".to_string(),
                     };
-                    
-                    // Create a proper JSON object for the question text
-                    let question_json = serde_json::json!({"en": text});
-                    (question_json, normalize_category_name(&category_name))
+
+                    (
+                        revision.text.clone(),
+                        normalize_category_name(&category_name),
+                    )
                 }
-                _ => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
+                _ => (
+                    serde_json::json!({"en": "Question not found"}),
+                    "Unknown".to_string(),
+                ),
             }
         }
-        Ok(None) => (serde_json::json!({"en": "Question not found"}), "Unknown".to_string()),
+        Ok(None) => (
+            serde_json::json!({"en": "Question not found"}),
+            "Unknown".to_string(),
+        ),
         Err(e) => {
-            return Err(ApiError::InternalServerError(
-                format!("Failed to fetch question data: {e}")
-            ));
+            return Err(ApiError::InternalServerError(format!(
+                "Failed to fetch question data: {e}"
+            )));
         }
     };
 
-    // Remove question_revision_id and replace with question text and category
-    response_obj.remove("question_revision_id");
+    // Keep question_revision_id and add multilingual question text and category.
+    // Clients need the revision ID to resolve the exact localized question later.
     response_obj.insert("question".to_string(), question_text);
     response_obj.insert(
         "question_category".to_string(),
@@ -126,8 +129,14 @@ mod tests {
 
     #[test]
     fn normalize_category_name_trims_whitespace() {
-        assert_eq!(normalize_category_name(" Environmental aspects  "), "Environmental aspects");
-        assert_eq!(normalize_category_name("Governance aspects"), "Governance aspects");
+        assert_eq!(
+            normalize_category_name(" Environmental aspects  "),
+            "Environmental aspects"
+        );
+        assert_eq!(
+            normalize_category_name("Governance aspects"),
+            "Governance aspects"
+        );
         assert_eq!(normalize_category_name(""), "");
     }
 }
@@ -166,8 +175,14 @@ fn is_member_of_org_by_id(claims: &crate::common::models::claims::Claims, org_id
     if claims.is_application_admin() {
         return true;
     }
-    claims.organizations.as_ref()
-        .map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(org_id)))
+    claims
+        .organizations
+        .as_ref()
+        .map(|orgs| {
+            orgs.orgs
+                .values()
+                .any(|info| info.id.as_deref() == Some(org_id))
+        })
         .unwrap_or(false)
 }
 
@@ -182,7 +197,8 @@ pub async fn list_user_submissions(
     State(app_state): State<AppState>,
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<SubmissionListResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch organization submissions from the database, joining with assessments to get the name
@@ -207,8 +223,8 @@ pub async fn list_user_submissions(
         // If assessment was not found (deleted), try to get it from the submission content
         if assessment_name == "Unknown Assessment" {
             if let Some(content_obj) = submission_model.content.as_object() {
-                if let Some(assessment_name_from_content) = content_obj.get("assessment_name")
-                    .and_then(|v| v.as_str())
+                if let Some(assessment_name_from_content) =
+                    content_obj.get("assessment_name").and_then(|v| v.as_str())
                 {
                     assessment_name = assessment_name_from_content.to_string();
                 }
@@ -216,10 +232,9 @@ pub async fn list_user_submissions(
         }
 
         // Enhance the content with question data
-        let enhanced_content = enhance_submission_content_with_questions(
-            &app_state,
-            submission_model.content.clone(),
-        ).await?;
+        let enhanced_content =
+            enhance_submission_content_with_questions(&app_state, submission_model.content.clone())
+                .await?;
 
         submissions.push(Submission {
             submission_id: submission_model.submission_id,
@@ -249,18 +264,19 @@ pub async fn get_submission(
     Extension(claims): Extension<Claims>,
     Path(submission_id): Path<Uuid>,
 ) -> Result<Json<SubmissionDetailResponse>, ApiError> {
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch the specific submission from the database, joining with assessments to get the name
-    let (submission_model, assessment_model) = crate::common::database::entity::assessments_submission::Entity::find_by_id(submission_id)
-        .left_join(crate::common::database::entity::assessments::Entity)
-        .select_also(crate::common::database::entity::assessments::Entity)
-        .one(app_state.database.get_connection())
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
-        .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
-
+    let (submission_model, assessment_model) =
+        crate::common::database::entity::assessments_submission::Entity::find_by_id(submission_id)
+            .left_join(crate::common::database::entity::assessments::Entity)
+            .select_also(crate::common::database::entity::assessments::Entity)
+            .one(app_state.database.get_connection())
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
+            .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
 
     // Verify that the current organization is the owner of the submission
     if submission_model.org_id != org_id {
@@ -270,10 +286,9 @@ pub async fn get_submission(
     }
 
     // Enhance the content with question data
-    let enhanced_content = enhance_submission_content_with_questions(
-        &app_state,
-        submission_model.content.clone(),
-    ).await?;
+    let enhanced_content =
+        enhance_submission_content_with_questions(&app_state, submission_model.content.clone())
+            .await?;
 
     // First try to get assessment name from the joined assessment table
     let mut assessment_name = assessment_model
@@ -283,8 +298,8 @@ pub async fn get_submission(
     // If assessment was not found (deleted), try to get it from the submission content
     if assessment_name == "Unknown Assessment" {
         if let Some(content_obj) = submission_model.content.as_object() {
-            if let Some(assessment_name_from_content) = content_obj.get("assessment_name")
-                .and_then(|v| v.as_str())
+            if let Some(assessment_name_from_content) =
+                content_obj.get("assessment_name").and_then(|v| v.as_str())
             {
                 assessment_name = assessment_name_from_content.to_string();
             }
@@ -327,7 +342,8 @@ pub async fn delete_submission(
     }
 
     // Get the organization ID from claims
-    let org_id = claims.get_org_id()
+    let org_id = claims
+        .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
     // Fetch the submission to verify ownership
@@ -351,7 +367,9 @@ pub async fn delete_submission(
     }
 
     // Start database transaction for atomic cleanup
-    let txn = app_state.database.get_connection()
+    let txn = app_state
+        .database
+        .get_connection()
         .begin()
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to start transaction: {e}")))?;
@@ -359,57 +377,110 @@ pub async fn delete_submission(
     // Perform comprehensive cleanup within transaction
     let result = async {
         // 1. Delete submission reports (if any)
-        if let Err(e) = app_state.database.submission_reports.delete_reports_by_submission(submission_id).await {
-            tracing::warn!("Failed to delete submission reports for {}: {}", submission_id, e);
+        if let Err(e) = app_state
+            .database
+            .submission_reports
+            .delete_reports_by_submission(submission_id)
+            .await
+        {
+            tracing::warn!(
+                "Failed to delete submission reports for {}: {}",
+                submission_id,
+                e
+            );
             // Continue with cleanup even if reports deletion fails
         }
 
         // 2. Delete temp submissions (if any)
-        if let Err(e) = app_state.database.temp_submission.delete_temp_submission(submission_id).await {
-            tracing::warn!("Failed to delete temp submission for {}: {}", submission_id, e);
+        if let Err(e) = app_state
+            .database
+            .temp_submission
+            .delete_temp_submission(submission_id)
+            .await
+        {
+            tracing::warn!(
+                "Failed to delete temp submission for {}: {}",
+                submission_id,
+                e
+            );
             // Continue with cleanup even if temp submission deletion fails
         }
 
         // 3. Delete assessment response files (links between responses and files)
-        if let Err(e) = app_state.database.assessments_response_file.unlink_all_files_from_assessment(submission_id).await {
-            tracing::warn!("Failed to delete assessment response files for {}: {}", submission_id, e);
+        if let Err(e) = app_state
+            .database
+            .assessments_response_file
+            .unlink_all_files_from_assessment(submission_id)
+            .await
+        {
+            tracing::warn!(
+                "Failed to delete assessment response files for {}: {}",
+                submission_id,
+                e
+            );
             // Continue with cleanup even if response files deletion fails
         }
 
         // 4. Delete assessment responses
-        if let Err(e) = app_state.database.assessments_response.delete_responses_by_assessment(submission_id).await {
-            tracing::warn!("Failed to delete assessment responses for {}: {}", submission_id, e);
+        if let Err(e) = app_state
+            .database
+            .assessments_response
+            .delete_responses_by_assessment(submission_id)
+            .await
+        {
+            tracing::warn!(
+                "Failed to delete assessment responses for {}: {}",
+                submission_id,
+                e
+            );
             // Continue with cleanup even if responses deletion fails
         }
 
         // 5. Delete the submission itself
-        app_state.database.assessments_submission.delete_submission(submission_id).await
-            .map_err(|e| ApiError::InternalServerError(format!("Failed to delete submission: {e}")))?;
+        app_state
+            .database
+            .assessments_submission
+            .delete_submission(submission_id)
+            .await
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to delete submission: {e}"))
+            })?;
 
         // 6. Finally, delete the assessment (this should now work since submission is gone)
-        if let Err(e) = app_state.database.assessments.delete_assessment(submission_id).await {
+        if let Err(e) = app_state
+            .database
+            .assessments
+            .delete_assessment(submission_id)
+            .await
+        {
             tracing::warn!("Failed to delete assessment for {}: {}", submission_id, e);
             // This might fail if assessment was already auto-deleted, which is fine
         }
 
         Ok::<(), ApiError>(())
-    }.await;
+    }
+    .await;
 
     match result {
         Ok(_) => {
             // Commit transaction on success
-            txn.commit()
-                .await
-                .map_err(|e| ApiError::InternalServerError(format!("Failed to commit transaction: {e}")))?;
-            
-            tracing::info!("Successfully deleted submission {} and all related data", submission_id);
+            txn.commit().await.map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to commit transaction: {e}"))
+            })?;
+
+            tracing::info!(
+                "Successfully deleted submission {} and all related data",
+                submission_id
+            );
             Ok(StatusCode::NO_CONTENT)
         }
         Err(e) => {
             // Rollback transaction on any error
             if let Err(rollback_err) = txn.rollback().await {
                 tracing::error!("Failed to rollback transaction: {}", rollback_err);
-                return Err(ApiError::InternalServerError(format!("Deletion failed and rollback failed: {rollback_err}")));
+                return Err(ApiError::InternalServerError(format!(
+                    "Deletion failed and rollback failed: {rollback_err}"
+                )));
             }
             Err(e)
         }
