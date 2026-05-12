@@ -67,7 +67,7 @@ export const Welcome: React.FC = () => {
       } catch (error) {
         console.error("Failed to redirect to authentication:", error);
         toast.error(
-          "Failed to redirect to authentication. Please try again.",
+          t("staticText.home.authRedirectFailed", { defaultValue: "Failed to redirect to authentication. Please try again." }),
         );
       }
       return;
@@ -78,7 +78,7 @@ export const Welcome: React.FC = () => {
       navigate("/assessment/sustainability");
     } else {
       toast.error(
-        "You need to be part of an organisation to start an assessment.",
+        t("staticText.home.organizationRequiredStart", { defaultValue: "You need to be part of an organisation to start an assessment." }),
       );
     }
   };
@@ -91,7 +91,7 @@ export const Welcome: React.FC = () => {
       } catch (error) {
         console.error("Failed to redirect to authentication:", error);
         toast.error(
-          "Failed to redirect to authentication. Please try again.",
+          t("staticText.home.authRedirectFailed", { defaultValue: "Failed to redirect to authentication. Please try again." }),
         );
       }
       return;
@@ -102,7 +102,7 @@ export const Welcome: React.FC = () => {
       navigate("/assessments");
     } else {
       toast.error(
-        "You need to be part of an organisation to view assessments.",
+        t("staticText.home.organizationRequiredView", { defaultValue: "You need to be part of an organisation to view assessments." }),
       );
     }
   };
@@ -118,7 +118,7 @@ export const Welcome: React.FC = () => {
               <div className="w-32 h-32 flex items-center justify-center mx-auto mb-6">
                 <img
                   src="/coopsustainability-removebg-preview.png"
-                  alt="Sustainability Portal Logo"
+                  alt={t("staticText.home.logoAlt", { defaultValue: "Sustainability Portal Logo" })}
                   className="w-full h-full object-contain"
                 />
               </div>

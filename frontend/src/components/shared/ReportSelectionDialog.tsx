@@ -120,7 +120,7 @@ export const ReportSelectionDialog: React.FC<ReportSelectionDialogProps> = ({
                         </h3>
                         <div className="text-sm text-gray-600 space-y-1 mt-1">
                           <p>
-                            Assessment: {assessmentName}
+                            {t('reportSelection.assessment', { name: assessmentName })}
                           </p>
                           <p>
                             {t('user.dashboard.actionPlan.submissionId')}: {report.submission_id.substring(0, 8)}...

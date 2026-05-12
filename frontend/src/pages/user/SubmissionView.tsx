@@ -302,7 +302,7 @@ export const SubmissionView: React.FC = () => {
       <div className="space-y-6">
         {/* Yes/No */}
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-gray-700">Yes/No</span>
+          <span className="font-semibold text-gray-700">{t("assessment.yesNo", { defaultValue: "Yes/No" })}</span>
           <div className="flex space-x-4 mt-1">
             <Button
               type="button"
@@ -315,7 +315,7 @@ export const SubmissionView: React.FC = () => {
               tabIndex={-1}
               style={{ pointerEvents: "none", opacity: 1 }}
             >
-              Yes
+              {t("common.yes", { defaultValue: "Yes" })}
             </Button>
             <Button
               type="button"
@@ -328,14 +328,14 @@ export const SubmissionView: React.FC = () => {
               tabIndex={-1}
               style={{ pointerEvents: "none", opacity: 1 }}
             >
-              No
+              {t("common.no", { defaultValue: "No" })}
             </Button>
           </div>
         </div>
         <div className="border-b border-gray-200 my-2" />
         {/* Percentage */}
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-gray-700">Percentage</span>
+          <span className="font-semibold text-gray-700">{t("assessment.percentage", { defaultValue: "Percentage" })}</span>
           <div className="flex space-x-2 mt-1">
             {[0, 25, 50, 75, 100].map((val) => (
               <Button
@@ -358,20 +358,20 @@ export const SubmissionView: React.FC = () => {
         <div className="border-b border-gray-200 my-2" />
         {/* Text Input */}
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-gray-700">Text Response</span>
+          <span className="font-semibold text-gray-700">{t("staticText.submissionView.textResponse", { defaultValue: "Text Response" })}</span>
           <Textarea
             value={typeof textValue === "string" ? textValue : ""}
             readOnly
             className="mt-1 bg-gray-50 border border-gray-200 focus:ring-0 focus:border-dgrv-blue text-gray-800"
             rows={3}
-            placeholder="No answer"
+            placeholder={t("staticText.submissionView.noAnswer", { defaultValue: "No answer" })}
             style={{ opacity: 1 }}
           />
         </div>
         <div className="border-b border-gray-200 my-2" />
         {/* File List */}
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-gray-700">Files</span>
+          <span className="font-semibold text-gray-700">{t("staticText.submissionView.files", { defaultValue: "Files" })}</span>
           {files.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-2 items-center">
               {files.map((file, idx) => (
@@ -383,12 +383,12 @@ export const SubmissionView: React.FC = () => {
                   className="text-xs text-blue-600 underline"
                   download={file.name}
                 >
-                  {file.name || `File ${idx + 1}`}
+                  {file.name || t("staticText.submissionView.fileNumber", { count: idx + 1, defaultValue: "File {{count}}" })}
                 </a>
               ))}
             </div>
           ) : (
-            <span className="text-sm text-gray-400">No files uploaded</span>
+            <span className="text-sm text-gray-400">{t("staticText.submissionView.noFilesUploaded", { defaultValue: "No files uploaded" })}</span>
           )}
         </div>
       </div>
@@ -403,7 +403,7 @@ export const SubmissionView: React.FC = () => {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="pb-8 flex items-center justify-center">
-          <div className="text-red-600">Error loading submission details.</div>
+          <div className="text-red-600">{t("staticText.submissionView.loadError", { defaultValue: "Error loading submission details." })}</div>
         </div>
       </div>
     );

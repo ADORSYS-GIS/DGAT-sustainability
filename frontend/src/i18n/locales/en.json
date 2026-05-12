@@ -437,7 +437,8 @@
     "skipCategoryCreation": "Skip Category Creation",
     "confirmDeleteTitle": "Delete Organization",
     "confirmDeleteDescription": "Are you sure you want to delete the organization '{{name}}'? This action will permanently remove the organization and all its associated data from the system and cannot be undone.",
-    "deleteOrganization": "Delete Organization"
+    "deleteOrganization": "Delete Organization",
+    "nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
   },
   "user": {
     "dashboard": {
@@ -1071,6 +1072,146 @@
     "backToOrganizations": "Back to organizations",
     "exportAsPDF": "Export as PDF",
     "assessmentName": "Assessment",
-    "unknownAssessment": "Unknown Assessment"
+    "unknownAssessment": "Unknown Assessment",
+    "questionsAndResponses": "Questions & Responses",
+    "questionsAndAnswers": "Questions & Answers",
+    "detailedResponse": "Detailed Response",
+    "textResponse": "Text Response",
+    "availableBelow": "Available below",
+    "responseAttachments": "Response Attachments",
+    "additionalAttachments": "Additional Attachments",
+    "recommendation": "Recommendation",
+    "recommendationCount": "{{count}} recommendation",
+    "recommendationCount_plural": "{{count}} recommendations"
+  },
+  "assignCategories": {
+    "title": "Assign Categories to {{org}}",
+    "description": "Assign categories to this organization and set their weights. The total weight must be 100.",
+    "categories": "Categories",
+    "weights": "Weights",
+    "total": "Total:",
+    "totalWeightMustBe100": "Total weight must be 100",
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "invitationFlow": {
+    "orgAdminOnlyCreateUsers": "Organization Admin can only create Organization User accounts",
+    "dgrvAdminOnlyCreateAdmins": "DRGV Admin can only create Organization Admin users",
+    "manualControls": "Manual Controls",
+    "userId": "User ID: {{id}}",
+    "status": "Status: {{status}}",
+    "clear": "Clear",
+    "sending": "Sending...",
+    "resendVerificationEmail": "Resend Verification Email",
+    "checking": "Checking...",
+    "checkAndSendOrgInvitation": "Check & Send Org Invitation",
+    "forceSendOrgInvitation": "Force Send Org Invitation",
+    "resendVerificationEmailDescription": "Sends the email verification email again",
+    "checkAndSendOrgInvitationDescription": "Checks if email is verified, then sends organization invitation",
+    "forceSendOrgInvitationDescription": "Sends organization invitation regardless of email verification status",
+    "userInvitationCreatedSuccess": "User invitation created successfully for {{email}}. Status: {{status}}",
+    "loadingCategories": "Loading categories..."
+  },
+  "auth": {
+    "loginRequired": "Please log in to access this page.",
+    "noPermission": "You don't have permission to access this page.",
+    "organizationRequired": "You must be part of an organization to access this page."
+  },
+  "adminActionPlans": {
+    "recommendation": "Recommendation",
+    "close": "Close"
+  },
+  "common": {
+    "processing": "Processing...",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "update": "Update",
+    "create": "Create",
+    "loading": "Loading...",
+    "error": "Error",
+    "tryAgain": "Try Again",
+    "yes": "Yes",
+    "no": "No",
+    "yesNo": "Yes/No",
+    "percentage": "Percentage",
+    "text": "Text",
+    "answer": "Answer",
+    "questions": "Questions",
+    "question": "Question",
+    "questionsCount": "{{count}} Questions",
+    "questionCount": "{{count}} Question",
+    "english": "English",
+    "additionalLanguages": "Additional Languages (Optional)",
+    "enterQuestionEnglish": "Enter the question in English...",
+    "enterQuestionLang": "Enter the question in {{lang}}...",
+    "higherWeightMoreImportant": "Higher weight = more important",
+    "displaySequence": "Display sequence",
+    "saving": "Saving...",
+    "createQuestion": "Create Question",
+    "updateQuestion": "Update Question",
+    "cancelQuestion": "Cancel",
+    "failedToLoadCategories": "Failed to Load Categories",
+    "noQuestionsYet": "No Questions Yet",
+    "noCategoriesAvailable": "No Categories Available",
+    "addFirstQuestion": "Add First Question",
+    "displayOrder": "Display Order",
+    "displayOrderRequired": "Display order is required",
+    "orderConflict": "Sorry, another question in the category \"{{categoryName}}\" already has this order, change it",
+    "categoryNotFound": "Category not found",
+    "emailRequired": "Email is required",
+    "organizationNotFound": "Organization not found",
+    "recommendations": "Recommendations",
+    "attachments": "Attachments"
+  },
+  "staticText": {
+    "navbar": {
+      "logoAlt": "DGRV Logo",
+      "navigation": "Navigation",
+      "brand": "DGRV"
+    },
+    "organizations": {
+      "addNewOrganization": "Add New Organization",
+      "organizationName": "Organization Name",
+      "organizationNamePlaceholder": "Enter organization name",
+      "domainPlaceholder": "Enter domain (e.g. adorsys.com)"
+    }
+  },
+  "reportSelection": {
+    "assessment": "Assessment: {{name}}"
+  },
+  "offline": {
+    "failedToLoadOrganizations": "Failed to load organizations offline.",
+    "organizationCreated": "Organization created successfully.",
+    "organizationCreatedOffline": "Organization created offline. Syncing soon.",
+    "failedToCreateOrganization": "Failed to create organization.",
+    "organizationNotFound": "Organization not found for update.",
+    "organizationUpdated": "Organization updated successfully.",
+    "organizationUpdatedOffline": "Organization updated offline. Syncing soon.",
+    "failedToUpdateOrganization": "Failed to update organization.",
+    "organizationDeleted": "Organization deleted successfully.",
+    "organizationDeletedOffline": "Organization deleted offline. Syncing soon.",
+    "failedToDeleteOrganization": "Failed to delete organization.",
+    "failedToLoadOrganizationCategories": "Failed to load organization categories offline.",
+    "databaseUpdatePending": "A database update is pending. Please close any other open tabs of this application.",
+    "databaseConnectionLost": "Database connection was lost. Please refresh the page.",
+    "syncedSuccessfully": "Synced {{count}} items successfully",
+    "syncFailed": "{{count}} items failed to sync",
+    "connectionRestored": "Connection restored. Syncing data...",
+    "nowOffline": "You are now offline. Changes will be synced when connection is restored.",
+    "syncFailedRetry": "Sync failed. Please try again."
+  },
+  "invitation": {
+    "emailVerificationSent": "Email verification email sent successfully",
+    "failedToSendVerification": "Failed to send verification email",
+    "orgInvitationSent": "Organization invitation sent successfully",
+    "failedToSendOrgInvitation": "Failed to send organization invitation",
+    "emailVerifiedAndInvited": "Email verified and organization invitation sent automatically",
+    "failedToProcessVerification": "Failed to process email verification"
+  },
+  "connection": {
+    "restored": "Connection restored. Syncing data...",
+    "offline": "You are now offline. Changes will be synced when connection is restored."
   }
 }

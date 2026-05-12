@@ -4,6 +4,7 @@ import type { OfflineOrganization, SyncQueueItem } from "@/types/offline";
 import type { OrganizationCreateRequest, OrganizationResponse } from "@/openapi-rq/requests/types.gen";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { OrganizationsService } from "@/openapi-rq/requests/services.gen";
 import type { Organization } from "@/openapi-rq/requests/types.gen";
@@ -98,14 +99,15 @@ const extractErrorMessage = (error: unknown): string => {
 /**
  * Validate organization name for reserved characters
  */
-const validateOrganizationName = (name: string): string | null => {
+const validateOrganizationName = (name: string, t: (key: string, options?: Record<string, unknown>) => string): string | null => {
   if (RESERVED_CHARS.test(name)) {
-    return "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.";
+    return t('manageOrganizations.nameReservedChars', { defaultValue: 'Organization name contains reserved characters. Avoid using: < > / \\ : ; " \' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.' });
   }
   return null;
 };
 
 export const useOfflineOrganizations = () => {
+  const { t } = useTranslation();
   const [organizations, setOrganizations] = useState<OfflineOrganization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -133,7 +135,7 @@ export const useOfflineOrganizations = () => {
       setOrganizations(storedOrgs);
     } catch (error) {
       console.error("Failed to fetch organizations from IndexedDB:", error);
-      toast.error("Failed to load organizations offline.");
+      toast.error(t('offline.failedToLoadOrganizations'));
       setOrganizations([]);
     } finally {
       setIsLoading(false);
@@ -165,7 +167,7 @@ export const useOfflineOrganizations = () => {
 
   const createOrganizationOffline = useCallback(async (requestBody: OrganizationCreateRequest) => {
     // Client-side validation for reserved characters
-    const nameError = validateOrganizationName(requestBody.name);
+    const nameError = validateOrganizationName(requestBody.name, t);
     if (nameError) {
       toast.error(nameError);
       throw new Error(nameError);
@@ -196,7 +198,7 @@ export const useOfflineOrganizations = () => {
         await offlineDB.saveOrganization(realOrg);
 
         setOrganizations((prev) => [...prev, realOrg]);
-        toast.success("Organization created successfully.");
+        toast.success(t('offline.organizationCreated'));
 
         // Notify other components
         window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
@@ -229,11 +231,11 @@ export const useOfflineOrganizations = () => {
         created_at: now,
       });
       setOrganizations((prev) => [...prev, newOrgOffline]);
-      toast.success("Organization created offline. Syncing soon.");
+      toast.success(t('offline.organizationCreatedOffline'));
       return newOrgOffline;
     } catch (error) {
       console.error("Failed to create organization offline:", error);
-      toast.error("Failed to create organization.");
+      toast.error(t('offline.failedToCreateOrganization'));
       throw error;
     }
   }, []);
@@ -243,7 +245,7 @@ export const useOfflineOrganizations = () => {
     const existingOrg = organizations.find(org => org.organization_id === id);
 
     if (!existingOrg) {
-      toast.error("Organization not found for update.");
+      toast.error(t('offline.organizationNotFound'));
       throw new Error("Organization not found for update.");
     }
 
@@ -277,7 +279,7 @@ export const useOfflineOrganizations = () => {
           prev.map((org) => (org.organization_id === id ? updatedOrgSynced : org))
         );
 
-        toast.success("Organization updated successfully.");
+        toast.success(t('offline.organizationUpdated'));
         window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
         return updatedOrgSynced;
       } catch (error) {
@@ -310,11 +312,11 @@ export const useOfflineOrganizations = () => {
       setOrganizations((prev) =>
         prev.map((org) => (org.organization_id === id ? updatedOrgOffline : org))
       );
-      toast.success("Organization updated offline. Syncing soon.");
+      toast.success(t('offline.organizationUpdatedOffline'));
       return updatedOrgOffline;
     } catch (error) {
       console.error("Failed to update organization offline:", error);
-      toast.error("Failed to update organization.");
+      toast.error(t('offline.failedToUpdateOrganization'));
       throw error;
     }
   }, [organizations]);
@@ -327,7 +329,7 @@ export const useOfflineOrganizations = () => {
         await OrganizationsService.deleteAdminOrganizationsById({ id });
         await offlineDB.deleteOrganization(id);
         setOrganizations((prev) => prev.filter((org) => org.organization_id !== id));
-        toast.success("Organization deleted successfully.");
+        toast.success(t('offline.organizationDeleted'));
         window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'organization' } }));
         return;
       } catch (error) {
@@ -358,10 +360,10 @@ export const useOfflineOrganizations = () => {
         created_at: now,
       });
       setOrganizations((prev) => prev.filter((org) => org.organization_id !== id));
-      toast.success("Organization deleted offline. Syncing soon.");
+      toast.success(t('offline.organizationDeletedOffline'));
     } catch (error) {
       console.error("Failed to delete organization offline:", error);
-      toast.error("Failed to delete organization.");
+      toast.error(t('offline.failedToDeleteOrganization'));
       throw error;
     }
   }, []);

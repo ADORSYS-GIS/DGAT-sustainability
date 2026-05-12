@@ -40,7 +40,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
     onSuccess: (result) => {
       // Use proper interpolation instead of template placeholders
       const statusText = getStatusText(result.status);
-      toast.success(`User invitation created successfully for ${result.email}. Status: ${statusText}`);
+      toast.success(t('invitationFlow.userInvitationCreatedSuccess', { email: result.email, status: statusText }));
 
       // Store the created invitation for manual triggers
       setCreatedInvitation(result);
@@ -183,11 +183,11 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
       return AdminService.postAdminUserInvitationsByUserIdTriggerVerification({ userId });
     },
     onSuccess: () => {
-      toast.success('Email verification email sent successfully');
+      toast.success(t('invitation.emailVerificationSent'));
     },
     onError: (error) => {
       console.error('Error triggering verification:', error);
-      toast.error('Failed to send verification email');
+      toast.error(t('invitation.failedToSendVerification'));
     }
   });
 
@@ -196,11 +196,11 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
       return AdminService.postAdminUserInvitationsByUserIdTriggerOrgInvitation({ userId });
     },
     onSuccess: () => {
-      toast.success('Organization invitation sent successfully');
+      toast.success(t('invitation.orgInvitationSent'));
     },
     onError: (error) => {
       console.error('Error triggering organization invitation:', error);
-      toast.error('Failed to send organization invitation');
+      toast.error(t('invitation.failedToSendOrgInvitation'));
     }
   });
 
@@ -209,11 +209,11 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
       return AdminService.postAdminUserInvitationsByUserIdCheckAndTrigger({ userId });
     },
     onSuccess: (result) => {
-      toast.success('Email verified and organization invitation sent automatically');
+      toast.success(t('invitation.emailVerifiedAndInvited'));
     },
     onError: (error) => {
       console.error('Error checking and triggering:', error);
-      toast.error('Failed to process email verification');
+      toast.error(t('invitation.failedToProcessVerification'));
     }
   });
 
@@ -335,7 +335,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
                 {t('userInvitation.roles.Org_Admin')}
               </Button>
             </div>
-            <p className="text-xs text-gray-500">DRGV Admin can only create Organization Admin users</p>
+            <p className="text-xs text-gray-500">{t('invitationFlow.dgrvAdminOnlyCreateAdmins')}</p>
           </div>
 
 
@@ -357,12 +357,12 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
         {/* Manual Trigger Section */}
         {createdInvitation && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium text-gray-900 mb-3">Manual Controls</h4>
+            <h4 className="font-medium text-gray-900 mb-3">{t('invitationFlow.manualControls')}</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">User ID: {createdInvitation.user_id}</p>
-                  <div className="text-sm text-gray-600">Status: {getStatusBadge(createdInvitation.status)}</div>
+                  <p className="text-sm text-gray-600">{t('invitationFlow.userId', { id: createdInvitation.user_id })}</p>
+                  <div className="text-sm text-gray-600"><span>{t('invitationFlow.status', { status: '' })}</span>{getStatusBadge(createdInvitation.status)}</div>
                 </div>
                 <Button
                   type="button"
@@ -370,7 +370,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
                   size="sm"
                   onClick={() => setCreatedInvitation(null)}
                 >
-                  Clear
+                  {t('invitationFlow.clear')}
                 </Button>
               </div>
               
@@ -382,7 +382,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
                   onClick={() => triggerVerificationMutation.mutate(createdInvitation.user_id)}
                   disabled={triggerVerificationMutation.isPending}
                 >
-                  {triggerVerificationMutation.isPending ? 'Sending...' : 'Resend Verification Email'}
+                  {triggerVerificationMutation.isPending ? t('invitationFlow.sending') : t('invitationFlow.resendVerificationEmail')}
                 </Button>
                 
                 <Button
@@ -392,7 +392,7 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
                   onClick={() => checkAndTriggerMutation.mutate(createdInvitation.user_id)}
                   disabled={checkAndTriggerMutation.isPending}
                 >
-                  {checkAndTriggerMutation.isPending ? 'Checking...' : 'Check & Send Org Invitation'}
+                  {checkAndTriggerMutation.isPending ? t('invitationFlow.checking') : t('invitationFlow.checkAndSendOrgInvitation')}
                 </Button>
                 
                 <Button
@@ -402,14 +402,14 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
                   onClick={() => triggerOrgInvitationMutation.mutate(createdInvitation.user_id)}
                   disabled={triggerOrgInvitationMutation.isPending}
                 >
-                  {triggerOrgInvitationMutation.isPending ? 'Sending...' : 'Force Send Org Invitation'}
+                  {triggerOrgInvitationMutation.isPending ? t('invitationFlow.sending') : t('invitationFlow.forceSendOrgInvitation')}
                 </Button>
               </div>
               
               <div className="text-xs text-gray-500">
-                <p><strong>Resend Verification Email:</strong> Sends the email verification email again</p>
-                <p><strong>Check & Send Org Invitation:</strong> Checks if email is verified, then sends organization invitation</p>
-                <p><strong>Force Send Org Invitation:</strong> Sends organization invitation regardless of email verification status</p>
+                <p><strong>{t('invitationFlow.resendVerificationEmail')}:</strong> {t('invitationFlow.resendVerificationEmailDescription')}</p>
+                <p><strong>{t('invitationFlow.checkAndSendOrgInvitation')}:</strong> {t('invitationFlow.checkAndSendOrgInvitationDescription')}</p>
+                <p><strong>{t('invitationFlow.forceSendOrgInvitation')}:</strong> {t('invitationFlow.forceSendOrgInvitationDescription')}</p>
               </div>
             </div>
           </div>

@@ -122,7 +122,7 @@ export const Navbar = () => {
               <div className="w-28 h-28 flex items-center justify-center">
                 <img
                   src="/dgrv-logo.png"
-                  alt="DGRV Logo"
+                  alt={t("staticText.navbar.logoAlt", { defaultValue: "DGRV Logo" })}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -230,7 +230,7 @@ export const Navbar = () => {
                 size="sm"
                 onClick={toggleSidebar}
                 className="md:hidden"
-                aria-label="Toggle menu"
+                aria-label={t("staticText.navbar.toggleMenu", { defaultValue: "Toggle menu" })}
               >
                 <Menu className="w-5 h-5" />
               </Button>
@@ -257,12 +257,12 @@ export const Navbar = () => {
               <div className="w-10 h-10 flex items-center justify-center">
                 <img
                   src="/dgrv.jpg"
-                  alt="DGRV Logo"
+                  alt={t("staticText.navbar.logoAlt", { defaultValue: "DGRV Logo" })}
                   className="w-full h-full object-contain"
                 />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-dgrv-blue">DGRV</h2>
+                <h2 className="text-xl font-bold text-dgrv-blue">{t('staticText.navbar.brand')}</h2>
                 <p className="text-xs text-gray-600">{t("sustainability")}</p>
               </div>
             </div>
@@ -281,7 +281,7 @@ export const Navbar = () => {
             {/* Navigation Section */}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                Navigation
+                {t("staticText.navbar.navigation", { defaultValue: "Navigation" })}
               </h3>
 
               {/* Home Button */}

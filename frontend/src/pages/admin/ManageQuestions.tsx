@@ -142,7 +142,7 @@ const QuestionForm: React.FC<{
                 text: { ...prev.text, en: e.target.value },
               }))
             }
-            placeholder="Enter the question in English..."
+            placeholder={t('common.enterQuestionEnglish')}
             className="min-h-[100px] resize-none"
             required
           />
@@ -150,7 +150,7 @@ const QuestionForm: React.FC<{
         <div className="space-y-3">
           <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
             <Globe className="w-4 h-4" />
-            <span>Additional Languages (Optional)</span>
+            <span>{t('common.additionalLanguages')}</span>
           </Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {LANGUAGES.filter((lang) => lang.code !== "en").map((lang) => (
@@ -196,7 +196,7 @@ const QuestionForm: React.FC<{
               className="text-center"
               required
             />
-            <p className="text-xs text-gray-500">Higher weight = more important</p>
+            <p className="text-xs text-gray-500">{t('common.higherWeightMoreImportant')}</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="order" className="text-sm font-medium text-gray-700">
@@ -216,19 +216,19 @@ const QuestionForm: React.FC<{
               className="text-center"
               required
             />
-            <p className="text-xs text-gray-500">Display sequence</p>
+            <p className="text-xs text-gray-500">{t('common.displaySequence')}</p>
           </div>
         </div>
         <div className="flex space-x-3 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            className="flex-1"
-            disabled={isPending}
-          >
-            Cancel
-          </Button>
+<Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="flex-1"
+              disabled={isPending}
+            >
+              {t('common.cancel')}
+            </Button>
           <Button
             type="submit"
             className="flex-1 bg-blue-600 hover:bg-blue-700"
@@ -237,12 +237,12 @@ const QuestionForm: React.FC<{
             {isPending ? (
               <div className="flex items-center space-x-2">
                 <LoadingSpinner size="sm" minimal className="text-white" />
-                <span>Saving...</span>
+                <span>{t('common.saving')}</span>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4" />
-                <span>{editingQuestion ? 'Update Question' : 'Create Question'}</span>
+                <span>{editingQuestion ? t('common.updateQuestion') : t('common.createQuestion')}</span>
               </div>
             )}
           </Button>
@@ -346,7 +346,7 @@ export const ManageQuestions = () => {
     }
 
     if (formData.display_order === "") {
-      toast.error("Display order is required");
+      toast.error(t('common.displayOrderRequired'));
       return;
     }
 
@@ -361,12 +361,12 @@ export const ManageQuestions = () => {
     );
 
     if (isDuplicate) {
-      toast.error(`Sorry, another question in the category "${categoryName}" already has this order, change it`);
+      toast.error(t('common.orderConflict', { categoryName }));
       return;
     }
     const category = categories.find((c) => c.name === categoryName);
     if (!category) {
-      toast.error("Category not found");
+      toast.error(t('common.categoryNotFound'));
       return;
     }
 
@@ -483,7 +483,7 @@ export const ManageQuestions = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
                 <BookOpen className="w-8 h-8 text-red-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Categories</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('common.failedToLoadCategories')}</h3>
               <p className="text-gray-600 mb-6">{t('manageQuestions.categoriesLoadError')}</p>
               <Button
                 onClick={() => queryClient.invalidateQueries({ queryKey: ["categories"] })}
@@ -544,7 +544,7 @@ export const ManageQuestions = () => {
                           </CardTitle>
                           <div className="flex items-center space-x-3 mt-1">
                             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                              {questionCount} {questionCount === 1 ? 'Question' : 'Questions'}
+                              {questionCount} {questionCount === 1 ? t('common.question') : t('common.questions')}
                             </Badge>
                           </div>
                         </div>
@@ -568,7 +568,7 @@ export const ManageQuestions = () => {
                           size="sm"
                         >
                           <Plus className="w-4 h-4 mr-2" />
-                          Add Question
+                          {t('manageQuestions.addQuestion')}
                         </Button>
                       </div>
                     </div>
@@ -584,14 +584,14 @@ export const ManageQuestions = () => {
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-start space-x-3">
-                                      <div className="flex items-center justify-center min-w-8 h-8 px-2 bg-blue-50 rounded-full text-xs font-semibold text-blue-600 mt-1" title="Display Order">
+                                      <div className="flex items-center justify-center min-w-8 h-8 px-2 bg-blue-50 rounded-full text-xs font-semibold text-blue-600 mt-1" title={t('manageQuestions.displayOrder')}>
                                         {question.display_order || 0}
                                       </div>
                                       <div className="flex-1">
                                         <QuestionText question={question} />
                                         <div className="flex items-center space-x-4 mt-3">
                                           <Badge variant="outline" className="text-xs">
-                                            Weight: {question.latest_revision?.weight || 5}
+                                            {t('manageCategories.weight')}: {question.latest_revision?.weight || 5}
                                           </Badge>
                                           <span className="text-xs text-gray-500">
                                             {new Date(question.created_at).toLocaleDateString()}
@@ -627,14 +627,14 @@ export const ManageQuestions = () => {
                             <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                               <FileText className="w-8 h-8 text-gray-400" />
                             </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Questions Yet</h3>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('common.noQuestionsYet')}</h3>
                             <p className="text-gray-500 mb-4">{t('manageQuestions.noQuestionsInCategory')}</p>
                             <Button
                               onClick={() => handleAddQuestion(category.name)}
                               className="bg-blue-600 hover:bg-blue-700"
                             >
                               <Plus className="w-4 h-4 mr-2" />
-                              Add First Question
+                              {t('manageQuestions.addQuestion')}
                             </Button>
                           </div>
                         )}
@@ -650,7 +650,7 @@ export const ManageQuestions = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                   <BookOpen className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories Available</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{t('common.noCategoriesAvailable')}</h3>
                 <p className="text-gray-500">{t('manageQuestions.noCategories')}</p>
               </Card>
             )}
@@ -704,7 +704,7 @@ const QuestionText = ({
         <div className="space-y-1">
           <span className="text-sm font-medium text-gray-600 flex items-center space-x-1">
             <span>🇺🇸</span>
-            <span>English</span>
+            <span>{t('common.english')}</span>
           </span>
           <p className="text-gray-900 leading-relaxed">{text.en}</p>
         </div>

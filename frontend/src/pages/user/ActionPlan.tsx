@@ -203,7 +203,7 @@ export const ActionPlan: React.FC = () => {
     );
 
     if (!recommendationToUpdate) {
-      toast.error("Recommendation not found.");
+      toast.error(t("staticText.actionPlan.recommendationNotFound", { defaultValue: "Recommendation not found." }));
       return;
     }
 
@@ -215,17 +215,17 @@ export const ActionPlan: React.FC = () => {
         newStatus,
         {
           onSuccess: () => {
-            toast.success("Status updated successfully");
+            toast.success(t("staticText.actionPlan.statusUpdateSuccess", { defaultValue: "Status updated successfully" }));
           },
           onError: (error) => {
             console.error("Failed to update status:", error);
-            toast.error("Failed to update status");
+            toast.error(t("staticText.actionPlan.statusUpdateError", { defaultValue: "Failed to update status" }));
           },
         },
       );
     } catch (error) {
       console.error("Unhandled error in moveRecommendation:", error);
-      toast.error("Failed to update status");
+      toast.error(t("staticText.actionPlan.statusUpdateError", { defaultValue: "Failed to update status" }));
     }
   };
 
@@ -487,7 +487,9 @@ export const ActionPlan: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="mt-4">
-            <h4 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Recommendation</h4>
+            <h4 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">
+              {t("staticText.actionPlan.recommendation", { defaultValue: "Recommendation" })}
+            </h4>
             <div className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-lg border">
               {selectedTask?.recommendation}
             </div>
@@ -503,7 +505,7 @@ export const ActionPlan: React.FC = () => {
                       setSelectedTask(null);
                     }}
                   >
-                    Move to In Progress
+                    {t("user.actionPlan.kanban.moveToInProgress", { defaultValue: "Move to In Progress" })}
                   </Button>
                 )}
                 {isAdmin && selectedTask.status === "in_progress" && (
@@ -516,7 +518,7 @@ export const ActionPlan: React.FC = () => {
                         setSelectedTask(null);
                       }}
                     >
-                      Back to To Do
+                      {t("user.actionPlan.kanban.backToTodo", { defaultValue: "Back to To Do" })}
                     </Button>
                     <Button
                       size="sm"
@@ -526,7 +528,7 @@ export const ActionPlan: React.FC = () => {
                         setSelectedTask(null);
                       }}
                     >
-                      Move to Done
+                      {t("user.actionPlan.kanban.moveToDone", { defaultValue: "Move to Done" })}
                     </Button>
                   </>
                 )}
@@ -540,7 +542,7 @@ export const ActionPlan: React.FC = () => {
                         setSelectedTask(null);
                       }}
                     >
-                      Back to In Progress
+                      {t("user.actionPlan.kanban.backToInProgress", { defaultValue: "Back to In Progress" })}
                     </Button>
                     <Button
                       size="sm"
@@ -550,7 +552,7 @@ export const ActionPlan: React.FC = () => {
                         setSelectedTask(null);
                       }}
                     >
-                      Approve
+                      {t("staticText.actionPlan.approve", { defaultValue: "Approve" })}
                     </Button>
                   </>
                 )}
@@ -563,7 +565,7 @@ export const ActionPlan: React.FC = () => {
                       setSelectedTask(null);
                     }}
                   >
-                    Back to Done
+                    {t("user.actionPlan.kanban.backToDone", { defaultValue: "Back to Done" })}
                   </Button>
                 )}
               </div>

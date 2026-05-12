@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase, deleteDB } from "idb";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import type {
   OfflineDatabaseSchema,
   OfflineQuestion,
@@ -48,7 +49,7 @@ class OfflineDB {
       },
       blocked: () => {
         console.warn("IndexedDB upgrade is blocked. Please close other tabs.");
-        toast.warning("A database update is pending. Please close any other open tabs of this application.");
+        toast.warning(i18n.t('offline.databaseUpdatePending'));
       },
       blocking: () => {
         // This is on the old connection. The user will see the 'blocked' message in the new tab.
@@ -56,7 +57,7 @@ class OfflineDB {
       },
       terminated: () => {
         console.error("IndexedDB connection was terminated.");
-        toast.error("Database connection was lost. Please refresh the page.");
+        toast.error(i18n.t('offline.databaseConnectionLost'));
       }
     });
   }

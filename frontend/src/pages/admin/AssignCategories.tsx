@@ -22,6 +22,7 @@ import type {
   OrganizationResponse,
 } from '@/openapi-rq/requests/types.gen';
 import Select, { MultiValue } from 'react-select';
+import { useTranslation } from 'react-i18next';
 
 interface OptionType {
   value: string;
@@ -43,6 +44,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const { data: categoryCatalogs } = useGetCategoryCatalogs();
   const { data: orgCategories, refetch } = useGetOrganizationCategories(
     {
@@ -157,7 +159,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
   const handleSubmit = async () => {
     const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
     if (Math.round(totalWeight) !== 100) {
-      alert('Total weight must be 100');
+      alert(t('assignCategories.totalWeightMustBe100'));
       return;
     }
 
@@ -207,14 +209,14 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Assign Categories to {organization?.name}
+            {t('assignCategories.title', { org: organization?.name })}
           </DialogTitle>
           <DialogDescription>
-            Assign categories to this organization and set their weights. The total weight must be 100.
+            {t('assignCategories.description')}
           </DialogDescription>
         </DialogHeader>
         <div>
-          <Label>Categories</Label>
+          <Label>{t('assignCategories.categories')}</Label>
           <Select
             isMulti
             options={categoryOptions}
@@ -224,7 +226,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
         </div>
         {selectedCategories.length > 0 && (
           <div>
-            <Label>Weights</Label>
+            <Label>{t('assignCategories.weights')}</Label>
             {selectedCategories.map((cat) => (
               <div key={cat.value} className="flex items-center gap-2 mt-2">
                 <Label className="w-1/3">{cat.label}</Label>
@@ -238,7 +240,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
               </div>
             ))}
             <div>
-              Total:{' '}
+              {t('assignCategories.total')}{' '}
               {Object.values(weights)
                 .reduce((s, w) => s + w, 0)
                 .toFixed(2)}
@@ -247,9 +249,9 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
         )}
         <DialogFooter>
           <Button onClick={onClose} variant="ghost">
-            Cancel
+            {t('assignCategories.cancel')}
           </Button>
-          <Button onClick={handleSubmit}>Save</Button>
+          <Button onClick={handleSubmit}>{t('assignCategories.save')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

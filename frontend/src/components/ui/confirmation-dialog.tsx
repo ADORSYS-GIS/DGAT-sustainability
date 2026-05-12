@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ConfirmationDialogProps {
   isOpen: boolean;
@@ -28,11 +29,15 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onConfirm,
   title,
   description,
-  confirmText = "Delete",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   variant = "destructive",
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
+  const resolvedConfirmText = confirmText || t("common.delete", { defaultValue: "Delete" });
+  const resolvedCancelText = cancelText || t("common.cancel", { defaultValue: "Cancel" });
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -51,14 +56,14 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             onClick={onClose}
             disabled={isLoading}
           >
-            {cancelText}
+            {resolvedCancelText}
           </Button>
           <Button
             variant={variant}
             onClick={onConfirm}
             disabled={isLoading}
           >
-            {isLoading ? "Deleting..." : confirmText}
+            {isLoading ? t("staticText.common.deleting", { defaultValue: "Deleting..." }) : resolvedConfirmText}
           </Button>
         </DialogFooter>
       </DialogContent>

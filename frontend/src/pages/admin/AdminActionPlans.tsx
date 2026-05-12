@@ -378,14 +378,14 @@ const AdminActionPlans: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="mt-4">
-            <h4 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Recommendation</h4>
+            <h4 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">{t('adminActionPlans.recommendation')}</h4>
             <div className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-lg border">
               {selectedTask?.recommendation}
             </div>
 
             <div className="mt-6 flex justify-end pt-6 border-t">
               <Button onClick={() => setSelectedTask(null)}>
-                Close
+                {t('adminActionPlans.close')}
               </Button>
             </div>
           </div>

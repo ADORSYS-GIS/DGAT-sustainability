@@ -128,13 +128,13 @@ export const ManageOrganizations: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      toast.error("Name is required");
+      toast.error(t("staticText.organizations.nameRequired", { defaultValue: "Name is required" }));
       return;
     }
     // Remove empty domains
     const cleanDomains = (formData.domains || []).filter((d) => d.name.trim());
     if (cleanDomains.length === 0) {
-      toast.error("At least one domain is required");
+      toast.error(t("staticText.organizations.domainRequired", { defaultValue: "At least one domain is required" }));
       return;
     }
     const requestBody: OrganizationCreateRequest = {
@@ -292,7 +292,7 @@ export const ManageOrganizations: React.FC = () => {
                     <DialogTitle>
                       {editingOrg
                         ? t('manageOrganizations.editOrganization')
-                        : "Add New Organization"}
+                        : t("staticText.organizations.addNewOrganization", { defaultValue: "Add New Organization" })}
                     </DialogTitle>
                   </DialogHeader>
                   {/* --- FORM UI --- */}
@@ -302,7 +302,7 @@ export const ManageOrganizations: React.FC = () => {
                         htmlFor="name"
                         className="font-semibold text-dgrv-blue"
                       >
-                        Organization Name
+                        {t("staticText.organizations.organizationName", { defaultValue: "Organization Name" })}
                       </Label>
                       <Input
                         id="name"
@@ -317,7 +317,7 @@ export const ManageOrganizations: React.FC = () => {
                           const error = validateOrgName(newName);
                           setNameError(error);
                         }}
-                        placeholder="Enter organization name"
+                        placeholder={t("staticText.organizations.organizationNamePlaceholder", { defaultValue: "Enter organization name" })}
                         className={`mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${nameError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                       />
                       {nameError && (
@@ -329,7 +329,7 @@ export const ManageOrganizations: React.FC = () => {
                     </div>
                     <div>
                       <Label className="font-semibold text-dgrv-blue">
-                        Domains <span className="text-red-500">*</span>
+                        {t("manageOrganizations.domains", { defaultValue: "Domains" })} <span className="text-red-500">*</span>
                       </Label>
                       {formData.domains?.map((d, idx) => (
                         <div
@@ -341,7 +341,7 @@ export const ManageOrganizations: React.FC = () => {
                             onChange={(e) =>
                               handleDomainChange(idx, e.target.value)
                             }
-                            placeholder="Enter domain (e.g. adorsys.com)"
+                            placeholder={t("staticText.organizations.domainPlaceholder", { defaultValue: "Enter domain (e.g. adorsys.com)" })}
                             className={`border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${!d?.name?.trim() ? "border-red-500" : ""}`}
                             required
                           />
@@ -364,7 +364,7 @@ export const ManageOrganizations: React.FC = () => {
                         onClick={addDomain}
                         className="mt-1"
                       >
-                        + Add Domain
+                        {t("staticText.organizations.addDomain", { defaultValue: "+ Add Domain" })}
                       </Button>
                     </div>
 

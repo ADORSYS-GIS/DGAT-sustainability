@@ -131,7 +131,7 @@ export const Assessments: React.FC = () => {
 
 
   if (isLoading) {
-    return <LoadingSpinner size="hero" fullPage text="Retrieving your submissions..." />;
+    return <LoadingSpinner size="hero" fullPage text={t("staticText.assessments.retrievingSubmissions", { defaultValue: "Retrieving your submissions..." })} />;
   }
 
   // Card for each submission

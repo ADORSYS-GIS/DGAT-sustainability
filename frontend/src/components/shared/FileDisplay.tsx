@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface FileDisplayProps {
   files: Array<{
@@ -11,7 +12,10 @@ interface FileDisplayProps {
   title?: string;
 }
 
-const FileDisplay: React.FC<FileDisplayProps> = ({ files, title = 'Attachments' }) => {
+const FileDisplay: React.FC<FileDisplayProps> = ({ files, title }) => {
+  const { t } = useTranslation();
+  const resolvedTitle = title || t('staticText.files.attachments', { defaultValue: 'Attachments' });
+
   if (!files || files.length === 0) {
     return null;
   }
@@ -22,7 +26,7 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title = 'Attachments' 
       newWindow.document.write(`
         <html>
           <head>
-            <title>${file.name || 'Image'}</title>
+            <title>${file.name || t('staticText.files.image', { defaultValue: 'Image' })}</title>
             <style>
               body { 
                 margin: 0;
@@ -54,8 +58,8 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title = 'Attachments' 
             </style>
           </head>
           <body>
-            <button class="close-btn" onclick="window.close()">Close</button>
-            <img src="${file.url}" alt="${file.name || 'Image'}" />
+            <button class="close-btn" onclick="window.close()">${t('staticText.common.close', { defaultValue: 'Close' })}</button>
+            <img src="${file.url}" alt="${file.name || t('staticText.files.image', { defaultValue: 'Image' })}" />
           </body>
         </html>
       `);
@@ -73,7 +77,7 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title = 'Attachments' 
 
   return (
     <div className="mt-3">
-      <span className="text-sm font-medium text-gray-700">{title}:</span>
+      <span className="text-sm font-medium text-gray-700">{resolvedTitle}:</span>
       <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {files.map((file, fileIndex) => (
           <div key={fileIndex} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -92,7 +96,7 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title = 'Attachments' 
             ) : null}
             <div className={`p-4 text-center ${isImageFile(file) ? 'hidden' : ''}`}>
               <FileText className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600">{file.name || 'Unknown file'}</p>
+              <p className="text-sm text-gray-600">{file.name || t('staticText.files.unknownFile', { defaultValue: 'Unknown file' })}</p>
               {file.url && (
                 <a 
                   href={file.url} 
@@ -100,7 +104,7 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title = 'Attachments' 
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-block"
                 >
-                  Download
+                  {t('staticText.files.download', { defaultValue: 'Download' })}
                 </a>
               )}
             </div>

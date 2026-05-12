@@ -353,11 +353,11 @@ export const ReportHistory: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800">{t('reportHistory.completed')}</Badge>;
       case 'generating':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Generating</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">{t('reportHistory.generating')}</Badge>;
       case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
+        return <Badge variant="destructive">{t('reportHistory.failed')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -753,7 +753,7 @@ export const ReportHistory: React.FC = () => {
                                     <div className="p-2 bg-blue-100 rounded-lg">
                                       <Award className="w-5 h-5 text-blue-600" />
                                     </div>
-                                    <h4 className="text-lg font-semibold text-blue-800">Recommendations</h4>
+                                    <h4 className="text-lg font-semibold text-blue-800">{t('common.recommendations')}</h4>
                                   </div>
                                   <div className="grid gap-4">
                                     {recsForCategory.map((rec, idx) => (
@@ -776,7 +776,7 @@ export const ReportHistory: React.FC = () => {
                                   <div className="p-2 bg-green-100 rounded-lg">
                                     <FileText className="w-5 h-5 text-green-600" />
                                   </div>
-                                  <h4 className="text-lg font-semibold text-green-800">Questions & Responses</h4>
+                                  <h4 className="text-lg font-semibold text-green-800">{t('reportHistory.questionsAndResponses')}</h4>
                                 </div>
 
                                 {responsesForCategory.map((res, idx) => {
@@ -808,7 +808,7 @@ export const ReportHistory: React.FC = () => {
                                             <div className="bg-gray-50 rounded-lg p-4">
                                               <div className="flex items-center gap-2 mb-2">
                                                 <div className={`w-3 h-3 rounded-full ${responseData.yesNo ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                                                <span className="text-sm font-medium text-gray-700">Yes/No</span>
+                                                <span className="text-sm font-medium text-gray-700">{t('common.yesNo')}</span>
                                               </div>
                                               <Badge
                                                 variant={responseData.yesNo ? "default" : "secondary"}
@@ -824,7 +824,7 @@ export const ReportHistory: React.FC = () => {
                                             <div className="bg-gray-50 rounded-lg p-4">
                                               <div className="flex items-center gap-2 mb-2">
                                                 <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                                                <span className="text-sm font-medium text-gray-700">Percentage</span>
+                                                <span className="text-sm font-medium text-gray-700">{t('common.percentage')}</span>
                                               </div>
                                               <div className="flex items-center gap-3">
                                                 <div className="flex-1 bg-gray-200 rounded-full h-3">
@@ -843,9 +843,9 @@ export const ReportHistory: React.FC = () => {
                                             <div className="bg-gray-50 rounded-lg p-4">
                                               <div className="flex items-center gap-2 mb-2">
                                                 <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
-                                                <span className="text-sm font-medium text-gray-700">Text Response</span>
+                                                <span className="text-sm font-medium text-gray-700">{t('reportHistory.textResponse')}</span>
                                               </div>
-                                              <div className="text-xs text-gray-500">Available below</div>
+                                              <div className="text-xs text-gray-500">{t('reportHistory.availableBelow')}</div>
                                             </div>
                                           )}
                                         </div>
@@ -855,7 +855,7 @@ export const ReportHistory: React.FC = () => {
                                           <div className="bg-gray-50 rounded-lg p-4">
                                             <div className="flex items-center gap-2 mb-3">
                                               <FileText className="w-4 h-4 text-purple-600" />
-                                              <span className="text-sm font-medium text-gray-700">Detailed Response</span>
+                                              <span className="text-sm font-medium text-gray-700">{t('reportHistory.detailedResponse')}</span>
                                             </div>
                                             <div className="bg-white rounded-md border border-gray-200 p-4">
                                               <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{responseData.text}</p>
@@ -868,7 +868,7 @@ export const ReportHistory: React.FC = () => {
                                           <div className="bg-blue-50 rounded-lg p-4">
                                             <div className="flex items-center gap-2 mb-3">
                                               <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                                              <span className="text-sm font-medium text-blue-700">Attachments</span>
+                                              <span className="text-sm font-medium text-blue-700">{t('common.attachments')}</span>
                                             </div>
 
                                             {/* Files in responseData */}
@@ -876,7 +876,7 @@ export const ReportHistory: React.FC = () => {
                                               <div className="mb-4">
                                                 <FileDisplay
                                                   files={responseData.files as FileAttachment[]}
-                                                  title="Response Attachments"
+                                                  title={t('reportHistory.responseAttachments')}
                                                 />
                                               </div>
                                             )}
@@ -886,7 +886,7 @@ export const ReportHistory: React.FC = () => {
                                               <div>
                                                 <FileDisplay
                                                   files={res.files as FileAttachment[]}
-                                                  title="Additional Attachments"
+                                                  title={t('reportHistory.additionalAttachments')}
                                                 />
                                               </div>
                                             )}
@@ -934,7 +934,7 @@ export const ReportHistory: React.FC = () => {
                               <div className="bg-white rounded-lg p-4 border-l-4 border-purple-400">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Award className="w-5 h-5 text-purple-600" />
-                                  <span className="font-semibold text-purple-800">Recommendations</span>
+                                  <span className="font-semibold text-purple-800">{t('common.recommendations')}</span>
                                 </div>
                                 <div className="space-y-3">
                                   {cat.recommendations.map((rec, idx) => (
@@ -953,7 +953,7 @@ export const ReportHistory: React.FC = () => {
                             <div className="space-y-4">
                               <div className="flex items-center gap-2 mb-4">
                                 <FileText className="w-5 h-5 text-purple-600" />
-                                <span className="font-semibold text-purple-800">Questions & Answers</span>
+                                <span className="font-semibold text-purple-800">{t('reportHistory.questionsAndAnswers')}</span>
                               </div>
 
                               {cat.responses.map((res, idx) => (
@@ -970,7 +970,7 @@ export const ReportHistory: React.FC = () => {
                                       <div className="bg-gray-50 rounded-lg p-3">
                                         <div className="flex items-center gap-2 mb-2">
                                           <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                                          <span className="text-xs font-medium text-gray-600">Text</span>
+                                          <span className="text-xs font-medium text-gray-600">{t('common.text')}</span>
                                         </div>
                                         <p className="text-sm text-gray-800">{res.response.text}</p>
                                       </div>
@@ -980,7 +980,7 @@ export const ReportHistory: React.FC = () => {
                                       <div className="bg-gray-50 rounded-lg p-3">
                                         <div className="flex items-center gap-2 mb-2">
                                           <div className={`w-2 h-2 rounded-full ${res.response.yesNo ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                                          <span className="text-xs font-medium text-gray-600">Answer</span>
+                                          <span className="text-xs font-medium text-gray-600">{t('common.answer')}</span>
                                         </div>
                                         <Badge
                                           variant={res.response.yesNo ? "default" : "secondary"}
@@ -995,7 +995,7 @@ export const ReportHistory: React.FC = () => {
                                       <div className="bg-gray-50 rounded-lg p-3">
                                         <div className="flex items-center gap-2 mb-2">
                                           <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                                          <span className="text-xs font-medium text-gray-600">Percentage</span>
+                                          <span className="text-xs font-medium text-gray-600">{t('common.percentage')}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                           <div className="flex-1 bg-gray-200 rounded-full h-2">

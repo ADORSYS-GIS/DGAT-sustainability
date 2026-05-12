@@ -3,8 +3,10 @@ import { offlineDB } from "@/services/indexeddb";
 import type { OfflineOrganizationCategory } from "@/types/offline";
 import { getAuthState } from "@/services/shared/authService";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const useOfflineOrganizationCategories = () => {
+  const { t } = useTranslation();
   const [organizationCategories, setOrganizationCategories] = useState<OfflineOrganizationCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export const useOfflineOrganizationCategories = () => {
     } catch (err) {
       console.error("Failed to fetch organization categories from IndexedDB:", err);
       setError("Failed to load organization categories offline.");
-      toast.error("Failed to load organization categories offline.");
+      toast.error(t('offline.failedToLoadOrganizationCategories'));
       setOrganizationCategories([]);
     } finally {
       setIsLoading(false);

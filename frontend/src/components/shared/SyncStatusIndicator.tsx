@@ -1,7 +1,9 @@
 import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export const SyncStatusIndicator: React.FC = () => {
+  const { t } = useTranslation();
   const { isOnline, queueCount, isSyncing } = useOfflineSyncStatus();
 
   return (
@@ -17,8 +19,12 @@ export const SyncStatusIndicator: React.FC = () => {
         }`}></div>
       <span className="font-medium">
         {isOnline
-          ? (isSyncing ? 'Syncing...' : (queueCount > 0 ? `${queueCount} Pending` : 'Online'))
-          : 'Offline'}
+          ? (isSyncing
+            ? t("staticText.sync.syncing", { defaultValue: "Syncing..." })
+            : (queueCount > 0
+              ? t("staticText.sync.pending", { count: queueCount, defaultValue: "{{count}} Pending" })
+              : t("staticText.sync.online", { defaultValue: "Online" })))
+          : t("staticText.sync.offline", { defaultValue: "Offline" })}
       </span>
     </div>
   );

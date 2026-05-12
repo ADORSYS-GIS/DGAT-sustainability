@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/shared/useAuth";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "sonner";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
@@ -16,6 +17,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
 }) => {
   const { isAuthenticated, user, loading } = useAuth();
+  const { t } = useTranslation();
   const location = useLocation();
 
   // Check if user has required roles
@@ -38,18 +40,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Redirect to home if not authenticated
   if (!isAuthenticated) {
-    toast.error("Please log in to access this page.");
+    toast.error(t('auth.loginRequired'));
     return <Navigate to="/" replace state={{ from: location }} />;
   }
 
   // Redirect to unauthorized page if user doesn't have required roles
   if (allowedRoles && allowedRoles.length > 0 && !hasRequiredRole) {
-    toast.error("You don't have permission to access this page.");
+    toast.error(t('auth.noPermission'));
     return <Navigate to="/unauthorized" replace />;
   }
 
   if (requireOrganization && !user?.organizations) {
-    toast.error("You must be part of an organization to access this page.");
+    toast.error(t('auth.organizationRequired'));
     return <Navigate to="/" replace />;
   }
 

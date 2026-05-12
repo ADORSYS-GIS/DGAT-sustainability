@@ -866,8 +866,8 @@ export const Assessment: React.FC = () => {
           <div>
             <Label>{t("assessment.yesNo")} <span className="text-red-500">*</span></Label>
             <div className="flex space-x-4 mt-1">
-              <Button type="button" variant="outline" disabled>Yes</Button>
-              <Button type="button" variant="outline" disabled>No</Button>
+              <Button type="button" variant="outline" disabled>{t("common.yes", { defaultValue: "Yes" })}</Button>
+              <Button type="button" variant="outline" disabled>{t("common.no", { defaultValue: "No" })}</Button>
             </div>
           </div>
           <div>
@@ -899,7 +899,7 @@ export const Assessment: React.FC = () => {
               className={yesNoValue === true ? "bg-dgrv-green hover:bg-green-700" : ""}
               onClick={() => handleAnswerChange(key, { yesNo: true })}
             >
-              Yes
+              {t("common.yes", { defaultValue: "Yes" })}
             </Button>
             <Button
               type="button"
@@ -907,7 +907,7 @@ export const Assessment: React.FC = () => {
               className={yesNoValue === false ? "bg-red-500 hover:bg-red-600" : ""}
               onClick={() => handleAnswerChange(key, { yesNo: false })}
             >
-              No
+              {t("common.no", { defaultValue: "No" })}
             </Button>
           </div>
         </div>
@@ -920,7 +920,7 @@ export const Assessment: React.FC = () => {
               type="button"
               className="cursor-pointer text-dgrv-blue focus:outline-none"
               onClick={() => setShowPercentInfo(showPercentInfo === key ? null : key)}
-              aria-label="Show percentage explanation"
+              aria-label={t("staticText.assessment.showPercentageExplanation", { defaultValue: "Show percentage explanation" })}
             >
               <Info className="w-4 h-4" />
             </button>

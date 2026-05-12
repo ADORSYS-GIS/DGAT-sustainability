@@ -90,7 +90,7 @@ export const ManageUsers: React.FC = () => {
   // Use the generated mutation hooks
   const createUserMutation = useOrganizationMembersServicePostOrganizationsByIdMembers({
     onSuccess: (result) => {
-      toast.success("User created successfully");
+      toast.success(t("staticText.users.createSuccess", { defaultValue: "User created successfully" }));
       refetch();
       setShowAddDialog(false);
       setFormData({
@@ -99,45 +99,45 @@ export const ManageUsers: React.FC = () => {
       });
     },
     onError: () => {
-      toast.error("Failed to create user");
+      toast.error(t("staticText.users.createError", { defaultValue: "Failed to create user" }));
     }
   });
 
   const updateUserMutation = useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles({
     onSuccess: () => {
-      toast.success("User updated successfully");
+      toast.success(t("staticText.users.updateSuccess", { defaultValue: "User updated successfully" }));
       refetch();
       setShowAddDialog(false);
       resetForm();
     },
     onError: (error) => {
       console.error("Failed to update user:", error);
-      toast.error("Failed to update user");
+      toast.error(t("staticText.users.updateError", { defaultValue: "Failed to update user" }));
     }
   });
 
   const deleteUserMutation = useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId({
     onSuccess: () => {
-      toast.success("User removed from organization successfully");
+      toast.success(t("staticText.users.removeFromOrgSuccess", { defaultValue: "User removed from organization successfully" }));
       refetch();
     },
     onError: (error) => {
       console.error("Failed to remove user from organization:", error);
-      toast.error("Failed to remove user from organization");
+      toast.error(t("staticText.users.removeFromOrgError", { defaultValue: "Failed to remove user from organization" }));
     }
   });
 
   // New mutation for deleting user entirely
   const deleteUserEntirelyMutation = useAdminServiceDeleteAdminUsersByUserId({
     onSuccess: () => {
-      toast.success("User deleted entirely from system");
+      toast.success(t("staticText.users.deleteEntirelySuccess", { defaultValue: "User deleted entirely from system" }));
       refetch();
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
     },
     onError: (error) => {
       console.error("Failed to delete user entirely:", error);
-      toast.error("Failed to delete user entirely");
+      toast.error(t("staticText.users.deleteEntirelyError", { defaultValue: "Failed to delete user entirely" }));
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
     }
@@ -203,16 +203,16 @@ export const ManageUsers: React.FC = () => {
           };
 
           await offlineDB.saveUser(realUser);
-          toast.success("User created successfully");
+          toast.success(t("staticText.users.createSuccess", { defaultValue: "User created successfully" }));
         }
       } catch (apiError) {
         console.warn('API call failed, user saved locally for sync:', apiError);
-        toast.success("Fail to creat user");
+        toast.success(t("staticText.users.createQueued", { defaultValue: "User saved locally and will sync when online" }));
       }
 
       return { success: true };
     } catch (error) {
-      toast.error("Failed to create user");
+      toast.error(t("staticText.users.createError", { defaultValue: "Failed to create user" }));
       throw error;
     }
   };
@@ -364,11 +364,11 @@ export const ManageUsers: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="text-sm text-gray-600 mb-1">
-                        <b>Domains:</b> {getDomainNames(org.domains).join(", ")}
+                          <b>{t("manageOrganizations.domains", { defaultValue: "Domains" })}:</b> {getDomainNames(org.domains).join(", ")}
                       </div>
                       {getOrgDescription(org) && (
                         <div className="text-sm text-gray-600 mb-1">
-                          <b>Description:</b> {getOrgDescription(org)}
+                          <b>{t("staticText.organizations.description", { defaultValue: "Description" })}:</b> {getOrgDescription(org)}
                         </div>
                       )}
                     </CardContent>
@@ -402,7 +402,7 @@ export const ManageUsers: React.FC = () => {
                 className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 bg-blue-50"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                Invite User
+                {t("staticText.users.inviteUserNoPlus", { defaultValue: "Invite User" })}
               </Button>
             </div>
           </div>
@@ -460,7 +460,7 @@ export const ManageUsers: React.FC = () => {
                     readOnly
                     disabled
                     className="bg-gray-100 cursor-not-allowed"
-                    placeholder="Current organization"
+                    placeholder={t("staticText.users.currentOrganization", { defaultValue: "Current organization" })}
                   />
                 </div>
                 <div className="flex space-x-2 pt-4">

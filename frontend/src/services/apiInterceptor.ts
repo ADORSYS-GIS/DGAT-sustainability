@@ -5,6 +5,7 @@
 
 import { offlineDB } from "./indexeddb";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { refreshToken } from "./shared/authService";
 import type { OfflineQuestion, SyncQueueItem, OfflineOrganization, OfflineDraftSubmission, SyncableEntityType } from "@/types/offline";
 import { DataTransformationService } from "./dataTransformation";
@@ -88,12 +89,12 @@ export class ApiInterceptor {
         syncService.performFullSync();
       }, 1000);
 
-      toast.success('Connection restored. Syncing data...');
+      toast.success(i18n.t('connection.restored'));
     });
 
     window.addEventListener('offline', () => {
       this.isOnline = false;
-      toast.warning('You are now offline. Changes will be synced when connection is restored.');
+      toast.warning(i18n.t('connection.offline'));
     });
 
     // Also trigger sync when the page loads if online
@@ -888,11 +889,11 @@ export class ApiInterceptor {
         console.log(`🔄 Sync completed: ${successCount} successful, ${failureCount} failed`);
 
         if (successCount > 0) {
-          toast.success(`Synced ${successCount} items successfully`);
+          toast.success(i18n.t('offline.syncedSuccessfully', { count: successCount }));
         }
 
         if (failureCount > 0) {
-          toast.error(`${failureCount} items failed to sync`);
+          toast.error(i18n.t('offline.syncFailed', { count: failureCount }));
         }
       }
 
@@ -1220,7 +1221,7 @@ export class ApiInterceptor {
 
     } catch (error) {
       console.error('❌ Failed to process sync queue:', error);
-      toast.error('Sync failed. Please try again.');
+      toast.error(i18n.t('offline.syncFailedRetry'));
     } finally {
       this.isProcessingQueue = false;
     }
