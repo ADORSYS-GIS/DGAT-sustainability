@@ -169,6 +169,18 @@ export default function DraftSubmissions() {
     return map;
   }, [questionsData]);
 
+  const questionsByAnyTextMap = React.useMemo(() => {
+    const map = new Map<string, Record<string, string>>();
+    questionsTextMap.forEach((textRecord) => {
+      Object.values(textRecord).forEach((text) => {
+        if (typeof text === 'string' && text.trim()) {
+          map.set(text.trim().toLowerCase(), textRecord);
+        }
+      });
+    });
+    return map;
+  }, [questionsTextMap]);
+
   const assessmentNameMap = React.useMemo(() => {
     const nameMap = new Map<string, string>();
     // If we have assessments in the draftSubmissions or separately, we could build a map
@@ -438,7 +450,17 @@ export default function DraftSubmissions() {
         if (localizedText) return localizedText;
       }
 
+      if (typeof response.question === 'string' && response.question.trim()) {
+        const textRecord = questionsByAnyTextMap.get(response.question.trim().toLowerCase());
+        const localizedText = getLocalizedQuestionText(textRecord);
+        if (localizedText) return localizedText;
+        return response.question;
+      }
+
       if (typeof response.question_text === 'string' && response.question_text.trim()) {
+        const textRecord = questionsByAnyTextMap.get(response.question_text.trim().toLowerCase());
+        const localizedText = getLocalizedQuestionText(textRecord);
+        if (localizedText) return localizedText;
         return response.question_text;
       }
 

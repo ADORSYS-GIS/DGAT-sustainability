@@ -138,10 +138,11 @@ const ReviewAssessments: React.FC = () => {
     return rawNameOrId;
   };
 
-  const [questionsMap, questionsTextMap] = useMemo(() => {
-    if (!questionsData) return [new Map(), new Map()];
+  const [questionsMap, questionsTextMap, questionsByAnyTextMap] = useMemo(() => {
+    if (!questionsData) return [new Map(), new Map(), new Map()];
     const map = new Map<string, { text: Record<string, string>; categoryId: string; category: string; display_order: number }>();
     const textMap = new Map<string, number>();
+    const anyTextMap = new Map<string, Record<string, string>>();
     questionsData.forEach(q => {
       if (q.latest_revision) {
         const categoryCatalog = categoryCatalogMap.get(q.category_id);
@@ -157,9 +158,14 @@ const ReviewAssessments: React.FC = () => {
         });
         const primaryText = textRecord.en || Object.values(textRecord).find(v => typeof v === 'string') as string || '';
         textMap.set(primaryText, displayOrder);
+        Object.values(textRecord).forEach((text) => {
+          if (typeof text === 'string' && text.trim()) {
+            anyTextMap.set(text.trim().toLowerCase(), textRecord);
+          }
+        });
       }
     });
-    return [map, textMap];
+    return [map, textMap, anyTextMap];
   }, [questionsData, categoryCatalogMap]);
 
   const organizationsMap = useMemo(() => {
@@ -446,11 +452,17 @@ const ReviewAssessments: React.FC = () => {
 
                           // Third try: Use the question text from response (enhanced by backend)
                           if (questionTextStr && questionTextStr !== 'Question text not found' && questionTextStr !== 'Question not found') {
+                            const textRecord = questionsByAnyTextMap.get(questionTextStr.trim().toLowerCase());
+                            const localizedText = getLocalizedQuestionText(textRecord);
+                            if (localizedText) return localizedText;
                             return questionTextStr;
                           }
 
                           // Fourth try: stored question_text on the response itself (from offline response)
                           if (typeof customResponse.question_text === 'string' && customResponse.question_text.trim()) {
+                            const textRecord = questionsByAnyTextMap.get(customResponse.question_text.trim().toLowerCase());
+                            const localizedText = getLocalizedQuestionText(textRecord);
+                            if (localizedText) return localizedText;
                             return customResponse.question_text;
                           }
 
