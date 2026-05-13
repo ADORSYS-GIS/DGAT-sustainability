@@ -1,6 +1,7 @@
 import { Document, Packer, Paragraph, ImageRun, AlignmentType, HeadingLevel, TextRun, Table, TableRow, TableCell, WidthType, VerticalAlign, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
+import type { TFunction } from "i18next";
 
 async function urlToArrayBuffer(url: string): Promise<ArrayBuffer> {
   const response = await fetch(url);
@@ -90,11 +91,11 @@ const createAssessmentsTable = (
     const rows = [
       new TableRow({
         children: [
-          new TableCell({ children: [new Paragraph("Question")], width: { size: 20, type: WidthType.PERCENTAGE } }),
-          new TableCell({ children: [new Paragraph("Answer (Y/N)")], width: { size: 10, type: WidthType.PERCENTAGE } }),
-          new TableCell({ children: [new Paragraph("Percentage")], width: { size: 10, type: WidthType.PERCENTAGE } }),
-          new TableCell({ children: [new Paragraph("Text Answer")], width: { size: 30, type: WidthType.PERCENTAGE } }),
-          new TableCell({ children: [new Paragraph("Recommendations")], width: { size: 30, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph(translate('export.question'))], width: { size: 20, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph(translate('export.yesNo'))], width: { size: 10, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph(translate('export.percentage'))], width: { size: 10, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph(translate('export.textAnswer'))], width: { size: 30, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph(translate('export.recommendations'))], width: { size: 30, type: WidthType.PERCENTAGE } }),
         ],
       }),
     ];
@@ -206,8 +207,13 @@ export async function exportAllAssessmentsDOCX(
   submissions: AdminSubmissionDetail[],
   recommendations: RecommendationWithStatus[],
   radarChartDataUrl?: string,
-  recommendationChartDataUrl?: string
+  recommendationChartDataUrl?: string,
+  organizationName?: string,
+  assessmentName?: string,
+  t?: TFunction
 ) {
+  // Default translation function if not provided
+  const translate = t || ((key: string, options?: Record) => key);
   let imageBuffer: ArrayBuffer | undefined;
 
   // Add sustainability logo
@@ -233,9 +239,9 @@ export async function exportAllAssessmentsDOCX(
         ctx.fillStyle = 'white';
         ctx.font = 'bold 24px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('DGRV', 75, 75);
+        ctx.fillText(translate('export.dgrv'), 75, 75);
         ctx.font = '16px Arial';
-        ctx.fillText('Sustainability', 75, 110);
+        ctx.fillText(translate('export.sustainability'), 75, 110);
       }
       const base64 = canvas.toDataURL('image/png');
       const response = await fetch(base64);
@@ -278,7 +284,7 @@ export async function exportAllAssessmentsDOCX(
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: `SUSTAINABILITY REPORT`,
+            text: translate('export.sustainabilityReportTitle'),
             bold: true,
             size: 48,
             color: dgrvBlue,
@@ -289,7 +295,7 @@ export async function exportAllAssessmentsDOCX(
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: `This document presents the findings of the sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions.`,
+            text: translate('export.reportIntro'),
             size: 24,
           }),
         ],

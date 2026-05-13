@@ -932,6 +932,12 @@
   "assessment.noSubmissionsAvailable": "No Submissions Available",
   "assessment.noSubmissionsDescription": "No submissions are available to view action plans.",
   "assessment.backToDashboard": "Back to Dashboard",
+  "assessment.submitAssessment": "Submit Assessment",
+  "assessment.delete": "Delete",
+  "assessment.finish": "Finish",
+  "assessment.deletedSuccessfully": "Assessment deleted successfully",
+  "assessment.deleteFailed": "Failed to delete assessment",
+  "deleteSubmission": "Delete Submission",
   "common.cancel": "Cancel",
   "common.creating": "Creating...",
   "manageQuestions.noCategories": "No categories available. Please create categories first!",
@@ -1536,5 +1542,6 @@
     "title": "An Error Occurred"
   },
   "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.",
-  "backToDashboard": "Back to Dashboard"
+  "backToDashboard": "Back to Dashboard",
+  "assessmentLabel": "Assessment"
 }

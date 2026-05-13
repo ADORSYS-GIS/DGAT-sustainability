@@ -895,6 +895,13 @@
   "assessment.selectAssessment": "Sélectionner une évaluation",
   "assessment.selectAssessmentDescription": "Choisissez une évaluation à continuer ou créez-en une nouvelle.",
   "assessment.createNewAssessment": "Créer une nouvelle évaluation",
+  "assessment.backToDashboard": "Retour au tableau de bord",
+  "assessment.submitAssessment": "Soumettre l'évaluation",
+  "assessment.delete": "Supprimer",
+  "assessment.finish": "Terminer",
+  "assessment.deletedSuccessfully": "Évaluation supprimée avec succès",
+  "assessment.deleteFailed": "Échec de la suppression de l'évaluation",
+  "deleteSubmission": "Supprimer la soumission",
   "userGuide": {
     "title": "Guide utilisateur pour les coopératives",
     "subtitle": "Guide complet pour utiliser la plateforme d'évaluation de durabilité DGRV",
@@ -1556,5 +1563,6 @@
   "manageUsers.admin": "Administrateur",
   "common.questions": "Questions",
   "common.question": "Question",
-  "reviewAssessments.question": "question"
+  "reviewAssessments.question": "question",
+  "assessmentLabel": "Évaluation"
 }

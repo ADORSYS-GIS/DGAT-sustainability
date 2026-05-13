@@ -897,6 +897,13 @@
   "assessment.selectAssessment": "Bewertung auswählen",
   "assessment.selectAssessmentDescription": "Wählen Sie eine Bewertung zum Fortsetzen aus oder erstellen Sie eine neue.",
   "assessment.createNewAssessment": "Neue Bewertung erstellen",
+  "assessment.backToDashboard": "Zurück zum Dashboard",
+  "assessment.submitAssessment": "Bewertung einreichen",
+  "assessment.delete": "Löschen",
+  "assessment.finish": "Beenden",
+  "assessment.deletedSuccessfully": "Bewertung erfolgreich gelöscht",
+  "assessment.deleteFailed": "Fehler beim Löschen der Bewertung",
+  "deleteSubmission": "Einreichung löschen",
   "userGuide": {
     "title": "Benutzerleitfaden für Genossenschaften",
     "subtitle": "Vollständiger Leitfaden zur Nutzung der DGRV-Nachhaltigkeitsbewertungsplattform",
@@ -1562,5 +1569,6 @@
   "staticText.sync.online": "Online",
   "staticText.sync.offline": "Offline",
   "connection.onlineStatus": "Online",
-  "connection.offlineStatus": "Offline"
+  "connection.offlineStatus": "Offline",
+  "assessmentLabel": "Bewertung"
 }

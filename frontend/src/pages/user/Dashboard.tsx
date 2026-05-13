@@ -301,7 +301,8 @@ export const Dashboard: React.FC = () => {
           radarChartDataUrl,
           recommendationChartDataUrl,
           (fullReport as any).org_name || orgName,
-          (fullReport as any).assessment_name
+          (fullReport as any).assessment_name,
+          t
         );
       } else {
         const { exportAllAssessmentsDOCX } = await import("@/utils/exportDOCX");
@@ -309,7 +310,10 @@ export const Dashboard: React.FC = () => {
           singleSubmissions,
           singleRecs,
           radarChartDataUrl,
-          recommendationChartDataUrl
+          recommendationChartDataUrl,
+          (fullReport as any).org_name || orgName,
+          (fullReport as any).assessment_name,
+          t
         );
       }
     } finally {
@@ -469,7 +473,8 @@ export const Dashboard: React.FC = () => {
       radarChartDataUrl,
       recommendationChartDataUrl,
       orgName,
-      latestReport?.assessment_name || t('assessment')
+      latestReport?.assessment_name || t('assessment'),
+      t
     );
   };
 
@@ -494,7 +499,10 @@ export const Dashboard: React.FC = () => {
       singleSubmissions,
       singleRecs,
       radarChartDataUrl,
-      recommendationChartDataUrl
+      recommendationChartDataUrl,
+      orgName,
+      latestReport?.assessment_name || t('assessment'),
+      t
     );
   };
 

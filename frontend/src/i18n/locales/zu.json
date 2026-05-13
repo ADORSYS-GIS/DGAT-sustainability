@@ -897,6 +897,13 @@
   "assessment.selectAssessment": "Khetha Ukuhlola",
   "assessment.selectAssessmentDescription": "Khetha ukuhlolwa ukuze uqhubeke noma udale olusha.",
   "assessment.createNewAssessment": "Yakha Ukuhlola Okusha",
+  "assessment.backToDashboard": "Buyela ku-Deshibhodi",
+  "assessment.submitAssessment": "Thumela Ukuhlola",
+  "assessment.delete": "Susa",
+  "assessment.finish": "Qeda",
+  "assessment.deletedSuccessfully": "Ukuhlola kususiwe ngempumelelo",
+  "assessment.deleteFailed": "Kwehlulekile ukususa ukuhlola",
+  "deleteSubmission": "Susa Ukuthunyelwa",
   "userGuide": {
     "title": "Umhlahlandlela Womsebenzisi Wezinhlangano",
     "subtitle": "Umhlahlandlela ophelele wokusebenzisa ipulatifomu yokuhlola isimo semvelo ye-DGRV",
@@ -1553,5 +1560,6 @@
     "goBack": "Buyela Emuva",
     "title": "Kwenzeke Iphutha"
   },
-  "backToDashboard": "Buyela Kudeshibhodi"
+  "backToDashboard": "Buyela Kudeshibhodi",
+  "assessmentLabel": "Ukuhlola"
 }

@@ -105,7 +105,7 @@ export const Assessment: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreatingAssessment, setIsCreatingAssessment] = useState(false);
   const [hasExistingResponses, setHasExistingResponses] = useState(false);
-  const toolName = t("sustainability") + " " + t("assessment");
+  const toolName = t("sustainability") + " " + t("assessmentLabel");
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
   const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");

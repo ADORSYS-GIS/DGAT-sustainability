@@ -894,6 +894,13 @@
   "assessment.selectAssessment": "Selecionar Avaliação",
   "assessment.selectAssessmentDescription": "Escolha uma avaliação para continuar ou crie uma nova.",
   "assessment.createNewAssessment": "Criar Nova Avaliação",
+  "assessment.backToDashboard": "Voltar ao Painel",
+  "assessment.submitAssessment": "Submeter Avaliação",
+  "assessment.delete": "Eliminar",
+  "assessment.finish": "Concluir",
+  "assessment.deletedSuccessfully": "Avaliação eliminada com sucesso",
+  "assessment.deleteFailed": "Falha ao eliminar avaliação",
+  "deleteSubmission": "Eliminar Submissão",
   "userGuide": {
     "title": "Guia do Utilizador para Cooperativas",
     "subtitle": "Guia completo para usar a plataforma de avaliação de sustentabilidade DGRV",
@@ -1555,5 +1562,6 @@
   "manageUsers.admin": "Administrador",
   "manageUsers.orgLabel": "Org:",
   "assignCategories.total": "Total:",
-  "staticText.files.download": "Baixar"
+  "staticText.files.download": "Baixar",
+  "assessmentLabel": "Avaliação"
 }

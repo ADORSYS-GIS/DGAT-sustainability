@@ -897,6 +897,13 @@
   "assessment.selectAssessment": "اختر تقييم",
   "assessment.selectAssessmentDescription": "اختر تقييماً للمتابعة أو أنشئ واحداً جديداً.",
   "assessment.createNewAssessment": "إنشاء تقييم جديد",
+  "assessment.backToDashboard": "العودة إلى لوحة التحكم",
+  "assessment.submitAssessment": "إرسال التقييم",
+  "assessment.delete": "حذف",
+  "assessment.finish": "إنهاء",
+  "assessment.deletedSuccessfully": "تم حذف التقييم بنجاح",
+  "assessment.deleteFailed": "فشل حذف التقييم",
+  "deleteSubmission": "حذف الإرسال",
   "userGuide": {
     "title": "دليل المستخدم للتعاونيات",
     "subtitle": "دليل شامل لاستخدام منصة تقييم الاستدامة DGRV",
@@ -1553,5 +1560,6 @@
     "goBack": "عُد",
     "title": "حدث خطأ"
   },
-  "backToDashboard": "العودة إلى لوحة القيادة"
+  "backToDashboard": "العودة إلى لوحة القيادة",
+  "assessmentLabel": "تقييم"
 }

@@ -476,7 +476,8 @@ export const ReportHistory: React.FC = () => {
         radarChartDataUrl,
         recommendationChartDataUrl,
         report.org_name,
-        report.assessment_name || 'Unknown Assessment'
+        report.assessment_name || 'Unknown Assessment',
+        t
       );
       toast.success(t('reportHistory.downloadSuccess'));
     } catch (error) {
