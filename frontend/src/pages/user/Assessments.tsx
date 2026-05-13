@@ -90,7 +90,7 @@ export const Assessments: React.FC = () => {
     try {
       await deleteSubmission(submissionId, {
         onSuccess: () => {
-          toast.success(t('submission.deleted', { defaultValue: 'Submission deleted successfully' }));
+          toast.success(t('submission.deleted'));
           refetch(); // Refresh the list
         },
         onError: (error) => {
@@ -99,7 +99,7 @@ export const Assessments: React.FC = () => {
             next.delete(submissionId);
             return next;
           });
-          toast.error(t('submission.deleteError', { defaultValue: 'Failed to delete submission' }));
+          toast.error(t('submission.deleteError'));
           console.error('Delete submission error:', error);
         }
       });
@@ -131,7 +131,7 @@ export const Assessments: React.FC = () => {
 
 
   if (isLoading) {
-    return <LoadingSpinner size="hero" fullPage text={t("staticText.assessments.retrievingSubmissions", { defaultValue: "Retrieving your submissions..." })} />;
+    return <LoadingSpinner size="hero" fullPage text={t("staticText.assessments.retrievingSubmissions")} />;
   }
 
   // Card for each submission
@@ -160,7 +160,7 @@ export const Assessments: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  {submission.assessment_name || `${t("sustainability")} ${t("assessment")} ${t("submission", { defaultValue: "Submission" })}`}
+                  {submission.assessment_name || `${t("sustainability")} ${t("assessment")} ${t("submission")}`}
                 </h3>
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
@@ -196,7 +196,7 @@ export const Assessments: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               <p>
-                {t("category")} {t("completed", { defaultValue: "Completed" })}: {completed}
+                {t("category")} {t("completed")}: {completed}
               </p>
             </div>
             <div className="flex space-x-2">
@@ -218,7 +218,7 @@ export const Assessments: React.FC = () => {
                   disabled={isDeleting}
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
-                  {isDeleting ? t("deleting", { defaultValue: "Deleting..." }) : t("delete", { defaultValue: "Delete" })}
+                  {isDeleting ? t("deleting") : t("delete")}
                 </Button>
               )}
             </div>
@@ -236,11 +236,11 @@ export const Assessments: React.FC = () => {
           <div className="flex items-center space-x-3 mb-4">
             <FileText className="w-8 h-8 text-dgrv-blue" />
             <h1 className="text-3xl font-bold text-dgrv-blue">
-              {t("yourSubmissions", { defaultValue: "Your Submissions" })}
+              {t("yourSubmissions")}
             </h1>
           </div>
           <p className="text-lg text-gray-600">
-            {t("dashboard.assessments.subtitle", { defaultValue: "View and manage all your sustainability submissions" })}
+            {t("dashboard.assessments.subtitle")}
           </p>
           {!isOnline && (
             <div className="flex items-center gap-2 mt-4 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium">
@@ -269,10 +269,10 @@ export const Assessments: React.FC = () => {
               <CardContent>
                 <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t("noSubmissions", { defaultValue: "No Submissions" })}
+                  {t("noSubmissions")}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  {t("dashboard.assessments.emptyState", { defaultValue: "Start your first sustainability assessment to track your cooperative's progress." })}
+                  {t("dashboard.assessments.emptyState")}
                 </p>
               </CardContent>
             </Card>

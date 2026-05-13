@@ -440,7 +440,7 @@ export const Dashboard: React.FC = () => {
       case "revision_requested":
         return t('user.dashboard.status.revisionRequested');
       case "reviewed":
-        return t('user.dashboard.status.reviewed', { defaultValue: 'Reviewed' });
+        return t('user.dashboard.status.reviewed');
       default:
         return t('user.dashboard.status.unknown');
     }

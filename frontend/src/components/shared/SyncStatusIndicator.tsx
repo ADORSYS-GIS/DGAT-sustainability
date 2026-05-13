@@ -20,11 +20,11 @@ export const SyncStatusIndicator: React.FC = () => {
       <span className="font-medium">
         {isOnline
           ? (isSyncing
-            ? t("staticText.sync.syncing", { defaultValue: "Syncing..." })
+            ? t("staticText.sync.syncing")
             : (queueCount > 0
-              ? t("staticText.sync.pending", { count: queueCount, defaultValue: "{{count}} Pending" })
-              : t("staticText.sync.online", { defaultValue: "Online" })))
-          : t("staticText.sync.offline", { defaultValue: "Offline" })}
+              ? t("staticText.sync.pending", { count: queueCount})
+              : t("staticText.sync.online")))
+          : t("staticText.sync.offline")}
       </span>
     </div>
   );

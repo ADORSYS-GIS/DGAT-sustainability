@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { User, Mail, Shield, Building2, Key, ArrowLeft, Edit3, Save, X, Lock } from "lucide-react";
+import { User, Mail, Shield, Building2, Key, ArrowLeft, Edit3, Save, X, Lock, Eye, EyeOff } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { updateUserProfile, changePassword } from "@/services/userProfileService";
@@ -26,6 +26,11 @@ export const UserProfile: React.FC = () => {
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
+  });
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false,
   });
 
   if (!user) {
@@ -399,39 +404,69 @@ export const UserProfile: React.FC = () => {
                     <Label htmlFor="currentPassword" className="text-sm font-medium text-gray-600">
                       {t('profile.password.currentPassword')}
                     </Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                      placeholder={t('profile.password.currentPasswordPlaceholder')}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        type={showPassword.current ? "text" : "password"}
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                        placeholder={t('profile.password.currentPasswordPlaceholder')}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="newPassword" className="text-sm font-medium text-gray-600">
                       {t('profile.password.newPassword')}
                     </Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                      placeholder={t('profile.password.newPasswordPlaceholder')}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showPassword.new ? "text" : "password"}
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                        placeholder={t('profile.password.newPasswordPlaceholder')}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-600">
                       {t('profile.password.confirmPassword')}
                     </Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      placeholder={t('profile.password.confirmPasswordPlaceholder')}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showPassword.confirm ? "text" : "password"}
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        placeholder={t('profile.password.confirmPasswordPlaceholder')}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="flex justify-end space-x-3 pt-2">

@@ -97,7 +97,7 @@ const QuestionForm: React.FC<{
           </h3>
           {selectedCategory && (
             <p className="text-sm text-gray-500 mt-1">
-              {t('manageQuestions.addingToCategory', { defaultValue: 'Adding to category:' })} <span className="font-medium text-blue-600">{selectedCategory}</span>
+              {t('manageQuestions.addingToCategory')} <span className="font-medium text-blue-600">{selectedCategory}</span>
             </p>
           )}
         </div>
@@ -131,7 +131,7 @@ const QuestionForm: React.FC<{
         </div>
         <div className="space-y-2">
 <Label htmlFor="text_en" className="text-sm font-medium text-gray-700">
-              🇺🇸 {t('manageQuestions.englishQuestion', { defaultValue: 'English Question' })} <span className="text-red-500">*</span>
+              🇺🇸 {t('manageQuestions.englishQuestion')} <span className="text-red-500">*</span>
             </Label>
           <Textarea
             id="text_en"
@@ -471,7 +471,7 @@ export const ManageQuestions = () => {
   }, []);
 
   if (categoriesLoading || questionsLoading) {
-    return <LoadingSpinner size="hero" fullPage text={t('manageQuestions.loadingQuestions', { defaultValue: 'Loading questions...' })} />;
+    return <LoadingSpinner size="hero" fullPage text={t('manageQuestions.loadingQuestions')} />;
   }
 
   if (categoriesError) {
@@ -507,7 +507,7 @@ export const ManageQuestions = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
                 <Badge variant="outline" className="bg-gray-50">
-                  {t('questionsCount', { count: (questions || []).length, defaultValue: '{{count}} Questions' })}
+                  {t('questionsCount', {count: (questions || []).length})}
                 </Badge>
               </div>
             </div>

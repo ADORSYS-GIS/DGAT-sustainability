@@ -248,7 +248,7 @@ export const Assessment: React.FC = () => {
     if (!user) return;
 
     if (!assessmentId && !isOrgAdmin) {
-      toast.error(t("assessment.noPermissionToCreate", { defaultValue: "Only organization administrators can create assessments." }));
+      toast.error(t("assessment.noPermissionToCreate"));
       navigate("/dashboard");
       return;
     }
@@ -262,7 +262,7 @@ export const Assessment: React.FC = () => {
   // Handle assessment creation from modal
   const handleCreateAssessment = async (assessmentName: string, categories?: string[]) => {
     if (creationAttempts >= 3) {
-      toast.error(t("assessment.maxRetriesExceeded", { defaultValue: "Failed to create assessment after multiple attempts. Please try again later." }));
+      toast.error(t("assessment.maxRetriesExceeded"));
       setShowCreateModal(false);
       navigate("/dashboard");
       return;
@@ -293,9 +293,9 @@ export const Assessment: React.FC = () => {
           // If it's a temporary assessment, we don't need to wait for it to be saved
           // The useOfflineAssessment hook will handle loading it from IndexedDB
           if (assessmentIdToNavigate.startsWith("temp_")) {
-            toast.success(t("assessment.offlineCreated", { defaultValue: "Assessment created offline and will sync when online!" }));
+            toast.success(t("assessment.offlineCreated"));
           } else {
-            toast.success(t("assessment.createdSuccessfully", { defaultValue: "Assessment created successfully!" }));
+            toast.success(t("assessment.createdSuccessfully"));
           }
         } else {
           console.error("Assessment creation result did not contain a valid assessment_id:", result);
@@ -321,7 +321,7 @@ export const Assessment: React.FC = () => {
   useEffect(() => {
     if (hasCreatedAssessment && !assessmentId) {
       const timeout = setTimeout(() => {
-        toast.error(t("assessment.creationTimeout", { defaultValue: "Assessment creation timed out. Please try again." }));
+        toast.error(t("assessment.creationTimeout"));
         setHasCreatedAssessment(false);
         navigate("/dashboard");
       }, 30000);
@@ -334,7 +334,7 @@ export const Assessment: React.FC = () => {
   // Does NOT submit the whole assessment to draft — that only happens when ALL categories are answered.
   const finishCurrentCategories = async () => {
     if (!assessmentDetail) {
-      toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment details not loaded. Please try again." }));
+      toast.error(t("assessment.failedToSubmit"));
       return;
     }
 
@@ -346,12 +346,12 @@ export const Assessment: React.FC = () => {
     }
 
     if (!actualAssessment.assessment_id) {
-      toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment ID is missing. Please try again." }));
+      toast.error(t("assessment.failedToSubmit"));
       return;
     }
 
     if (!isCurrentCategoryComplete()) {
-      toast.error(t("assessment.completeAllQuestionsNext", { defaultValue: "Please answer all questions in this category before continuing." }));
+      toast.error(t("assessment.completeAllQuestionsNext"));
       return;
     }
 
@@ -371,13 +371,11 @@ export const Assessment: React.FC = () => {
       if (responsesToSave.length > 0) {
         await createResponses(actualAssessment.assessment_id, responsesToSave, {
           onSuccess: async () => {
-            toast.success(t("assessment.responsesSavedPortionComplete", {
-              defaultValue: "Your responses have been saved. The assessment remains in draft until all other assigned categories are completed."
-            }));
+            toast.success(t("assessment.responsesSavedPortionComplete"));
             navigate("/dashboard");
           },
           onError: () => {
-            toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+            toast.error(t("assessment.failedToSaveResponses"));
           },
         });
       } else {
@@ -388,7 +386,7 @@ export const Assessment: React.FC = () => {
       if (!navigator.onLine) {
         navigate("/dashboard");
       } else {
-        toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
+        toast.error(t("assessment.failedToSubmit"));
       }
     }
   };
@@ -396,7 +394,7 @@ export const Assessment: React.FC = () => {
   // Submit the entire assessment to draft — only callable when ALL categories are answered.
   const submitAssessment = async () => {
     if (!assessmentDetail) {
-      toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment details not loaded. Please try again." }));
+      toast.error(t("assessment.failedToSubmit"));
       return;
     }
 
@@ -408,7 +406,7 @@ export const Assessment: React.FC = () => {
     }
 
     if (!actualAssessment.assessment_id) {
-      toast.error(t("assessment.failedToSubmit", { defaultValue: "Assessment ID is missing. Please try again." }));
+      toast.error(t("assessment.failedToSubmit"));
       return;
     }
 
@@ -431,7 +429,7 @@ export const Assessment: React.FC = () => {
       }
 
       if (!allQuestionsAnswered) {
-        toast.error(t("assessment.incompleteCategories", { defaultValue: "All categories and questions must be answered before submitting." }));
+        toast.error(t("assessment.incompleteCategories"));
         return;
       }
 
@@ -474,8 +472,8 @@ export const Assessment: React.FC = () => {
                 onSuccess: () => {
                   toast.success(
                     isOnline
-                      ? t("assessment.draftSubmittedSuccessfully", { defaultValue: "Assessment submitted for admin approval!" })
-                      : t("assessment.draftQueuedForSync", { defaultValue: "Assessment saved offline and will be submitted for approval when online." })
+                      ? t("assessment.draftSubmittedSuccessfully")
+                      : t("assessment.draftQueuedForSync")
                   );
                   navigate("/dashboard");
                 },
@@ -483,26 +481,26 @@ export const Assessment: React.FC = () => {
                   if (!isOnline) {
                     navigate("/dashboard");
                   } else {
-                    toast.error(t("assessment.failedToSubmitDraft", { defaultValue: "Failed to submit assessment for approval." }));
+                    toast.error(t("assessment.failedToSubmitDraft"));
                   }
                 },
               });
             } else {
-              toast.error(t("assessment.incompleteCategories", { defaultValue: "All categories and questions must be answered before submitting." }));
+              toast.error(t("assessment.incompleteCategories"));
             }
           },
           onError: () => {
-            toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+            toast.error(t("assessment.failedToSaveResponses"));
           },
         });
       } else {
-        toast.error(t("assessment.noResponsesToSubmit", { defaultValue: "No responses to submit for the current category." }));
+        toast.error(t("assessment.noResponsesToSubmit"));
       }
     } catch (error) {
       if (!navigator.onLine) {
         navigate("/dashboard");
       } else {
-        toast.error(t("assessment.failedToSubmit", { defaultValue: "Failed to submit assessment." }));
+        toast.error(t("assessment.failedToSubmit"));
       }
     }
   };
@@ -635,14 +633,12 @@ export const Assessment: React.FC = () => {
         <div className="text-center">
           <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {t("assessment.noCategoriesTitle", { defaultValue: "No Categories Available" })}
+            {t("assessment.noCategoriesTitle")}
           </h2>
           <p className="text-gray-600 mb-4">
-            {t("assessment.noCategoriesDescription", {
-              defaultValue: "This assessment doesn't have any categories assigned to you, or there are no matching categories between your assigned categories and the assessment's categories. Please contact your organization administrator.",
-            })}
+            {t("assessment.noCategoriesDescription")}
           </p>
-          <Button onClick={() => navigate("/dashboard")}>{t("assessment.backToDashboard", { defaultValue: "Back to Dashboard" })}</Button>
+          <Button onClick={() => navigate("/dashboard")}>{t("assessment.backToDashboard")}</Button>
         </div>
       </div>
     );
@@ -659,10 +655,10 @@ export const Assessment: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
-                {t('assessment.selectAssessment', { defaultValue: 'Select Assessment' })}
+                {t('assessment.selectAssessment')}
               </h1>
               <p className="text-lg text-gray-600">
-                {t('assessment.selectAssessmentDescription', { defaultValue: 'Choose an assessment to continue or create a new one.' })}
+                {t('assessment.selectAssessmentDescription')}
               </p>
             </div>
 
@@ -672,7 +668,7 @@ export const Assessment: React.FC = () => {
                   onClick={() => setShowCreateModal(true)}
                   className="bg-dgrv-blue hover:bg-blue-700"
                 >
-                  {t('assessment.createNewAssessment', { defaultValue: 'Create New Assessment' })}
+                  {t('assessment.createNewAssessment')}
                 </Button>
               </div>
             )}
@@ -833,11 +829,11 @@ export const Assessment: React.FC = () => {
               }
             },
             onError: () => {
-              toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+              toast.error(t("assessment.failedToSaveResponses"));
             },
           });
         } catch (error) {
-          toast.error(t("assessment.failedToSaveResponses", { defaultValue: "Failed to save responses. Please try again." }));
+          toast.error(t("assessment.failedToSaveResponses"));
         }
       }
     } // end if (!isCurrentCategoryDelegated)
@@ -866,8 +862,8 @@ export const Assessment: React.FC = () => {
           <div>
             <Label>{t("assessment.yesNo")} <span className="text-red-500">*</span></Label>
             <div className="flex space-x-4 mt-1">
-              <Button type="button" variant="outline" disabled>{t("common.yes", { defaultValue: "Yes" })}</Button>
-              <Button type="button" variant="outline" disabled>{t("common.no", { defaultValue: "No" })}</Button>
+              <Button type="button" variant="outline" disabled>{t("common.yes")}</Button>
+              <Button type="button" variant="outline" disabled>{t("common.no")}</Button>
             </div>
           </div>
           <div>
@@ -899,7 +895,7 @@ export const Assessment: React.FC = () => {
               className={yesNoValue === true ? "bg-dgrv-green hover:bg-green-700" : ""}
               onClick={() => handleAnswerChange(key, { yesNo: true })}
             >
-              {t("common.yes", { defaultValue: "Yes" })}
+              {t("common.yes")}
             </Button>
             <Button
               type="button"
@@ -907,7 +903,7 @@ export const Assessment: React.FC = () => {
               className={yesNoValue === false ? "bg-red-500 hover:bg-red-600" : ""}
               onClick={() => handleAnswerChange(key, { yesNo: false })}
             >
-              {t("common.no", { defaultValue: "No" })}
+              {t("common.no")}
             </Button>
           </div>
         </div>
@@ -920,7 +916,7 @@ export const Assessment: React.FC = () => {
               type="button"
               className="cursor-pointer text-dgrv-blue focus:outline-none"
               onClick={() => setShowPercentInfo(showPercentInfo === key ? null : key)}
-              aria-label={t("staticText.assessment.showPercentageExplanation", { defaultValue: "Show percentage explanation" })}
+              aria-label={t("staticText.assessment.showPercentageExplanation")}
             >
               <Info className="w-4 h-4" />
             </button>
@@ -1010,10 +1006,10 @@ export const Assessment: React.FC = () => {
   const currentCategoryId = categories[currentCategoryIndex];
   const currentCategoryObject = categoriesData?.find((c: { category_catalog_id: string; }) => c.category_catalog_id === currentCategoryId);
   const currentCategoryName = (() => {
-    if (!currentCategoryObject) return t("assessment.unknownCategory", { defaultValue: "Unknown Category" });
+    if (!currentCategoryObject) return t("assessment.unknownCategory");
     const translations = (currentCategoryObject as any).name_translations as Record<string, string> | undefined;
     const translated = translations && typeof translations[currentLanguage] === "string" ? translations[currentLanguage] : undefined;
-    return translated || currentCategoryObject.name || t("assessment.unknownCategory", { defaultValue: "Unknown Category" });
+    return translated || currentCategoryObject.name || t("assessment.unknownCategory");
   })();
   const currentQuestions = getCurrentCategoryQuestions();
   const progress = categories.length > 0 ? ((currentCategoryIndex + 1) / categories.length) * 100 : 0;
@@ -1026,7 +1022,7 @@ export const Assessment: React.FC = () => {
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl font-bold text-dgrv-blue mb-2">{toolName}</h1>
           <p className="text-lg text-gray-600">
-            {t("category")} {currentCategoryIndex + 1} {t("of", { defaultValue: "of" })} {categories.length}: {currentCategoryName}
+            {t("category")} {currentCategoryIndex + 1} {t("of")} {categories.length}: {currentCategoryName}
           </p>
           {!isOnline && (
             <div className="flex items-center gap-2 mt-4 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm font-medium">
@@ -1043,7 +1039,7 @@ export const Assessment: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
                   <span className="text-sm font-medium text-orange-800">
-                    {t("assessment.offlineMode", { defaultValue: "You are offline. Your responses will be saved locally and synced when you come back online." })}
+                    {t("assessment.offlineMode")}
                   </span>
                 </div>
                 <Button
@@ -1064,7 +1060,7 @@ export const Assessment: React.FC = () => {
               </div>
               {pendingSubmissions.length > 0 && (
                 <div className="mt-2 text-xs text-orange-700">
-                  {t("assessment.pendingSubmissions", { defaultValue: "Pending submissions:" })} {pendingSubmissions.length}
+                  {t("assessment.pendingSubmissions")} {pendingSubmissions.length}
                 </div>
               )}
             </CardContent>
@@ -1077,7 +1073,7 @@ export const Assessment: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span className="text-sm font-medium text-blue-800">
-                  {t("assessment.existingResponses", { defaultValue: "You have existing responses for this assessment. You can continue editing or resubmit your answers." })}
+                  {t("assessment.existingResponses")}
                 </span>
               </div>
             </CardContent>
@@ -1091,11 +1087,11 @@ export const Assessment: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm font-medium text-green-800">
-                    {t("assessment.onlineWithPending", { defaultValue: "You are online. Syncing pending submissions..." })}
+                    {t("assessment.onlineWithPending")}
                   </span>
                 </div>
                 <div className="text-xs text-green-700">
-                  {t("assessment.pendingSubmissions", { defaultValue: "Pending submissions:" })} {pendingSubmissions.length}
+                  {t("assessment.pendingSubmissions")} {pendingSubmissions.length}
                 </div>
               </div>
             </CardContent>
@@ -1123,10 +1119,7 @@ export const Assessment: React.FC = () => {
               <div className="flex items-center space-x-3 rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-800 mb-2">
                 <Lock className="w-5 h-5 flex-shrink-0" />
                 <p className="text-sm font-medium">
-                  {t("assessment.categoryDelegatedBanner", {
-                    defaultValue:
-                      "This category has been assigned to an organization user. You cannot answer or edit questions in this category.",
-                  })}
+                  {t("assessment.categoryDelegatedBanner")}
                 </p>
               </div>
             )}
@@ -1165,7 +1158,7 @@ export const Assessment: React.FC = () => {
                 disabled={!isCurrentCategoryComplete() || isCurrentCategoryDelegated}
               >
                 <Send className="w-4 h-4" />
-                <span>{t("assessment.finish", { defaultValue: "Finish" })}</span>
+                <span>{t("assessment.finish")}</span>
               </Button>
             ) : (
               <Button

@@ -101,7 +101,7 @@ function useUserMutations() {
           };
 
           await offlineDB.saveUser(realUser);
-          toast.success(t("staticText.users.createSuccess", { defaultValue: "User created successfully" }));
+          toast.success(t("staticText.users.createSuccess"));
         }
       } catch (apiError) {
         console.warn('API call failed, user saved locally for sync:', apiError);
@@ -111,7 +111,7 @@ function useUserMutations() {
       return { success: true };
     } catch (error) {
       console.error('❌ Error in createUser:', error);
-      toast.error(t("staticText.users.createError", { defaultValue: "Failed to create user" }));
+      toast.error(t("staticText.users.createError"));
       throw error;
     } finally {
       setIsPending(false);
@@ -138,7 +138,7 @@ function useUserMutations() {
         });
       }
 
-      toast.success(t("staticText.users.updateSuccess", { defaultValue: "User updated successfully" }));
+      toast.success(t("staticText.users.updateSuccess"));
       return { success: true };
     } catch (apiError) {
       // API call failed — queue for sync if we have the user locally
@@ -161,7 +161,7 @@ function useUserMutations() {
           created_at: new Date().toISOString()
         });
       }
-      toast.error(t("staticText.users.updateCategoriesRetry", { defaultValue: "Failed to update user categories. Will retry when online." }));
+      toast.error(t("staticText.users.updateCategoriesRetry"));
       throw apiError;
     } finally {
       setIsPending(false);
@@ -174,7 +174,7 @@ function useUserMutations() {
       // Get existing user from IndexedDB
       const existingUser = await offlineDB.getUser(data.memberId);
       if (!existingUser) {
-        throw new Error(t("staticText.users.notFound", { defaultValue: "User not found" }));
+        throw new Error(t("staticText.users.notFound"));
       }
 
       // Mark as deleted locally
@@ -194,7 +194,7 @@ function useUserMutations() {
         // API call succeeded, actually delete from IndexedDB
         await offlineDB.deleteUser(data.memberId);
 
-        toast.success(t("staticText.users.deleteSuccess", { defaultValue: "User deleted successfully" }));
+        toast.success(t("staticText.users.deleteSuccess"));
         return { success: true };
       } catch (apiError) {
         // API call failed, queue for sync
@@ -214,7 +214,7 @@ function useUserMutations() {
         return { success: true };
       }
     } catch (error) {
-      toast.error(t("staticText.users.deleteError", { defaultValue: "Failed to delete user" }));
+      toast.error(t("staticText.users.deleteError"));
       throw error;
     } finally {
       setIsPending(false);
@@ -430,11 +430,11 @@ export const OrgUserManageUsers: React.FC = () => {
             className="bg-dgrv-green hover:bg-green-700"
             onClick={() => setShowAddDialog(true)}
           >
-            {t("staticText.users.inviteUser", { defaultValue: "+ Invite User" })}
+            {t("staticText.users.inviteUser")}
           </Button>
         </div>
         <p className="text-lg text-gray-600 mb-6">
-          {t("staticText.users.addManageAcross", { defaultValue: "Add and manage users across" })}{" "}
+          {t("staticText.users.addManageAcross")}{" "}
           <span className="font-semibold text-dgrv-blue">{orgName}</span>
         </p>
         <Dialog
@@ -448,14 +448,14 @@ export const OrgUserManageUsers: React.FC = () => {
           <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>
-                {editingUser ? t('manageUsers.editUser') : t("staticText.users.inviteNewUser", { defaultValue: "Invite New User" })}
+                {editingUser ? t('manageUsers.editUser') : t("staticText.users.inviteNewUser")}
               </DialogTitle>
             </DialogHeader>
             {editingUser ? (
               // Show edit form for existing users
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="email">{t("manageUsers.email", { defaultValue: "Email" })}</Label>
+                  <Label htmlFor="email">{t("manageUsers.email")}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -463,14 +463,14 @@ export const OrgUserManageUsers: React.FC = () => {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, email: e.target.value }))
                     }
-                    placeholder={t("manageUsers.emailPlaceholder", { defaultValue: "Enter email" })}
+                    placeholder={t("manageUsers.emailPlaceholder")}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="categories">{t("staticText.users.categories", { defaultValue: "Categories" })}</Label>
+                  <Label htmlFor="categories">{t("staticText.users.categories")}</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {isLoadingCategories ? (
-                      <p>{t("staticText.users.loadingCategories", { defaultValue: "Loading categories..." })}</p>
+                      <p>{t("staticText.users.loadingCategories")}</p>
                     ) : (
                       availableCategories.map((cat) => (
                         <label key={cat.category_catalog_id} className="flex items-center gap-1">
@@ -494,7 +494,7 @@ export const OrgUserManageUsers: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="role">{t("manageUsers.role", { defaultValue: "Role" })}</Label>
+                  <Label htmlFor="role">{t("manageUsers.role")}</Label>
                   <Input
                     id="role"
                     value={t('manageUsers.orgUser')}

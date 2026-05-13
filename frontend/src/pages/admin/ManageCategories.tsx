@@ -131,7 +131,7 @@ export const ManageCategories: React.FC = () => {
           name_translations,
           description_translations,
         });
-        toast.success(t('manageCategories.updateSuccess', { defaultValue: 'Category updated successfully' }));
+        toast.success(t('manageCategories.updateSuccess'));
       } else {
         await createOrUpdateCategory({
           name: formData.name,
@@ -141,7 +141,7 @@ export const ManageCategories: React.FC = () => {
           template_id: SUSTAINABILITY_TEMPLATE_ID,
           is_active: true,
         } as OfflineCategoryCatalog);
-        toast.success(t('manageCategories.createSuccess', { defaultValue: 'Category created successfully' }));
+        toast.success(t('manageCategories.createSuccess'));
       }
       setIsDialogOpen(false);
       setEditingCategory(null);
@@ -159,7 +159,7 @@ export const ManageCategories: React.FC = () => {
       });
     } catch (error) {
       const err = error as ApiError;
-      const errorMessage = err.detail || err.message || t('manageCategories.submitError', { defaultValue: 'Failed to save category' });
+      const errorMessage = err.detail || err.message || t('manageCategories.submitError');
       toast.error(errorMessage);
     }
   };
@@ -191,17 +191,15 @@ export const ManageCategories: React.FC = () => {
   };
 
   const handleDelete = async (categoryId: string) => {
-    if (!window.confirm(t('manageCategories.confirmDelete', {
-      defaultValue: 'Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.'
-    })))
+    if (!window.confirm(t('manageCategories.confirmDelete')))
       return;
 
     try {
       await deleteCategory(categoryId);
-      toast.success(t('manageCategories.deleteSuccess', { defaultValue: 'Category deleted successfully' }));
+      toast.success(t('manageCategories.deleteSuccess'));
     } catch (error) {
       const err = error as ApiError;
-      const errorMessage = err.detail || err.message || t('manageCategories.deleteError', { defaultValue: 'Failed to delete category' });
+      const errorMessage = err.detail || err.message || t('manageCategories.deleteError');
       toast.error(errorMessage);
     }
   };
@@ -216,16 +214,16 @@ export const ManageCategories: React.FC = () => {
         <div className="pt-20 pb-8 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-red-600 mb-4">
-              {t('manageCategories.loadError', { defaultValue: 'Error Loading Categories' })}
+              {t('manageCategories.loadError')}
             </h2>
             <p className="text-gray-600 mb-4">
-              {error instanceof Error ? error.message : t('manageCategories.unknownError', { defaultValue: 'An unknown error occurred' })}
+              {error instanceof Error ? error.message : t('manageCategories.unknownError')}
             </p>
             <Button
               onClick={() => refetch()}
               className="bg-dgrv-blue hover:bg-blue-700"
             >
-              {t('manageCategories.retry', { defaultValue: 'Retry' })}
+              {t('manageCategories.retry')}
             </Button>
           </div>
         </div>
@@ -320,12 +318,12 @@ export const ManageCategories: React.FC = () => {
                             description: e.target.value,
                           }))
                         }
-                        placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
+                        placeholder={t('manageCategories.categoryDescriptionPlaceholder')}
                       />
                     </div>
                     <div className="space-y-3">
                       <Label className="text-sm font-medium text-gray-700">
-                        {t('manageQuestions.additionalLanguagesOptional', { defaultValue: 'Additional Languages (Optional)' })}
+                        {t('manageQuestions.additionalLanguagesOptional')}
                       </Label>
                       <Accordion type="multiple" className="w-full">
                         {nonEnglishLanguages.map((lang) => (
@@ -365,7 +363,7 @@ export const ManageCategories: React.FC = () => {
                                         description_translations: { ...prev.description_translations, [lang.code]: e.target.value },
                                       }))
                                     }
-                                    placeholder={t('manageCategories.categoryDescriptionPlaceholder', { defaultValue: 'Enter category description...' })}
+                                    placeholder={t('manageCategories.categoryDescriptionPlaceholder')}
                                   />
                                 </div>
                               </div>
@@ -380,7 +378,7 @@ export const ManageCategories: React.FC = () => {
                       disabled={isPending}
                     >
                       {isPending
-                        ? t('manageCategories.saving', { defaultValue: 'Saving...' })
+                        ? t('manageCategories.saving')
                         : editingCategory
                           ? t('manageCategories.updateCategory')
                           : t('manageCategories.createCategory')}

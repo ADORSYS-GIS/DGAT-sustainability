@@ -76,8 +76,80 @@
   },
   "login": "Login",
   "logout": "Logout",
-  "profile": "Profile",
-  "sustainability": "Sustainability",
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "View and manage your account information",
+    "back": "Back",
+    "notLoggedIn": "You need to be logged in to view this page.",
+    "notAvailable": "Not available",
+    "noOrganization": "No organization assigned",
+    "personalInfo": {
+      "title": "Personal Information",
+      "description": "Your account details as registered in the system",
+      "username": "Username",
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "userId": "User ID",
+      "verified": "Verified"
+    },
+    "roles": {
+      "admin": "Admin",
+      "orgAdmin": "Organization Admin",
+      "orgUser": "Organization User"
+    },
+    "rolesAndOrg": {
+      "title": "Roles & Organization",
+      "yourRoles": "Your Roles",
+      "noRoles": "No roles assigned",
+      "organization": "Organization",
+      "assignedCategories": "Assigned Categories"
+    },
+    "accountManagement": {
+      "title": "Account Management",
+      "description": "Manage your account settings through Keycloak",
+      "editProfile": "Edit Profile",
+      "editProfileDesc": "Update your name, email, and other personal information",
+      "changePassword": "Change Password",
+      "changePasswordDesc": "Update your password and security settings",
+      "note": "Note",
+      "noteText": "Profile and password changes are managed through Keycloak. Click the buttons above to open the account management console in a new tab."
+    },
+    "sessionInfo": {
+      "title": "Session Information",
+      "lastLogin": "Last Login",
+      "tokenExpires": "Token Expires"
+    },
+    "edit": {
+      "button": "Edit Profile",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "firstNamePlaceholder": "Enter your first name",
+      "lastNamePlaceholder": "Enter your last name",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "successMessage": "Profile updated successfully!",
+      "errorMessage": "Failed to update profile. Please try again."
+    },
+    "password": {
+      "title": "Password & Security",
+      "description": "Manage your password and account security",
+      "button": "Change Password",
+      "currentPassword": "Current Password",
+      "currentPasswordPlaceholder": "Enter your current password",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "Enter new password (min 8 characters)",
+      "confirmPassword": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Confirm your new password",
+      "change": "Change Password",
+      "changing": "Changing...",
+      "successMessage": "Password changed successfully!",
+      "errorMessage": "Failed to change password. Please try again.",
+      "mismatchError": "Passwords do not match.",
+      "lengthError": "Password must be at least 8 characters.",
+      "notice": "Your new password will take effect immediately. Make sure to remember it or store it securely."
+    },
+    "myProfile": "My Profile"
+  },
   "assessment": "Assessment",
   "submit": "Submit",
   "next": "Next",
@@ -117,7 +189,38 @@
     "error": "Error",
     "tryAgain": "Try Again",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "yesNo": "Yes/No",
+    "percentage": "Percentage",
+    "text": "Text",
+    "answer": "Answer",
+    "questions": "Questions",
+    "question": "Question",
+    "questionsCount": "{{count}} Questions",
+    "questionCount": "{{count}} Question",
+    "english": "English",
+    "additionalLanguages": "Additional Languages (Optional)",
+    "enterQuestionEnglish": "Enter the question in English...",
+    "enterQuestionLang": "Enter the question in {{lang}}...",
+    "higherWeightMoreImportant": "Higher weight = more important",
+    "displaySequence": "Display sequence",
+    "saving": "Saving...",
+    "createQuestion": "Create Question",
+    "updateQuestion": "Update Question",
+    "cancelQuestion": "Cancel",
+    "failedToLoadCategories": "Failed to Load Categories",
+    "noQuestionsYet": "No Questions Yet",
+    "noCategoriesAvailable": "No Categories Available",
+    "addFirstQuestion": "Add First Question",
+    "displayOrder": "Display Order",
+    "displayOrderRequired": "Display order is required",
+    "orderConflict": "Sorry, another question in the category \"{{categoryName}}\" already has this order, change it",
+    "categoryNotFound": "Category not found",
+    "emailRequired": "Email is required",
+    "organizationNotFound": "Organization not found",
+    "recommendations": "Recommendations",
+    "attachments": "Attachments",
+    "creating": "Creating..."
   },
   "adminDashboard": {
     "welcome": "Welcome, Admin! Drive Cooperative Impact!",
@@ -184,14 +287,7 @@
       "title": "Welcome, Admin! Drive Cooperative Impact!",
       "description": "Manage the DGRV assessment platform and support cooperatives across Southern Africa."
     },
-    "pendingReviews": {
-      "title": "Pending Reviews",
-      "badge": "pending",
-      "assessmentType": "Sustainability Assessment",
-      "submittedBy": "by",
-      "reviewRequired": "Review Required",
-      "upToDate": "All assessments are up to date!"
-    },
+    "pendingReviews": "Pending Reviews",
     "systemHealth": {
       "title": "System Health",
       "database": "Database",
@@ -218,33 +314,32 @@
       "subtitle": "View and manage all your sustainability submissions",
       "emptyState": "Start your first sustainability assessment to track your cooperative's progress."
     },
-      "numCategories": "Number of Categories",
-      "numQuestions": "Number of Questions",
-      "pendingReviews": "Pending Reviews",
-      "completedAssessments": "Completed Assessments"
-    },
-    "actions": {
-      "manageOrganizations": "Manage Organizations",
-      "manageOrganizationsDesc": "Add, edit, and manage cooperative organizations in the system.",
-      "manageUsers": "Manage Users",
-      "manageUsersDesc": "Control user access and roles across all organizations.",
-      "manageCategories": "Manage Categories",
-      "manageCategoriesDesc": "Configure assessment categories for sustainability tools.",
-      "manageQuestions": "Manage Questions",
-      "manageQuestionsDesc": "Create and edit questions within each assessment category.",
-      "reviewAssessments": "Review Assessments",
-      "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
-      "standardRecommendations": "Standard Recommendations",
-      "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios."
-    },
-    "guide": {
-      "title": "Admin Guide",
-      "intro": "Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:",
-      "orgsUsers": "Use the Manage Organizations and Manage Users sections to control access and membership.",
-      "review": "Review and approve assessments in the Review Assessments section.",
-      "categoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
-      "support": "If you need help, contact eswatini@dgrv.coop."
-    },
+    "numCategories": "Number of Categories",
+    "numQuestions": "Number of Questions",
+    "completedAssessments": "Completed Assessments"
+  },
+  "actions": {
+    "manageOrganizations": "Manage Organizations",
+    "manageOrganizationsDesc": "Add, edit, and manage cooperative organizations in the system.",
+    "manageUsers": "Manage Users",
+    "manageUsersDesc": "Control user access and roles across all organizations.",
+    "manageCategories": "Manage Categories",
+    "manageCategoriesDesc": "Configure assessment categories for sustainability tools.",
+    "manageQuestions": "Manage Questions",
+    "manageQuestionsDesc": "Create and edit questions within each assessment category.",
+    "reviewAssessments": "Review Assessments",
+    "reviewAssessmentsDesc": "Review submitted assessments and provide recommendations.",
+    "standardRecommendations": "Standard Recommendations",
+    "standardRecommendationsDesc": "Manage reusable recommendations for common assessment scenarios."
+  },
+  "guide": {
+    "title": "Admin Guide",
+    "intro": "Welcome to the DGRV Admin Dashboard! Here are some tips to help you manage the platform:",
+    "orgsUsers": "Use the Manage Organizations and Manage Users sections to control access and membership.",
+    "review": "Review and approve assessments in the Review Assessments section.",
+    "categoriesQuestions": "Configure categories and questions to tailor the assessment process to your needs.",
+    "support": "If you need help, contact eswatini@dgrv.coop."
+  },
   "questions": {
     "manage": {
       "title": "Manage Questions",
@@ -446,7 +541,11 @@
     "loadError": "Error Loading Categories",
     "unknownError": "An unknown error occurred",
     "retry": "Retry",
-    "newCategory": "New Category"
+    "newCategory": "New Category",
+    "createSuccess": "Category created successfully",
+    "saving": "Saving...",
+    "confirmDelete": "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
+    "submitError": "Failed to save category"
   },
   "manageOrganizations": {
     "title": "Manage Organizations",
@@ -474,7 +573,8 @@
     "confirmDeleteTitle": "Delete Organization",
     "confirmDeleteDescription": "Are you sure you want to delete the organization '{{name}}'? This action will permanently remove the organization and all its associated data from the system and cannot be undone.",
     "deleteOrganization": "Delete Organization",
-    "nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
+    "nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.",
+    "assignCategories": "Assign Categories"
   },
   "user": {
     "dashboard": {
@@ -490,18 +590,18 @@
         "subtitle": "Track and manage your cooperative's sustainability improvement tasks."
       },
       "actionPlan": {
-  "kanban": {
-    "todo": "To Do",
-    "inProgress": "In Progress",
-    "done": "Done",
-    "approved": "Approved",
-    "approve": "Approve",
-    "moveToInProgress": "Move to In Progress",
-    "backToTodo": "Back to To Do",
-    "moveToDone": "Move to Done",
-    "backToInProgress": "Back to In Progress",
-    "backToDone": "Back to Done"
-  },
+        "kanban": {
+          "todo": "To Do",
+          "inProgress": "In Progress",
+          "done": "Done",
+          "approved": "Approved",
+          "approve": "Approve",
+          "moveToInProgress": "Move to In Progress",
+          "backToTodo": "Back to To Do",
+          "moveToDone": "Move to Done",
+          "backToInProgress": "Back to In Progress",
+          "backToDone": "Back to Done"
+        },
         "title": "Action Plan",
         "description": "Track and manage your cooperative's sustainability improvement tasks.",
         "recentSubmissions": "Recent Submissions",
@@ -529,7 +629,8 @@
         "submissionId": "Submission",
         "generatedAt": "Generated",
         "select": "Select",
-        "noReportsAvailable": "No reports available"
+        "noReportsAvailable": "No reports available",
+        "subtitle": "Track your sustainability improvement tasks"
       },
       "recentSubmissions": "Recent Submissions",
       "viewAll": "View All",
@@ -608,6 +709,50 @@
         "title": "Review Assessments",
         "description": "Review and approve draft assessments submitted by organization users."
       }
+    },
+    "draftSubmissions": {
+      "approvedOfflineSuccessfully": "Successfully approved, will sync when you come back online",
+      "viewDetails": "View Details",
+      "responses": "Responses",
+      "submitted": "Submitted",
+      "assessment": "Assessment",
+      "noDraftSubmissionsDescription": "There are currently no draft submissions pending approval. Check back later for new submissions.",
+      "noDraftSubmissions": "No Draft Submissions",
+      "description": "Review and approve draft assessments submitted by organization users",
+      "title": "Draft Submissions",
+      "approveSubmission": "Approve Submission",
+      "approving": "Approving...",
+      "noResponsesAvailable": "No responses available",
+      "clickToExpand": "Click categories to expand",
+      "assessmentResponses": "Assessment Responses",
+      "questionsAnswered": "Questions Answered",
+      "organization": "Organization",
+      "reviewAndApprove": "Review and approve this draft submission",
+      "backToDraftSubmissions": "Back to Draft Submissions",
+      "tryAgain": "Try Again",
+      "errorLoadingDraftSubmissions": "Error loading draft submissions",
+      "loadingDraftSubmissions": "Loading draft submissions...",
+      "noFilesAttached": "No files attached",
+      "attachedFiles": "Attached Files",
+      "noTextResponseProvided": "No text response provided",
+      "textResponse": "Text Response",
+      "percentageResponse": "Percentage Response",
+      "yesNoResponse": "Yes/No Response",
+      "failedToApprove": "Failed to approve assessment."
+    },
+    "actionPlan": {
+      "kanban": {
+        "backToDone": "Back to Done",
+        "backToInProgress": "Back to In Progress",
+        "moveToDone": "Move to Done",
+        "backToTodo": "Back to To Do",
+        "moveToInProgress": "Move to In Progress",
+        "approve": "Approve",
+        "noTasks": "No tasks in ${column.title.toLowerCase()}"
+      },
+      "noRecommendationsDescription": "There are no recommendations for this submission.",
+      "noRecommendations": "No Recommendations Available",
+      "title": "Action Plan"
     }
   },
   "manageUsers.selectOrganization": "Select an Organization",
@@ -674,7 +819,9 @@
     "noText": "No text available.",
     "categoriesLoadError": "Failed to load categories. Please try again.",
     "retry": "Retry",
-    "loadingQuestions": "Loading questions..."
+    "loadingQuestions": "Loading questions...",
+    "englishQuestion": "English Question",
+    "additionalLanguagesOptional": "Additional Languages (Optional)"
   },
   "userInvitation": {
     "title": "Create User Invitation",
@@ -684,7 +831,10 @@
     "email": "Email Address",
     "organization": "Organization",
     "role": "Role",
-    "roles": "Roles",
+    "roles": {
+      "Org_User": "Organization User",
+      "Org_Admin": "Organization Admin"
+    },
     "categories": "Categories",
     "firstNamePlaceholder": "Enter first name",
     "lastNamePlaceholder": "Enter last name",
@@ -711,10 +861,6 @@
       "organizationInvitationSent": "Organization invitation has been sent to {{email}}.",
       "userActive": "User is now active and can access the system.",
       "invitationComplete": "Invitation process completed successfully for {{email}}."
-    },
-    "roles": {
-      "Org_User": "Organization User",
-      "Org_Admin": "Organization Admin"
     },
     "status": {
       "pendingEmail": "Pending Email Verification",
@@ -1089,9 +1235,14 @@
     "reviewSubmittedSuccessfully": "Review submitted successfully",
     "reviewSavedLocally": "Review saved locally. Will sync when online.",
     "failedToSubmitReview": "Failed to submit review",
-    "manualSyncFailed": "Manual sync failed"
-  }
-  ,
+    "manualSyncFailed": "Manual sync failed",
+    "reviewerNotFound": "Reviewer information not found. Please log in again.",
+    "attachments": "Attachments",
+    "assessmentName": "Assessment Name",
+    "unknownAssessment": "Unknown Assessment",
+    "queueFailed": "Failed to queue review for submission.",
+    "reviewQueued": "Review has been queued for submission."
+  },
   "reportHistory": {
     "title": "Report History",
     "subtitle": "View and manage all organization reports",
@@ -1125,7 +1276,10 @@
     "additionalAttachments": "Additional Attachments",
     "recommendation": "Recommendation",
     "recommendationCount": "{{count}} recommendation",
-    "recommendationCount_plural": "{{count}} recommendations"
+    "recommendationCount_plural": "{{count}} recommendations",
+    "close": "Close",
+    "noDetails": "No details available for this report.",
+    "report": "Report"
   },
   "assignCategories": {
     "title": "Assign Categories to {{org}}",
@@ -1185,61 +1339,89 @@
       "noTasks": "No tasks in {{status}}"
     }
   },
-  "common": {
-    "processing": "Processing...",
-    "edit": "Edit",
-    "cancel": "Cancel",
-    "save": "Save",
-    "delete": "Delete",
-    "update": "Update",
-    "create": "Create",
-    "loading": "Loading...",
-    "error": "Error",
-    "tryAgain": "Try Again",
-    "yes": "Yes",
-    "no": "No",
-    "yesNo": "Yes/No",
-    "percentage": "Percentage",
-    "text": "Text",
-    "answer": "Answer",
-    "questions": "Questions",
-    "question": "Question",
-    "questionsCount": "{{count}} Questions",
-    "questionCount": "{{count}} Question",
-    "english": "English",
-    "additionalLanguages": "Additional Languages (Optional)",
-    "enterQuestionEnglish": "Enter the question in English...",
-    "enterQuestionLang": "Enter the question in {{lang}}...",
-    "higherWeightMoreImportant": "Higher weight = more important",
-    "displaySequence": "Display sequence",
-    "saving": "Saving...",
-    "createQuestion": "Create Question",
-    "updateQuestion": "Update Question",
-    "cancelQuestion": "Cancel",
-    "failedToLoadCategories": "Failed to Load Categories",
-    "noQuestionsYet": "No Questions Yet",
-    "noCategoriesAvailable": "No Categories Available",
-    "addFirstQuestion": "Add First Question",
-    "displayOrder": "Display Order",
-    "displayOrderRequired": "Display order is required",
-    "orderConflict": "Sorry, another question in the category \"{{categoryName}}\" already has this order, change it",
-    "categoryNotFound": "Category not found",
-    "emailRequired": "Email is required",
-    "organizationNotFound": "Organization not found",
-    "recommendations": "Recommendations",
-    "attachments": "Attachments"
-  },
   "staticText": {
     "navbar": {
       "logoAlt": "DGRV Logo",
       "navigation": "Navigation",
-      "brand": "DGRV"
+      "brand": "DGRV",
+      "toggleMenu": "Toggle menu"
     },
     "organizations": {
       "addNewOrganization": "Add New Organization",
       "organizationName": "Organization Name",
       "organizationNamePlaceholder": "Enter organization name",
-      "domainPlaceholder": "Enter domain (e.g. adorsys.com)"
+      "domainPlaceholder": "Enter domain (e.g. adorsys.com)",
+      "nameRequired": "Name is required",
+      "description": "Description",
+      "addDomain": "+ Add Domain",
+      "domainRequired": "At least one domain is required"
+    },
+    "home": {
+      "organizationRequiredStart": "You need to be part of an organisation to start an assessment.",
+      "logoAlt": "Sustainability Portal Logo",
+      "organizationRequiredView": "You need to be part of an organisation to view assessments.",
+      "authRedirectFailed": "Failed to redirect to authentication. Please try again."
+    },
+    "users": {
+      "createError": "Failed to create user",
+      "currentOrganization": "Current organization",
+      "inviteUserNoPlus": "Invite User",
+      "createQueued": "User saved locally and will sync when online",
+      "createSuccess": "User created successfully",
+      "deleteEntirelyError": "Failed to delete user entirely",
+      "deleteEntirelySuccess": "User deleted entirely from system",
+      "removeFromOrgError": "Failed to remove user from organization",
+      "removeFromOrgSuccess": "User removed from organization successfully",
+      "updateError": "Failed to update user",
+      "updateSuccess": "User updated successfully",
+      "loadingCategories": "Loading categories...",
+      "categories": "Categories",
+      "inviteNewUser": "Invite New User",
+      "addManageAcross": "Add and manage users across",
+      "inviteUser": "+ Invite User",
+      "deleteError": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "notFound": "User not found",
+      "updateCategoriesRetry": "Failed to update user categories. Will retry when online."
+    },
+    "unauthorized": {
+      "description": "You do not have permission to view this page.",
+      "goHome": "Go to home"
+    },
+    "files": {
+      "image": "Image",
+      "download": "Download",
+      "unknownFile": "Unknown file"
+    },
+    "sync": {
+      "pending": "{{count}} Pending",
+      "offline": "Offline",
+      "online": "Online"
+    },
+    "assessment": {
+      "showPercentageExplanation": "Show percentage explanation"
+    },
+    "assessments": {
+      "retrievingSubmissions": "Retrieving your submissions..."
+    },
+    "submissionView": {
+      "loadError": "Error loading submission details.",
+      "noFilesUploaded": "No files uploaded",
+      "fileNumber": "File {{count}}",
+      "files": "Files",
+      "noAnswer": "No answer",
+      "textResponse": "Text Response"
+    },
+    "actionPlan": {
+      "approve": "Approve",
+      "recommendation": "Recommendation",
+      "statusUpdateError": "Failed to update status",
+      "statusUpdateSuccess": "Status updated successfully",
+      "recommendationNotFound": "Recommendation not found."
+    },
+    "common": {
+      "close": "Close",
+      "deleting": "Deleting..."
     }
   },
   "reportSelection": {
@@ -1329,77 +1511,17 @@
     "offlineSubmissions": "You are offline — viewing cached submissions. Changes will sync when you reconnect.",
     "offlineCache": "You are offline — viewing cached data. Changes will sync when you reconnect."
   },
-  "profile": {
-    "title": "My Profile",
-    "subtitle": "View and manage your account information",
-    "back": "Back",
-    "notLoggedIn": "You need to be logged in to view this page.",
-    "notAvailable": "Not available",
-    "noOrganization": "No organization assigned",
-    "personalInfo": {
-      "title": "Personal Information",
-      "description": "Your account details as registered in the system",
-      "username": "Username",
-      "fullName": "Full Name",
-      "email": "Email Address",
-      "userId": "User ID",
-      "verified": "Verified"
-    },
-    "roles": {
-      "admin": "Admin",
-      "orgAdmin": "Organization Admin",
-      "orgUser": "Organization User"
-    },
-    "rolesAndOrg": {
-      "title": "Roles & Organization",
-      "yourRoles": "Your Roles",
-      "noRoles": "No roles assigned",
-      "organization": "Organization",
-      "assignedCategories": "Assigned Categories"
-    },
-    "accountManagement": {
-      "title": "Account Management",
-      "description": "Manage your account settings through Keycloak",
-      "editProfile": "Edit Profile",
-      "editProfileDesc": "Update your name, email, and other personal information",
-      "changePassword": "Change Password",
-      "changePasswordDesc": "Update your password and security settings",
-      "note": "Note",
-      "noteText": "Profile and password changes are managed through Keycloak. Click the buttons above to open the account management console in a new tab."
-    },
-    "sessionInfo": {
-      "title": "Session Information",
-      "lastLogin": "Last Login",
-      "tokenExpires": "Token Expires"
-    },
-    "edit": {
-      "button": "Edit Profile",
-      "firstName": "First Name",
-      "lastName": "Last Name",
-      "firstNamePlaceholder": "Enter your first name",
-      "lastNamePlaceholder": "Enter your last name",
-      "save": "Save Changes",
-      "saving": "Saving...",
-      "successMessage": "Profile updated successfully!",
-      "errorMessage": "Failed to update profile. Please try again."
-    },
-    "password": {
-      "title": "Password & Security",
-      "description": "Manage your password and account security",
-      "button": "Change Password",
-      "currentPassword": "Current Password",
-      "currentPasswordPlaceholder": "Enter your current password",
-      "newPassword": "New Password",
-      "newPasswordPlaceholder": "Enter new password (min 8 characters)",
-      "confirmPassword": "Confirm New Password",
-      "confirmPasswordPlaceholder": "Confirm your new password",
-      "change": "Change Password",
-      "changing": "Changing...",
-      "successMessage": "Password changed successfully!",
-      "errorMessage": "Failed to change password. Please try again.",
-      "mismatchError": "Passwords do not match.",
-      "lengthError": "Password must be at least 8 characters.",
-      "notice": "Your new password will take effect immediately. Make sure to remember it or store it securely."
-    }
-  }
+  "submission": {
+    "deleteError": "Failed to delete submission"
+  },
+  "of": "of",
+  "delete": "Delete",
+  "deleting": "Deleting...",
+  "completed": "Completed",
+  "question": "Question",
+  "error": {
+    "goBack": "Go Back",
+    "title": "An Error Occurred"
+  },
+  "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
 }

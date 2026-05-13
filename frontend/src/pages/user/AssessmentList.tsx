@@ -63,14 +63,14 @@ export const AssessmentList: React.FC = () => {
               className="mb-4 flex items-center space-x-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>{t("backToDashboard", { defaultValue: "Back to Dashboard" })}</span>
+              <span>{t("backToDashboard")}</span>
             </Button>
             
             <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
-              {t('assessment.selectAssessmentToAnswer', { defaultValue: 'Select Assessment to Answer' })}
+              {t('assessment.selectAssessmentToAnswer')}
             </h1>
             <p className="text-lg text-gray-600">
-              {t('assessment.selectAssessmentDescription', { defaultValue: 'Choose an assessment to answer the questions.' })}
+              {t('assessment.selectAssessmentDescription')}
             </p>
           </div>
 
@@ -79,15 +79,13 @@ export const AssessmentList: React.FC = () => {
               <CardContent>
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  {t("assessment.noAssessmentsAvailable", { defaultValue: "No Assessments Available" })}
+                  {t("assessment.noAssessmentsAvailable")}
                 </h2>
                 <p className="text-gray-600 mb-4">
-                  {t("assessment.noAssessmentsDescription", {
-                    defaultValue: "No draft assessments are available for you to answer. Please contact your organization administrator to create an assessment.",
-                  })}
+                  {t("assessment.noAssessmentsDescription")}
                 </p>
                 <Button onClick={() => navigate("/dashboard")}>
-                  {t("assessment.backToDashboard", { defaultValue: "Back to Dashboard" })}
+                  {t("assessment.backToDashboard")}
                 </Button>
               </CardContent>
             </Card>

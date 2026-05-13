@@ -177,10 +177,10 @@ export const ActionPlan: React.FC = () => {
   }, [data]);
 
   const columns = [
-    { id: "todo", title: t("user.dashboard.actionPlan.kanban.todo", { defaultValue: "To Do" }), icon: AlertCircle, color: "text-gray-600" },
-    { id: "in_progress", title: t("user.dashboard.actionPlan.kanban.inProgress", { defaultValue: "In Progress" }), icon: PlayCircle, color: "text-blue-600" },
-    { id: "done", title: t("user.dashboard.actionPlan.kanban.done", { defaultValue: "Done" }), icon: CheckCircle, color: "text-green-600" },
-    { id: "approved", title: t("user.dashboard.actionPlan.kanban.approved", { defaultValue: "Approved" }), icon: ThumbsUp, color: "text-emerald-600" },
+    { id: "todo", title: t("user.dashboard.actionPlan.kanban.todo"), icon: AlertCircle, color: "text-gray-600" },
+    { id: "in_progress", title: t("user.dashboard.actionPlan.kanban.inProgress"), icon: PlayCircle, color: "text-blue-600" },
+    { id: "done", title: t("user.dashboard.actionPlan.kanban.done"), icon: CheckCircle, color: "text-green-600" },
+    { id: "approved", title: t("user.dashboard.actionPlan.kanban.approved"), icon: ThumbsUp, color: "text-emerald-600" },
   ];
 
   const moveRecommendation = async (
@@ -203,7 +203,7 @@ export const ActionPlan: React.FC = () => {
     );
 
     if (!recommendationToUpdate) {
-      toast.error(t("staticText.actionPlan.recommendationNotFound", { defaultValue: "Recommendation not found." }));
+      toast.error(t("staticText.actionPlan.recommendationNotFound"));
       return;
     }
 
@@ -215,17 +215,17 @@ export const ActionPlan: React.FC = () => {
         newStatus,
         {
           onSuccess: () => {
-            toast.success(t("staticText.actionPlan.statusUpdateSuccess", { defaultValue: "Status updated successfully" }));
+            toast.success(t("staticText.actionPlan.statusUpdateSuccess"));
           },
           onError: (error) => {
             console.error("Failed to update status:", error);
-            toast.error(t("staticText.actionPlan.statusUpdateError", { defaultValue: "Failed to update status" }));
+            toast.error(t("staticText.actionPlan.statusUpdateError"));
           },
         },
       );
     } catch (error) {
       console.error("Unhandled error in moveRecommendation:", error);
-      toast.error(t("staticText.actionPlan.statusUpdateError", { defaultValue: "Failed to update status" }));
+      toast.error(t("staticText.actionPlan.statusUpdateError"));
     }
   };
 
@@ -270,13 +270,13 @@ export const ActionPlan: React.FC = () => {
         <div className="pb-8 flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-red-700 mb-2">{t("error.title", { defaultValue: "An Error Occurred" })}</h2>
+            <h2 className="text-2xl font-bold text-red-700 mb-2">{t("error.title")}</h2>
             <p className="text-gray-600 mb-4">{error.message}</p>
             <button
               onClick={() => window.history.back()}
               className="px-4 py-2 bg-dgrv-blue text-white rounded hover:bg-blue-700"
             >
-              {t("error.goBack", { defaultValue: "Go Back" })}
+              {t("error.goBack")}
             </button>
           </div>
         </div>
@@ -297,11 +297,11 @@ export const ActionPlan: React.FC = () => {
                   <div className="flex items-center space-x-3 mb-2">
                     <Kanban className="w-8 h-8 text-dgrv-blue" />
                     <h1 className="text-3xl font-bold text-dgrv-blue">
-                      {t("user.actionPlan.title", { defaultValue: "Action Plan" })}
+                      {t("user.actionPlan.title")}
                     </h1>
                   </div>
                   <p className="text-lg text-gray-600">
-                    {t("user.dashboard.actionPlan.subtitle", { defaultValue: "Track your sustainability improvement tasks" })}
+                    {t("user.dashboard.actionPlan.subtitle")}
                   </p>
                 </div>
               </div>
@@ -317,10 +317,10 @@ export const ActionPlan: React.FC = () => {
                 <div className="text-center">
                   <Kanban className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    {t("user.actionPlan.noRecommendations", { defaultValue: "No Recommendations Available" })}
+                    {t("user.actionPlan.noRecommendations")}
                   </h2>
                   <p className="text-gray-600">
-                    {t("user.actionPlan.noRecommendationsDescription", { defaultValue: "There are no recommendations for this submission." })}
+                    {t("user.actionPlan.noRecommendationsDescription")}
                   </p>
                 </div>
               </div>
@@ -363,7 +363,7 @@ export const ActionPlan: React.FC = () => {
                                     <div className="text-center py-8 text-gray-500">
                                       <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                       <p className="text-sm">
-                                        {t("user.actionPlan.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
+                                        {t("user.actionPlan.kanban.noTasks", {status: column.id})}
                                       </p>
                                     </div>
                                   ) : (
@@ -393,7 +393,7 @@ export const ActionPlan: React.FC = () => {
                                                     moveRecommendation(assessmentName, task.id, "in_progress");
                                                   }}
                                                 >
-                                                  {t("user.actionPlan.kanban.moveToInProgress", { defaultValue: "Move to In Progress" })}
+                                                  {t("user.actionPlan.kanban.moveToInProgress")}
                                                 </button>
                                               )}
                                               {isAdmin && task.status === "in_progress" && (
@@ -405,7 +405,7 @@ export const ActionPlan: React.FC = () => {
                                                       moveRecommendation(assessmentName, task.id, "todo");
                                                     }}
                                                   >
-                                                    {t("user.actionPlan.kanban.backToTodo", { defaultValue: "Back to To Do" })}
+                                                    {t("user.actionPlan.kanban.backToTodo")}
                                                   </button>
                                                   <button
                                                     className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
@@ -414,7 +414,7 @@ export const ActionPlan: React.FC = () => {
                                                       moveRecommendation(assessmentName, task.id, "done");
                                                     }}
                                                   >
-                                                    {t("user.actionPlan.kanban.moveToDone", { defaultValue: "Move to Done" })}
+                                                    {t("user.actionPlan.kanban.moveToDone")}
                                                   </button>
                                                 </>
                                               )}
@@ -427,7 +427,7 @@ export const ActionPlan: React.FC = () => {
                                                       moveRecommendation(assessmentName, task.id, "in_progress");
                                                     }}
                                                   >
-                                                    {t("user.actionPlan.kanban.backToInProgress", { defaultValue: "Back to In Progress" })}
+                                                    {t("user.actionPlan.kanban.backToInProgress")}
                                                   </button>
                                                   <button
                                                     className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"
@@ -436,7 +436,7 @@ export const ActionPlan: React.FC = () => {
                                                       moveRecommendation(assessmentName, task.id, "approved");
                                                     }}
                                                   >
-{t("user.actionPlan.kanban.approve", { defaultValue: "Approve" })}
+{t("user.actionPlan.kanban.approve")}
                                                   </button>
                                                 </>
                                               )}
@@ -448,7 +448,7 @@ export const ActionPlan: React.FC = () => {
                                                     moveRecommendation(assessmentName, task.id, "done");
                                                   }}
                                                 >
-                                                  {t("user.actionPlan.kanban.backToDone", { defaultValue: "Back to Done" })}
+                                                  {t("user.actionPlan.kanban.backToDone")}
                                                 </button>
                                               )}
                                             </div>
@@ -488,7 +488,7 @@ export const ActionPlan: React.FC = () => {
           </DialogHeader>
           <div className="mt-4">
             <h4 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">
-              {t("staticText.actionPlan.recommendation", { defaultValue: "Recommendation" })}
+              {t("staticText.actionPlan.recommendation")}
             </h4>
             <div className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-lg border">
               {selectedTask?.recommendation}
@@ -505,7 +505,7 @@ export const ActionPlan: React.FC = () => {
                       setSelectedTask(null);
                     }}
                   >
-                    {t("user.actionPlan.kanban.moveToInProgress", { defaultValue: "Move to In Progress" })}
+                    {t("user.actionPlan.kanban.moveToInProgress")}
                   </Button>
                 )}
                 {isAdmin && selectedTask.status === "in_progress" && (
@@ -518,7 +518,7 @@ export const ActionPlan: React.FC = () => {
                         setSelectedTask(null);
                       }}
                     >
-                      {t("user.actionPlan.kanban.backToTodo", { defaultValue: "Back to To Do" })}
+                      {t("user.actionPlan.kanban.backToTodo")}
                     </Button>
                     <Button
                       size="sm"
@@ -528,7 +528,7 @@ export const ActionPlan: React.FC = () => {
                         setSelectedTask(null);
                       }}
                     >
-                      {t("user.actionPlan.kanban.moveToDone", { defaultValue: "Move to Done" })}
+                      {t("user.actionPlan.kanban.moveToDone")}
                     </Button>
                   </>
                 )}
@@ -542,7 +542,7 @@ export const ActionPlan: React.FC = () => {
                         setSelectedTask(null);
                       }}
                     >
-                      {t("user.actionPlan.kanban.backToInProgress", { defaultValue: "Back to In Progress" })}
+                      {t("user.actionPlan.kanban.backToInProgress")}
                     </Button>
                     <Button
                       size="sm"
@@ -552,7 +552,7 @@ export const ActionPlan: React.FC = () => {
                         setSelectedTask(null);
                       }}
                     >
-                      {t("staticText.actionPlan.approve", { defaultValue: "Approve" })}
+                      {t("staticText.actionPlan.approve")}
                     </Button>
                   </>
                 )}
@@ -565,7 +565,7 @@ export const ActionPlan: React.FC = () => {
                       setSelectedTask(null);
                     }}
                   >
-                    {t("user.actionPlan.kanban.backToDone", { defaultValue: "Back to Done" })}
+                    {t("user.actionPlan.kanban.backToDone")}
                   </Button>
                 )}
               </div>

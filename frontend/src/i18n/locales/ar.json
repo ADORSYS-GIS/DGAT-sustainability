@@ -40,7 +40,80 @@
   },
   "login": "تسجيل الدخول",
   "logout": "تسجيل الخروج",
-  "profile": "الملف الشخصي",
+  "profile": {
+    "title": "ملفي الشخصي",
+    "subtitle": "عرض وإدارة معلومات حسابك",
+    "back": "رجوع",
+    "notLoggedIn": "يجب تسجيل الدخول لعرض هذه الصفحة.",
+    "notAvailable": "غير متاح",
+    "noOrganization": "لم يتم تعيين منظمة",
+    "personalInfo": {
+      "title": "المعلومات الشخصية",
+      "description": "تفاصيل حسابك كما هي مسجلة في النظام",
+      "username": "اسم المستخدم",
+      "fullName": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "userId": "معرف المستخدم",
+      "verified": "تم التحقق"
+    },
+    "roles": {
+      "admin": "مدير",
+      "orgAdmin": "مدير المنظمة",
+      "orgUser": "مستخدم المنظمة"
+    },
+    "rolesAndOrg": {
+      "title": "الأدوار والمنظمة",
+      "yourRoles": "أدوارك",
+      "noRoles": "لم يتم تعيين أدوار",
+      "organization": "المنظمة",
+      "assignedCategories": "الفئات المخصصة"
+    },
+    "accountManagement": {
+      "title": "إدارة الحساب",
+      "description": "إدارة إعدادات حسابك عبر Keycloak",
+      "editProfile": "تعديل الملف الشخصي",
+      "editProfileDesc": "تحديث اسمك وبريدك الإلكتروني ومعلوماتك الشخصية الأخرى",
+      "changePassword": "تغيير كلمة المرور",
+      "changePasswordDesc": "تحديث كلمة المرور وإعدادات الأمان",
+      "note": "ملاحظة",
+      "noteText": "يتم إدارة تغييرات الملف الشخصي وكلمة المرور عبر Keycloak. انقر على الأزرار أعلاه لفتح وحدة تحكم إدارة الحساب في علامة تبويب جديدة."
+    },
+    "sessionInfo": {
+      "title": "معلومات الجلسة",
+      "lastLogin": "آخر تسجيل دخول",
+      "tokenExpires": "انتهاء صلاحية الرمز"
+    },
+    "edit": {
+      "button": "تعديل الملف الشخصي",
+      "firstName": "الاسم الأول",
+      "lastName": "الاسم الأخير",
+      "firstNamePlaceholder": "أدخل اسمك الأول",
+      "lastNamePlaceholder": "أدخل اسمك الأخير",
+      "save": "حفظ التغييرات",
+      "saving": "جاري الحفظ...",
+      "successMessage": "تم تحديث الملف الشخصي بنجاح!",
+      "errorMessage": "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى."
+    },
+    "password": {
+      "title": "كلمة المرور والأمان",
+      "description": "إدارة كلمة المرور وأمان حسابك",
+      "button": "تغيير كلمة المرور",
+      "currentPassword": "كلمة المرور الحالية",
+      "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
+      "newPassword": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة (8 أحرف على الأقل)",
+      "confirmPassword": "تأكيد كلمة المرور الجديدة",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
+      "change": "تغيير كلمة المرور",
+      "changing": "جاري التغيير...",
+      "successMessage": "تم تغيير كلمة المرور بنجاح!",
+      "errorMessage": "فشل تغيير كلمة المرور. يرجى المحاولة مرة أخرى.",
+      "mismatchError": "كلمات المرور غير متطابقة.",
+      "lengthError": "يجب أن تكون كلمة المرور 8 أحرف على الأقل.",
+      "notice": "سوف تصبح كلمة المرور الجديدة سارية المفعول فوراً. تأكد من تذكرها أو تخزينها بشكل آمن."
+    },
+    "myProfile": "My Profile"
+  },
   "sustainability": "الاستدامة",
   "assessment": "التقييم",
   "submit": "إرسال",
@@ -111,7 +184,8 @@
     "emailRequired": "البريد الإلكتروني مطلوب",
     "organizationNotFound": "المنظمة غير موجودة",
     "recommendations": "التوصيات",
-    "attachments": "المرفقات"
+    "attachments": "المرفقات",
+    "creating": "Creating..."
   },
   "adminDashboard": {
     "welcome": "مرحباً، المسؤول! عزز تأثير التعاونيات!",
@@ -439,7 +513,11 @@
     "loadError": "خطأ في تحميل الفئات",
     "unknownError": "حدث خطأ غير معروف",
     "retry": "حاول مرة أخرى",
-    "newCategory": "فئة جديدة"
+    "newCategory": "فئة جديدة",
+    "createSuccess": "Category created successfully",
+    "saving": "Saving...",
+    "confirmDelete": "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
+    "submitError": "Failed to save category"
   },
   "manageOrganizations": {
     "title": "إدارة المنظمات",
@@ -467,7 +545,8 @@
     "confirmDeleteTitle": "حذف المنظمة",
     "confirmDeleteDescription": "هل أنت متأكد أنك تريد حذف المنظمة '{{name}}'؟ سيؤدي هذا الإجراء إلى إزالة المنظمة وجميع بياناتها المرتبطة بشكل دائم من النظام ولا يمكن التراجع عنه.",
     "deleteOrganization": "حذف المنظمة",
-    "nameReservedChars": "يحتوي اسم المنظمة على أحرف محجوزة. تجنب استخدام: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , أو مسافات."
+    "nameReservedChars": "يحتوي اسم المنظمة على أحرف محجوزة. تجنب استخدام: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , أو مسافات.",
+    "assignCategories": "Assign Categories"
   },
   "user": {
     "dashboard": {
@@ -522,7 +601,8 @@
         "submissionId": "التقديم",
         "generatedAt": "تم إنشاؤه في",
         "select": "اختر",
-        "noReportsAvailable": "لا توجد تقارير متاحة"
+        "noReportsAvailable": "لا توجد تقارير متاحة",
+        "subtitle": "Track your sustainability improvement tasks"
       },
       "recentSubmissions": "التقديمات الأخيرة",
       "viewAll": "عرض الكل",
@@ -601,6 +681,50 @@
         "title": "مراجعة التقييمات",
         "description": "مراجعة واعتماد تقييمات المسودات المقدمة من مستخدمي المنظمة."
       }
+    },
+    "draftSubmissions": {
+      "approvedOfflineSuccessfully": "Successfully approved, will sync when you come back online",
+      "viewDetails": "View Details",
+      "responses": "Responses",
+      "submitted": "Submitted",
+      "assessment": "Assessment",
+      "noDraftSubmissionsDescription": "There are currently no draft submissions pending approval. Check back later for new submissions.",
+      "noDraftSubmissions": "No Draft Submissions",
+      "description": "Review and approve draft assessments submitted by organization users",
+      "title": "Draft Submissions",
+      "approveSubmission": "Approve Submission",
+      "approving": "Approving...",
+      "noResponsesAvailable": "No responses available",
+      "clickToExpand": "Click categories to expand",
+      "assessmentResponses": "Assessment Responses",
+      "questionsAnswered": "Questions Answered",
+      "organization": "Organization",
+      "reviewAndApprove": "Review and approve this draft submission",
+      "backToDraftSubmissions": "Back to Draft Submissions",
+      "tryAgain": "Try Again",
+      "errorLoadingDraftSubmissions": "Error loading draft submissions",
+      "loadingDraftSubmissions": "Loading draft submissions...",
+      "noFilesAttached": "No files attached",
+      "attachedFiles": "Attached Files",
+      "noTextResponseProvided": "No text response provided",
+      "textResponse": "Text Response",
+      "percentageResponse": "Percentage Response",
+      "yesNoResponse": "Yes/No Response",
+      "failedToApprove": "Failed to approve assessment."
+    },
+    "actionPlan": {
+      "kanban": {
+        "backToDone": "Back to Done",
+        "backToInProgress": "Back to In Progress",
+        "moveToDone": "Move to Done",
+        "backToTodo": "Back to To Do",
+        "moveToInProgress": "Move to In Progress",
+        "approve": "Approve",
+        "noTasks": "No tasks in ${column.title.toLowerCase()}"
+      },
+      "noRecommendationsDescription": "There are no recommendations for this submission.",
+      "noRecommendations": "No Recommendations Available",
+      "title": "Action Plan"
     }
   },
   "manageUsers.selectOrganization": "اختر منظمة",
@@ -667,7 +791,9 @@
     "noText": "لا يوجد نص متاح.",
     "categoriesLoadError": "فشل تحميل الفئات. يرجى المحاولة مرة أخرى.",
     "retry": "حاول مرة أخرى",
-    "loadingQuestions": "Loading questions..."
+    "loadingQuestions": "Loading questions...",
+    "englishQuestion": "English Question",
+    "additionalLanguagesOptional": "Additional Languages (Optional)"
   },
   "userInvitation": {
     "title": "إنشاء دعوة مستخدم",
@@ -1075,7 +1201,13 @@
     "reviewSubmittedSuccessfully": "تم إرسال المراجعة بنجاح",
     "reviewSavedLocally": "تم حفظ المراجعة محلياً. سيتم المزامنة عند الاتصال.",
     "failedToSubmitReview": "فشل إرسال المراجعة",
-    "manualSyncFailed": "فشل المزامنة اليدوية"
+    "manualSyncFailed": "فشل المزامنة اليدوية",
+    "reviewerNotFound": "Reviewer information not found. Please log in again.",
+    "attachments": "Attachments",
+    "assessmentName": "Assessment Name",
+    "unknownAssessment": "Unknown Assessment",
+    "queueFailed": "Failed to queue review for submission.",
+    "reviewQueued": "Review has been queued for submission."
   },
   "reportHistory": {
     "title": "سجل التقارير",
@@ -1110,7 +1242,10 @@
     "additionalAttachments": "مرفقات إضافية",
     "recommendation": "التوصية",
     "recommendationCount": "{{count}} توصية",
-    "recommendationCount_plural": "{{count}} توصيات"
+    "recommendationCount_plural": "{{count}} توصيات",
+    "close": "Close",
+    "noDetails": "No details available for this report.",
+    "report": "Report"
   },
   "assignCategories": {
     "title": "تعيين الفئات إلى {{org}}",
@@ -1162,13 +1297,85 @@
     "navbar": {
       "logoAlt": "شعار DGRV",
       "navigation": "التنقل",
-      "brand": "DGRV"
+      "brand": "DGRV",
+      "toggleMenu": "Toggle menu"
     },
     "organizations": {
       "addNewOrganization": "إضافة منظمة جديدة",
       "organizationName": "اسم المنظمة",
       "organizationNamePlaceholder": "أدخل اسم المنظمة",
-      "domainPlaceholder": "أدخل النطاق (مثال: adorsys.com)"
+      "domainPlaceholder": "أدخل النطاق (مثال: adorsys.com)",
+      "nameRequired": "Name is required",
+      "description": "Description",
+      "addDomain": "+ Add Domain",
+      "domainRequired": "At least one domain is required"
+    },
+    "home": {
+      "organizationRequiredStart": "You need to be part of an organisation to start an assessment.",
+      "logoAlt": "Sustainability Portal Logo",
+      "organizationRequiredView": "You need to be part of an organisation to view assessments.",
+      "authRedirectFailed": "Failed to redirect to authentication. Please try again."
+    },
+    "users": {
+      "createError": "Failed to create user",
+      "currentOrganization": "Current organization",
+      "inviteUserNoPlus": "Invite User",
+      "createQueued": "User saved locally and will sync when online",
+      "createSuccess": "User created successfully",
+      "deleteEntirelyError": "Failed to delete user entirely",
+      "deleteEntirelySuccess": "User deleted entirely from system",
+      "removeFromOrgError": "Failed to remove user from organization",
+      "removeFromOrgSuccess": "User removed from organization successfully",
+      "updateError": "Failed to update user",
+      "updateSuccess": "User updated successfully",
+      "loadingCategories": "Loading categories...",
+      "categories": "Categories",
+      "inviteNewUser": "Invite New User",
+      "addManageAcross": "Add and manage users across",
+      "inviteUser": "+ Invite User",
+      "deleteError": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "notFound": "User not found",
+      "updateCategoriesRetry": "Failed to update user categories. Will retry when online."
+    },
+    "unauthorized": {
+      "description": "You do not have permission to view this page.",
+      "goHome": "Go to home"
+    },
+    "files": {
+      "image": "Image",
+      "download": "Download",
+      "unknownFile": "Unknown file"
+    },
+    "sync": {
+      "pending": "{{count}} Pending",
+      "offline": "Offline",
+      "online": "Online"
+    },
+    "assessment": {
+      "showPercentageExplanation": "Show percentage explanation"
+    },
+    "assessments": {
+      "retrievingSubmissions": "Retrieving your submissions..."
+    },
+    "submissionView": {
+      "loadError": "Error loading submission details.",
+      "noFilesUploaded": "No files uploaded",
+      "fileNumber": "File {{count}}",
+      "files": "Files",
+      "noAnswer": "No answer",
+      "textResponse": "Text Response"
+    },
+    "actionPlan": {
+      "approve": "Approve",
+      "recommendation": "Recommendation",
+      "statusUpdateError": "Failed to update status",
+      "statusUpdateSuccess": "Status updated successfully",
+      "recommendationNotFound": "Recommendation not found."
+    },
+    "common": {
+      "close": "Close",
+      "deleting": "Deleting..."
     }
   },
   "reportSelection": {
@@ -1203,7 +1410,7 @@
     "emailVerifiedAndInvited": "تم التحقق من البريد وإرسال دعوة المنظمة تلقائياً",
     "failedToProcessVerification": "فشل معالجة التحقق من البريد"
   },
-"connection": {
+  "connection": {
     "restored": "تم استعادة الاتصال. جاري مزامنة البيانات...",
     "offline": "أنت الآن غير متصل. سيتم مزامنة التغييرات عند استعادة الاتصال.",
     "onlineStatus": "متصل",
@@ -1315,77 +1522,17 @@
     "createdDate": "تاريخ الإنشاء",
     "status": "الحالة"
   },
-  "profile": {
-    "title": "ملفي الشخصي",
-    "subtitle": "عرض وإدارة معلومات حسابك",
-    "back": "رجوع",
-    "notLoggedIn": "يجب تسجيل الدخول لعرض هذه الصفحة.",
-    "notAvailable": "غير متاح",
-    "noOrganization": "لم يتم تعيين منظمة",
-    "personalInfo": {
-      "title": "المعلومات الشخصية",
-      "description": "تفاصيل حسابك كما هي مسجلة في النظام",
-      "username": "اسم المستخدم",
-      "fullName": "الاسم الكامل",
-      "email": "البريد الإلكتروني",
-      "userId": "معرف المستخدم",
-      "verified": "تم التحقق"
-    },
-    "roles": {
-      "admin": "مدير",
-      "orgAdmin": "مدير المنظمة",
-      "orgUser": "مستخدم المنظمة"
-    },
-    "rolesAndOrg": {
-      "title": "الأدوار والمنظمة",
-      "yourRoles": "أدوارك",
-      "noRoles": "لم يتم تعيين أدوار",
-      "organization": "المنظمة",
-      "assignedCategories": "الفئات المخصصة"
-    },
-    "accountManagement": {
-      "title": "إدارة الحساب",
-      "description": "إدارة إعدادات حسابك عبر Keycloak",
-      "editProfile": "تعديل الملف الشخصي",
-      "editProfileDesc": "تحديث اسمك وبريدك الإلكتروني ومعلوماتك الشخصية الأخرى",
-      "changePassword": "تغيير كلمة المرور",
-      "changePasswordDesc": "تحديث كلمة المرور وإعدادات الأمان",
-      "note": "ملاحظة",
-      "noteText": "يتم إدارة تغييرات الملف الشخصي وكلمة المرور عبر Keycloak. انقر على الأزرار أعلاه لفتح وحدة تحكم إدارة الحساب في علامة تبويب جديدة."
-    },
-    "sessionInfo": {
-      "title": "معلومات الجلسة",
-      "lastLogin": "آخر تسجيل دخول",
-      "tokenExpires": "انتهاء صلاحية الرمز"
-    },
-    "edit": {
-      "button": "تعديل الملف الشخصي",
-      "firstName": "الاسم الأول",
-      "lastName": "الاسم الأخير",
-      "firstNamePlaceholder": "أدخل اسمك الأول",
-      "lastNamePlaceholder": "أدخل اسمك الأخير",
-      "save": "حفظ التغييرات",
-      "saving": "جاري الحفظ...",
-      "successMessage": "تم تحديث الملف الشخصي بنجاح!",
-      "errorMessage": "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى."
-    },
-    "password": {
-      "title": "كلمة المرور والأمان",
-      "description": "إدارة كلمة المرور وأمان حسابك",
-      "button": "تغيير كلمة المرور",
-      "currentPassword": "كلمة المرور الحالية",
-      "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
-      "newPassword": "كلمة المرور الجديدة",
-      "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة (8 أحرف على الأقل)",
-      "confirmPassword": "تأكيد كلمة المرور الجديدة",
-      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
-      "change": "تغيير كلمة المرور",
-      "changing": "جاري التغيير...",
-      "successMessage": "تم تغيير كلمة المرور بنجاح!",
-      "errorMessage": "فشل تغيير كلمة المرور. يرجى المحاولة مرة أخرى.",
-      "mismatchError": "كلمات المرور غير متطابقة.",
-      "lengthError": "يجب أن تكون كلمة المرور 8 أحرف على الأقل.",
-      "notice": "سوف تصبح كلمة المرور الجديدة سارية المفعول فوراً. تأكد من تذكرها أو تخزينها بشكل آمن."
-    }
-  }
+  "submission": {
+    "deleteError": "Failed to delete submission"
+  },
+  "of": "of",
+  "delete": "Delete",
+  "deleting": "Deleting...",
+  "completed": "Completed",
+  "question": "Question",
+  "error": {
+    "goBack": "Go Back",
+    "title": "An Error Occurred"
+  },
+  "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
 }

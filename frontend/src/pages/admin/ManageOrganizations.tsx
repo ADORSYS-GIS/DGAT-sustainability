@@ -36,7 +36,7 @@ const RESERVED_CHARS = /[<>/\\:;"'*?|&%$#@!(){}[\]^~`+=, ]/;
  */
 const validateOrgName = (name: string, t: (key: string, options?: Record<string, unknown>) => string): string | null => {
   if (RESERVED_CHARS.test(name)) {
-    return t('manageOrganizations.nameContainsReservedChars', { defaultValue: 'Name contains reserved characters. Avoid using: < > / \\ : ; " \' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.' });
+    return t('manageOrganizations.nameContainsReservedChars', {* ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.' });
   }
   return null;
 };
@@ -128,13 +128,13 @@ export const ManageOrganizations: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      toast.error(t("staticText.organizations.nameRequired", { defaultValue: "Name is required" }));
+      toast.error(t("staticText.organizations.nameRequired"));
       return;
     }
     // Remove empty domains
     const cleanDomains = (formData.domains || []).filter((d) => d.name.trim());
     if (cleanDomains.length === 0) {
-      toast.error(t("staticText.organizations.domainRequired", { defaultValue: "At least one domain is required" }));
+      toast.error(t("staticText.organizations.domainRequired"));
       return;
     }
     const requestBody: OrganizationCreateRequest = {
@@ -263,11 +263,11 @@ export const ManageOrganizations: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <Building2 className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    {t('manageOrganizations.title', { defaultValue: 'Manage Organizations' })}
+                    {t('manageOrganizations.title')}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  {t('manageOrganizations.subtitle', { defaultValue: 'Create and manage organizations for sustainability assessments' })}
+                  {t('manageOrganizations.subtitle')}
                 </p>
               </div>
 
@@ -284,7 +284,7 @@ export const ManageOrganizations: React.FC = () => {
                     onClick={() => setShowAddDialog(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {t('manageOrganizations.addOrganization', { defaultValue: 'Add Organization' })}
+                    {t('manageOrganizations.addOrganization')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -292,7 +292,7 @@ export const ManageOrganizations: React.FC = () => {
                     <DialogTitle>
                       {editingOrg
                         ? t('manageOrganizations.editOrganization')
-                        : t("staticText.organizations.addNewOrganization", { defaultValue: "Add New Organization" })}
+                        : t("staticText.organizations.addNewOrganization")}
                     </DialogTitle>
                   </DialogHeader>
                   {/* --- FORM UI --- */}
@@ -302,7 +302,7 @@ export const ManageOrganizations: React.FC = () => {
                         htmlFor="name"
                         className="font-semibold text-dgrv-blue"
                       >
-                        {t("staticText.organizations.organizationName", { defaultValue: "Organization Name" })}
+                        {t("staticText.organizations.organizationName")}
                       </Label>
                       <Input
                         id="name"
@@ -317,7 +317,7 @@ export const ManageOrganizations: React.FC = () => {
                           const error = validateOrgName(newName, t);
                           setNameError(error);
                         }}
-                        placeholder={t("staticText.organizations.organizationNamePlaceholder", { defaultValue: "Enter organization name" })}
+                        placeholder={t("staticText.organizations.organizationNamePlaceholder")}
                         className={`mt-1 border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${nameError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                       />
                       {nameError && (
@@ -329,7 +329,7 @@ export const ManageOrganizations: React.FC = () => {
                     </div>
                     <div>
                       <Label className="font-semibold text-dgrv-blue">
-                        {t("manageOrganizations.domains", { defaultValue: "Domains" })} <span className="text-red-500">*</span>
+                        {t("manageOrganizations.domains")} <span className="text-red-500">*</span>
                       </Label>
                       {formData.domains?.map((d, idx) => (
                         <div
@@ -341,7 +341,7 @@ export const ManageOrganizations: React.FC = () => {
                             onChange={(e) =>
                               handleDomainChange(idx, e.target.value)
                             }
-                            placeholder={t("staticText.organizations.domainPlaceholder", { defaultValue: "Enter domain (e.g. adorsys.com)" })}
+                            placeholder={t("staticText.organizations.domainPlaceholder")}
                             className={`border-gray-300 focus:border-dgrv-blue focus:ring-dgrv-blue rounded shadow-sm ${!d?.name?.trim() ? "border-red-500" : ""}`}
                             required
                           />
@@ -364,7 +364,7 @@ export const ManageOrganizations: React.FC = () => {
                         onClick={addDomain}
                         className="mt-1"
                       >
-                        {t("staticText.organizations.addDomain", { defaultValue: "+ Add Domain" })}
+                        {t("staticText.organizations.addDomain")}
                       </Button>
                     </div>
 
@@ -377,15 +377,15 @@ export const ManageOrganizations: React.FC = () => {
                       // No longer need to disable based on mutation pending state as operations are offline
                       >
                         {editingOrg
-                          ? t('manageOrganizations.update', { defaultValue: 'Update' })
-                          : t('manageOrganizations.create', { defaultValue: 'Create' })}
+                          ? t('manageOrganizations.update')
+                          : t('manageOrganizations.create')}
                       </Button>
                       <Button
                         variant="outline"
                         onClick={resetForm}
                         className="px-6 py-2 text-base font-semibold rounded shadow"
                       >
-                        {t('manageOrganizations.cancel', { defaultValue: 'Cancel' })}
+                        {t('manageOrganizations.cancel')}
                       </Button>
                     </div>
                   </div>
@@ -414,7 +414,7 @@ export const ManageOrganizations: React.FC = () => {
                   <div className="space-y-4">
                     {org.domains && org.domains.length > 0 && (
                       <div className="text-sm text-gray-600">
-                        <b>{t('manageOrganizations.domains', { defaultValue: 'Domains' })}:</b>{" "}
+                        <b>{t('manageOrganizations.domains')}:</b>{" "}
                         {(org.domains as Array<string | { name: string }>)
                           .map((d) => (typeof d === "string" ? d : d.name))
                           .join(", ")}
@@ -432,7 +432,7 @@ export const ManageOrganizations: React.FC = () => {
                         className="flex-1"
                       >
                         <Edit className="w-4 h-4 mr-1" />
-                        {t('manageOrganizations.edit', { defaultValue: 'Edit' })}
+                        {t('manageOrganizations.edit')}
                       </Button>
                       <Button
                         size="sm"
@@ -442,7 +442,7 @@ export const ManageOrganizations: React.FC = () => {
                       // No longer need to disable based on mutation pending state
                       >
                         <Trash2 className="w-4 h-4 mr-1" />
-                        {t('manageOrganizations.delete', { defaultValue: 'Delete' })}
+                        {t('manageOrganizations.delete')}
                       </Button>
                     </div>
                     <Button
@@ -452,7 +452,7 @@ export const ManageOrganizations: React.FC = () => {
                       className="w-full"
                     >
                       <ListTree className="w-4 h-4 mr-1" />
-                      {t('manageOrganizations.assignCategories', { defaultValue: 'Assign Categories' })}
+                      {t('manageOrganizations.assignCategories')}
                     </Button>
                   </div>
                 </CardFooter>
@@ -464,16 +464,16 @@ export const ManageOrganizations: React.FC = () => {
                 <CardContent>
                   <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {t('manageOrganizations.noOrganizations', { defaultValue: 'No organizations yet' })}
+                    {t('manageOrganizations.noOrganizations')}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    {t('manageOrganizations.getStarted', { defaultValue: 'Create your first organization to get started.' })}
+                    {t('manageOrganizations.getStarted')}
                   </p>
                   <Button
                     onClick={() => setShowAddDialog(true)}
                     className="bg-dgrv-green hover:bg-green-700"
                   >
-                    {t('manageOrganizations.addFirstOrganization', { defaultValue: 'Add First Organization' })}
+                    {t('manageOrganizations.addFirstOrganization')}
                   </Button>
                 </CardContent>
               </Card>

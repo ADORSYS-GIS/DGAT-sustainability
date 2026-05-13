@@ -69,9 +69,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
 
   useEffect(() => {
     if (orgCategoriesError) {
-      toast.error(t('assessment.errors.fetchCategories', {
-        defaultValue: 'Failed to fetch categories. Please try again later.'
-      }));
+      toast.error(t('assessment.errors.fetchCategories'));
     }
   }, [orgCategoriesError, t]);
 
@@ -84,9 +82,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
     if (noCategoriesAssigned && !hasShownNoCategoriesToastRef.current) {
       hasShownNoCategoriesToastRef.current = true;
       toast.error(
-        t('assessment.noCategoriesAssigned', {
-          defaultValue: 'Sorry, no categories have been assigned yet to your organisation. Contact the admin.'
-        })
+        t('assessment.noCategoriesAssigned')
       );
     }
   }, [isOpen, noCategoriesAssigned, t]);
@@ -96,15 +92,13 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
     if (assessmentName.trim()) {
       if (noCategoriesAssigned) {
         toast.error(
-          t('assessment.noCategoriesAssigned', {
-            defaultValue: 'Sorry, no categories have been assigned yet to your organisation. Contact the admin.'
-          })
+          t('assessment.noCategoriesAssigned')
         );
         return;
       }
 
       if (isOrgAdmin && selectedCategories.length === 0) {
-        toast.error(t('assessment.categoriesRequired', { defaultValue: 'Please select at least one category for this assessment.' }));
+        toast.error(t('assessment.categoriesRequired'));
         return;
       }
       
@@ -126,20 +120,20 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">
-            {t('assessment.createAssessment', { defaultValue: 'Create Assessment' })}
+            {t('assessment.createAssessment')}
           </DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="assessment-name">
-              {t('assessment.assessmentName', { defaultValue: 'Assessment Name' })}
+              {t('assessment.assessmentName')}
             </Label>
             <Input
               id="assessment-name"
               value={assessmentName}
               onChange={(e) => setAssessmentName(e.target.value)}
-              placeholder={t('assessment.enterAssessmentName', { defaultValue: 'Enter assessment name...' })}
+              placeholder={t('assessment.enterAssessmentName')}
               required
               autoFocus
             />
@@ -148,7 +142,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
           {isOrgAdmin && (
             <div>
               <Label htmlFor="assessment-categories">
-                {t('assessment.selectCategories', { defaultValue: 'Select Categories' })}
+                {t('assessment.selectCategories')}
                 {availableCategories.length > 0 && <span className="text-red-500 ml-1">*</span>}
               </Label>
               {isLoadingCategories ? (
@@ -181,13 +175,13 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
                     ))
                   ) : (
                     <p className="text-sm text-gray-500 text-center p-4">
-                      {t('assessment.noCategoriesAssigned', { defaultValue: 'Sorry, no categories have been assigned yet to your organisation. Contact the admin.' })}
+                      {t('assessment.noCategoriesAssigned')}
                     </p>
                   )}
                 </div>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                {t('assessment.categoriesHint', { defaultValue: 'Select categories to include in this assessment. At least one category is required.' })}
+                {t('assessment.categoriesHint')}
               </p>
             </div>
           )}
@@ -199,7 +193,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
               onClick={handleClose}
               disabled={isLoading}
             >
-              {t('common.cancel', { defaultValue: 'Cancel' })}
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -207,8 +201,8 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
               disabled={isLoading || !assessmentName.trim() || noCategoriesAssigned || (isOrgAdmin && selectedCategories.length === 0)}
             >
               {isLoading
-                ? t('common.creating', { defaultValue: 'Creating...' })
-                : t('assessment.createAssessment', { defaultValue: 'Create Assessment' })
+                ? t('common.creating')
+                : t('assessment.createAssessment')
               }
             </Button>
           </div>

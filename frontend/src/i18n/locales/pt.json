@@ -40,7 +40,80 @@
   },
   "login": "Iniciar Sessão",
   "logout": "Terminar Sessão",
-  "profile": "Perfil",
+  "profile": {
+    "title": "Meu Perfil",
+    "subtitle": "Ver e gerir as informações da sua conta",
+    "back": "Voltar",
+    "notLoggedIn": "Você precisa estar logado para ver esta página.",
+    "notAvailable": "Não disponível",
+    "noOrganization": "Nenhuma organização atribuída",
+    "personalInfo": {
+      "title": "Informações Pessoais",
+      "description": "Os detalhes da sua conta conforme registados no sistema",
+      "username": "Nome de Utilizador",
+      "fullName": "Nome Completo",
+      "email": "Endereço de E-mail",
+      "userId": "ID do Utilizador",
+      "verified": "Verificado"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "orgAdmin": "Administrador da Organização",
+      "orgUser": "Utilizador da Organização"
+    },
+    "rolesAndOrg": {
+      "title": "Funções & Organização",
+      "yourRoles": "As Suas Funções",
+      "noRoles": "Nenhuma função atribuída",
+      "organization": "Organização",
+      "assignedCategories": "Categorias Atribuídas"
+    },
+    "accountManagement": {
+      "title": "Gestão de Conta",
+      "description": "Gerir as definições da sua conta através do Keycloak",
+      "editProfile": "Editar Perfil",
+      "editProfileDesc": "Atualizar o seu nome, e-mail e outras informações pessoais",
+      "changePassword": "Alterar Palavra-passe",
+      "changePasswordDesc": "Atualizar a sua palavra-passe e definições de segurança",
+      "note": "Nota",
+      "noteText": "As alterações de perfil e palavra-passe são geridas através do Keycloak. Clique nos botões acima para abrir a consola de gestão de conta num novo separador."
+    },
+    "sessionInfo": {
+      "title": "Informações da Sessão",
+      "lastLogin": "Último Login",
+      "tokenExpires": "Token Expira"
+    },
+    "edit": {
+      "button": "Editar Perfil",
+      "firstName": "Primeiro Nome",
+      "lastName": "Último Nome",
+      "firstNamePlaceholder": "Digite seu primeiro nome",
+      "lastNamePlaceholder": "Digite seu último nome",
+      "save": "Guardar Alterações",
+      "saving": "A guardar...",
+      "successMessage": "Perfil atualizado com sucesso!",
+      "errorMessage": "Falha ao atualizar o perfil. Por favor, tente novamente."
+    },
+    "password": {
+      "title": "Palavra-passe & Segurança",
+      "description": "Gerir a sua palavra-passe e segurança da conta",
+      "button": "Alterar Palavra-passe",
+      "currentPassword": "Palavra-passe Atual",
+      "currentPasswordPlaceholder": "Digite a sua palavra-passe atual",
+      "newPassword": "Nova Palavra-passe",
+      "newPasswordPlaceholder": "Digite a nova palavra-passe (mín 8 caracteres)",
+      "confirmPassword": "Confirmar Nova Palavra-passe",
+      "confirmPasswordPlaceholder": "Confirme a sua nova palavra-passe",
+      "change": "Alterar Palavra-passe",
+      "changing": "A alterar...",
+      "successMessage": "Palavra-passe alterada com sucesso!",
+      "errorMessage": "Falha ao alterar a palavra-passe. Por favor, tente novamente.",
+      "mismatchError": "As palavras-passe não coincidem.",
+      "lengthError": "A palavra-passe deve ter pelo menos 8 caracteres.",
+      "notice": "A sua nova palavra-passe entrará em vigor imediatamente. Certifique-se de a memorizar ou guardá-la de forma segura."
+    },
+    "myProfile": "My Profile"
+  },
   "sustainability": "Sustentabilidade",
   "assessment": "Avaliação",
   "submit": "Submeter",
@@ -111,7 +184,8 @@
     "emailRequired": "O email é obrigatório",
     "organizationNotFound": "Organização não encontrada",
     "recommendations": "Recomendações",
-    "attachments": "Anexos"
+    "attachments": "Anexos",
+    "creating": "Creating..."
   },
   "adminDashboard": {
     "welcome": "Bem-vindo, Admin! Impulsione o Impacto das Cooperativas!",
@@ -439,7 +513,11 @@
     "loadError": "Erro ao Carregar Categorias",
     "unknownError": "Ocorreu um erro desconhecido",
     "retry": "Tentar novamente",
-    "newCategory": "Nova Categoria"
+    "newCategory": "Nova Categoria",
+    "createSuccess": "Category created successfully",
+    "saving": "Saving...",
+    "confirmDelete": "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
+    "submitError": "Failed to save category"
   },
   "manageOrganizations": {
     "title": "Gerir Organizações",
@@ -467,7 +545,8 @@
     "confirmDeleteTitle": "Eliminar Organização",
     "confirmDeleteDescription": "Tem certeza de que deseja eliminar a organização '{{name}}'? Esta ação removerá permanentemente a organização e todos os seus dados associados do sistema e não pode ser desfeita.",
     "deleteOrganization": "Eliminar Organização",
-    "nameReservedChars": "O nome da organização contém caracteres reservados. Evite usar: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , ou espaços."
+    "nameReservedChars": "O nome da organização contém caracteres reservados. Evite usar: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , ou espaços.",
+    "assignCategories": "Assign Categories"
   },
   "user": {
     "dashboard": {
@@ -522,7 +601,8 @@
         "submissionId": "Submissão",
         "generatedAt": "Gerado em",
         "select": "Selecionar",
-        "noReportsAvailable": "Nenhum relatório disponível"
+        "noReportsAvailable": "Nenhum relatório disponível",
+        "subtitle": "Track your sustainability improvement tasks"
       },
       "recentSubmissions": "Submissões Recentes",
       "viewAll": "Ver Tudo",
@@ -601,6 +681,50 @@
         "title": "Revisar Avaliações",
         "description": "Revisar e aprovar avaliações em rascunho submetidas pelos utilizadores da organização."
       }
+    },
+    "draftSubmissions": {
+      "approvedOfflineSuccessfully": "Successfully approved, will sync when you come back online",
+      "viewDetails": "View Details",
+      "responses": "Responses",
+      "submitted": "Submitted",
+      "assessment": "Assessment",
+      "noDraftSubmissionsDescription": "There are currently no draft submissions pending approval. Check back later for new submissions.",
+      "noDraftSubmissions": "No Draft Submissions",
+      "description": "Review and approve draft assessments submitted by organization users",
+      "title": "Draft Submissions",
+      "approveSubmission": "Approve Submission",
+      "approving": "Approving...",
+      "noResponsesAvailable": "No responses available",
+      "clickToExpand": "Click categories to expand",
+      "assessmentResponses": "Assessment Responses",
+      "questionsAnswered": "Questions Answered",
+      "organization": "Organization",
+      "reviewAndApprove": "Review and approve this draft submission",
+      "backToDraftSubmissions": "Back to Draft Submissions",
+      "tryAgain": "Try Again",
+      "errorLoadingDraftSubmissions": "Error loading draft submissions",
+      "loadingDraftSubmissions": "Loading draft submissions...",
+      "noFilesAttached": "No files attached",
+      "attachedFiles": "Attached Files",
+      "noTextResponseProvided": "No text response provided",
+      "textResponse": "Text Response",
+      "percentageResponse": "Percentage Response",
+      "yesNoResponse": "Yes/No Response",
+      "failedToApprove": "Failed to approve assessment."
+    },
+    "actionPlan": {
+      "kanban": {
+        "backToDone": "Back to Done",
+        "backToInProgress": "Back to In Progress",
+        "moveToDone": "Move to Done",
+        "backToTodo": "Back to To Do",
+        "moveToInProgress": "Move to In Progress",
+        "approve": "Approve",
+        "noTasks": "No tasks in ${column.title.toLowerCase()}"
+      },
+      "noRecommendationsDescription": "There are no recommendations for this submission.",
+      "noRecommendations": "No Recommendations Available",
+      "title": "Action Plan"
     }
   },
   "manageUsers.selectOrganization": "Selecionar uma Organização",
@@ -667,7 +791,9 @@
     "noText": "Nenhum texto disponível.",
     "categoriesLoadError": "Falha ao carregar categorias. Por favor tente novamente.",
     "retry": "Tentar novamente",
-    "loadingQuestions": "Loading questions..."
+    "loadingQuestions": "Loading questions...",
+    "englishQuestion": "English Question",
+    "additionalLanguagesOptional": "Additional Languages (Optional)"
   },
   "userInvitation": {
     "title": "Criar Convite de Utilizador",
@@ -1075,7 +1201,13 @@
     "reviewSubmittedSuccessfully": "Revisão submetida com sucesso",
     "reviewSavedLocally": "Revisão guardada localmente. Será sincronizada quando estiver online.",
     "failedToSubmitReview": "Falha ao submeter a revisão",
-    "manualSyncFailed": "Falha na sincronização manual"
+    "manualSyncFailed": "Falha na sincronização manual",
+    "reviewerNotFound": "Reviewer information not found. Please log in again.",
+    "attachments": "Attachments",
+    "assessmentName": "Assessment Name",
+    "unknownAssessment": "Unknown Assessment",
+    "queueFailed": "Failed to queue review for submission.",
+    "reviewQueued": "Review has been queued for submission."
   },
   "reportHistory": {
     "title": "Histórico de Relatórios",
@@ -1110,7 +1242,10 @@
     "additionalAttachments": "Anexos Adicionais",
     "recommendation": "Recomendação",
     "recommendationCount": "{{count}} recomendação",
-    "recommendationCount_plural": "{{count}} recomendações"
+    "recommendationCount_plural": "{{count}} recomendações",
+    "close": "Close",
+    "noDetails": "No details available for this report.",
+    "report": "Report"
   },
   "assignCategories": {
     "title": "Atribuir Categorias a {{org}}",
@@ -1162,13 +1297,85 @@
     "navbar": {
       "logoAlt": "Logo DGRV",
       "navigation": "Navegação",
-      "brand": "DGRV"
+      "brand": "DGRV",
+      "toggleMenu": "Toggle menu"
     },
     "organizations": {
       "addNewOrganization": "Adicionar Nova Organização",
       "organizationName": "Nome da Organização",
       "organizationNamePlaceholder": "Introduza o nome da organização",
-      "domainPlaceholder": "Introduza o domínio (ex: adorsys.com)"
+      "domainPlaceholder": "Introduza o domínio (ex: adorsys.com)",
+      "nameRequired": "Name is required",
+      "description": "Description",
+      "addDomain": "+ Add Domain",
+      "domainRequired": "At least one domain is required"
+    },
+    "home": {
+      "organizationRequiredStart": "You need to be part of an organisation to start an assessment.",
+      "logoAlt": "Sustainability Portal Logo",
+      "organizationRequiredView": "You need to be part of an organisation to view assessments.",
+      "authRedirectFailed": "Failed to redirect to authentication. Please try again."
+    },
+    "users": {
+      "createError": "Failed to create user",
+      "currentOrganization": "Current organization",
+      "inviteUserNoPlus": "Invite User",
+      "createQueued": "User saved locally and will sync when online",
+      "createSuccess": "User created successfully",
+      "deleteEntirelyError": "Failed to delete user entirely",
+      "deleteEntirelySuccess": "User deleted entirely from system",
+      "removeFromOrgError": "Failed to remove user from organization",
+      "removeFromOrgSuccess": "User removed from organization successfully",
+      "updateError": "Failed to update user",
+      "updateSuccess": "User updated successfully",
+      "loadingCategories": "Loading categories...",
+      "categories": "Categories",
+      "inviteNewUser": "Invite New User",
+      "addManageAcross": "Add and manage users across",
+      "inviteUser": "+ Invite User",
+      "deleteError": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "notFound": "User not found",
+      "updateCategoriesRetry": "Failed to update user categories. Will retry when online."
+    },
+    "unauthorized": {
+      "description": "You do not have permission to view this page.",
+      "goHome": "Go to home"
+    },
+    "files": {
+      "image": "Image",
+      "download": "Download",
+      "unknownFile": "Unknown file"
+    },
+    "sync": {
+      "pending": "{{count}} Pending",
+      "offline": "Offline",
+      "online": "Online"
+    },
+    "assessment": {
+      "showPercentageExplanation": "Show percentage explanation"
+    },
+    "assessments": {
+      "retrievingSubmissions": "Retrieving your submissions..."
+    },
+    "submissionView": {
+      "loadError": "Error loading submission details.",
+      "noFilesUploaded": "No files uploaded",
+      "fileNumber": "File {{count}}",
+      "files": "Files",
+      "noAnswer": "No answer",
+      "textResponse": "Text Response"
+    },
+    "actionPlan": {
+      "approve": "Approve",
+      "recommendation": "Recommendation",
+      "statusUpdateError": "Failed to update status",
+      "statusUpdateSuccess": "Status updated successfully",
+      "recommendationNotFound": "Recommendation not found."
+    },
+    "common": {
+      "close": "Close",
+      "deleting": "Deleting..."
     }
   },
   "reportSelection": {
@@ -1203,7 +1410,7 @@
     "emailVerifiedAndInvited": "Email verificado e convite da organização enviado automaticamente",
     "failedToProcessVerification": "Falha ao processar verificação de email"
   },
-"connection": {
+  "connection": {
     "restored": "Conexão restaurada. A sincronizar dados...",
     "offline": "Está agora offline. As alterações serão sincronizadas quando a conexão for restaurada.",
     "onlineStatus": "Online",
@@ -1315,77 +1522,17 @@
     "createdDate": "Data de Criação",
     "status": "Estado"
   },
-  "profile": {
-    "title": "Meu Perfil",
-    "subtitle": "Ver e gerir as informações da sua conta",
-    "back": "Voltar",
-    "notLoggedIn": "Você precisa estar logado para ver esta página.",
-    "notAvailable": "Não disponível",
-    "noOrganization": "Nenhuma organização atribuída",
-    "personalInfo": {
-      "title": "Informações Pessoais",
-      "description": "Os detalhes da sua conta conforme registados no sistema",
-      "username": "Nome de Utilizador",
-      "fullName": "Nome Completo",
-      "email": "Endereço de E-mail",
-      "userId": "ID do Utilizador",
-      "verified": "Verificado"
-    },
-    "roles": {
-      "admin": "Administrador",
-      "orgAdmin": "Administrador da Organização",
-      "orgUser": "Utilizador da Organização"
-    },
-    "rolesAndOrg": {
-      "title": "Funções & Organização",
-      "yourRoles": "As Suas Funções",
-      "noRoles": "Nenhuma função atribuída",
-      "organization": "Organização",
-      "assignedCategories": "Categorias Atribuídas"
-    },
-    "accountManagement": {
-      "title": "Gestão de Conta",
-      "description": "Gerir as definições da sua conta através do Keycloak",
-      "editProfile": "Editar Perfil",
-      "editProfileDesc": "Atualizar o seu nome, e-mail e outras informações pessoais",
-      "changePassword": "Alterar Palavra-passe",
-      "changePasswordDesc": "Atualizar a sua palavra-passe e definições de segurança",
-      "note": "Nota",
-      "noteText": "As alterações de perfil e palavra-passe são geridas através do Keycloak. Clique nos botões acima para abrir a consola de gestão de conta num novo separador."
-    },
-    "sessionInfo": {
-      "title": "Informações da Sessão",
-      "lastLogin": "Último Login",
-      "tokenExpires": "Token Expira"
-    },
-    "edit": {
-      "button": "Editar Perfil",
-      "firstName": "Primeiro Nome",
-      "lastName": "Último Nome",
-      "firstNamePlaceholder": "Digite seu primeiro nome",
-      "lastNamePlaceholder": "Digite seu último nome",
-      "save": "Guardar Alterações",
-      "saving": "A guardar...",
-      "successMessage": "Perfil atualizado com sucesso!",
-      "errorMessage": "Falha ao atualizar o perfil. Por favor, tente novamente."
-    },
-    "password": {
-      "title": "Palavra-passe & Segurança",
-      "description": "Gerir a sua palavra-passe e segurança da conta",
-      "button": "Alterar Palavra-passe",
-      "currentPassword": "Palavra-passe Atual",
-      "currentPasswordPlaceholder": "Digite a sua palavra-passe atual",
-      "newPassword": "Nova Palavra-passe",
-      "newPasswordPlaceholder": "Digite a nova palavra-passe (mín 8 caracteres)",
-      "confirmPassword": "Confirmar Nova Palavra-passe",
-      "confirmPasswordPlaceholder": "Confirme a sua nova palavra-passe",
-      "change": "Alterar Palavra-passe",
-      "changing": "A alterar...",
-      "successMessage": "Palavra-passe alterada com sucesso!",
-      "errorMessage": "Falha ao alterar a palavra-passe. Por favor, tente novamente.",
-      "mismatchError": "As palavras-passe não coincidem.",
-      "lengthError": "A palavra-passe deve ter pelo menos 8 caracteres.",
-      "notice": "A sua nova palavra-passe entrará em vigor imediatamente. Certifique-se de a memorizar ou guardá-la de forma segura."
-    }
-  }
+  "submission": {
+    "deleteError": "Failed to delete submission"
+  },
+  "of": "of",
+  "delete": "Delete",
+  "deleting": "Deleting...",
+  "completed": "Completed",
+  "question": "Question",
+  "error": {
+    "goBack": "Go Back",
+    "title": "An Error Occurred"
+  },
+  "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
 }

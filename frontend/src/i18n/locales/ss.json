@@ -40,7 +40,80 @@
   },
   "login": "Ngena",
   "logout": "Phuma",
-  "profile": "Iphrofayili",
+  "profile": {
+    "title": "Iphrofayili Yami",
+    "subtitle": "Buka uphze ulawule lwati lwelikhasi lakho",
+    "back": "Emuva",
+    "notLoggedIn": "Udinga ukungena ukuze ubone lesikhasi.",
+    "notAvailable": "Akukho kutholakalako",
+    "noOrganization": "Akukho organizasyon ayabeliwe",
+    "personalInfo": {
+      "title": "Lwati Lwemuntfu Lomunye",
+      "description": "Imininingwane yelikhasi lakho njengobhalwe esistemini",
+      "username": "Libito Lemsebentisi",
+      "fullName": "Libito Leligama",
+      "email": "Kheli E-mail",
+      "userId": "ID Yemsebentisi",
+      "verified": "Kuvunyiwe"
+    },
+    "roles": {
+      "admin": "Kulantfu",
+      "orgAdmin": "Kulantfu Webhizinisi",
+      "orgUser": "Umsebentisi Webhizinisi"
+    },
+    "rolesAndOrg": {
+      "title": "Timo & I-Organizasyon",
+      "yourRoles": "Timo Takho",
+      "noRoles": "Akukho timo tobekelwe",
+      "organization": "I-Organizasyon",
+      "assignedCategories": "Tigaba Letabelwe"
+    },
+    "accountManagement": {
+      "title": "Kulawulwa Kwelikhasi",
+      "description": "Lawula kwati kwelikhasi lakho nge Keycloak",
+      "editProfile": "Hlela Iphrofayili",
+      "editProfileDesc": "Vuselela libito lakho, i-email kanye nalolkunye lwati lwemuntfu",
+      "changePassword": "Shintja Libitophasi",
+      "changePasswordDesc": "Vuselela libitophasi lakho kanye nekwetfulwa kwekuvikela",
+      "note": "Khumbula",
+      "noteText": "Ashintji ephrofayili kanye nebitophasi atsetfwa nge Keycloak. Cofa tikhatsi letingenhla ukuze uvule ikhonsoli yokulawula kwelikhasi ethebhu lelisha."
+    },
+    "sessionInfo": {
+      "title": "Lwati Lwesesshini",
+      "lastLogin": "Kungena Kokugcina",
+      "tokenExpires": "I-Token Iyaphelelwa"
+    },
+    "edit": {
+      "button": "Hlela Iphrofayili",
+      "firstName": "Libito Lesibili",
+      "lastName": "Libito Lelibandze",
+      "firstNamePlaceholder": "Faka libito lakho lesibili",
+      "lastNamePlaceholder": "Faka libito lAKho lelibandze",
+      "save": "Gcina Lukhuculute",
+      "saving": "Iyagcina...",
+      "successMessage": "Iphrofayili igcineke kahle!",
+      "errorMessage": "Kuhlulekile kugcina iphrofayili. Zama futsi."
+    },
+    "password": {
+      "title": "Libitophasi & Kuvikeleka",
+      "description": "Lawula libitophasi lakho nekuvikeleka kwelikhasi",
+      "button": "Shintja Libitophasi",
+      "currentPassword": "Libitophasi Lamanje",
+      "currentPasswordPlaceholder": "Faka libitophasi lakho lamanje",
+      "newPassword": "Libitophasi Elisha",
+      "newPasswordPlaceholder": "Faka libitophasi elisha (min 8 trem)",
+      "confirmPassword": "Qinisekisa Libitophasi Elisha",
+      "confirmPasswordPlaceholder": "Qinisekisa libitophasi lakho elisha",
+      "change": "Shintja Libitophasi",
+      "changing": "Iyashintja...",
+      "successMessage": "Libitophasi lishintjiwe kahle!",
+      "errorMessage": "Kuhlulekile kushintja libitophasi. Zama futsi.",
+      "mismatchError": "Tibitophasi atifani.",
+      "lengthError": "Libitophasi kumele libe netrem letingu 8.",
+      "notice": "Libitophasi lakho elisha lizoqala kusebenta ngalesosikhathi. Qinisekisa ulikhumbule noma uligcine kanciko."
+    },
+    "myProfile": "My Profile"
+  },
   "sustainability": "Isimo SeMvelo",
   "assessment": "Ukuhlola",
   "submit": "Thumela",
@@ -111,7 +184,8 @@
     "emailRequired": "I-imeyili iyadingeka",
     "organizationNotFound": "Inhlangano ayitholakali",
     "recommendations": "Izincomo",
-    "attachments": "Okunamathiselwe"
+    "attachments": "Okunamathiselwe",
+    "creating": "Creating..."
   },
   "adminDashboard": {
     "welcome": "Wamukelekile, Admin! Khuthaza Umthelela Wemifelandawonye!",
@@ -439,7 +513,11 @@
     "loadError": "Iphutha Ekufakeni Izigaba",
     "unknownError": "Kwenzeke iphutha elingaziwa",
     "retry": "Zama futhi",
-    "newCategory": "Isigaba Esisha"
+    "newCategory": "Isigaba Esisha",
+    "createSuccess": "Category created successfully",
+    "saving": "Saving...",
+    "confirmDelete": "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
+    "submitError": "Failed to save category"
   },
   "manageOrganizations": {
     "title": "Phatha Izinhlangano",
@@ -467,7 +545,8 @@
     "confirmDeleteTitle": "Susa Inhlangano",
     "confirmDeleteDescription": "Uqinisekile ukuthi ufuna ukususa inhlangano '{{name}}'? Lesi senzo sizosusa unomphela inhlangano kanye nayo yonke idatha ehambisana nayo ohlelweni futhi ngeke ibuyiselwe emuva.",
     "deleteOrganization": "Susa Inhlangano",
-    "nameReservedChars": "Igama lenhlangano liqukethe izinhlamvu ezigcinwe. Gwema ukusebenzisa: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , noma izikhala."
+    "nameReservedChars": "Igama lenhlangano liqukethe izinhlamvu ezigcinwe. Gwema ukusebenzisa: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , noma izikhala.",
+    "assignCategories": "Assign Categories"
   },
   "user": {
     "dashboard": {
@@ -522,7 +601,8 @@
         "submissionId": "Ukuthunyelwe",
         "generatedAt": "Yakhiwe ngo",
         "select": "Khetha",
-        "noReportsAvailable": "Ayikho imibiko etholakalayo"
+        "noReportsAvailable": "Ayikho imibiko etholakalayo",
+        "subtitle": "Track your sustainability improvement tasks"
       },
       "recentSubmissions": "Ukuthunyelwe Kwakamuva",
       "viewAll": "Buka Konke",
@@ -601,6 +681,50 @@
         "title": "Buyekeza Ukuhlolwa",
         "description": "Buyekeza futhi uvumele ukuhlolwa okusalayo okuthunyelwe ngabasebenzisi benhlangano."
       }
+    },
+    "draftSubmissions": {
+      "approvedOfflineSuccessfully": "Successfully approved, will sync when you come back online",
+      "viewDetails": "View Details",
+      "responses": "Responses",
+      "submitted": "Submitted",
+      "assessment": "Assessment",
+      "noDraftSubmissionsDescription": "There are currently no draft submissions pending approval. Check back later for new submissions.",
+      "noDraftSubmissions": "No Draft Submissions",
+      "description": "Review and approve draft assessments submitted by organization users",
+      "title": "Draft Submissions",
+      "approveSubmission": "Approve Submission",
+      "approving": "Approving...",
+      "noResponsesAvailable": "No responses available",
+      "clickToExpand": "Click categories to expand",
+      "assessmentResponses": "Assessment Responses",
+      "questionsAnswered": "Questions Answered",
+      "organization": "Organization",
+      "reviewAndApprove": "Review and approve this draft submission",
+      "backToDraftSubmissions": "Back to Draft Submissions",
+      "tryAgain": "Try Again",
+      "errorLoadingDraftSubmissions": "Error loading draft submissions",
+      "loadingDraftSubmissions": "Loading draft submissions...",
+      "noFilesAttached": "No files attached",
+      "attachedFiles": "Attached Files",
+      "noTextResponseProvided": "No text response provided",
+      "textResponse": "Text Response",
+      "percentageResponse": "Percentage Response",
+      "yesNoResponse": "Yes/No Response",
+      "failedToApprove": "Failed to approve assessment."
+    },
+    "actionPlan": {
+      "kanban": {
+        "backToDone": "Back to Done",
+        "backToInProgress": "Back to In Progress",
+        "moveToDone": "Move to Done",
+        "backToTodo": "Back to To Do",
+        "moveToInProgress": "Move to In Progress",
+        "approve": "Approve",
+        "noTasks": "No tasks in ${column.title.toLowerCase()}"
+      },
+      "noRecommendationsDescription": "There are no recommendations for this submission.",
+      "noRecommendations": "No Recommendations Available",
+      "title": "Action Plan"
     }
   },
   "manageUsers.selectOrganization": "Khetha Inhlangano",
@@ -667,7 +791,9 @@
     "noText": "Ayikho umbhalo otholakalayo.",
     "categoriesLoadError": "Kwehlulekile ukufaka izigaba. Sicela uzame futhi.",
     "retry": "Zama futhi",
-    "loadingQuestions": "Loading questions..."
+    "loadingQuestions": "Loading questions...",
+    "englishQuestion": "English Question",
+    "additionalLanguagesOptional": "Additional Languages (Optional)"
   },
   "userInvitation": {
     "title": "Yakha Isimemo Somsebenzisi",
@@ -1075,7 +1201,13 @@
     "reviewSubmittedSuccessfully": "Ukubuyekezwa kuthunyelwe ngempumelelo",
     "reviewSavedLocally": "Ukubuyekezwa kugcinwe endaweni. Kuzovumelaniswa uma kuxhunyiwe.",
     "failedToSubmitReview": "Kwehlulekile ukuthumela ukubuyekezwa",
-    "manualSyncFailed": "Ukuvumelanisa ngesandla kwehlulekile"
+    "manualSyncFailed": "Ukuvumelanisa ngesandla kwehlulekile",
+    "reviewerNotFound": "Reviewer information not found. Please log in again.",
+    "attachments": "Attachments",
+    "assessmentName": "Assessment Name",
+    "unknownAssessment": "Unknown Assessment",
+    "queueFailed": "Failed to queue review for submission.",
+    "reviewQueued": "Review has been queued for submission."
   },
   "reportHistory": {
     "title": "Umlando Wemibiko",
@@ -1110,7 +1242,10 @@
     "additionalAttachments": "Amafayela Angezayo Anamathiselwe",
     "recommendation": "Isincomo",
     "recommendationCount": "{{count}} isincomo",
-    "recommendationCount_plural": "{{count}} izincomo"
+    "recommendationCount_plural": "{{count}} izincomo",
+    "close": "Close",
+    "noDetails": "No details available for this report.",
+    "report": "Report"
   },
   "assignCategories": {
     "title": "Nika Izigaba ku-{{org}}",
@@ -1162,13 +1297,85 @@
     "navbar": {
       "logoAlt": "Ilogo ye-DGRV",
       "navigation": "Ukuzulazula",
-      "brand": "DGRV"
+      "brand": "DGRV",
+      "toggleMenu": "Toggle menu"
     },
     "organizations": {
       "addNewOrganization": "Engeza Inhlangano Entsha",
       "organizationName": "Igama Lenhlangano",
       "organizationNamePlaceholder": "Faka igama lenhlangano",
-      "domainPlaceholder": "Faka isizinda (isib. adorsys.com)"
+      "domainPlaceholder": "Faka isizinda (isib. adorsys.com)",
+      "nameRequired": "Name is required",
+      "description": "Description",
+      "addDomain": "+ Add Domain",
+      "domainRequired": "At least one domain is required"
+    },
+    "home": {
+      "organizationRequiredStart": "You need to be part of an organisation to start an assessment.",
+      "logoAlt": "Sustainability Portal Logo",
+      "organizationRequiredView": "You need to be part of an organisation to view assessments.",
+      "authRedirectFailed": "Failed to redirect to authentication. Please try again."
+    },
+    "users": {
+      "createError": "Failed to create user",
+      "currentOrganization": "Current organization",
+      "inviteUserNoPlus": "Invite User",
+      "createQueued": "User saved locally and will sync when online",
+      "createSuccess": "User created successfully",
+      "deleteEntirelyError": "Failed to delete user entirely",
+      "deleteEntirelySuccess": "User deleted entirely from system",
+      "removeFromOrgError": "Failed to remove user from organization",
+      "removeFromOrgSuccess": "User removed from organization successfully",
+      "updateError": "Failed to update user",
+      "updateSuccess": "User updated successfully",
+      "loadingCategories": "Loading categories...",
+      "categories": "Categories",
+      "inviteNewUser": "Invite New User",
+      "addManageAcross": "Add and manage users across",
+      "inviteUser": "+ Invite User",
+      "deleteError": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "notFound": "User not found",
+      "updateCategoriesRetry": "Failed to update user categories. Will retry when online."
+    },
+    "unauthorized": {
+      "description": "You do not have permission to view this page.",
+      "goHome": "Go to home"
+    },
+    "files": {
+      "image": "Image",
+      "download": "Download",
+      "unknownFile": "Unknown file"
+    },
+    "sync": {
+      "pending": "{{count}} Pending",
+      "offline": "Offline",
+      "online": "Online"
+    },
+    "assessment": {
+      "showPercentageExplanation": "Show percentage explanation"
+    },
+    "assessments": {
+      "retrievingSubmissions": "Retrieving your submissions..."
+    },
+    "submissionView": {
+      "loadError": "Error loading submission details.",
+      "noFilesUploaded": "No files uploaded",
+      "fileNumber": "File {{count}}",
+      "files": "Files",
+      "noAnswer": "No answer",
+      "textResponse": "Text Response"
+    },
+    "actionPlan": {
+      "approve": "Approve",
+      "recommendation": "Recommendation",
+      "statusUpdateError": "Failed to update status",
+      "statusUpdateSuccess": "Status updated successfully",
+      "recommendationNotFound": "Recommendation not found."
+    },
+    "common": {
+      "close": "Close",
+      "deleting": "Deleting..."
     }
   },
   "reportSelection": {
@@ -1315,77 +1522,17 @@
     "createdDate": "Usuku Lokudala",
     "status": "Isimo"
   },
-  "profile": {
-    "title": "Iphrofayili Yami",
-    "subtitle": "Buka uphze ulawule lwati lwelikhasi lakho",
-    "back": "Emuva",
-    "notLoggedIn": "Udinga ukungena ukuze ubone lesikhasi.",
-    "notAvailable": "Akukho kutholakalako",
-    "noOrganization": "Akukho organizasyon ayabeliwe",
-    "personalInfo": {
-      "title": "Lwati Lwemuntfu Lomunye",
-      "description": "Imininingwane yelikhasi lakho njengobhalwe esistemini",
-      "username": "Libito Lemsebentisi",
-      "fullName": "Libito Leligama",
-      "email": "Kheli E-mail",
-      "userId": "ID Yemsebentisi",
-      "verified": "Kuvunyiwe"
-    },
-    "roles": {
-      "admin": "Kulantfu",
-      "orgAdmin": "Kulantfu Webhizinisi",
-      "orgUser": "Umsebentisi Webhizinisi"
-    },
-    "rolesAndOrg": {
-      "title": "Timo & I-Organizasyon",
-      "yourRoles": "Timo Takho",
-      "noRoles": "Akukho timo tobekelwe",
-      "organization": "I-Organizasyon",
-      "assignedCategories": "Tigaba Letabelwe"
-    },
-    "accountManagement": {
-      "title": "Kulawulwa Kwelikhasi",
-      "description": "Lawula kwati kwelikhasi lakho nge Keycloak",
-      "editProfile": "Hlela Iphrofayili",
-      "editProfileDesc": "Vuselela libito lakho, i-email kanye nalolkunye lwati lwemuntfu",
-      "changePassword": "Shintja Libitophasi",
-      "changePasswordDesc": "Vuselela libitophasi lakho kanye nekwetfulwa kwekuvikela",
-      "note": "Khumbula",
-      "noteText": "Ashintji ephrofayili kanye nebitophasi atsetfwa nge Keycloak. Cofa tikhatsi letingenhla ukuze uvule ikhonsoli yokulawula kwelikhasi ethebhu lelisha."
-    },
-    "sessionInfo": {
-      "title": "Lwati Lwesesshini",
-      "lastLogin": "Kungena Kokugcina",
-      "tokenExpires": "I-Token Iyaphelelwa"
-    },
-    "edit": {
-      "button": "Hlela Iphrofayili",
-      "firstName": "Libito Lesibili",
-      "lastName": "Libito Lelibandze",
-      "firstNamePlaceholder": "Faka libito lakho lesibili",
-      "lastNamePlaceholder": "Faka libito lAKho lelibandze",
-      "save": "Gcina Lukhuculute",
-      "saving": "Iyagcina...",
-      "successMessage": "Iphrofayili igcineke kahle!",
-      "errorMessage": "Kuhlulekile kugcina iphrofayili. Zama futsi."
-    },
-    "password": {
-      "title": "Libitophasi & Kuvikeleka",
-      "description": "Lawula libitophasi lakho nekuvikeleka kwelikhasi",
-      "button": "Shintja Libitophasi",
-      "currentPassword": "Libitophasi Lamanje",
-      "currentPasswordPlaceholder": "Faka libitophasi lakho lamanje",
-      "newPassword": "Libitophasi Elisha",
-      "newPasswordPlaceholder": "Faka libitophasi elisha (min 8 trem)",
-      "confirmPassword": "Qinisekisa Libitophasi Elisha",
-      "confirmPasswordPlaceholder": "Qinisekisa libitophasi lakho elisha",
-      "change": "Shintja Libitophasi",
-      "changing": "Iyashintja...",
-      "successMessage": "Libitophasi lishintjiwe kahle!",
-      "errorMessage": "Kuhlulekile kushintja libitophasi. Zama futsi.",
-      "mismatchError": "Tibitophasi atifani.",
-      "lengthError": "Libitophasi kumele libe netrem letingu 8.",
-      "notice": "Libitophasi lakho elisha lizoqala kusebenta ngalesosikhathi. Qinisekisa ulikhumbule noma uligcine kanciko."
-    }
-  }
+  "submission": {
+    "deleteError": "Failed to delete submission"
+  },
+  "of": "of",
+  "delete": "Delete",
+  "deleting": "Deleting...",
+  "completed": "Completed",
+  "question": "Question",
+  "error": {
+    "goBack": "Go Back",
+    "title": "An Error Occurred"
+  },
+  "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
 }

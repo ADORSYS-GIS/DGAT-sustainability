@@ -122,7 +122,7 @@ export const Navbar = () => {
               <div className="w-28 h-28 flex items-center justify-center">
                 <img
                   src="/dgrv-logo.png"
-                  alt={t("staticText.navbar.logoAlt", { defaultValue: "DGRV Logo" })}
+                  alt={t("staticText.navbar.logoAlt")}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -217,7 +217,7 @@ export const Navbar = () => {
                         className="flex items-center space-x-2"
                       >
                         <UserCircle className="w-4 h-4" />
-                        <span>{t("profile.myProfile", { defaultValue: "My Profile" })}</span>
+                        <span>{t("profile.myProfile")}</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={logout}
@@ -237,7 +237,7 @@ export const Navbar = () => {
                 size="sm"
                 onClick={toggleSidebar}
                 className="md:hidden"
-                aria-label={t("staticText.navbar.toggleMenu", { defaultValue: "Toggle menu" })}
+                aria-label={t("staticText.navbar.toggleMenu")}
               >
                 <Menu className="w-5 h-5" />
               </Button>
@@ -264,7 +264,7 @@ export const Navbar = () => {
               <div className="w-10 h-10 flex items-center justify-center">
                 <img
                   src="/dgrv.jpg"
-                  alt={t("staticText.navbar.logoAlt", { defaultValue: "DGRV Logo" })}
+                  alt={t("staticText.navbar.logoAlt")}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -288,7 +288,7 @@ export const Navbar = () => {
             {/* Navigation Section */}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                {t("staticText.navbar.navigation", { defaultValue: "Navigation" })}
+                {t("staticText.navbar.navigation")}
               </h3>
 
               {/* Home Button */}
@@ -356,7 +356,7 @@ export const Navbar = () => {
                     className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-dgrv-blue border-blue-200 rounded-lg font-medium"
                   >
                     <UserCircle className="w-4 h-4 mr-2" />
-                    {t("profile.myProfile", { defaultValue: "My Profile" })}
+                    {t("profile.myProfile")}
                   </Button>
 
                   <Button

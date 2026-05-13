@@ -101,7 +101,7 @@ const extractErrorMessage = (error: unknown): string => {
  */
 const validateOrganizationName = (name: string, t: (key: string, options?: Record<string, unknown>) => string): string | null => {
   if (RESERVED_CHARS.test(name)) {
-    return t('manageOrganizations.nameReservedChars', { defaultValue: 'Organization name contains reserved characters. Avoid using: < > / \\ : ; " \' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.' });
+    return t('manageOrganizations.nameReservedChars');
   }
   return null;
 };

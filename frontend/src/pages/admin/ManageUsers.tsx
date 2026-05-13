@@ -90,7 +90,7 @@ export const ManageUsers: React.FC = () => {
   // Use the generated mutation hooks
   const createUserMutation = useOrganizationMembersServicePostOrganizationsByIdMembers({
     onSuccess: (result) => {
-      toast.success(t("staticText.users.createSuccess", { defaultValue: "User created successfully" }));
+      toast.success(t("staticText.users.createSuccess"));
       refetch();
       setShowAddDialog(false);
       setFormData({
@@ -99,45 +99,45 @@ export const ManageUsers: React.FC = () => {
       });
     },
     onError: () => {
-      toast.error(t("staticText.users.createError", { defaultValue: "Failed to create user" }));
+      toast.error(t("staticText.users.createError"));
     }
   });
 
   const updateUserMutation = useOrganizationMembersServicePutApiOrganizationsByIdMembersByMembershipIdRoles({
     onSuccess: () => {
-      toast.success(t("staticText.users.updateSuccess", { defaultValue: "User updated successfully" }));
+      toast.success(t("staticText.users.updateSuccess"));
       refetch();
       setShowAddDialog(false);
       resetForm();
     },
     onError: (error) => {
       console.error("Failed to update user:", error);
-      toast.error(t("staticText.users.updateError", { defaultValue: "Failed to update user" }));
+      toast.error(t("staticText.users.updateError"));
     }
   });
 
   const deleteUserMutation = useOrganizationMembersServiceDeleteAdminOrganizationsByIdMembersByMembershipId({
     onSuccess: () => {
-      toast.success(t("staticText.users.removeFromOrgSuccess", { defaultValue: "User removed from organization successfully" }));
+      toast.success(t("staticText.users.removeFromOrgSuccess"));
       refetch();
     },
     onError: (error) => {
       console.error("Failed to remove user from organization:", error);
-      toast.error(t("staticText.users.removeFromOrgError", { defaultValue: "Failed to remove user from organization" }));
+      toast.error(t("staticText.users.removeFromOrgError"));
     }
   });
 
   // New mutation for deleting user entirely
   const deleteUserEntirelyMutation = useAdminServiceDeleteAdminUsersByUserId({
     onSuccess: () => {
-      toast.success(t("staticText.users.deleteEntirelySuccess", { defaultValue: "User deleted entirely from system" }));
+      toast.success(t("staticText.users.deleteEntirelySuccess"));
       refetch();
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
     },
     onError: (error) => {
       console.error("Failed to delete user entirely:", error);
-      toast.error(t("staticText.users.deleteEntirelyError", { defaultValue: "Failed to delete user entirely" }));
+      toast.error(t("staticText.users.deleteEntirelyError"));
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
     }
@@ -203,16 +203,16 @@ export const ManageUsers: React.FC = () => {
           };
 
           await offlineDB.saveUser(realUser);
-          toast.success(t("staticText.users.createSuccess", { defaultValue: "User created successfully" }));
+          toast.success(t("staticText.users.createSuccess"));
         }
       } catch (apiError) {
         console.warn('API call failed, user saved locally for sync:', apiError);
-        toast.success(t("staticText.users.createQueued", { defaultValue: "User saved locally and will sync when online" }));
+        toast.success(t("staticText.users.createQueued"));
       }
 
       return { success: true };
     } catch (error) {
-      toast.error(t("staticText.users.createError", { defaultValue: "Failed to create user" }));
+      toast.error(t("staticText.users.createError"));
       throw error;
     }
   };
@@ -314,7 +314,7 @@ export const ManageUsers: React.FC = () => {
   const formatRole = (role: string) => {
     switch (role) {
       case "admin":
-        return t('manageUsers.admin', { defaultValue: 'Admin' });
+        return t('manageUsers.admin');
       case "org_admin":
         return t('manageUsers.orgAdmin');
       case "Org_User":
@@ -364,11 +364,11 @@ export const ManageUsers: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="text-sm text-gray-600 mb-1">
-                          <b>{t("manageOrganizations.domains", { defaultValue: "Domains" })}:</b> {getDomainNames(org.domains).join(", ")}
+                          <b>{t("manageOrganizations.domains")}:</b> {getDomainNames(org.domains).join(", ")}
                       </div>
                       {getOrgDescription(org) && (
                         <div className="text-sm text-gray-600 mb-1">
-                          <b>{t("staticText.organizations.description", { defaultValue: "Description" })}:</b> {getOrgDescription(org)}
+                          <b>{t("staticText.organizations.description")}:</b> {getOrgDescription(org)}
                         </div>
                       )}
                     </CardContent>
@@ -402,7 +402,7 @@ export const ManageUsers: React.FC = () => {
                 className="border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 bg-blue-50"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                {t("staticText.users.inviteUserNoPlus", { defaultValue: "Invite User" })}
+                {t("staticText.users.inviteUserNoPlus")}
               </Button>
             </div>
           </div>
@@ -460,7 +460,7 @@ export const ManageUsers: React.FC = () => {
                     readOnly
                     disabled
                     className="bg-gray-100 cursor-not-allowed"
-                    placeholder={t("staticText.users.currentOrganization", { defaultValue: "Current organization" })}
+                    placeholder={t("staticText.users.currentOrganization")}
                   />
                 </div>
                 <div className="flex space-x-2 pt-4">
@@ -470,7 +470,7 @@ export const ManageUsers: React.FC = () => {
                     disabled={createUserMutation.isPending || updateUserMutation.isPending || isCreatingUser}
                   >
                     {createUserMutation.isPending || updateUserMutation.isPending || isCreatingUser
-                      ? t('manageUsers.processing', { defaultValue: 'Processing...' })
+                      ? t('manageUsers.processing')
                       : editingUser ? t('manageUsers.update') : t('manageUsers.create')} {t('manageUsers.user')}
                   </Button>
                   <Button variant="outline" onClick={resetForm}>

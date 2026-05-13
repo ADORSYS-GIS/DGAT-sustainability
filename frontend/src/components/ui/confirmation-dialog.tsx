@@ -35,8 +35,8 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   isLoading = false,
 }) => {
   const { t } = useTranslation();
-  const resolvedConfirmText = confirmText || t("common.delete", { defaultValue: "Delete" });
-  const resolvedCancelText = cancelText || t("common.cancel", { defaultValue: "Cancel" });
+  const resolvedConfirmText = confirmText || t("common.delete");
+  const resolvedCancelText = cancelText || t("common.cancel");
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -63,7 +63,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             onClick={onConfirm}
             disabled={isLoading}
           >
-            {isLoading ? t("staticText.common.deleting", { defaultValue: "Deleting..." }) : resolvedConfirmText}
+            {isLoading ? t("staticText.common.deleting") : resolvedConfirmText}
           </Button>
         </DialogFooter>
       </DialogContent>

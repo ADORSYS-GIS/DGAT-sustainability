@@ -14,7 +14,7 @@ interface FileDisplayProps {
 
 const FileDisplay: React.FC<FileDisplayProps> = ({ files, title }) => {
   const { t } = useTranslation();
-  const resolvedTitle = title || t('staticText.files.attachments', { defaultValue: 'Attachments' });
+  const resolvedTitle = title || t('staticText.files.attachments');
 
   if (!files || files.length === 0) {
     return null;
@@ -26,7 +26,7 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title }) => {
       newWindow.document.write(`
         <html>
           <head>
-            <title>${file.name || t('staticText.files.image', { defaultValue: 'Image' })}</title>
+            <title>${file.name || t('staticText.files.image')}</title>
             <style>
               body { 
                 margin: 0;
@@ -58,8 +58,8 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title }) => {
             </style>
           </head>
           <body>
-            <button class="close-btn" onclick="window.close()">${t('staticText.common.close', { defaultValue: 'Close' })}</button>
-            <img src="${file.url}" alt="${file.name || t('staticText.files.image', { defaultValue: 'Image' })}" />
+            <button class="close-btn" onclick="window.close()">${t('staticText.common.close')}</button>
+            <img src="${file.url}" alt="${file.name || t('staticText.files.image')}" />
           </body>
         </html>
       `);
@@ -96,7 +96,7 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title }) => {
             ) : null}
             <div className={`p-4 text-center ${isImageFile(file) ? 'hidden' : ''}`}>
               <FileText className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600">{file.name || t('staticText.files.unknownFile', { defaultValue: 'Unknown file' })}</p>
+              <p className="text-sm text-gray-600">{file.name || t('staticText.files.unknownFile')}</p>
               {file.url && (
                 <a 
                   href={file.url} 
@@ -104,7 +104,7 @@ const FileDisplay: React.FC<FileDisplayProps> = ({ files, title }) => {
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-block"
                 >
-                  {t('staticText.files.download', { defaultValue: 'Download' })}
+                  {t('staticText.files.download')}
                 </a>
               )}
             </div>

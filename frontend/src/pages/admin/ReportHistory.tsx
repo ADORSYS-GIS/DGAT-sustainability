@@ -231,7 +231,7 @@ export const ReportHistory: React.FC = () => {
           labels: categories,
           datasets: [
             {
-              label: t('common.recommendations', { defaultValue: 'Recommendations' }),
+              label: t('common.recommendations'),
               data: recommendationCounts,
               backgroundColor: 'rgba(59, 130, 246, 0.5)',
             },
@@ -245,7 +245,7 @@ export const ReportHistory: React.FC = () => {
             },
             title: {
               display: true,
-              text: t('recommendationsPerCategory', { defaultValue: 'Recommendations per Category' }),
+              text: t('recommendationsPerCategory'),
             },
           },
         },
@@ -334,7 +334,7 @@ export const ReportHistory: React.FC = () => {
 
   useEffect(() => {
     if (error) {
-      toast.error(t("reportHistory.loadError", { defaultValue: "Failed to load reports" }));
+      toast.error(t("reportHistory.loadError"));
     }
   }, [error, t]);
 
@@ -478,10 +478,10 @@ export const ReportHistory: React.FC = () => {
         report.org_name,
         report.assessment_name || 'Unknown Assessment'
       );
-      toast.success(t('reportHistory.downloadSuccess', { defaultValue: 'Report downloaded successfully' }));
+      toast.success(t('reportHistory.downloadSuccess'));
     } catch (error) {
       console.error('Failed to download report:', error);
-      toast.error(t('reportHistory.downloadError', { defaultValue: 'Failed to download report' }));
+      toast.error(t('reportHistory.downloadError'));
     }
   };
 
@@ -517,11 +517,11 @@ export const ReportHistory: React.FC = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <FileText className="w-8 h-8 text-dgrv-blue" />
                   <h1 className="text-3xl font-bold text-dgrv-blue">
-                    {t('reportHistory.title', { defaultValue: 'Report History' })}
+                    {t('reportHistory.title')}
                   </h1>
                 </div>
                 <p className="text-lg text-gray-600">
-                  {t('reportHistory.subtitle', { defaultValue: 'View and manage all organization reports' })}
+                  {t('reportHistory.subtitle')}
                 </p>
               </div>
 
@@ -531,7 +531,7 @@ export const ReportHistory: React.FC = () => {
                 className="flex items-center space-x-2"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>{t('reportHistory.refresh', { defaultValue: 'Refresh' })}</span>
+                <span>{t('reportHistory.refresh')}</span>
               </Button>
             </div>
           </div>
@@ -541,11 +541,11 @@ export const ReportHistory: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Building2 className="w-5 h-5 text-dgrv-blue" />
-                <span className="font-medium text-gray-700">{t('reportHistory.organizations', { defaultValue: 'Organizations' })}</span>
+                <span className="font-medium text-gray-700">{t('reportHistory.organizations')}</span>
               </div>
               {selectedOrgId && (
                 <Button variant="outline" size="sm" onClick={() => setSelectedOrgId(null)}>
-                  {t('reportHistory.backToOrganizations', { defaultValue: 'Back to organizations' })}
+                  {t('reportHistory.backToOrganizations')}
                 </Button>
               )}
             </div>
@@ -558,14 +558,14 @@ export const ReportHistory: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="text-sm text-gray-600">
-                        {t('reportHistory.reportsFound', { defaultValue: 'reports found' })}: {reports.filter(r => r.org_id === orgId).length}
+                        {t('reportHistory.reportsFound')}: {reports.filter(r => r.org_id === orgId).length}
                       </div>
                     </CardContent>
                   </Card>
                 ))}
                 {reports.length === 0 && (
                   <div className="text-center text-gray-500 py-8 col-span-full">
-                    {t('reportHistory.noReports', { defaultValue: 'No reports found' })}
+                    {t('reportHistory.noReports')}
                   </div>
                 )}
               </div>
@@ -576,7 +576,7 @@ export const ReportHistory: React.FC = () => {
           <div className="grid gap-6">
             {selectedOrgId && filteredReports.length === 0 && (
               <div className="text-center text-gray-500 py-12">
-                {t('reportHistory.noReports', { defaultValue: 'No reports found' })}
+                {t('reportHistory.noReports')}
               </div>
             )}
             {selectedOrgId && filteredReports.map((report, index) => (
@@ -594,7 +594,7 @@ export const ReportHistory: React.FC = () => {
                       <div>
                         <div className="font-semibold text-dgrv-blue">{report.org_name}</div>
                         <div className="text-sm text-gray-600">{report.assessment_name}</div>
-                        <div className="text-xs text-gray-500">{t('reportHistory.report', { defaultValue: 'Report' })}</div>
+                        <div className="text-xs text-gray-500">{t('reportHistory.report')}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -621,11 +621,11 @@ export const ReportHistory: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleViewReport(report.report_id)} className="flex items-center space-x-2">
                         <Eye className="w-4 h-4" />
-                        <span>{t('reportHistory.view', { defaultValue: 'View' })}</span>
+                        <span>{t('reportHistory.view')}</span>
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => handleDownloadReport(report.report_id, report.org_name)} className="flex items-center space-x-2">
                         <Download className="w-4 h-4" />
-                        <span>{t('reportHistory.download', { defaultValue: 'Download' })}</span>
+                        <span>{t('reportHistory.download')}</span>
                       </Button>
                     </div>
                   </div>
@@ -727,12 +727,12 @@ export const ReportHistory: React.FC = () => {
                                 <h3 className="text-xl font-bold text-dgrv-blue">{category}</h3>
                                 <div className="flex items-center gap-4 mt-1">
                                   <span className="text-sm text-gray-600">
-                                    {t('questionsCount', { count: responsesForCategory.length, defaultValue: '{{count}} questions' })}
+                                    {t('questionsCount', {count: responsesForCategory.length})}
                                   </span>
                                   {recsForCategory.length > 0 && (
                                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
                                       <Award className="w-3 h-3 mr-1" />
-                                      {t('recommendationsCount', { count: recsForCategory.length, defaultValue: '{{count}} recommendation(s)' })}
+                                      {t('recommendationsCount', {count: recsForCategory.length})}
                                     </Badge>
                                   )}
                                 </div>
@@ -915,11 +915,11 @@ export const ReportHistory: React.FC = () => {
                               <div>
                                 <h3 className="text-xl font-bold text-purple-800">{cat.name}</h3>
                                 <div className="flex items-center gap-4 mt-1">
-                                  <span className="text-sm text-gray-600">{t('questionsCount', { count: cat.responses.length, defaultValue: '{{count}} questions' })}</span>
+                                  <span className="text-sm text-gray-600">{t('questionsCount', {count: cat.responses.length})}</span>
                                   {cat.recommendations && cat.recommendations.length > 0 && (
                                     <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
                                       <Award className="w-3 h-3 mr-1" />
-                                      {t('recommendationsCount', { count: cat.recommendations.length, defaultValue: '{{count}} recommendation(s)' })}
+                                      {t('recommendationsCount', {count: cat.recommendations.length})}
                                     </Badge>
                                   )}
                                 </div>
@@ -1018,7 +1018,7 @@ export const ReportHistory: React.FC = () => {
                     </div>
                   ) : (
                     <div className="text-center text-gray-500 py-8">
-                      {t('reportHistory.noDetails', { defaultValue: 'No details available for this report.' })}
+                      {t('reportHistory.noDetails')}
                     </div>
                   )}
                 </div>
@@ -1031,14 +1031,14 @@ export const ReportHistory: React.FC = () => {
                       setExpandedCategories(new Set());
                     }}
                   >
-                    {t('reportHistory.close', { defaultValue: 'Close' })}
+                    {t('reportHistory.close')}
                   </Button>
                   <Button
                     onClick={() => handleDownloadReport(report.report_id, report.org_name)}
                     className="bg-dgrv-blue hover:bg-dgrv-blue-dark"
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    {t('reportHistory.exportAsPDF', { defaultValue: 'Export as PDF' })}
+                    {t('reportHistory.exportAsPDF')}
                   </Button>
                 </div>
               </>
