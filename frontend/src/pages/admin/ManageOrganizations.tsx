@@ -36,7 +36,7 @@ const RESERVED_CHARS = /[<>/\\:;"'*?|&%$#@!(){}[\]^~`+=, ]/;
  */
 const validateOrgName = (name: string, t: (key: string, options?: Record<string, unknown>) => string): string | null => {
   if (RESERVED_CHARS.test(name)) {
-    return t('manageOrganizations.nameContainsReservedChars', {* ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.' });
+    return t('manageOrganizations.nameContainsReservedChars');
   }
   return null;
 };
