@@ -9,3 +9,4 @@ pub mod questions;
 pub mod reports;
 pub mod responses;
 pub mod submissions;
+pub mod user_profile;

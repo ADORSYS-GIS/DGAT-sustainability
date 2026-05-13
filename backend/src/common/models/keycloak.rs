@@ -84,9 +84,11 @@ pub struct KeycloakUser {
     pub attributes: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CreateUserRequest {
+    #[serde(default)]
     pub username: String,
+    #[serde(default)]
     pub email: String,
     #[serde(rename = "firstName")]
     pub first_name: Option<String>,

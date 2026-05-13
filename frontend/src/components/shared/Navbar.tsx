@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Globe, User, LogOut, Home, Menu, X, WifiOff } from "lucide-react";
+import { Globe, User, LogOut, Home, Menu, X, WifiOff, UserCircle } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -213,6 +213,13 @@ export const Navbar = () => {
                         </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        onClick={() => navigate("/user/profile")}
+                        className="flex items-center space-x-2"
+                      >
+                        <UserCircle className="w-4 h-4" />
+                        <span>{t("profile.myProfile", { defaultValue: "My Profile" })}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         onClick={logout}
                         className="flex items-center space-x-2 text-red-600"
                       >
@@ -338,6 +345,19 @@ export const Navbar = () => {
                       </div>
                     </div>
                   </div>
+
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => {
+                      navigate("/user/profile");
+                      closeSidebar();
+                    }}
+                    className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-dgrv-blue border-blue-200 rounded-lg font-medium"
+                  >
+                    <UserCircle className="w-4 h-4 mr-2" />
+                    {t("profile.myProfile", { defaultValue: "My Profile" })}
+                  </Button>
 
                   <Button
                     variant="outline"

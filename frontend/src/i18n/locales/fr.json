@@ -1314,5 +1314,78 @@
     "created": "Créé",
     "createdDate": "Date de Création",
     "status": "Statut"
+  },
+  "profile": {
+    "title": "Mon Profil",
+    "subtitle": "Consultez et gérez les informations de votre compte",
+    "back": "Retour",
+    "notLoggedIn": "Vous devez être connecté pour voir cette page.",
+    "notAvailable": "Non disponible",
+    "noOrganization": "Aucune organisation attribuée",
+    "personalInfo": {
+      "title": "Informations Personnelles",
+      "description": "Vos coordonnées telles qu'elles sont enregistrées dans le système",
+      "username": "Nom d'utilisateur",
+      "fullName": "Nom Complet",
+      "email": "Adresse E-mail",
+      "userId": "ID Utilisateur",
+      "verified": "Vérifié"
+    },
+    "roles": {
+      "admin": "Administrateur",
+      "orgAdmin": "Administrateur d'Organisation",
+      "orgUser": "Utilisateur d'Organisation"
+    },
+    "rolesAndOrg": {
+      "title": "Rôles & Organisation",
+      "yourRoles": "Vos Rôles",
+      "noRoles": "Aucun rôle attribué",
+      "organization": "Organisation",
+      "assignedCategories": "Catégories Assignées"
+    },
+    "accountManagement": {
+      "title": "Gestion du Compte",
+      "description": "Gérez vos paramètres de compte via Keycloak",
+      "editProfile": "Modifier le Profil",
+      "editProfileDesc": "Mettez à jour votre nom, e-mail et autres informations personnelles",
+      "changePassword": "Changer le Mot de Passe",
+      "changePasswordDesc": "Mettez à jour votre mot de passe et vos paramètres de sécurité",
+      "note": "Note",
+      "noteText": "Les modifications de profil et de mot de passe sont gérées via Keycloak. Cliquez sur les boutons ci-dessus pour ouvrir la console de gestion de compte dans un nouvel onglet."
+    },
+    "sessionInfo": {
+      "title": "Informations de Session",
+      "lastLogin": "Dernière Connexion",
+      "tokenExpires": "Expiration du Token"
+    },
+    "edit": {
+      "button": "Modifier le Profil",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "firstNamePlaceholder": "Entrez votre prénom",
+      "lastNamePlaceholder": "Entrez votre nom",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "successMessage": "Profil mis à jour avec succès!",
+      "errorMessage": "Échec de la mise à jour du profil. Veuillez réessayer."
+    },
+    "password": {
+      "title": "Mot de Passe & Sécurité",
+      "description": "Gérez votre mot de passe et la sécurité de votre compte",
+      "button": "Changer le Mot de Passe",
+      "currentPassword": "Mot de Passe Actuel",
+      "currentPasswordPlaceholder": "Entrez votre mot de passe actuel",
+      "newPassword": "Nouveau Mot de Passe",
+      "newPasswordPlaceholder": "Entrez le nouveau mot de passe (min 8 caractères)",
+      "confirmPassword": "Confirmer le Nouveau Mot de Passe",
+      "confirmPasswordPlaceholder": "Confirmez votre nouveau mot de passe",
+      "change": "Changer le Mot de Passe",
+      "changing": "Modification...",
+      "successMessage": "Mot de passe changé avec succès!",
+      "errorMessage": "Échec du changement de mot de passe. Veuillez réessayer.",
+      "mismatchError": "Les mots de passe ne correspondent pas.",
+      "lengthError": "Le mot de passe doit contenir au moins 8 caractères.",
+      "notice": "Votre nouveau mot de passe prendra effet immédiatement. Assurez-vous de le mémoriser ou de le stocker en toute sécurité."
+    }
   }
 }

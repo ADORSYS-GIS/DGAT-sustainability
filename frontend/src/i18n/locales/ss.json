@@ -1314,5 +1314,78 @@
     "created": "Kudaliwe",
     "createdDate": "Usuku Lokudala",
     "status": "Isimo"
+  },
+  "profile": {
+    "title": "Iphrofayili Yami",
+    "subtitle": "Buka uphze ulawule lwati lwelikhasi lakho",
+    "back": "Emuva",
+    "notLoggedIn": "Udinga ukungena ukuze ubone lesikhasi.",
+    "notAvailable": "Akukho kutholakalako",
+    "noOrganization": "Akukho organizasyon ayabeliwe",
+    "personalInfo": {
+      "title": "Lwati Lwemuntfu Lomunye",
+      "description": "Imininingwane yelikhasi lakho njengobhalwe esistemini",
+      "username": "Libito Lemsebentisi",
+      "fullName": "Libito Leligama",
+      "email": "Kheli E-mail",
+      "userId": "ID Yemsebentisi",
+      "verified": "Kuvunyiwe"
+    },
+    "roles": {
+      "admin": "Kulantfu",
+      "orgAdmin": "Kulantfu Webhizinisi",
+      "orgUser": "Umsebentisi Webhizinisi"
+    },
+    "rolesAndOrg": {
+      "title": "Timo & I-Organizasyon",
+      "yourRoles": "Timo Takho",
+      "noRoles": "Akukho timo tobekelwe",
+      "organization": "I-Organizasyon",
+      "assignedCategories": "Tigaba Letabelwe"
+    },
+    "accountManagement": {
+      "title": "Kulawulwa Kwelikhasi",
+      "description": "Lawula kwati kwelikhasi lakho nge Keycloak",
+      "editProfile": "Hlela Iphrofayili",
+      "editProfileDesc": "Vuselela libito lakho, i-email kanye nalolkunye lwati lwemuntfu",
+      "changePassword": "Shintja Libitophasi",
+      "changePasswordDesc": "Vuselela libitophasi lakho kanye nekwetfulwa kwekuvikela",
+      "note": "Khumbula",
+      "noteText": "Ashintji ephrofayili kanye nebitophasi atsetfwa nge Keycloak. Cofa tikhatsi letingenhla ukuze uvule ikhonsoli yokulawula kwelikhasi ethebhu lelisha."
+    },
+    "sessionInfo": {
+      "title": "Lwati Lwesesshini",
+      "lastLogin": "Kungena Kokugcina",
+      "tokenExpires": "I-Token Iyaphelelwa"
+    },
+    "edit": {
+      "button": "Hlela Iphrofayili",
+      "firstName": "Libito Lesibili",
+      "lastName": "Libito Lelibandze",
+      "firstNamePlaceholder": "Faka libito lakho lesibili",
+      "lastNamePlaceholder": "Faka libito lAKho lelibandze",
+      "save": "Gcina Lukhuculute",
+      "saving": "Iyagcina...",
+      "successMessage": "Iphrofayili igcineke kahle!",
+      "errorMessage": "Kuhlulekile kugcina iphrofayili. Zama futsi."
+    },
+    "password": {
+      "title": "Libitophasi & Kuvikeleka",
+      "description": "Lawula libitophasi lakho nekuvikeleka kwelikhasi",
+      "button": "Shintja Libitophasi",
+      "currentPassword": "Libitophasi Lamanje",
+      "currentPasswordPlaceholder": "Faka libitophasi lakho lamanje",
+      "newPassword": "Libitophasi Elisha",
+      "newPasswordPlaceholder": "Faka libitophasi elisha (min 8 trem)",
+      "confirmPassword": "Qinisekisa Libitophasi Elisha",
+      "confirmPasswordPlaceholder": "Qinisekisa libitophasi lakho elisha",
+      "change": "Shintja Libitophasi",
+      "changing": "Iyashintja...",
+      "successMessage": "Libitophasi lishintjiwe kahle!",
+      "errorMessage": "Kuhlulekile kushintja libitophasi. Zama futsi.",
+      "mismatchError": "Tibitophasi atifani.",
+      "lengthError": "Libitophasi kumele libe netrem letingu 8.",
+      "notice": "Libitophasi lakho elisha lizoqala kusebenta ngalesosikhathi. Qinisekisa ulikhumbule noma uligcine kanciko."
+    }
   }
 }

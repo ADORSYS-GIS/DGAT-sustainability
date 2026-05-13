@@ -23,6 +23,7 @@ const UserGuide = React.lazy(() => import("../pages/user/UserGuide").then((m) =>
 const DraftSubmissions = React.lazy(() => import("../pages/user/DraftSubmissions").then((m) => ({ default: m.default })));
 const ReportHistory = React.lazy(() => import("../pages/admin/ReportHistory").then((m) => ({ default: m.ReportHistory })));
 const AssessmentSubmissionsList = React.lazy(() => import("@/pages/user/AssessmentSubmissionsList").then((m) => ({ default: m.AssessmentSubmissionsList })));
+const UserProfile = React.lazy(() => import("@/pages/user/UserProfile").then((m) => ({ default: m.default })));
 
 const routes = [
   // Public routes
@@ -80,6 +81,7 @@ const routes = [
       { path: "manage-users", element: React.createElement(OrgUserManageUsers) },
       { path: "guide", element: React.createElement(UserGuide) },
       { path: "reviews", element: React.createElement(ReviewAssessments) },
+      { path: "profile", element: React.createElement(UserProfile) },
     ],
   },
 

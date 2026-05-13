@@ -1310,5 +1310,78 @@
     "offlineBanner": "You are offline — your answers are saved locally and will sync automatically when you reconnect.",
     "offlineSubmissions": "You are offline — viewing cached submissions. Changes will sync when you reconnect.",
     "offlineCache": "You are offline — viewing cached data. Changes will sync when you reconnect."
+  },
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "View and manage your account information",
+    "back": "Back",
+    "notLoggedIn": "You need to be logged in to view this page.",
+    "notAvailable": "Not available",
+    "noOrganization": "No organization assigned",
+    "personalInfo": {
+      "title": "Personal Information",
+      "description": "Your account details as registered in the system",
+      "username": "Username",
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "userId": "User ID",
+      "verified": "Verified"
+    },
+    "roles": {
+      "admin": "Admin",
+      "orgAdmin": "Organization Admin",
+      "orgUser": "Organization User"
+    },
+    "rolesAndOrg": {
+      "title": "Roles & Organization",
+      "yourRoles": "Your Roles",
+      "noRoles": "No roles assigned",
+      "organization": "Organization",
+      "assignedCategories": "Assigned Categories"
+    },
+    "accountManagement": {
+      "title": "Account Management",
+      "description": "Manage your account settings through Keycloak",
+      "editProfile": "Edit Profile",
+      "editProfileDesc": "Update your name, email, and other personal information",
+      "changePassword": "Change Password",
+      "changePasswordDesc": "Update your password and security settings",
+      "note": "Note",
+      "noteText": "Profile and password changes are managed through Keycloak. Click the buttons above to open the account management console in a new tab."
+    },
+    "sessionInfo": {
+      "title": "Session Information",
+      "lastLogin": "Last Login",
+      "tokenExpires": "Token Expires"
+    },
+    "edit": {
+      "button": "Edit Profile",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "firstNamePlaceholder": "Enter your first name",
+      "lastNamePlaceholder": "Enter your last name",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "successMessage": "Profile updated successfully!",
+      "errorMessage": "Failed to update profile. Please try again."
+    },
+    "password": {
+      "title": "Password & Security",
+      "description": "Manage your password and account security",
+      "button": "Change Password",
+      "currentPassword": "Current Password",
+      "currentPasswordPlaceholder": "Enter your current password",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "Enter new password (min 8 characters)",
+      "confirmPassword": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Confirm your new password",
+      "change": "Change Password",
+      "changing": "Changing...",
+      "successMessage": "Password changed successfully!",
+      "errorMessage": "Failed to change password. Please try again.",
+      "mismatchError": "Passwords do not match.",
+      "lengthError": "Password must be at least 8 characters.",
+      "notice": "Your new password will take effect immediately. Make sure to remember it or store it securely."
+    }
   }
 }

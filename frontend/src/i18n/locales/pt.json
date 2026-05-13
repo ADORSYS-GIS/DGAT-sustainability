@@ -1314,5 +1314,78 @@
     "created": "Criado",
     "createdDate": "Data de Criação",
     "status": "Estado"
+  },
+  "profile": {
+    "title": "Meu Perfil",
+    "subtitle": "Ver e gerir as informações da sua conta",
+    "back": "Voltar",
+    "notLoggedIn": "Você precisa estar logado para ver esta página.",
+    "notAvailable": "Não disponível",
+    "noOrganization": "Nenhuma organização atribuída",
+    "personalInfo": {
+      "title": "Informações Pessoais",
+      "description": "Os detalhes da sua conta conforme registados no sistema",
+      "username": "Nome de Utilizador",
+      "fullName": "Nome Completo",
+      "email": "Endereço de E-mail",
+      "userId": "ID do Utilizador",
+      "verified": "Verificado"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "orgAdmin": "Administrador da Organização",
+      "orgUser": "Utilizador da Organização"
+    },
+    "rolesAndOrg": {
+      "title": "Funções & Organização",
+      "yourRoles": "As Suas Funções",
+      "noRoles": "Nenhuma função atribuída",
+      "organization": "Organização",
+      "assignedCategories": "Categorias Atribuídas"
+    },
+    "accountManagement": {
+      "title": "Gestão de Conta",
+      "description": "Gerir as definições da sua conta através do Keycloak",
+      "editProfile": "Editar Perfil",
+      "editProfileDesc": "Atualizar o seu nome, e-mail e outras informações pessoais",
+      "changePassword": "Alterar Palavra-passe",
+      "changePasswordDesc": "Atualizar a sua palavra-passe e definições de segurança",
+      "note": "Nota",
+      "noteText": "As alterações de perfil e palavra-passe são geridas através do Keycloak. Clique nos botões acima para abrir a consola de gestão de conta num novo separador."
+    },
+    "sessionInfo": {
+      "title": "Informações da Sessão",
+      "lastLogin": "Último Login",
+      "tokenExpires": "Token Expira"
+    },
+    "edit": {
+      "button": "Editar Perfil",
+      "firstName": "Primeiro Nome",
+      "lastName": "Último Nome",
+      "firstNamePlaceholder": "Digite seu primeiro nome",
+      "lastNamePlaceholder": "Digite seu último nome",
+      "save": "Guardar Alterações",
+      "saving": "A guardar...",
+      "successMessage": "Perfil atualizado com sucesso!",
+      "errorMessage": "Falha ao atualizar o perfil. Por favor, tente novamente."
+    },
+    "password": {
+      "title": "Palavra-passe & Segurança",
+      "description": "Gerir a sua palavra-passe e segurança da conta",
+      "button": "Alterar Palavra-passe",
+      "currentPassword": "Palavra-passe Atual",
+      "currentPasswordPlaceholder": "Digite a sua palavra-passe atual",
+      "newPassword": "Nova Palavra-passe",
+      "newPasswordPlaceholder": "Digite a nova palavra-passe (mín 8 caracteres)",
+      "confirmPassword": "Confirmar Nova Palavra-passe",
+      "confirmPasswordPlaceholder": "Confirme a sua nova palavra-passe",
+      "change": "Alterar Palavra-passe",
+      "changing": "A alterar...",
+      "successMessage": "Palavra-passe alterada com sucesso!",
+      "errorMessage": "Falha ao alterar a palavra-passe. Por favor, tente novamente.",
+      "mismatchError": "As palavras-passe não coincidem.",
+      "lengthError": "A palavra-passe deve ter pelo menos 8 caracteres.",
+      "notice": "A sua nova palavra-passe entrará em vigor imediatamente. Certifique-se de a memorizar ou guardá-la de forma segura."
+    }
   }
 }

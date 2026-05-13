@@ -1314,5 +1314,78 @@
     "created": "تم الإنشاء",
     "createdDate": "تاريخ الإنشاء",
     "status": "الحالة"
+  },
+  "profile": {
+    "title": "ملفي الشخصي",
+    "subtitle": "عرض وإدارة معلومات حسابك",
+    "back": "رجوع",
+    "notLoggedIn": "يجب تسجيل الدخول لعرض هذه الصفحة.",
+    "notAvailable": "غير متاح",
+    "noOrganization": "لم يتم تعيين منظمة",
+    "personalInfo": {
+      "title": "المعلومات الشخصية",
+      "description": "تفاصيل حسابك كما هي مسجلة في النظام",
+      "username": "اسم المستخدم",
+      "fullName": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "userId": "معرف المستخدم",
+      "verified": "تم التحقق"
+    },
+    "roles": {
+      "admin": "مدير",
+      "orgAdmin": "مدير المنظمة",
+      "orgUser": "مستخدم المنظمة"
+    },
+    "rolesAndOrg": {
+      "title": "الأدوار والمنظمة",
+      "yourRoles": "أدوارك",
+      "noRoles": "لم يتم تعيين أدوار",
+      "organization": "المنظمة",
+      "assignedCategories": "الفئات المخصصة"
+    },
+    "accountManagement": {
+      "title": "إدارة الحساب",
+      "description": "إدارة إعدادات حسابك عبر Keycloak",
+      "editProfile": "تعديل الملف الشخصي",
+      "editProfileDesc": "تحديث اسمك وبريدك الإلكتروني ومعلوماتك الشخصية الأخرى",
+      "changePassword": "تغيير كلمة المرور",
+      "changePasswordDesc": "تحديث كلمة المرور وإعدادات الأمان",
+      "note": "ملاحظة",
+      "noteText": "يتم إدارة تغييرات الملف الشخصي وكلمة المرور عبر Keycloak. انقر على الأزرار أعلاه لفتح وحدة تحكم إدارة الحساب في علامة تبويب جديدة."
+    },
+    "sessionInfo": {
+      "title": "معلومات الجلسة",
+      "lastLogin": "آخر تسجيل دخول",
+      "tokenExpires": "انتهاء صلاحية الرمز"
+    },
+    "edit": {
+      "button": "تعديل الملف الشخصي",
+      "firstName": "الاسم الأول",
+      "lastName": "الاسم الأخير",
+      "firstNamePlaceholder": "أدخل اسمك الأول",
+      "lastNamePlaceholder": "أدخل اسمك الأخير",
+      "save": "حفظ التغييرات",
+      "saving": "جاري الحفظ...",
+      "successMessage": "تم تحديث الملف الشخصي بنجاح!",
+      "errorMessage": "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى."
+    },
+    "password": {
+      "title": "كلمة المرور والأمان",
+      "description": "إدارة كلمة المرور وأمان حسابك",
+      "button": "تغيير كلمة المرور",
+      "currentPassword": "كلمة المرور الحالية",
+      "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
+      "newPassword": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة (8 أحرف على الأقل)",
+      "confirmPassword": "تأكيد كلمة المرور الجديدة",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
+      "change": "تغيير كلمة المرور",
+      "changing": "جاري التغيير...",
+      "successMessage": "تم تغيير كلمة المرور بنجاح!",
+      "errorMessage": "فشل تغيير كلمة المرور. يرجى المحاولة مرة أخرى.",
+      "mismatchError": "كلمات المرور غير متطابقة.",
+      "lengthError": "يجب أن تكون كلمة المرور 8 أحرف على الأقل.",
+      "notice": "سوف تصبح كلمة المرور الجديدة سارية المفعول فوراً. تأكد من تذكرها أو تخزينها بشكل آمن."
+    }
   }
 }

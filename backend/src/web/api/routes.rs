@@ -24,6 +24,7 @@ use crate::web::api::handlers::{
     reports::{delete_report, generate_report, get_report, list_reports, list_user_reports, list_all_action_plans, update_recommendation_status, list_all_reports},
     responses::{create_response, delete_response, get_response, list_responses, update_response},
     submissions::{delete_submission, get_submission, list_user_submissions},
+    user_profile::{get_profile, update_profile, change_password},
 };
 
 use axum::{
@@ -161,6 +162,10 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/admin/user-invitations/:user_id/status", get(get_user_invitation_status))
         // User management endpoints
         .route("/api/admin/users/:user_id", delete(delete_user))
+        // User profile endpoints
+        .route("/api/user/profile", get(get_profile))
+        .route("/api/user/profile", put(update_profile))
+        .route("/api/user/profile/password", post(change_password))
 
 
         .with_state(app_state)

@@ -1314,5 +1314,78 @@
     "created": "Erstellt",
     "createdDate": "Erstellungsdatum",
     "status": "Status"
+  },
+  "profile": {
+    "title": "Mein Profil",
+    "subtitle": "Zeigen und verwalten Sie Ihre Kontoinformationen",
+    "back": "Zurück",
+    "notLoggedIn": "Sie müssen angemeldet sein, um diese Seite zu sehen.",
+    "notAvailable": "Nicht verfügbar",
+    "noOrganization": "Keine Organisation zugewiesen",
+    "personalInfo": {
+      "title": "Persönliche Informationen",
+      "description": "Ihre Kontodaten wie im System registriert",
+      "username": "Benutzername",
+      "fullName": "Vollständiger Name",
+      "email": "E-Mail-Adresse",
+      "userId": "Benutzer-ID",
+      "verified": "Verifiziert"
+    },
+    "roles": {
+      "admin": "Administrator",
+      "orgAdmin": "Organisationsadministrator",
+      "orgUser": "Organisationsbenutzer"
+    },
+    "rolesAndOrg": {
+      "title": "Rollen & Organisation",
+      "yourRoles": "Ihre Rollen",
+      "noRoles": "Keine Rollen zugewiesen",
+      "organization": "Organisation",
+      "assignedCategories": "Zugewiesene Kategorien"
+    },
+    "accountManagement": {
+      "title": "Kontoverwaltung",
+      "description": "Verwalten Sie Ihre Kontoeinstellungen über Keycloak",
+      "editProfile": "Profil bearbeiten",
+      "editProfileDesc": "Aktualisieren Sie Ihren Namen, Ihre E-Mail und andere persönliche Informationen",
+      "changePassword": "Passwort ändern",
+      "changePasswordDesc": "Aktualisieren Sie Ihr Passwort und Ihre Sicherheitseinstellungen",
+      "note": "Hinweis",
+      "noteText": "Profil- und Passwortänderungen werden über Keycloak verwaltet. Klicken Sie auf die Schaltflächen oben, um die Kontoverwaltungskonsole in einem neuen Tab zu öffnen."
+    },
+    "sessionInfo": {
+      "title": "Sitzungsinformationen",
+      "lastLogin": "Letzte Anmeldung",
+      "tokenExpires": "Token läuft ab"
+    },
+    "edit": {
+      "button": "Profil bearbeiten",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "firstNamePlaceholder": "Geben Sie Ihren Vornamen ein",
+      "lastNamePlaceholder": "Geben Sie Ihren Nachnamen ein",
+      "save": "Änderungen speichern",
+      "saving": "Speichern...",
+      "successMessage": "Profil erfolgreich aktualisiert!",
+      "errorMessage": "Fehler beim Aktualisieren des Profils. Bitte versuchen Sie es erneut."
+    },
+    "password": {
+      "title": "Passwort & Sicherheit",
+      "description": "Verwalten Sie Ihr Passwort und Ihre Kontosicherheit",
+      "button": "Passwort ändern",
+      "currentPassword": "Aktuelles Passwort",
+      "currentPasswordPlaceholder": "Geben Sie Ihr aktuelles Passwort ein",
+      "newPassword": "Neues Passwort",
+      "newPasswordPlaceholder": "Neues Passwort eingeben (mind. 8 Zeichen)",
+      "confirmPassword": "Neues Passwort bestätigen",
+      "confirmPasswordPlaceholder": "Bestätigen Sie Ihr neues Passwort",
+      "change": "Passwort ändern",
+      "changing": "Ändern...",
+      "successMessage": "Passwort erfolgreich geändert!",
+      "errorMessage": "Fehler beim Ändern des Passworts. Bitte versuchen Sie es erneut.",
+      "mismatchError": "Passwörter stimmen nicht überein.",
+      "lengthError": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+      "notice": "Ihr neues Passwort tritt sofort in Kraft. Stellen Sie sicher, dass Sie es sich merken oder sicher speichern."
+    }
   }
 }

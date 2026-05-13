@@ -1314,5 +1314,78 @@
     "created": "Kudaliwe",
     "createdDate": "Usuku Lokudala",
     "status": "Isimo"
+  },
+  "profile": {
+    "title": "Iphrofayili Yami",
+    "subtitle": "Buka uphze ulawule ulwazi lwesakhili sakho",
+    "back": "Emuva",
+    "notLoggedIn": "Udinga ukungena ukuze ubone lesiskhili.",
+    "notAvailable": "Akukho kutholakalako",
+    "noOrganization": "Akukho organizasyon anikezelwe",
+    "personalInfo": {
+      "title": "Ulwazi Lwomuntu Siqu",
+      "description": "Imininingwane yesakhili sakho njengobhalwe esistemini",
+      "username": "Igama Lomsebenzisi",
+      "fullName": "Igamaeligcwele",
+      "email": "Ikheli E-mail",
+      "userId": "ID Yomsebenzisi",
+      "verified": "Kuvunyelwe"
+    },
+    "roles": {
+      "admin": "umphathi",
+      "orgAdmin": "umphathi we-Organizasyon",
+      "orgUser": "umsebenzisi we-Organizasyon"
+    },
+    "rolesAndOrg": {
+      "title": "Amarole & I-Organizasyon",
+      "yourRoles": "Amarole Akho",
+      "noRoles": "Awunamarole anikezelwe",
+      "organization": "I-Organizasyon",
+      "assignedCategories": "Izigaba Ezinikezelwe"
+    },
+    "accountManagement": {
+      "title": "Ukulawula Isikhungo",
+      "description": "Lawula izilungiselelo zesikhungo sakho nge Keycloak",
+      "editProfile": "Hlela Iphrofayili",
+      "editProfileDesc": "Vuselela igama lakho, i-email kanye nalolunye ulwazi lwesiqu",
+      "changePassword": "Shintsha Iphasiwedi",
+      "changePasswordDesc": "Vuselela iphasiwedi yakho nezilungiselelo zokuvikela",
+      "note": "Qaphela",
+      "noteText": "Izinguquko zeprofayili nephasiwedi zilawulwa nge Keycloak. Chofoza amabhathini engenhla ukuze uvule ikhonsoli yolawulo lwesakhili kuthebhu elisha."
+    },
+    "sessionInfo": {
+      "title": "Ulwazi Lweseshini",
+      "lastLogin": "Ukungena Kokugcina",
+      "tokenExpires": "I-Thekene Iyaphelelwa"
+    },
+    "edit": {
+      "button": "Hlela Iphrofayili",
+      "firstName": "Igaba Likababa",
+      "lastName": "Isibongo",
+      "firstNamePlaceholder": "Faka igaba lakho likababa",
+      "lastNamePlaceholder": "Faka isibongo sakho",
+      "save": "Gcina Utshintsho",
+      "saving": "Iyagcina...",
+      "successMessage": "Iphrofayili igciniwe ngempumelelo!",
+      "errorMessage": "Ihlulekile ukugcina iphrofayili. Zama futhi."
+    },
+    "password": {
+      "title": "Iphasiwedi & Ukuvikeleka",
+      "description": "Lawula iphasiwedi yakho nokuvikeleka kwe-akhawunti",
+      "button": "Shintsha Iphasiwedi",
+      "currentPassword": "Iphasiwedi Yamanje",
+      "currentPasswordPlaceholder": "Faka iphasiwedi yakho yamanje",
+      "newPassword": "Iphasiwedi Entsha",
+      "newPasswordPlaceholder": "Faka iphasiwedi entsha (min 8 abafundi)",
+      "confirmPassword": "Qinisekisa Iphasiwedi Entsha",
+      "confirmPasswordPlaceholder": "Qinisekisa iphasiwedi yakho entsha",
+      "change": "Shintsha Iphasiwedi",
+      "changing": "Iyashintsha...",
+      "successMessage": "Iphasiwedi ishintshiwe ngempumelelo!",
+      "errorMessage": "Ihlulekile ukushintsha iphasiwedi. Zama futhi.",
+      "mismatchError": "Amaphasiwedi awahambelani.",
+      "lengthError": "Iphasiwedi kumele ibe nobude obungu-8 ubhalo.",
+      "notice": "Iphasiwedi yakho entsha iyaqala ukusebenza ngokushesha. Qiniseka ukuba uyikhumbula noma uyilege kunxube."
+    }
   }
 }

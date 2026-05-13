@@ -1063,5 +1063,34 @@ impl KeycloakService {
             }
         }
     }
+
+    /// Reset a user's password (admin operation)
+    pub async fn reset_user_password(&self, token: &str, user_id: &str, new_password: &str) -> Result<()> {
+        let url = format!("{}/admin/realms/{}/users/{}/reset-password", self.config.url, self.config.realm, user_id);
+        
+        let payload = json!({
+            "type": "password",
+            "value": new_password,
+            "temporary": false
+        });
+
+        let response = self.client.put(&url)
+            .bearer_auth(token)
+            .json(&payload)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::NO_CONTENT => {
+                info!(user_id = %user_id, "Password reset successfully");
+                Ok(())
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to reset password: {}", error_text);
+                Err(anyhow!("Failed to reset password: {}", error_text))
+            }
+        }
+    }
 }
 
