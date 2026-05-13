@@ -115,7 +115,21 @@
     "myProfile": "Mein Profil"
   },
   "sustainability": "Nachhaltigkeit",
-  "assessment": "Bewertung",
+  "assessment": {
+    "categoriesHint": "Wählen Sie Kategorien aus, die in diese Bewertung einbezogen werden sollen. Mindestens eine Kategorie ist erforderlich.",
+    "categoriesRequired": "Bitte wählen Sie für diese Bewertung mindestens eine Kategorie aus.",
+    "errors": {
+      "fetchCategories": "Kategorien konnten nicht geladen werden."
+    },
+    "noCategoriesAssigned": "Leider wurden Ihrer Organisation noch keine Kategorien zugewiesen. Kontaktieren Sie den Administrator.",
+    "selectCategories": "Wählen Sie Kategorien aus",
+    "selectAssessmentToViewActionPlan": "Wählen Sie „Bewertung“ aus, um den Aktionsplan anzuzeigen",
+    "selectAssessmentToActionPlanDescription": "Wählen Sie eine Bewertung aus, um den Aktionsplan anzuzeigen.",
+    "submittedOn": "Eingereicht am",
+    "noSubmissionsAvailable": "Keine Einsendungen verfügbar",
+    "noSubmissionsDescription": "Es sind keine Einreichungen zum Anzeigen von Aktionsplänen verfügbar.",
+    "backToDashboard": "Zurück zum Dashboard"
+  },
   "submit": "Absenden",
   "next": "Weiter",
   "previous": "Zurück",
@@ -252,14 +266,7 @@
       "title": "Willkommen, Admin! Fördern Sie den Genossenschafts-Impact!",
       "description": "Verwalten Sie die DGRV-Bewertungsplattform und unterstützen Sie Genossenschaften im südlichen Afrika."
     },
-    "pendingReviews": {
-      "title": "Ausstehende Prüfungen",
-      "badge": "ausstehend",
-      "assessmentType": "Nachhaltigkeitsbewertung",
-      "submittedBy": "von",
-      "reviewRequired": "Prüfung erforderlich",
-      "upToDate": "Alle Bewertungen sind auf dem neuesten Stand!"
-    },
+    "pendingReviews": "Ausstehende Bewertungen",
     "systemHealth": {
       "title": "Systemzustand",
       "database": "Datenbank",
@@ -1287,7 +1294,20 @@
     "loadingActionPlans": "Aktionspläne werden geladen...",
     "errorLoadingActionPlans": "Fehler beim Laden der Aktionspläne",
     "noActionPlans": "Keine Aktionspläne verfügbar",
-    "noActionPlansDescription": "Es gibt keine Aktionspläne zu diesem Zeitpunkt anzuzeigen."
+    "noActionPlansDescription": "Es gibt keine Aktionspläne zu diesem Zeitpunkt anzuzeigen.",
+    "title": "Aktionspläne der Organisation",
+    "subtitle": "Wählen Sie eine Organisation aus, um deren Aktionsplan anzuzeigen",
+    "refresh": "Aktualisieren",
+    "backToOrganizations": "Zurück zu Organisationen",
+    "backToAssessments": "Zurück zu Bewertungen",
+    "kanban": {
+      "todo": "Zu tun",
+      "inProgress": "In Bearbeitung",
+      "done": "Fertig",
+      "approved": "Genehmigt",
+      "noTasks": "Keine Aufgaben in {{status}}"
+    },
+    "loading": "Wird geladen..."
   },
   "staticText": {
     "navbar": {
@@ -1529,5 +1549,15 @@
   "error": {
     "goBack": "Geh zurück",
     "title": "Es ist ein Fehler aufgetreten"
-  }
+  },
+  "backToDashboard": "Zurück zum Dashboard",
+  "common.text": "Text",
+  "reviewAssessments.status": "Status",
+  "user.dashboard.actionPlan.statusLabel": "Status",
+  "invitationFlow.status": "Status: {{status}}",
+  "staticText.navbar.navigation": "Navigation",
+  "staticText.sync.online": "Online",
+  "staticText.sync.offline": "Offline",
+  "connection.onlineStatus": "Online",
+  "connection.offlineStatus": "Offline"
 }

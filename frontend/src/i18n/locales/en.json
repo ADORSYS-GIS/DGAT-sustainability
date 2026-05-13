@@ -150,7 +150,15 @@
     },
     "myProfile": "My Profile"
   },
-  "assessment": "Assessment",
+  "assessment": {
+    "categoriesHint": "Select categories to include in this assessment. At least one category is required.",
+    "categoriesRequired": "Please select at least one category for this assessment.",
+    "errors": {
+      "fetchCategories": "Failed to load categories."
+    },
+    "noCategoriesAssigned": "Sorry, no categories have been assigned yet to your organisation. Contact the admin.",
+    "selectCategories": "Select Categories"
+  },
   "submit": "Submit",
   "next": "Next",
   "previous": "Previous",
@@ -1337,7 +1345,8 @@
       "done": "Done",
       "approved": "Approved",
       "noTasks": "No tasks in {{status}}"
-    }
+    },
+    "loading": "Loading..."
   },
   "staticText": {
     "navbar": {
@@ -1523,5 +1532,6 @@
     "goBack": "Go Back",
     "title": "An Error Occurred"
   },
-  "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
+  "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.",
+  "backToDashboard": "Back to Dashboard"
 }

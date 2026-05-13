@@ -115,7 +115,21 @@
     "myProfile": "Meu perfil"
   },
   "sustainability": "Sustentabilidade",
-  "assessment": "Avaliação",
+  "assessment": {
+    "categoriesHint": "Selecione as categorias a serem incluídas nesta avaliação. É necessária pelo menos uma categoria.",
+    "categoriesRequired": "Selecione pelo menos uma categoria para esta avaliação.",
+    "errors": {
+      "fetchCategories": "Falha ao carregar categorias."
+    },
+    "noCategoriesAssigned": "Desculpe, nenhuma categoria foi atribuída ainda à sua organização. Entre em contato com o administrador.",
+    "selectCategories": "Selecione categorias",
+    "selectAssessmentToViewActionPlan": "Selecione Avaliação para visualizar o plano de ação",
+    "selectAssessmentToActionPlanDescription": "Escolha uma avaliação para visualizar o plano de ação.",
+    "submittedOn": "Enviado em",
+    "noSubmissionsAvailable": "Nenhum envio disponível",
+    "noSubmissionsDescription": "Nenhum envio está disponível para visualização de planos de ação.",
+    "backToDashboard": "Voltar ao painel"
+  },
   "submit": "Submeter",
   "next": "Seguinte",
   "previous": "Anterior",
@@ -134,11 +148,7 @@
   "status": "Estado",
   "submittedAt": "Submetido em",
   "reviewedAt": "Revisado em",
-  "manageUsers": {
-    "email": "E-mail",
-    "orgLabel": "Organização:",
-    "admin": "Administrador"
-  },
+  "manageUsers": "Gerenciar usuários",
   "actionPlan": "Plano de Ação",
   "viewAssessments": "Ver Avaliações",
   "answerAssessment": "Responder à Avaliação",
@@ -256,14 +266,7 @@
       "title": "Bem-vindo, Admin! Impulsione o Impacto das Cooperativas!",
       "description": "Gerencie a plataforma de avaliação DGRV e apoie as cooperativas em toda a África Austral."
     },
-    "pendingReviews": {
-      "title": "Revisões Pendentes",
-      "badge": "pendentes",
-      "assessmentType": "Avaliação de Sustentabilidade",
-      "submittedBy": "por",
-      "reviewRequired": "Revisão Necessária",
-      "upToDate": "Todas as avaliações estão atualizadas!"
-    },
+    "pendingReviews": "Avaliações pendentes",
     "systemHealth": {
       "title": "Estado do Sistema",
       "database": "Base de Dados",
@@ -1288,7 +1291,20 @@
     "loadingActionPlans": "A carregar planos de ação...",
     "errorLoadingActionPlans": "Erro ao carregar planos de ação",
     "noActionPlans": "Nenhum plano de ação disponível",
-    "noActionPlansDescription": "Não há planos de ação para exibir neste momento."
+    "noActionPlansDescription": "Não há planos de ação para exibir neste momento.",
+    "title": "Planos de Ação da Organização",
+    "subtitle": "Selecione uma organização para visualizar seu plano de ação",
+    "refresh": "Atualizar",
+    "backToOrganizations": "Voltar para Organizações",
+    "backToAssessments": "Voltar para Avaliações",
+    "kanban": {
+      "todo": "Pendência",
+      "inProgress": "Em andamento",
+      "done": "Feito",
+      "approved": "Aprovado",
+      "noTasks": "Nenhuma tarefa em {{status}}"
+    },
+    "loading": "Carregando..."
   },
   "staticText": {
     "navbar": {
@@ -1530,5 +1546,11 @@
   "error": {
     "goBack": "Volte",
     "title": "Ocorreu um erro"
-  }
+  },
+  "backToDashboard": "Voltar ao painel",
+  "manageUsers.email": "E-mail",
+  "manageUsers.admin": "Administrador",
+  "manageUsers.orgLabel": "Org:",
+  "assignCategories.total": "Total:",
+  "staticText.files.download": "Baixar"
 }

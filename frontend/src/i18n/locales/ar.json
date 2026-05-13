@@ -115,7 +115,21 @@
     "myProfile": "ملفي الشخصي"
   },
   "sustainability": "الاستدامة",
-  "assessment": "التقييم",
+  "assessment": {
+    "categoriesHint": "حدد الفئات التي تريد تضمينها في هذا التقييم. مطلوب فئة واحدة على الأقل.",
+    "categoriesRequired": "يرجى تحديد فئة واحدة على الأقل لهذا التقييم.",
+    "errors": {
+      "fetchCategories": "فشل تحميل الفئات."
+    },
+    "noCategoriesAssigned": "عذرًا، لم يتم تعيين أي فئات حتى الآن لمؤسستك. اتصل بالمسؤول.",
+    "selectCategories": "حدد الفئات",
+    "selectAssessmentToViewActionPlan": "حدد التقييم لعرض خطة العمل",
+    "selectAssessmentToActionPlanDescription": "اختر تقييمًا لعرض خطة العمل.",
+    "submittedOn": "تم تقديمه بتاريخ",
+    "noSubmissionsAvailable": "لا توجد طلبات متاحة",
+    "noSubmissionsDescription": "لا توجد طلبات متاحة لعرض خطط العمل.",
+    "backToDashboard": "العودة إلى لوحة القيادة"
+  },
   "submit": "إرسال",
   "next": "التالي",
   "previous": "السابق",
@@ -252,14 +266,7 @@
       "title": "مرحباً، المسؤول! عزز تأثير التعاونيات!",
       "description": "إدارة منصة تقييم DGRV ودعم التعاونيات في جميع أنحاء جنوب أفريقيا."
     },
-    "pendingReviews": {
-      "title": "المراجعات المعلقة",
-      "badge": "معلقة",
-      "assessmentType": "تقييم الاستدامة",
-      "submittedBy": "بواسطة",
-      "reviewRequired": "مطلوب مراجعة",
-      "upToDate": "جميع التقييمات محدثة!"
-    },
+    "pendingReviews": "المراجعات المعلقة",
     "systemHealth": {
       "title": "حالة النظام",
       "database": "قاعدة البيانات",
@@ -1287,7 +1294,20 @@
     "loadingActionPlans": "جارٍ تحميل خطط العمل...",
     "errorLoadingActionPlans": "حدث خطأ أثناء تحميل خطط العمل",
     "noActionPlans": "لا توجد خطط عمل متاحة",
-    "noActionPlansDescription": "لا توجد خطط عمل لعرضها في هذا الوقت."
+    "noActionPlansDescription": "لا توجد خطط عمل لعرضها في هذا الوقت.",
+    "title": "خطط عمل المنظمة",
+    "subtitle": "حدد منظمة لعرض خطة العمل الخاصة بها",
+    "refresh": "ينعش",
+    "backToOrganizations": "العودة إلى المنظمات",
+    "backToAssessments": "العودة إلى التقييمات",
+    "kanban": {
+      "todo": "للقيام",
+      "inProgress": "في تَقَدم",
+      "done": "منتهي",
+      "approved": "موافقة",
+      "noTasks": "لا توجد مهام في {{الحالة}}"
+    },
+    "loading": "جارٍ التحميل..."
   },
   "staticText": {
     "navbar": {
@@ -1529,5 +1549,6 @@
   "error": {
     "goBack": "عُد",
     "title": "حدث خطأ"
-  }
+  },
+  "backToDashboard": "العودة إلى لوحة القيادة"
 }

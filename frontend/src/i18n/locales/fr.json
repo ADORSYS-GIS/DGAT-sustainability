@@ -115,7 +115,21 @@
     "myProfile": "Mon profil"
   },
   "sustainability": "Durabilité",
-  "assessment": "Évaluation",
+  "assessment": {
+    "categoriesHint": "Sélectionnez les catégories à inclure dans cette évaluation. Au moins une catégorie est requise.",
+    "categoriesRequired": "Veuillez sélectionner au moins une catégorie pour cette évaluation.",
+    "errors": {
+      "fetchCategories": "Échec du chargement des catégories."
+    },
+    "noCategoriesAssigned": "Désolé, aucune catégorie n’a encore été attribuée à votre organisation. Contactez l'administrateur.",
+    "selectCategories": "Sélectionnez les catégories",
+    "selectAssessmentToViewActionPlan": "Sélectionnez Évaluation pour afficher le plan d'action",
+    "selectAssessmentToActionPlanDescription": "Choisissez une évaluation pour afficher le plan d’action.",
+    "submittedOn": "Soumis le",
+    "noSubmissionsAvailable": "Aucune soumission disponible",
+    "noSubmissionsDescription": "Aucune soumission n'est disponible pour consulter les plans d'action.",
+    "backToDashboard": "Retour au tableau de bord"
+  },
   "submit": "Soumettre",
   "next": "Suivant",
   "previous": "Précédent",
@@ -134,10 +148,7 @@
   "status": "Statut",
   "submittedAt": "Soumis le",
   "reviewedAt": "Examiné le",
-  "manageUsers": {
-    "email": "Courriel",
-    "admin": "Administrateur"
-  },
+  "manageUsers": "Gérer les utilisateurs",
   "actionPlan": "Plan d'action",
   "viewAssessments": "Voir les évaluations",
   "answerAssessment": "Répondre à l'évaluation",
@@ -255,14 +266,7 @@
       "title": "Bienvenue, Admin ! Stimulez l'impact des coopératives !",
       "description": "Gérez la plateforme d'évaluation DGRV et soutenez les coopératives à travers l'Afrique australe."
     },
-    "pendingReviews": {
-      "title": "Examens en attente",
-      "badge": "en attente",
-      "assessmentType": "Évaluation de la durabilité",
-      "submittedBy": "par",
-      "reviewRequired": "Examen requis",
-      "upToDate": "Toutes les évaluations sont à jour !"
-    },
+    "pendingReviews": "Examens en attente",
     "systemHealth": {
       "title": "État du système",
       "database": "Base de données",
@@ -1288,7 +1292,20 @@
     "loadingActionPlans": "Chargement des plans d'action...",
     "errorLoadingActionPlans": "Erreur lors du chargement des plans d'action",
     "noActionPlans": "Aucun plan d'action disponible",
-    "noActionPlansDescription": "Il n'y a pas de plans d'action à afficher pour le moment."
+    "noActionPlansDescription": "Il n'y a pas de plans d'action à afficher pour le moment.",
+    "title": "Plans d'action de l'organisation",
+    "subtitle": "Sélectionnez une organisation pour consulter son plan d'action",
+    "refresh": "Actualiser",
+    "backToOrganizations": "Retour aux organisations",
+    "backToAssessments": "Retour aux évaluations",
+    "kanban": {
+      "todo": "À faire",
+      "inProgress": "En cours",
+      "done": "Terminé",
+      "approved": "Approuvé",
+      "noTasks": "Aucune tâche dans {{status}}"
+    },
+    "loading": "Chargement..."
   },
   "staticText": {
     "navbar": {
@@ -1530,5 +1547,11 @@
   "error": {
     "goBack": "Retourner",
     "title": "Une erreur s'est produite"
-  }
+  },
+  "backToDashboard": "Retour au tableau de bord",
+  "manageUsers.email": "E-mail",
+  "manageUsers.admin": "Administrateur",
+  "common.questions": "Questions",
+  "common.question": "Question",
+  "reviewAssessments.question": "question"
 }

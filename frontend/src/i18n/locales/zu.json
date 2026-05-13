@@ -115,7 +115,21 @@
     "myProfile": "Iphrofayela Yami"
   },
   "sustainability": "Isimo Semvelo",
-  "assessment": "Ukuhlola",
+  "assessment": {
+    "categoriesHint": "Khetha izigaba ozozifaka kulokhu kuhlola. Kudingeka okungenani isigaba esisodwa.",
+    "categoriesRequired": "Sicela ukhethe okungenani isigaba esisodwa salokhu kuhlola.",
+    "errors": {
+      "fetchCategories": "Yehlulekile ukulayisha izigaba."
+    },
+    "noCategoriesAssigned": "Uxolo, azikho izigaba ezabelwe inhlangano yakho okwamanje. Xhumana nomphathi.",
+    "selectCategories": "Khetha Izigaba",
+    "selectAssessmentToViewActionPlan": "Khetha Ukuhlola ukuze Ubuke Uhlelo Lwesenzo",
+    "selectAssessmentToActionPlanDescription": "Khetha ukuhlola ukuze ubuke uhlelo lokusebenza.",
+    "submittedOn": "Kuthunyelwe kuvuliwe",
+    "noSubmissionsAvailable": "Akukho Okuthunyelwe Okutholakalayo",
+    "noSubmissionsDescription": "Akukho okuthunyelwe okutholakalayo ukuze kubukwe izinhlelo zokusebenza.",
+    "backToDashboard": "Buyela Kudeshibhodi"
+  },
   "submit": "Thumela",
   "next": "Olandelayo",
   "previous": "Okwedlule",
@@ -252,14 +266,7 @@
       "title": "Wamukelekile, Admin! Khuthaza Umthelela Wemifelandawonye!",
       "description": "Phatha ipulatifomu yokuhlola ye-DGRV futhi usekele izinhlangano zemifelandawonye kulo lonke elaseNingizimu ne-Afrika."
     },
-    "pendingReviews": {
-      "title": "Ukubuyekezwa okulindile",
-      "badge": "kulindile",
-      "assessmentType": "Ukuhlola Isimo Semvelo",
-      "submittedBy": "ngu",
-      "reviewRequired": "Kudingeka Ukubuyekezwa",
-      "upToDate": "Konke ukuhlolwa kusesikhathini!"
-    },
+    "pendingReviews": "Izibuyekezo ezilindile",
     "systemHealth": {
       "title": "Impilo Yesistimu",
       "database": "Inkomba Yedatha",
@@ -1287,7 +1294,20 @@
     "loadingActionPlans": "Kuhlelwa amaphula enzenzo...",
     "errorLoadingActionPlans": "Iphutha ekufakeni amaphula enzenzo",
     "noActionPlans": "Awukho umphula wemisebenzi otholakalayo",
-    "noActionPlansDescription": "Awukho umphula wemisebenzi owokubonisa ngesikhathi samanje."
+    "noActionPlansDescription": "Awukho umphula wemisebenzi owokubonisa ngesikhathi samanje.",
+    "title": "Izinhlelo Zenhlangano",
+    "subtitle": "Khetha inhlangano ukuze ubuke uhlelo lwayo lokusebenza",
+    "refresh": "Vuselela",
+    "backToOrganizations": "Buyela Ezinhlanganweni",
+    "backToAssessments": "Emuva Ekuhloleni",
+    "kanban": {
+      "todo": "Okufanele Ukwenze",
+      "inProgress": "Iyaqhubeka",
+      "done": "Kwenziwe",
+      "approved": "Kuvunyelwe",
+      "noTasks": "Ayikho imisebenzi kokuthi {{status}}"
+    },
+    "loading": "Iyaloweka..."
   },
   "staticText": {
     "navbar": {
@@ -1529,5 +1549,6 @@
   "error": {
     "goBack": "Buyela Emuva",
     "title": "Kwenzeke Iphutha"
-  }
+  },
+  "backToDashboard": "Buyela Kudeshibhodi"
 }
