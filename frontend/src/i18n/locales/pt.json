@@ -112,7 +112,7 @@
       "lengthError": "A palavra-passe deve ter pelo menos 8 caracteres.",
       "notice": "A sua nova palavra-passe entrará em vigor imediatamente. Certifique-se de a memorizar ou guardá-la de forma segura."
     },
-    "myProfile": "My Profile"
+    "myProfile": "Meu perfil"
   },
   "sustainability": "Sustentabilidade",
   "assessment": "Avaliação",
@@ -134,7 +134,11 @@
   "status": "Estado",
   "submittedAt": "Submetido em",
   "reviewedAt": "Revisado em",
-  "manageUsers": "Gerir Utilizadores",
+  "manageUsers": {
+    "email": "E-mail",
+    "orgLabel": "Organização:",
+    "admin": "Administrador"
+  },
   "actionPlan": "Plano de Ação",
   "viewAssessments": "Ver Avaliações",
   "answerAssessment": "Responder à Avaliação",
@@ -185,7 +189,7 @@
     "organizationNotFound": "Organização não encontrada",
     "recommendations": "Recomendações",
     "attachments": "Anexos",
-    "creating": "Creating..."
+    "creating": "Criando..."
   },
   "adminDashboard": {
     "welcome": "Bem-vindo, Admin! Impulsione o Impacto das Cooperativas!",
@@ -308,9 +312,9 @@
       "categoriesQuestions": "Configure categorias e perguntas para adaptar o processo de avaliação às suas necessidades.",
       "support": "Se precisar de ajuda, contacte eswatini@dgrv.coop."
     },
-    "numCategories": "Number of Categories",
-    "numQuestions": "Number of Questions",
-    "completedAssessments": "Completed Assessments"
+    "numCategories": "Número de categorias",
+    "numQuestions": "Número de perguntas",
+    "completedAssessments": "Avaliações concluídas"
   },
   "questions": {
     "manage": {
@@ -417,7 +421,7 @@
     "form": {
       "title": "Formulário de Utilizador",
       "username": "Nome de Utilizador",
-      "email": "Email",
+      "email": "E-mail",
       "role": "Papel",
       "organization": "Organização",
       "save": "Guardar Utilizador",
@@ -514,10 +518,10 @@
     "unknownError": "Ocorreu um erro desconhecido",
     "retry": "Tentar novamente",
     "newCategory": "Nova Categoria",
-    "createSuccess": "Category created successfully",
-    "saving": "Saving...",
-    "confirmDelete": "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
-    "submitError": "Failed to save category"
+    "createSuccess": "Categoria criada com sucesso",
+    "saving": "Salvando...",
+    "confirmDelete": "Tem certeza de que deseja excluir esta categoria? Isso também excluirá todas as perguntas desta categoria. Observação: quaisquer envios existentes que contenham respostas a essas perguntas serão preservados, mas os registros de respostas individuais serão removidos.",
+    "submitError": "Falha ao salvar categoria"
   },
   "manageOrganizations": {
     "title": "Gerir Organizações",
@@ -545,8 +549,8 @@
     "confirmDeleteTitle": "Eliminar Organização",
     "confirmDeleteDescription": "Tem certeza de que deseja eliminar a organização '{{name}}'? Esta ação removerá permanentemente a organização e todos os seus dados associados do sistema e não pode ser desfeita.",
     "deleteOrganization": "Eliminar Organização",
-    "nameReservedChars": "O nome da organização contém caracteres reservados. Evite usar: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , ou espaços.",
-    "assignCategories": "Assign Categories"
+    "nameReservedChars": "O nome da organização contém caracteres reservados. Evite usar: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = ou espaços.",
+    "assignCategories": "Atribuir categorias"
   },
   "user": {
     "dashboard": {
@@ -602,7 +606,7 @@
         "generatedAt": "Gerado em",
         "select": "Selecionar",
         "noReportsAvailable": "Nenhum relatório disponível",
-        "subtitle": "Track your sustainability improvement tasks"
+        "subtitle": "Acompanhe suas tarefas de melhoria de sustentabilidade"
       },
       "recentSubmissions": "Submissões Recentes",
       "viewAll": "Ver Tudo",
@@ -683,48 +687,48 @@
       }
     },
     "draftSubmissions": {
-      "approvedOfflineSuccessfully": "Successfully approved, will sync when you come back online",
-      "viewDetails": "View Details",
-      "responses": "Responses",
-      "submitted": "Submitted",
-      "assessment": "Assessment",
-      "noDraftSubmissionsDescription": "There are currently no draft submissions pending approval. Check back later for new submissions.",
-      "noDraftSubmissions": "No Draft Submissions",
-      "description": "Review and approve draft assessments submitted by organization users",
-      "title": "Draft Submissions",
-      "approveSubmission": "Approve Submission",
-      "approving": "Approving...",
-      "noResponsesAvailable": "No responses available",
-      "clickToExpand": "Click categories to expand",
-      "assessmentResponses": "Assessment Responses",
-      "questionsAnswered": "Questions Answered",
-      "organization": "Organization",
-      "reviewAndApprove": "Review and approve this draft submission",
-      "backToDraftSubmissions": "Back to Draft Submissions",
-      "tryAgain": "Try Again",
-      "errorLoadingDraftSubmissions": "Error loading draft submissions",
-      "loadingDraftSubmissions": "Loading draft submissions...",
-      "noFilesAttached": "No files attached",
-      "attachedFiles": "Attached Files",
-      "noTextResponseProvided": "No text response provided",
-      "textResponse": "Text Response",
-      "percentageResponse": "Percentage Response",
-      "yesNoResponse": "Yes/No Response",
-      "failedToApprove": "Failed to approve assessment."
+      "approvedOfflineSuccessfully": "Aprovado com sucesso. Sincronizará quando você voltar a ficar on-line",
+      "viewDetails": "Ver detalhes",
+      "responses": "Respostas",
+      "submitted": "Enviado",
+      "assessment": "Avaliação",
+      "noDraftSubmissionsDescription": "Atualmente não há propostas de rascunhos pendentes de aprovação. Volte mais tarde para novos envios.",
+      "noDraftSubmissions": "Nenhum rascunho enviado",
+      "description": "Revise e aprove avaliações preliminares enviadas pelos usuários da organização",
+      "title": "Rascunhos de Envios",
+      "approveSubmission": "Aprovar envio",
+      "approving": "Aprovando...",
+      "noResponsesAvailable": "Nenhuma resposta disponível",
+      "clickToExpand": "Clique nas categorias para expandir",
+      "assessmentResponses": "Respostas de avaliação",
+      "questionsAnswered": "Perguntas respondidas",
+      "organization": "Organização",
+      "reviewAndApprove": "Revise e aprove este rascunho de envio",
+      "backToDraftSubmissions": "Voltar para envios de rascunhos",
+      "tryAgain": "Tente novamente",
+      "errorLoadingDraftSubmissions": "Erro ao carregar rascunhos de envios",
+      "loadingDraftSubmissions": "Carregando rascunhos de envios...",
+      "noFilesAttached": "Nenhum arquivo anexado",
+      "attachedFiles": "Arquivos anexados",
+      "noTextResponseProvided": "Nenhuma resposta de texto fornecida",
+      "textResponse": "Resposta de texto",
+      "percentageResponse": "Resposta percentual",
+      "yesNoResponse": "Sim/Não Resposta",
+      "failedToApprove": "Falha ao aprovar avaliação."
     },
     "actionPlan": {
       "kanban": {
-        "backToDone": "Back to Done",
-        "backToInProgress": "Back to In Progress",
-        "moveToDone": "Move to Done",
-        "backToTodo": "Back to To Do",
-        "moveToInProgress": "Move to In Progress",
-        "approve": "Approve",
-        "noTasks": "No tasks in ${column.title.toLowerCase()}"
+        "backToDone": "Voltar para Concluído",
+        "backToInProgress": "Voltar para Em andamento",
+        "moveToDone": "Mover para Concluído",
+        "backToTodo": "Voltar para fazer",
+        "moveToInProgress": "Mover para Em Andamento",
+        "approve": "Aprovar",
+        "noTasks": "Nenhuma tarefa em ${column.title.toLowerCase()}"
       },
-      "noRecommendationsDescription": "There are no recommendations for this submission.",
-      "noRecommendations": "No Recommendations Available",
-      "title": "Action Plan"
+      "noRecommendationsDescription": "Não há recomendações para esta submissão.",
+      "noRecommendations": "Nenhuma recomendação disponível",
+      "title": "Plano de Ação"
     }
   },
   "manageUsers.selectOrganization": "Selecionar uma Organização",
@@ -734,7 +738,6 @@
   "manageUsers.manageUsersForOrg": "Adicionar e gerir utilizadores em {{org}}",
   "manageUsers.editUser": "Editar Utilizador",
   "manageUsers.addNewUser": "Adicionar Novo Utilizador",
-  "manageUsers.email": "Email",
   "manageUsers.emailPlaceholder": "Introduza o email",
   "manageUsers.role": "Papel",
   "manageUsers.organizationAdmin": "Administrador da Organização",
@@ -750,9 +753,7 @@
   "manageUsers.noUsersYet": "Ainda não há utilizadores",
   "manageUsers.addFirstUserDesc": "Adicione o seu primeiro utilizador para começar.",
   "manageUsers.addFirstUser": "Adicionar Primeiro Utilizador",
-  "manageUsers.orgLabel": "Org:",
   "manageUsers.unknown": "Desconhecido",
-  "manageUsers.admin": "Admin",
   "manageUsers.orgAdmin": "Admin Org",
   "manageUsers.orgUser": "Utilizador Org",
   "manageUsers.createUser": "Criar Utilizador",
@@ -791,9 +792,9 @@
     "noText": "Nenhum texto disponível.",
     "categoriesLoadError": "Falha ao carregar categorias. Por favor tente novamente.",
     "retry": "Tentar novamente",
-    "loadingQuestions": "Loading questions...",
-    "englishQuestion": "English Question",
-    "additionalLanguagesOptional": "Additional Languages (Optional)"
+    "loadingQuestions": "Carregando perguntas...",
+    "englishQuestion": "Pergunta em inglês",
+    "additionalLanguagesOptional": "Idiomas adicionais (opcional)"
   },
   "userInvitation": {
     "title": "Criar Convite de Utilizador",
@@ -887,10 +888,6 @@
   "assessment.selectAssessment": "Selecionar Avaliação",
   "assessment.selectAssessmentDescription": "Escolha uma avaliação para continuar ou crie uma nova.",
   "assessment.createNewAssessment": "Criar Nova Avaliação",
-  "common.cancel": "Cancelar",
-  "common.creating": "A criar...",
-  "manageQuestions.noCategories": "Nenhuma categoria disponível. Por favor crie categorias primeiro!",
-  "manageQuestions.noText": "Nenhum texto disponível.",
   "userGuide": {
     "title": "Guia do Utilizador para Cooperativas",
     "subtitle": "Guia completo para usar a plataforma de avaliação de sustentabilidade DGRV",
@@ -1025,9 +1022,9 @@
     "needHelp": {
       "title": "Precisa de Ajuda?",
       "description": "Se precisar de assistência ou tiver dúvidas sobre a plataforma:",
-      "email": "Email: eswatini@dgrv.coop",
+      "email": "E-mail: eswatini@dgrv.coop",
       "phone": "Telefone: +268 7854 2660",
-      "website": "Web: www.dgrv.coop",
+      "website": "Site: www.dgrv.coop",
       "contactAdmin": "💬 Contacte o administrador da sua organização para questões específicas de papéis"
     }
   },
@@ -1149,9 +1146,9 @@
     "contactInfo": {
       "title": "Suporte Administrativo",
       "description": "Para suporte técnico ou questões de administração:",
-      "email": "Email: eswatini@dgrv.coop",
+      "email": "E-mail: eswatini@dgrv.coop",
       "phone": "Telefone: +268 7854 2660",
-      "website": "Web: www.dgrv.coop"
+      "website": "Site: www.dgrv.coop"
     }
   },
   "reviewAssessments": {
@@ -1202,12 +1199,12 @@
     "reviewSavedLocally": "Revisão guardada localmente. Será sincronizada quando estiver online.",
     "failedToSubmitReview": "Falha ao submeter a revisão",
     "manualSyncFailed": "Falha na sincronização manual",
-    "reviewerNotFound": "Reviewer information not found. Please log in again.",
-    "attachments": "Attachments",
-    "assessmentName": "Assessment Name",
-    "unknownAssessment": "Unknown Assessment",
-    "queueFailed": "Failed to queue review for submission.",
-    "reviewQueued": "Review has been queued for submission."
+    "reviewerNotFound": "Informações do revisor não encontradas. Faça login novamente.",
+    "attachments": "Anexos",
+    "assessmentName": "Nome da Avaliação",
+    "unknownAssessment": "Avaliação desconhecida",
+    "queueFailed": "Falha ao colocar a revisão na fila para envio.",
+    "reviewQueued": "A revisão foi colocada na fila para envio."
   },
   "reportHistory": {
     "title": "Histórico de Relatórios",
@@ -1243,9 +1240,9 @@
     "recommendation": "Recomendação",
     "recommendationCount": "{{count}} recomendação",
     "recommendationCount_plural": "{{count}} recomendações",
-    "close": "Close",
-    "noDetails": "No details available for this report.",
-    "report": "Report"
+    "close": "Fechar",
+    "noDetails": "Não há detalhes disponíveis para este relatório.",
+    "report": "Relatório"
   },
   "assignCategories": {
     "title": "Atribuir Categorias a {{org}}",
@@ -1298,84 +1295,84 @@
       "logoAlt": "Logo DGRV",
       "navigation": "Navegação",
       "brand": "DGRV",
-      "toggleMenu": "Toggle menu"
+      "toggleMenu": "Alternar menu"
     },
     "organizations": {
       "addNewOrganization": "Adicionar Nova Organização",
       "organizationName": "Nome da Organização",
       "organizationNamePlaceholder": "Introduza o nome da organização",
       "domainPlaceholder": "Introduza o domínio (ex: adorsys.com)",
-      "nameRequired": "Name is required",
-      "description": "Description",
-      "addDomain": "+ Add Domain",
-      "domainRequired": "At least one domain is required"
+      "nameRequired": "O nome é obrigatório",
+      "description": "Descrição",
+      "addDomain": "+ Adicionar domínio",
+      "domainRequired": "É necessário pelo menos um domínio"
     },
     "home": {
-      "organizationRequiredStart": "You need to be part of an organisation to start an assessment.",
-      "logoAlt": "Sustainability Portal Logo",
-      "organizationRequiredView": "You need to be part of an organisation to view assessments.",
-      "authRedirectFailed": "Failed to redirect to authentication. Please try again."
+      "organizationRequiredStart": "Você precisa fazer parte de uma organização para iniciar uma avaliação.",
+      "logoAlt": "Logotipo do Portal de Sustentabilidade",
+      "organizationRequiredView": "Você precisa fazer parte de uma organização para visualizar as avaliações.",
+      "authRedirectFailed": "Falha ao redirecionar para autenticação. Por favor, tente novamente."
     },
     "users": {
-      "createError": "Failed to create user",
-      "currentOrganization": "Current organization",
-      "inviteUserNoPlus": "Invite User",
-      "createQueued": "User saved locally and will sync when online",
-      "createSuccess": "User created successfully",
-      "deleteEntirelyError": "Failed to delete user entirely",
-      "deleteEntirelySuccess": "User deleted entirely from system",
-      "removeFromOrgError": "Failed to remove user from organization",
-      "removeFromOrgSuccess": "User removed from organization successfully",
-      "updateError": "Failed to update user",
-      "updateSuccess": "User updated successfully",
-      "loadingCategories": "Loading categories...",
-      "categories": "Categories",
-      "inviteNewUser": "Invite New User",
-      "addManageAcross": "Add and manage users across",
-      "inviteUser": "+ Invite User",
-      "deleteError": "Failed to delete user",
-      "deleteSuccess": "User deleted successfully",
-      "notFound": "User not found",
-      "updateCategoriesRetry": "Failed to update user categories. Will retry when online."
+      "createError": "Falha ao criar usuário",
+      "currentOrganization": "Organização atual",
+      "inviteUserNoPlus": "Convidar usuário",
+      "createQueued": "Usuário salvo localmente e sincronizado quando estiver online",
+      "createSuccess": "Usuário criado com sucesso",
+      "deleteEntirelyError": "Falha ao excluir totalmente o usuário",
+      "deleteEntirelySuccess": "Usuário excluído totalmente do sistema",
+      "removeFromOrgError": "Falha ao remover o usuário da organização",
+      "removeFromOrgSuccess": "Usuário removido da organização com sucesso",
+      "updateError": "Falha ao atualizar o usuário",
+      "updateSuccess": "Usuário atualizado com sucesso",
+      "loadingCategories": "Carregando categorias...",
+      "categories": "Categorias",
+      "inviteNewUser": "Convidar novo usuário",
+      "addManageAcross": "Adicione e gerencie usuários em",
+      "inviteUser": "+ Convidar usuário",
+      "deleteError": "Falha ao excluir usuário",
+      "deleteSuccess": "Usuário excluído com sucesso",
+      "notFound": "Usuário não encontrado",
+      "updateCategoriesRetry": "Falha ao atualizar categorias de usuários. Tentarei novamente quando estiver online."
     },
     "unauthorized": {
-      "description": "You do not have permission to view this page.",
-      "goHome": "Go to home"
+      "description": "Você não tem permissão para visualizar esta página.",
+      "goHome": "Vá para casa"
     },
     "files": {
-      "image": "Image",
+      "image": "Imagem",
       "download": "Download",
-      "unknownFile": "Unknown file"
+      "unknownFile": "Arquivo desconhecido"
     },
     "sync": {
-      "pending": "{{count}} Pending",
-      "offline": "Offline",
-      "online": "Online"
+      "pending": "{{count}} Pendente",
+      "offline": "Off-line",
+      "online": "On-line"
     },
     "assessment": {
-      "showPercentageExplanation": "Show percentage explanation"
+      "showPercentageExplanation": "Mostrar explicação percentual"
     },
     "assessments": {
-      "retrievingSubmissions": "Retrieving your submissions..."
+      "retrievingSubmissions": "Recuperando seus envios..."
     },
     "submissionView": {
-      "loadError": "Error loading submission details.",
-      "noFilesUploaded": "No files uploaded",
-      "fileNumber": "File {{count}}",
-      "files": "Files",
-      "noAnswer": "No answer",
-      "textResponse": "Text Response"
+      "loadError": "Erro ao carregar os detalhes do envio.",
+      "noFilesUploaded": "Nenhum arquivo enviado",
+      "fileNumber": "Arquivo {{contagem}}",
+      "files": "Arquivos",
+      "noAnswer": "Sem resposta",
+      "textResponse": "Resposta de texto"
     },
     "actionPlan": {
-      "approve": "Approve",
-      "recommendation": "Recommendation",
-      "statusUpdateError": "Failed to update status",
-      "statusUpdateSuccess": "Status updated successfully",
-      "recommendationNotFound": "Recommendation not found."
+      "approve": "Aprovar",
+      "recommendation": "Recomendação",
+      "statusUpdateError": "Falha ao atualizar o status",
+      "statusUpdateSuccess": "Status atualizado com sucesso",
+      "recommendationNotFound": "Recomendação não encontrada."
     },
     "common": {
-      "close": "Close",
-      "deleting": "Deleting..."
+      "close": "Fechar",
+      "deleting": "Excluindo..."
     }
   },
   "reportSelection": {
@@ -1413,8 +1410,8 @@
   "connection": {
     "restored": "Conexão restaurada. A sincronizar dados...",
     "offline": "Está agora offline. As alterações serão sincronizadas quando a conexão for restaurada.",
-    "onlineStatus": "Online",
-    "offlineStatus": "Offline",
+    "onlineStatus": "On-line",
+    "offlineStatus": "Off-line",
     "offlineBanner": "Está offline — as suas respostas são guardadas localmente e sincronizadas automaticamente quando reconectar.",
     "offlineSubmissions": "Está offline — a ver submissões em cache. As alterações serão sincronizadas quando reconectar.",
     "offlineCache": "Está offline — a ver dados em cache. As alterações serão sincronizadas quando reconectar."
@@ -1438,7 +1435,7 @@
   "unknown": "Desconhecido",
   "unknownError": "Erro desconhecido",
   "uncategorized": "Sem categoria",
-  "admin": "Admin",
+  "admin": "Administrador",
   "orgAdmin": "Admin Org",
   "orgUser": "Utilizador Org",
   "errorOccurred": "Ocorreu um erro",
@@ -1452,8 +1449,8 @@
     "de": "Deutsch",
     "fr": "Français"
   },
-  "loadingPortal": "Loading Sustainability Portal...",
-  "loadingQuestions": "Loading questions...",
+  "loadingPortal": "Carregando Portal de Sustentabilidade...",
+  "loadingQuestions": "Carregando perguntas...",
   "actions": {
     "manageOrganizations": "Gerir Organizações",
     "manageOrganizationsDesc": "Adicionar, editar e gerir organizações cooperativas no sistema.",
@@ -1507,7 +1504,7 @@
     "yesNo": "Sim/Não",
     "yes": "Sim",
     "no": "Não",
-    "na": "N/A",
+    "na": "N / D",
     "notApplicable": "Não Aplicável",
     "uncategorized": "Sem Categoria",
     "category": "Categoria",
@@ -1523,16 +1520,15 @@
     "status": "Estado"
   },
   "submission": {
-    "deleteError": "Failed to delete submission"
+    "deleteError": "Falha ao excluir o envio"
   },
-  "of": "of",
-  "delete": "Delete",
-  "deleting": "Deleting...",
-  "completed": "Completed",
-  "question": "Question",
+  "of": "de",
+  "delete": "Excluir",
+  "deleting": "Excluindo...",
+  "completed": "Concluído",
+  "question": "Pergunta",
   "error": {
-    "goBack": "Go Back",
-    "title": "An Error Occurred"
-  },
-  "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
+    "goBack": "Volte",
+    "title": "Ocorreu um erro"
+  }
 }

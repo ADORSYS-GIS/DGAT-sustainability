@@ -112,7 +112,7 @@
       "lengthError": "يجب أن تكون كلمة المرور 8 أحرف على الأقل.",
       "notice": "سوف تصبح كلمة المرور الجديدة سارية المفعول فوراً. تأكد من تذكرها أو تخزينها بشكل آمن."
     },
-    "myProfile": "My Profile"
+    "myProfile": "ملفي الشخصي"
   },
   "sustainability": "الاستدامة",
   "assessment": "التقييم",
@@ -185,7 +185,7 @@
     "organizationNotFound": "المنظمة غير موجودة",
     "recommendations": "التوصيات",
     "attachments": "المرفقات",
-    "creating": "Creating..."
+    "creating": "جارٍ الإنشاء..."
   },
   "adminDashboard": {
     "welcome": "مرحباً، المسؤول! عزز تأثير التعاونيات!",
@@ -308,9 +308,9 @@
       "categoriesQuestions": "اضبط الفئات والأسئلة لتكييف عملية التقييم مع احتياجاتك.",
       "support": "إذا كنت بحاجة إلى مساعدة، تواصل مع eswatini@dgrv.coop."
     },
-    "numCategories": "Number of Categories",
-    "numQuestions": "Number of Questions",
-    "completedAssessments": "Completed Assessments"
+    "numCategories": "عدد الفئات",
+    "numQuestions": "عدد الأسئلة",
+    "completedAssessments": "التقييمات المكتملة"
   },
   "questions": {
     "manage": {
@@ -514,10 +514,10 @@
     "unknownError": "حدث خطأ غير معروف",
     "retry": "حاول مرة أخرى",
     "newCategory": "فئة جديدة",
-    "createSuccess": "Category created successfully",
-    "saving": "Saving...",
-    "confirmDelete": "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
-    "submitError": "Failed to save category"
+    "createSuccess": "تم إنشاء الفئة بنجاح",
+    "saving": "توفير...",
+    "confirmDelete": "هل أنت متأكد أنك تريد حذف هذه الفئة؟ سيؤدي هذا أيضًا إلى حذف جميع الأسئلة في هذه الفئة. ملاحظة: سيتم الاحتفاظ بأي عمليات إرسال موجودة تحتوي على ردود على هذه الأسئلة، ولكن ستتم إزالة سجلات الاستجابة الفردية.",
+    "submitError": "فشل حفظ الفئة"
   },
   "manageOrganizations": {
     "title": "إدارة المنظمات",
@@ -545,8 +545,8 @@
     "confirmDeleteTitle": "حذف المنظمة",
     "confirmDeleteDescription": "هل أنت متأكد أنك تريد حذف المنظمة '{{name}}'؟ سيؤدي هذا الإجراء إلى إزالة المنظمة وجميع بياناتها المرتبطة بشكل دائم من النظام ولا يمكن التراجع عنه.",
     "deleteOrganization": "حذف المنظمة",
-    "nameReservedChars": "يحتوي اسم المنظمة على أحرف محجوزة. تجنب استخدام: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , أو مسافات.",
-    "assignCategories": "Assign Categories"
+    "nameReservedChars": "يحتوي اسم المنظمة على أحرف محجوزة. تجنب استخدام: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = ، أو مسافات.",
+    "assignCategories": "تعيين الفئات"
   },
   "user": {
     "dashboard": {
@@ -602,7 +602,7 @@
         "generatedAt": "تم إنشاؤه في",
         "select": "اختر",
         "noReportsAvailable": "لا توجد تقارير متاحة",
-        "subtitle": "Track your sustainability improvement tasks"
+        "subtitle": "تتبع مهام تحسين الاستدامة الخاصة بك"
       },
       "recentSubmissions": "التقديمات الأخيرة",
       "viewAll": "عرض الكل",
@@ -683,48 +683,48 @@
       }
     },
     "draftSubmissions": {
-      "approvedOfflineSuccessfully": "Successfully approved, will sync when you come back online",
-      "viewDetails": "View Details",
-      "responses": "Responses",
-      "submitted": "Submitted",
-      "assessment": "Assessment",
-      "noDraftSubmissionsDescription": "There are currently no draft submissions pending approval. Check back later for new submissions.",
-      "noDraftSubmissions": "No Draft Submissions",
-      "description": "Review and approve draft assessments submitted by organization users",
-      "title": "Draft Submissions",
-      "approveSubmission": "Approve Submission",
-      "approving": "Approving...",
-      "noResponsesAvailable": "No responses available",
-      "clickToExpand": "Click categories to expand",
-      "assessmentResponses": "Assessment Responses",
-      "questionsAnswered": "Questions Answered",
-      "organization": "Organization",
-      "reviewAndApprove": "Review and approve this draft submission",
-      "backToDraftSubmissions": "Back to Draft Submissions",
-      "tryAgain": "Try Again",
-      "errorLoadingDraftSubmissions": "Error loading draft submissions",
-      "loadingDraftSubmissions": "Loading draft submissions...",
-      "noFilesAttached": "No files attached",
-      "attachedFiles": "Attached Files",
-      "noTextResponseProvided": "No text response provided",
-      "textResponse": "Text Response",
-      "percentageResponse": "Percentage Response",
-      "yesNoResponse": "Yes/No Response",
-      "failedToApprove": "Failed to approve assessment."
+      "approvedOfflineSuccessfully": "تمت الموافقة بنجاح، وستتم المزامنة عند معاودة الاتصال بالإنترنت",
+      "viewDetails": "عرض التفاصيل",
+      "responses": "الردود",
+      "submitted": "مُقَدَّم",
+      "assessment": "تقدير",
+      "noDraftSubmissionsDescription": "لا يوجد حاليا أي مسودة تقديمات في انتظار الموافقة عليها. التحقق مرة أخرى في وقت لاحق لعمليات الإرسال الجديدة.",
+      "noDraftSubmissions": "لا يوجد مسودة تقديمات",
+      "description": "مراجعة واعتماد مسودة التقييمات المقدمة من مستخدمي المؤسسة",
+      "title": "مسودة التقديمات",
+      "approveSubmission": "الموافقة على التقديم",
+      "approving": "جارٍ الموافقة...",
+      "noResponsesAvailable": "لا توجد ردود متاحة",
+      "clickToExpand": "انقر فوق الفئات للتوسيع",
+      "assessmentResponses": "ردود التقييم",
+      "questionsAnswered": "تمت الإجابة على الأسئلة",
+      "organization": "منظمة",
+      "reviewAndApprove": "قم بمراجعة واعتماد مسودة التقديم هذه",
+      "backToDraftSubmissions": "العودة إلى مسودة التقديمات",
+      "tryAgain": "حاول ثانية",
+      "errorLoadingDraftSubmissions": "حدث خطأ أثناء تحميل مسودة الإرسالات",
+      "loadingDraftSubmissions": "جارٍ تحميل مسودات التقديمات...",
+      "noFilesAttached": "لا توجد ملفات مرفقة",
+      "attachedFiles": "الملفات المرفقة",
+      "noTextResponseProvided": "لم يتم تقديم أي رد نصي",
+      "textResponse": "استجابة النص",
+      "percentageResponse": "استجابة النسبة المئوية",
+      "yesNoResponse": "نعم/لا الرد",
+      "failedToApprove": "فشل في الموافقة على التقييم."
     },
     "actionPlan": {
       "kanban": {
-        "backToDone": "Back to Done",
-        "backToInProgress": "Back to In Progress",
-        "moveToDone": "Move to Done",
-        "backToTodo": "Back to To Do",
-        "moveToInProgress": "Move to In Progress",
-        "approve": "Approve",
-        "noTasks": "No tasks in ${column.title.toLowerCase()}"
+        "backToDone": "العودة إلى تم",
+        "backToInProgress": "العودة إلى قيد التقدم",
+        "moveToDone": "الانتقال إلى تم",
+        "backToTodo": "العودة إلى القيام به",
+        "moveToInProgress": "الانتقال إلى قيد التقدم",
+        "approve": "يعتمد",
+        "noTasks": "لا توجد مهام في ${column.title.toLowerCase()}"
       },
-      "noRecommendationsDescription": "There are no recommendations for this submission.",
-      "noRecommendations": "No Recommendations Available",
-      "title": "Action Plan"
+      "noRecommendationsDescription": "لا توجد توصيات لهذا التقديم.",
+      "noRecommendations": "لا توجد توصيات متاحة",
+      "title": "خطة العمل"
     }
   },
   "manageUsers.selectOrganization": "اختر منظمة",
@@ -791,9 +791,9 @@
     "noText": "لا يوجد نص متاح.",
     "categoriesLoadError": "فشل تحميل الفئات. يرجى المحاولة مرة أخرى.",
     "retry": "حاول مرة أخرى",
-    "loadingQuestions": "Loading questions...",
-    "englishQuestion": "English Question",
-    "additionalLanguagesOptional": "Additional Languages (Optional)"
+    "loadingQuestions": "جارٍ تحميل الأسئلة...",
+    "englishQuestion": "سؤال انجليزي",
+    "additionalLanguagesOptional": "لغات إضافية (اختياري)"
   },
   "userInvitation": {
     "title": "إنشاء دعوة مستخدم",
@@ -887,10 +887,6 @@
   "assessment.selectAssessment": "اختر تقييم",
   "assessment.selectAssessmentDescription": "اختر تقييماً للمتابعة أو أنشئ واحداً جديداً.",
   "assessment.createNewAssessment": "إنشاء تقييم جديد",
-  "common.cancel": "إلغاء",
-  "common.creating": "جاري الإنشاء...",
-  "manageQuestions.noCategories": "لا توجد فئات متاحة. يرجى إنشاء فئات أولاً!",
-  "manageQuestions.noText": "لا يوجد نص متاح.",
   "userGuide": {
     "title": "دليل المستخدم للتعاونيات",
     "subtitle": "دليل شامل لاستخدام منصة تقييم الاستدامة DGRV",
@@ -1202,12 +1198,12 @@
     "reviewSavedLocally": "تم حفظ المراجعة محلياً. سيتم المزامنة عند الاتصال.",
     "failedToSubmitReview": "فشل إرسال المراجعة",
     "manualSyncFailed": "فشل المزامنة اليدوية",
-    "reviewerNotFound": "Reviewer information not found. Please log in again.",
-    "attachments": "Attachments",
-    "assessmentName": "Assessment Name",
-    "unknownAssessment": "Unknown Assessment",
-    "queueFailed": "Failed to queue review for submission.",
-    "reviewQueued": "Review has been queued for submission."
+    "reviewerNotFound": "لم يتم العثور على معلومات المراجع. الرجاء تسجيل الدخول مرة أخرى.",
+    "attachments": "المرفقات",
+    "assessmentName": "اسم التقييم",
+    "unknownAssessment": "تقييم غير معروف",
+    "queueFailed": "فشل في قائمة انتظار المراجعة للإرسال.",
+    "reviewQueued": "تم وضع المراجعة في قائمة الانتظار لتقديمها."
   },
   "reportHistory": {
     "title": "سجل التقارير",
@@ -1243,9 +1239,9 @@
     "recommendation": "التوصية",
     "recommendationCount": "{{count}} توصية",
     "recommendationCount_plural": "{{count}} توصيات",
-    "close": "Close",
-    "noDetails": "No details available for this report.",
-    "report": "Report"
+    "close": "يغلق",
+    "noDetails": "لا توجد تفاصيل متاحة لهذا التقرير.",
+    "report": "تقرير"
   },
   "assignCategories": {
     "title": "تعيين الفئات إلى {{org}}",
@@ -1283,99 +1279,99 @@
   "adminActionPlans": {
     "recommendation": "التوصية",
     "close": "إغلاق",
-    "todo": "To Do",
-    "inProgress": "In Progress",
-    "done": "Done",
-    "approved": "Approved",
-    "retry": "Retry",
-    "loadingActionPlans": "Loading action plans...",
-    "errorLoadingActionPlans": "Error loading action plans",
-    "noActionPlans": "No action plans available",
-    "noActionPlansDescription": "There are no action plans to display at this time."
+    "todo": "للقيام",
+    "inProgress": "في تَقَدم",
+    "done": "منتهي",
+    "approved": "موافقة",
+    "retry": "أعد المحاولة",
+    "loadingActionPlans": "جارٍ تحميل خطط العمل...",
+    "errorLoadingActionPlans": "حدث خطأ أثناء تحميل خطط العمل",
+    "noActionPlans": "لا توجد خطط عمل متاحة",
+    "noActionPlansDescription": "لا توجد خطط عمل لعرضها في هذا الوقت."
   },
   "staticText": {
     "navbar": {
       "logoAlt": "شعار DGRV",
       "navigation": "التنقل",
       "brand": "DGRV",
-      "toggleMenu": "Toggle menu"
+      "toggleMenu": "تبديل القائمة"
     },
     "organizations": {
       "addNewOrganization": "إضافة منظمة جديدة",
       "organizationName": "اسم المنظمة",
       "organizationNamePlaceholder": "أدخل اسم المنظمة",
       "domainPlaceholder": "أدخل النطاق (مثال: adorsys.com)",
-      "nameRequired": "Name is required",
-      "description": "Description",
-      "addDomain": "+ Add Domain",
-      "domainRequired": "At least one domain is required"
+      "nameRequired": "الاسم مطلوب",
+      "description": "وصف",
+      "addDomain": "+ إضافة المجال",
+      "domainRequired": "مطلوب مجال واحد على الأقل"
     },
     "home": {
-      "organizationRequiredStart": "You need to be part of an organisation to start an assessment.",
-      "logoAlt": "Sustainability Portal Logo",
-      "organizationRequiredView": "You need to be part of an organisation to view assessments.",
-      "authRedirectFailed": "Failed to redirect to authentication. Please try again."
+      "organizationRequiredStart": "يجب أن تكون جزءًا من منظمة لبدء التقييم.",
+      "logoAlt": "شعار بوابة الاستدامة",
+      "organizationRequiredView": "يجب أن تكون جزءًا من مؤسسة لعرض التقييمات.",
+      "authRedirectFailed": "فشل إعادة التوجيه إلى المصادقة. يرجى المحاولة مرة أخرى."
     },
     "users": {
-      "createError": "Failed to create user",
-      "currentOrganization": "Current organization",
-      "inviteUserNoPlus": "Invite User",
-      "createQueued": "User saved locally and will sync when online",
-      "createSuccess": "User created successfully",
-      "deleteEntirelyError": "Failed to delete user entirely",
-      "deleteEntirelySuccess": "User deleted entirely from system",
-      "removeFromOrgError": "Failed to remove user from organization",
-      "removeFromOrgSuccess": "User removed from organization successfully",
-      "updateError": "Failed to update user",
-      "updateSuccess": "User updated successfully",
-      "loadingCategories": "Loading categories...",
-      "categories": "Categories",
-      "inviteNewUser": "Invite New User",
-      "addManageAcross": "Add and manage users across",
-      "inviteUser": "+ Invite User",
-      "deleteError": "Failed to delete user",
-      "deleteSuccess": "User deleted successfully",
-      "notFound": "User not found",
-      "updateCategoriesRetry": "Failed to update user categories. Will retry when online."
+      "createError": "فشل في إنشاء المستخدم",
+      "currentOrganization": "التنظيم الحالي",
+      "inviteUserNoPlus": "دعوة المستخدم",
+      "createQueued": "تم حفظ المستخدم محليًا وسيتم مزامنته عند الاتصال بالإنترنت",
+      "createSuccess": "تم إنشاء المستخدم بنجاح",
+      "deleteEntirelyError": "فشل في حذف المستخدم بالكامل",
+      "deleteEntirelySuccess": "تم حذف المستخدم بالكامل من النظام",
+      "removeFromOrgError": "فشلت إزالة المستخدم من المؤسسة",
+      "removeFromOrgSuccess": "تمت إزالة المستخدم من المؤسسة بنجاح",
+      "updateError": "فشل تحديث المستخدم",
+      "updateSuccess": "تم تحديث المستخدم بنجاح",
+      "loadingCategories": "جارٍ تحميل الفئات...",
+      "categories": "فئات",
+      "inviteNewUser": "دعوة مستخدم جديد",
+      "addManageAcross": "إضافة وإدارة المستخدمين عبر",
+      "inviteUser": "+ دعوة المستخدم",
+      "deleteError": "فشل حذف المستخدم",
+      "deleteSuccess": "تم حذف المستخدم بنجاح",
+      "notFound": "لم يتم العثور على المستخدم",
+      "updateCategoriesRetry": "فشل تحديث فئات المستخدمين. سيتم إعادة المحاولة عند الاتصال بالإنترنت."
     },
     "unauthorized": {
-      "description": "You do not have permission to view this page.",
-      "goHome": "Go to home"
+      "description": "ليس لديك الإذن لعرض هذه الصفحة.",
+      "goHome": "اذهب إلى المنزل"
     },
     "files": {
-      "image": "Image",
-      "download": "Download",
-      "unknownFile": "Unknown file"
+      "image": "صورة",
+      "download": "تحميل",
+      "unknownFile": "ملف غير معروف"
     },
     "sync": {
-      "pending": "{{count}} Pending",
-      "offline": "Offline",
-      "online": "Online"
+      "pending": "{{عدد}} معلق",
+      "offline": "غير متصل",
+      "online": "متصل"
     },
     "assessment": {
-      "showPercentageExplanation": "Show percentage explanation"
+      "showPercentageExplanation": "عرض شرح النسبة المئوية"
     },
     "assessments": {
-      "retrievingSubmissions": "Retrieving your submissions..."
+      "retrievingSubmissions": "جارٍ استرداد مشاركاتك..."
     },
     "submissionView": {
-      "loadError": "Error loading submission details.",
-      "noFilesUploaded": "No files uploaded",
-      "fileNumber": "File {{count}}",
-      "files": "Files",
-      "noAnswer": "No answer",
-      "textResponse": "Text Response"
+      "loadError": "حدث خطأ أثناء تحميل تفاصيل الإرسال.",
+      "noFilesUploaded": "لم يتم تحميل أي ملفات",
+      "fileNumber": "ملف {{عدد}}",
+      "files": "ملفات",
+      "noAnswer": "لا إجابة",
+      "textResponse": "استجابة النص"
     },
     "actionPlan": {
-      "approve": "Approve",
-      "recommendation": "Recommendation",
-      "statusUpdateError": "Failed to update status",
-      "statusUpdateSuccess": "Status updated successfully",
-      "recommendationNotFound": "Recommendation not found."
+      "approve": "يعتمد",
+      "recommendation": "توصية",
+      "statusUpdateError": "فشل تحديث الحالة",
+      "statusUpdateSuccess": "تم تحديث الحالة بنجاح",
+      "recommendationNotFound": "لم يتم العثور على التوصية."
     },
     "common": {
-      "close": "Close",
-      "deleting": "Deleting..."
+      "close": "يغلق",
+      "deleting": "جارٍ الحذف..."
     }
   },
   "reportSelection": {
@@ -1452,8 +1448,8 @@
     "de": "Deutsch",
     "fr": "Français"
   },
-  "loadingPortal": "Loading Sustainability Portal...",
-  "loadingQuestions": "Loading questions...",
+  "loadingPortal": "جاري تحميل بوابة الاستدامة...",
+  "loadingQuestions": "جارٍ تحميل الأسئلة...",
   "actions": {
     "manageOrganizations": "إدارة المنظمات",
     "manageOrganizationsDesc": "إضافة وتعديل وإدارة المنظمات التعاونية في النظام.",
@@ -1523,16 +1519,15 @@
     "status": "الحالة"
   },
   "submission": {
-    "deleteError": "Failed to delete submission"
+    "deleteError": "فشل حذف الإرسال"
   },
-  "of": "of",
-  "delete": "Delete",
-  "deleting": "Deleting...",
-  "completed": "Completed",
-  "question": "Question",
+  "of": "ل",
+  "delete": "يمسح",
+  "deleting": "جارٍ الحذف...",
+  "completed": "مكتمل",
+  "question": "سؤال",
   "error": {
-    "goBack": "Go Back",
-    "title": "An Error Occurred"
-  },
-  "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces."
+    "goBack": "عُد",
+    "title": "حدث خطأ"
+  }
 }
