@@ -128,7 +128,9 @@
     "submittedOn": "Eingereicht am",
     "noSubmissionsAvailable": "Keine Einsendungen verfügbar",
     "noSubmissionsDescription": "Es sind keine Einreichungen zum Anzeigen von Aktionsplänen verfügbar.",
-    "backToDashboard": "Zurück zum Dashboard"
+    "backToDashboard": "Zurück zum Dashboard",
+    "noDraftAssessmentsAvailable": "Keine Bewertungsentwürfe verfügbar",
+    "noDraftAssessmentsDescription": "Es wurden noch keine Beurteilungsentwürfe erstellt."
   },
   "submit": "Absenden",
   "next": "Weiter",
@@ -671,7 +673,8 @@
         "underReview": "In Prüfung",
         "rejected": "Abgelehnt",
         "revisionRequested": "Überarbeitung angefordert",
-        "unknown": "Unbekannt"
+        "unknown": "Unbekannt",
+        "reviewed": "Bewertet"
       },
       "loadingSubmissionsInline": "Einreichungen werden geladen...",
       "user": "Benutzer",

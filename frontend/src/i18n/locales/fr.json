@@ -128,7 +128,9 @@
     "submittedOn": "Soumis le",
     "noSubmissionsAvailable": "Aucune soumission disponible",
     "noSubmissionsDescription": "Aucune soumission n'est disponible pour consulter les plans d'action.",
-    "backToDashboard": "Retour au tableau de bord"
+    "backToDashboard": "Retour au tableau de bord",
+    "noDraftAssessmentsAvailable": "Aucune ébauche d'évaluation disponible",
+    "noDraftAssessmentsDescription": "Aucune ébauche d’évaluation n’a encore été créée."
   },
   "submit": "Soumettre",
   "next": "Suivant",
@@ -671,7 +673,8 @@
         "underReview": "En cours d'examen",
         "rejected": "Rejeté",
         "revisionRequested": "Révision demandée",
-        "unknown": "Inconnu"
+        "unknown": "Inconnu",
+        "reviewed": "Révisé"
       },
       "loadingSubmissionsInline": "Chargement des soumissions...",
       "user": "Utilisateur",

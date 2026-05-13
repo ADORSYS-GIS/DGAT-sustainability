@@ -128,7 +128,9 @@
     "submittedOn": "تم تقديمه بتاريخ",
     "noSubmissionsAvailable": "لا توجد طلبات متاحة",
     "noSubmissionsDescription": "لا توجد طلبات متاحة لعرض خطط العمل.",
-    "backToDashboard": "العودة إلى لوحة القيادة"
+    "backToDashboard": "العودة إلى لوحة القيادة",
+    "noDraftAssessmentsAvailable": "لا توجد مسودة تقييمات متاحة",
+    "noDraftAssessmentsDescription": "لم يتم إنشاء مسودة التقييمات حتى الآن."
   },
   "submit": "إرسال",
   "next": "التالي",
@@ -670,8 +672,9 @@
         "pendingReview": "في انتظار المراجعة",
         "underReview": "قيد المراجعة",
         "rejected": "مرفوض",
-        "revisionRequested": "مطلوب مراجعة",
-        "unknown": "غير معروف"
+        "revisionRequested": "المراجعة المطلوبة",
+        "unknown": "مجهول",
+        "reviewed": "تمت المراجعة"
       },
       "loadingSubmissionsInline": "جاري تحميل التقديمات...",
       "user": "المستخدم",

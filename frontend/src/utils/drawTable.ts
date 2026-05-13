@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { getTableStyles } from "./tableStyles";
 import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 import type { UserOptions } from 'jspdf-autotable';
-import { addHeader } from "./exportPDF"; // Import addHeader
+import type { TFunction } from "i18next";
 import { normalizeCategoryName } from "./categoryUtils";
 
 interface jsPDFWithAutoTable extends jsPDF {
@@ -76,8 +76,20 @@ export const drawAssessmentsTable = (
   submissions: AdminSubmissionDetail[],
   recommendations: RecommendationWithStatus[],
   organizationName?: string,
-  assessmentName?: string
+  assessmentName?: string,
+  t?: TFunction
 ) => {
+  // Default translation function if not provided
+  const translate = t || ((key: string, options?: Record<string, unknown>) => key);
+  const addHeaderWithTranslate = (doc: jsPDF) => {
+    const pageCount = doc.getNumberOfPages();
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(translate('export.sustainabilityReport'), 14, 10);
+    doc.text(translate('export.page', { count: pageCount }), doc.internal.pageSize.width - 14 - doc.getTextWidth(translate('export.page', { count: pageCount })), 10);
+    doc.setDrawColor(30, 58, 138);
+    doc.line(14, 12, doc.internal.pageSize.width - 14, 12);
+  };
   if (!submissions || submissions.length === 0) {
     return;
   }
@@ -134,7 +146,7 @@ export const drawAssessmentsTable = (
       // If the next category title wouldn't fit on this page, start a new page
       if (currentY + 40 > doc.internal.pageSize.height) {
         doc.addPage();
-        addHeader(doc);
+        addHeaderWithTranslate(doc);
         currentY = 38;
       }
     }
@@ -159,7 +171,7 @@ export const drawAssessmentsTable = (
       body: body as UserOptions['body'],
       ...styles,
       didDrawPage: (data) => {
-        addHeader(doc);
+        addHeaderWithTranslate(doc);
 
         const currentPageNumber = doc.internal.getCurrentPageInfo().pageNumber;
         if (currentPageNumber !== sectionStartPage) {

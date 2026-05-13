@@ -128,7 +128,9 @@
     "submittedOn": "Kuthunyelwe kuvuliwe",
     "noSubmissionsAvailable": "Akukho Okuthunyelwe Okutholakalayo",
     "noSubmissionsDescription": "Akukho okuthunyelwe okutholakalayo ukuze kubukwe izinhlelo zokusebenza.",
-    "backToDashboard": "Buyela Kudeshibhodi"
+    "backToDashboard": "Buyela Kudeshibhodi",
+    "noDraftAssessmentsAvailable": "Akukho Ukuhlola Okusalungiswa Okutholakalayo",
+    "noDraftAssessmentsDescription": "Akukho ukuhlola okusalungiswa okudaliwe okwamanje."
   },
   "submit": "Thumela",
   "next": "Olandelayo",
@@ -670,8 +672,9 @@
         "pendingReview": "Kulindele Ukubuyekezwa",
         "underReview": "Kuyabuyekezwa",
         "rejected": "Kwenqatshiwe",
-        "revisionRequested": "Kuceliwe Ukubuyekezwa",
-        "unknown": "Akwaziwa"
+        "revisionRequested": "Kucelwe Ukubuyekeza",
+        "unknown": "Akwaziwa",
+        "reviewed": "Kubuyekeziwe"
       },
       "loadingSubmissionsInline": "Ukuthunyelwe kuyafakwa...",
       "user": "Umsebenzisi",

@@ -157,7 +157,9 @@
       "fetchCategories": "Failed to load categories."
     },
     "noCategoriesAssigned": "Sorry, no categories have been assigned yet to your organisation. Contact the admin.",
-    "selectCategories": "Select Categories"
+    "selectCategories": "Select Categories",
+    "noDraftAssessmentsAvailable": "No Draft Assessments Available",
+    "noDraftAssessmentsDescription": "No draft assessments have been created yet."
   },
   "submit": "Submit",
   "next": "Next",
@@ -700,7 +702,8 @@
         "underReview": "Under Review",
         "rejected": "Rejected",
         "revisionRequested": "Revision Requested",
-        "unknown": "Unknown"
+        "unknown": "Unknown",
+        "reviewed": "Reviewed"
       },
       "loadingSubmissionsInline": "Loading submissions...",
       "user": "User",

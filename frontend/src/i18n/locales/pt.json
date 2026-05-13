@@ -128,7 +128,9 @@
     "submittedOn": "Enviado em",
     "noSubmissionsAvailable": "Nenhum envio disponível",
     "noSubmissionsDescription": "Nenhum envio está disponível para visualização de planos de ação.",
-    "backToDashboard": "Voltar ao painel"
+    "backToDashboard": "Voltar ao painel",
+    "noDraftAssessmentsAvailable": "Nenhuma avaliação preliminar disponível",
+    "noDraftAssessmentsDescription": "Nenhum projeto de avaliação foi criado ainda."
   },
   "submit": "Submeter",
   "next": "Seguinte",
@@ -670,8 +672,9 @@
         "pendingReview": "Pendente de Revisão",
         "underReview": "Em Revisão",
         "rejected": "Rejeitado",
-        "revisionRequested": "Revisão Solicitada",
-        "unknown": "Desconhecido"
+        "revisionRequested": "Revisão solicitada",
+        "unknown": "Desconhecido",
+        "reviewed": "Revisado"
       },
       "loadingSubmissionsInline": "A carregar submissões...",
       "user": "Utilizador",
