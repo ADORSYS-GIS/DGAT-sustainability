@@ -27,7 +27,14 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
   organizationName,
   onInvitationCreated
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
+
+  // Helper function to get translated category name
+  const getCategoryDisplayName = (category: any) => {
+    const translations = category?.name_translations as Record | undefined;
+    return translations?.[currentLanguage] || category?.name || "";
+  };
   const [formData, setFormData] = useState<OrgAdminMemberRequest>({
     email: '',
     first_name: '',
@@ -366,7 +373,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
                         }));
                       }}
                     />
-                    <span>{cat.name}</span>
+                    <span>{getCategoryDisplayName(cat)}</span>
                   </label>
                 ))
               )}

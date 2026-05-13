@@ -354,6 +354,16 @@ class OfflineDB {
     await db.delete("questions", questionId);
   }
 
+  async deleteQuestionsByCategory(categoryId: string): Promise {
+    const db = await this.dbPromise;
+    const tx = db.transaction("questions", "readwrite");
+    const index = tx.store.index("category_id");
+    const questions = await index.getAll(categoryId);
+    await Promise.all(questions.map(q => tx.store.delete(q.question_id)));
+    await tx.done;
+    return questions.length;
+  }
+
   // ===== ASSESSMENTS =====
   async saveAssessment(assessment: OfflineAssessment): Promise<string> {
     const db = await this.dbPromise;

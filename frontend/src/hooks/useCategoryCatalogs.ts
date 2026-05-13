@@ -133,7 +133,9 @@ export const useOfflineCategoryCatalogsMutation = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (categoryCatalogId: string) => {
+      // Delete the category and associated questions from IndexedDB
       await offlineDB.deleteCategoryCatalog(categoryCatalogId);
+      const deletedQuestionsCount = await offlineDB.deleteQuestionsByCategory(categoryCatalogId);
 
       if (!categoryCatalogId.startsWith('temp-')) {
         apiInterceptor.interceptMutation(
@@ -147,25 +149,42 @@ export const useOfflineCategoryCatalogsMutation = () => {
           'delete'
         );
       }
-      return { categoryCatalogId };
+      return { categoryCatalogId, deletedQuestionsCount };
     },
     onMutate: async (categoryCatalogId: string) => {
+      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['category-catalogs'] });
-      const previousCategories = queryClient.getQueryData<OfflineCategoryCatalog[]>(['category-catalogs']);
+      await queryClient.cancelQueries({ queryKey: ['questions'] });
 
-      queryClient.setQueryData<OfflineCategoryCatalog[]>(['category-catalogs'], (old) =>
+      // Get current data for rollback
+      const previousCategories = queryClient.getQueryData(['category-catalogs']);
+      const previousQuestions = queryClient.getQueryData(['questions']);
+
+      // Optimistically remove the category from cache
+      queryClient.setQueryData(['category-catalogs'], (old) =>
         old?.filter((c) => c.category_catalog_id !== categoryCatalogId)
       );
 
-      return { previousCategories };
+      // Optimistically remove associated questions from cache
+      queryClient.setQueryData(['questions'], (old) =>
+        old?.filter((q) => q.category_id !== categoryCatalogId)
+      );
+
+      return { previousCategories, previousQuestions };
     },
     onError: (_err, _categoryCatalogId, context) => {
+      // Rollback to previous state on error
       if (context?.previousCategories) {
         queryClient.setQueryData(['category-catalogs'], context.previousCategories);
       }
+      if (context?.previousQuestions) {
+        queryClient.setQueryData(['questions'], context.previousQuestions);
+      }
     },
     onSuccess: () => {
+      // Invalidate queries to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['category-catalogs'] });
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
     },
   });
 

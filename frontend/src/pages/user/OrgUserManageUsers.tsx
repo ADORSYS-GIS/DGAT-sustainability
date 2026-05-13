@@ -231,7 +231,14 @@ function useUserMutations() {
 export const OrgUserManageUsers: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
+
+  // Helper function to get translated category name
+  const getCategoryDisplayName = (category: any) => {
+    const translations = category?.name_translations as Record | undefined;
+    return translations?.[currentLanguage] || category?.name || "";
+  };
 
   const { orgName, orgId } = useMemo(() => {
     if (!user || !user.organizations) return { orgName: "", orgId: "" };
@@ -272,14 +279,14 @@ export const OrgUserManageUsers: React.FC = () => {
   );
 
   const categoryIdToNameMap = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map();
     availableCategories.forEach(cat => {
-      if (cat.category_catalog_id && cat.name) {
-        map.set(cat.category_catalog_id, cat.name);
+      if (cat.category_catalog_id) {
+        map.set(cat.category_catalog_id, getCategoryDisplayName(cat));
       }
     });
     return map;
-  }, [availableCategories]);
+  }, [availableCategories, currentLanguage]);
   const [formData, setFormData] = useState({
     email: "",
     roles: ["Org_User"],
@@ -487,7 +494,7 @@ export const OrgUserManageUsers: React.FC = () => {
                               }));
                             }}
                           />
-                          <span>{cat.name}</span>
+                          <span>{getCategoryDisplayName(cat)}</span>
                         </label>
                       ))
                     )}

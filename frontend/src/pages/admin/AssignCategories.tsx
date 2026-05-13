@@ -23,6 +23,7 @@ import type {
 } from '@/openapi-rq/requests/types.gen';
 import Select, { MultiValue } from 'react-select';
 import { useTranslation } from 'react-i18next';
+import { useOfflineCategoryCatalogs } from '@/hooks/useCategoryCatalogs';
 
 interface OptionType {
   value: string;
@@ -44,8 +45,12 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { t } = useTranslation();
-  const { data: categoryCatalogs } = useGetCategoryCatalogs();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
+
+  // Use offline hook to get categories with translations
+  const { data: offlineCategoryCatalogs } = useOfflineCategoryCatalogs();
+
   const { data: orgCategories, refetch } = useGetOrganizationCategories(
     {
       keycloakOrganizationId: organization!.id!,
@@ -60,7 +65,13 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
   const updateCategory = useUpdateOrganizationCategory();
 
   const [selectedCategories, setSelectedCategories] = useState<MultiValue<OptionType>>([]);
-  const [weights, setWeights] = useState<{ [key: string]: number }>({});
+  const [weights, setWeights] = useState({});
+
+  // Helper function to get translated category name
+  const getCategoryDisplayName = (category: any) => {
+    const translations = category?.name_translations as Record | undefined;
+    return translations?.[currentLanguage] || category?.name || "";
+  };
 
   useEffect(() => {
     if (!organization) {
@@ -72,7 +83,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
     if (orgCategories) {
       const typedOrgCategories = orgCategories as unknown as OrganizationCategoriesResponse;
       const selected =
-        categoryCatalogs?.category_catalogs?.filter((cat) =>
+        offlineCategoryCatalogs?.filter((cat) =>
           typedOrgCategories.organization_categories?.some(
             (orgCat) =>
               orgCat.category_catalog_id === cat.category_catalog_id
@@ -81,7 +92,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
       setSelectedCategories(
         selected.map((c) => ({
           value: c.category_catalog_id,
-          label: c.name,
+          label: getCategoryDisplayName(c),
         }))
       );
       const initialWeights =
@@ -97,7 +108,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
       setSelectedCategories([]);
       setWeights({});
     }
-  }, [organization, orgCategories, categoryCatalogs]);
+  }, [organization, orgCategories, offlineCategoryCatalogs]);
 
   const handleCategoryChange = (selectedOptions: MultiValue<OptionType>) => {
     setSelectedCategories(selectedOptions);
@@ -199,9 +210,9 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
   };
 
   const categoryOptions =
-    categoryCatalogs?.category_catalogs?.map((cat) => ({
+    offlineCategoryCatalogs?.map((cat) => ({
       value: cat.category_catalog_id,
-      label: cat.name,
+      label: getCategoryDisplayName(cat),
     })) || [];
 
   return (

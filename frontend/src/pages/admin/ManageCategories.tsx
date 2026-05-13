@@ -14,7 +14,8 @@ import {
   useOfflineSyncStatus
 } from "@/hooks/useOfflineSync";
 import { useOfflineCategoryCatalogs, useOfflineCategoryCatalogsMutation } from "@/hooks/useCategoryCatalogs";
-import { OfflineCategoryCatalog } from "@/types/offline";
+import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
+import { OfflineCategoryCatalog, OfflineQuestion } from "@/types/offline";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
@@ -61,8 +62,15 @@ export const ManageCategories: React.FC = () => {
 
   // Use offline hooks for all data fetching
   const { data: categoriesData, isLoading, error, refetch } = useOfflineCategoryCatalogs();
+  const { data: questionsData } = useOfflineQuestions();
 
   const categories = categoriesData || [];
+  const questions = questionsData || [];
+
+  // Calculate question counts per category
+  const getQuestionCountForCategory = (categoryId: string) => {
+    return questions.filter((q: OfflineQuestion) => q.category_id === categoryId).length;
+  };
 
   // Use enhanced offline mutation hooks
   const mutationHooks = useOfflineCategoryCatalogsMutation();
@@ -394,10 +402,13 @@ export const ManageCategories: React.FC = () => {
                     key={category.category_catalog_id}
                     className="flex items-center justify-between p-4 border rounded-lg"
                   >
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-medium text-lg">{getCategoryDisplayName(category)}</h3>
                       <p className="text-sm text-gray-600">
                         {getCategoryDisplayDescription(category)}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {getQuestionCountForCategory(category.category_catalog_id)} {getQuestionCountForCategory(category.category_catalog_id) === 1 ? t('common.question') : t('common.questions')}
                       </p>
                     </div>
                     <div className="flex space-x-2">
