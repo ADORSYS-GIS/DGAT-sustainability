@@ -884,6 +884,13 @@
   "assessment.draftSubmittedSuccessfully": "Ukuhlolwa kuthunyelwe ukuze kuvunyelwe umphathi!",
   "assessment.draftQueuedForSync": "Ukuhlolwa kugcinwe offline futhi kuzothunyelwa ukuze kuvunyelwe uma kuxhunyiwe.",
   "assessment.failedToSubmitDraft": "Kwehlulekile ukuthumela ukuhlolwa ukuze kuvunyelwe.",
+  "assessment.offlineCreated": "Ukuhlolwa kwadalwa ngaphandle kwe-inthanethi. Kuzosyncha uma ubuyela ku-online.",
+  "assessment.createdSuccessfully": "Ukuhlolwa kwadalwe ngempumelelo!",
+  "assessment.failedToSubmit": "Kwehlulekile ukuthumela ukuhlola.",
+  "assessment.responsesSavedPortionComplete": "Izimpendulo zigcinwe ngempumelelo!",
+  "assessment.failedToSaveResponses": "Kwehlulekile ukugcina izimpendulo.",
+  "assessment.incompleteCategories": "Sicela uqedele zonke izigaba ngaphambi kokuthumela.",
+  "assessment.noResponsesToSubmit": "Azikho izimpendulo zokuthumela.",
   "assessment.createAssessment": "Yakha Ukuhlola",
   "assessment.assessmentName": "Igama Lokuhlola",
   "assessment.enterAssessmentName": "Faka igama lokuhlola...",
@@ -1549,6 +1556,7 @@
     "status": "Isimo"
   },
   "submission": {
+    "deleted": "Ukuthunyelwa kususiwe ngempumelelo",
     "deleteError": "Yehlulekile ukususa okuthunyelwe"
   },
   "of": "kwe",
@@ -1561,5 +1569,32 @@
     "title": "Kwenzeke Iphutha"
   },
   "backToDashboard": "Buyela Kudeshibhodi",
-  "assessmentLabel": "Ukuhlola"
+  "assessmentLabel": "Ukuhlola",
+  "export": {
+    "sustainabilityReport": "Umbiko Wesimo Semvelo",
+    "page": "Ikhasi {{count}}",
+    "dgrv": "DGRV",
+    "sustainability": "Isimo Semvelo",
+    "sustainabilityReportTitle": "UMBIKO WESIMO SEMVELO",
+    "organisation": "Inhlangano",
+    "assessment": "Ukuhlola",
+    "allAssessments": "Ukuhlola Kwonkhe",
+    "reportIntro": "Lombiko uveza imiphumela yokuhlola isimo semvelo, unikeza uhlaziyo lwezigaba ezibalulekile zemvelo, zentfutfuko yemiphakatsi kanye nembandzela (ESG).",
+    "sustainabilityDimensionsOverview": "Uhlaziyo Lwezigaba Zesimo Semvelo",
+    "sustainabilityDimensionsIntro": "Lelichati likhombisa ukusebenta kwezigaba ezibalulekile zesimo semvelo, lunikeza uhlaziyo lwekuphakama lwemandla netindawo tekuthuthukisa.",
+    "recommendationStatusOverview": "Uhlaziyo Lwesimo Sezincomo",
+    "recommendationStatusIntro": "Lelichati lisho lokucophelela kwesimo sezincomo zonkhe, likhombisa inqubekelaphambili ekusetjentisweni kwetentoleti tacondisiwe.",
+    "actionPlanKanbanBoard": "Ibhodi Lekanban Lohlelo Lwezenzo",
+    "kanbanBoardIntro": "Leli bhodi lekanban linikeza sikhashana sokubona ukuze kulandelwe inqubekelaphambili yaleso nalesona sincumo. Imisebenzi ihlelwe ngokwesimo sayo okwamanje, kusukela 'Kumele Kwenziwe' kuya 'Kuvunyelwe', kwesekele ukuphatsa kwetiprojekthi ngempumelelo.",
+    "detailedAssessmentResults": "Imiphumela Yekuhlola Lecondzile",
+    "tableIntro": "Lethebula langenhla liveza uhlaziyo lwemiphumela yekuhlola, ihlelwe ngesigaba sesimo semvelo. Kufaka imibuto leyintshonalanga, izimpendulo zetfunyelwe kanye nezincomo zehambisana nazo.",
+    "question": "Umbuzo",
+    "yesNo": "Impendulo (Yebo/Cha)",
+    "percentage": "Iphesenti",
+    "textAnswer": "Impendulo Yombhalo",
+    "recommendations": "Izincomo",
+    "yes": "Yebo",
+    "no": "Cha",
+    "na": "N/A"
+  }
 }

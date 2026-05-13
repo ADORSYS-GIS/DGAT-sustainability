@@ -50,9 +50,9 @@ const groupDataByCategory = (
           if (response.response) {
             try {
               const parsed = JSON.parse(response.response);
-              answer = parsed.yesNo ? "Yes" : "No";
+              answer = parsed.yesNo ? (translate('export.yes') || "Yes") : (translate('export.no') || "No");
               percentage = `${parsed.percentage || 0}%`;
-              textAnswer = parsed.text || "N/A";
+              textAnswer = parsed.text || (translate('export.na') || "N/A");
             } catch (e) {
               textAnswer = response.response;
             }
@@ -139,10 +139,10 @@ const createKanbanBoard = (recommendations: RecommendationWithStatus[]) => {
   };
 
   const columnTitles = {
-    todo: "To Do",
-    in_progress: "In Progress",
-    done: "Done",
-    approved: "Approved",
+    todo: translate('user.dashboard.actionPlan.kanban.todo') || "To Do",
+    in_progress: translate('user.dashboard.actionPlan.kanban.inProgress') || "In Progress",
+    done: translate('user.dashboard.actionPlan.kanban.done') || "Done",
+    approved: translate('user.dashboard.actionPlan.kanban.approved') || "Approved",
   };
 
   const maxTasks = Math.max(
@@ -193,10 +193,10 @@ const createKanbanBoard = (recommendations: RecommendationWithStatus[]) => {
   return [
     new Paragraph({ text: "", pageBreakBefore: true }),
     new Paragraph({
-      children: [new TextRun({ text: "Action Plan Kanban Board", size: 36, bold: true, color: dgrvBlue })],
+      children: [new TextRun({ text: translate('export.actionPlanKanbanBoard'), size: 36, bold: true, color: dgrvBlue })],
       spacing: { after: 100 },
     }),
-    new Paragraph("This Kanban board provides a visual tool to track the progress of each recommendation."),
+    new Paragraph(translate('export.kanbanBoardIntro')),
     table,
   ];
 };
@@ -311,10 +311,10 @@ export async function exportAllAssessmentsDOCX(
         properties: {},
         children: [
           new Paragraph({
-            children: [new TextRun({ text: "Sustainability Dimensions Overview", size: 36, bold: true, color: dgrvBlue })],
+            children: [new TextRun({ text: translate('export.sustainabilityDimensionsOverview'), size: 36, bold: true, color: dgrvBlue })],
             spacing: { after: 100 },
           }),
-          new Paragraph("The following chart visualizes the performance across key sustainability dimensions, providing a high-level overview of strengths and areas for improvement."),
+          new Paragraph(translate('export.sustainabilityDimensionsIntro')),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
@@ -340,10 +340,10 @@ export async function exportAllAssessmentsDOCX(
         children: [
           new Paragraph({ text: "", pageBreakBefore: true }),
           new Paragraph({
-            children: [new TextRun({ text: "Recommendation Status Overview", size: 36, bold: true, color: dgrvBlue })],
+            children: [new TextRun({ text: translate('export.recommendationStatusOverview'), size: 36, bold: true, color: dgrvBlue })],
             spacing: { after: 100 },
           }),
-          new Paragraph("This chart summarizes the current status of all recommendations, illustrating the progress made in implementing the suggested actions."),
+          new Paragraph(translate('export.recommendationStatusIntro')),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
@@ -366,10 +366,10 @@ export async function exportAllAssessmentsDOCX(
     children: [
       new Paragraph({ text: "", pageBreakBefore: true }),
       new Paragraph({
-        children: [new TextRun({ text: "Detailed Assessment Results", size: 36, bold: true, color: dgrvBlue })],
+        children: [new TextRun({ text: translate('export.detailedAssessmentResults'), size: 36, bold: true, color: dgrvBlue })],
         spacing: { after: 100 },
       }),
-      new Paragraph("The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations."),
+      new Paragraph(translate('export.tableIntro')),
       ...createAssessmentsTable(submissions, recommendations),
     ],
   });

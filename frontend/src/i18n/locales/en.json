@@ -172,6 +172,10 @@
   "noSubmissions": "No submissions yet",
   "submissionDeleted": "Submission deleted successfully",
   "failedToDeleteSubmission": "Failed to delete submission",
+  "submission": {
+    "deleted": "Submission deleted successfully",
+    "deleteError": "Failed to delete submission"
+  },
   "confirmDeletion": "Confirm Deletion",
   "confirmDeletionDescription": "Are you sure you want to delete this submission? This action cannot be undone.",
   "syncData": "Sync Data",
@@ -913,6 +917,13 @@
   "assessment.draftSubmittedSuccessfully": "Assessment submitted for admin approval!",
   "assessment.draftQueuedForSync": "Assessment saved offline and will be submitted for approval when online.",
   "assessment.failedToSubmitDraft": "Failed to submit assessment for approval.",
+  "assessment.offlineCreated": "Assessment created offline. It will sync when you're back online.",
+  "assessment.createdSuccessfully": "Assessment created successfully!",
+  "assessment.failedToSubmit": "Failed to submit assessment.",
+  "assessment.responsesSavedPortionComplete": "Responses saved successfully!",
+  "assessment.failedToSaveResponses": "Failed to save responses.",
+  "assessment.incompleteCategories": "Please complete all categories before submitting.",
+  "assessment.noResponsesToSubmit": "No responses to submit.",
   "assessment.createAssessment": "Create Assessment",
   "assessment.assessmentName": "Assessment Name",
   "assessment.enterAssessmentName": "Enter assessment name...",
@@ -1530,6 +1541,7 @@
     "offlineCache": "You are offline — viewing cached data. Changes will sync when you reconnect."
   },
   "submission": {
+    "deleted": "Submission deleted successfully",
     "deleteError": "Failed to delete submission"
   },
   "of": "of",
@@ -1543,5 +1555,32 @@
   },
   "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.",
   "backToDashboard": "Back to Dashboard",
-  "assessmentLabel": "Assessment"
+  "assessmentLabel": "Assessment",
+  "export": {
+    "sustainabilityReport": "Sustainability Report",
+    "page": "Page {{count}}",
+    "dgrv": "DGRV",
+    "sustainability": "Sustainability",
+    "sustainabilityReportTitle": "SUSTAINABILITY REPORT",
+    "organisation": "Organisation",
+    "assessment": "Assessment",
+    "allAssessments": "All Assessments",
+    "reportIntro": "This document presents the findings of the sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions.",
+    "sustainabilityDimensionsOverview": "Sustainability Dimensions Overview",
+    "sustainabilityDimensionsIntro": "The following chart visualizes the performance across key sustainability dimensions, providing a high-level overview of strengths and areas for improvement.",
+    "recommendationStatusOverview": "Recommendation Status Overview",
+    "recommendationStatusIntro": "This chart summarizes the current status of all recommendations, illustrating the progress made in implementing the suggested actions.",
+    "actionPlanKanbanBoard": "Action Plan Kanban Board",
+    "kanbanBoardIntro": "This Kanban board provides a visual tool to track the progress of each recommendation. Tasks are organized by their current status, from 'To Do' to 'Approved', facilitating effective project management.",
+    "detailedAssessmentResults": "Detailed Assessment Results",
+    "tableIntro": "The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations.",
+    "question": "Question",
+    "yesNo": "Answer (Y/N)",
+    "percentage": "Percentage",
+    "textAnswer": "Text Answer",
+    "recommendations": "Recommendations",
+    "yes": "Yes",
+    "no": "No",
+    "na": "N/A"
+  }
 }

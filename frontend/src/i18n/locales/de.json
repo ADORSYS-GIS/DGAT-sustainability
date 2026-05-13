@@ -884,6 +884,13 @@
   "assessment.draftSubmittedSuccessfully": "Bewertung zur Admin-Genehmigung eingereicht!",
   "assessment.draftQueuedForSync": "Bewertung offline gespeichert und wird bei Verbindung zur Genehmigung eingereicht.",
   "assessment.failedToSubmitDraft": "Fehler beim Einreichen der Bewertung zur Genehmigung.",
+  "assessment.offlineCreated": "Bewertung offline erstellt. Sie wird synchronisiert, wenn Sie wieder online sind.",
+  "assessment.createdSuccessfully": "Bewertung erfolgreich erstellt!",
+  "assessment.failedToSubmit": "Fehler beim Einreichen der Bewertung.",
+  "assessment.responsesSavedPortionComplete": "Antworten erfolgreich gespeichert!",
+  "assessment.failedToSaveResponses": "Fehler beim Speichern der Antworten.",
+  "assessment.incompleteCategories": "Bitte vervollständigen Sie alle Kategorien vor dem Einreichen.",
+  "assessment.noResponsesToSubmit": "Keine Antworten zum Einreichen.",
   "assessment.createAssessment": "Bewertung erstellen",
   "assessment.assessmentName": "Bewertungsname",
   "assessment.enterAssessmentName": "Bewertungsname eingeben...",
@@ -1549,6 +1556,7 @@
     "status": "Status"
   },
   "submission": {
+    "deleted": "Einreichung erfolgreich gelöscht",
     "deleteError": "Die Übermittlung konnte nicht gelöscht werden"
   },
   "of": "von",
@@ -1570,5 +1578,32 @@
   "staticText.sync.offline": "Offline",
   "connection.onlineStatus": "Online",
   "connection.offlineStatus": "Offline",
-  "assessmentLabel": "Bewertung"
+  "assessmentLabel": "Bewertung",
+  "export": {
+    "sustainabilityReport": "Nachhaltigkeitsbericht",
+    "page": "Seite {{count}}",
+    "dgrv": "DGRV",
+    "sustainability": "Nachhaltigkeit",
+    "sustainabilityReportTitle": "NACHHALTIGKEITSBERICHT",
+    "organisation": "Organisation",
+    "assessment": "Bewertung",
+    "allAssessments": "Alle Bewertungen",
+    "reportIntro": "Dieses Dokument präsentiert die Ergebnisse der Nachhaltigkeitsbewertung und bietet eine detaillierte Analyse der Leistung in den wichtigsten Umwelt-, Sozial- und Governance-Dimensionen (ESG).",
+    "sustainabilityDimensionsOverview": "Überblick über die Nachhaltigkeitsdimensionen",
+    "sustainabilityDimensionsIntro": "Das folgende Diagramm visualisiert die Leistung in den wichtigsten Nachhaltigkeitsdimensionen und bietet einen Überblick auf hoher Ebene über Stärken und Verbesserungsbereiche.",
+    "recommendationStatusOverview": "Überblick über den Empfehlungsstatus",
+    "recommendationStatusIntro": "Dieses Diagramm fasst den aktuellen Status aller Empfehlungen zusammen und zeigt den Fortschritt bei der Umsetzung der vorgeschlagenen Maßnahmen auf.",
+    "actionPlanKanbanBoard": "Kanban-Board für den Aktionsplan",
+    "kanbanBoardIntro": "Dieses Kanban-Board bietet ein visuelles Tool, um den Fortschritt jeder Empfehlung zu verfolgen. Aufgaben werden nach ihrem aktuellen Status organisiert, von 'Zu Erledigen' bis 'Genehmigt', was eine effektive Projektförderung ermöglicht.",
+    "detailedAssessmentResults": "Detaillierte Bewertungsergebnisse",
+    "tableIntro": "Die nachstehende Tabelle zeigt eine detaillierte Aufschlüsselung der Bewertungsantworten, organisiert nach Nachhaltigkeitskategorie. Sie enthält die ursprünglichen Fragen, die gegebenen Antworten und die entsprechenden Empfehlungen.",
+    "question": "Frage",
+    "yesNo": "Antwort (J/N)",
+    "percentage": "Prozentsatz",
+    "textAnswer": "Textantwort",
+    "recommendations": "Empfehlungen",
+    "yes": "Ja",
+    "no": "Nein",
+    "na": "N/A"
+  }
 }

@@ -881,6 +881,13 @@
   "assessment.draftSubmittedSuccessfully": "Avaliação submetida para aprovação do administrador!",
   "assessment.draftQueuedForSync": "Avaliação guardada offline e será submetida para aprovação quando estiver online.",
   "assessment.failedToSubmitDraft": "Falha ao submeter a avaliação para aprovação.",
+  "assessment.offlineCreated": "Avaliação criada offline. Será sincronizada quando voltar à rede.",
+  "assessment.createdSuccessfully": "Avaliação criada com sucesso!",
+  "assessment.failedToSubmit": "Falha ao submeter a avaliação.",
+  "assessment.responsesSavedPortionComplete": "Respostas guardadas com sucesso!",
+  "assessment.failedToSaveResponses": "Falha ao guardar respostas.",
+  "assessment.incompleteCategories": "Por favor complete todas as categorias antes de submeter.",
+  "assessment.noResponsesToSubmit": "Não há respostas para submeter.",
   "assessment.createAssessment": "Criar Avaliação",
   "assessment.assessmentName": "Nome da Avaliação",
   "assessment.enterAssessmentName": "Introduza o nome da avaliação...",
@@ -1546,7 +1553,8 @@
     "status": "Estado"
   },
   "submission": {
-    "deleteError": "Falha ao excluir o envio"
+    "deleted": "Submissão eliminada com sucesso",
+    "deleteError": "Falha ao eliminar submissão"
   },
   "of": "de",
   "delete": "Excluir",
@@ -1563,5 +1571,32 @@
   "manageUsers.orgLabel": "Org:",
   "assignCategories.total": "Total:",
   "staticText.files.download": "Baixar",
-  "assessmentLabel": "Avaliação"
+  "assessmentLabel": "Avaliação",
+  "export": {
+    "sustainabilityReport": "Relatório de Sustentabilidade",
+    "page": "Página {{count}}",
+    "dgrv": "DGRV",
+    "sustainability": "Sustentabilidade",
+    "sustainabilityReportTitle": "RELATÓRIO DE SUSTENTABILIDADE",
+    "organisation": "Organização",
+    "assessment": "Avaliação",
+    "allAssessments": "Todas as Avaliações",
+    "reportIntro": "Este documento apresenta as conclusões da avaliação de sustentabilidade, oferecendo uma análise detalhada do desempenho nas principais dimensões ambientais, sociais e de governança (ESG).",
+    "sustainabilityDimensionsOverview": "Visão Geral das Dimensões de Sustentabilidade",
+    "sustainabilityDimensionsIntro": "O gráfico seguinte visualiza o desempenho nas principais dimensões de sustentabilidade, fornecendo uma visão geral de alto nível dos pontos fortes e áreas para melhoria.",
+    "recommendationStatusOverview": "Visão Geral do Estado das Recomendações",
+    "recommendationStatusIntro": "Este gráfico resume o estado atual de todas as recomendações, ilustrando o progresso alcançado na implementação das ações sugeridas.",
+    "actionPlanKanbanBoard": "Quadro Kanban do Plano de Ação",
+    "kanbanBoardIntro": "Este quadro Kanban fornece uma ferramenta visual para acompanhar o progresso de cada recomendação. As tarefas são organizadas pelo seu estado atual, de 'A Fazer' a 'Aprovado', facilitando a gestão eficaz de projetos.",
+    "detailedAssessmentResults": "Resultados Detalhados da Avaliação",
+    "tableIntro": "A tabela abaixo apresenta uma análise detalhada das respostas da avaliação, organizada por categoria de sustentabilidade. Inclui as perguntas originais, as respostas fornecidas e as recomendações correspondentes.",
+    "question": "Pergunta",
+    "yesNo": "Resposta (S/N)",
+    "percentage": "Percentagem",
+    "textAnswer": "Resposta Textual",
+    "recommendations": "Recomendações",
+    "yes": "Sim",
+    "no": "Não",
+    "na": "N/D"
+  }
 }

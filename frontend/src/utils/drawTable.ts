@@ -46,9 +46,9 @@ const groupDataByCategory = (
           if (response.response) {
             try {
               const parsed = JSON.parse(response.response);
-              answer = parsed.yesNo ? "Yes" : "No";
+              answer = parsed.yesNo ? (translate('export.yes') || "Yes") : (translate('export.no') || "No");
               percentage = `${parsed.percentage || 0}%`;
-              textAnswer = parsed.text || "N/A";
+              textAnswer = parsed.text || (translate('export.na') || "N/A");
             } catch (e) {
               textAnswer = response.response;
             }
@@ -96,7 +96,7 @@ export const drawAssessmentsTable = (
 
   const groupedData = groupDataByCategory(submissions);
   const styles = getTableStyles();
-  const sectionTitle = "Detailed Assessment Results";
+  const sectionTitle = translate('export.detailedAssessmentResults');
   const fullTitle = assessmentName ? `${sectionTitle} - ${assessmentName}` : sectionTitle;
 
   // Add the section's first page and introduction
@@ -110,7 +110,7 @@ export const drawAssessmentsTable = (
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
-  const tableIntro = "The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations.";
+  const tableIntro = translate('export.tableIntro');
   const introLines = doc.splitTextToSize(tableIntro, doc.internal.pageSize.getWidth() - 28);
   doc.text(introLines, 14, 36);
 
@@ -161,11 +161,11 @@ export const drawAssessmentsTable = (
       tableWidth: "auto",
       head: [
         [
-          "Question",
-          "Answer (Y/N)",
-          "Percentage",
-          "Text Answer",
-          "Recommendations",
+          translate('export.question'),
+          translate('export.yesNo'),
+          translate('export.percentage'),
+          translate('export.textAnswer'),
+          translate('export.recommendations'),
         ],
       ],
       body: body as UserOptions['body'],
@@ -184,7 +184,7 @@ export const drawAssessmentsTable = (
             doc.setFontSize(9);
             doc.setTextColor(100);
             doc.setFont("helvetica", "normal");
-            doc.text(`Organisation: ${organizationName}`, 14, 33);
+            doc.text(`${translate('export.organisation')}: ${organizationName}`, 14, 33);
           }
         }
 

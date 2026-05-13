@@ -882,6 +882,13 @@
   "assessment.draftSubmittedSuccessfully": "Évaluation soumise pour approbation admin !",
   "assessment.draftQueuedForSync": "Évaluation enregistrée hors ligne et sera soumise pour approbation en ligne.",
   "assessment.failedToSubmitDraft": "Échec de la soumission de l'évaluation pour approbation.",
+  "assessment.offlineCreated": "Évaluation créée hors ligne. Elle sera synchronisée lorsque vous serez de retour en ligne.",
+  "assessment.createdSuccessfully": "Évaluation créée avec succès !",
+  "assessment.failedToSubmit": "Échec de la soumission de l'évaluation.",
+  "assessment.responsesSavedPortionComplete": "Réponses enregistrées avec succès !",
+  "assessment.failedToSaveResponses": "Échec de l'enregistrement des réponses.",
+  "assessment.incompleteCategories": "Veuillez compléter toutes les catégories avant de soumettre.",
+  "assessment.noResponsesToSubmit": "Aucune réponse à soumettre.",
   "assessment.createAssessment": "Créer une évaluation",
   "assessment.assessmentName": "Nom de l'évaluation",
   "assessment.enterAssessmentName": "Saisissez le nom de l'évaluation...",
@@ -1547,6 +1554,7 @@
     "status": "Statut"
   },
   "submission": {
+    "deleted": "Soumission supprimée avec succès",
     "deleteError": "Échec de la suppression de la soumission"
   },
   "of": "de",
@@ -1564,5 +1572,32 @@
   "common.questions": "Questions",
   "common.question": "Question",
   "reviewAssessments.question": "question",
-  "assessmentLabel": "Évaluation"
+  "assessmentLabel": "Évaluation",
+  "export": {
+    "sustainabilityReport": "Rapport de Durabilité",
+    "page": "Page {{count}}",
+    "dgrv": "DGRV",
+    "sustainability": "Durabilité",
+    "sustainabilityReportTitle": "RAPPORT DE DURABILITÉ",
+    "organisation": "Organisation",
+    "assessment": "Évaluation",
+    "allAssessments": "Toutes les Évaluations",
+    "reportIntro": "Ce document présente les résultats de l'évaluation de durabilité, offrant une analyse détaillée des performances sur les dimensions environnementales, sociales et de gouvernance clés (ESG).",
+    "sustainabilityDimensionsOverview": "Vue d'Ensemble des Dimensions de Durabilité",
+    "sustainabilityDimensionsIntro": "Le graphique suivant visualise les performances sur les dimensions clés de durabilité, fournissant une vue d'ensemble des forces et des domaines à améliorer.",
+    "recommendationStatusOverview": "Vue d'Ensemble du Statut des Recommandations",
+    "recommendationStatusIntro": "Ce graphique résume le statut actuel de toutes les recommandations, illustrant les progrès réalisés dans la mise en œuvre des actions suggérées.",
+    "actionPlanKanbanBoard": "Tableau Kanban du Plan d'Action",
+    "kanbanBoardIntro": "Ce tableau Kanban fournit un outil visuel pour suivre les progrès de chaque recommandation. Les tâches sont organisées selon leur statut actuel, de 'À Faire' à 'Approuvé', facilitant une gestion de projet efficace.",
+    "detailedAssessmentResults": "Résultats Détaillés de l'Évaluation",
+    "tableIntro": "Le tableau ci-dessous présente une analyse détaillée des réponses à l'évaluation, organisée par catégorie de durabilité. Il inclut les questions originales, les réponses fournies et les recommandations correspondantes.",
+    "question": "Question",
+    "yesNo": "Réponse (O/N)",
+    "percentage": "Pourcentage",
+    "textAnswer": "Réponse Textuelle",
+    "recommendations": "Recommandations",
+    "yes": "Oui",
+    "no": "Non",
+    "na": "N/A"
+  }
 }

@@ -884,6 +884,13 @@
   "assessment.draftSubmittedSuccessfully": "تم تقديم التقييم لموافقة المسؤول!",
   "assessment.draftQueuedForSync": "تم حفظ التقييم دون اتصال وسيتم تقديمه للموافقة عند الاتصال.",
   "assessment.failedToSubmitDraft": "فشل تقديم التقييم للموافقة.",
+  "assessment.offlineCreated": "تم إنشاء التقييم دون اتصال. سيتم مزامنته عند العودة إلى الاتصال.",
+  "assessment.createdSuccessfully": "تم إنشاء التقييم بنجاح!",
+  "assessment.failedToSubmit": "فشل تقديم التقييم.",
+  "assessment.responsesSavedPortionComplete": "تم حفظ الإجابات بنجاح!",
+  "assessment.failedToSaveResponses": "فشل حفظ الإجابات.",
+  "assessment.incompleteCategories": "يرجى إكمال جميع الفئات قبل التقديم.",
+  "assessment.noResponsesToSubmit": "لا توجد إجابات للتقديم.",
   "assessment.createAssessment": "إنشاء تقييم",
   "assessment.assessmentName": "اسم التقييم",
   "assessment.enterAssessmentName": "أدخل اسم التقييم...",
@@ -1549,6 +1556,7 @@
     "status": "الحالة"
   },
   "submission": {
+    "deleted": "تم حذف الإرسال بنجاح",
     "deleteError": "فشل حذف الإرسال"
   },
   "of": "ل",
@@ -1561,5 +1569,32 @@
     "title": "حدث خطأ"
   },
   "backToDashboard": "العودة إلى لوحة القيادة",
-  "assessmentLabel": "تقييم"
+  "assessmentLabel": "تقييم",
+  "export": {
+    "sustainabilityReport": "تقرير الاستدامة",
+    "page": "صفحة {{count}}",
+    "dgrv": "DGRV",
+    "sustainability": "الاستدامة",
+    "sustainabilityReportTitle": "تقرير الاستدامة",
+    "organisation": "المنظمة",
+    "assessment": "التقييم",
+    "allAssessments": "جميع التقييمات",
+    "reportIntro": "يقدم هذا المستند نتائج تقييم الاستدامة، ويقدم تحليلاً مفصلاً للأداء عبر أبعاد البيئة والمجتمع والحوكمة الرئيسية (ESG).",
+    "sustainabilityDimensionsOverview": "نظرة عامة على أبعاد الاستدامة",
+    "sustainabilityDimensionsIntro": "يوضح المخطط التالي الأداء عبر أبعاد الاستدامة الرئيسية، ويقدم نظرة عامة على نقاط القوة ومجالات التحسين.",
+    "recommendationStatusOverview": "نظرة عامة على حالة التوصيات",
+    "recommendationStatusIntro": "يلخص هذا المخطط الحالة الحالية لجميع التوصيات، ويوضح التقدم المحرز في تنفيذ الإجراءات المقترحة.",
+    "actionPlanKanbanBoard": "لوح كانبان خطة العمل",
+    "kanbanBoardIntro": "يوفر لوح كانبان هذا أداة مرئية لتتبع تقدم كل توصية. يتم تنظيم المهام حسب حالتها الحالية، من 'يجب القيام به' إلى 'معتمد'، مما يسهل إدارة المشاريع بفعالية.",
+    "detailedAssessmentResults": "نتائج التقييم التفصيلية",
+    "tableIntro": "يعرض الجدول أدناه تحليلاً مفصلاً لاستجابات التقييم، منظماً حسب فئة الاستدامة. يتضمن الأسئلة الأصلية والاستجابات المقدمة والتوصيات المقابلة.",
+    "question": "السؤال",
+    "yesNo": "الإجابة (نعم/لا)",
+    "percentage": "النسبة المئوية",
+    "textAnswer": "الإجابة النصية",
+    "recommendations": "التوصيات",
+    "yes": "نعم",
+    "no": "لا",
+    "na": "غير متاح"
+  }
 }
