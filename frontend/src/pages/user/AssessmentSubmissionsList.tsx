@@ -46,14 +46,14 @@ export const AssessmentSubmissionsList: React.FC = () => {
               className="mb-4 flex items-center space-x-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>{t("backToDashboard", { defaultValue: "Back to Dashboard" })}</span>
+              <span>{t("backToDashboard")}</span>
             </Button>
 
             <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
-              {t('assessment.selectAssessmentToViewActionPlan', { defaultValue: 'Select Assessment to View Action Plan' })}
+              {t('assessment.selectAssessmentToViewActionPlan')}
             </h1>
             <p className="text-lg text-gray-600">
-              {t('assessment.selectAssessmentToActionPlanDescription', { defaultValue: 'Choose an assessment to view the action plan.' })}
+              {t('assessment.selectAssessmentToActionPlanDescription')}
             </p>
           </div>
 
@@ -64,15 +64,13 @@ export const AssessmentSubmissionsList: React.FC = () => {
               <CardContent>
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  {t("assessment.noSubmissionsAvailable", { defaultValue: "No Submissions Available" })}
+                  {t("assessment.noSubmissionsAvailable")}
                 </h2>
                 <p className="text-gray-600 mb-4">
-                  {t("assessment.noSubmissionsDescription", {
-                    defaultValue: "No submissions are available to view action plans.",
-                  })}
+                  {t("assessment.noSubmissionsDescription")}
                 </p>
                 <Button onClick={() => navigate("/dashboard")}>
-                  {t("assessment.backToDashboard", { defaultValue: "Back to Dashboard" })}
+                  {t("assessment.backToDashboard")}
                 </Button>
               </CardContent>
             </Card>
@@ -86,9 +84,9 @@ export const AssessmentSubmissionsList: React.FC = () => {
                 >
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold text-dgrv-blue mb-2">{submission.assessment_name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {t('assessment.submittedOn', { defaultValue: 'Submitted on' })}: {new Date(submission.submitted_at).toLocaleDateString()}
-                    </p>
+<p className="text-sm text-gray-600">
+                       {t('assessment.submittedOn')}: {new Date(submission.submitted_at).toLocaleDateString()}
+                     </p>
                   </CardContent>
                 </Card>
               ))}

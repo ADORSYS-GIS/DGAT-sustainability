@@ -769,6 +769,12 @@
   "assessment.selectAssessment": "Select Assessment",
   "assessment.selectAssessmentDescription": "Choose an assessment to continue or create a new one.",
   "assessment.createNewAssessment": "Create New Assessment",
+  "assessment.selectAssessmentToViewActionPlan": "Select Assessment to View Action Plan",
+  "assessment.selectAssessmentToActionPlanDescription": "Choose an assessment to view the action plan.",
+  "assessment.submittedOn": "Submitted on",
+  "assessment.noSubmissionsAvailable": "No Submissions Available",
+  "assessment.noSubmissionsDescription": "No submissions are available to view action plans.",
+  "assessment.backToDashboard": "Back to Dashboard",
   "common.cancel": "Cancel",
   "common.creating": "Creating...",
   "manageQuestions.noCategories": "No categories available. Please create categories first!",
@@ -1155,6 +1161,8 @@
     "organizationRequired": "You must be part of an organization to access this page."
   },
   "adminActionPlans": {
+    "title": "Organization Action Plans",
+    "subtitle": "Select an organization to view their action plan",
     "recommendation": "Recommendation",
     "close": "Close",
     "todo": "To Do",
@@ -1162,10 +1170,20 @@
     "done": "Done",
     "approved": "Approved",
     "retry": "Retry",
+    "refresh": "Refresh",
+    "backToOrganizations": "Back to Organizations",
+    "backToAssessments": "Back to Assessments",
     "loadingActionPlans": "Loading action plans...",
     "errorLoadingActionPlans": "Error loading action plans",
     "noActionPlans": "No action plans available",
-    "noActionPlansDescription": "There are no action plans to display at this time."
+    "noActionPlansDescription": "There are no action plans to display at this time.",
+    "kanban": {
+      "todo": "To Do",
+      "inProgress": "In Progress",
+      "done": "Done",
+      "approved": "Approved",
+      "noTasks": "No tasks in {{status}}"
+    }
   },
   "common": {
     "processing": "Processing...",

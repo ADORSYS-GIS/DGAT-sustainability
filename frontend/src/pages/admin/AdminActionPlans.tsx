@@ -80,17 +80,17 @@ const AdminActionPlans: React.FC = () => {
 
   // Columns for Kanban
   const columns = [
-    { id: "todo", title: t("adminActionPlans.kanban.todo", { defaultValue: "To Do" }), icon: AlertCircle, color: "text-gray-600" },
+    { id: "todo", title: t("adminActionPlans.kanban.todo"), icon: AlertCircle, color: "text-gray-600" },
     {
       id: "in_progress",
-      title: t("adminActionPlans.kanban.inProgress", { defaultValue: "In Progress" }),
+      title: t("adminActionPlans.kanban.inProgress"),
       icon: PlayCircle,
       color: "text-blue-600",
     },
-    { id: "done", title: t("adminActionPlans.kanban.done", { defaultValue: "Done" }), icon: CheckCircle, color: "text-green-600" },
+    { id: "done", title: t("adminActionPlans.kanban.done"), icon: CheckCircle, color: "text-green-600" },
     {
       id: "approved",
-      title: t("adminActionPlans.kanban.approved", { defaultValue: "Approved" }),
+      title: t("adminActionPlans.kanban.approved"),
       icon: ThumbsUp,
       color: "text-emerald-600",
     },
@@ -133,13 +133,13 @@ const AdminActionPlans: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'todo':
-        return <Badge variant="secondary" className="bg-gray-100 text-gray-800"><AlertCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.todo', { defaultValue: 'To Do' })}</Badge>;
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800"><AlertCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.todo')}</Badge>;
       case 'in_progress':
-        return <Badge variant="default" className="bg-blue-100 text-blue-800"><PlayCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.inProgress', { defaultValue: 'In Progress' })}</Badge>;
+        return <Badge variant="default" className="bg-blue-100 text-blue-800"><PlayCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.inProgress')}</Badge>;
       case 'done':
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.done', { defaultValue: 'Done' })}</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />{t('adminActionPlans.done')}</Badge>;
       case 'approved':
-        return <Badge variant="default" className="bg-emerald-100 text-emerald-800"><ThumbsUp className="w-3 h-3 mr-1" />{t('adminActionPlans.approved', { defaultValue: 'Approved' })}</Badge>;
+        return <Badge variant="default" className="bg-emerald-100 text-emerald-800"><ThumbsUp className="w-3 h-3 mr-1" />{t('adminActionPlans.approved')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -157,7 +157,7 @@ const AdminActionPlans: React.FC = () => {
             <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
             <p className="text-red-600">{actionPlansError.message}</p>
             <Button onClick={handleRefresh} className="mt-2">
-              {t('adminActionPlans.retry', { defaultValue: 'Retry' })}
+              {t('adminActionPlans.retry')}
             </Button>
           </div>
         </div>
@@ -172,8 +172,8 @@ const AdminActionPlans: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('adminActionPlans.title', { defaultValue: 'Organization Action Plans' })}</h1>
-            <p className="text-gray-600">{t('adminActionPlans.subtitle', { defaultValue: 'Select an organization to view their action plan' })}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('adminActionPlans.title')}</h1>
+            <p className="text-gray-600">{t('adminActionPlans.subtitle')}</p>
           </div>
         </div>
 
@@ -212,13 +212,13 @@ const AdminActionPlans: React.FC = () => {
           className="flex items-center space-x-2 mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>{t('adminActionPlans.backToOrganizations', { defaultValue: 'Back to Organizations' })}</span>
+          <span>{t('adminActionPlans.backToOrganizations')}</span>
         </Button>
         <h1 className="text-3xl font-bold text-dgrv-blue mb-4">
-          {t('assessment.selectAssessmentToViewActionPlan', { defaultValue: 'Select Assessment to View Action Plan' })}
+          {t('assessment.selectAssessmentToViewActionPlan')}
         </h1>
         <p className="text-lg text-gray-600 mb-6">
-          {t('assessment.selectAssessmentToActionPlanDescription', { defaultValue: 'Choose an assessment to view the action plan.' })}
+          {t('assessment.selectAssessmentToActionPlanDescription')}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {uniqueAssessments.map((assessment) => (
@@ -229,9 +229,9 @@ const AdminActionPlans: React.FC = () => {
             >
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-dgrv-blue mb-2">{assessment.assessment_name}</h3>
-                <p className="text-sm text-gray-600">
-                  {t('assessment.submittedOn', { defaultValue: 'Submitted on' })}: {new Date(assessment.created_at).toLocaleDateString()}
-                </p>
+<p className="text-sm text-gray-600">
+                   {t('assessment.submittedOn')}: {new Date(assessment.created_at).toLocaleDateString()}
+                 </p>
               </CardContent>
             </Card>
           ))}
@@ -254,7 +254,7 @@ const AdminActionPlans: React.FC = () => {
               className="flex items-center space-x-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>{t('adminActionPlans.backToAssessments', { defaultValue: 'Back to Assessments' })}</span>
+              <span>{t('adminActionPlans.backToAssessments')}</span>
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{selectedOrganization.organization_name}</h1>
@@ -269,7 +269,7 @@ const AdminActionPlans: React.FC = () => {
             className="flex items-center space-x-2"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{t('adminActionPlans.refresh', { defaultValue: 'Refresh' })}</span>
+            <span>{t('adminActionPlans.refresh')}</span>
           </Button>
         </div>
       </div>
@@ -283,7 +283,7 @@ const AdminActionPlans: React.FC = () => {
         ) : actionPlansError ? (
           <div className="text-center py-12">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-red-700 mb-2">{t("error.title", { defaultValue: "An Error Occurred" })}</h2>
+            <h2 className="text-2xl font-bold text-red-700 mb-2">{t("error.title")}</h2>
             <p className="text-gray-600">{actionPlansError.message}</p>
           </div>
         ) : (
@@ -317,7 +317,7 @@ const AdminActionPlans: React.FC = () => {
                           <div className="text-center py-8 text-gray-500">
                             <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />
                             <p className="text-sm">
-                              {t("adminActionPlans.kanban.noTasks", { status: column.id, defaultValue: `No tasks in ${column.title.toLowerCase()}` })}
+                              {t("adminActionPlans.kanban.noTasks", { status: column.title.toLowerCase() })}
                             </p>
                           </div>
                         ) : (

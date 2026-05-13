@@ -70,8 +70,8 @@ const routes = [
   // User assessment routes - require org_admin or Org_User role
   {
     path: "/user",
-    element: React.createElement(ProtectedRoute, { 
-      allowedRoles: [ROLES.ORG_ADMIN, ROLES.Org_User] 
+    element: React.createElement(ProtectedRoute, {
+      allowedRoles: [ROLES.ADMIN, ROLES.ORG_ADMIN, ROLES.Org_User]
     }),
     children: [
       { path: "assessment/:assessmentId", element: React.createElement(Assessment) },
