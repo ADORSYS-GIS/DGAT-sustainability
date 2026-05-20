@@ -47,32 +47,57 @@ const getStatusColors = (status: RecommendationWithStatus['status']) => {
   return COLORS.cardStatus[status] || COLORS.cardStatus.todo;
 };
 
-const drawCard = (doc: jsPDF, x: number, y: number, width: number, recommendation: RecommendationWithStatus): number => {
-  const { bg, border } = getStatusColors(recommendation.status);
+const measureCardContent = (
+  doc: jsPDF,
+  category: string,
+  recommendation: string,
+  width: number
+): { splitCategory: string | string[]; splitRecommendation: string | string[]; height: number } => {
+  const contentWidth = width - 2 * CARD_PADDING;
+  const categoryGap = 2;
+
+  doc.setFontSize(FONT_SIZES.cardCategory);
+  doc.setFont("helvetica", "bold");
+  const splitCategory = doc.splitTextToSize(category, contentWidth);
+  const categoryHeight = doc.getTextDimensions(splitCategory).h;
 
   doc.setFontSize(FONT_SIZES.cardText);
   doc.setFont("helvetica", "normal");
-  const splitText = doc.splitTextToSize(recommendation.recommendation, width - 2 * CARD_PADDING);
-  const textHeight = doc.getTextDimensions(splitText).h;
+  const splitRecommendation = doc.splitTextToSize(recommendation, contentWidth);
+  const textHeight = doc.getTextDimensions(splitRecommendation).h;
 
-  const categoryHeight = FONT_SIZES.cardCategory * 0.35 * 2; // Line height for category
-  const cardHeight = categoryHeight + textHeight + 3 * CARD_PADDING;
+  const height = categoryHeight + categoryGap + textHeight + 3 * CARD_PADDING;
+  return { splitCategory, splitRecommendation, height };
+};
+
+const drawCard = (doc: jsPDF, x: number, y: number, width: number, recommendation: RecommendationWithStatus): number => {
+  const { bg, border } = getStatusColors(recommendation.status);
+  const { splitCategory, splitRecommendation, height: cardHeight } = measureCardContent(
+    doc,
+    recommendation.category,
+    recommendation.recommendation,
+    width
+  );
 
   doc.setDrawColor(border[0], border[1], border[2]);
   doc.setFillColor(bg[0], bg[1], bg[2]);
   doc.roundedRect(x, y, width, cardHeight, 3, 3, 'FD'); // FD = Fill and Stroke
 
-  // Category
+  const textX = x + CARD_PADDING;
+  let textY = y + CARD_PADDING + 2;
+
+  // Category (wrapped within card width)
   doc.setFontSize(FONT_SIZES.cardCategory);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(COLORS.dgrvBlue[0], COLORS.dgrvBlue[1], COLORS.dgrvBlue[2]);
-  doc.text(recommendation.category, x + CARD_PADDING, y + CARD_PADDING + 2);
+  doc.text(splitCategory, textX, textY);
+  textY += doc.getTextDimensions(splitCategory).h + 2;
 
-  // Recommendation Text
+  // Recommendation text (wrapped within card width)
   doc.setFont("helvetica", "normal");
   doc.setFontSize(FONT_SIZES.cardText);
   doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
-  doc.text(splitText, x + CARD_PADDING, y + CARD_PADDING + categoryHeight);
+  doc.text(splitRecommendation, textX, textY);
 
   return cardHeight;
 };
@@ -152,7 +177,12 @@ export const drawKanbanBoard = (
         const taskId = task.recommendation_id;
         if (drawnTasks.has(taskId)) continue;
 
-        const estCardHeight = (doc.splitTextToSize(task.recommendation, COLUMN_WIDTH - 2 * CARD_PADDING).length * 4) + 20;
+        const { height: estCardHeight } = measureCardContent(
+          doc,
+          task.category,
+          task.recommendation,
+          CARD_WIDTH
+        );
 
         if (cardYPositions[index] + estCardHeight > maxPageHeight) {
           continue; // Move to next column if this card won't fit

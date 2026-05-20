@@ -5,6 +5,10 @@ import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-
 import type { UserOptions } from 'jspdf-autotable';
 import type { TFunction } from "i18next";
 import { normalizeCategoryName } from "./categoryUtils";
+import {
+  formatAssessmentAnswerFields,
+  parseAssessmentAnswer,
+} from "./parseAssessmentAnswer";
 
 interface jsPDFWithAutoTable extends jsPDF {
   lastAutoTable: {
@@ -23,6 +27,7 @@ interface TableData {
 
 const groupDataByCategory = (
   submissions: AdminSubmissionDetail[],
+  t?: TFunction
 ): { [key: string]: TableData[] } => {
   const groupedData: { [key: string]: TableData[] } = {};
   const addedQuestions: { [key: string]: Set<string> } = {};
@@ -39,20 +44,8 @@ const groupDataByCategory = (
         }
 
         if (questionText !== "N/A" && !addedQuestions[category].has(questionText)) {
-          let answer = "N/A";
-          let percentage = "0%";
-          let textAnswer = "N/A";
-
-          if (response.response) {
-            try {
-              const parsed = JSON.parse(response.response);
-              answer = parsed.yesNo ? (translate('export.yes') || "Yes") : (translate('export.no') || "No");
-              percentage = `${parsed.percentage || 0}%`;
-              textAnswer = parsed.text || (translate('export.na') || "N/A");
-            } catch (e) {
-              textAnswer = response.response;
-            }
-          }
+          const parsed = parseAssessmentAnswer(response.response);
+          const { answer, percentage, textAnswer } = formatAssessmentAnswerFields(parsed, t);
 
           groupedData[category].push({
             question: questionText,
@@ -94,7 +87,7 @@ export const drawAssessmentsTable = (
     return;
   }
 
-  const groupedData = groupDataByCategory(submissions);
+  const groupedData = groupDataByCategory(submissions, t);
   const styles = getTableStyles();
   const sectionTitle = translate('export.detailedAssessmentResults');
   const fullTitle = assessmentName ? `${sectionTitle} - ${assessmentName}` : sectionTitle;

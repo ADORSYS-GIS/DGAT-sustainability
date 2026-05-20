@@ -46,6 +46,7 @@ import { ReportSelectionDialog } from "@/components/shared/ReportSelectionDialog
 import type { Report, AdminSubmissionDetail, RecommendationWithStatus, OrganizationCategory } from "@/openapi-rq/requests/types.gen";
 import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
 import { mergeCategoryBuckets, normalizeCategoryName } from "@/utils/categoryUtils";
+import { serializeAnswerForExport } from "@/utils/parseAssessmentAnswer";
 
 // Local types to map report.data into existing export inputs
 interface ReportAnswer {
@@ -219,7 +220,7 @@ export const Dashboard: React.FC = () => {
         return questions.map((q): { question_category: string; question_text: string; response: string } => ({
           question_category: normalizeCategoryName(category),
           question_text: q?.question ?? "",
-          response: JSON.stringify(q?.answer ?? {}),
+          response: serializeAnswerForExport(q?.answer),
         }));
       }
     );

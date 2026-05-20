@@ -338,7 +338,7 @@ export const ActionPlan: React.FC = () => {
                         );
                         const IconComponent = column.icon;
                         return (
-                          <div key={column.id} className="flex flex-col" style={{ minHeight: 0 }}>
+                          <div key={column.id} className="flex flex-col min-w-0" style={{ minHeight: 0 }}>
                             <Card className="flex flex-col h-full">
                               <CardHeader className="pb-3 flex-shrink-0">
                                 <CardTitle className={`flex items-center space-x-2 ${column.color}`}>
@@ -370,18 +370,18 @@ export const ActionPlan: React.FC = () => {
                                     columnTasks.map((task) => (
                                       <Card
                                         key={task.id}
-                                        className={`${getStatusColor(task.status)} flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow`}
+                                        className={`${getStatusColor(task.status)} min-w-0 overflow-hidden flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow`}
                                         onClick={() => setSelectedTask(task)}
                                       >
                                         <CardContent className="p-4">
                                           <div className="flex flex-col gap-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                              <div className="font-bold text-dgrv-blue text-xs uppercase tracking-wider truncate">
+                                            <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
+                                              <div className="font-bold text-dgrv-blue text-xs uppercase tracking-wider break-words min-w-0 flex-1">
                                                 {task.category}
                                               </div>
-                                              <Eye className="w-3 h-3 text-gray-400" />
+                                              <Eye className="w-3 h-3 text-gray-400 flex-shrink-0 mt-0.5" />
                                             </div>
-                                            <div className="text-sm text-gray-900 mb-2 line-clamp-3 leading-relaxed">
+                                            <div className="text-sm text-gray-900 mb-2 line-clamp-3 leading-relaxed break-words">
                                               {task.recommendation}
                                             </div>
                                             <div className="flex gap-2 mt-auto pt-2 border-t border-black/5">

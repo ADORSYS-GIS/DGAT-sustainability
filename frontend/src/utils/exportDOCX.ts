@@ -2,6 +2,10 @@ import { Document, Packer, Paragraph, ImageRun, AlignmentType, HeadingLevel, Tex
 import { saveAs } from "file-saver";
 import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 import type { TFunction } from "i18next";
+import {
+  formatAssessmentAnswerFields,
+  parseAssessmentAnswer,
+} from "./parseAssessmentAnswer";
 
 async function urlToArrayBuffer(url: string): Promise<ArrayBuffer> {
   const response = await fetch(url);
@@ -27,6 +31,7 @@ interface ITableData {
 
 const groupDataByCategory = (
   submissions: AdminSubmissionDetail[],
+  t?: TFunction
 ): { [key: string]: ITableData[] } => {
   const groupedData: { [key: string]: ITableData[] } = {};
   const addedQuestions: { [key: string]: Set<string> } = {};
@@ -43,20 +48,8 @@ const groupDataByCategory = (
         }
 
         if (questionText !== "N/A" && !addedQuestions[category].has(questionText)) {
-          let answer = "N/A";
-          let percentage = "0%";
-          let textAnswer = "N/A";
-
-          if (response.response) {
-            try {
-              const parsed = JSON.parse(response.response);
-              answer = parsed.yesNo ? (translate('export.yes') || "Yes") : (translate('export.no') || "No");
-              percentage = `${parsed.percentage || 0}%`;
-              textAnswer = parsed.text || (translate('export.na') || "N/A");
-            } catch (e) {
-              textAnswer = response.response;
-            }
-          }
+          const parsed = parseAssessmentAnswer(response.response);
+          const { answer, percentage, textAnswer } = formatAssessmentAnswerFields(parsed, t);
 
           groupedData[category].push({
             question: questionText,
@@ -77,9 +70,11 @@ const groupDataByCategory = (
 
 const createAssessmentsTable = (
   submissions: AdminSubmissionDetail[],
-  recommendations: RecommendationWithStatus[]
+  recommendations: RecommendationWithStatus[],
+  t?: TFunction
 ) => {
-  const groupedData = groupDataByCategory(submissions);
+  const translate = t || ((key: string) => key);
+  const groupedData = groupDataByCategory(submissions, t);
   const tables = [];
 
   for (const category in groupedData) {
@@ -130,7 +125,10 @@ const createAssessmentsTable = (
   return tables;
 };
 
-const createKanbanBoard = (recommendations: RecommendationWithStatus[]) => {
+const KANBAN_COLUMN_WIDTH_PCT = 25;
+
+const createKanbanBoard = (recommendations: RecommendationWithStatus[], t?: TFunction) => {
+  const translate = t || ((key: string) => key);
   const tasksByColumn = {
     todo: recommendations.filter(r => r.status === 'todo'),
     in_progress: recommendations.filter(r => r.status === 'in_progress'),
@@ -154,6 +152,7 @@ const createKanbanBoard = (recommendations: RecommendationWithStatus[]) => {
 
   const headerRow = new TableRow({
     children: Object.keys(columnTitles).map(key => new TableCell({
+      width: { size: KANBAN_COLUMN_WIDTH_PCT, type: WidthType.PERCENTAGE },
       children: [new Paragraph({
         children: [new TextRun({ text: columnTitles[key as keyof typeof columnTitles], bold: true })],
       })],
@@ -170,16 +169,22 @@ const createKanbanBoard = (recommendations: RecommendationWithStatus[]) => {
       if (tasks[i]) {
         const task = tasks[i];
         rowCells.push(new TableCell({
-          children: [new Paragraph({
-            children: [
-              new TextRun({ text: task.category, bold: true, color: dgrvBlue }),
-              new TextRun({ text: `\n${task.recommendation}` }),
-            ],
-          })],
+          width: { size: KANBAN_COLUMN_WIDTH_PCT, type: WidthType.PERCENTAGE },
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: task.category, bold: true, color: dgrvBlue })],
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: task.recommendation })],
+            }),
+          ],
           verticalAlign: VerticalAlign.TOP,
         }));
       } else {
-        rowCells.push(new TableCell({ children: [new Paragraph("")] }));
+        rowCells.push(new TableCell({
+          width: { size: KANBAN_COLUMN_WIDTH_PCT, type: WidthType.PERCENTAGE },
+          children: [new Paragraph("")],
+        }));
       }
     }
     taskRows.push(new TableRow({ children: rowCells }));
@@ -370,14 +375,14 @@ export async function exportAllAssessmentsDOCX(
         spacing: { after: 100 },
       }),
       new Paragraph(translate('export.tableIntro')),
-      ...createAssessmentsTable(submissions, recommendations),
+      ...createAssessmentsTable(submissions, recommendations, translate),
     ],
   });
 
   // --- Action Plan Kanban Board Section ---
   sections.push({
     properties: {},
-    children: createKanbanBoard(recommendations),
+    children: createKanbanBoard(recommendations, translate),
   });
 
 
