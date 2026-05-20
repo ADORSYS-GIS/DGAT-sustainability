@@ -495,6 +495,20 @@ pub struct UpdateRecommendationStatusRequest {
     pub status: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateRecommendationRequest {
+    pub category: String,
+    pub recommendation: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct RecommendationMutationResponse {
+    pub recommendation_id: String,
+    pub category: String,
+    pub recommendation: String,
+    pub status: String,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct OrganizationActionPlan {
     pub organization_id: Uuid,

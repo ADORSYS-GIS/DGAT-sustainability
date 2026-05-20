@@ -89,7 +89,8 @@ export async function exportAllAssessmentsPDF(
   recommendationChartDataUrl?: string,
   organizationName?: string,
   assessmentName?: string,
-  t?: TFunction
+  t?: TFunction,
+  reportId?: string
 ) {
   // Default translation function if not provided
   const translate = t || ((key: string, options?: Record<string, unknown>) => {
@@ -222,7 +223,15 @@ export async function exportAllAssessmentsPDF(
   }
 
   // --- Detailed Assessments Table Section ---
-  drawAssessmentsTable(doc, submissions, recommendations, organizationName, assessmentName, translate);
+  drawAssessmentsTable(
+    doc,
+    submissions,
+    recommendations,
+    organizationName,
+    assessmentName,
+    translate,
+    reportId
+  );
 
   // --- Action Plan Kanban Board Section ---
   addNewPageWithHeader(doc, translate);
@@ -234,7 +243,10 @@ export async function exportAllAssessmentsPDF(
   const kanbanIntro = translate('export.kanbanBoardIntro');
   doc.text(doc.splitTextToSize(kanbanIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 36);
 
-  drawKanbanBoard(doc, recommendations, () => addNewPageWithHeader(doc, translate));
+  const scopedKanbanRecs = reportId
+    ? recommendations.filter((r) => r.report_id === reportId)
+    : recommendations;
+  drawKanbanBoard(doc, scopedKanbanRecs, () => addNewPageWithHeader(doc, translate));
 
   // --- Final Save ---
   doc.save("sustainability-report.pdf");

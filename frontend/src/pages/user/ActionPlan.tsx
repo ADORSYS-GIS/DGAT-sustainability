@@ -10,7 +10,10 @@ import {
   Kanban,
   PlayCircle,
   ThumbsUp,
-  Eye
+  Eye,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -23,6 +26,10 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/shared/useAuth"; // Import useAuth hook
 import { useOfflineRecommendationStatusMutation, useOfflineReport } from "@/hooks/useOfflineReports";
+import { useRecommendationMutations } from "@/hooks/useRecommendationMutations";
+import { RecommendationFormDialog } from "@/components/actionPlan/RecommendationFormDialog";
+import { extractAssessmentCategoriesFromReportData } from "@/utils/reportRecommendations";
+import type { RecommendationFormValues } from "@/utils/reportRecommendations";
 import { useOfflineQuestions } from "@/hooks/useOfflineQuestions";
 import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 import { useOfflineSyncStatus } from "@/hooks/useOfflineSync";
@@ -31,8 +38,14 @@ import { useParams } from "react-router-dom";
 export const ActionPlan: React.FC = () => {
   const { t } = useTranslation();
   const { submissionId } = useParams<{ submissionId: string }>();
-  const { data, isLoading, error } = useOfflineReport(submissionId);
+  const { data, isLoading, error, refetch } = useOfflineReport(submissionId);
   const { updateRecommendationStatus } = useOfflineRecommendationStatusMutation();
+  const {
+    createRecommendation,
+    updateRecommendation,
+    deleteRecommendation,
+    isPending: isRecommendationMutating,
+  } = useRecommendationMutations();
   const { isOnline } = useOfflineSyncStatus();
   const { roles } = useAuth();
   const isAdmin = roles.includes("org_admin") || roles.includes("Org_admin");
@@ -169,12 +182,88 @@ export const ActionPlan: React.FC = () => {
     Record<string, KanbanRecommendation[]>
   >({});
   const [selectedTask, setSelectedTask] = React.useState<KanbanRecommendation | null>(null);
+  const [formOpen, setFormOpen] = React.useState(false);
+  const [formMode, setFormMode] = React.useState<"add" | "edit">("add");
+
+  const assessmentCategories = React.useMemo(
+    () => extractAssessmentCategoriesFromReportData(data?.report?.data),
+    [data?.report?.data]
+  );
+
+  const refreshFromReport = React.useCallback(async () => {
+    const result = await refetch();
+    if (result?.report) {
+      setGroupedRecs(groupRecommendationsByAssessment(result.report));
+    }
+  }, [refetch]);
 
   React.useEffect(() => {
     if (data?.report) {
       setGroupedRecs(groupRecommendationsByAssessment(data.report));
     }
   }, [data]);
+
+  const handleOpenAdd = () => {
+    setFormMode("add");
+    setFormOpen(true);
+  };
+
+  const handleOpenEdit = (task: KanbanRecommendation) => {
+    setSelectedTask(task);
+    setFormMode("edit");
+    setFormOpen(true);
+  };
+
+  const handleFormSubmit = async (values: RecommendationFormValues) => {
+    if (!data?.report || !isAdmin) return;
+    const callbacks = {
+      onSuccess: async () => {
+        toast.success(
+          t(
+            formMode === "add"
+              ? "user.actionPlan.createSuccess"
+              : "user.actionPlan.updateSuccess"
+          )
+        );
+        setFormOpen(false);
+        setSelectedTask(null);
+        await refreshFromReport();
+      },
+      onError: () => {
+        toast.error(
+          t(
+            formMode === "add"
+              ? "user.actionPlan.createError"
+              : "user.actionPlan.updateError"
+          )
+        );
+      },
+    };
+
+    if (formMode === "add") {
+      await createRecommendation(data.report, values, callbacks);
+    } else if (selectedTask) {
+      await updateRecommendation(
+        data.report,
+        selectedTask.recommendation_id,
+        values,
+        callbacks
+      );
+    }
+  };
+
+  const handleDelete = async (task: KanbanRecommendation) => {
+    if (!data?.report || !isAdmin) return;
+    if (!window.confirm(t("user.actionPlan.deleteConfirm"))) return;
+    await deleteRecommendation(data.report, task.recommendation_id, {
+      onSuccess: async () => {
+        toast.success(t("user.actionPlan.deleteSuccess"));
+        setSelectedTask(null);
+        await refreshFromReport();
+      },
+      onError: () => toast.error(t("user.actionPlan.deleteError")),
+    });
+  };
 
   const columns = [
     { id: "todo", title: t("user.dashboard.actionPlan.kanban.todo"), icon: AlertCircle, color: "text-gray-600" },
@@ -304,6 +393,16 @@ export const ActionPlan: React.FC = () => {
                     {t("user.dashboard.actionPlan.subtitle")}
                   </p>
                 </div>
+                {isAdmin && data?.report && (
+                  <Button
+                    className="bg-dgrv-green hover:bg-green-700 shrink-0"
+                    onClick={handleOpenAdd}
+                    disabled={isRecommendationMutating}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t("user.actionPlan.addRecommendation")}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -494,6 +593,30 @@ export const ActionPlan: React.FC = () => {
               {selectedTask?.recommendation}
             </div>
 
+            {selectedTask && isAdmin && (
+              <div className="mt-4 flex flex-wrap gap-2 pb-2 border-b">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenEdit(selectedTask)}
+                  disabled={isRecommendationMutating}
+                >
+                  <Pencil className="w-4 h-4 mr-1" />
+                  {t("user.actionPlan.editRecommendation")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => handleDelete(selectedTask)}
+                  disabled={isRecommendationMutating}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  {t("user.actionPlan.deleteRecommendation")}
+                </Button>
+              </div>
+            )}
+
             {selectedTask && (
               <div className="mt-6 flex flex-wrap gap-3 pt-6 border-t">
                 {isAdmin && selectedTask.status === "todo" && (
@@ -573,6 +696,20 @@ export const ActionPlan: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <RecommendationFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        mode={formMode}
+        categories={assessmentCategories}
+        initialValues={
+          formMode === "edit" && selectedTask
+            ? { category: selectedTask.category, text: selectedTask.recommendation }
+            : undefined
+        }
+        isSubmitting={isRecommendationMutating}
+        onSubmit={handleFormSubmit}
+      />
     </div>
   );
 };

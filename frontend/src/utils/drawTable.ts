@@ -33,6 +33,7 @@ const groupDataByCategory = (
   const addedQuestions: { [key: string]: Set<string> } = {};
 
   submissions.forEach((submission) => {
+    const submissionScope = submission.submission_id || "default";
     if (submission.content?.responses) {
       submission.content.responses.forEach((response) => {
         const category = normalizeCategoryName(response.question_category);
@@ -43,7 +44,8 @@ const groupDataByCategory = (
           addedQuestions[category] = new Set();
         }
 
-        if (questionText !== "N/A" && !addedQuestions[category].has(questionText)) {
+        const questionKey = `${submissionScope}::${questionText}`;
+        if (questionText !== "N/A" && !addedQuestions[category].has(questionKey)) {
           const parsed = parseAssessmentAnswer(response.response);
           const { answer, percentage, textAnswer } = formatAssessmentAnswerFields(parsed, t);
 
@@ -55,7 +57,7 @@ const groupDataByCategory = (
             textAnswer: textAnswer,
           });
 
-          addedQuestions[category].add(questionText);
+          addedQuestions[category].add(questionKey);
         }
       });
     }
@@ -70,7 +72,8 @@ export const drawAssessmentsTable = (
   recommendations: RecommendationWithStatus[],
   organizationName?: string,
   assessmentName?: string,
-  t?: TFunction
+  t?: TFunction,
+  reportId?: string
 ) => {
   // Default translation function if not provided
   const translate = t || ((key: string, options?: Record<string, unknown>) => key);
@@ -86,6 +89,10 @@ export const drawAssessmentsTable = (
   if (!submissions || submissions.length === 0) {
     return;
   }
+
+  const scopedRecommendations = reportId
+    ? recommendations.filter((rec) => rec.report_id === reportId)
+    : recommendations;
 
   const groupedData = groupDataByCategory(submissions, t);
   const styles = getTableStyles();
@@ -114,7 +121,7 @@ export const drawAssessmentsTable = (
 
   Object.keys(groupedData).forEach(category => {
     const tableData = groupedData[category];
-    const categoryRecs = recommendations
+    const categoryRecs = scopedRecommendations
       .filter((rec) => normalizeCategoryName(rec.category) === category)
       .map((rec) => `- ${rec.recommendation}`)
       .join("\n");

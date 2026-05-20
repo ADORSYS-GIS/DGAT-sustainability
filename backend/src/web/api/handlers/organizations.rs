@@ -810,7 +810,7 @@ pub async fn get_member_organizations(
 pub async fn get_identity_providers(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_realm, org_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let _token = get_token_from_extensions(&token)?;
@@ -838,7 +838,7 @@ pub async fn get_identity_providers(
 pub async fn add_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_realm, org_id)): Path<(String, String)>,
     Json(request): Json<String>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -868,7 +868,7 @@ pub async fn add_identity_provider(
 pub async fn get_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_realm, org_id, _alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let _token = get_token_from_extensions(&token)?;
@@ -895,7 +895,7 @@ pub async fn get_identity_provider(
 pub async fn remove_identity_provider(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_realm, org_id, _alias)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let _token = get_token_from_extensions(&token)?;
@@ -956,7 +956,7 @@ pub async fn get_members_count(
 pub async fn invite_existing_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_realm, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -985,7 +985,7 @@ pub async fn invite_existing_user(
 pub async fn invite_user(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
-    State(app_state): State<AppState>,
+    State(_app_state): State<AppState>,
     Path((_realm, org_id)): Path<(String, String)>,
     axum::extract::Form(form): axum::extract::Form<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiError> {

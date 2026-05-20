@@ -6,6 +6,8 @@ import {
   formatAssessmentAnswerFields,
   parseAssessmentAnswer,
 } from "./parseAssessmentAnswer";
+import { filterRecommendationsForReport } from "./reportExportData";
+import { normalizeCategoryName } from "./categoryUtils";
 
 async function urlToArrayBuffer(url: string): Promise<ArrayBuffer> {
   const response = await fetch(url);
@@ -37,9 +39,10 @@ const groupDataByCategory = (
   const addedQuestions: { [key: string]: Set<string> } = {};
 
   submissions.forEach((submission) => {
+    const submissionScope = submission.submission_id || "default";
     if (submission.content?.responses) {
       submission.content.responses.forEach((response) => {
-        const category = response.question_category || "Uncategorized";
+        const category = normalizeCategoryName(response.question_category);
         const questionText = response.question_text || "N/A";
 
         if (!groupedData[category]) {
@@ -47,7 +50,8 @@ const groupDataByCategory = (
           addedQuestions[category] = new Set();
         }
 
-        if (questionText !== "N/A" && !addedQuestions[category].has(questionText)) {
+        const questionKey = `${submissionScope}::${questionText}`;
+        if (questionText !== "N/A" && !addedQuestions[category].has(questionKey)) {
           const parsed = parseAssessmentAnswer(response.response);
           const { answer, percentage, textAnswer } = formatAssessmentAnswerFields(parsed, t);
 
@@ -59,7 +63,7 @@ const groupDataByCategory = (
             textAnswer: textAnswer,
           });
 
-          addedQuestions[category].add(questionText);
+          addedQuestions[category].add(questionKey);
         }
       });
     }
@@ -71,9 +75,13 @@ const groupDataByCategory = (
 const createAssessmentsTable = (
   submissions: AdminSubmissionDetail[],
   recommendations: RecommendationWithStatus[],
-  t?: TFunction
+  t?: TFunction,
+  reportId?: string
 ) => {
   const translate = t || ((key: string) => key);
+  const scopedRecommendations = reportId
+    ? filterRecommendationsForReport(recommendations, reportId)
+    : recommendations;
   const groupedData = groupDataByCategory(submissions, t);
   const tables = [];
 
@@ -95,8 +103,8 @@ const createAssessmentsTable = (
       }),
     ];
 
-    const categoryRecs = recommendations
-      .filter((rec) => rec.category === category)
+    const categoryRecs = scopedRecommendations
+      .filter((rec) => normalizeCategoryName(rec.category) === category)
       .map((rec) => `- ${rec.recommendation}`)
       .join("\n");
 
@@ -127,13 +135,20 @@ const createAssessmentsTable = (
 
 const KANBAN_COLUMN_WIDTH_PCT = 25;
 
-const createKanbanBoard = (recommendations: RecommendationWithStatus[], t?: TFunction) => {
+const createKanbanBoard = (
+  recommendations: RecommendationWithStatus[],
+  t?: TFunction,
+  reportId?: string
+) => {
   const translate = t || ((key: string) => key);
+  const scoped = reportId
+    ? filterRecommendationsForReport(recommendations, reportId)
+    : recommendations;
   const tasksByColumn = {
-    todo: recommendations.filter(r => r.status === 'todo'),
-    in_progress: recommendations.filter(r => r.status === 'in_progress'),
-    done: recommendations.filter(r => r.status === 'done'),
-    approved: recommendations.filter(r => r.status === 'approved'),
+    todo: scoped.filter(r => r.status === 'todo'),
+    in_progress: scoped.filter(r => r.status === 'in_progress'),
+    done: scoped.filter(r => r.status === 'done'),
+    approved: scoped.filter(r => r.status === 'approved'),
   };
 
   const columnTitles = {
@@ -215,7 +230,8 @@ export async function exportAllAssessmentsDOCX(
   recommendationChartDataUrl?: string,
   organizationName?: string,
   assessmentName?: string,
-  t?: TFunction
+  t?: TFunction,
+  reportId?: string
 ) {
   // Default translation function if not provided
   const translate = t || ((key: string, options?: Record) => key);
@@ -375,14 +391,14 @@ export async function exportAllAssessmentsDOCX(
         spacing: { after: 100 },
       }),
       new Paragraph(translate('export.tableIntro')),
-      ...createAssessmentsTable(submissions, recommendations, translate),
+      ...createAssessmentsTable(submissions, recommendations, translate, reportId),
     ],
   });
 
   // --- Action Plan Kanban Board Section ---
   sections.push({
     properties: {},
-    children: createKanbanBoard(recommendations, translate),
+    children: createKanbanBoard(recommendations, translate, reportId),
   });
 
 

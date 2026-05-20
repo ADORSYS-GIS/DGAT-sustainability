@@ -767,7 +767,30 @@
       },
       "noRecommendationsDescription": "There are no recommendations for this submission.",
       "noRecommendations": "No Recommendations Available",
-      "title": "Action Plan"
+      "title": "Action Plan",
+      "addRecommendation": "Add recommendation",
+      "editRecommendation": "Edit",
+      "deleteRecommendation": "Delete",
+      "deleteConfirm": "Delete this recommendation? This cannot be undone.",
+      "recommendationForm": {
+        "addTitle": "Add recommendation",
+        "editTitle": "Edit recommendation",
+        "addDescription": "Choose the assessment category and enter the recommendation text.",
+        "editDescription": "Update the category or recommendation text.",
+        "categoryLabel": "Assessment category",
+        "categoryPlaceholder": "Select a category",
+        "textLabel": "Recommendation",
+        "textPlaceholder": "Enter your recommendation...",
+        "addButton": "Add",
+        "saveButton": "Save changes",
+        "noCategories": "No assessment categories found. Complete the assessment review first to create the initial report."
+      },
+      "createSuccess": "Recommendation added",
+      "updateSuccess": "Recommendation updated",
+      "deleteSuccess": "Recommendation deleted",
+      "createError": "Failed to add recommendation",
+      "updateError": "Failed to update recommendation",
+      "deleteError": "Failed to delete recommendation"
     }
   },
   "manageUsers.selectOrganization": "Select an Organization",

@@ -283,8 +283,23 @@ pub async fn generate_report(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to check existing reports: {e}")))?;
 
-    // If a report already exists, return it instead of creating a new one
+    // If a report already exists, merge new recommendations (e.g. Kanban add) into it
     if let Some(existing_report) = existing_reports.first() {
+        let mut data = existing_report.data.clone().ok_or_else(|| {
+            ApiError::InternalServerError("Report data is missing".to_string())
+        })?;
+        merge_recommendations_into_report_data(&mut data, &request)?;
+        app_state
+            .database
+            .submission_reports
+            .update_report_status(
+                existing_report.report_id,
+                existing_report.status.clone(),
+                Some(data),
+            )
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))?;
+
         let response = ReportGenerationResponse {
             report_id: existing_report.report_id,
             status: existing_report.status.clone(),
@@ -697,6 +712,282 @@ pub async fn update_recommendation_status(
     } else {
         Err(ApiError::NotFound("Recommendation not found in this report".to_string()))
     }
+}
+
+fn get_report_categories_map_mut(data: &mut Value) -> Option<&mut serde_json::Map<String, Value>> {
+    data.get_mut(0).and_then(|v| v.as_object_mut())
+}
+
+fn find_recommendation_location(
+    data: &Value,
+    recommendation_id: &str,
+) -> Option<(String, usize)> {
+    let categories_map = data.get(0)?.as_object()?;
+    for (category_name, category_data) in categories_map {
+        if let Some(recs) = category_data.get("recommendations").and_then(|r| r.as_array()) {
+            for (index, rec) in recs.iter().enumerate() {
+                if rec.get("id").and_then(|id| id.as_str()) == Some(recommendation_id) {
+                    return Some((category_name.clone(), index));
+                }
+            }
+        }
+    }
+    None
+}
+
+fn ensure_category_bucket(
+    categories_map: &mut serde_json::Map<String, Value>,
+    category: &str,
+) {
+    if !categories_map.contains_key(category) {
+        categories_map.insert(
+            category.to_string(),
+            json!({
+                "questions": [],
+                "recommendations": []
+            }),
+        );
+    } else if categories_map
+        .get(category)
+        .and_then(|c| c.get("recommendations"))
+        .is_none()
+    {
+        if let Some(category_data) = categories_map.get_mut(category) {
+            if let Some(obj) = category_data.as_object_mut() {
+                obj.insert("recommendations".to_string(), json!([]));
+            }
+        }
+    }
+}
+
+async fn persist_report_data(
+    app_state: &AppState,
+    report_id: Uuid,
+    status: &str,
+    data: Value,
+) -> Result<(), ApiError> {
+    app_state
+        .database
+        .submission_reports
+        .update_report_status(report_id, status.to_string(), Some(data))
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to update report: {e}")))
+        .map(|_| ())
+}
+
+/// Append recommendations to an existing report (same IDs as initial report generation).
+fn merge_recommendations_into_report_data(
+    data: &mut Value,
+    requests: &[GenerateReportRequest],
+) -> Result<(), ApiError> {
+    let categories_map = get_report_categories_map_mut(data).ok_or_else(|| {
+        ApiError::InternalServerError("Invalid report data format".to_string())
+    })?;
+
+    for request in requests {
+        let text = request.recommendation.trim();
+        if request.category.is_empty() || text.is_empty() {
+            continue;
+        }
+        if text == "No recommendation provided" || text == "No action plan given" {
+            continue;
+        }
+
+        let normalized_category = normalize_category_name(&request.category);
+        let recommendation_id = Uuid::new_v5(
+            &Uuid::NAMESPACE_DNS,
+            format!("{}-{}", normalized_category, text).as_bytes(),
+        )
+        .to_string();
+        let status = request
+            .status
+            .clone()
+            .unwrap_or_else(|| "todo".to_string());
+
+        ensure_category_bucket(categories_map, &normalized_category);
+
+        let category_data = categories_map
+            .get_mut(&normalized_category)
+            .ok_or_else(|| ApiError::InternalServerError("Failed to access category".to_string()))?;
+
+        let recs = category_data
+            .as_object_mut()
+            .and_then(|obj| obj.get_mut("recommendations"))
+            .and_then(|r| r.as_array_mut())
+            .ok_or_else(|| ApiError::InternalServerError("Invalid category data".to_string()))?;
+
+        if recs.iter().any(|rec| {
+            rec.get("id")
+                .and_then(|id| id.as_str())
+                .map(|id| id == recommendation_id)
+                .unwrap_or(false)
+        }) {
+            continue;
+        }
+
+        recs.push(json!({
+            "id": recommendation_id,
+            "text": text,
+            "status": status,
+        }));
+    }
+
+    Ok(())
+}
+
+/// Update recommendation text and/or category (org admin; post-review edits on Kanban)
+#[utoipa::path(
+    put,
+    path = "/reports/{report_id}/recommendations/{recommendation_id}",
+    tag = "Report",
+    params(
+        ("report_id" = Uuid, Path, description = "Report ID"),
+        ("recommendation_id" = String, Path, description = "Recommendation ID")
+    ),
+    request_body = UpdateRecommendationRequest,
+    responses((status = 200, description = "Updated"), (status = 404, description = "Not found"))
+)]
+pub async fn update_recommendation(
+    State(app_state): State<AppState>,
+    Path((report_id, recommendation_id)): Path<(Uuid, String)>,
+    Json(request): Json<UpdateRecommendationRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    let text = request.recommendation.trim();
+    if text.is_empty() {
+        return Err(ApiError::BadRequest("Recommendation text cannot be empty".to_string()));
+    }
+
+    let report = app_state
+        .database
+        .submission_reports
+        .get_report_by_id(report_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Database error: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Report not found".to_string()))?;
+
+    let mut data = report.data.ok_or_else(|| {
+        ApiError::InternalServerError("Report data is missing".to_string())
+    })?;
+
+    let (old_category, rec_index) = find_recommendation_location(&data, &recommendation_id)
+        .ok_or_else(|| ApiError::NotFound("Recommendation not found in this report".to_string()))?;
+
+    let normalized_category = normalize_category_name(&request.category);
+    let mut existing_status = "todo".to_string();
+
+    {
+        let categories_map = get_report_categories_map_mut(&mut data).ok_or_else(|| {
+            ApiError::InternalServerError("Invalid report data format".to_string())
+        })?;
+
+        if let Some(old_category_data) = categories_map.get(&old_category) {
+            if let Some(recs) = old_category_data
+                .get("recommendations")
+                .and_then(|r| r.as_array())
+            {
+                if let Some(rec) = recs.get(rec_index) {
+                    existing_status = rec
+                        .get("status")
+                        .and_then(|s| s.as_str())
+                        .unwrap_or("todo")
+                        .to_string();
+                }
+            }
+        }
+
+        {
+            let old_category_data = categories_map.get_mut(&old_category).ok_or_else(|| {
+                ApiError::InternalServerError("Category not found".to_string())
+            })?;
+            let recs = old_category_data
+                .as_object_mut()
+                .and_then(|obj| obj.get_mut("recommendations"))
+                .and_then(|r| r.as_array_mut())
+                .ok_or_else(|| ApiError::InternalServerError("Invalid recommendations".to_string()))?;
+            recs.remove(rec_index)
+        };
+
+        ensure_category_bucket(categories_map, &normalized_category);
+
+        let new_category_data = categories_map
+            .get_mut(&normalized_category)
+            .ok_or_else(|| ApiError::InternalServerError("Failed to access category".to_string()))?;
+
+        let recs = new_category_data
+            .as_object_mut()
+            .and_then(|obj| obj.get_mut("recommendations"))
+            .and_then(|r| r.as_array_mut())
+            .ok_or_else(|| ApiError::InternalServerError("Invalid category data".to_string()))?;
+
+        recs.push(json!({
+            "id": recommendation_id,
+            "text": text,
+            "status": existing_status,
+        }));
+    }
+
+    persist_report_data(&app_state, report_id, &report.status, data).await?;
+
+    Ok(Json(RecommendationMutationResponse {
+        recommendation_id,
+        category: normalized_category,
+        recommendation: text.to_string(),
+        status: existing_status,
+    }))
+}
+
+/// Delete a recommendation from a report (org admin)
+#[utoipa::path(
+    delete,
+    path = "/reports/{report_id}/recommendations/{recommendation_id}",
+    tag = "Report",
+    params(
+        ("report_id" = Uuid, Path, description = "Report ID"),
+        ("recommendation_id" = String, Path, description = "Recommendation ID")
+    ),
+    responses((status = 204, description = "Deleted"), (status = 404, description = "Not found"))
+)]
+pub async fn delete_recommendation(
+    State(app_state): State<AppState>,
+    Path((report_id, recommendation_id)): Path<(Uuid, String)>,
+) -> Result<impl IntoResponse, ApiError> {
+    let report = app_state
+        .database
+        .submission_reports
+        .get_report_by_id(report_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Database error: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Report not found".to_string()))?;
+
+    let mut data = report.data.ok_or_else(|| {
+        ApiError::InternalServerError("Report data is missing".to_string())
+    })?;
+
+    let (category_name, rec_index) = find_recommendation_location(&data, &recommendation_id)
+        .ok_or_else(|| ApiError::NotFound("Recommendation not found in this report".to_string()))?;
+
+    let categories_map = get_report_categories_map_mut(&mut data).ok_or_else(|| {
+        ApiError::InternalServerError("Invalid report data format".to_string())
+    })?;
+
+    let category_data = categories_map.get_mut(&category_name).ok_or_else(|| {
+        ApiError::NotFound("Category not found".to_string())
+    })?;
+
+    let recs = category_data
+        .as_object_mut()
+        .and_then(|obj| obj.get_mut("recommendations"))
+        .and_then(|r| r.as_array_mut())
+        .ok_or_else(|| ApiError::InternalServerError("Invalid recommendations".to_string()))?;
+
+    if rec_index >= recs.len() {
+        return Err(ApiError::NotFound("Recommendation not found".to_string()));
+    }
+    recs.remove(rec_index);
+
+    persist_report_data(&app_state, report_id, &report.status, data).await?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[cfg(test)]

@@ -50,23 +50,14 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import FileDisplay from "@/components/shared/FileDisplay";
-import { mergeCategoryBuckets, normalizeCategoryName } from "@/utils/categoryUtils";
-import { serializeAnswerForExport } from "@/utils/parseAssessmentAnswer";
-
-// Local types to map report.data into existing export inputs
-interface ReportAnswer {
-  yesNo?: boolean;
-  percentage?: number;
-  text?: string;
-}
-interface ReportQuestionItem {
-  question?: string;
-  answer?: ReportAnswer;
-}
-interface ReportCategoryData {
-  questions?: ReportQuestionItem[];
-  recommendations?: { id: string; text: string; status: "todo" | "in_progress" | "done" | "approved" | string }[];
-}
+import type { ReportCategoryData } from "@/types/offline";
+import { normalizeCategoryName } from "@/utils/categoryUtils";
+import {
+  buildExportPayloadFromAdminReportData,
+  buildExportPayloadFromReport,
+  mergeReportCategoryData,
+} from "@/utils/reportExportData";
+import { buildExportChartUrlsForReport } from "@/utils/exportChartRender";
 
 // Type for file attachments
 interface FileAttachment {
@@ -92,7 +83,7 @@ type NormalizedCategory = {
 const normalizeGenericReportData = (data: unknown): NormalizedCategory[] => {
   if (!Array.isArray(data) || data.length === 0) return [];
   const categoriesMap = new Map<string, NormalizedCategory>();
-  const reportData = mergeCategoryBuckets(data[0] as Record<string, Record<string, unknown>>);
+  const reportData = mergeReportCategoryData(data as ReportCategoryData[]);
   for (const [key, value] of Object.entries(reportData)) {
     if (!value || typeof value !== 'object') continue;
     const categoryName = normalizeCategoryName(key);
@@ -255,83 +246,15 @@ export const ReportHistory: React.FC = () => {
     return null;
   }, [reports, viewReportId, t]);
 
-  const mapReportToExportInputs = (
-    report: Report
-  ): { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
-    const categoriesObj: Record<string, ReportCategoryData> =
-      Array.isArray(report.data) && report.data.length > 0
-        ? mergeCategoryBuckets(report.data[0] as unknown as Record<string, ReportCategoryData>)
-        : {};
-
-    // Build a pseudo AdminSubmissionDetail with responses shaped for drawTable
-    const responses = Object.entries(categoriesObj).flatMap(
-      ([category, categoryData]) => {
-        const questions = Array.isArray(categoryData?.questions)
-          ? categoryData.questions!
-          : [];
-        return questions.map((q): { question_category: string; question_text: string; response: string } => ({
-          question_category: normalizeCategoryName(category),
-          question_text: q?.question ?? "",
-          response: serializeAnswerForExport(q?.answer),
-        }));
-      }
-    );
-
-    const submissions: AdminSubmissionDetail[] = [
-      ({
-        submission_id: report.report_id, // Use report_id as submission_id for AdminReport
-        assessment_id: "",
-        user_id: "",
-        org_id: "",
-        org_name: "",
-        content: {
-          assessment: { assessment_id: "" },
-          responses,
-        },
-        review_status: "reviewed",
-        submitted_at: report.generated_at,
-        reviewed_at: report.generated_at,
-      } as unknown) as AdminSubmissionDetail,
-    ];
-
-    const recommendations: RecommendationWithStatus[] = Object.entries(categoriesObj).flatMap(
-      ([category, categoryData]) => {
-        const categoryRecommendations = Array.isArray(categoryData?.recommendations)
-          ? categoryData.recommendations
-          : [];
-        return categoryRecommendations
-          .filter((rec) => rec.text !== "No recommendation provided" && rec.text !== "No action plan given")
-          .map((rec) => ({
-            recommendation_id: rec.id,
-            report_id: report.report_id,
-            category: normalizeCategoryName(category),
-            recommendation: rec.text,
-            status: (rec.status as RecommendationWithStatus["status"]) || "todo",
-            created_at: report.generated_at,
-            assessment_id: report.submission_id || '',
-            assessment_name: report.assessment_name || 'Unknown Assessment',
-          }));
-      }
-    );
-
-    // Deduplicate recommendations by category + recommendation text (same logic as admin)
-    const deduplicatedMap = new Map<string, RecommendationWithStatus>();
-
-    recommendations.forEach((rec) => {
-      const normalizedCategory = normalizeCategoryName(rec.category).toLowerCase();
-      const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
-
-      // Keep the most recent recommendation if duplicates exist
-      if (!deduplicatedMap.has(key) ||
-        new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
-        deduplicatedMap.set(key, rec);
-      }
+  const mapReportToExportInputs = (report: Report) =>
+    buildExportPayloadFromReport({
+      report_id: report.report_id,
+      submission_id: report.submission_id,
+      assessment_id: report.assessment_id,
+      assessment_name: report.assessment_name,
+      generated_at: report.generated_at,
+      data: report.data,
     });
-
-    const deduplicatedRecommendations = Array.from(deduplicatedMap.values());
-
-    return { submissions, recommendations: deduplicatedRecommendations };
-  };
 
   useEffect(() => {
     if (error) {
@@ -398,87 +321,56 @@ export const ReportHistory: React.FC = () => {
     return <span className="text-gray-800">{String(value)}</span>;
   };
 
-  const handleDownloadReport = async (reportId: string, orgName: string) => {
+  const handleDownloadReport = async (reportId: string, _orgName: string) => {
     try {
       const report = reports.find(r => r.report_id === reportId);
       if (!report || !report.data) throw new Error('No data available for this report');
 
-      console.log('Admin report data structure:', {
-        reportId,
-        isAdminData: isAdminReportData(report.data),
-        dataKeys: Object.keys(report.data as any)
-      });
+      const reportToExport: Report = {
+        report_id: report.report_id,
+        submission_id: report.submission_id,
+        generated_at: report.generated_at,
+        status: report.status as "generating" | "completed" | "failed",
+        data: report.data,
+        assessment_id: report.submission_id || "",
+        assessment_name: report.assessment_name || "Unknown Assessment",
+      };
 
       let singleSubmissions: AdminSubmissionDetail[];
       let singleRecs: RecommendationWithStatus[];
 
-      // Handle different data structures
       if (isAdminReportData(report.data)) {
-        console.log('Processing AdminReportData structure');
-        // Admin report data structure - use directly but apply deduplication
-        singleSubmissions = report.data.submissions;
-
-        console.log('Original recommendations count:', report.data.recommendations.length);
-
-        // Apply the same deduplication logic as other exports
-        const deduplicatedMap = new Map<string, RecommendationWithStatus>();
-
-        report.data.recommendations
-          .filter((rec) => rec.recommendation !== "No recommendation provided" && rec.recommendation !== "No action plan given")
-          .forEach((rec) => {
-            const normalizedCategory = normalizeCategoryName(rec.category).toLowerCase();
-            const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
-
-            // Keep the most recent recommendation if duplicates exist
-            if (!deduplicatedMap.has(key) ||
-              new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
-              deduplicatedMap.set(key, rec);
-            }
-          });
-
-        singleRecs = Array.from(deduplicatedMap.values());
-        console.log('Deduplicated recommendations count:', singleRecs.length);
+        const payload = buildExportPayloadFromAdminReportData(
+          {
+            report_id: report.report_id,
+            submission_id: report.submission_id,
+            assessment_id: report.submission_id,
+            assessment_name: report.assessment_name,
+            generated_at: report.generated_at,
+            data: report.data,
+          },
+          report.data
+        );
+        singleSubmissions = payload.submissions;
+        singleRecs = payload.recommendations;
       } else {
-        console.log('Processing generic report structure');
-        // Generic report data structure - use mapReportToExportInputs
-        let submissionId: string = report.report_id;
-
-        const reportToExport: Report = {
-          report_id: report.report_id,
-          submission_id: submissionId,
-          generated_at: report.generated_at,
-          status: report.status as "generating" | "completed" | "failed",
-          data: report.data,
-          assessment_id: report.submission_id || '',
-          assessment_name: report.assessment_name || 'Unknown Assessment',
-        };
-
-        const result = mapReportToExportInputs(reportToExport);
-        singleSubmissions = result.submissions;
-        singleRecs = result.recommendations;
-        console.log('Mapped recommendations count:', singleRecs.length);
+        const payload = mapReportToExportInputs(reportToExport);
+        singleSubmissions = payload.submissions;
+        singleRecs = payload.recommendations;
       }
 
-      // Generate chart data URLs (if charts are present in this view)
-      const radarChartDataUrl = chartRef.current?.toBase64Image();
-      const recommendationChartDataUrl = recommendationChartRef.current?.toBase64Image();
-
-      console.log('Calling exportAllAssessmentsPDF with:', {
-        submissionsCount: singleSubmissions.length,
-        recommendationsCount: singleRecs.length,
-        orgName: report.org_name,
-        assessmentName: report.assessment_name
-      });
+      const chartUrls = buildExportChartUrlsForReport(reportToExport, singleRecs);
 
       const { exportAllAssessmentsPDF } = await import("@/utils/exportPDF");
       await exportAllAssessmentsPDF(
         singleSubmissions,
         singleRecs,
-        radarChartDataUrl,
-        recommendationChartDataUrl,
+        chartUrls.radarChartDataUrl,
+        chartUrls.recommendationChartDataUrl,
         report.org_name,
-        report.assessment_name || 'Unknown Assessment',
-        t
+        report.assessment_name || "Unknown Assessment",
+        t,
+        report.report_id
       );
       toast.success(t('reportHistory.downloadSuccess'));
     } catch (error) {

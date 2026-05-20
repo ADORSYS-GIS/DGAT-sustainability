@@ -45,8 +45,9 @@ import { useOfflineCategoryCatalogs } from "@/hooks/useCategoryCatalogs";
 import { ReportSelectionDialog } from "@/components/shared/ReportSelectionDialog";
 import type { Report, AdminSubmissionDetail, RecommendationWithStatus, OrganizationCategory } from "@/openapi-rq/requests/types.gen";
 import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
-import { mergeCategoryBuckets, normalizeCategoryName } from "@/utils/categoryUtils";
-import { serializeAnswerForExport } from "@/utils/parseAssessmentAnswer";
+import { normalizeCategoryName } from "@/utils/categoryUtils";
+import { buildExportPayloadFromReport, mergeReportCategoryData } from "@/utils/reportExportData";
+import { buildExportChartUrlsForReport } from "@/utils/exportChartRender";
 
 // Local types to map report.data into existing export inputs
 interface ReportAnswer {
@@ -203,83 +204,15 @@ export const Dashboard: React.FC = () => {
     setIsReportDialogOpen(true);
   };
 
-  const mapReportToExportInputs = (
-    report: Report
-  ): { submissions: AdminSubmissionDetail[]; recommendations: RecommendationWithStatus[] } => {
-    const categoriesObj: Record<string, ReportCategoryData> =
-      Array.isArray(report.data) && report.data.length > 0
-        ? mergeCategoryBuckets(report.data[0] as unknown as Record<string, ReportCategoryData>)
-        : {};
-
-    // Build a pseudo AdminSubmissionDetail with responses shaped for drawTable
-    const responses = Object.entries(categoriesObj).flatMap(
-      ([category, categoryData]) => {
-        const questions = Array.isArray(categoryData?.questions)
-          ? categoryData.questions!
-          : [];
-        return questions.map((q): { question_category: string; question_text: string; response: string } => ({
-          question_category: normalizeCategoryName(category),
-          question_text: q?.question ?? "",
-          response: serializeAnswerForExport(q?.answer),
-        }));
-      }
-    );
-
-    const submissions: AdminSubmissionDetail[] = [
-      ({
-        submission_id: report.submission_id,
-        assessment_id: "",
-        user_id: "",
-        org_id: "",
-        org_name: "",
-        content: {
-          assessment: { assessment_id: "" },
-          responses,
-        },
-        review_status: "reviewed",
-        submitted_at: report.generated_at,
-        reviewed_at: report.generated_at,
-      } as unknown) as AdminSubmissionDetail,
-    ];
-
-    const recommendations: RecommendationWithStatus[] = Object.entries(categoriesObj).flatMap(
-      ([category, categoryData]) => {
-        const categoryRecommendations = Array.isArray(categoryData?.recommendations)
-          ? categoryData.recommendations
-          : [];
-        return categoryRecommendations
-          .filter((rec) => rec.text !== "No recommendation provided" && rec.text !== "No action plan given")
-          .map((rec) => ({
-            recommendation_id: rec.id,
-            report_id: report.report_id,
-            assessment_id: report.assessment_id,
-            assessment_name: report.assessment_name,
-            category: normalizeCategoryName(category),
-            recommendation: rec.text,
-            status: (rec.status as RecommendationWithStatus["status"]) || "todo",
-            created_at: report.generated_at,
-          }));
-      }
-    );
-
-    // Deduplicate recommendations by category + recommendation text (same logic as admin)
-    const deduplicatedMap = new Map<string, RecommendationWithStatus>();
-
-    recommendations.forEach((rec) => {
-      const normalizedCategory = normalizeCategoryName(rec.category).toLowerCase();
-      const key = `${normalizedCategory}-${rec.recommendation.toLowerCase().trim()}`;
-
-      // Keep the most recent recommendation if duplicates exist
-      if (!deduplicatedMap.has(key) ||
-        new Date(rec.created_at) > new Date(deduplicatedMap.get(key)!.created_at)) {
-        deduplicatedMap.set(key, rec);
-      }
+  const mapReportToExportInputs = (report: Report) =>
+    buildExportPayloadFromReport({
+      report_id: report.report_id,
+      submission_id: report.submission_id,
+      assessment_id: report.assessment_id,
+      assessment_name: report.assessment_name,
+      generated_at: report.generated_at,
+      data: report.data,
     });
-
-    const deduplicatedRecommendations = Array.from(deduplicatedMap.values());
-
-    return { submissions, recommendations: deduplicatedRecommendations };
-  };
 
   const handleSelectReportToExport = async (report: { report_id: string }) => {
     try {
@@ -291,31 +224,29 @@ export const Dashboard: React.FC = () => {
       const { submissions: singleSubmissions, recommendations: singleRecs } =
         mapReportToExportInputs(fullReport as Report);
 
-      const radarChartDataUrl = chartRef.current?.toBase64Image();
-      const recommendationChartDataUrl = recommendationChartRef.current?.toBase64Image();
+      const { radarChartDataUrl, recommendationChartDataUrl } = buildExportChartUrlsForReport(
+        fullReport as Report,
+        singleRecs,
+        organizationCategoriesData
+      );
+
+      const exportArgs = [
+        singleSubmissions,
+        singleRecs,
+        radarChartDataUrl,
+        recommendationChartDataUrl,
+        (fullReport as { org_name?: string }).org_name || orgName,
+        (fullReport as { assessment_name?: string }).assessment_name,
+        t,
+        fullReport.report_id,
+      ] as const;
 
       if (exportType === "pdf") {
         const { exportAllAssessmentsPDF } = await import("@/utils/exportPDF");
-        await exportAllAssessmentsPDF(
-          singleSubmissions,
-          singleRecs,
-          radarChartDataUrl,
-          recommendationChartDataUrl,
-          (fullReport as any).org_name || orgName,
-          (fullReport as any).assessment_name,
-          t
-        );
+        await exportAllAssessmentsPDF(...exportArgs);
       } else {
         const { exportAllAssessmentsDOCX } = await import("@/utils/exportDOCX");
-        await exportAllAssessmentsDOCX(
-          singleSubmissions,
-          singleRecs,
-          radarChartDataUrl,
-          recommendationChartDataUrl,
-          (fullReport as any).org_name || orgName,
-          (fullReport as any).assessment_name,
-          t
-        );
+        await exportAllAssessmentsDOCX(...exportArgs);
       }
     } finally {
       setIsReportDialogOpen(false);
@@ -467,15 +398,22 @@ export const Dashboard: React.FC = () => {
     const { submissions: singleSubmissions, recommendations: singleRecs } =
       mapReportToExportInputs(latestReport as unknown as Report);
 
+    const chartUrls = buildExportChartUrlsForReport(
+      latestReport as unknown as Report,
+      singleRecs,
+      organizationCategoriesData
+    );
+
     const { exportAllAssessmentsPDF } = await import("@/utils/exportPDF");
     await exportAllAssessmentsPDF(
       singleSubmissions,
       singleRecs,
-      radarChartDataUrl,
-      recommendationChartDataUrl,
+      chartUrls.radarChartDataUrl ?? radarChartDataUrl,
+      chartUrls.recommendationChartDataUrl ?? recommendationChartDataUrl,
       orgName,
       latestReport?.assessment_name || t('assessment'),
-      t
+      t,
+      latestReport.report_id
     );
   };
 
@@ -495,15 +433,22 @@ export const Dashboard: React.FC = () => {
     const { submissions: singleSubmissions, recommendations: singleRecs } =
       mapReportToExportInputs(latestReport as unknown as Report);
 
+    const chartUrls = buildExportChartUrlsForReport(
+      latestReport as unknown as Report,
+      singleRecs,
+      organizationCategoriesData
+    );
+
     const { exportAllAssessmentsDOCX } = await import("@/utils/exportDOCX");
     await exportAllAssessmentsDOCX(
       singleSubmissions,
       singleRecs,
-      radarChartDataUrl,
-      recommendationChartDataUrl,
+      chartUrls.radarChartDataUrl ?? radarChartDataUrl,
+      chartUrls.recommendationChartDataUrl ?? recommendationChartDataUrl,
       orgName,
       latestReport?.assessment_name || t('assessment'),
-      t
+      t,
+      latestReport.report_id
     );
   };
 
@@ -605,9 +550,7 @@ export const Dashboard: React.FC = () => {
         return new Date(current.generated_at) > new Date(latest.generated_at) ? current : latest;
       });
 
-      const categoriesObj = Array.isArray(latestReport.data) && latestReport.data.length > 0
-        ? mergeCategoryBuckets(latestReport.data[0] as Record<string, { recommendations: { id: string; text: string; status: string }[] }>)
-        : {};
+      const categoriesObj = mergeReportCategoryData(latestReport.data);
       const reportRecommendations = Object.entries(categoriesObj as Record<string, { recommendations: { id: string; text: string; status: string }[] }>).flatMap(([categoryName, category]) =>
         (category.recommendations || []).map(r => ({
           ...r,

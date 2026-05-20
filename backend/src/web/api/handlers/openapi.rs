@@ -55,8 +55,9 @@ use utoipa::OpenApi;
         crate::web::api::handlers::reports::delete_report,
         crate::web::api::handlers::reports::list_all_action_plans,
         crate::web::api::handlers::reports::list_all_reports,
-        crate::web::api::handlers::reports::update_recommendation_status
-        ,
+        crate::web::api::handlers::reports::update_recommendation_status,
+        crate::web::api::handlers::reports::update_recommendation,
+        crate::web::api::handlers::reports::delete_recommendation,
         // Organizations
         crate::web::api::handlers::organizations::get_organizations,
         crate::web::api::handlers::organizations::create_organization,
@@ -130,6 +131,8 @@ use utoipa::OpenApi;
         Report,
         GenerateReportRequest,
         UpdateRecommendationStatusRequest,
+        UpdateRecommendationRequest,
+        RecommendationMutationResponse,
         OrganizationActionPlan,
         RecommendationWithStatus,
         ActionPlanListResponse,

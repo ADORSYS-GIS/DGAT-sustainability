@@ -21,7 +21,11 @@ use crate::web::api::handlers::{
         get_org_admin_assigned_categories,
     },
     questions::{create_question, delete_question, delete_question_revision_by_id, get_question, list_questions, update_question},
-    reports::{delete_report, generate_report, get_report, list_reports, list_user_reports, list_all_action_plans, update_recommendation_status, list_all_reports},
+    reports::{
+        delete_recommendation, delete_report, generate_report, get_report, list_all_action_plans,
+        list_all_reports, list_reports, list_user_reports, update_recommendation,
+        update_recommendation_status,
+    },
     responses::{create_response, delete_response, get_response, list_responses, update_response},
     submissions::{delete_submission, get_submission, list_user_submissions},
     user_profile::{get_profile, update_profile, change_password},
@@ -149,6 +153,14 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/reports/:report_id", delete(delete_report))
         .route("/api/admin/action-plans", get(list_all_action_plans))
         .route("/api/admin/reports", get(list_all_reports))
+        .route(
+            "/api/reports/:report_id/recommendations/:recommendation_id",
+            put(update_recommendation),
+        )
+        .route(
+            "/api/reports/:report_id/recommendations/:recommendation_id",
+            delete(delete_recommendation),
+        )
         .route("/api/reports/:report_id/recommendations/:recommendation_id/status", put(update_recommendation_status))
         .route("/api/organizations/:org_id/org-admin/members", post(add_org_admin_member))
         .route("/api/organizations/:org_id/org-admin/members", get(get_org_admin_members))
