@@ -304,6 +304,16 @@ class OfflineDB {
     await db.delete("organization_categories", id);
   }
 
+  async deleteOrganizationCategoriesByCategoryCatalog(categoryCatalogId: string): Promise<number> {
+    const db = await this.dbPromise;
+    const tx = db.transaction("organization_categories", "readwrite");
+    const index = tx.store.index("category_catalog_id");
+    const links = await index.getAll(categoryCatalogId);
+    await Promise.all(links.map((link) => tx.store.delete(link.id)));
+    await tx.done;
+    return links.length;
+  }
+
   async clearOrganizationCategoriesStore(): Promise<void> {
     const db = await this.dbPromise;
     const tx = db.transaction("organization_categories", "readwrite");

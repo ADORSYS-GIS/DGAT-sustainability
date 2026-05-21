@@ -340,7 +340,12 @@ export class SyncService {
     try {
       // Get server categories
       const serverCategoriesResponse = await CategoryCatalogService.getCategoryCatalog();
-      const serverCategories = serverCategoriesResponse.category_catalogs;
+      const serverCategories = serverCategoriesResponse.category_catalogs.filter(
+        (category) =>
+          category.is_active !== false &&
+          typeof category.name === 'string' &&
+          category.name.trim().length > 0
+      );
 
       // If server returns no categories, clear the local store completely
       if (serverCategories.length === 0) {
@@ -374,8 +379,11 @@ export class SyncService {
 
       // Find categories to delete (local categories not on server)
       for (const localCategory of localCategories) {
-        if (!serverCategoryIds.has(localCategory.category_catalog_id) && !localCategory.category_catalog_id.startsWith('temp_')) {
+        const isTemporary = localCategory.category_catalog_id.startsWith('temp-') || localCategory.category_catalog_id.startsWith('temp_');
+        if (!serverCategoryIds.has(localCategory.category_catalog_id) && !isTemporary) {
           await offlineDB.deleteCategoryCatalog(localCategory.category_catalog_id);
+          await offlineDB.deleteOrganizationCategoriesByCategoryCatalog(localCategory.category_catalog_id);
+          await offlineDB.deleteQuestionsByCategory(localCategory.category_catalog_id);
           result.deleted++;
         }
       }

@@ -376,28 +376,28 @@ export const ActionPlan: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-50 flex flex-col">
+    <div className="fixed inset-0 bg-gray-50 flex flex-col pt-16">
       <Navbar />
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex-shrink-0 px-4 sm:px-6 lg:px-8 pt-6 pb-4 border-b bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="animate-fade-in">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
                   <div className="flex items-center space-x-3 mb-2">
-                    <Kanban className="w-8 h-8 text-dgrv-blue" />
-                    <h1 className="text-3xl font-bold text-dgrv-blue">
+                    <Kanban className="w-8 h-8 text-dgrv-blue flex-shrink-0" />
+                    <h1 className="text-3xl font-bold text-dgrv-blue break-words">
                       {t("user.actionPlan.title")}
                     </h1>
                   </div>
-                  <p className="text-lg text-gray-600">
+                  <p className="text-lg text-gray-600 break-words">
                     {t("user.dashboard.actionPlan.subtitle")}
                   </p>
                 </div>
                 {canManageRecommendations && data?.report && (
                   <Button
-                    className="bg-dgrv-green hover:bg-green-700 shrink-0"
+                    className="bg-dgrv-green hover:bg-green-700 w-full sm:w-auto lg:shrink-0"
                     onClick={handleOpenAdd}
                     disabled={isRecommendationMutating}
                   >

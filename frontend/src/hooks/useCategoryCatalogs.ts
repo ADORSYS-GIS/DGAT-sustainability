@@ -21,7 +21,13 @@ export const useOfflineCategoryCatalogs = () => {
         console.log("Could not sync category catalogs, using local data.", error);
       }
 
-      return await offlineDB.getAllCategoryCatalogs();
+      const categories = await offlineDB.getAllCategoryCatalogs();
+      return categories.filter(
+        (category) =>
+          category.is_active !== false &&
+          typeof category.name === "string" &&
+          category.name.trim().length > 0
+      );
     },
     staleTime: 60 * 60 * 1000, // 1 hour (reference data)
     gcTime: 24 * 60 * 60 * 1000, // 24 hours
@@ -135,6 +141,7 @@ export const useOfflineCategoryCatalogsMutation = () => {
     mutationFn: async (categoryCatalogId: string) => {
       // Delete the category and associated questions from IndexedDB
       await offlineDB.deleteCategoryCatalog(categoryCatalogId);
+      await offlineDB.deleteOrganizationCategoriesByCategoryCatalog(categoryCatalogId);
       const deletedQuestionsCount = await offlineDB.deleteQuestionsByCategory(categoryCatalogId);
 
       if (!categoryCatalogId.startsWith('temp-')) {

@@ -204,6 +204,23 @@ export class ApiInterceptor {
                 )
               };
             }
+          } else if (entityType === 'category_catalogs') {
+            const syncQueue = await offlineDB.getSyncQueue();
+            const pendingDeletes = new Set(
+              syncQueue
+                .filter(item => item.entity_type === 'category_catalog' && item.operation === 'delete')
+                .map(item => item.entity_id)
+            );
+
+            if (pendingDeletes.size > 0 && result.category_catalogs && Array.isArray(result.category_catalogs)) {
+              console.log(`🔍 interceptGet: Filtering ${pendingDeletes.size} pending category deletes from result`);
+              processedResult = {
+                ...result,
+                category_catalogs: (result.category_catalogs as CategoryCatalog[]).filter(
+                  category => !pendingDeletes.has(category.category_catalog_id)
+                )
+              };
+            }
           }
 
           // Merge with local pending changes before returning and storing
@@ -255,7 +272,11 @@ export class ApiInterceptor {
         try {
           const result = await apiCall();
           console.log('[Interceptor] 5a. [Online] API call successful. Result:', result);
-          await this.updateLocalData(result, entityType);
+          if (operation === 'delete') {
+            await this.deleteLocalData(data, entityType);
+          } else {
+            await this.updateLocalData(result, entityType);
+          }
 
           // After a successful online creation or update, we must remove the local temporary record or draft
           if (operation === 'create' || operation === 'update') {
@@ -362,7 +383,28 @@ export class ApiInterceptor {
           break;
         case 'category_catalogs':
           if (data.category_catalogs && Array.isArray(data.category_catalogs)) {
-            for (const catalog of data.category_catalogs as CategoryCatalog[]) {
+            const incomingCatalogs = (data.category_catalogs as CategoryCatalog[]).filter(
+              (catalog) =>
+                catalog.is_active !== false &&
+                typeof catalog.name === 'string' &&
+                catalog.name.trim().length > 0
+            );
+            const incomingIds = new Set(incomingCatalogs.map((catalog) => catalog.category_catalog_id));
+            const localCatalogs = await offlineDB.getAllCategoryCatalogs();
+
+            for (const localCatalog of localCatalogs) {
+              if (
+                localCatalog.sync_status !== 'pending' &&
+                localCatalog.category_catalog_id &&
+                !incomingIds.has(localCatalog.category_catalog_id)
+              ) {
+                await offlineDB.deleteCategoryCatalog(localCatalog.category_catalog_id);
+                await offlineDB.deleteOrganizationCategoriesByCategoryCatalog(localCatalog.category_catalog_id);
+                await offlineDB.deleteQuestionsByCategory(localCatalog.category_catalog_id);
+              }
+            }
+
+            for (const catalog of incomingCatalogs) {
               const offlineCatalog = DataTransformationService.transformCategoryCatalog(catalog);
               await offlineDB.saveCategoryCatalog(offlineCatalog);
             }
@@ -370,9 +412,22 @@ export class ApiInterceptor {
           break;
         case 'category_catalog':
           if (data && typeof data === 'object' && 'category_catalog' in data) {
-            const offlineCatalog = DataTransformationService.transformCategoryCatalog(data.category_catalog as unknown as CategoryCatalog);
-            await offlineDB.saveCategoryCatalog(offlineCatalog);
-          } else if (data) {
+            const catalog = data.category_catalog as unknown as CategoryCatalog;
+            if (
+              catalog.is_active !== false &&
+              typeof catalog.name === 'string' &&
+              catalog.name.trim().length > 0
+            ) {
+              const offlineCatalog = DataTransformationService.transformCategoryCatalog(catalog);
+              await offlineDB.saveCategoryCatalog(offlineCatalog);
+            }
+          } else if (
+            data &&
+            typeof data.category_catalog_id === 'string' &&
+            typeof data.name === 'string' &&
+            data.name.trim().length > 0 &&
+            data.is_active !== false
+          ) {
             const offlineCatalog = DataTransformationService.transformCategoryCatalog(data as unknown as CategoryCatalog);
             await offlineDB.saveCategoryCatalog(offlineCatalog);
           }
@@ -598,6 +653,16 @@ export class ApiInterceptor {
     // We can use it to update local data with the server response
     if (data) {
       await this.storeLocally(data as Record<string, unknown>, entityType);
+    }
+  }
+
+  private async deleteLocalData(data: Record<string, unknown>, entityType: string): Promise<void> {
+    if (entityType === 'category_catalog' && typeof data.category_catalog_id === 'string') {
+      await offlineDB.deleteCategoryCatalog(data.category_catalog_id);
+      await offlineDB.deleteOrganizationCategoriesByCategoryCatalog(data.category_catalog_id);
+      await offlineDB.deleteQuestionsByCategory(data.category_catalog_id);
+    } else if (entityType === 'question' && typeof data.question_id === 'string') {
+      await offlineDB.deleteQuestion(data.question_id);
     }
   }
 
