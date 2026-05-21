@@ -37,7 +37,7 @@ export type { OfflineCategoryCatalog };
 class OfflineDB {
   private dbPromise: Promise<IDBPDatabase<OfflineDatabaseSchema>>;
   private readonly DB_NAME = "dgat-offline-db";
-  private readonly DB_VERSION = 13; // Increment DB_VERSION to trigger upgrade
+  private readonly DB_VERSION = 14; // Increment DB_VERSION to trigger upgrade
 
   constructor() {
     this.dbPromise = openDB<OfflineDatabaseSchema>(this.DB_NAME, this.DB_VERSION, {
@@ -79,12 +79,20 @@ class OfflineDB {
     if (!existingStores.includes("questions")) {
       const questionsStore = db.createObjectStore("questions", { keyPath: "question_id" });
       questionsStore.createIndex("category", "category", { unique: false });
+      questionsStore.createIndex("category_id", "category_id", { unique: false });
+      questionsStore.createIndex("search_text", "search_text", { unique: false });
       questionsStore.createIndex("sync_status", "sync_status", { unique: false });
       questionsStore.createIndex("updated_at", "updated_at", { unique: false });
       questionsStore.createIndex("is_active", "is_active", { unique: false });
     } else if (transaction) {
       // If store exists, we handle adding index in the upgrade callback using the transaction
       const store = transaction.objectStore("questions");
+      if (!store.indexNames.contains("category_id")) {
+        store.createIndex("category_id", "category_id", { unique: false });
+      }
+      if (!store.indexNames.contains("search_text")) {
+        store.createIndex("search_text", "search_text", { unique: false });
+      }
       if (!store.indexNames.contains("is_active")) {
         store.createIndex("is_active", "is_active", { unique: false });
       }
@@ -334,7 +342,7 @@ class OfflineDB {
   async getQuestionsByCategory(categoryId: string, includeInactive = false): Promise<OfflineQuestion[]> {
     const db = await this.dbPromise;
     const tx = db.transaction("questions", "readonly");
-    const index = tx.store.index("category");
+    const index = tx.store.index("category_id");
     const questions = await index.getAll(categoryId);
     if (includeInactive) {
       return questions;
@@ -354,7 +362,7 @@ class OfflineDB {
     await db.delete("questions", questionId);
   }
 
-  async deleteQuestionsByCategory(categoryId: string): Promise {
+  async deleteQuestionsByCategory(categoryId: string): Promise<number> {
     const db = await this.dbPromise;
     const tx = db.transaction("questions", "readwrite");
     const index = tx.store.index("category_id");

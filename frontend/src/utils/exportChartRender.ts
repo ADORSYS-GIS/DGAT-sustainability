@@ -1,5 +1,5 @@
 import { Chart, registerables } from "chart.js";
-import type { ChartData, ChartOptions } from "chart.js";
+import type { ChartData, ChartOptions, Plugin } from "chart.js";
 import type { RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 import type { Report } from "@/openapi-rq/requests/types.gen";
 import { generateRadarChartData } from "./radarChart";
@@ -7,24 +7,34 @@ import { generateRecommendationChartData } from "./recommendationChart";
 
 Chart.register(...registerables);
 
-function renderChartToDataUrl(
-  type: "radar" | "bar",
-  data: ChartData<"radar"> | ChartData<"bar">,
-  options: ChartOptions<"radar"> | ChartOptions<"bar">,
+function renderChartToDataUrl<TType extends "radar" | "bar">(
+  type: TType,
+  data: ChartData<TType>,
+  options: ChartOptions<TType>,
+  plugins: Plugin<TType>[] = [],
   width = 800,
   height = 480
 ): string | undefined {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
 
   const chart = new Chart(canvas, {
     type,
-    data: data as ChartData<"radar">,
-    options: options as ChartOptions<"radar">,
-    plugins: type === "bar" ? (options as { plugins?: unknown[] }).plugins : undefined,
+    data,
+    options: {
+      ...options,
+      animation: false,
+      responsive: false,
+      maintainAspectRatio: false,
+      devicePixelRatio: 2,
+    } as ChartOptions<TType>,
+    plugins,
   });
 
+  chart.update("none");
   const url = canvas.toDataURL("image/png", 1);
   chart.destroy();
   return url;
@@ -56,6 +66,8 @@ export function buildExportChartUrlsForReport(
         "radar",
         radarInfo as ChartData<"radar">,
         {
+          responsive: false,
+          animation: false,
           maintainAspectRatio: false,
           scales: {
             r: {
@@ -63,6 +75,7 @@ export function buildExportChartUrlsForReport(
             },
           },
         } as ChartOptions<"radar">,
+        [],
         800,
         500
       );
@@ -75,6 +88,7 @@ export function buildExportChartUrlsForReport(
       "bar",
       recChartInfo.data,
       recChartInfo.options as ChartOptions<"bar">,
+      recChartInfo.plugins,
       800,
       400
     );
