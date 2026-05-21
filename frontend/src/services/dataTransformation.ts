@@ -74,11 +74,30 @@ export class DataTransformationService {
    */
   static transformQuestion(
     question: Question,
-    categoryNameToIdMap: Map<string, string>
+    categoryLookupMap: Map<string, string>
   ): OfflineQuestion {
-    const apiQuestion = question as unknown as { category: string };
-    const categoryName = apiQuestion.category;
-    const categoryId = categoryNameToIdMap.get(categoryName?.toLowerCase());
+    const apiQuestion = question as unknown as { category?: string; category_id?: string };
+    const apiCategoryId = apiQuestion.category_id || "";
+    const apiCategoryName = apiQuestion.category || "";
+
+    const idToName = new Map<string, string>();
+    const nameToId = new Map<string, string>();
+
+    categoryLookupMap.forEach((value, key) => {
+      idToName.set(key, value);
+      idToName.set(value, key);
+      nameToId.set(value.toLowerCase(), key);
+      nameToId.set(key.toLowerCase(), value);
+    });
+
+    const categoryId =
+      apiCategoryId ||
+      nameToId.get(apiCategoryName.toLowerCase()) ||
+      "";
+    const categoryName =
+      apiCategoryName ||
+      (categoryId ? idToName.get(categoryId) : undefined) ||
+      'Unknown Category';
 
     if (!categoryId) {
       console.warn(`Could not find category ID for category name: "${categoryName}".`);
@@ -86,7 +105,7 @@ export class DataTransformationService {
 
     return {
       question_id: question.question_id,
-      category: categoryName || 'Unknown Category',
+      category: categoryName,
       latest_revision: {
         question_revision_id: question.latest_revision.question_revision_id,
         question_id: question.question_id,

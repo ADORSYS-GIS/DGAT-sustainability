@@ -7,6 +7,28 @@ import { generateRecommendationChartData } from "./recommendationChart";
 
 Chart.register(...registerables);
 
+function wrapRadarLabel(label: string, maxLineLength = 20): string[] {
+  const words = label.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+    if (nextLine.length > maxLineLength && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = nextLine;
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.slice(0, 4);
+}
+
 function renderChartToDataUrl<TType extends "radar" | "bar">(
   type: TType,
   data: ChartData<TType>,
@@ -69,15 +91,46 @@ export function buildExportChartUrlsForReport(
           responsive: false,
           animation: false,
           maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 24,
+              right: 88,
+              bottom: 36,
+              left: 88,
+            },
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              align: "center",
+              labels: {
+                boxWidth: 34,
+                padding: 18,
+                font: { size: 13 },
+              },
+            },
+          },
           scales: {
             r: {
-              pointLabels: { font: { size: 14 } },
+              beginAtZero: true,
+              max: 3,
+              ticks: {
+                stepSize: 0.5,
+                backdropColor: "rgba(255, 255, 255, 0.75)",
+                font: { size: 11 },
+              },
+              pointLabels: {
+                callback: (label) => wrapRadarLabel(String(label)),
+                centerPointLabels: true,
+                padding: 18,
+                font: { size: 12, weight: "bold" },
+              },
             },
           },
         } as ChartOptions<"radar">,
         [],
-        800,
-        500
+        1000,
+        650
       );
     }
   }

@@ -82,8 +82,8 @@ export function useOfflineQuestionsMutation() {
       if (response && (response as any).question) {
         await offlineDB.deleteQuestion(tempId);
         const categories = await offlineDB.getAllCategoryCatalogs();
-        const categoryIdToNameMap = new Map(categories.map(c => [c.category_catalog_id, c.name]));
-        const finalQuestion = DataTransformationService.transformQuestion((response as any).question, categoryIdToNameMap);
+        const categoryNameToIdMap = new Map(categories.map(c => [c.name.toLowerCase(), c.category_catalog_id]));
+        const finalQuestion = DataTransformationService.transformQuestion((response as any).question, categoryNameToIdMap);
         await offlineDB.saveQuestion(finalQuestion);
         return { finalQuestion, tempId };
       }
@@ -101,6 +101,7 @@ export function useOfflineQuestionsMutation() {
       });
       // Invalidate to ensure consistency with the server in the background
       queryClient.invalidateQueries({ queryKey: ['questions'] });
+      queryClient.invalidateQueries({ queryKey: ['category-catalogs'] });
     },
   });
 
@@ -150,6 +151,7 @@ export function useOfflineQuestionsMutation() {
         old?.map(q => q.question_id === updatedQuestion.question_id ? updatedQuestion : q)
       );
       queryClient.invalidateQueries({ queryKey: ['questions'] });
+      queryClient.invalidateQueries({ queryKey: ['category-catalogs'] });
     },
   });
 
@@ -183,6 +185,7 @@ export function useOfflineQuestionsMutation() {
         old?.filter(q => q.question_id !== data.questionId)
       );
       queryClient.invalidateQueries({ queryKey: ['questions'] });
+      queryClient.invalidateQueries({ queryKey: ['category-catalogs'] });
     },
   });
 

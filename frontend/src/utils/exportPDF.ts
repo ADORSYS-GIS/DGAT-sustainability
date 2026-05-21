@@ -251,8 +251,8 @@ export async function exportAllAssessmentsPDF(
     const radarIntro = translate('export.sustainabilityDimensionsIntro');
     doc.text(doc.splitTextToSize(radarIntro, pageWidth - (PAGE_MARGIN * 2)), PAGE_MARGIN, 36);
 
-    const chartHeight = 150;
-    const chartWidth = 400;
+    const chartWidth = Math.min(pageWidth - (PAGE_MARGIN * 2), 220);
+    const chartHeight = chartWidth * 0.65;
     const x = (pageWidth - chartWidth) / 2;
     addPngImage(doc, radarChartDataUrl, x, 51, chartWidth, chartHeight, "radar chart");
   }

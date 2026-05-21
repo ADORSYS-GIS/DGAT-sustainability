@@ -21,6 +21,7 @@ import { Edit, Plus, Trash2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { normalizeCategoryName } from "@/utils/categoryUtils";
 
 const SUSTAINABILITY_TEMPLATE_ID = "sustainability_template_1";
 
@@ -61,15 +62,21 @@ export const ManageCategories: React.FC = () => {
   const nonEnglishLanguages = LANGUAGES.filter((lang) => lang.code !== "en");
 
   // Use offline hooks for all data fetching
-  const { data: categoriesData, isLoading, error, refetch } = useOfflineCategoryCatalogs();
-  const { data: questionsData } = useOfflineQuestions();
+  const { data: categoriesData, isLoading, error, refetch: refetchCategories } = useOfflineCategoryCatalogs();
+  const { data: questionsData, refetch: refetchQuestions } = useOfflineQuestions();
 
   const categories = categoriesData || [];
   const questions = questionsData || [];
 
   // Calculate question counts per category
-  const getQuestionCountForCategory = (categoryId: string) => {
-    return questions.filter((q: OfflineQuestion) => q.category_id === categoryId).length;
+  const getQuestionCountForCategory = (category: OfflineCategoryCatalog) => {
+    const categoryName = normalizeCategoryName(category.name);
+    return questions.filter((q: OfflineQuestion) => {
+      return (
+        q.category_id === category.category_catalog_id ||
+        normalizeCategoryName(q.category) === categoryName
+      );
+    }).length;
   };
 
   // Use enhanced offline mutation hooks
@@ -85,7 +92,10 @@ export const ManageCategories: React.FC = () => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail.entityType === 'category_catalog' || customEvent.detail.entityType === 'category_catalogs') {
         console.log('Received datasync event for categories, refetching...');
-        refetch();
+        refetchCategories();
+      }
+      if (customEvent.detail.entityType === 'question' || customEvent.detail.entityType === 'questions') {
+        refetchQuestions();
       }
     };
 
@@ -94,7 +104,7 @@ export const ManageCategories: React.FC = () => {
     return () => {
       window.removeEventListener('datasync', handleDataSync);
     };
-  }, [refetch]);
+  }, [refetchCategories, refetchQuestions]);
 
   // Use categories as is (no sorting needed)
   const sortedCategories = [...categories];
@@ -228,7 +238,7 @@ export const ManageCategories: React.FC = () => {
               {error instanceof Error ? error.message : t('manageCategories.unknownError')}
             </p>
             <Button
-              onClick={() => refetch()}
+              onClick={() => refetchCategories()}
               className="bg-dgrv-blue hover:bg-blue-700"
             >
               {t('manageCategories.retry')}
@@ -397,41 +407,44 @@ export const ManageCategories: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {sortedCategories.map((category) => (
-                  <div
-                    key={category.category_catalog_id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <h3 className="font-medium text-lg">{getCategoryDisplayName(category)}</h3>
-                      <p className="text-sm text-gray-600">
-                        {getCategoryDisplayDescription(category)}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {getQuestionCountForCategory(category.category_catalog_id)} {getQuestionCountForCategory(category.category_catalog_id) === 1 ? t('common.question') : t('common.questions')}
-                      </p>
+                {sortedCategories.map((category) => {
+                  const questionCount = getQuestionCountForCategory(category);
+                  return (
+                    <div
+                      key={category.category_catalog_id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-medium text-lg">{getCategoryDisplayName(category)}</h3>
+                        <p className="text-sm text-gray-600">
+                          {getCategoryDisplayDescription(category)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {questionCount} {questionCount === 1 ? t('common.question') : t('common.questions')}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(category)}
+                          disabled={isPending}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(category.category_catalog_id)}
+                          className="text-red-600 hover:text-red-700"
+                          disabled={isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(category)}
-                        disabled={isPending}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(category.category_catalog_id)}
-                        className="text-red-600 hover:text-red-700"
-                        disabled={isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {/* Show error and redistribute button if needed */}
                 {sortedCategories.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
