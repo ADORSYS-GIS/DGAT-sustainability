@@ -3,11 +3,57 @@ import { drawAssessmentsTable } from "./drawTable";
 import { drawKanbanBoard } from "./drawKanban";
 import type { AdminSubmissionDetail, RecommendationWithStatus } from "@/openapi-rq/requests/types.gen";
 import { offlineDB } from "@/services/indexeddb";
-import type { OfflineImage } from "@/types/offline";
 import type { TFunction } from "i18next";
 
 const PAGE_MARGIN = 14;
 const dgrvBlue = [30, 58, 138];
+const PNG_DATA_URL_PREFIX = "data:image/png;base64,";
+
+function hasPngSignature(dataUrl: string): boolean {
+  if (!dataUrl.startsWith(PNG_DATA_URL_PREFIX)) {
+    return false;
+  }
+
+  const base64 = dataUrl.slice(PNG_DATA_URL_PREFIX.length);
+  try {
+    const signature = atob(base64.slice(0, 12));
+    return (
+      signature.charCodeAt(0) === 0x89 &&
+      signature.charCodeAt(1) === 0x50 &&
+      signature.charCodeAt(2) === 0x4e &&
+      signature.charCodeAt(3) === 0x47
+    );
+  } catch {
+    return false;
+  }
+}
+
+function addPngImage(
+  doc: jsPDF,
+  dataUrl: string | undefined,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  label: string
+): boolean {
+  if (!dataUrl) {
+    return false;
+  }
+
+  if (!hasPngSignature(dataUrl)) {
+    console.warn(`Skipping invalid PNG image while exporting PDF: ${label}`);
+    return false;
+  }
+
+  try {
+    doc.addImage(dataUrl, "PNG", x, y, width, height);
+    return true;
+  } catch (error) {
+    console.warn(`Skipping PNG image that jsPDF could not process: ${label}`, error);
+    return false;
+  }
+}
 
 export const addHeader = (doc: jsPDF, t: TFunction) => {
   const pageCount = doc.getNumberOfPages();
@@ -29,9 +75,11 @@ const addNewPageWithHeader = (doc: jsPDF, t: TFunction) => {
 async function loadImageAsBase64(url: string): Promise<string | undefined> {
   // 1. Try to load from IndexedDB
   const cachedImage = await offlineDB.getImage(url);
-  if (cachedImage) {
+  if (cachedImage && hasPngSignature(cachedImage.dataUrl)) {
     console.log(`Loaded image from IndexedDB: ${url}`);
     return cachedImage.dataUrl;
+  } else if (cachedImage) {
+    console.warn(`Ignoring cached image with invalid PNG data: ${url}`);
   }
 
   // 2. If not in IndexedDB, try to fetch from network
@@ -136,8 +184,12 @@ export async function exportAllAssessmentsPDF(
     const imgWidth = 200;
     const imgHeight = 130;
     const x = (pageWidth - imgWidth) / 2;
-    doc.addImage(imageBase64, "PNG", x, 20, imgWidth, imgHeight);
-  } else {
+    if (!addPngImage(doc, imageBase64, x, 20, imgWidth, imgHeight, "cover image")) {
+      imageBase64 = undefined;
+    }
+  }
+
+  if (!imageBase64) {
     // Fallback to drawing a blue rectangle with text
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -155,7 +207,7 @@ export async function exportAllAssessmentsPDF(
     const base64 = canvas.toDataURL('image/png');
     const imgWidth = 150; const imgHeight = 150;
     const x = (pageWidth - imgWidth) / 2;
-    doc.addImage(base64, "PNG", x, 20, imgWidth, imgHeight);
+    addPngImage(doc, base64, x, 20, imgWidth, imgHeight, "fallback cover image");
   }
 
   doc.setFontSize(36);
@@ -202,7 +254,7 @@ export async function exportAllAssessmentsPDF(
     const chartHeight = 150;
     const chartWidth = 400;
     const x = (pageWidth - chartWidth) / 2;
-    doc.addImage(radarChartDataUrl, "PNG", x, 51, chartWidth, chartHeight);
+    addPngImage(doc, radarChartDataUrl, x, 51, chartWidth, chartHeight, "radar chart");
   }
 
   // --- Recommendation Status Chart Section ---
@@ -219,7 +271,7 @@ export async function exportAllAssessmentsPDF(
     const chartHeight = 150;
     const chartWidth = chartHeight * 1.5;
     const x = (pageWidth - chartWidth) / 2;
-    doc.addImage(recommendationChartDataUrl, "PNG", x, 51, chartWidth, chartHeight);
+    addPngImage(doc, recommendationChartDataUrl, x, 51, chartWidth, chartHeight, "recommendation chart");
   }
 
   // --- Detailed Assessments Table Section ---

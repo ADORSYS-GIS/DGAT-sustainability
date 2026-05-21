@@ -730,11 +730,34 @@
         "backToTodo": "العودة إلى القيام به",
         "moveToInProgress": "الانتقال إلى قيد التقدم",
         "approve": "يعتمد",
-        "noTasks": "لا توجد مهام في ${column.title.toLowerCase()}"
+        "noTasks": "لا توجد مهام في {{status}}"
       },
       "noRecommendationsDescription": "لا توجد توصيات لهذا التقديم.",
       "noRecommendations": "لا توجد توصيات متاحة",
-      "title": "خطة العمل"
+      "title": "خطة العمل",
+      "addRecommendation": "إضافة توصية",
+      "editRecommendation": "تعديل",
+      "deleteRecommendation": "حذف",
+      "deleteConfirm": "حذف هذه التوصية؟ لا يمكن التراجع عن هذا الإجراء.",
+      "recommendationForm": {
+        "addTitle": "إضافة توصية",
+        "editTitle": "تعديل التوصية",
+        "addDescription": "اختر فئة التقييم وأدخل نص التوصية.",
+        "editDescription": "حدّث الفئة أو نص التوصية.",
+        "categoryLabel": "فئة التقييم",
+        "categoryPlaceholder": "اختر فئة",
+        "textLabel": "التوصية",
+        "textPlaceholder": "أدخل توصيتك...",
+        "addButton": "إضافة",
+        "saveButton": "حفظ التغييرات",
+        "noCategories": "لم يتم العثور على فئات تقييم. أكمل مراجعة التقييم أولاً لإنشاء التقرير الأولي."
+      },
+      "createSuccess": "تمت إضافة التوصية",
+      "updateSuccess": "تم تحديث التوصية",
+      "deleteSuccess": "تم حذف التوصية",
+      "createError": "فشلت إضافة التوصية",
+      "updateError": "فشل تحديث التوصية",
+      "deleteError": "فشل حذف التوصية"
     }
   },
   "manageUsers.selectOrganization": "اختر منظمة",
@@ -1322,7 +1345,7 @@
       "inProgress": "في تَقَدم",
       "done": "منتهي",
       "approved": "موافقة",
-      "noTasks": "لا توجد مهام في {{الحالة}}"
+      "noTasks": "لا توجد مهام في {{status}}"
     },
     "loading": "جارٍ التحميل..."
   },

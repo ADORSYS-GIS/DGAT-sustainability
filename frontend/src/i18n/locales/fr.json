@@ -730,7 +730,7 @@
         "backToTodo": "Retour à Faire",
         "moveToInProgress": "Passer à En cours",
         "approve": "Approuver",
-        "noTasks": "Aucune tâche dans ${column.title.toLowerCase()}"
+        "noTasks": "Aucune tâche dans {{status}}"
       },
       "noRecommendationsDescription": "Il n’y a aucune recommandation pour cette soumission.",
       "noRecommendations": "Aucune recommandation disponible",

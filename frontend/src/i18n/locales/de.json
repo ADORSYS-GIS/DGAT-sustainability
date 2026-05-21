@@ -730,7 +730,7 @@
         "backToTodo": "Zurück zu „Zu erledigen“.",
         "moveToInProgress": "Wechseln Sie zu „In Bearbeitung“.",
         "approve": "Genehmigen",
-        "noTasks": "Keine Aufgaben in ${column.title.toLowerCase()}"
+        "noTasks": "Keine Aufgaben in {{status}}"
       },
       "noRecommendationsDescription": "Für diese Einreichung liegen keine Empfehlungen vor.",
       "noRecommendations": "Keine Empfehlungen verfügbar",

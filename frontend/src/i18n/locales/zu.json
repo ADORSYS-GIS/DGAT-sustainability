@@ -730,7 +730,7 @@
         "backToTodo": "Buyela Kokwenza",
         "moveToInProgress": "Hambisa kokuthi Kuyaqhubeka",
         "approve": "Gunyaza",
-        "noTasks": "Ayikho imisebenzi kokuthi ${column.title.toLowerCase()}"
+        "noTasks": "Ayikho imisebenzi kokuthi {{status}}"
       },
       "noRecommendationsDescription": "Azikho izincomo zalokhu kuhanjiswa.",
       "noRecommendations": "Azikho Izincomo Ezitholakalayo",

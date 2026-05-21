@@ -763,7 +763,7 @@
         "backToTodo": "Back to To Do",
         "moveToInProgress": "Move to In Progress",
         "approve": "Approve",
-        "noTasks": "No tasks in ${column.title.toLowerCase()}"
+        "noTasks": "No tasks in {{status}}"
       },
       "noRecommendationsDescription": "There are no recommendations for this submission.",
       "noRecommendations": "No Recommendations Available",

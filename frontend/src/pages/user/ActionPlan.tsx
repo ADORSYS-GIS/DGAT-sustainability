@@ -48,7 +48,9 @@ export const ActionPlan: React.FC = () => {
   } = useRecommendationMutations();
   const { isOnline } = useOfflineSyncStatus();
   const { roles } = useAuth();
-  const isAdmin = roles.includes("org_admin") || roles.includes("Org_admin");
+  const canManageRecommendations = React.useMemo(() => {
+    return roles.some((role) => role.toLowerCase() === "org_admin");
+  }, [roles]);
 
   const { data: questionsData } = useOfflineQuestions();
   const { data: categoriesData } = useOfflineCategoryCatalogs();
@@ -215,7 +217,7 @@ export const ActionPlan: React.FC = () => {
   };
 
   const handleFormSubmit = async (values: RecommendationFormValues) => {
-    if (!data?.report || !isAdmin) return;
+    if (!data?.report || !canManageRecommendations) return;
     const callbacks = {
       onSuccess: async () => {
         toast.success(
@@ -253,7 +255,7 @@ export const ActionPlan: React.FC = () => {
   };
 
   const handleDelete = async (task: KanbanRecommendation) => {
-    if (!data?.report || !isAdmin) return;
+    if (!data?.report || !canManageRecommendations) return;
     if (!window.confirm(t("user.actionPlan.deleteConfirm"))) return;
     await deleteRecommendation(data.report, task.recommendation_id, {
       onSuccess: async () => {
@@ -393,7 +395,7 @@ export const ActionPlan: React.FC = () => {
                     {t("user.dashboard.actionPlan.subtitle")}
                   </p>
                 </div>
-                {isAdmin && data?.report && (
+                {canManageRecommendations && data?.report && (
                   <Button
                     className="bg-dgrv-green hover:bg-green-700 shrink-0"
                     onClick={handleOpenAdd}
@@ -462,7 +464,7 @@ export const ActionPlan: React.FC = () => {
                                     <div className="text-center py-8 text-gray-500">
                                       <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                       <p className="text-sm">
-                                        {t("user.actionPlan.kanban.noTasks", {status: column.id})}
+                                        {t("user.actionPlan.kanban.noTasks", { status: column.title.toLowerCase() })}
                                       </p>
                                     </div>
                                   ) : (
@@ -484,7 +486,7 @@ export const ActionPlan: React.FC = () => {
                                               {task.recommendation}
                                             </div>
                                             <div className="flex gap-2 mt-auto pt-2 border-t border-black/5">
-                                              {isAdmin && task.status === "todo" && (
+                                              {canManageRecommendations && task.status === "todo" && (
                                                 <button
                                                   className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                                                   onClick={(e) => {
@@ -495,7 +497,7 @@ export const ActionPlan: React.FC = () => {
                                                   {t("user.actionPlan.kanban.moveToInProgress")}
                                                 </button>
                                               )}
-                                              {isAdmin && task.status === "in_progress" && (
+                                              {canManageRecommendations && task.status === "in_progress" && (
                                                 <>
                                                   <button
                                                     className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
@@ -517,7 +519,7 @@ export const ActionPlan: React.FC = () => {
                                                   </button>
                                                 </>
                                               )}
-                                              {isAdmin && task.status === "done" && (
+                                              {canManageRecommendations && task.status === "done" && (
                                                 <>
                                                   <button
                                                     className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
@@ -539,7 +541,7 @@ export const ActionPlan: React.FC = () => {
                                                   </button>
                                                 </>
                                               )}
-                                              {isAdmin && task.status === "approved" && (
+                                              {canManageRecommendations && task.status === "approved" && (
                                                 <button
                                                   className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
                                                   onClick={(e) => {
@@ -593,7 +595,7 @@ export const ActionPlan: React.FC = () => {
               {selectedTask?.recommendation}
             </div>
 
-            {selectedTask && isAdmin && (
+            {selectedTask && canManageRecommendations && (
               <div className="mt-4 flex flex-wrap gap-2 pb-2 border-b">
                 <Button
                   variant="outline"
@@ -619,7 +621,7 @@ export const ActionPlan: React.FC = () => {
 
             {selectedTask && (
               <div className="mt-6 flex flex-wrap gap-3 pt-6 border-t">
-                {isAdmin && selectedTask.status === "todo" && (
+                {canManageRecommendations && selectedTask.status === "todo" && (
                   <Button
                     size="sm"
                     className="bg-blue-600 hover:bg-blue-700"
@@ -631,7 +633,7 @@ export const ActionPlan: React.FC = () => {
                     {t("user.actionPlan.kanban.moveToInProgress")}
                   </Button>
                 )}
-                {isAdmin && selectedTask.status === "in_progress" && (
+                {canManageRecommendations && selectedTask.status === "in_progress" && (
                   <>
                     <Button
                       variant="outline"
@@ -655,7 +657,7 @@ export const ActionPlan: React.FC = () => {
                     </Button>
                   </>
                 )}
-                {isAdmin && selectedTask.status === "done" && (
+                {canManageRecommendations && selectedTask.status === "done" && (
                   <>
                     <Button
                       variant="outline"
@@ -679,7 +681,7 @@ export const ActionPlan: React.FC = () => {
                     </Button>
                   </>
                 )}
-                {isAdmin && selectedTask.status === "approved" && (
+                {canManageRecommendations && selectedTask.status === "approved" && (
                   <Button
                     variant="outline"
                     size="sm"

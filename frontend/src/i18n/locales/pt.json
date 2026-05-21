@@ -730,7 +730,7 @@
         "backToTodo": "Voltar para fazer",
         "moveToInProgress": "Mover para Em Andamento",
         "approve": "Aprovar",
-        "noTasks": "Nenhuma tarefa em ${column.title.toLowerCase()}"
+        "noTasks": "Nenhuma tarefa em {{status}}"
       },
       "noRecommendationsDescription": "Não há recomendações para esta submissão.",
       "noRecommendations": "Nenhuma recomendação disponível",
