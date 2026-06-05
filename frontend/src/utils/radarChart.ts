@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Report } from "@/openapi-rq/requests/types.gen";
 import { normalizeCategoryName } from "./categoryUtils";
+import { mergeReportCategoryData } from "./reportExportData";
 
 const answerSchema = z.object({
   percentage: z.number().optional(),
@@ -37,63 +38,80 @@ interface RadarChartData {
   }[];
 }
 
+/**
+ * Scores one category bucket — counts (yesNo * percentage/100) per question.
+ */
+function scoreCategoryQuestions(questions: { answer?: { percentage?: number; yesNo?: boolean } }[]): number {
+  let score = 0;
+  for (const q of questions) {
+    if (q.answer) {
+      const pct = (q.answer.percentage ?? 0) / 100;
+      const yes = q.answer.yesNo ? 1 : 0;
+      score += pct * yes;
+    }
+  }
+  return score;
+}
+
 export const generateRadarChartData = (apiResponse: ReportData): RadarChartData | null => {
   const categories: { [key: string]: number } = {};
-  
-  // Check if there are any reports
+
   if (!apiResponse.reports || apiResponse.reports.length === 0) {
     return null;
   }
-  
-  // Find the most recent report by generated_at date instead of using array position
-  // If timestamps are identical, use report_id as tiebreaker (assuming newer reports have newer IDs)
+
   const report = apiResponse.reports.reduce((latest, current) => {
     const latestDate = new Date(latest.generated_at);
     const currentDate = new Date(current.generated_at);
-    
-    if (currentDate > latestDate) {
-      return current;
-    } else if (currentDate.getTime() === latestDate.getTime()) {
-      // If timestamps are identical, use report_id as tiebreaker
+    if (currentDate > latestDate) return current;
+    if (currentDate.getTime() === latestDate.getTime()) {
       return current.report_id > latest.report_id ? current : latest;
-    } else {
-      return latest;
     }
+    return latest;
   });
-  
+
   const { organizationCategories } = apiResponse;
 
   if (report && report.data) {
+    // First try the standard reportDataSchema path
     const parsedReportData = reportDataSchema.safeParse(report.data);
 
     if (parsedReportData.success) {
       parsedReportData.data.forEach((item) => {
         Object.entries(item).forEach(([categoryName, category]) => {
-          const normalizedCategoryName = normalizeCategoryName(categoryName);
+          const norm = normalizeCategoryName(categoryName);
+          if (!categories[norm]) categories[norm] = 0;
 
-          if (!categories[normalizedCategoryName]) {
-            categories[normalizedCategoryName] = 0;
-          }
+          const rawScore = scoreCategoryQuestions(category.questions);
 
-          let sustainabilityScore = 0;
-
-          category.questions.forEach((question) => {
-            if (question.answer) {
-              const percentage = (question.answer.percentage || 0) / 100;
-              const yesNo = question.answer.yesNo ? 1 : 0;
-              sustainabilityScore += percentage * yesNo;
-            }
-          });
-
+          // Use real org weight if available, otherwise treat as 100% (no scaling)
           const orgCategory = organizationCategories.find(
-            (orgCat) => normalizeCategoryName(orgCat.category_name) === normalizedCategoryName
+            (c) => normalizeCategoryName(c.category_name) === norm
           );
-          const weight = orgCategory?.weight || 0;
-          categories[normalizedCategoryName] += sustainabilityScore * (weight / 100);
+          const weight = orgCategory?.weight ?? 100;
+          categories[norm] += rawScore * (weight / 100);
         });
       });
     } else {
-      console.error("Invalid report data structure:", parsedReportData.error);
+      // Fallback: use mergeReportCategoryData which handles all data shapes
+      // (including admin { submissions, recommendations } format)
+      const merged = mergeReportCategoryData(report.data as Parameters<typeof mergeReportCategoryData>[0]);
+      Object.entries(merged).forEach(([categoryName, categoryData]) => {
+        const norm = normalizeCategoryName(categoryName);
+        if (!categories[norm]) categories[norm] = 0;
+
+        const questions = Array.isArray((categoryData as { questions?: unknown[] })?.questions)
+          ? ((categoryData as { questions: { answer?: { percentage?: number; yesNo?: boolean } }[] }).questions)
+          : [];
+
+        const rawScore = scoreCategoryQuestions(questions);
+
+        const orgCategory = organizationCategories.find(
+          (c) => normalizeCategoryName(c.category_name) === norm
+        );
+        const weight = orgCategory?.weight ?? 100;
+        categories[norm] += rawScore * (weight / 100);
+      });
     }
   }
 

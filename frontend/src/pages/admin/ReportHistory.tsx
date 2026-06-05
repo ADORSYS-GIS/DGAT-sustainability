@@ -58,6 +58,7 @@ import {
   mergeReportCategoryData,
 } from "@/utils/reportExportData";
 import { buildExportChartUrlsForReport } from "@/utils/exportChartRender";
+import { OrganizationsService } from "@/openapi-rq/requests/services.gen";
 
 // Type for file attachments
 interface FileAttachment {
@@ -359,7 +360,31 @@ export const ReportHistory: React.FC = () => {
         singleRecs = payload.recommendations;
       }
 
-      const chartUrls = buildExportChartUrlsForReport(reportToExport, singleRecs);
+      // Fetch real org categories for this report's org — same data the user export uses
+      let orgCategories: { category_name: string; weight?: number }[] = [];
+      if (report.org_id) {
+        try {
+          const orgCatResponse = await OrganizationsService.getOrganizationsByKeycloakOrganizationIdCategories({
+            keycloakOrganizationId: report.org_id,
+          });
+          if (orgCatResponse?.organization_categories?.length) {
+            orgCategories = orgCatResponse.organization_categories.map(c => ({
+              category_name: c.category_name,
+              weight: c.weight,
+            }));
+          }
+        } catch (e) {
+          console.warn('Could not fetch org categories for report, falling back to report data', e);
+        }
+      }
+
+      // Fallback: derive categories from report data if API call failed or returned nothing
+      if (orgCategories.length === 0) {
+        const merged = mergeReportCategoryData(report.data as ReportCategoryData[]);
+        orgCategories = Object.keys(merged).map(name => ({ category_name: name, weight: 100 }));
+      }
+
+      const chartUrls = buildExportChartUrlsForReport(reportToExport, singleRecs, orgCategories);
 
       const { exportAllAssessmentsPDF } = await import("@/utils/exportPDF");
       await exportAllAssessmentsPDF(
