@@ -39,15 +39,14 @@ interface RadarChartData {
 }
 
 /**
- * Scores one category bucket — counts (yesNo * percentage/100) per question.
+ * Scores one category bucket — sums percentage/100 per question.
+ * The percentage field represents the assessor's score regardless of yes/no answer.
  */
 function scoreCategoryQuestions(questions: { answer?: { percentage?: number; yesNo?: boolean } }[]): number {
   let score = 0;
   for (const q of questions) {
     if (q.answer) {
-      const pct = (q.answer.percentage ?? 0) / 100;
-      const yes = q.answer.yesNo ? 1 : 0;
-      score += pct * yes;
+      score += (q.answer.percentage ?? 0) / 100;
     }
   }
   return score;
