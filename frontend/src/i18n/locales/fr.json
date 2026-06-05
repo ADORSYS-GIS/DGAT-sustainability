@@ -771,6 +771,10 @@
   "manageUsers.confirmDeleteTitle": "Supprimer l'utilisateur",
   "manageUsers.confirmDeleteDescription": "Êtes-vous sûr de vouloir supprimer {{name}} ({{email}}) entièrement du système ? Cette action supprimera définitivement l'utilisateur de Keycloak et ne peut pas être annulée.",
   "manageUsers.deleteUser": "Supprimer l'utilisateur",
+  "manageUsers.resendEmail": "Renvoyer l'e-mail",
+  "manageUsers.resendEmailTitle": "Renvoyer l'e-mail d'invitation à cet utilisateur",
+  "manageUsers.resendEmailSuccess": "L'e-mail d'invitation a été renvoyé avec succès",
+  "manageUsers.resendEmailError": "Échec du renvoi de l'e-mail d'invitation",
   "manageQuestions": {
     "title": "Gérer les questions",
     "subtitle": "Créer et organiser les questions d'évaluation par catégorie",

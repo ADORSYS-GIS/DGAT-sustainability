@@ -93,8 +93,13 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
             (typeof errorData === 'object' && errorData?.error?.includes('User exists with same email')) ||
             (typeof errorData === 'object' && errorData?.message?.includes('User exists with same email')) ||
             (typeof errorData === 'string' && errorData.includes('already exists'))) {
-          console.log('User already exists detected');
-          errorMessage = t('userInvitation.errors.userAlreadyExists');
+          // If the message is about org membership, show it directly
+          const serverMsg = typeof errorData === 'object' ? (errorData?.message || errorData?.error || '') : errorData;
+          if (serverMsg.includes('member of')) {
+            errorMessage = serverMsg;
+          } else {
+            errorMessage = t('userInvitation.errors.userAlreadyExists');
+          }
         } else {
           switch (status) {
             case 400:
@@ -112,10 +117,16 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
             case 404:
               errorMessage = t('userInvitation.errors.organizationNotFound');
               break;
-            case 409:
-              console.log('409 Conflict detected - User already exists');
-              errorMessage = t('userInvitation.errors.userAlreadyExists');
+            case 409: {
+              // Use the server's message directly if it describes org membership
+              const msg409 = typeof errorData === 'object' ? (errorData?.message || errorData?.error || '') : (errorData as string);
+              if (msg409.includes('member of')) {
+                errorMessage = msg409;
+              } else {
+                errorMessage = t('userInvitation.errors.userAlreadyExists');
+              }
               break;
+            }
             case 422:
               errorMessage = t('userInvitation.errors.validationError');
               break;
@@ -156,10 +167,15 @@ export const UserInvitationForm: React.FC<UserInvitationFormProps> = ({
         
         // Handle ApiError objects (like ApiError: Conflict)
         if (error.message === 'Conflict' || error.status === 409) {
-          console.log('409 Conflict detected in ApiError object');
-          errorMessage = t('userInvitation.errors.userAlreadyExists');
+          // Use server message directly if it describes org membership
+          if (error.message.includes('member of')) {
+            errorMessage = error.message;
+          } else if (typeof error.data === 'object' && error.data !== null && 'message' in error.data && typeof (error.data as {message:string}).message === 'string' && (error.data as {message:string}).message.includes('member of')) {
+            errorMessage = (error.data as {message: string}).message;
+          } else {
+            errorMessage = t('userInvitation.errors.userAlreadyExists');
+          }
         } else if (error.message.includes('already exists') || error.message.includes('User exists with same email')) {
-          console.log('User already exists detected in ApiError message');
           errorMessage = t('userInvitation.errors.userAlreadyExists');
         } else {
           errorMessage = t('userInvitation.errors.unknownError');

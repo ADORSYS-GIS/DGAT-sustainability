@@ -28,8 +28,10 @@ import type {
   RoleAssignment
 } from "@/openapi-rq/requests/types.gen";
 import { offlineDB } from "@/services/indexeddb";
-import { Building2, Edit, Mail, Trash2, UserPlus, Users } from "lucide-react";
+import { fetchWithAuth } from "@/services/shared/authService";
+import { Building2, Edit, Mail, RefreshCw, Trash2, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -146,6 +148,30 @@ export const ManageUsers: React.FC = () => {
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(null);
+
+  // Resend invitation email mutation
+  const [resendingUserId, setResendingUserId] = useState<string | null>(null);
+  const resendInvitationMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetchWithAuth(`/api/admin/user-invitations/${userId}/resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message || "Failed to resend invitation email");
+      }
+      return response.json();
+    },
+    onSuccess: (_data, userId) => {
+      toast.success(t("manageUsers.resendEmailSuccess"));
+      setResendingUserId(null);
+    },
+    onError: (_error, userId) => {
+      toast.error(t("manageUsers.resendEmailError"));
+      setResendingUserId(null);
+    },
+  });
 
   // Offline-first user creation logic
   const createUserOffline = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
@@ -527,6 +553,22 @@ export const ManageUsers: React.FC = () => {
                       <span>{user.email}</span>
                     </div>
                     <div className="flex space-x-2 pt-4">
+                      {!user.emailVerified && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setResendingUserId(user.id);
+                            resendInvitationMutation.mutate(user.id);
+                          }}
+                          className="flex-1 text-amber-600 hover:bg-amber-50 border-amber-300"
+                          disabled={resendingUserId === user.id && resendInvitationMutation.isPending}
+                          title={t("manageUsers.resendEmailTitle")}
+                        >
+                          <RefreshCw className={`w-4 h-4 mr-1 ${resendingUserId === user.id && resendInvitationMutation.isPending ? "animate-spin" : ""}`} />
+                          {t("manageUsers.resendEmail")}
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"

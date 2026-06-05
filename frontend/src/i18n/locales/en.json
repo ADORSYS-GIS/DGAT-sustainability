@@ -829,6 +829,10 @@
   "manageUsers.confirmDeleteTitle": "Delete User",
   "manageUsers.confirmDeleteDescription": "Are you sure you want to delete {{name}} ({{email}}) entirely from the system? This action will permanently remove the user from Keycloak and cannot be undone.",
   "manageUsers.deleteUser": "Delete User",
+  "manageUsers.resendEmail": "Resend Email",
+  "manageUsers.resendEmailTitle": "Resend invitation email to this user",
+  "manageUsers.resendEmailSuccess": "Invitation email resent successfully",
+  "manageUsers.resendEmailError": "Failed to resend invitation email",
   "manageQuestions": {
     "title": "Manage Questions",
     "subtitle": "Create and organize assessment questions by category",

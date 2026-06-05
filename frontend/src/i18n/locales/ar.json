@@ -796,6 +796,10 @@
   "manageUsers.confirmDeleteTitle": "حذف المستخدم",
   "manageUsers.confirmDeleteDescription": "هل أنت متأكد أنك تريد حذف {{name}} ({{email}}) نهائياً من النظام؟ سيؤدي هذا إلى إزالة المستخدم نهائياً من Keycloak ولا يمكن التراجع عنه.",
   "manageUsers.deleteUser": "حذف المستخدم",
+  "manageUsers.resendEmail": "إعادة إرسال البريد الإلكتروني",
+  "manageUsers.resendEmailTitle": "إعادة إرسال بريد الدعوة إلى هذا المستخدم",
+  "manageUsers.resendEmailSuccess": "تم إعادة إرسال بريد الدعوة بنجاح",
+  "manageUsers.resendEmailError": "فشل في إعادة إرسال بريد الدعوة",
   "manageQuestions": {
     "title": "إدارة الأسئلة",
     "subtitle": "إنشاء وتنظيم أسئلة التقييم حسب الفئة",

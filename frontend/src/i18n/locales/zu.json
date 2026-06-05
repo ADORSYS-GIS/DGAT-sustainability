@@ -773,6 +773,10 @@
   "manageUsers.confirmDeleteTitle": "Susa Umsebenzisi",
   "manageUsers.confirmDeleteDescription": "Uqinisekile ukuthi ufuna ukususa u-{{name}} ({{email}}) ngokuphelele ohlelweni? Lesi senzo sizosusa unomphela umsebenzisi ku-Keycloak futhi ngeke sibuyiselwe emuva.",
   "manageUsers.deleteUser": "Susa Umsebenzisi",
+  "manageUsers.resendEmail": "Thumela Futhi I-imeyili",
+  "manageUsers.resendEmailTitle": "Thumela futhi i-imeyili yesimemo kulomsusbenzisi",
+  "manageUsers.resendEmailSuccess": "I-imeyili yesimemo ithunyelwe futhi ngempumelelo",
+  "manageUsers.resendEmailError": "Yehlulekile ukuthumela futhi i-imeyili yesimemo",
   "manageQuestions": {
     "title": "Phatha Imibuzo",
     "subtitle": "Yakha futhi hlele imibuzo yokuhlola ngesigaba",

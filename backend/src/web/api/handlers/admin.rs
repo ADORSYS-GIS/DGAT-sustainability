@@ -635,16 +635,95 @@ pub async fn create_user_invitation(
             let error_message = e.to_string();
             tracing::error!("Failed to create user invitation: {}", error_message);
 
-            // Provide specific error messages based on the error type
+            // If user already exists, look them up and send the org invitation instead
             if error_message.contains("already exists")
                 || error_message.contains("duplicate")
                 || error_message.contains("User exists with same email")
                 || (error_message.contains("errorMessage")
                     && error_message.contains("User exists with same email"))
             {
-                Err(ApiError::Conflict(
-                    "A user with this email address already exists in the system".to_string(),
-                ))
+                tracing::info!(email = %request.email, "User already exists, attempting to send org invitation to existing user");
+
+                // Look up the existing user by email
+                match app_state
+                    .keycloak_service
+                    .find_user_by_username_or_email(&token, &request.email)
+                    .await
+                {
+                    Ok(Some(existing_user)) => {
+                        let user_id = existing_user.id.clone();
+
+                        // Check if user is already a member of the target organisation
+                        let already_member = match app_state
+                            .keycloak_service
+                            .get_organization_members(&token, &request.organization_id)
+                            .await
+                        {
+                            Ok(members) => members.iter().any(|m| m.id == user_id),
+                            Err(e) => {
+                                tracing::warn!(error = %e, "Could not fetch org members to check membership, proceeding with invitation");
+                                false
+                            }
+                        };
+
+                        if already_member {
+                            // Fetch the org name for a friendly error message
+                            let org_name = match app_state
+                                .keycloak_service
+                                .get_organization(&token, &request.organization_id)
+                                .await
+                            {
+                                Ok(org) => org.name,
+                                Err(_) => request.organization_id.clone(),
+                            };
+
+                            tracing::info!(user_id = %user_id, org_id = %request.organization_id, "User is already a member of the organisation");
+                            return Err(ApiError::Conflict(format!(
+                                "User is already a member of the \"{}\" organisation",
+                                org_name
+                            )));
+                        }
+
+                        match app_state
+                            .keycloak_service
+                            .send_organization_invitation_immediate(
+                                &token,
+                                &request.organization_id,
+                                &user_id,
+                                request.roles.clone(),
+                            )
+                            .await
+                        {
+                            Ok(_) => {
+                                tracing::info!(user_id = %user_id, org_id = %request.organization_id, "Org invitation sent to existing user");
+                                Ok(Json(UserInvitationResponse {
+                                    user_id,
+                                    email: existing_user.email,
+                                    status: UserInvitationStatus::Active,
+                                    message: "User already exists. Organization invitation has been sent.".to_string(),
+                                }))
+                            }
+                            Err(invite_err) => {
+                                tracing::error!(user_id = %user_id, error = %invite_err, "Failed to send org invitation to existing user");
+                                Err(ApiError::InternalServerError(
+                                    "User already exists but failed to send organization invitation".to_string(),
+                                ))
+                            }
+                        }
+                    }
+                    Ok(None) => {
+                        // Shouldn't happen but handle gracefully
+                        Err(ApiError::Conflict(
+                            "A user with this email address already exists in the system".to_string(),
+                        ))
+                    }
+                    Err(lookup_err) => {
+                        tracing::error!(email = %request.email, error = %lookup_err, "Failed to look up existing user");
+                        Err(ApiError::Conflict(
+                            "A user with this email address already exists in the system".to_string(),
+                        ))
+                    }
+                }
             } else if error_message.contains("email") && error_message.contains("invalid") {
                 Err(ApiError::BadRequest("Invalid email format".to_string()))
             } else if error_message.contains("organization") && error_message.contains("not found")
@@ -738,6 +817,40 @@ pub async fn delete_user(
             tracing::error!(user_id = %user_id, error = %e, "Failed to delete user");
             Err(ApiError::InternalServerError(
                 "Failed to delete user".to_string(),
+            ))
+        }
+    }
+}
+
+/// Resend invitation email to a pending user
+pub async fn resend_invitation_email(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    Path(user_id): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    if !claims.is_application_admin() {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    let token = get_token_from_extensions(&token)?;
+
+    // Re-trigger the verify email action for the user
+    match app_state
+        .keycloak_service
+        .trigger_email_verification(&token, &user_id)
+        .await
+    {
+        Ok(()) => {
+            tracing::info!(user_id = %user_id, "Invitation email resent successfully");
+            Ok(Json(serde_json::json!({
+                "message": "Invitation email resent successfully"
+            })))
+        }
+        Err(e) => {
+            tracing::error!(user_id = %user_id, error = %e, "Failed to resend invitation email");
+            Err(ApiError::InternalServerError(
+                "Failed to resend invitation email".to_string(),
             ))
         }
     }

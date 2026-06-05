@@ -773,6 +773,10 @@
   "manageUsers.confirmDeleteTitle": "Benutzer löschen",
   "manageUsers.confirmDeleteDescription": "Sind Sie sicher, dass Sie {{name}} ({{email}}) vollständig aus dem System löschen möchten? Diese Aktion entfernt den Benutzer dauerhaft aus Keycloak und kann nicht rückgängig gemacht werden.",
   "manageUsers.deleteUser": "Benutzer löschen",
+  "manageUsers.resendEmail": "E-Mail erneut senden",
+  "manageUsers.resendEmailTitle": "Einladungs-E-Mail erneut an diesen Benutzer senden",
+  "manageUsers.resendEmailSuccess": "Einladungs-E-Mail erfolgreich erneut gesendet",
+  "manageUsers.resendEmailError": "Fehler beim erneuten Senden der Einladungs-E-Mail",
   "manageQuestions": {
     "title": "Fragen verwalten",
     "subtitle": "Bewertungsfragen nach Kategorie erstellen und organisieren",
