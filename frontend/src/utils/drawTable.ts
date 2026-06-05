@@ -25,6 +25,18 @@ interface TableData {
   recommendations?: string;
 }
 
+/**
+ * Extracts a sort key from a question text like "Resource Use 1: Are you..."
+ * Returns [prefix, number] so questions sort by prefix first, then by their number.
+ */
+function questionSortKey(question: string): [string, number] {
+  const match = question.match(/^(.*?)\s+(\d+)\s*:/);
+  if (match) {
+    return [match[1].trim().toLowerCase(), parseInt(match[2], 10)];
+  }
+  return [question.toLowerCase(), 0];
+}
+
 const groupDataByCategory = (
   submissions: AdminSubmissionDetail[],
   t?: TFunction
@@ -61,6 +73,16 @@ const groupDataByCategory = (
         }
       });
     }
+  });
+
+  // Sort questions within each category by their numeric prefix (e.g. "Resource Use 1", "Resource Use 2")
+  Object.keys(groupedData).forEach((category) => {
+    groupedData[category].sort((a, b) => {
+      const [prefixA, numA] = questionSortKey(a.question);
+      const [prefixB, numB] = questionSortKey(b.question);
+      if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
+      return numA - numB;
+    });
   });
 
   return groupedData;

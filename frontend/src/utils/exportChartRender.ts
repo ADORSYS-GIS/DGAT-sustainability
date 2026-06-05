@@ -42,24 +42,33 @@ function renderChartToDataUrl<TType extends "radar" | "bar">(
   canvas.height = height;
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
+  // Must be attached to DOM for some browsers to render correctly
+  canvas.style.position = "absolute";
+  canvas.style.left = "-9999px";
+  canvas.style.top = "-9999px";
+  document.body.appendChild(canvas);
 
-  const chart = new Chart(canvas, {
-    type,
-    data,
-    options: {
-      ...options,
-      animation: false,
-      responsive: false,
-      maintainAspectRatio: false,
-      devicePixelRatio: 2,
-    } as ChartOptions<TType>,
-    plugins,
-  });
+  try {
+    const chart = new Chart(canvas, {
+      type,
+      data,
+      options: {
+        ...options,
+        animation: false,
+        responsive: false,
+        maintainAspectRatio: false,
+        devicePixelRatio: 2,
+      } as ChartOptions<TType>,
+      plugins,
+    });
 
-  chart.update("none");
-  const url = canvas.toDataURL("image/png", 1);
-  chart.destroy();
-  return url;
+    chart.update("none");
+    const url = canvas.toDataURL("image/png", 1);
+    chart.destroy();
+    return url;
+  } finally {
+    document.body.removeChild(canvas);
+  }
 }
 
 export type ExportChartUrls = {
@@ -121,7 +130,6 @@ export function buildExportChartUrlsForReport(
               },
               pointLabels: {
                 callback: (label) => wrapRadarLabel(String(label)),
-                centerPointLabels: true,
                 padding: 18,
                 font: { size: 12, weight: "bold" },
               },
