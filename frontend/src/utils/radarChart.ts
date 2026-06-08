@@ -14,7 +14,7 @@ const questionSchema = z.object({
 
 const categoryDataSchema = z.object({
   questions: z.array(questionSchema).optional().default([]),
-  weight: z.number().optional(),
+  weight: z.number().optional(),  // snapshotted at report generation time
 });
 
 const reportDataSchema = z.array(z.record(z.string(), categoryDataSchema));
@@ -79,6 +79,12 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
     const parsedReportData = reportDataSchema.safeParse(report.data);
 
     if (parsedReportData.success) {
+      // Count total categories to compute equal-weight fallback for old reports
+      const totalCategories = parsedReportData.data.reduce(
+        (sum, item) => sum + Object.keys(item).length, 0
+      );
+      const equalWeight = totalCategories > 0 ? Math.round(100 / totalCategories) : 100;
+
       parsedReportData.data.forEach((item) => {
         Object.entries(item).forEach(([categoryName, category]) => {
           const norm = normalizeCategoryName(categoryName);
@@ -86,15 +92,20 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
 
           const rawScore = scoreCategoryQuestions(category.questions);
 
-          const orgCategory = organizationCategories.find(
-            (c) => normalizeCategoryName(c.category_name) === norm
-          );
-          const weight = orgCategory?.weight ?? 100;
+          // Priority: 1) weight snapshotted in report data, 2) live org category, 3) equal split
+          const snapshotWeight = category.weight;
+          const orgCategory = snapshotWeight == null
+            ? organizationCategories.find((c) => normalizeCategoryName(c.category_name) === norm)
+            : null;
+          const weight = snapshotWeight ?? orgCategory?.weight ?? equalWeight;
           categories[norm] += rawScore * (weight / 100);
         });
       });
     } else {
       const merged = mergeReportCategoryData(report.data as Parameters<typeof mergeReportCategoryData>[0]);
+      const totalCategories = Object.keys(merged).length;
+      const equalWeight = totalCategories > 0 ? Math.round(100 / totalCategories) : 100;
+
       Object.entries(merged).forEach(([categoryName, categoryData]) => {
         const norm = normalizeCategoryName(categoryName);
         if (!categories[norm]) categories[norm] = 0;
@@ -105,10 +116,11 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
 
         const rawScore = scoreCategoryQuestions(questions);
 
-        const orgCategory = organizationCategories.find(
-          (c) => normalizeCategoryName(c.category_name) === norm
-        );
-        const weight = orgCategory?.weight ?? 100;
+        const snapshotWeight = (categoryData as { weight?: number })?.weight;
+        const orgCategory = snapshotWeight == null
+          ? organizationCategories.find((c) => normalizeCategoryName(c.category_name) === norm)
+          : null;
+        const weight = snapshotWeight ?? orgCategory?.weight ?? equalWeight;
         categories[norm] += rawScore * (weight / 100);
       });
     }

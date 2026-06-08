@@ -28,6 +28,28 @@ async fn generate_report_content(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
 
+    // Snapshot org category weights at report generation time so the report remains
+    // self-contained even if the admin later deletes or renames categories.
+    let mut org_category_weights: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+    if let Ok(org_cats) = app_state
+        .database
+        .organization_categories
+        .get_organization_categories_by_keycloak_organization_id(&submission.org_id)
+        .await
+    {
+        for org_cat in org_cats {
+            if let Ok(Some(catalog)) = app_state
+                .database
+                .category_catalog
+                .get_category_catalog_by_id(org_cat.category_catalog_id)
+                .await
+            {
+                let norm = normalize_category_name(&catalog.name);
+                org_category_weights.insert(norm, org_cat.weight);
+            }
+        }
+    }
+
     let empty_responses = vec![];
     let responses = submission.content
         .get("responses")
@@ -98,9 +120,11 @@ async fn generate_report_content(
             
             // Only include the category if it has valid recommendations
             if !filtered_recommendations.is_empty() {
+                let weight = org_category_weights.get(&category).copied().unwrap_or(100);
                 result_object.insert(category, json!({
                     "questions": questions,
                     "recommendations": filtered_recommendations,
+                    "weight": weight,
                 }));
             }
         }
@@ -122,10 +146,11 @@ async fn generate_report_content(
             .collect();
             
         if !filtered_recs.is_empty() && !result_object.contains_key(&category_key) {
-            // Use the normalized category key directly
+            let weight = org_category_weights.get(&category_key).copied().unwrap_or(100);
             result_object.insert(category_key, json!({
                 "questions": [],
                 "recommendations": filtered_recs,
+                "weight": weight,
             }));
         }
     }
