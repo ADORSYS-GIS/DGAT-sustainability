@@ -77,8 +77,6 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
   if (report && report.data) {
     // First try the standard reportDataSchema path
     const parsedReportData = reportDataSchema.safeParse(report.data);
-    console.log('[RadarChart] organizationCategories:', organizationCategories);
-    console.log('[RadarChart] parsedReportData.success:', parsedReportData.success);
 
     if (parsedReportData.success) {
       parsedReportData.data.forEach((item) => {
@@ -92,7 +90,6 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
             (c) => normalizeCategoryName(c.category_name) === norm
           );
           const weight = orgCategory?.weight ?? 100;
-          console.log(`[RadarChart] category="${norm}" rawScore=${rawScore} weight=${weight} final=${rawScore * (weight / 100)}`);
           categories[norm] += rawScore * (weight / 100);
         });
       });
