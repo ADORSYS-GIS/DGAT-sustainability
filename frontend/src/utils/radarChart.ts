@@ -38,15 +38,18 @@ interface RadarChartData {
   }[];
 }
 
+const MAX_RADAR_VALUE = 3;
+
 /**
- * Scores one category bucket — sums percentage/100 per question.
- * The percentage field represents the assessor's score regardless of yes/no answer.
+ * Scores one category bucket — counts (yesNo * percentage/100) per question.
  */
 function scoreCategoryQuestions(questions: { answer?: { percentage?: number; yesNo?: boolean } }[]): number {
   let score = 0;
   for (const q of questions) {
     if (q.answer) {
-      score += (q.answer.percentage ?? 0) / 100;
+      const pct = (q.answer.percentage ?? 0) / 100;
+      const yes = q.answer.yesNo ? 1 : 0;
+      score += pct * yes;
     }
   }
   return score;
@@ -74,6 +77,8 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
   if (report && report.data) {
     // First try the standard reportDataSchema path
     const parsedReportData = reportDataSchema.safeParse(report.data);
+    console.log('[RadarChart] organizationCategories:', organizationCategories);
+    console.log('[RadarChart] parsedReportData.success:', parsedReportData.success);
 
     if (parsedReportData.success) {
       parsedReportData.data.forEach((item) => {
@@ -83,17 +88,15 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
 
           const rawScore = scoreCategoryQuestions(category.questions);
 
-          // Use real org weight if available, otherwise treat as 100% (no scaling)
           const orgCategory = organizationCategories.find(
             (c) => normalizeCategoryName(c.category_name) === norm
           );
           const weight = orgCategory?.weight ?? 100;
+          console.log(`[RadarChart] category="${norm}" rawScore=${rawScore} weight=${weight} final=${rawScore * (weight / 100)}`);
           categories[norm] += rawScore * (weight / 100);
         });
       });
     } else {
-      // Fallback: use mergeReportCategoryData which handles all data shapes
-      // (including admin { submissions, recommendations } format)
       const merged = mergeReportCategoryData(report.data as Parameters<typeof mergeReportCategoryData>[0]);
       Object.entries(merged).forEach(([categoryName, categoryData]) => {
         const norm = normalizeCategoryName(categoryName);
@@ -116,7 +119,6 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
 
   const labels = Object.keys(categories);
   const sustainabilityScores = Object.values(categories);
-  const maxRadarValue = 3;
 
   if (labels.length === 0) {
     return null;
@@ -134,7 +136,7 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
       },
       {
         label: 'Maximum Score per Section',
-        data: labels.map(() => maxRadarValue),
+        data: labels.map(() => MAX_RADAR_VALUE),
         backgroundColor: 'rgba(255, 167, 38, 0.2)',
         borderColor: 'rgba(255, 167, 38, 1)',
         borderWidth: 1,
