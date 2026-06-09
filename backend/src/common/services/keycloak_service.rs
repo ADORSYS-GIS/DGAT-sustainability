@@ -107,7 +107,9 @@ impl KeycloakService {
 
     /// Get all organizations
     pub async fn get_organizations(&self, token: &str) -> Result<Vec<KeycloakOrganization>> {
-        let url = format!("{}/admin/realms/{}/organizations?briefRepresentation=false", self.config.url, self.config.realm);
+        // Keycloak defaults to returning only 10 results if max is not specified
+        // Use max=-1 to get all organizations, or set a high limit like max=10000
+        let url = format!("{}/admin/realms/{}/organizations?briefRepresentation=false&first=0&max=10000", self.config.url, self.config.realm);
 
         let response = self.client.get(&url)
             .bearer_auth(token)
