@@ -128,7 +128,7 @@ pub async fn get_organizations(
 
             // Apply pagination
             let first = params.first.unwrap_or(0) as usize;
-            let max = params.max.unwrap_or(10) as usize;
+            let max = params.max.unwrap_or(1000) as usize;
 
             let total_count = organizations.len();
             let _end = std::cmp::min(first + max, total_count);
@@ -528,7 +528,7 @@ pub async fn get_members(
 
             // Apply pagination
             let first = params.first.unwrap_or(0) as usize;
-            let max = params.max.unwrap_or(10) as usize;
+            let max = params.max.unwrap_or(1000) as usize;
 
             let total_count = members.len();
 

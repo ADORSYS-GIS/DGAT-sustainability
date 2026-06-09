@@ -27,6 +27,7 @@ const extractErrorMessage = (error: unknown): string => {
   };
 
   const extractFromRecord = (record: Record<string, unknown>): string | null => {
+    // Check for common error message fields in order of priority
     const candidates = [
       record.errorMessage,
       record.message,
@@ -53,9 +54,38 @@ const extractErrorMessage = (error: unknown): string => {
 
   if (error && typeof error === "object") {
     const asRecord = error as Record<string, unknown>;
+    
+    // Debug log to see what error structure we're getting
+    console.log('Error object structure:', {
+      keys: Object.keys(asRecord),
+      body: asRecord.body,
+      message: asRecord.message,
+      error: asRecord.error
+    });
+
+    // Check if it's an ApiError instance with body property
+    const body = asRecord.body;
+    if (body && typeof body === 'object') {
+      const bodyMsg = extractFromRecord(body as Record<string, unknown>);
+      if (bodyMsg) {
+        console.log('Extracted message from error.body:', bodyMsg);
+        return bodyMsg;
+      }
+    }
+    if (typeof body === 'string') {
+      const parsed = tryParseJsonString(body);
+      if (parsed) {
+        const msg = extractFromRecord(parsed);
+        if (msg) return msg;
+      }
+      if (body.trim()) return body;
+    }
 
     const topLevel = extractFromRecord(asRecord);
-    if (topLevel) return topLevel;
+    if (topLevel) {
+      console.log('Extracted message from top-level:', topLevel);
+      return topLevel;
+    }
 
     // OpenAPI/axios-like: error.response.data
     const response = asRecord.response;
@@ -73,21 +103,6 @@ const extractErrorMessage = (error: unknown): string => {
           if (msg) return msg;
         }
       }
-    }
-
-    // Some clients: error.body may be an object or JSON string
-    const body = asRecord.body;
-    if (body && typeof body === 'object') {
-      const bodyMsg = extractFromRecord(body as Record<string, unknown>);
-      if (bodyMsg) return bodyMsg;
-    }
-    if (typeof body === 'string') {
-      const parsed = tryParseJsonString(body);
-      if (parsed) {
-        const msg = extractFromRecord(parsed);
-        if (msg) return msg;
-      }
-      if (body.trim()) return body;
     }
   }
   if (error instanceof Error) {
