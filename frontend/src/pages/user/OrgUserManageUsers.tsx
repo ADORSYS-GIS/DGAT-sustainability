@@ -28,6 +28,7 @@ import type { OfflineCategoryCatalog } from "@/services/indexeddb";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
+import { apiInterceptor } from "@/services/apiInterceptor";
 import { OrganizationMembersService } from "@/openapi-rq/requests/services.gen";
 import type { OfflineUser } from "@/types/offline";
 import { useTranslation } from "react-i18next";
@@ -236,10 +237,10 @@ export const OrgUserManageUsers: React.FC = () => {
   const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
 
   // Helper function to get translated category name
-  const getCategoryDisplayName = (category: any) => {
-    const translations = category?.name_translations as Record | undefined;
+  const getCategoryDisplayName = useCallback((category: OfflineCategoryCatalog) => {
+    const translations = category?.name_translations as Record<string, string> | undefined;
     return translations?.[currentLanguage] || category?.name || "";
-  };
+  }, [currentLanguage]);
 
   const { orgName, orgId } = useMemo(() => {
     if (!user || !user.organizations) return { orgName: "", orgId: "" };
@@ -287,7 +288,7 @@ export const OrgUserManageUsers: React.FC = () => {
       }
     });
     return map;
-  }, [availableCategories, currentLanguage]);
+  }, [availableCategories, getCategoryDisplayName]);
   const [formData, setFormData] = useState({
     email: "",
     roles: ["Org_User"],
@@ -440,19 +441,27 @@ export const OrgUserManageUsers: React.FC = () => {
   const confirmDelete = async () => {
     if (!userToDelete || !orgId) return;
 
+    setDeletingUserId(userToDelete.id);
     try {
       // Delete the user entirely from the system (Keycloak)
       await deletePendingUser(userToDelete.id);
       toast.success(t("staticText.users.deleteEntirelySuccess"));
+
       // Clean up IndexedDB if user exists there
-      try { await offlineDB.deleteUser(userToDelete.id); } catch {}
-      refetch();
-      refetchInvitations();
+      try {
+        await offlineDB.deleteUser(userToDelete.id);
+      } catch (error) {
+        console.warn("Failed to delete user from local cache:", error);
+      }
+
+      apiInterceptor.invalidateRecentGet("users", orgId);
+      await Promise.all([refetch(), refetchInvitations()]);
     } catch {
       toast.error(t("staticText.users.deleteEntirelyError"));
     } finally {
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
+      setDeletingUserId(null);
     }
   };
 

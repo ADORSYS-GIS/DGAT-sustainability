@@ -1329,6 +1329,9 @@
     "total": "Gesamt:",
     "totalWeightMustBe100": "Die Gesamtgewichtung muss 100 % betragen. Bitte passen Sie die Gewichtungen an oder verteilen Sie sie gleichmäßig neu.",
     "redistributeEqually": "Gleichmäßig neu verteilen",
+    "totalWeightDialogTitle": "Gesamtgewichtung prüfen",
+    "ok": "OK",
+    "saveSuccess": "Kategorien erfolgreich gespeichert.",
     "cancel": "Abbrechen",
     "save": "Speichern"
   },

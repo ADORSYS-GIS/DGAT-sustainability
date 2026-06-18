@@ -22,6 +22,7 @@ import Select, { MultiValue } from 'react-select';
 import { useTranslation } from 'react-i18next';
 import { useOfflineCategoryCatalogs } from '@/hooks/useCategoryCatalogs';
 import type { OfflineCategoryCatalog } from '@/types/offline';
+import { toast } from 'sonner';
 
 interface OptionType {
   value: string;
@@ -64,6 +65,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
   const [selectedCategories, setSelectedCategories] = useState<MultiValue<OptionType>>([]);
   const [weights, setWeights] = useState<Record<string, number>>({});
   const [hasManualWeights, setHasManualWeights] = useState(false);
+  const [showTotalWeightDialog, setShowTotalWeightDialog] = useState(false);
 
   const getEqualWeights = (categories: MultiValue<OptionType>) => {
     const count = categories.length;
@@ -171,7 +173,7 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
     const totalWeight = finalWeights.reduce((sum, weight) => sum + weight, 0);
 
     if (totalWeight !== 100) {
-      alert(t('assignCategories.totalWeightMustBe100'));
+      setShowTotalWeightDialog(true);
       return;
     }
 
@@ -186,10 +188,11 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
         requestBody,
       });
       await refetch();
+      toast.success(t('assignCategories.saveSuccess'));
       onClose();
     } catch (error) {
       console.error('Failed to assign or update categories:', error);
-      alert(t('saveError'));
+      toast.error(t('saveError'));
     }
   };
 
@@ -199,70 +202,91 @@ const AssignCategories: React.FC<AssignCategoriesProps> = ({
       label: getCategoryDisplayName(cat),
     })) || [];
 
+  const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+  const isTotalValid = totalWeight === 100;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {t('assignCategories.title', { org: organization?.name })}
-          </DialogTitle>
-          <DialogDescription>
-            {t('assignCategories.description')}
-          </DialogDescription>
-        </DialogHeader>
-        <div>
-          <Label>{t('assignCategories.categories')}</Label>
-          <Select
-            isMulti
-            options={categoryOptions}
-            value={selectedCategories}
-            onChange={handleCategoryChange}
-          />
-        </div>
-        {selectedCategories.length > 0 && (
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t('assignCategories.title', { org: organization?.name })}
+            </DialogTitle>
+            <DialogDescription>
+              {t('assignCategories.description')}
+            </DialogDescription>
+          </DialogHeader>
           <div>
-            <div className="flex items-center justify-between gap-3">
-              <Label>{t('assignCategories.weights')}</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleRedistributeEqually}
-              >
-                {t('assignCategories.redistributeEqually')}
-              </Button>
-            </div>
-            {selectedCategories.map((cat) => (
-              <div key={cat.value} className="flex items-center gap-2 mt-2">
-                <Label className="w-1/3">{cat.label}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={weights[cat.value] ?? ''}
-                  onChange={(e) =>
-                    handleWeightChange(cat.value, e.target.value)
-                  }
-                />
-              </div>
-            ))}
-            <div>
-              {t('assignCategories.total')}{' '}
-              {Object.values(weights)
-                .reduce((s, w) => s + w, 0)
-                .toFixed(2)}
-            </div>
+            <Label>{t('assignCategories.categories')}</Label>
+            <Select
+              isMulti
+              options={categoryOptions}
+              value={selectedCategories}
+              onChange={handleCategoryChange}
+            />
           </div>
-        )}
-        <DialogFooter>
-          <Button onClick={onClose} variant="ghost">
-            {t('assignCategories.cancel')}
-          </Button>
-          <Button onClick={handleSubmit}>{t('assignCategories.save')}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          {selectedCategories.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <Label>{t('assignCategories.weights')}</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRedistributeEqually}
+                >
+                  {t('assignCategories.redistributeEqually')}
+                </Button>
+              </div>
+              {selectedCategories.map((cat) => (
+                <div key={cat.value} className="flex items-center gap-2 mt-2">
+                  <Label className="w-1/3">{cat.label}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={weights[cat.value] ?? ''}
+                    onChange={(e) =>
+                      handleWeightChange(cat.value, e.target.value)
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center justify-between rounded-md border bg-gray-50 px-3 py-2 text-sm">
+            <span className="font-medium">{t('assignCategories.total')}</span>
+            <span className={isTotalValid ? 'font-semibold text-green-700' : 'font-semibold text-red-600'}>
+              {totalWeight.toFixed(2)}%
+            </span>
+          </div>
+          <DialogFooter>
+            <Button onClick={onClose} variant="ghost">
+              {t('assignCategories.cancel')}
+            </Button>
+            <Button onClick={handleSubmit}>{t('assignCategories.save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showTotalWeightDialog} onOpenChange={setShowTotalWeightDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{t('assignCategories.totalWeightDialogTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('assignCategories.totalWeightMustBe100')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowTotalWeightDialog(false)}>
+              {t('assignCategories.ok')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

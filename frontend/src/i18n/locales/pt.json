@@ -1326,6 +1326,9 @@
     "total": "Total:",
     "totalWeightMustBe100": "O total deve ser 100%. Ajuste os pesos ou redistribua igualmente.",
     "redistributeEqually": "Redistribuir igualmente",
+    "totalWeightDialogTitle": "Verificar peso total",
+    "ok": "OK",
+    "saveSuccess": "Categorias guardadas com sucesso.",
     "cancel": "Cancelar",
     "save": "Guardar"
   },

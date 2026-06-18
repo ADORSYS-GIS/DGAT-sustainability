@@ -169,6 +169,11 @@ export class ApiInterceptor {
     }
   }
 
+  invalidateRecentGet(entityType: string, entityId?: string): void {
+    const cacheKey = `${entityType}:${entityId || "list"}`;
+    this.recentGets.delete(cacheKey);
+  }
+
   private async executeGet<T extends Record<string, unknown>>(
     apiCall: () => Promise<T>,
     localGet: () => Promise<T | null>,

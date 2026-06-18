@@ -1329,6 +1329,9 @@
     "total": "Ingqikithi:",
     "totalWeightMustBe100": "Ingqikithi kufanele ibe ngu-100%. Sicela ulungise izisindo noma usabalalise ngokulinganayo.",
     "redistributeEqually": "Sabalalisa ngokulinganayo",
+    "totalWeightDialogTitle": "Hlola ingqikithi yesisindo",
+    "ok": "Kulungile",
+    "saveSuccess": "Izigaba zilondolozwe ngempumelelo.",
     "cancel": "Khansela",
     "save": "Seva"
   },
