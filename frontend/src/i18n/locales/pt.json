@@ -1324,7 +1324,8 @@
     "categories": "Categorias",
     "weights": "Pesos",
     "total": "Total:",
-    "totalWeightMustBe100": "O peso total deve ser 100",
+    "totalWeightMustBe100": "O total deve ser 100%. Ajuste os pesos ou redistribua igualmente.",
+    "redistributeEqually": "Redistribuir igualmente",
     "cancel": "Cancelar",
     "save": "Guardar"
   },

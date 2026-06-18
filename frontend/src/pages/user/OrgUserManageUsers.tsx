@@ -371,7 +371,7 @@ export const OrgUserManageUsers: React.FC = () => {
     }
   };
 
-  const { createUser, updateUser, deleteUser: removeUser } = useUserMutations();
+  const { createUser, updateUser } = useUserMutations();
   // Remove useOfflineSyncStatus, useOfflineSync, sync, isSyncing
 
   // Remove all useEffect related to sync
@@ -441,18 +441,15 @@ export const OrgUserManageUsers: React.FC = () => {
     if (!userToDelete || !orgId) return;
 
     try {
-      // For active members, remove from organization (not delete entirely from Keycloak)
-      await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId({
-        id: orgId,
-        memberId: userToDelete.id,
-      });
-      toast.success(t("staticText.users.deleteSuccess"));
+      // Delete the user entirely from the system (Keycloak)
+      await deletePendingUser(userToDelete.id);
+      toast.success(t("staticText.users.deleteEntirelySuccess"));
       // Clean up IndexedDB if user exists there
       try { await offlineDB.deleteUser(userToDelete.id); } catch {}
       refetch();
       refetchInvitations();
     } catch {
-      toast.error(t("staticText.users.deleteError"));
+      toast.error(t("staticText.users.deleteEntirelyError"));
     } finally {
       setShowDeleteConfirmation(false);
       setUserToDelete(null);

@@ -1327,7 +1327,8 @@
     "categories": "Izigaba",
     "weights": "Izisindo",
     "total": "Ingqikithi:",
-    "totalWeightMustBe100": "Ingqikithi yesisisindo kufanele ibe ngu-100",
+    "totalWeightMustBe100": "Ingqikithi kufanele ibe ngu-100%. Sicela ulungise izisindo noma usabalalise ngokulinganayo.",
+    "redistributeEqually": "Sabalalisa ngokulinganayo",
     "cancel": "Khansela",
     "save": "Seva"
   },

@@ -1380,7 +1380,8 @@
     "categories": "Categories",
     "weights": "Weights",
     "total": "Total:",
-    "totalWeightMustBe100": "Total weight must be 100",
+    "totalWeightMustBe100": "The total must be 100%. Please adjust the weights or redistribute equally.",
+    "redistributeEqually": "Redistribute equally",
     "cancel": "Cancel",
     "save": "Save"
   },

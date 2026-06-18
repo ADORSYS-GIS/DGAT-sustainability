@@ -1325,7 +1325,8 @@
     "categories": "Catégories",
     "weights": "Poids",
     "total": "Total :",
-    "totalWeightMustBe100": "Le poids total doit être de 100",
+    "totalWeightMustBe100": "Le total doit être de 100 %. Veuillez ajuster les poids ou redistribuer équitablement.",
+    "redistributeEqually": "Redistribuer équitablement",
     "cancel": "Annuler",
     "save": "Enregistrer"
   },
