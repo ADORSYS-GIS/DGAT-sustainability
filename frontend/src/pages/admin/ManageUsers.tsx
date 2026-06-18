@@ -780,7 +780,9 @@ export const ManageUsers: React.FC = () => {
                 onInvitationCreated={() => {
                   setShowInvitationDialog(false);
                   refetch();
+                  refetchPending();
                 }}
+              />
               />
             </DialogContent>
           </Dialog>

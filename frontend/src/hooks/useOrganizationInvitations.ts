@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiInterceptor } from "../services/apiInterceptor";
-import { offlineDB } from "../services/indexeddb";
 import { OrganizationInvitationsService } from "@/openapi-rq/requests/services.gen";
 import type { OrganizationInvitation } from "@/openapi-rq/requests/types.gen";
 
@@ -19,17 +17,17 @@ export function useOrganizationInvitations(organizationId?: string) {
     try {
       setIsLoading(true);
       setError(null);
-
-      const result = await apiInterceptor.interceptGet(
-        () => OrganizationInvitationsService.getApiOrganizationsByIdInvitations({ id: organizationId }),
-        () => offlineDB.getInvitationsByOrganization(organizationId),
-        "invitations",
-        organizationId
+      const result = await OrganizationInvitationsService.getApiOrganizationsByIdInvitations({
+        id: organizationId,
+      });
+      // Filter to only show pending invitations
+      const pending = result.filter(
+        (inv) => inv.status === "pending"
       );
-
-      setData(result as OrganizationInvitation[]);
+      setData(pending);
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to fetch invitations"));
+      setData([]);
     } finally {
       setIsLoading(false);
     }
@@ -40,21 +38,4 @@ export function useOrganizationInvitations(organizationId?: string) {
   }, [fetchData]);
 
   return { data, isLoading, error, refetch: fetchData };
-}
-
-export function useInvitationMutations() {
-  const deleteInvitation = async (organizationId: string, invitationId: string) => {
-    try {
-      await OrganizationInvitationsService.deleteApiOrganizationsByIdInvitationsByInvitationId({
-        id: organizationId,
-        invitationId: invitationId,
-      });
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to delete invitation:", error);
-      throw error;
-    }
-  };
-
-  return { deleteInvitation };
 }

@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Trash2, Mail, Clock, RefreshCw } from "lucide-react";
+import { Users, Edit, Trash2, Mail, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineUsers } from "@/hooks/useOfflineUsers";
 import { useOrganizationInvitations } from "@/hooks/useOrganizationInvitations";
@@ -334,9 +334,9 @@ export const OrgUserManageUsers: React.FC = () => {
     refetch: refetchInvitations,
   } = useOrganizationInvitations(orgId);
 
-  const pendingInvitations = useMemo(() => {
-    return (invitations || []).filter(inv => inv.status === 'pending');
-  }, [invitations]);
+  
+
+  const pendingInvitations = invitations || [];
 
   const [invitationToDelete, setInvitationToDelete] = useState<OrganizationInvitation | null>(null);
   const [showDeleteInvitationConfirmation, setShowDeleteInvitationConfirmation] = useState(false);

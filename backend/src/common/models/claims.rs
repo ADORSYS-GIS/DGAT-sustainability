@@ -54,7 +54,7 @@ impl Claims {
     pub fn can_manage_organization(&self, organization_id: &str) -> bool {
         self.is_application_admin()
             || (self.is_organization_admin()
-                && self.organizations.as_ref().map(|orgs| orgs.orgs.contains_key(organization_id)).unwrap_or(false))
+                && self.organizations.as_ref().map(|orgs| orgs.orgs.values().any(|info| info.id.as_deref() == Some(organization_id))).unwrap_or(false))
     }
 
     /// Get the first organization ID (for backward compatibility)

@@ -625,7 +625,22 @@ pub async fn get_invitations(
     }
 
     match app_state.keycloak_service.get_invitations(&token, &id).await {
-        Ok(invitations) => Ok((StatusCode::OK, Json(invitations))),
+        Ok(invitations) => {
+            // Transform KeycloakInvitation to the format expected by the frontend
+            let transformed: Vec<serde_json::Value> = invitations.into_iter().map(|inv| {
+                serde_json::json!({
+                    "invitation_id": inv.id,
+                    "organization_id": id,
+                    "email": inv.email,
+                    "roles": inv.roles,
+                    "status": "pending",
+                    "created_at": inv.invited_at,
+                    "expires_at": inv.expiration,
+                    "invited_by": ""
+                })
+            }).collect();
+            Ok((StatusCode::OK, Json(transformed)))
+        },
         Err(e) => {
             tracing::error!("Failed to get invitations: {}", e);
             Err(ApiError::InternalServerError("Failed to get invitations".to_string()))
