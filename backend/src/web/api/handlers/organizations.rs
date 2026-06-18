@@ -1557,22 +1557,66 @@ pub async fn delete_org_user(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
-    // Verify the user belongs to this organization (has org.ro.active attribute matching org_id)
+    // Verify the user belongs to this organization.
+    // Check multiple sources: org.ro.active attribute, org membership, and pending invitation status.
     let user = app_state
         .keycloak_service
         .get_user_by_id(&token, &user_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to look up user: {}", e)))?;
 
-    let user_belongs_to_org = user
+    tracing::info!(user_id = %user_id, org_id = %org_id, "Checking if user belongs to organization for deletion");
+
+    // Check 1: org.ro.active attribute (handles both array and string formats)
+    let has_org_attribute = user
         .attributes
         .as_ref()
         .and_then(|attrs| attrs.get("org.ro.active"))
-        .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().any(|v| v.as_str() == Some(&org_id)))
+        .map(|v| {
+            if let Some(arr) = v.as_array() {
+                arr.iter().any(|item| item.as_str() == Some(&org_id))
+            } else if let Some(s) = v.as_str() {
+                s == org_id
+            } else {
+                false
+            }
+        })
         .unwrap_or(false);
 
-    if !user_belongs_to_org {
+    tracing::info!(user_id = %user_id, org_id = %org_id, has_org_attribute = has_org_attribute, "org.ro.active attribute check result");
+
+    // Check 2: Is the user a current member of the organization?
+    let is_member = match app_state.keycloak_service.get_organization_members(&token, &org_id).await {
+        Ok(members) => {
+            let found = members.iter().any(|m| m.id == user_id);
+            tracing::info!(user_id = %user_id, org_id = %org_id, is_member = found, "Organization membership check result");
+            found
+        },
+        Err(e) => {
+            tracing::warn!(user_id = %user_id, org_id = %org_id, error = %e, "Failed to check organization membership, skipping this check");
+            false
+        }
+    };
+
+    // Check 3: Is the user in the pending invitations for this org? (has org.ro.active attribute)
+    let is_pending = if !has_org_attribute && !is_member {
+        match app_state.keycloak_service.get_users_by_org_attribute(&token, &org_id).await {
+            Ok(users) => {
+                let found = users.iter().any(|u| u.id == user_id);
+                tracing::info!(user_id = %user_id, org_id = %org_id, is_pending = found, "Pending users check result");
+                found
+            },
+            Err(e) => {
+                tracing::warn!(user_id = %user_id, org_id = %org_id, error = %e, "Failed to check pending users, skipping this check");
+                false
+            }
+        }
+    } else {
+        false
+    };
+
+    if !has_org_attribute && !is_member && !is_pending {
+        tracing::warn!(user_id = %user_id, org_id = %org_id, "User does not belong to this organization, refusing deletion");
         return Err(ApiError::BadRequest(
             "User does not belong to this organization".to_string(),
         ));

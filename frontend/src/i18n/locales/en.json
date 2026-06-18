@@ -930,7 +930,9 @@
       "networkError": "Network connection error. Please check your internet connection and try again.",
       "serverError": "Server error occurred. Please try again later or contact support if the problem persists.",
       "validationError": "Please check your input and try again.",
-      "unknownError": "An unexpected error occurred. Please try again later."
+      "unknownError": "An unexpected error occurred. Please try again later.",
+      "firstNameRequired": "First name is required.",
+      "lastNameRequired": "Last name is required."
     },
     "success": {
       "userCreated": "User created successfully!",

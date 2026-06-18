@@ -883,7 +883,9 @@
       "networkError": "Erro de ligação à rede. Verifique a sua conexão e tente novamente.",
       "serverError": "Ocorreu um erro no servidor. Por favor tente mais tarde ou contacte o suporte.",
       "validationError": "Por favor verifique os seus dados e tente novamente.",
-      "unknownError": "Ocorreu um erro inesperado. Por favor tente mais tarde."
+      "unknownError": "Ocorreu um erro inesperado. Por favor tente mais tarde.",
+      "firstNameRequired": "O primeiro nome é obrigatório.",
+      "lastNameRequired": "O sobrenome é obrigatório."
     },
     "success": {
       "userCreated": "Utilizador criado com sucesso!",

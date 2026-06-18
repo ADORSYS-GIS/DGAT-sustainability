@@ -263,6 +263,14 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.first_name?.trim()) {
+      toast.error(t('userInvitation.errors.firstNameRequired', 'First name is required'));
+      return;
+    }
+    if (!formData.last_name?.trim()) {
+      toast.error(t('userInvitation.errors.lastNameRequired', 'Last name is required'));
+      return;
+    }
     createUserInvitationMutation.mutate(formData);
   };
 
@@ -303,20 +311,22 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="first_name">{t('userInvitation.firstName')}</Label>
+              <Label htmlFor="first_name">{t('userInvitation.firstName')} *</Label>
               <Input
                 id="first_name"
                 type="text"
+                required
                 value={formData.first_name}
                 onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                 placeholder={t('userInvitation.firstNamePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="last_name">{t('userInvitation.lastName')}</Label>
+              <Label htmlFor="last_name">{t('userInvitation.lastName')} *</Label>
               <Input
                 id="last_name"
                 type="text"
+                required
                 value={formData.last_name}
                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                 placeholder={t('userInvitation.lastNamePlaceholder')}
@@ -391,7 +401,7 @@ export const OrgAdminUserInvitationForm: React.FC<OrgAdminUserInvitationFormProp
             </ol>
           </div>
 
-          <Button type="submit" disabled={createUserInvitationMutation.isPending || !formData.email} className="w-full">
+          <Button type="submit" disabled={createUserInvitationMutation.isPending || !formData.email || !formData.first_name?.trim() || !formData.last_name?.trim()} className="w-full">
             {createUserInvitationMutation.isPending ? t('userInvitation.creating') : t('userInvitation.create')}
           </Button>
         </form>

@@ -692,7 +692,8 @@ impl KeycloakService {
 
     /// Get user by ID
     pub async fn get_user_by_id(&self, token: &str, user_id: &str) -> Result<KeycloakUser> {
-        let url = format!("{}/admin/realms/{}/users/{}", self.config.url, self.config.realm, user_id);
+        // Always request full representation to ensure attributes are included
+        let url = format!("{}/admin/realms/{}/users/{}?briefRepresentation=false", self.config.url, self.config.realm, user_id);
         
         let response = self.client.get(&url)
             .bearer_auth(token)

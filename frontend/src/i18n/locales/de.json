@@ -886,7 +886,9 @@
       "networkError": "Netzwerkverbindungsfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
       "serverError": "Serverfehler aufgetreten. Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.",
       "validationError": "Bitte überprüfen Sie Ihre Eingaben und versuchen Sie es erneut.",
-      "unknownError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut."
+      "unknownError": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.",
+      "firstNameRequired": "Vorname ist erforderlich.",
+      "lastNameRequired": "Nachname ist erforderlich."
     },
     "success": {
       "userCreated": "Benutzer erfolgreich erstellt!",

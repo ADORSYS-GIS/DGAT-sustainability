@@ -886,7 +886,9 @@
       "networkError": "Iphutha lokuxhuma inethiwekhi. Sicela uhlole ukuxhumana kwakho bese uzama futhi.",
       "serverError": "Kwenzeke iphutha leseva. Sicela uzame emva kwesikhathi noma uxhumane nosizo.",
       "validationError": "Sicela uhlole okufakile bese uzama futhi.",
-      "unknownError": "Kwenzeke iphutha elingalindelekile. Sicela uzame emva kwesikhathi."
+      "unknownError": "Kwenzeke iphutha elingalindelekile. Sicela uzame emva kwesikhathi.",
+      "firstNameRequired": "Libito lekucala liyadingeka.",
+      "lastNameRequired": "Libito lesibito liyadingeka."
     },
     "success": {
       "userCreated": "Umsebenzisi udalwe ngempumelelo!",

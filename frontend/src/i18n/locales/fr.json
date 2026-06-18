@@ -884,7 +884,9 @@
       "networkError": "Erreur de connexion réseau. Veuillez vérifier votre connexion et réessayer.",
       "serverError": "Erreur serveur. Veuillez réessayer plus tard ou contacter le support.",
       "validationError": "Veuillez vérifier vos saisies et réessayer.",
-      "unknownError": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
+      "unknownError": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
+      "firstNameRequired": "Le prénom est requis.",
+      "lastNameRequired": "Le nom de famille est requis."
     },
     "success": {
       "userCreated": "Utilisateur créé avec succès !",

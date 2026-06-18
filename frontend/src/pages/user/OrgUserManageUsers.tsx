@@ -371,7 +371,7 @@ export const OrgUserManageUsers: React.FC = () => {
     }
   };
 
-  const { createUser, updateUser } = useUserMutations();
+  const { createUser, updateUser, deleteUser: removeUser } = useUserMutations();
   // Remove useOfflineSyncStatus, useOfflineSync, sync, isSyncing
 
   // Remove all useEffect related to sync
@@ -441,12 +441,13 @@ export const OrgUserManageUsers: React.FC = () => {
     if (!userToDelete || !orgId) return;
 
     try {
-      await deletePendingUser(userToDelete.id);
-      toast.success(t("staticText.users.deleteEntirelySuccess"));
+      // For active members, remove from organization (not delete entirely)
+      await removeUser.mutate({ id: orgId, memberId: userToDelete.id });
+      toast.success(t("staticText.users.deleteSuccess"));
       refetch();
       refetchInvitations();
     } catch {
-      toast.error(t("staticText.users.deleteEntirelyError"));
+      toast.error(t("staticText.users.deleteError"));
     } finally {
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
