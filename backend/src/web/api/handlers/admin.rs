@@ -574,10 +574,10 @@ pub async fn create_user_invitation(
         email_verified: Some(false),
         enabled: Some(true),
         attributes: Some(serde_json::json!({
-            "organization_id": request.organization_id,
-            "pending_roles": request.roles,
-            "pending_categories": request.categories.unwrap_or_default(),
-            "invitation_status": "pending_email_verification"
+            "organization_id": [request.organization_id],
+            "pending_roles": [request.roles.join(",")],
+            "pending_categories": request.categories.clone().unwrap_or_default(),
+            "invitation_status": ["pending_email_verification"]
         })),
         credentials: None,
         required_actions: Some(vec!["VERIFY_EMAIL".to_string()]),
@@ -854,6 +854,112 @@ pub async fn resend_invitation_email(
             ))
         }
     }
+}
+
+/// Get pending invitations (users with organization_id attribute but not yet active members)
+pub async fn get_pending_invitations(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    Path(org_id): Path<String>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    if !claims.is_application_admin() && !claims.can_manage_organization(&org_id) {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    let token = get_token_from_extensions(&token)?;
+
+    // Fetch all users whose attributes contain this org_id
+    let users = app_state
+        .keycloak_service
+        .get_users_by_org_attribute(&token, &org_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to get pending users: {}", e)))?;
+
+    // Fetch current org members to exclude them
+    let members = app_state
+        .keycloak_service
+        .get_organization_members(&token, &org_id)
+        .await
+        .unwrap_or_default();
+
+    let member_ids: std::collections::HashSet<String> = members.iter().map(|m| m.id.clone()).collect();
+
+    // Keep only users who are NOT yet members — these are pending
+    let pending: Vec<serde_json::Value> = users
+        .into_iter()
+        .filter(|u| !member_ids.contains(&u.id))
+        .map(|u| {
+            let attrs = u.attributes.as_ref();
+            let invitation_status = attrs
+                .and_then(|a| a.get("invitation_status"))
+                .and_then(|v| v.as_array())
+                .and_then(|arr| arr.first())
+                .and_then(|v| v.as_str())
+                .unwrap_or("pending_email_verification");
+            let roles = attrs
+                .and_then(|a| a.get("pending_roles"))
+                .and_then(|v| v.as_array())
+                .and_then(|arr| arr.first())
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            serde_json::json!({
+                "user_id": u.id,
+                "email": u.email,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "email_verified": u.email_verified,
+                "invitation_status": invitation_status,
+                "roles": roles,
+            })
+        })
+        .collect();
+
+    Ok(Json(serde_json::json!(pending)))
+}
+
+/// Resend org invitation to a specific pending user, knowing the org context
+pub async fn resend_org_invitation(
+    State(app_state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    Path((org_id, user_id)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    if !claims.is_application_admin() && !claims.can_manage_organization(&org_id) {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    let token = get_token_from_extensions(&token)?;
+
+    // Get the user to read their pending_roles attribute
+    let user = app_state
+        .keycloak_service
+        .get_user_by_id(&token, &user_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to get user: {}", e)))?;
+
+    // Read pending_roles from attributes (stored as array)
+    let roles: Vec<String> = user.attributes
+        .as_ref()
+        .and_then(|a| a.get("pending_roles"))
+        .and_then(|v| v.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|v| v.as_str())
+        .map(|s| s.split(',').map(|r| r.trim().to_string()).collect())
+        .unwrap_or_else(|| vec!["org_user".to_string()]);
+
+    app_state
+        .keycloak_service
+        .resend_org_invitation(&token, &org_id, &user_id, roles)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to resend invitation: {}", e)))?;
+
+    tracing::info!(user_id = %user_id, org_id = %org_id, "Org invitation resent successfully");
+    Ok(Json(serde_json::json!({
+        "message": "Invitation resent successfully"
+    })))
 }
 
 #[cfg(test)]

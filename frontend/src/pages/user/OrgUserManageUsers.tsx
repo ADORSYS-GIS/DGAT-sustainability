@@ -13,21 +13,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Trash2, Mail } from "lucide-react";
+import { Users, Edit, Trash2, Mail, Clock, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/shared/useAuth";
 import { useOfflineUsers } from "@/hooks/useOfflineUsers";
+import { useOrganizationInvitations } from "@/hooks/useOrganizationInvitations";
 import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
 import { useOfflineCategoryCatalogs } from "@/hooks/useOfflineCategoryCatalogs";
 import type {
   OrganizationMember,
   OrgAdminMemberRequest,
   OrgAdminMemberCategoryUpdateRequest,
+  OrganizationInvitation,
 } from "@/openapi-rq/requests/types.gen";
 import type { OfflineCategoryCatalog } from "@/services/indexeddb";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { offlineDB } from "@/services/indexeddb";
-import { OrganizationMembersService } from "@/openapi-rq/requests/services.gen";
+import { OrganizationMembersService, OrganizationInvitationsService } from "@/openapi-rq/requests/services.gen";
 import type { OfflineUser } from "@/types/offline";
 import { useTranslation } from "react-i18next";
 import { OrgAdminUserInvitationForm } from "@/components/shared/OrgAdminUserInvitationForm";
@@ -326,6 +328,41 @@ export const OrgUserManageUsers: React.FC = () => {
     refetch,
   } = useOfflineUsers(orgId);
 
+  const {
+    data: invitations,
+    isLoading: invitationsLoading,
+    refetch: refetchInvitations,
+  } = useOrganizationInvitations(orgId);
+
+  const pendingInvitations = useMemo(() => {
+    return (invitations || []).filter(inv => inv.status === 'pending');
+  }, [invitations]);
+
+  const [invitationToDelete, setInvitationToDelete] = useState<OrganizationInvitation | null>(null);
+  const [showDeleteInvitationConfirmation, setShowDeleteInvitationConfirmation] = useState(false);
+
+  const handleDeleteInvitation = async (invitation: OrganizationInvitation) => {
+    if (!orgId) return;
+    try {
+      await OrganizationInvitationsService.deleteApiOrganizationsByIdInvitationsByInvitationId({
+        id: orgId,
+        invitationId: invitation.invitation_id,
+      });
+      toast.success(t("manageUsers.invitationDeleted"));
+      refetchInvitations();
+    } catch (err) {
+      console.error("Failed to delete invitation:", err);
+      toast.error(t("manageUsers.invitationDeleteError"));
+    }
+  };
+
+  const confirmDeleteInvitation = () => {
+    if (!invitationToDelete || !orgId) return;
+    handleDeleteInvitation(invitationToDelete);
+    setShowDeleteInvitationConfirmation(false);
+    setInvitationToDelete(null);
+  };
+
   const { createUser, updateUser, deleteUser } = useUserMutations();
   // Remove useOfflineSyncStatus, useOfflineSync, sync, isSyncing
 
@@ -532,12 +569,79 @@ export const OrgUserManageUsers: React.FC = () => {
                 onInvitationCreated={() => {
                   setShowAddDialog(false);
                   refetch();
+                  refetchInvitations();
                 }}
               />
             )}
           </DialogContent>
         </Dialog>
+        
+        {/* Pending Invitations Section */}
+        {pendingInvitations.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-yellow-500" />
+              {t('manageUsers.pendingInvitations')} ({pendingInvitations.length})
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pendingInvitations.map((invitation) => (
+                <Card key={invitation.invitation_id} className="border-yellow-200 bg-yellow-50/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-yellow-100">
+                          <Mail className="w-4 h-4 text-yellow-600" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">
+                            {invitation.email}
+                          </span>
+                          <p className="text-xs text-gray-500">
+                            {t('manageUsers.invitedOn')} {new Date(invitation.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge className="bg-yellow-500 text-white">
+                        {t('manageUsers.pending')}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-1">
+                        {invitation.roles.map((role) => (
+                          <Badge key={role} className="bg-blue-100 text-blue-700 text-xs">
+                            {role}
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex space-x-2 pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setInvitationToDelete(invitation);
+                            setShowDeleteInvitationConfirmation(true);
+                          }}
+                          className="text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          {t('manageUsers.cancelInvitation')}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {/* Users Grid */}
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Users className="w-5 h-5 text-dgrv-blue" />
+          {t('manageUsers.activeUsers')} ({(users || []).length})
+        </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {(users || []).map(
             (
@@ -660,6 +764,24 @@ export const OrgUserManageUsers: React.FC = () => {
           cancelText={t('manageUsers.cancel')}
           variant="destructive"
           isLoading={deleteUser.isPending}
+        />
+
+        {/* Delete Invitation Confirmation Dialog */}
+        <ConfirmationDialog
+          isOpen={showDeleteInvitationConfirmation}
+          onClose={() => {
+            setShowDeleteInvitationConfirmation(false);
+            setInvitationToDelete(null);
+          }}
+          onConfirm={confirmDeleteInvitation}
+          title={t('manageUsers.confirmCancelInvitationTitle')}
+          description={t('manageUsers.confirmCancelInvitationDescription', {
+            email: invitationToDelete?.email || ''
+          })}
+          confirmText={t('manageUsers.cancelInvitation')}
+          cancelText={t('manageUsers.cancel')}
+          variant="destructive"
+          isLoading={false}
         />
       </div>
     </div>

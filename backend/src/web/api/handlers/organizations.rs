@@ -660,12 +660,12 @@ pub async fn create_invitation(
     }
 }
 
-// Delete an invitation (deprecated - not in OpenAPI spec)
+// Delete an invitation
 pub async fn delete_invitation(
     Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     State(app_state): State<AppState>,
-    Path((_realm, org_id, invitation_id)): Path<(String, String, String)>,
+    Path((org_id, invitation_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let token = get_token_from_extensions(&token)?;
 
@@ -1270,10 +1270,10 @@ pub async fn add_org_admin_member(
         email_verified: Some(false),
         enabled: Some(true),
         attributes: Some(serde_json::json!({
-            "organization_id": org_id,
-            "pending_roles": request.roles,
+            "organization_id": [org_id],
+            "pending_roles": [request.roles.join(",")],
             "pending_categories": request.categories.clone().unwrap_or_default(),
-            "invitation_status": "pending_email_verification"
+            "invitation_status": ["pending_email_verification"]
         })),
         credentials: None,
         required_actions: Some(vec!["VERIFY_EMAIL".to_string()]),

@@ -1066,6 +1066,49 @@ impl KeycloakService {
         }
     }
 
+    /// Get all users that have a given organization_id in their attributes (pending invitees)
+    pub async fn get_users_by_org_attribute(&self, token: &str, org_id: &str) -> Result<Vec<KeycloakUser>> {
+        // Keycloak q parameter format is "key:value" - the colon must NOT be URL-encoded
+        // Using reqwest's .query() would encode the colon which breaks Keycloak's parser
+        // So we build the URL manually keeping the colon raw
+        let url = format!(
+            "{}/admin/realms/{}/users?q=organization_id:{}&max=1000&briefRepresentation=false",
+            self.config.url, self.config.realm, org_id
+        );
+
+        let response = self.client.get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let users: Vec<KeycloakUser> = response.json().await?;
+                Ok(users)
+            },
+            _ => {
+                let error_text = response.text().await?;
+                error!("Failed to get users by org attribute: {}", error_text);
+                Err(anyhow!("Failed to get users by org attribute: {}", error_text))
+            }
+        }
+    }
+
+    /// Resend invitation to a user for a specific organisation:
+    /// re-triggers email verification AND re-sends the org invitation email
+    pub async fn resend_org_invitation(&self, token: &str, org_id: &str, user_id: &str, roles: Vec<String>) -> Result<()> {
+        // Re-trigger email verification email
+        match self.trigger_email_verification(token, user_id).await {
+            Ok(_) => info!(user_id = %user_id, "Email verification re-triggered"),
+            Err(e) => warn!(user_id = %user_id, error = %e, "Failed to re-trigger email verification"),
+        }
+
+        // Re-send the org invitation email
+        self.send_organization_invitation_immediate(token, org_id, user_id, roles).await?;
+
+        Ok(())
+    }
+
     /// Reset a user's password (admin operation)
     pub async fn reset_user_password(&self, token: &str, user_id: &str, new_password: &str) -> Result<()> {
         let url = format!("{}/admin/realms/{}/users/{}/reset-password", self.config.url, self.config.realm, user_id);

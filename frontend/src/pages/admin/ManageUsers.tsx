@@ -29,11 +29,21 @@ import type {
 } from "@/openapi-rq/requests/types.gen";
 import { offlineDB } from "@/services/indexeddb";
 import { fetchWithAuth } from "@/services/shared/authService";
-import { Building2, Edit, Mail, RefreshCw, Trash2, UserPlus, Users } from "lucide-react";
+import { Building2, Clock, Edit, Mail, RefreshCw, Trash2, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+
+interface PendingInvitation {
+  user_id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  email_verified: boolean;
+  invitation_status: string;
+  roles: string;
+}
 
 // Helper to extract domain names
 function getDomainNames(domains: unknown): string[] {
@@ -163,16 +173,77 @@ export const ManageUsers: React.FC = () => {
       }
       return response.json();
     },
-    onSuccess: (_data, userId) => {
+    onSuccess: (_data, _userId) => {
       toast.success(t("manageUsers.resendEmailSuccess"));
       setResendingUserId(null);
     },
-    onError: (_error, userId) => {
+    onError: (_error, _userId) => {
       toast.error(t("manageUsers.resendEmailError"));
       setResendingUserId(null);
     },
   });
 
+  // Pending invitations query
+  const {
+    data: pendingInvitations,
+    isLoading: pendingLoading,
+    refetch: refetchPending,
+  } = useQuery<PendingInvitation[]>({
+    queryKey: ["pending-invitations", selectedOrg?.id],
+    queryFn: async () => {
+      const response = await fetchWithAuth(
+        `/api/admin/organizations/${selectedOrg!.id}/pending-invitations`
+      );
+      if (!response.ok) throw new Error("Failed to fetch pending invitations");
+      return response.json();
+    },
+    enabled: !!selectedOrg?.id,
+  });
+
+  // Resend org invitation mutation (org-aware)
+  const [resendingPendingUserId, setResendingPendingUserId] = useState<string | null>(null);
+  const resendOrgInvitationMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetchWithAuth(
+        `/api/admin/organizations/${selectedOrg!.id}/users/${userId}/resend-invitation`,
+        { method: "POST" }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message || "Failed to resend invitation");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success(t("manageUsers.resendEmailSuccess"));
+      setResendingPendingUserId(null);
+      refetchPending();
+    },
+    onError: () => {
+      toast.error(t("manageUsers.resendEmailError"));
+      setResendingPendingUserId(null);
+    },
+  });
+
+  // Delete pending user mutation
+  const [deletingPendingUserId, setDeletingPendingUserId] = useState<string | null>(null);
+  const deletePendingUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetchWithAuth(`/api/admin/users/${userId}`, { method: "DELETE" });
+      if (!response.ok && response.status !== 204) {
+        throw new Error("Failed to delete user");
+      }
+    },
+    onSuccess: () => {
+      toast.success(t("staticText.users.deleteEntirelySuccess"));
+      setDeletingPendingUserId(null);
+      refetchPending();
+    },
+    onError: () => {
+      toast.error(t("staticText.users.deleteEntirelyError"));
+      setDeletingPendingUserId(null);
+    },
+  });
   // Offline-first user creation logic
   const createUserOffline = async (data: { id: string; requestBody: OrgAdminMemberRequest }) => {
     try {
@@ -506,6 +577,82 @@ export const ManageUsers: React.FC = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Pending Invitations Section */}
+          {pendingLoading ? (
+            <div className="mb-6"><LoadingSpinner size="sm" text={t("loading")} /></div>
+          ) : (pendingInvitations ?? []).length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-amber-700 mb-3 flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                {t("manageUsers.pendingInvitations")} ({(pendingInvitations ?? []).length})
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {(pendingInvitations ?? []).map((inv) => (
+                  <Card key={inv.user_id} className="border-amber-200 bg-amber-50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-2 rounded-full bg-amber-100">
+                            <Users className="w-4 h-4 text-amber-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {inv.first_name || inv.last_name
+                                ? `${inv.first_name ?? ""} ${inv.last_name ?? ""}`.trim()
+                                : inv.email}
+                            </p>
+                            <p className="text-xs text-gray-500 font-normal">{inv.roles || "—"}</p>
+                          </div>
+                        </div>
+                        <Badge className="bg-amber-400 text-white text-xs">
+                          {t("manageUsers.pending")}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center space-x-2 text-xs text-gray-600 mb-3">
+                        <Mail className="w-3 h-3" />
+                        <span>{inv.email}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-3">
+                        {inv.email_verified
+                          ? t("manageUsers.emailVerified")
+                          : t("manageUsers.awaitingEmailVerification")}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-amber-600 hover:bg-amber-100 border-amber-300 text-xs"
+                          disabled={resendingPendingUserId === inv.user_id && resendOrgInvitationMutation.isPending}
+                          onClick={() => {
+                            setResendingPendingUserId(inv.user_id);
+                            resendOrgInvitationMutation.mutate(inv.user_id);
+                          }}
+                        >
+                          <RefreshCw className={`w-3 h-3 mr-1 ${resendingPendingUserId === inv.user_id && resendOrgInvitationMutation.isPending ? "animate-spin" : ""}`} />
+                          {t("manageUsers.resendEmail")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 hover:bg-red-50 border-red-200"
+                          disabled={deletingPendingUserId === inv.user_id && deletePendingUserMutation.isPending}
+                          onClick={() => {
+                            setDeletingPendingUserId(inv.user_id);
+                            deletePendingUserMutation.mutate(inv.user_id);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Users Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

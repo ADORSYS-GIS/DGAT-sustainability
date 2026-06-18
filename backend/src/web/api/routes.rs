@@ -1,6 +1,6 @@
 
 use crate::web::api::handlers::{
-    admin::{list_all_submissions, list_temp_submissions_by_assessment, create_user_invitation, get_user_invitation_status, delete_user, resend_invitation_email},
+    admin::{list_all_submissions, list_temp_submissions_by_assessment, create_user_invitation, get_user_invitation_status, delete_user, resend_invitation_email, get_pending_invitations, resend_org_invitation},
     assessments::{
         create_assessment, delete_assessment, get_assessment, get_assessment_status,
         list_assessments, submit_assessment, update_assessment, user_submit_draft_assessment,
@@ -19,6 +19,7 @@ use crate::web::api::handlers::{
         update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
         update_org_admin_member_categories,
         get_org_admin_assigned_categories,
+        get_invitations, delete_invitation,
     },
     questions::{create_question, delete_question, delete_question_revision_by_id, get_question, list_questions, update_question},
     reports::{
@@ -168,11 +169,15 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/organizations/:org_id/org-admin/members/:member_id/categories", put(update_org_admin_member_categories))
         .route("/api/organizations/:org_id/org-admin/assigned-categories", get(get_org_admin_assigned_categories))
         // Org admin user invitation endpoints
-
+        .route("/api/organizations/:id/invitations", get(get_invitations))
+        .route("/api/organizations/:id/invitations/:invitation_id", delete(delete_invitation))
         // User invitation endpoints
         .route("/api/admin/user-invitations", post(create_user_invitation))
         .route("/api/admin/user-invitations/:user_id/status", get(get_user_invitation_status))
         .route("/api/admin/user-invitations/:user_id/resend", post(resend_invitation_email))
+        // Pending invitations per org
+        .route("/api/admin/organizations/:org_id/pending-invitations", get(get_pending_invitations))
+        .route("/api/admin/organizations/:org_id/users/:user_id/resend-invitation", post(resend_org_invitation))
         // User management endpoints
         .route("/api/admin/users/:user_id", delete(delete_user))
         // User profile endpoints
