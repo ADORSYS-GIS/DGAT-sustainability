@@ -1270,10 +1270,7 @@ pub async fn add_org_admin_member(
         email_verified: Some(false),
         enabled: Some(true),
         attributes: Some(serde_json::json!({
-            "organization_id": [org_id],
-            "pending_roles": [request.roles.join(",")],
-            "pending_categories": request.categories.clone().unwrap_or_default(),
-            "invitation_status": ["pending_email_verification"]
+            "org.ro.active": [org_id]
         })),
         credentials: None,
         required_actions: Some(vec!["VERIFY_EMAIL".to_string()]),

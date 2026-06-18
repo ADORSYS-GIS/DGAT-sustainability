@@ -1072,7 +1072,7 @@ impl KeycloakService {
         // Using reqwest's .query() would encode the colon which breaks Keycloak's parser
         // So we build the URL manually keeping the colon raw
         let url = format!(
-            "{}/admin/realms/{}/users?q=organization_id:{}&max=1000&briefRepresentation=false",
+            "{}/admin/realms/{}/users?q=org.ro.active:{}&max=1000&briefRepresentation=false",
             self.config.url, self.config.realm, org_id
         );
 

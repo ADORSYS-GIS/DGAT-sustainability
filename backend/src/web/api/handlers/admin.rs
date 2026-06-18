@@ -574,10 +574,7 @@ pub async fn create_user_invitation(
         email_verified: Some(false),
         enabled: Some(true),
         attributes: Some(serde_json::json!({
-            "organization_id": [request.organization_id],
-            "pending_roles": [request.roles.join(",")],
-            "pending_categories": request.categories.clone().unwrap_or_default(),
-            "invitation_status": ["pending_email_verification"]
+            "org.ro.active": [request.organization_id]
         })),
         credentials: None,
         required_actions: Some(vec!["VERIFY_EMAIL".to_string()]),
@@ -779,7 +776,7 @@ pub async fn get_user_invitation_status(
         "email": user.email,
         "email_verified": user.email_verified,
         "invitation_status": invitation_status,
-        "organization_id": attributes.get("organization_id"),
+        "organization_id": attributes.get("org.ro.active"),
         "pending_roles": attributes.get("pending_roles"),
         "pending_categories": attributes.get("pending_categories"),
         "email_verified_at": attributes.get("email_verified_at"),
@@ -891,19 +888,13 @@ pub async fn get_pending_invitations(
         .filter(|u| !member_ids.contains(&u.id))
         .map(|u| {
             let attrs = u.attributes.as_ref();
-            let invitation_status = attrs
-                .and_then(|a| a.get("invitation_status"))
+            // org.ro.active is the only guaranteed stored attribute
+            let org_id_stored = attrs
+                .and_then(|a| a.get("org.ro.active"))
                 .and_then(|v| v.as_array())
                 .and_then(|arr| arr.first())
                 .and_then(|v| v.as_str())
-                .unwrap_or("pending_email_verification");
-            let roles = attrs
-                .and_then(|a| a.get("pending_roles"))
-                .and_then(|v| v.as_array())
-                .and_then(|arr| arr.first())
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+                .unwrap_or("");
 
             serde_json::json!({
                 "user_id": u.id,
@@ -911,8 +902,8 @@ pub async fn get_pending_invitations(
                 "first_name": u.first_name,
                 "last_name": u.last_name,
                 "email_verified": u.email_verified,
-                "invitation_status": invitation_status,
-                "roles": roles,
+                "invitation_status": if u.email_verified { "email_verified" } else { "pending_email_verification" },
+                "org_id": org_id_stored,
             })
         })
         .collect();
@@ -940,15 +931,9 @@ pub async fn resend_org_invitation(
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to get user: {}", e)))?;
 
-    // Read pending_roles from attributes (stored as array)
-    let roles: Vec<String> = user.attributes
-        .as_ref()
-        .and_then(|a| a.get("pending_roles"))
-        .and_then(|v| v.as_array())
-        .and_then(|arr| arr.first())
-        .and_then(|v| v.as_str())
-        .map(|s| s.split(',').map(|r| r.trim().to_string()).collect())
-        .unwrap_or_else(|| vec!["org_user".to_string()]);
+    // pending_roles is not a defined Keycloak attribute so won't be stored
+    // default to org_user as the safe fallback
+    let roles: Vec<String> = vec!["org_user".to_string()];
 
     app_state
         .keycloak_service
