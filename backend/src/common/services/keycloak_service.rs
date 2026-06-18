@@ -640,7 +640,7 @@ impl KeycloakService {
             payload["lastName"] = json!(last_name);
         }
         if let Some(attributes) = &request.attributes {
-            payload["attributes"] = json!(attributes);
+            payload["attributes"] = attributes.clone();
         }
 
         info!(url = %url, email = %request.email, "Creating user with email verification");
@@ -960,7 +960,7 @@ impl KeycloakService {
             payload["enabled"] = json!(enabled);
         }
         if let Some(attributes) = &request.attributes {
-            payload["attributes"] = json!(attributes);
+            payload["attributes"] = attributes.clone();
         }
         if let Some(required_actions) = &request.required_actions {
             payload["requiredActions"] = json!(required_actions);
