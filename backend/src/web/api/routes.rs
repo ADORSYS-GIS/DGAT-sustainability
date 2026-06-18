@@ -19,7 +19,7 @@ use crate::web::api::handlers::{
         update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
         update_org_admin_member_categories,
         get_org_admin_assigned_categories,
-        get_invitations, delete_invitation,
+        get_invitations, delete_invitation, delete_org_user,
     },
     questions::{create_question, delete_question, delete_question_revision_by_id, get_question, list_questions, update_question},
     reports::{
@@ -171,6 +171,8 @@ pub fn create_router(app_state: AppState) -> Router {
         // Org admin user invitation endpoints
         .route("/api/organizations/:id/invitations", get(get_invitations))
         .route("/api/organizations/:id/invitations/:invitation_id", delete(delete_invitation))
+        // Org admin delete pending user
+        .route("/api/organizations/:org_id/users/:user_id", delete(delete_org_user))
         // User invitation endpoints
         .route("/api/admin/user-invitations", post(create_user_invitation))
         .route("/api/admin/user-invitations/:user_id/status", get(get_user_invitation_status))

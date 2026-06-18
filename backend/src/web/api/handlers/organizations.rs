@@ -1534,6 +1534,69 @@ pub async fn update_org_admin_member_categories(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Delete a pending user from an organization (org admin only)
+/// This deletes the user entirely from Keycloak, same as the admin delete_user
+/// but accessible to org admins for users in their own organization.
+#[utoipa::path(
+    delete,
+    path = "/organizations/{org_id}/users/{user_id}",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID"), ("user_id", description = "User ID to delete")),
+    responses((status = 204, description = "User deleted"), (status = 400, description = "Insufficient permissions"))
+)]
+pub async fn delete_org_user(
+    Extension(claims): Extension<Claims>,
+    Extension(token): Extension<String>,
+    State(app_state): State<AppState>,
+    Path((org_id, user_id)): Path<(String, String)>,
+) -> Result<StatusCode, ApiError> {
+    let token = get_token_from_extensions(&token)?;
+
+    // Check if user has org admin permissions for this organization
+    if !claims.is_application_admin() && !claims.can_manage_organization(&org_id) {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    // Verify the user belongs to this organization (has org.ro.active attribute matching org_id)
+    let user = app_state
+        .keycloak_service
+        .get_user_by_id(&token, &user_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to look up user: {}", e)))?;
+
+    let user_belongs_to_org = user
+        .attributes
+        .as_ref()
+        .and_then(|attrs| attrs.get("org.ro.active"))
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().any(|v| v.as_str() == Some(&org_id)))
+        .unwrap_or(false);
+
+    if !user_belongs_to_org {
+        return Err(ApiError::BadRequest(
+            "User does not belong to this organization".to_string(),
+        ));
+    }
+
+    // Delete the user from Keycloak
+    match app_state
+        .keycloak_service
+        .delete_user(&token, &user_id)
+        .await
+    {
+        Ok(()) => {
+            tracing::info!(user_id = %user_id, org_id = %org_id, "User deleted by org admin");
+            Ok(StatusCode::NO_CONTENT)
+        }
+        Err(e) => {
+            tracing::error!(user_id = %user_id, org_id = %org_id, error = %e, "Failed to delete user");
+            Err(ApiError::InternalServerError(
+                "Failed to delete user".to_string(),
+            ))
+        }
+    }
+}
+
 // GET /api/organizations/:org_id/org-admin/assigned-categories
 /// Returns the list of category names that have been delegated to at least one
 /// Org_User in this organization. The org_admin uses this to know which
