@@ -298,6 +298,10 @@ export const OrgUserManageUsers: React.FC = () => {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(null);
 
+  // Pending user delete confirmation state
+  const [showPendingDeleteConfirmation, setShowPendingDeleteConfirmation] = useState(false);
+  const [pendingUserToDelete, setPendingUserToDelete] = useState<PendingInvitation | null>(null);
+
   // Cleanup function to remove any stuck temporary users
   const cleanupTemporaryUsers = useCallback(async () => {
     try {
@@ -409,6 +413,7 @@ export const OrgUserManageUsers: React.FC = () => {
       };
       createUser.mutate({ id: orgId, requestBody: memberReq }).then(() => {
         refetch();
+        refetchInvitations();
         setShowAddDialog(false);
         resetForm();
       }).catch(() => {
@@ -439,6 +444,7 @@ export const OrgUserManageUsers: React.FC = () => {
       await deletePendingUser(userToDelete.id);
       toast.success(t("staticText.users.deleteEntirelySuccess"));
       refetch();
+      refetchInvitations();
     } catch {
       toast.error(t("staticText.users.deleteEntirelyError"));
     } finally {
@@ -464,16 +470,16 @@ export const OrgUserManageUsers: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pt-4 sm:pt-6 pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Remove Offline Status Indicator and Manual Sync Button */}
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <Button
             variant="outline"
             onClick={() => navigate("/user/dashboard")}
             className="px-4 py-2 text-base font-semibold rounded shadow border-2 border-dgrv-blue text-dgrv-blue hover:bg-dgrv-blue/10 transition"
           >
-            <span className="mr-2">&larr;</span> Back to Dashboard
+            <span className="mr-2">&larr;</span> {t("manageUsers.backToDashboard", "Back to Dashboard")}
           </Button>
           <Button
             className="bg-dgrv-green hover:bg-green-700"
@@ -494,7 +500,7 @@ export const OrgUserManageUsers: React.FC = () => {
           }}
         >
           <DialogTrigger asChild></DialogTrigger>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl w-full max-w-[calc(100vw-2rem)] sm:max-w-4xl">
             <DialogHeader>
               <DialogTitle>
                 {editingUser ? t('manageUsers.editUser') : t("staticText.users.inviteNewUser")}
@@ -639,7 +645,10 @@ export const OrgUserManageUsers: React.FC = () => {
                         variant="outline"
                         className="text-red-600 hover:bg-red-50 border-red-200"
                         disabled={deletingUserId === inv.user_id && isDeletingUser}
-                        onClick={() => handleDeletePendingUser(inv)}
+                        onClick={() => {
+                          setPendingUserToDelete(inv);
+                          setShowPendingDeleteConfirmation(true);
+                        }}
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
@@ -778,6 +787,33 @@ export const OrgUserManageUsers: React.FC = () => {
           cancelText={t('manageUsers.cancel')}
           variant="destructive"
           isLoading={isDeletingUser}
+        />
+
+        {/* Pending User Delete Confirmation Dialog */}
+        <ConfirmationDialog
+          isOpen={showPendingDeleteConfirmation}
+          onClose={() => {
+            setShowPendingDeleteConfirmation(false);
+            setPendingUserToDelete(null);
+          }}
+          onConfirm={() => {
+            if (pendingUserToDelete) {
+              handleDeletePendingUser(pendingUserToDelete);
+            }
+            setShowPendingDeleteConfirmation(false);
+            setPendingUserToDelete(null);
+          }}
+          title={t('manageUsers.confirmDeleteTitle')}
+          description={t('manageUsers.confirmDeleteDescription', {
+            email: pendingUserToDelete?.email || '',
+            name: pendingUserToDelete?.first_name || pendingUserToDelete?.last_name
+              ? `${pendingUserToDelete?.first_name ?? ""} ${pendingUserToDelete?.last_name ?? ""}`.trim()
+              : pendingUserToDelete?.email || ''
+          })}
+          confirmText={t('manageUsers.deleteUser')}
+          cancelText={t('manageUsers.cancel')}
+          variant="destructive"
+          isLoading={isDeletingUser && deletingUserId === pendingUserToDelete?.user_id}
         />
       </div>
     </div>

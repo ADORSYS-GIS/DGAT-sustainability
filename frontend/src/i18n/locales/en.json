@@ -159,7 +159,22 @@
     "noCategoriesAssigned": "Sorry, no categories have been assigned yet to your organisation. Contact the admin.",
     "selectCategories": "Select Categories",
     "noDraftAssessmentsAvailable": "No Draft Assessments Available",
-    "noDraftAssessmentsDescription": "No draft assessments have been created yet."
+    "noDraftAssessmentsDescription": "No draft assessments have been created yet.",
+    "assignedCategories": "Assigned Categories",
+    "cancel": "Cancel",
+    "categoryDelegatedBanner": "This category has been delegated. You can view it but cannot modify responses.",
+    "confirmDelete": "Delete",
+    "confirmDeleteDescription": "Are you sure you want to delete this assessment? This action cannot be undone.",
+    "confirmDeleteTitle": "Delete Assessment",
+    "creationTimeout": "Assessment creation is taking longer than expected. Please check back in a moment.",
+    "maxRetriesExceeded": "Maximum retry attempts reached. Please try again later.",
+    "noCategoriesDescription": "No categories are currently assigned to this assessment.",
+    "noCategoriesTitle": "No Categories Assigned",
+    "offlineMode": "You are currently in offline mode. Changes will sync when you reconnect.",
+    "onlineWithPending": "You are back online. Pending changes will be synced shortly.",
+    "pendingSubmissions": "Pending Submissions",
+    "selectAssessmentToAnswer": "Select an assessment to answer",
+    "unknownCategory": "Unknown Category"
   },
   "submit": "Submit",
   "next": "Next",
@@ -183,7 +198,11 @@
   "status": "Status",
   "submittedAt": "Submitted At",
   "reviewedAt": "Reviewed At",
-  "manageUsers": "Manage Users",
+  "manageUsers": {
+    "processing": "Processing...",
+    "awaitingEmailVerification": "Awaiting email verification",
+    "emailVerified": "Email verified"
+  },
   "actionPlan": "Action Plan",
   "viewAssessments": "View Assessments",
   "answerAssessment": "Answer Assessment",
@@ -559,7 +578,8 @@
     "createSuccess": "Category created successfully",
     "saving": "Saving...",
     "confirmDelete": "Are you sure you want to delete this category? This will also delete all questions in this category. Note: Any existing submissions containing responses to these questions will be preserved, but the individual response records will be removed.",
-    "submitError": "Failed to save category"
+    "submitError": "Failed to save category",
+    "updateSuccess": "Category updated successfully"
   },
   "manageOrganizations": {
     "title": "Manage Organizations",
@@ -588,7 +608,8 @@
     "confirmDeleteDescription": "Are you sure you want to delete the organization '{{name}}'? This action will permanently remove the organization and all its associated data from the system and cannot be undone.",
     "deleteOrganization": "Delete Organization",
     "nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.",
-    "assignCategories": "Assign Categories"
+    "assignCategories": "Assign Categories",
+    "nameContainsReservedChars": "Organization name contains reserved characters"
   },
   "user": {
     "dashboard": {
@@ -644,7 +665,8 @@
         "generatedAt": "Generated",
         "select": "Select",
         "noReportsAvailable": "No reports available",
-        "subtitle": "Track your sustainability improvement tasks"
+        "subtitle": "Track your sustainability improvement tasks",
+        "selectReportDescriptionDOCX": "Download the action plan report as a DOCX document"
       },
       "recentSubmissions": "Recent Submissions",
       "viewAll": "View All",
@@ -753,7 +775,8 @@
       "textResponse": "Text Response",
       "percentageResponse": "Percentage Response",
       "yesNoResponse": "Yes/No Response",
-      "failedToApprove": "Failed to approve assessment."
+      "failedToApprove": "Failed to approve assessment.",
+      "approvedSuccessfully": "Submission approved successfully"
     },
     "actionPlan": {
       "kanban": {
@@ -874,7 +897,8 @@
     "retry": "Retry",
     "loadingQuestions": "Loading questions...",
     "englishQuestion": "English Question",
-    "additionalLanguagesOptional": "Additional Languages (Optional)"
+    "additionalLanguagesOptional": "Additional Languages (Optional)",
+    "addingToCategory": "Adding question to category"
   },
   "userInvitation": {
     "title": "Create User Invitation",
@@ -1307,7 +1331,8 @@
     "assessmentName": "Assessment Name",
     "unknownAssessment": "Unknown Assessment",
     "queueFailed": "Failed to queue review for submission.",
-    "reviewQueued": "Review has been queued for submission."
+    "reviewQueued": "Review has been queued for submission.",
+    "pleaseAddRecommendations": "Please add at least one recommendation before submitting."
   },
   "reportHistory": {
     "title": "Report History",
@@ -1453,17 +1478,20 @@
     },
     "unauthorized": {
       "description": "You do not have permission to view this page.",
-      "goHome": "Go to home"
+      "goHome": "Go to home",
+      "title": "Unauthorized Access"
     },
     "files": {
       "image": "Image",
       "download": "Download",
-      "unknownFile": "Unknown file"
+      "unknownFile": "Unknown file",
+      "attachments": "Attachments"
     },
     "sync": {
       "pending": "{{count}} Pending",
       "offline": "Offline",
-      "online": "Online"
+      "online": "Online",
+      "syncing": "Syncing..."
     },
     "assessment": {
       "showPercentageExplanation": "Show percentage explanation"
@@ -1496,7 +1524,7 @@
   },
   "export": {
     "sustainabilityReport": "Sustainability Report",
-    "page": "Page",
+    "page": "Page {{count}}",
     "dgrv": "DGRV",
     "sustainability": "Sustainability",
     "sustainabilityReportTitle": "SUSTAINABILITY REPORT",
@@ -1510,35 +1538,16 @@
     "recommendationStatusIntro": "This chart summarizes the current status of all recommendations, illustrating the progress made in implementing the suggested actions.",
     "actionPlanKanbanBoard": "Action Plan Kanban Board",
     "kanbanBoardIntro": "This Kanban board provides a visual tool to track the progress of each recommendation. Tasks are organized by their current status, from 'To Do' to 'Approved', facilitating effective project management.",
-    "questionsAndResponses": "Questions & Responses",
-    "questionsAndAnswers": "Questions & Answers",
-    "detailedResponse": "Detailed Response",
-    "textResponse": "Text Response",
-    "availableBelow": "Available below",
-    "responseAttachments": "Response Attachments",
-    "additionalAttachments": "Additional Attachments",
-    "recommendation": "Recommendation",
-    "recommendations": "Recommendations",
+    "detailedAssessmentResults": "Detailed Assessment Results",
+    "tableIntro": "The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations.",
     "question": "Question",
-    "answer": "Answer",
+    "yesNo": "Answer (Y/N)",
     "percentage": "Percentage",
-    "yesNo": "Yes/No",
+    "textAnswer": "Text Answer",
+    "recommendations": "Recommendations",
     "yes": "Yes",
     "no": "No",
-    "na": "N/A",
-    "notApplicable": "Not Applicable",
-    "uncategorized": "Uncategorized",
-    "category": "Category",
-    "textAnswer": "Text Answer",
-    "fileName": "File Name",
-    "actions": "Actions",
-    "todo": "To Do",
-    "inProgress": "In Progress",
-    "done": "Done",
-    "approved": "Approved",
-    "created": "Created",
-    "createdDate": "Created Date",
-    "status": "Status"
+    "na": "N/A"
   },
   "offline": {
     "failedToLoadOrganizations": "Failed to load organizations offline.",
@@ -1578,10 +1587,6 @@
     "offlineSubmissions": "You are offline — viewing cached submissions. Changes will sync when you reconnect.",
     "offlineCache": "You are offline — viewing cached data. Changes will sync when you reconnect."
   },
-  "submission": {
-    "deleted": "Submission deleted successfully",
-    "deleteError": "Failed to delete submission"
-  },
   "of": "of",
   "delete": "Delete",
   "deleting": "Deleting...",
@@ -1594,31 +1599,5 @@
   "manageOrganizations.nameReservedChars": "Organization name contains reserved characters. Avoid using: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , or spaces.",
   "backToDashboard": "Back to Dashboard",
   "assessmentLabel": "Assessment",
-  "export": {
-    "sustainabilityReport": "Sustainability Report",
-    "page": "Page {{count}}",
-    "dgrv": "DGRV",
-    "sustainability": "Sustainability",
-    "sustainabilityReportTitle": "SUSTAINABILITY REPORT",
-    "organisation": "Organisation",
-    "assessment": "Assessment",
-    "allAssessments": "All Assessments",
-    "reportIntro": "This document presents the findings of the sustainability assessment, offering a detailed analysis of performance across key environmental, social, and governance (ESG) dimensions.",
-    "sustainabilityDimensionsOverview": "Sustainability Dimensions Overview",
-    "sustainabilityDimensionsIntro": "The following chart visualizes the performance across key sustainability dimensions, providing a high-level overview of strengths and areas for improvement.",
-    "recommendationStatusOverview": "Recommendation Status Overview",
-    "recommendationStatusIntro": "This chart summarizes the current status of all recommendations, illustrating the progress made in implementing the suggested actions.",
-    "actionPlanKanbanBoard": "Action Plan Kanban Board",
-    "kanbanBoardIntro": "This Kanban board provides a visual tool to track the progress of each recommendation. Tasks are organized by their current status, from 'To Do' to 'Approved', facilitating effective project management.",
-    "detailedAssessmentResults": "Detailed Assessment Results",
-    "tableIntro": "The table below presents a detailed breakdown of the assessment responses, organized by sustainability category. It includes the original questions, the responses provided, and the corresponding recommendations.",
-    "question": "Question",
-    "yesNo": "Answer (Y/N)",
-    "percentage": "Percentage",
-    "textAnswer": "Text Answer",
-    "recommendations": "Recommendations",
-    "yes": "Yes",
-    "no": "No",
-    "na": "N/A"
-  }
+  "unknownOrganization": "Unknown Organization"
 }

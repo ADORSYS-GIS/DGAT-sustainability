@@ -130,7 +130,22 @@
     "noSubmissionsDescription": "لا توجد طلبات متاحة لعرض خطط العمل.",
     "backToDashboard": "العودة إلى لوحة القيادة",
     "noDraftAssessmentsAvailable": "لا توجد مسودة تقييمات متاحة",
-    "noDraftAssessmentsDescription": "لم يتم إنشاء مسودة التقييمات حتى الآن."
+    "noDraftAssessmentsDescription": "لم يتم إنشاء مسودة التقييمات حتى الآن.",
+    "assignedCategories": "الفئات المخصصة",
+    "cancel": "إلغاء",
+    "categoryDelegatedBanner": "تم تفويض هذه الفئة. يمكنك عرضها ولكن لا يمكنك تعديل الإجابات.",
+    "confirmDelete": "حذف",
+    "confirmDeleteDescription": "هل أنت متأكد أنك تريد حذف هذا التقييم؟ لا يمكن التراجع عن هذا الإجراء.",
+    "confirmDeleteTitle": "حذف التقييم",
+    "creationTimeout": "يستغرق إنشاء التقييم وقتًا أطول من المتوقع. يرجى التحقق مرة أخرى بعد قليل.",
+    "maxRetriesExceeded": "تم الوصول إلى الحد الأقصى من المحاولات. يرجى المحاولة مرة أخرى لاحقًا.",
+    "noCategoriesDescription": "لا توجد فئات مخصصة حاليًا لهذا التقييم.",
+    "noCategoriesTitle": "لا توجد فئات مخصصة",
+    "offlineMode": "أنت حاليًا في وضع عدم الاتصال. ستتم مزامنة التغييرات عند إعادة الاتصال.",
+    "onlineWithPending": "أنت متصل بالإنترنت مرة أخرى. ستتم مزامنة التغييرات المعلقة قريبًا.",
+    "pendingSubmissions": "الطلبات المعلقة",
+    "selectAssessmentToAnswer": "اختر تقييمًا للإجابة عليه",
+    "unknownCategory": "فئة غير معروفة"
   },
   "submit": "إرسال",
   "next": "التالي",
@@ -150,7 +165,11 @@
   "status": "الحالة",
   "submittedAt": "تم الإرسال في",
   "reviewedAt": "تمت المراجعة في",
-  "manageUsers": "إدارة المستخدمين",
+  "manageUsers": {
+    "processing": "جاري المعالجة...",
+    "awaitingEmailVerification": "في انتظار التحقق من البريد الإلكتروني",
+    "emailVerified": "تم التحقق من البريد الإلكتروني"
+  },
   "actionPlan": "خطة العمل",
   "viewAssessments": "عرض التقييمات",
   "answerAssessment": "الإجابة على التقييم",
@@ -526,7 +545,8 @@
     "createSuccess": "تم إنشاء الفئة بنجاح",
     "saving": "توفير...",
     "confirmDelete": "هل أنت متأكد أنك تريد حذف هذه الفئة؟ سيؤدي هذا أيضًا إلى حذف جميع الأسئلة في هذه الفئة. ملاحظة: سيتم الاحتفاظ بأي عمليات إرسال موجودة تحتوي على ردود على هذه الأسئلة، ولكن ستتم إزالة سجلات الاستجابة الفردية.",
-    "submitError": "فشل حفظ الفئة"
+    "submitError": "فشل حفظ الفئة",
+    "updateSuccess": "تم تحديث الفئة بنجاح"
   },
   "manageOrganizations": {
     "title": "إدارة المنظمات",
@@ -555,7 +575,8 @@
     "confirmDeleteDescription": "هل أنت متأكد أنك تريد حذف المنظمة '{{name}}'؟ سيؤدي هذا الإجراء إلى إزالة المنظمة وجميع بياناتها المرتبطة بشكل دائم من النظام ولا يمكن التراجع عنه.",
     "deleteOrganization": "حذف المنظمة",
     "nameReservedChars": "يحتوي اسم المنظمة على أحرف محجوزة. تجنب استخدام: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = ، أو مسافات.",
-    "assignCategories": "تعيين الفئات"
+    "assignCategories": "تعيين الفئات",
+    "nameContainsReservedChars": "اسم المؤسسة يحتوي على أحرف محجوزة"
   },
   "user": {
     "dashboard": {
@@ -611,7 +632,8 @@
         "generatedAt": "تم إنشاؤه في",
         "select": "اختر",
         "noReportsAvailable": "لا توجد تقارير متاحة",
-        "subtitle": "تتبع مهام تحسين الاستدامة الخاصة بك"
+        "subtitle": "تتبع مهام تحسين الاستدامة الخاصة بك",
+        "selectReportDescriptionDOCX": "تحميل تقرير خطة العمل كمستند DOCX"
       },
       "recentSubmissions": "التقديمات الأخيرة",
       "viewAll": "عرض الكل",
@@ -720,7 +742,8 @@
       "textResponse": "استجابة النص",
       "percentageResponse": "استجابة النسبة المئوية",
       "yesNoResponse": "نعم/لا الرد",
-      "failedToApprove": "فشل في الموافقة على التقييم."
+      "failedToApprove": "فشل في الموافقة على التقييم.",
+      "approvedSuccessfully": "تمت الموافقة على الطلب بنجاح"
     },
     "actionPlan": {
       "kanban": {
@@ -839,7 +862,8 @@
     "retry": "حاول مرة أخرى",
     "loadingQuestions": "جارٍ تحميل الأسئلة...",
     "englishQuestion": "سؤال انجليزي",
-    "additionalLanguagesOptional": "لغات إضافية (اختياري)"
+    "additionalLanguagesOptional": "لغات إضافية (اختياري)",
+    "addingToCategory": "إضافة سؤال إلى الفئة"
   },
   "userInvitation": {
     "title": "إنشاء دعوة مستخدم",
@@ -1263,7 +1287,8 @@
     "assessmentName": "اسم التقييم",
     "unknownAssessment": "تقييم غير معروف",
     "queueFailed": "فشل في قائمة انتظار المراجعة للإرسال.",
-    "reviewQueued": "تم وضع المراجعة في قائمة الانتظار لتقديمها."
+    "reviewQueued": "تم وضع المراجعة في قائمة الانتظار لتقديمها.",
+    "pleaseAddRecommendations": "يرجى إضافة توصية واحدة على الأقل قبل الإرسال."
   },
   "reportHistory": {
     "title": "سجل التقارير",
@@ -1409,17 +1434,20 @@
     },
     "unauthorized": {
       "description": "ليس لديك الإذن لعرض هذه الصفحة.",
-      "goHome": "اذهب إلى المنزل"
+      "goHome": "اذهب إلى المنزل",
+      "title": "وصول غير مصرح به"
     },
     "files": {
       "image": "صورة",
       "download": "تحميل",
-      "unknownFile": "ملف غير معروف"
+      "unknownFile": "ملف غير معروف",
+      "attachments": "المرفقات"
     },
     "sync": {
       "pending": "{{عدد}} معلق",
       "offline": "غير متصل",
-      "online": "متصل"
+      "online": "متصل",
+      "syncing": "جاري المزامنة..."
     },
     "assessment": {
       "showPercentageExplanation": "عرض شرح النسبة المئوية"
@@ -1547,67 +1575,6 @@
   },
   "export": {
     "sustainabilityReport": "تقرير الاستدامة",
-    "page": "صفحة",
-    "dgrv": "DGRV",
-    "sustainability": "الاستدامة",
-    "sustainabilityReportTitle": "تقرير الاستدامة",
-    "organisation": "المنظمة",
-    "assessment": "التقييم",
-    "allAssessments": "جميع التقييمات",
-    "reportIntro": "يقدم هذا المستند نتائج تقييم الاستدامة، مع تحليل مفصل للأداء عبر الأبعاد الرئيسية البيئية والاجتماعية والحوكمة (ESG).",
-    "sustainabilityDimensionsOverview": "نظرة عامة على أبعاد الاستدامة",
-    "sustainabilityDimensionsIntro": "يوضح المخطط التالي الأداء عبر أبعاد الاستدامة الرئيسية، مما يوفر نظرة عامة عالية المستوى على نقاط القوة ومجالات التحسين.",
-    "recommendationStatusOverview": "نظرة عامة على حالة التوصيات",
-    "recommendationStatusIntro": "يلخص هذا المخطط الحالة الحالية لجميع التوصيات، موضحاً التقدم المحرز في تنفيذ الإجراءات المقترحة.",
-    "actionPlanKanbanBoard": "لوحة كانبان لخطة العمل",
-    "kanbanBoardIntro": "توفر لوحة كانبان هذه أداة بصرية لتتبع تقدم كل توصية. يتم تنظيم المهام حسب حالتها الحالية، من 'في انتظار التنفيذ' إلى 'معتمد'، مما يسهل إدارة المشروع بشكل فعال.",
-    "questionsAndResponses": "الأسئلة والإجابات",
-    "questionsAndAnswers": "الأسئلة والإجابات",
-    "detailedResponse": "إجابة مفصلة",
-    "textResponse": "إجابة نصية",
-    "availableBelow": "متاح أدناه",
-    "responseAttachments": "مرفقات الإجابة",
-    "additionalAttachments": "مرفقات إضافية",
-    "recommendation": "توصية",
-    "recommendations": "التوصيات",
-    "question": "سؤال",
-    "answer": "إجابة",
-    "percentage": "النسبة المئوية",
-    "yesNo": "نعم/لا",
-    "yes": "نعم",
-    "no": "لا",
-    "na": "غير منطبق",
-    "notApplicable": "غير منطبق",
-    "uncategorized": "غير مصنف",
-    "category": "الفئة",
-    "textAnswer": "إجابة نصية",
-    "fileName": "اسم الملف",
-    "actions": "الإجراءات",
-    "todo": "في انتظار التنفيذ",
-    "inProgress": "قيد التنفيذ",
-    "done": "مكتمل",
-    "approved": "معتمد",
-    "created": "تم الإنشاء",
-    "createdDate": "تاريخ الإنشاء",
-    "status": "الحالة"
-  },
-  "submission": {
-    "deleted": "تم حذف الإرسال بنجاح",
-    "deleteError": "فشل حذف الإرسال"
-  },
-  "of": "ل",
-  "delete": "يمسح",
-  "deleting": "جارٍ الحذف...",
-  "completed": "مكتمل",
-  "question": "سؤال",
-  "error": {
-    "goBack": "عُد",
-    "title": "حدث خطأ"
-  },
-  "backToDashboard": "العودة إلى لوحة القيادة",
-  "assessmentLabel": "تقييم",
-  "export": {
-    "sustainabilityReport": "تقرير الاستدامة",
     "page": "صفحة {{count}}",
     "dgrv": "DGRV",
     "sustainability": "الاستدامة",
@@ -1632,5 +1599,21 @@
     "yes": "نعم",
     "no": "لا",
     "na": "غير متاح"
-  }
+  },
+  "submission": {
+    "deleted": "تم حذف الإرسال بنجاح",
+    "deleteError": "فشل حذف الإرسال"
+  },
+  "of": "ل",
+  "delete": "يمسح",
+  "deleting": "جارٍ الحذف...",
+  "completed": "مكتمل",
+  "question": "سؤال",
+  "error": {
+    "goBack": "عُد",
+    "title": "حدث خطأ"
+  },
+  "backToDashboard": "العودة إلى لوحة القيادة",
+  "assessmentLabel": "تقييم",
+  "unknownOrganization": "مؤسسة غير معروفة"
 }

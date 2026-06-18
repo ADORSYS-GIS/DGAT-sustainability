@@ -130,7 +130,22 @@
     "noSubmissionsDescription": "Aucune soumission n'est disponible pour consulter les plans d'action.",
     "backToDashboard": "Retour au tableau de bord",
     "noDraftAssessmentsAvailable": "Aucune ébauche d'évaluation disponible",
-    "noDraftAssessmentsDescription": "Aucune ébauche d’évaluation n’a encore été créée."
+    "noDraftAssessmentsDescription": "Aucune ébauche d’évaluation n’a encore été créée.",
+    "assignedCategories": "Catégories attribuées",
+    "cancel": "Annuler",
+    "categoryDelegatedBanner": "Cette catégorie a été déléguée. Vous pouvez la consulter mais ne pouvez pas modifier les réponses.",
+    "confirmDelete": "Supprimer",
+    "confirmDeleteDescription": "Êtes-vous sûr de vouloir supprimer cette évaluation ? Cette action est irréversible.",
+    "confirmDeleteTitle": "Supprimer l'évaluation",
+    "creationTimeout": "La création de l'évaluation prend plus de temps que prévu. Veuillez vérifier dans un instant.",
+    "maxRetriesExceeded": "Nombre maximum de tentatives atteint. Veuillez réessayer plus tard.",
+    "noCategoriesDescription": "Aucune catégorie n'est actuellement attribuée à cette évaluation.",
+    "noCategoriesTitle": "Aucune catégorie attribuée",
+    "offlineMode": "Vous êtes actuellement en mode hors ligne. Les modifications seront synchronisées lors de la reconnexion.",
+    "onlineWithPending": "Vous êtes de nouveau en ligne. Les modifications en attente seront synchronisées sous peu.",
+    "pendingSubmissions": "Soumissions en attente",
+    "selectAssessmentToAnswer": "Sélectionnez une évaluation à répondre",
+    "unknownCategory": "Catégorie inconnue"
   },
   "submit": "Soumettre",
   "next": "Suivant",
@@ -150,7 +165,11 @@
   "status": "Statut",
   "submittedAt": "Soumis le",
   "reviewedAt": "Examiné le",
-  "manageUsers": "Gérer les utilisateurs",
+  "manageUsers": {
+    "processing": "Traitement...",
+    "awaitingEmailVerification": "En attente de vérification par e-mail",
+    "emailVerified": "E-mail vérifié"
+  },
   "actionPlan": "Plan d'action",
   "viewAssessments": "Voir les évaluations",
   "answerAssessment": "Répondre à l'évaluation",
@@ -526,7 +545,8 @@
     "createSuccess": "Catégorie créée avec succès",
     "saving": "Économie...",
     "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette catégorie ? Cela supprimera également toutes les questions de cette catégorie. Remarque : Toutes les soumissions existantes contenant des réponses à ces questions seront conservées, mais les enregistrements de réponses individuelles seront supprimés.",
-    "submitError": "Échec de l'enregistrement de la catégorie"
+    "submitError": "Échec de l'enregistrement de la catégorie",
+    "updateSuccess": "Catégorie mise à jour avec succès"
   },
   "manageOrganizations": {
     "title": "Gérer les organisations",
@@ -555,7 +575,8 @@
     "confirmDeleteDescription": "Êtes-vous sûr de vouloir supprimer l'organisation '{{name}}' ? Cette action supprimera définitivement l'organisation et toutes ses données associées du système et ne peut pas être annulée.",
     "deleteOrganization": "Supprimer l'organisation",
     "nameReservedChars": "Le nom de l'organisation contient des caractères réservés. Évitez d'utiliser : < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , ou des espaces.",
-    "assignCategories": "Attribuer des catégories"
+    "assignCategories": "Attribuer des catégories",
+    "nameContainsReservedChars": "Le nom de l'organisation contient des caractères réservés"
   },
   "user": {
     "dashboard": {
@@ -611,7 +632,8 @@
         "generatedAt": "Généré le",
         "select": "Sélectionner",
         "noReportsAvailable": "Aucun rapport disponible",
-        "subtitle": "Suivez vos tâches d’amélioration du développement durable"
+        "subtitle": "Suivez vos tâches d’amélioration du développement durable",
+        "selectReportDescriptionDOCX": "Téléchargez le rapport du plan d'action en document DOCX"
       },
       "recentSubmissions": "Soumissions récentes",
       "viewAll": "Voir tout",
@@ -720,7 +742,8 @@
       "textResponse": "Réponse textuelle",
       "percentageResponse": "Réponse en pourcentage",
       "yesNoResponse": "Réponse oui/non",
-      "failedToApprove": "Échec de l'approbation de l'évaluation."
+      "failedToApprove": "Échec de l'approbation de l'évaluation.",
+      "approvedSuccessfully": "Soumission approuvée avec succès"
     },
     "actionPlan": {
       "kanban": {
@@ -734,7 +757,21 @@
       },
       "noRecommendationsDescription": "Il n’y a aucune recommandation pour cette soumission.",
       "noRecommendations": "Aucune recommandation disponible",
-      "title": "Plan d'action"
+      "title": "Plan d'action",
+      "addRecommendation": "Ajouter une recommandation",
+      "deleteConfirm": "Supprimer cette recommandation ? Cette action est irréversible.",
+      "deleteError": "Échec de la suppression de la recommandation",
+      "deleteRecommendation": "Supprimer",
+      "deleteSuccess": "Recommandation supprimée",
+      "editRecommendation": "Modifier",
+      "recommendationForm": {
+        "categoryLabel": "Catégorie d'évaluation",
+        "categoryPlaceholder": "Sélectionnez une catégorie",
+        "noCategories": "Aucune catégorie d'évaluation trouvée...",
+        "textLabel": "Recommandation",
+        "textPlaceholder": "Entrez votre recommandation...",
+        "addButton": "Ajouter"
+      }
     }
   },
   "manageUsers.selectOrganization": "Sélectionner une organisation",
@@ -814,7 +851,8 @@
     "retry": "Réessayer",
     "loadingQuestions": "Chargement des questions...",
     "englishQuestion": "Question anglaise",
-    "additionalLanguagesOptional": "Langues supplémentaires (facultatif)"
+    "additionalLanguagesOptional": "Langues supplémentaires (facultatif)",
+    "addingToCategory": "Ajout de la question à la catégorie"
   },
   "userInvitation": {
     "title": "Créer une invitation utilisateur",
@@ -1238,7 +1276,8 @@
     "assessmentName": "Nom de l'évaluation",
     "unknownAssessment": "Évaluation inconnue",
     "queueFailed": "Échec de la mise en file d'attente de révision pour soumission.",
-    "reviewQueued": "L'examen a été mis en file d'attente pour soumission."
+    "reviewQueued": "L'examen a été mis en file d'attente pour soumission.",
+    "pleaseAddRecommendations": "Veuillez ajouter au moins une recommandation avant de soumettre."
   },
   "reportHistory": {
     "title": "Historique des rapports",
@@ -1384,17 +1423,20 @@
     },
     "unauthorized": {
       "description": "Vous n'êtes pas autorisé à afficher cette page.",
-      "goHome": "Rentre à la maison"
+      "goHome": "Rentre à la maison",
+      "title": "Accès non autorisé"
     },
     "files": {
       "image": "Images",
       "download": "Télécharger",
-      "unknownFile": "Fichier inconnu"
+      "unknownFile": "Fichier inconnu",
+      "attachments": "Pièces jointes"
     },
     "sync": {
       "pending": "{{count}} En attente",
       "offline": "Hors ligne",
-      "online": "En ligne"
+      "online": "En ligne",
+      "syncing": "Synchronisation..."
     },
     "assessment": {
       "showPercentageExplanation": "Afficher l'explication du pourcentage"
@@ -1522,72 +1564,6 @@
   },
   "export": {
     "sustainabilityReport": "Rapport de Durabilité",
-    "page": "Pages",
-    "dgrv": "DGRV",
-    "sustainability": "Durabilité",
-    "sustainabilityReportTitle": "RAPPORT DE DURABILITÉ",
-    "organisation": "Organisation",
-    "assessment": "Évaluation",
-    "allAssessments": "Toutes les Évaluations",
-    "reportIntro": "Ce document présente les résultats de l'évaluation de durabilité, offrant une analyse détaillée des performances dans les principales dimensions environnementales, sociales et de gouvernance (ESG).",
-    "sustainabilityDimensionsOverview": "Vue d'ensemble des Dimensions de Durabilité",
-    "sustainabilityDimensionsIntro": "Ce graphique visualise les performances dans les principales dimensions de durabilité, fournissant une vue d'ensemble des points forts et des axes d'amélioration.",
-    "recommendationStatusOverview": "Vue d'ensemble du Statut des Recommandations",
-    "recommendationStatusIntro": "Ce graphique résume l'état actuel de toutes les recommandations, illustrant les progrès dans la mise en œuvre des actions suggérées.",
-    "actionPlanKanbanBoard": "Tableau Kanban du Plan d'Action",
-    "kanbanBoardIntro": "Ce tableau Kanban fournit un outil visuel pour suivre la progression de chaque recommandation. Les tâches sont organisées par leur statut actuel, de 'À faire' à 'Approuvé', facilitant la gestion efficace du projet.",
-    "questionsAndResponses": "Questions & Réponses",
-    "questionsAndAnswers": "Questions & Réponses",
-    "detailedResponse": "Réponse Détaillée",
-    "textResponse": "Réponse Texte",
-    "availableBelow": "Disponible ci-dessous",
-    "responseAttachments": "Pièces jointes des réponses",
-    "additionalAttachments": "Pièces jointes supplémentaires",
-    "recommendation": "Recommandation",
-    "recommendations": "Recommandations",
-    "question": "Question",
-    "answer": "Réponse",
-    "percentage": "Pourcentage",
-    "yesNo": "Oui/Non",
-    "yes": "Oui",
-    "no": "Non",
-    "na": "N / A",
-    "notApplicable": "Non applicable",
-    "uncategorized": "Non catégorisé",
-    "category": "Catégorie",
-    "textAnswer": "Réponse Texte",
-    "fileName": "Nom du Fichier",
-    "actions": "Actes",
-    "todo": "À faire",
-    "inProgress": "En cours",
-    "done": "Terminé",
-    "approved": "Approuvé",
-    "created": "Créé",
-    "createdDate": "Date de Création",
-    "status": "Statut"
-  },
-  "submission": {
-    "deleted": "Soumission supprimée avec succès",
-    "deleteError": "Échec de la suppression de la soumission"
-  },
-  "of": "de",
-  "delete": "Supprimer",
-  "deleting": "Suppression...",
-  "completed": "Complété",
-  "question": "Question",
-  "error": {
-    "goBack": "Retourner",
-    "title": "Une erreur s'est produite"
-  },
-  "backToDashboard": "Retour au tableau de bord",
-  "manageUsers.email": "E-mail",
-  "manageUsers.admin": "Administrateur",
-  "common.questions": "Questions",
-  "common.question": "Question",
-  "reviewAssessments.question": "question",
-  "assessmentLabel": "Évaluation",
-  "export": {
-    "sustainabilityReport": "Rapport de Durabilité",
     "page": "Page {{count}}",
     "dgrv": "DGRV",
     "sustainability": "Durabilité",
@@ -1612,5 +1588,26 @@
     "yes": "Oui",
     "no": "Non",
     "na": "N/A"
-  }
+  },
+  "submission": {
+    "deleted": "Soumission supprimée avec succès",
+    "deleteError": "Échec de la suppression de la soumission"
+  },
+  "of": "de",
+  "delete": "Supprimer",
+  "deleting": "Suppression...",
+  "completed": "Complété",
+  "question": "Question",
+  "error": {
+    "goBack": "Retourner",
+    "title": "Une erreur s'est produite"
+  },
+  "backToDashboard": "Retour au tableau de bord",
+  "manageUsers.email": "E-mail",
+  "manageUsers.admin": "Administrateur",
+  "common.questions": "Questions",
+  "common.question": "Question",
+  "reviewAssessments.question": "question",
+  "assessmentLabel": "Évaluation",
+  "unknownOrganization": "Organisation inconnue"
 }

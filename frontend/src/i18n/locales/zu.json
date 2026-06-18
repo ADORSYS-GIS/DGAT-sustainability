@@ -130,7 +130,22 @@
     "noSubmissionsDescription": "Akukho okuthunyelwe okutholakalayo ukuze kubukwe izinhlelo zokusebenza.",
     "backToDashboard": "Buyela Kudeshibhodi",
     "noDraftAssessmentsAvailable": "Akukho Ukuhlola Okusalungiswa Okutholakalayo",
-    "noDraftAssessmentsDescription": "Akukho ukuhlola okusalungiswa okudaliwe okwamanje."
+    "noDraftAssessmentsDescription": "Akukho ukuhlola okusalungiswa okudaliwe okwamanje.",
+    "assignedCategories": "Amakategori abekiwe",
+    "cancel": "Khansela",
+    "categoryDelegatedBanner": "Le kategori idluliselwe. Ungayibona kodwa awukwazi ukulungisa izimphendulo.",
+    "confirmDelete": "Susa",
+    "confirmDeleteDescription": "Uqinisekile ukuthi ufuna ukususa lolu hlolwa? Lesi senzo asikwazi ukubuyiselwa.",
+    "confirmDeleteTitle": "Susa Ukuhlolwa",
+    "creationTimeout": "Ukuhlolwa kuthatha isikhathi eside kunokuqediswe. Sicela uhlole kabusha emuva kwesikhatsi.",
+    "maxRetriesExceeded": "Kufinyelelwe enanini eliphezulu lokuzama. Sicela uzame futhi emva kwesikhathi.",
+    "noCategoriesDescription": "Akukho amakategori abekiwe kuleli hlolwa njengamanje.",
+    "noCategoriesTitle": "Akukho Amakategori Abekiwe",
+    "offlineMode": "Ukhona njengamanzi kwimodi yokungaxhumaneki. Izintshelo zizohlanganiswa lapho uphinda ukhona.",
+    "onlineWithPending": "Uphinde ukhona. Izintshelo ezisalele zizohlanganiswa madvoka.",
+    "pendingSubmissions": "Izinkethelo Ezisalele",
+    "selectAssessmentToAnswer": "Khetha ukuhlolwa ukuphendula",
+    "unknownCategory": "Ikategori Engaziwa"
   },
   "submit": "Thumela",
   "next": "Olandelayo",
@@ -150,7 +165,11 @@
   "status": "Isimo",
   "submittedAt": "Kuthunyelwe ngo",
   "reviewedAt": "Kubuyekezwe ngo",
-  "manageUsers": "Phatha Abasebenzisi",
+  "manageUsers": {
+    "processing": "Kuhlela...",
+    "awaitingEmailVerification": "Lindela ukuqinisekiswa kwemeyili",
+    "emailVerified": "Imeyili iqinisekisiwe"
+  },
   "actionPlan": "Uhlelo Lwezenzo",
   "viewAssessments": "Buka Ukuhlolwa",
   "answerAssessment": "Phendula Ukuhlolwa",
@@ -526,7 +545,8 @@
     "createSuccess": "Isigaba sidalwe ngempumelelo",
     "saving": "Iyalondoloza...",
     "confirmDelete": "Uqinisekile ukuthi ufuna ukususa lesi sigaba? Lokhu kuzophinda kususe yonke imibuzo kulesi sigaba. Qaphela: Noma yikuphi ukuthunyelwa okukhona okuqukethe izimpendulo zale mibuzo kuzogcinwa, kodwa amarekhodi empendulo ngayinye azosuswa.",
-    "submitError": "Yehlulekile ukulondoloza isigaba"
+    "submitError": "Yehlulekile ukulondoloza isigaba",
+    "updateSuccess": "Ikategori ibuyekeze ngempumelelo"
   },
   "manageOrganizations": {
     "title": "Phatha Izinhlangano",
@@ -555,7 +575,8 @@
     "confirmDeleteDescription": "Uqinisekile ukuthi ufuna ukususa inhlangano '{{name}}'? Lesi senzo sizosusa unomphela inhlangano kanye nayo yonke idatha ehambisana nayo ohlelweni futhi ngeke ibuyiselwe emuva.",
     "deleteOrganization": "Susa Inhlangano",
     "nameReservedChars": "Igama lenhlangano liqukethe izinhlamvu ezigodliwe. Gwema ukusebenzisa: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = , noma izikhala.",
-    "assignCategories": "Yabela Izigaba"
+    "assignCategories": "Yabela Izigaba",
+    "nameContainsReservedChars": "Igama lenhlangano linamagama abekiwe"
   },
   "user": {
     "dashboard": {
@@ -611,7 +632,8 @@
         "generatedAt": "Yakhiwe ngo",
         "select": "Khetha",
         "noReportsAvailable": "Ayikho imibiko etholakalayo",
-        "subtitle": "Landelela imisebenzi yakho yokuthuthukisa ukusimama"
+        "subtitle": "Landelela imisebenzi yakho yokuthuthukisa ukusimama",
+        "selectReportDescriptionDOCX": "Layisha umbiko wenhlelo yekutfutfuka njengedokhumenti yeDOCX"
       },
       "recentSubmissions": "Ukuthunyelwe Kwakamuva",
       "viewAll": "Buka Konke",
@@ -720,7 +742,8 @@
       "textResponse": "Impendulo Yombhalo",
       "percentageResponse": "Iphesenti lokuphendula",
       "yesNoResponse": "Yebo/Cha Impendulo",
-      "failedToApprove": "Yehlulekile ukugunyaza ukuhlola."
+      "failedToApprove": "Yehlulekile ukugunyaza ukuhlola.",
+      "approvedSuccessfully": "Isithunywa sivunywe ngempumelelo"
     },
     "actionPlan": {
       "kanban": {
@@ -734,7 +757,21 @@
       },
       "noRecommendationsDescription": "Azikho izincomo zalokhu kuhanjiswa.",
       "noRecommendations": "Azikho Izincomo Ezitholakalayo",
-      "title": "Uhlelo lokusebenza"
+      "title": "Uhlelo lokusebenza",
+      "addRecommendation": "Faka iselulezo",
+      "deleteConfirm": "Susa lesi selulezo? Lokhu akukwazi ukubuyiselwa.",
+      "deleteError": "Kwehlulekile ukususa iselulezo",
+      "deleteRecommendation": "Susa",
+      "deleteSuccess": "Iselulezo susiwe",
+      "editRecommendation": "Hlela",
+      "recommendationForm": {
+        "categoryLabel": "Ikategori yokuhlolwa",
+        "categoryPlaceholder": "Khetha ikategori",
+        "noCategories": "Akukho amakategori okuhlolwa atholake...",
+        "textLabel": "Iselulezo",
+        "textPlaceholder": "Faka iselulezo sakho...",
+        "addButton": "Faka"
+      }
     }
   },
   "manageUsers.selectOrganization": "Khetha Inhlangano",
@@ -816,7 +853,8 @@
     "retry": "Zama futhi",
     "loadingQuestions": "Ilayisha imibuzo...",
     "englishQuestion": "Umbuzo wesiNgisi",
-    "additionalLanguagesOptional": "Izilimi ezengeziwe (Ongakukhetha)"
+    "additionalLanguagesOptional": "Izilimi ezengeziwe (Ongakukhetha)",
+    "addingToCategory": "Ukufaka umbuzo kwikategori"
   },
   "userInvitation": {
     "title": "Yakha Isimemo Somsebenzisi",
@@ -1240,7 +1278,8 @@
     "assessmentName": "Igama Lokuhlola",
     "unknownAssessment": "Ukuhlola Okungaziwa",
     "queueFailed": "Yehlulekile ukufaka umugqa isibuyekezo ukuze sithunyelwe.",
-    "reviewQueued": "Isibuyekezo sifakwe kulayini ukuze sithunyelwe."
+    "reviewQueued": "Isibuyekezo sifakwe kulayini ukuze sithunyelwe.",
+    "pleaseAddRecommendations": "Sicela ufake iselulezo esisodwa noma ngaphezulu ngaphambi kokuthumela."
   },
   "reportHistory": {
     "title": "Umlando Wemibiko",
@@ -1386,17 +1425,20 @@
     },
     "unauthorized": {
       "description": "Awunayo imvume yokubuka leli khasi.",
-      "goHome": "Hamba uye ekhaya"
+      "goHome": "Hamba uye ekhaya",
+      "title": "Ukungena Ngaphandle Kwemvume"
     },
     "files": {
       "image": "Isithombe",
       "download": "Landa",
-      "unknownFile": "Ifayela elingaziwa"
+      "unknownFile": "Ifayela elingaziwa",
+      "attachments": "Amadokhumenti"
     },
     "sync": {
       "pending": "{{count}} Kusalindile",
       "offline": "Okungaxhunyiwe ku-inthanethi",
-      "online": "Ku-inthanethi"
+      "online": "Ku-inthanethi",
+      "syncing": "Kuhlanganisa..."
     },
     "assessment": {
       "showPercentageExplanation": "Bonisa incazelo yephesenti"
@@ -1524,67 +1566,6 @@
   },
   "export": {
     "sustainabilityReport": "Umbiko Wesimo Semvelo",
-    "page": "Ikhasi",
-    "dgrv": "DGRV",
-    "sustainability": "Isimo Semvelo",
-    "sustainabilityReportTitle": "UMBIKO WESIMO SEMVELO",
-    "organisation": "Inhlangano",
-    "assessment": "Ukuhlola",
-    "allAssessments": "Konke Ukuhlolwa",
-    "reportIntro": "Lo mbiko uveza umphumela wokuhlola isimo semvelo, unikeza ukuhlaziywa okuningiliziwe kokusebenza kuthunthunguthunthu ezimweni ezibaluleke kakhulu zesimo semvelo, ezenhlalo kanye nephulatifomu yokuphatha (ESG).",
-    "sustainabilityDimensionsOverview": "Isibonakalo Saphakathi Sesimo Semvelo",
-    "sustainabilityDimensionsIntro": "Le shadi ibonisa ukusebenza kuthunthunguthunthu ezimweni ezibaluleke kakhulu zesimo semvelo, inikeza isibonakalo esiphezulu sezindawo zokuqina kanye nalapho kudingeka khona ukuthuthukiswa.",
-    "recommendationStatusOverview": "Isibonakalo Saphakathi Somumo Wezincomo",
-    "recommendationStatusIntro": "Le shadi isizeza umumo wasmange wezincomo, ibonise inqubekelaphambili eyenziwe ekulandeleleni izenzo ezinconyiwe.",
-    "actionPlanKanbanBoard": "Ibhodi Le-Kanban Lohlelo Lwezenzo",
-    "kanbanBoardIntro": "Le Khephu Kanban inikeza ithuluzi elibonakalayo ukulandelela inqubekelaphambili yezincomo ngalunye. Imisebenzi ihlelwa ngomumo wayo wangalesosikhathi, kusuka ku-'Okumele Kwenziwe' kuye ku-'Kuvunyelwe',okusiza ekuphatheni umphathiswa kahle.",
-    "questionsAndResponses": "Imibuzo & Izimpendulo",
-    "questionsAndAnswers": "Imibuzo & Izimpendulo",
-    "detailedResponse": "Impendulo Enemininingwane",
-    "textResponse": "Impendulo Yombhalo",
-    "availableBelow": "Itholakala ngezansi",
-    "responseAttachments": "Amafayela Anamathiselwe Empendulo",
-    "additionalAttachments": "Amafayela Angezayo Anamathiselwe",
-    "recommendation": "Isincomo",
-    "recommendations": "Izincomo",
-    "question": "Umbuzo",
-    "answer": "Impendulo",
-    "percentage": "Iphesenti",
-    "yesNo": "Yebo/Cha",
-    "yes": "Yebo",
-    "no": "Cha",
-    "na": "Akuhlelwe",
-    "notApplicable": " Akuhlelwe",
-    "uncategorized": "Akunasigaba",
-    "category": "Isigaba",
-    "textAnswer": "Impendulo Yombhalo",
-    "fileName": "Igama Lefayela",
-    "actions": "Izenzo",
-    "todo": "Okumele Kwenziwe",
-    "inProgress": "Kuyaqhubeka",
-    "done": "Kwenziwe",
-    "approved": "Kuvunyelwe",
-    "created": "Kudaliwe",
-    "createdDate": "Usuku Lokudala",
-    "status": "Isimo"
-  },
-  "submission": {
-    "deleted": "Ukuthunyelwa kususiwe ngempumelelo",
-    "deleteError": "Yehlulekile ukususa okuthunyelwe"
-  },
-  "of": "kwe",
-  "delete": "Susa",
-  "deleting": "Iyasusa...",
-  "completed": "Kuqediwe",
-  "question": "Umbuzo",
-  "error": {
-    "goBack": "Buyela Emuva",
-    "title": "Kwenzeke Iphutha"
-  },
-  "backToDashboard": "Buyela Kudeshibhodi",
-  "assessmentLabel": "Ukuhlola",
-  "export": {
-    "sustainabilityReport": "Umbiko Wesimo Semvelo",
     "page": "Ikhasi {{count}}",
     "dgrv": "DGRV",
     "sustainability": "Isimo Semvelo",
@@ -1609,5 +1590,21 @@
     "yes": "Yebo",
     "no": "Cha",
     "na": "N/A"
-  }
+  },
+  "submission": {
+    "deleted": "Ukuthunyelwa kususiwe ngempumelelo",
+    "deleteError": "Yehlulekile ukususa okuthunyelwe"
+  },
+  "of": "kwe",
+  "delete": "Susa",
+  "deleting": "Iyasusa...",
+  "completed": "Kuqediwe",
+  "question": "Umbuzo",
+  "error": {
+    "goBack": "Buyela Emuva",
+    "title": "Kwenzeke Iphutha"
+  },
+  "backToDashboard": "Buyela Kudeshibhodi",
+  "assessmentLabel": "Ukuhlola",
+  "unknownOrganization": "Inhlangano Engaziwa"
 }

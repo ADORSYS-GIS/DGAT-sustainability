@@ -104,6 +104,7 @@ export const ManageUsers: React.FC = () => {
     onSuccess: (result) => {
       toast.success(t("staticText.users.createSuccess"));
       refetch();
+      refetchPending();
       setShowAddDialog(false);
       setFormData({
         email: "",
@@ -132,6 +133,7 @@ export const ManageUsers: React.FC = () => {
     onSuccess: () => {
       toast.success(t("staticText.users.removeFromOrgSuccess"));
       refetch();
+      refetchPending();
     },
     onError: (error) => {
       console.error("Failed to remove user from organization:", error);
@@ -144,6 +146,7 @@ export const ManageUsers: React.FC = () => {
     onSuccess: () => {
       toast.success(t("staticText.users.deleteEntirelySuccess"));
       refetch();
+      refetchPending();
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
     },
@@ -158,6 +161,10 @@ export const ManageUsers: React.FC = () => {
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [userToDelete, setUserToDelete] = useState<OrganizationMember | null>(null);
+
+  // Pending user delete confirmation state
+  const [showPendingDeleteConfirmation, setShowPendingDeleteConfirmation] = useState(false);
+  const [pendingUserToDelete, setPendingUserToDelete] = useState<PendingInvitation | null>(null);
 
   // Resend invitation email mutation
   const [resendingUserId, setResendingUserId] = useState<string | null>(null);
@@ -353,6 +360,7 @@ export const ManageUsers: React.FC = () => {
           requestBody: memberReq
         });
         refetch();
+        refetchPending();
         setShowAddDialog(false);
         resetForm();
       } catch (error) {
@@ -481,10 +489,10 @@ export const ManageUsers: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pb-8">
+      <div className="pt-16 sm:pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
             <Button
               variant="outline"
               onClick={() => setSelectedOrg(null)}
@@ -640,8 +648,8 @@ export const ManageUsers: React.FC = () => {
                           className="text-red-600 hover:bg-red-50 border-red-200"
                           disabled={deletingPendingUserId === inv.user_id && deletePendingUserMutation.isPending}
                           onClick={() => {
-                            setDeletingPendingUserId(inv.user_id);
-                            deletePendingUserMutation.mutate(inv.user_id);
+                            setPendingUserToDelete(inv);
+                            setShowPendingDeleteConfirmation(true);
                           }}
                         >
                           <Trash2 className="w-3 h-3" />
@@ -805,6 +813,34 @@ export const ManageUsers: React.FC = () => {
             cancelText={t('manageUsers.cancel')}
             variant="destructive"
             isLoading={deleteUserEntirelyMutation.isPending}
+          />
+
+          {/* Pending User Delete Confirmation Dialog */}
+          <ConfirmationDialog
+            isOpen={showPendingDeleteConfirmation}
+            onClose={() => {
+              setShowPendingDeleteConfirmation(false);
+              setPendingUserToDelete(null);
+            }}
+            onConfirm={() => {
+              if (pendingUserToDelete) {
+                setDeletingPendingUserId(pendingUserToDelete.user_id);
+                deletePendingUserMutation.mutate(pendingUserToDelete.user_id);
+              }
+              setShowPendingDeleteConfirmation(false);
+              setPendingUserToDelete(null);
+            }}
+            title={t('manageUsers.confirmDeleteTitle')}
+            description={t('manageUsers.confirmDeleteDescription', {
+              email: pendingUserToDelete?.email || '',
+              name: pendingUserToDelete?.first_name || pendingUserToDelete?.last_name
+                ? `${pendingUserToDelete?.first_name ?? ""} ${pendingUserToDelete?.last_name ?? ""}`.trim()
+                : pendingUserToDelete?.email || ''
+            })}
+            confirmText={t('manageUsers.deleteUser')}
+            cancelText={t('manageUsers.cancel')}
+            variant="destructive"
+            isLoading={deletePendingUserMutation.isPending}
           />
         </div>
       </div>

@@ -130,7 +130,22 @@
     "noSubmissionsDescription": "Nenhum envio está disponível para visualização de planos de ação.",
     "backToDashboard": "Voltar ao painel",
     "noDraftAssessmentsAvailable": "Nenhuma avaliação preliminar disponível",
-    "noDraftAssessmentsDescription": "Nenhum projeto de avaliação foi criado ainda."
+    "noDraftAssessmentsDescription": "Nenhum projeto de avaliação foi criado ainda.",
+    "assignedCategories": "Categorias atribuídas",
+    "cancel": "Cancelar",
+    "categoryDelegatedBanner": "Esta categoria foi delegada. Você pode visualizá-la, mas não pode modificar as respostas.",
+    "confirmDelete": "Excluir",
+    "confirmDeleteDescription": "Tem certeza de que deseja excluir esta avaliação? Esta ação não pode ser desfeita.",
+    "confirmDeleteTitle": "Excluir Avaliação",
+    "creationTimeout": "A criação da avaliação está demorando mais do que o esperado. Por favor, verifique novamente em alguns instantes.",
+    "maxRetriesExceeded": "Número máximo de tentativas atingido. Por favor, tente novamente mais tarde.",
+    "noCategoriesDescription": "Nenhuma categoria está atualmente atribuída a esta avaliação.",
+    "noCategoriesTitle": "Nenhuma Categoria Atribuída",
+    "offlineMode": "Você está atualmente no modo offline. As alterações serão sincronizadas quando você se reconectar.",
+    "onlineWithPending": "Você está online novamente. As alterações pendentes serão sincronizadas em breve.",
+    "pendingSubmissions": "Envios Pendentes",
+    "selectAssessmentToAnswer": "Selecione uma avaliação para responder",
+    "unknownCategory": "Categoria Desconhecida"
   },
   "submit": "Submeter",
   "next": "Seguinte",
@@ -150,7 +165,11 @@
   "status": "Estado",
   "submittedAt": "Submetido em",
   "reviewedAt": "Revisado em",
-  "manageUsers": "Gerenciar usuários",
+  "manageUsers": {
+    "processing": "Processando...",
+    "awaitingEmailVerification": "Aguardando verificação de e-mail",
+    "emailVerified": "E-mail verificado"
+  },
   "actionPlan": "Plano de Ação",
   "viewAssessments": "Ver Avaliações",
   "answerAssessment": "Responder à Avaliação",
@@ -526,7 +545,8 @@
     "createSuccess": "Categoria criada com sucesso",
     "saving": "Salvando...",
     "confirmDelete": "Tem certeza de que deseja excluir esta categoria? Isso também excluirá todas as perguntas desta categoria. Observação: quaisquer envios existentes que contenham respostas a essas perguntas serão preservados, mas os registros de respostas individuais serão removidos.",
-    "submitError": "Falha ao salvar categoria"
+    "submitError": "Falha ao salvar categoria",
+    "updateSuccess": "Categoria atualizada com sucesso"
   },
   "manageOrganizations": {
     "title": "Gerir Organizações",
@@ -555,7 +575,8 @@
     "confirmDeleteDescription": "Tem certeza de que deseja eliminar a organização '{{name}}'? Esta ação removerá permanentemente a organização e todos os seus dados associados do sistema e não pode ser desfeita.",
     "deleteOrganization": "Eliminar Organização",
     "nameReservedChars": "O nome da organização contém caracteres reservados. Evite usar: < > / \\ : ; \" ' * ? | & % $ # @ ! ( ) { } [ ] ^ ~ ` + = ou espaços.",
-    "assignCategories": "Atribuir categorias"
+    "assignCategories": "Atribuir categorias",
+    "nameContainsReservedChars": "O nome da organização contém caracteres reservados"
   },
   "user": {
     "dashboard": {
@@ -611,7 +632,8 @@
         "generatedAt": "Gerado em",
         "select": "Selecionar",
         "noReportsAvailable": "Nenhum relatório disponível",
-        "subtitle": "Acompanhe suas tarefas de melhoria de sustentabilidade"
+        "subtitle": "Acompanhe suas tarefas de melhoria de sustentabilidade",
+        "selectReportDescriptionDOCX": "Baixe o relatório do plano de ação como documento DOCX"
       },
       "recentSubmissions": "Submissões Recentes",
       "viewAll": "Ver Tudo",
@@ -720,7 +742,8 @@
       "textResponse": "Resposta de texto",
       "percentageResponse": "Resposta percentual",
       "yesNoResponse": "Sim/Não Resposta",
-      "failedToApprove": "Falha ao aprovar avaliação."
+      "failedToApprove": "Falha ao aprovar avaliação.",
+      "approvedSuccessfully": "Envio aprovado com sucesso"
     },
     "actionPlan": {
       "kanban": {
@@ -734,7 +757,21 @@
       },
       "noRecommendationsDescription": "Não há recomendações para esta submissão.",
       "noRecommendations": "Nenhuma recomendação disponível",
-      "title": "Plano de Ação"
+      "title": "Plano de Ação",
+      "addRecommendation": "Adicionar recomendação",
+      "deleteConfirm": "Excluir esta recomendação? Isso não pode ser desfeito.",
+      "deleteError": "Falha ao excluir recomendação",
+      "deleteRecommendation": "Excluir",
+      "deleteSuccess": "Recomendação excluída",
+      "editRecommendation": "Editar",
+      "recommendationForm": {
+        "categoryLabel": "Categoria de avaliação",
+        "categoryPlaceholder": "Selecione uma categoria",
+        "noCategories": "Nenhuma categoria de avaliação encontrada...",
+        "textLabel": "Recomendação",
+        "textPlaceholder": "Digite sua recomendação...",
+        "addButton": "Adicionar"
+      }
     }
   },
   "manageUsers.selectOrganization": "Selecionar uma Organização",
@@ -813,7 +850,8 @@
     "retry": "Tentar novamente",
     "loadingQuestions": "Carregando perguntas...",
     "englishQuestion": "Pergunta em inglês",
-    "additionalLanguagesOptional": "Idiomas adicionais (opcional)"
+    "additionalLanguagesOptional": "Idiomas adicionais (opcional)",
+    "addingToCategory": "Adicionando pergunta à categoria"
   },
   "userInvitation": {
     "title": "Criar Convite de Utilizador",
@@ -1237,7 +1275,8 @@
     "assessmentName": "Nome da Avaliação",
     "unknownAssessment": "Avaliação desconhecida",
     "queueFailed": "Falha ao colocar a revisão na fila para envio.",
-    "reviewQueued": "A revisão foi colocada na fila para envio."
+    "reviewQueued": "A revisão foi colocada na fila para envio.",
+    "pleaseAddRecommendations": "Por favor, adicione pelo menos uma recomendação antes de enviar."
   },
   "reportHistory": {
     "title": "Histórico de Relatórios",
@@ -1383,17 +1422,20 @@
     },
     "unauthorized": {
       "description": "Você não tem permissão para visualizar esta página.",
-      "goHome": "Vá para casa"
+      "goHome": "Vá para casa",
+      "title": "Acesso Não Autorizado"
     },
     "files": {
       "image": "Imagem",
       "download": "Download",
-      "unknownFile": "Arquivo desconhecido"
+      "unknownFile": "Arquivo desconhecido",
+      "attachments": "Anexos"
     },
     "sync": {
       "pending": "{{count}} Pendente",
       "offline": "Off-line",
-      "online": "On-line"
+      "online": "On-line",
+      "syncing": "Sincronizando..."
     },
     "assessment": {
       "showPercentageExplanation": "Mostrar explicação percentual"
@@ -1521,72 +1563,6 @@
   },
   "export": {
     "sustainabilityReport": "Relatório de Sustentabilidade",
-    "page": "Página",
-    "dgrv": "DGRV",
-    "sustainability": "Sustentabilidade",
-    "sustainabilityReportTitle": "RELATÓRIO DE SUSTENTABILIDADE",
-    "organisation": "Organização",
-    "assessment": "Avaliação",
-    "allAssessments": "Todas as Avaliações",
-    "reportIntro": "Este documento apresenta os resultados da avaliação de sustentabilidade, oferecendo uma análise detalhada do desempenho nas principais dimensões ambientais, sociais e de governação (ESG).",
-    "sustainabilityDimensionsOverview": "Visão Geral das Dimensões de Sustentabilidade",
-    "sustainabilityDimensionsIntro": "O seguinte gráfico visualiza o desempenho nas principais dimensões de sustentabilidade, fornecendo uma visão geral dos pontos fortes e áreas de melhoria.",
-    "recommendationStatusOverview": "Visão Geral do Estado das Recomendações",
-    "recommendationStatusIntro": "Este gráfico resume o estado atual de todas as recomendações, ilustrando o progresso na implementação das ações sugeridas.",
-    "actionPlanKanbanBoard": "Quadro Kanban do Plano de Ação",
-    "kanbanBoardIntro": "Este quadro Kanban fornece uma ferramenta visual para acompanhar o progresso de cada recomendação. As tarefas são organizadas pelo seu estado atual, de 'A Fazer' para 'Aprovado', facilitando a gestão eficaz do projeto.",
-    "questionsAndResponses": "Perguntas e Respostas",
-    "questionsAndAnswers": "Perguntas e Respostas",
-    "detailedResponse": "Resposta Detalhada",
-    "textResponse": "Resposta em Texto",
-    "availableBelow": "Disponível abaixo",
-    "responseAttachments": "Anexos das Respostas",
-    "additionalAttachments": "Anexos Adicionais",
-    "recommendation": "Recomendação",
-    "recommendations": "Recomendações",
-    "question": "Pergunta",
-    "answer": "Resposta",
-    "percentage": "Percentagem",
-    "yesNo": "Sim/Não",
-    "yes": "Sim",
-    "no": "Não",
-    "na": "N / D",
-    "notApplicable": "Não Aplicável",
-    "uncategorized": "Sem Categoria",
-    "category": "Categoria",
-    "textAnswer": "Resposta em Texto",
-    "fileName": "Nome do Ficheiro",
-    "actions": "Ações",
-    "todo": "A Fazer",
-    "inProgress": "Em Progresso",
-    "done": "Concluído",
-    "approved": "Aprovado",
-    "created": "Criado",
-    "createdDate": "Data de Criação",
-    "status": "Estado"
-  },
-  "submission": {
-    "deleted": "Submissão eliminada com sucesso",
-    "deleteError": "Falha ao eliminar submissão"
-  },
-  "of": "de",
-  "delete": "Excluir",
-  "deleting": "Excluindo...",
-  "completed": "Concluído",
-  "question": "Pergunta",
-  "error": {
-    "goBack": "Volte",
-    "title": "Ocorreu um erro"
-  },
-  "backToDashboard": "Voltar ao painel",
-  "manageUsers.email": "E-mail",
-  "manageUsers.admin": "Administrador",
-  "manageUsers.orgLabel": "Org:",
-  "assignCategories.total": "Total:",
-  "staticText.files.download": "Baixar",
-  "assessmentLabel": "Avaliação",
-  "export": {
-    "sustainabilityReport": "Relatório de Sustentabilidade",
     "page": "Página {{count}}",
     "dgrv": "DGRV",
     "sustainability": "Sustentabilidade",
@@ -1611,5 +1587,26 @@
     "yes": "Sim",
     "no": "Não",
     "na": "N/D"
-  }
+  },
+  "submission": {
+    "deleted": "Submissão eliminada com sucesso",
+    "deleteError": "Falha ao eliminar submissão"
+  },
+  "of": "de",
+  "delete": "Excluir",
+  "deleting": "Excluindo...",
+  "completed": "Concluído",
+  "question": "Pergunta",
+  "error": {
+    "goBack": "Volte",
+    "title": "Ocorreu um erro"
+  },
+  "backToDashboard": "Voltar ao painel",
+  "manageUsers.email": "E-mail",
+  "manageUsers.admin": "Administrador",
+  "manageUsers.orgLabel": "Org:",
+  "assignCategories.total": "Total:",
+  "staticText.files.download": "Baixar",
+  "assessmentLabel": "Avaliação",
+  "unknownOrganization": "Organização Desconhecida"
 }
