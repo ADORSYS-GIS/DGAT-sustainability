@@ -441,9 +441,14 @@ export const OrgUserManageUsers: React.FC = () => {
     if (!userToDelete || !orgId) return;
 
     try {
-      // For active members, remove from organization (not delete entirely)
-      await removeUser.mutate({ id: orgId, memberId: userToDelete.id });
+      // For active members, remove from organization (not delete entirely from Keycloak)
+      await OrganizationMembersService.deleteOrganizationsByIdOrgAdminMembersByMemberId({
+        id: orgId,
+        memberId: userToDelete.id,
+      });
       toast.success(t("staticText.users.deleteSuccess"));
+      // Clean up IndexedDB if user exists there
+      try { await offlineDB.deleteUser(userToDelete.id); } catch {}
       refetch();
       refetchInvitations();
     } catch {
