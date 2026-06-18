@@ -924,20 +924,9 @@ pub async fn resend_org_invitation(
 
     let token = get_token_from_extensions(&token)?;
 
-    // Get the user to read their pending_roles attribute
-    let user = app_state
-        .keycloak_service
-        .get_user_by_id(&token, &user_id)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to get user: {}", e)))?;
-
-    // pending_roles is not a defined Keycloak attribute so won't be stored
-    // default to org_user as the safe fallback
-    let roles: Vec<String> = vec!["org_user".to_string()];
-
     app_state
         .keycloak_service
-        .resend_org_invitation(&token, &org_id, &user_id, roles)
+        .resend_org_invitation(&token, &org_id, &user_id)
         .await
         .map_err(|e| ApiError::InternalServerError(format!("Failed to resend invitation: {}", e)))?;
 

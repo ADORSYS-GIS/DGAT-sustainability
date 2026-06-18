@@ -1096,17 +1096,42 @@ impl KeycloakService {
 
     /// Resend invitation to a user for a specific organisation:
     /// re-triggers email verification AND re-sends the org invitation email
-    pub async fn resend_org_invitation(&self, token: &str, org_id: &str, user_id: &str, roles: Vec<String>) -> Result<()> {
-        // Re-trigger email verification email
+    /// Does NOT re-assign roles — user already has their roles from initial invite
+    pub async fn resend_org_invitation(&self, token: &str, org_id: &str, user_id: &str) -> Result<()> {
+        // Get user email for the org invitation call
+        let user = self.get_user_by_id(token, user_id).await?;
+
+        // Re-trigger email verification (silently ignore if it fails)
         match self.trigger_email_verification(token, user_id).await {
             Ok(_) => info!(user_id = %user_id, "Email verification re-triggered"),
             Err(e) => warn!(user_id = %user_id, error = %e, "Failed to re-trigger email verification"),
         }
 
-        // Re-send the org invitation email
-        self.send_organization_invitation_immediate(token, org_id, user_id, roles).await?;
+        // Re-send the org invitation email by calling invite-user again
+        let url = format!("{}/admin/realms/{}/organizations/{}/members/invite-user",
+                          self.config.url, self.config.realm, org_id);
 
-        Ok(())
+        let mut form_data = std::collections::HashMap::new();
+        form_data.insert("email".to_string(), user.email.clone());
+
+        let response = self.client.post(&url)
+            .bearer_auth(token)
+            .form(&form_data)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::NO_CONTENT | StatusCode::OK => {
+                info!(user_id = %user_id, email = %user.email, "Org invitation email resent");
+                Ok(())
+            },
+            _ => {
+                let error_text = response.text().await?;
+                warn!(user_id = %user_id, "Failed to resend org invitation email: {}", error_text);
+                // Don't fail — email verification was already re-triggered
+                Ok(())
+            }
+        }
     }
 
     /// Reset a user's password (admin operation)
