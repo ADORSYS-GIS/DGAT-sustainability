@@ -783,7 +783,6 @@ export const ManageUsers: React.FC = () => {
                   refetchPending();
                 }}
               />
-              />
             </DialogContent>
           </Dialog>
 

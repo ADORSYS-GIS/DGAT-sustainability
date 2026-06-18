@@ -367,7 +367,7 @@ export const OrgUserManageUsers: React.FC = () => {
     }
   };
 
-  const { createUser, updateUser, deleteUser } = useUserMutations();
+  const { createUser, updateUser } = useUserMutations();
   // Remove useOfflineSyncStatus, useOfflineSync, sync, isSyncing
 
   // Remove all useEffect related to sync
@@ -432,18 +432,19 @@ export const OrgUserManageUsers: React.FC = () => {
     setShowDeleteConfirmation(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!userToDelete || !orgId) return;
 
-    deleteUser.mutate({ id: orgId, memberId: userToDelete.id }).then(() => {
+    try {
+      await deletePendingUser(userToDelete.id);
+      toast.success(t("staticText.users.deleteEntirelySuccess"));
       refetch();
+    } catch {
+      toast.error(t("staticText.users.deleteEntirelyError"));
+    } finally {
       setShowDeleteConfirmation(false);
       setUserToDelete(null);
-    }).catch(() => {
-      // Error already handled in mutation
-      setShowDeleteConfirmation(false);
-      setUserToDelete(null);
-    });
+    }
   };
 
   const resetForm = () => {
@@ -727,7 +728,7 @@ export const OrgUserManageUsers: React.FC = () => {
                         variant="outline"
                         onClick={() => handleDelete(user)}
                         className="text-red-600 hover:bg-red-50"
-                        disabled={deleteUser.isPending}
+                        disabled={isDeletingUser}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -776,7 +777,7 @@ export const OrgUserManageUsers: React.FC = () => {
           confirmText={t('manageUsers.deleteUser')}
           cancelText={t('manageUsers.cancel')}
           variant="destructive"
-          isLoading={deleteUser.isPending}
+          isLoading={isDeletingUser}
         />
       </div>
     </div>
