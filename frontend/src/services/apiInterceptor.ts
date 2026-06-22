@@ -47,13 +47,18 @@ export interface InterceptorConfig {
 
 export class ApiInterceptor {
   private config: InterceptorConfig;
-  private isOnline: boolean = navigator.onLine;
+  private _isOnline: boolean = navigator.onLine;
   private syncInterval: NodeJS.Timeout | null = null;
   private isProcessingQueue: boolean = false;
   private processedSubmissions: Set<string> = new Set(); // Track processed submissions
   private inFlightGets = new Map<string, Promise<Record<string, unknown>>>();
   private recentGets = new Map<string, { timestamp: number; data: Record<string, unknown> }>();
   private readonly recentGetTtlMs = 10_000;
+
+  // Public getter for online status
+  get isOnline(): boolean {
+    return this._isOnline;
+  }
 
   constructor(config: Partial<InterceptorConfig> = {}) {
     this.config = {
@@ -79,7 +84,7 @@ export class ApiInterceptor {
    */
   private setupNetworkListeners(): void {
     window.addEventListener('online', () => {
-      this.isOnline = true;
+      this._isOnline = true;
 
       // Immediate sync attempt with debounce
       this.debouncedProcessQueue();
@@ -93,12 +98,12 @@ export class ApiInterceptor {
     });
 
     window.addEventListener('offline', () => {
-      this.isOnline = false;
+      this._isOnline = false;
       toast.warning(i18n.t('connection.offline'));
     });
 
     // Also trigger sync when the page loads if online
-    if (this.isOnline) {
+    if (this._isOnline) {
       // Small delay to ensure IndexedDB is ready
       setTimeout(() => {
         this.debouncedProcessQueue();
@@ -130,7 +135,7 @@ export class ApiInterceptor {
 
     if (this.config.enablePeriodicSync) {
       this.syncInterval = setInterval(async () => {
-        if (this.isOnline && !syncService.isCurrentlySyncing()) {
+        if (this._isOnline && !syncService.isCurrentlySyncing()) {
           // Perform full sync every interval
           await syncService.performFullSync();
         }
@@ -147,7 +152,7 @@ export class ApiInterceptor {
     entityType: string,
     entityId?: string
   ): Promise<T> {
-    console.log(`🔍 interceptGet: Starting for entityType: ${entityType}, isOnline: ${this.isOnline}`);
+    console.log(`🔍 interceptGet: Starting for entityType: ${entityType}, isOnline: ${this._isOnline}`);
     const cacheKey = `${entityType}:${entityId || "list"}`;
     const recent = this.recentGets.get(cacheKey);
     if (recent && Date.now() - recent.timestamp < this.recentGetTtlMs) {
@@ -183,7 +188,7 @@ export class ApiInterceptor {
   ): Promise<T> {
     try {
       // Try API call first if online
-      if (this.isOnline) {
+      if (this._isOnline) {
         try {
           console.log(`🔍 interceptGet: Making API call for ${entityType}`);
           console.log(`🔍 interceptGet: About to call apiCall() function`);
@@ -272,7 +277,7 @@ export class ApiInterceptor {
       // Dispatch an optimistic sync event immediately after local mutation to provide instant UI updates
       window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType, operation, optimistic: true } }));
 
-      if (this.isOnline) {
+      if (this._isOnline) {
         console.log('[Interceptor] 4a. [Online] Attempting API call.');
         try {
           const result = await apiCall();
@@ -698,6 +703,9 @@ export class ApiInterceptor {
       } else if ((entityType === 'response' || entityType === 'responses') && 'assessmentId' in data && typeof data.assessmentId === 'string') {
         // Batch response create — use assessmentId as the grouping key
         entityId = data.assessmentId as string;
+      } else if (entityType === 'report' && 'submission_id' in data && typeof data.submission_id === 'string') {
+        // Report generation uses submission_id as the entity identifier
+        entityId = data.submission_id;
       }
 
       const queueItem: SyncQueueItem = {
@@ -726,8 +734,8 @@ export class ApiInterceptor {
    * Get priority for sync queue item
    */
   private getPriority(entityType: string, operation: 'create' | 'update' | 'delete' | 'submit'): 'low' | 'normal' | 'high' | 'critical' {
-    // Critical: submissions (user data)
-    if (entityType === 'submissions' || entityType === 'drafts_endpoint' || entityType === 'draft_submission') return 'critical';
+    // Critical: submissions and reports (user data that affects workflow)
+    if (entityType === 'submissions' || entityType === 'drafts_endpoint' || entityType === 'draft_submission' || entityType === 'report') return 'critical';
 
     // High: assessments, responses (user work)
     if (entityType === 'assessments' || entityType === 'responses') return 'high';
@@ -743,7 +751,7 @@ export class ApiInterceptor {
    * Process sync queue (existing functionality for offline->online sync)
    */
   async processQueue(): Promise<void> {
-    if (!this.isOnline) {
+    if (!this._isOnline) {
       return;
     }
 
@@ -1301,7 +1309,7 @@ export class ApiInterceptor {
    * Get current network status
    */
   getNetworkStatus(): boolean {
-    return this.isOnline;
+    return this._isOnline;
   }
 
   /**
@@ -1341,7 +1349,7 @@ export class ApiInterceptor {
     const queue = await offlineDB.getSyncQueue();
     return {
       queueLength: queue.length,
-      isOnline: this.isOnline,
+      isOnline: this._isOnline,
       isSyncing: syncService.isCurrentlySyncing()
     };
   }

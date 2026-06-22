@@ -146,23 +146,36 @@ export function useSubmitReview() {
 
       // 3. Add to sync queue for API synchronization
       // We import apiInterceptor dynamically to avoid circular dependencies if any
-      const { apiInterceptor } = await import('@/services/apiInterceptor');
-      await apiInterceptor.addToSyncQueue(
-        {
-          submission_id,
-          recommendation,
-          status,
-          reviewer
-        },
-        'report',
-        'create'
-      );
+      try {
+        const { apiInterceptor } = await import('@/services/apiInterceptor');
+        if (!apiInterceptor) {
+          throw new Error("API Interceptor not initialized");
+        }
+        await apiInterceptor.addToSyncQueue(
+          {
+            submission_id,
+            recommendation,
+            status,
+            reviewer
+          },
+          'report',
+          'create'
+        );
+        console.log(`[useSubmitReview] Successfully queued review for submission ${submission_id}`);
 
-      // Trigger immediate sync if online
-      if (apiInterceptor['isOnline']) {
-        // We can't easily access the private method, so we'll just let the event listener or interval handle it
-        // Or we could trigger a manual sync if exposed
-        // apiInterceptor.manualSync();
+        // Trigger immediate sync if online
+        if (apiInterceptor.isOnline) {
+          console.log('[useSubmitReview] Online - triggering immediate sync');
+          // Trigger sync service to process queue immediately
+          const { syncService } = await import('@/services/syncService');
+          syncService.performFullSync().catch((syncError: Error) => {
+            console.warn('[useSubmitReview] Background sync failed, will retry later:', syncError);
+          });
+        }
+      } catch (queueError) {
+        console.error('[useSubmitReview] Failed to add to sync queue:', queueError);
+        // Re-throw the error so the mutation fails and shows proper error message
+        throw new Error(`Failed to queue review: ${queueError instanceof Error ? queueError.message : 'Unknown error'}`);
       }
 
       window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'user_recommendations' } }));

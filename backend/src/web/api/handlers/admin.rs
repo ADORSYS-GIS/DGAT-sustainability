@@ -28,17 +28,36 @@ pub struct ListSubmissionsQuery {
 
 pub async fn list_all_submissions(
     State(app_state): State<AppState>,
-    Extension(_claims): Extension<Claims>,
+    Extension(claims): Extension<Claims>,
     Extension(token): Extension<String>,
     Query(params): Query<ListSubmissionsQuery>,
 ) -> Result<Json<AdminSubmissionListResponse>, ApiError> {
-    // Fetch all submissions from the database
-    let submission_models = app_state
-        .database
-        .assessments_submission
-        .get_all_submissions()
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions: {e}")))?;
+    // Check if user has admin permissions
+    if !claims.can_create_assessments() {
+        return Err(ApiError::BadRequest(
+            "You don't have permission to view submissions. Only administrators can access this endpoint.".to_string(),
+        ));
+    }
+
+    // application_admin sees all orgs; org_admin sees only their own org
+    let submission_models = if claims.is_application_admin() {
+        app_state
+            .database
+            .assessments_submission
+            .get_all_submissions()
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions: {e}")))?
+    } else {
+        let org_id = claims.get_org_id().ok_or_else(|| {
+            ApiError::BadRequest("No organization found in user claims".to_string())
+        })?;
+        app_state
+            .database
+            .assessments_submission
+            .get_submissions_by_org_id(&org_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submissions: {e}")))?
+    };
 
     // Get all organizations from Keycloak to map org_id to org_name
     let organizations = match app_state.keycloak_service.get_organizations(&token).await {

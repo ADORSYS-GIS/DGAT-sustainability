@@ -207,11 +207,33 @@ impl AssessmentsSubmissionService {
             .from_raw_sql(Statement::from_string(
                 sea_orm::DatabaseBackend::Postgres,
                 r#"
-                SELECT DISTINCT ON (submission_id) 
+                SELECT DISTINCT ON (submission_id)
                     submission_id, org_id, org_name, content, submitted_at, status, reviewed_at
-                FROM assessments_submission 
+                FROM assessments_submission
                 ORDER BY submission_id, submitted_at DESC
                 "#.to_string(),
+            ))
+            .all(self.db_service.get_connection())
+            .await
+    }
+
+    pub async fn get_submissions_by_org_id(&self, org_id: &str) -> Result<Vec<Model>, DbErr> {
+        // Use a query that deduplicates by submission_id, keeping the latest submission
+        // Filter by organization ID for org admins
+        let query = format!(
+            r#"
+            SELECT DISTINCT ON (submission_id)
+                submission_id, org_id, org_name, content, submitted_at, status, reviewed_at
+            FROM assessments_submission
+            WHERE org_id = '{}'
+            ORDER BY submission_id, submitted_at DESC
+            "#,
+            org_id
+        );
+        Entity::find()
+            .from_raw_sql(Statement::from_string(
+                sea_orm::DatabaseBackend::Postgres,
+                query,
             ))
             .all(self.db_service.get_connection())
             .await
