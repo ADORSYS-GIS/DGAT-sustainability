@@ -54,6 +54,10 @@ export function useReviewAssessments() {
       }
 
       const submissions = await offlineDB.getAllSubmissions();
+      
+      console.log("[DEBUG] All submissions from offlineDB:", submissions.length, submissions.map(s => ({id: s.submission_id, org: s.organization_id || (s as any).org_id, status: s.review_status})));
+      console.log("[DEBUG] User org IDs:", Array.from(userOrganizationIds));
+
       const submissionsToReview = submissions.filter(
         (submission) => submission.review_status === 'under_review'
       ).filter(
@@ -68,9 +72,15 @@ export function useReviewAssessments() {
             
           if (!submissionOrganizationId) return false;
           
-          return userOrganizationIds.has(submissionOrganizationId);
+          const isMatch = userOrganizationIds.has(submissionOrganizationId);
+          if (!isMatch) {
+            console.log(`[DEBUG] Filtered out submission ${submission.submission_id}: org ${submissionOrganizationId} not in user orgs`);
+          }
+          return isMatch;
         }
       );
+      
+      console.log("[DEBUG] Final submissionsToReview:", submissionsToReview.length);
       return submissionsToReview.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
     },
     enabled: !authLoading,
