@@ -104,29 +104,27 @@ async fn generate_report_content(
         // Use the same normalized category for lookup
         let category_recommendations = recommendations.remove(&category).unwrap_or_default();
         
-        // Only include categories that have actual recommendations (not empty or default)
-        if !category_recommendations.is_empty() {
-            // Filter out any "No recommendation provided" entries
-            let filtered_recommendations: Vec<serde_json::Value> = category_recommendations
-                .into_iter()
-                .filter(|rec| {
-                    if let Some(text) = rec.get("text").and_then(|t| t.as_str()) {
-                        text != "No recommendation provided" && text != "No action plan given"
-                    } else {
-                        false
-                    }
-                })
-                .collect();
-            
-            // Only include the category if it has valid recommendations
-            if !filtered_recommendations.is_empty() {
-                let weight = org_category_weights.get(&category).copied().unwrap_or(100);
-                result_object.insert(category, json!({
-                    "questions": questions,
-                    "recommendations": filtered_recommendations,
-                    "weight": weight,
-                }));
-            }
+        // Filter out any "No recommendation provided" entries
+        let filtered_recommendations: Vec<serde_json::Value> = category_recommendations
+            .into_iter()
+            .filter(|rec| {
+                if let Some(text) = rec.get("text").and_then(|t| t.as_str()) {
+                    text != "No recommendation provided" && text != "No action plan given"
+                } else {
+                    false
+                }
+            })
+            .collect();
+        
+        // Include category if it has questions (responses) OR valid recommendations
+        // This ensures all answered categories appear in the report and radar chart
+        if !questions.is_empty() || !filtered_recommendations.is_empty() {
+            let weight = org_category_weights.get(&category).copied().unwrap_or(100);
+            result_object.insert(category, json!({
+                "questions": questions,
+                "recommendations": filtered_recommendations,
+                "weight": weight,
+            }));
         }
     }
 
