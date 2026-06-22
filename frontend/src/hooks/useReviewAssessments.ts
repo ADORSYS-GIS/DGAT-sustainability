@@ -11,14 +11,27 @@ const REVIEW_ASSESSMENTS_QUERY_KEY = "review_assessments";
 // Hook to get all submissions for review from IndexedDB
 export function useReviewAssessments() {
   const { user, loading: authLoading } = useAuth();
-  const currentOrganizationId = user?.organization || (
-    user?.organizations
-      ? user.organizations[Object.keys(user.organizations)[0]]?.id
-      : undefined
-  );
+  // Collect all organization IDs the user belongs to
+  const userOrganizationIds = new Set<string>();
+  
+  if (user?.organizations && typeof user.organizations === 'object') {
+    Object.values(user.organizations).forEach((org: any) => {
+      if (org?.id && typeof org.id === 'string') {
+        userOrganizationIds.add(org.id);
+      }
+    });
+  } else if (user?.organization && typeof user.organization === 'string') {
+    // Fallback only if organization is a single string ID
+    userOrganizationIds.add(user.organization);
+  }
+
+  // Fallback for context fetching (just uses the first one as before)
+  const currentOrganizationId = userOrganizationIds.size > 0 
+    ? Array.from(userOrganizationIds)[0] 
+    : undefined;
 
   return useQuery({
-    queryKey: [REVIEW_ASSESSMENTS_QUERY_KEY, currentOrganizationId],
+    queryKey: [REVIEW_ASSESSMENTS_QUERY_KEY, Array.from(userOrganizationIds)],
     queryFn: async () => {
       if (authLoading) {
         return [];
@@ -45,14 +58,17 @@ export function useReviewAssessments() {
         (submission) => submission.review_status === 'under_review'
       ).filter(
         (submission) => {
-          if (!currentOrganizationId) {
-            return true;
+          if (userOrganizationIds.size === 0) {
+            return true; // If user has no specific orgs, show all (Super Admin case)
           }
 
           const submissionOrganizationId =
             submission.organization_id ||
             (submission as OfflineSubmission & { org_id?: string }).org_id;
-          return submissionOrganizationId === currentOrganizationId;
+            
+          if (!submissionOrganizationId) return false;
+          
+          return userOrganizationIds.has(submissionOrganizationId);
         }
       );
       return submissionsToReview.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
