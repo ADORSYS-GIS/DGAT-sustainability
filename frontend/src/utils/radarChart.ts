@@ -42,21 +42,24 @@ const MAX_RADAR_VALUE = 3;
 
 /**
  * Scores one category bucket — counts (yesNo * percentage/100) per question.
+ * Returns both the raw score and the number of questions.
  */
-function scoreCategoryQuestions(questions: { answer?: { percentage?: number; yesNo?: boolean } }[]): number {
+function scoreCategoryQuestions(questions: { answer?: { percentage?: number; yesNo?: boolean } }[]): { score: number; count: number } {
   let score = 0;
+  let count = 0;
   for (const q of questions) {
+    count++;
     if (q.answer) {
       const pct = (q.answer.percentage ?? 0) / 100;
       const yes = q.answer.yesNo ? 1 : 0;
       score += pct * yes;
     }
   }
-  return score;
+  return { score, count };
 }
 
 export const generateRadarChartData = (apiResponse: ReportData): RadarChartData | null => {
-  const categories: { [key: string]: number } = {};
+  const categories: { [key: string]: { score: number; count: number } } = {};
 
   if (!apiResponse.reports || apiResponse.reports.length === 0) {
     return null;
@@ -72,62 +75,49 @@ export const generateRadarChartData = (apiResponse: ReportData): RadarChartData 
     return latest;
   });
 
-  const { organizationCategories } = apiResponse;
-
   if (report && report.data) {
     // First try the standard reportDataSchema path
     const parsedReportData = reportDataSchema.safeParse(report.data);
 
     if (parsedReportData.success) {
-      // Count total categories to compute equal-weight fallback for old reports
-      const totalCategories = parsedReportData.data.reduce(
-        (sum, item) => sum + Object.keys(item).length, 0
-      );
-      const equalWeight = totalCategories > 0 ? Math.round(100 / totalCategories) : 100;
-
       parsedReportData.data.forEach((item) => {
         Object.entries(item).forEach(([categoryName, category]) => {
           const norm = normalizeCategoryName(categoryName);
-          if (!categories[norm]) categories[norm] = 0;
+          if (!categories[norm]) categories[norm] = { score: 0, count: 0 };
 
-          const rawScore = scoreCategoryQuestions(category.questions);
+          const { score: rawScore, count: numQuestions } = scoreCategoryQuestions(category.questions);
 
-          // Priority: 1) weight snapshotted in report data, 2) live org category, 3) equal split
-          const snapshotWeight = category.weight;
-          const orgCategory = snapshotWeight == null
-            ? organizationCategories.find((c) => normalizeCategoryName(c.category_name) === norm)
-            : null;
-          const weight = snapshotWeight ?? orgCategory?.weight ?? equalWeight;
-          categories[norm] += rawScore * (weight / 100);
+          categories[norm].score += rawScore;
+          categories[norm].count += numQuestions;
         });
       });
     } else {
       const merged = mergeReportCategoryData(report.data as Parameters<typeof mergeReportCategoryData>[0]);
-      const totalCategories = Object.keys(merged).length;
-      const equalWeight = totalCategories > 0 ? Math.round(100 / totalCategories) : 100;
 
       Object.entries(merged).forEach(([categoryName, categoryData]) => {
         const norm = normalizeCategoryName(categoryName);
-        if (!categories[norm]) categories[norm] = 0;
+        if (!categories[norm]) categories[norm] = { score: 0, count: 0 };
 
         const questions = Array.isArray((categoryData as { questions?: unknown[] })?.questions)
           ? ((categoryData as { questions: { answer?: { percentage?: number; yesNo?: boolean } }[] }).questions)
           : [];
 
-        const rawScore = scoreCategoryQuestions(questions);
+        const { score: rawScore, count: numQuestions } = scoreCategoryQuestions(questions);
 
-        const snapshotWeight = (categoryData as { weight?: number })?.weight;
-        const orgCategory = snapshotWeight == null
-          ? organizationCategories.find((c) => normalizeCategoryName(c.category_name) === norm)
-          : null;
-        const weight = snapshotWeight ?? orgCategory?.weight ?? equalWeight;
-        categories[norm] += rawScore * (weight / 100);
+        categories[norm].score += rawScore;
+        categories[norm].count += numQuestions;
       });
     }
   }
 
   const labels = Object.keys(categories);
-  const sustainabilityScores = Object.values(categories);
+  const sustainabilityScores = labels.map(label => {
+    const data = categories[label];
+    if (data.count === 0) return 0;
+    const percentage = data.score / data.count;
+    // Map the percentage directly against the MAX_RADAR_VALUE (which is 3)
+    return parseFloat((percentage * MAX_RADAR_VALUE).toFixed(2));
+  });
 
   if (labels.length === 0) {
     return null;

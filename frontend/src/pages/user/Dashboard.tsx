@@ -534,6 +534,11 @@ export const Dashboard: React.FC = () => {
     maintainAspectRatio: false,
     scales: {
       r: {
+        min: 0,
+        max: 3,
+        ticks: {
+          stepSize: 0.5,
+        },
         pointLabels: {
           font: {
             size: 14, // Increase font size for category labels
