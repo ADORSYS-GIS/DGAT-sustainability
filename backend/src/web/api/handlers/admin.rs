@@ -827,6 +827,15 @@ pub async fn delete_user(
     {
         Ok(()) => {
             tracing::info!(user_id = %user_id, "User deleted successfully");
+
+            // Clean up all category assignments for this user across all organizations
+            if let Err(e) = app_state.database.user_category_assignments
+                .remove_all_user_assignments(&user_id)
+                .await
+            {
+                tracing::warn!(user_id = %user_id, error = %e, "Failed to remove category assignments during user deletion");
+            }
+
             Ok(StatusCode::NO_CONTENT)
         }
         Err(e) => {

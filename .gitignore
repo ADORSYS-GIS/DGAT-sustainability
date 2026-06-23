@@ -35,3 +35,4 @@ dist-ssr
 **/.env.prod
 
 /src/openapi-rq/
+kilo.json

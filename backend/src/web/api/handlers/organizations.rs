@@ -1665,6 +1665,31 @@ pub async fn get_org_admin_assigned_categories(
         return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
     }
 
+    // Clean up stale assignments for users that no longer exist in this org
+    if let Ok(members) = app_state.keycloak_service
+        .get_organization_members_by_role(&token, &org_id, "Org_User")
+        .await
+    {
+        let active_user_ids: std::collections::HashSet<String> = members.iter().map(|m| m.id.clone()).collect();
+        let all_assignments = app_state.database.user_category_assignments
+            .get_all_assignments_for_org(&org_id)
+            .await
+            .unwrap_or_default();
+        let stale_user_ids: Vec<String> = all_assignments.iter()
+            .filter(|a| !active_user_ids.contains(&a.keycloak_user_id))
+            .map(|a| a.keycloak_user_id.clone())
+            .collect();
+        for stale_user_id in stale_user_ids {
+            tracing::info!(org_id = %org_id, user_id = %stale_user_id, "Removing stale category assignments for user no longer in organization");
+            if let Err(e) = app_state.database.user_category_assignments
+                .remove_user_assignments(&org_id, &stale_user_id)
+                .await
+            {
+                tracing::warn!(user_id = %stale_user_id, error = %e, "Failed to remove stale category assignments");
+            }
+        }
+    }
+
     let mut assigned = app_state
         .database
         .user_category_assignments

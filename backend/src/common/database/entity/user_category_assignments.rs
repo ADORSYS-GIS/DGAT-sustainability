@@ -98,4 +98,27 @@ impl UserCategoryAssignmentsService {
             .await?;
         Ok(())
     }
+
+    /// Remove all assignments for a user across all organizations (called when a user is deleted).
+    pub async fn remove_all_user_assignments(
+        &self,
+        keycloak_user_id: &str,
+    ) -> Result<(), DbErr> {
+        Entity::delete_many()
+            .filter(Column::KeycloakUserId.eq(keycloak_user_id))
+            .exec(self.db_service.get_connection())
+            .await?;
+        Ok(())
+    }
+
+    /// Get all assignment records for an org (used for stale user cleanup).
+    pub async fn get_all_assignments_for_org(
+        &self,
+        keycloak_org_id: &str,
+    ) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .filter(Column::KeycloakOrgId.eq(keycloak_org_id))
+            .all(self.db_service.get_connection())
+            .await
+    }
 }
