@@ -1,211 +1,203 @@
-# Sustainability Assessment Tool
-# Keycloak Realm Import Fix
+# DGAT Sustainability Tool
 
-## Issue
-The Keycloak realm import is failing due to an unsupported field `maxTemporaryLockouts` in the realm export file.
+The DGAT Sustainability Tool is a digital platform that helps cooperatives in
+Southern Africa evaluate their sustainability performance across environmental,
+financial, and governance dimensions. It is delivered as an offline-capable
+**Progressive Web App (PWA)** backed by a **Rust** REST API and hosted on a
+single Docker-Compose stack fronted by **Cloudflare**. This project is part of
+a broader DGRV initiative to support cooperative development through digital
+transformation.
 
-## Solution
-
-1. Run the fix script to remove the unsupported field:
-   ```bash
-   chmod +x fix-realm-export.sh
-   ./fix-realm-export.sh
-   ```
-
-2. Restart the Keycloak container:
-   ```bash
-   docker-compose restart keycloak
-   ```
-
-## Explanation
-The error occurs because the realm export file contains a field (`maxTemporaryLockouts`) that is not recognized by the current version of Keycloak (22.0.1). The fix script removes this field from the JSON file.
-
-If you need to preserve this setting, you will need to manually configure it through the Keycloak admin UI after import.
-The Sustainability Assessment Tool is a digital platform designed to help cooperatives in Southern Africa evaluate their sustainability performance. Built as a Progressive Web App (PWA), it allows users to conduct assessments offline and sync data when connected. This tool is part of a broader initiative by DGRV to support cooperative development through digital transformation, empowering cooperatives to assess their sustainability across environmental, financial, and governance dimensions.
-
-## Development Status
-
-This project is currently in **active development**. Core features such as assessment creation, offline synchronization, and user management are being implemented. The tool is not yet ready for production use. For updates, please refer to the issue tracker in the repository.
-
-## Features
-
-- **Offline Capability**: Conduct assessments without an internet connection; data syncs automatically when online.
-- **Multilingual Support**: Interface and content available in multiple languages to cater to diverse users.
-- **Role-Based Access Control**: Secure access for different user types, including cooperative users and DGRV administrators.
-- **Assessment Management**: Create, save, and submit sustainability assessments with dynamic question sets.
-- **Reporting**: Generate detailed reports with scores, visualizations, and recommendations.
-- **Secure Architecture**: Built with security in mind, using encryption and compliant with data protection standards.
-
-## Technology Stack
-
-- **Backend**: Rust microservices for high performance and memory safety.
-- **Frontend**: ReactJS for the user PWA and admin interface.
-- **Database**: PostgreSQL for secure and scalable data storage.
-- **Identity Management**: Keycloak for authentication and authorization.
-- **Deployment**: Kubernetes on AWS for cloud-native scalability.
-- **Other Tools**: Docker for containerization, GitHub Actions for CI/CD.
-
-## Project Structure
-
-The project is organized as follows:
-
-```
-/sustainability-tool
-├── /backend                # Rust microservices for core functionality
-├── /frontend               # ReactJS applications (User PWA and Admin Frontend)
-├── /infrastructure         # Kubernetes, AWS, Keycloak, and database configurations
-├── /docs                   # Project documentation and training materials
-├── /scripts                # Utility scripts for setup, testing, and deployment
-├── /tests                  # Integration and end-to-end tests
-├── /.github                # CI/CD pipeline configurations
-├── README.md               # Project overview and setup instructions
-├── LICENSE                 # License file (to be defined)
-└── docker-compose.yml      # Local development environment setup
-```
-
-For a detailed breakdown, see the [project structure documentation](link-to-project-structure-artifact).
-
-## Installation and Setup
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Node.js (v14 or later)
-- Rust (stable version)
-- AWS CLI (if deploying to AWS)
-- Git
-
-### Steps
-
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/your-org/sustainability-tool.git
-   cd sustainability-tool
-   ```
-
-2. **Set Up Environment Variables**
-   - Copy the example env file:
-     ```bash
-     cp .env.example .env
-     ```
-   - Edit `.env` to include database credentials, Keycloak settings, and other required variables.
-
-3. **Start Local Development Environment**
-   - Launch services with Docker Compose:
-     ```bash
-     docker-compose up -d
-     ```
-   - This starts PostgreSQL, Keycloak, and other dependencies.
-   - Wait for the services to be fully up (check with `docker-compose ps`)
-
-4. **Automated Keycloak Setup**
-   - Run the automated setup script to configure Keycloak:
-     ```bash
-     cd backend
-     cargo run
-     ```
-   - This will automatically create the realm, client, roles, and test user
-
-5. **Build and Run Backend Services**
-   - Navigate to a backend service directory (e.g., `/backend/sustainability-service`) and run:
-     ```bash
-     cargo build
-     cargo run
-     ```
-
-6. **Build and Run Frontend Applications**
-   - For the user PWA:
-     ```bash
-     cd frontend/user-pwa
-     npm install
-     npm start
-     ```
-   - For the admin frontend:
-     ```bash
-     cd frontend/admin-frontend
-     npm install
-     npm start
-     ```
-
-7. **Verify Keycloak Configuration**
-   - Access the Keycloak admin console at `http://localhost:8080/admin/`
-   - Login with username `admin` and password `admin123`
-   - Select the `sustainability_realm` realm to verify the configuration
-
-7. **Apply Database Migrations**
-   - Run migrations using the db-migrator binary:
-     ```bash
-     cd backend
-     cargo run --bin db-migrator
-     ```
-   - This will connect to the database and apply all migrations if they haven't been applied yet.
-
-For production deployment, refer to the [deployment documentation](link-to-deployment-docs).
-
-## Usage
-
-### Accessing the PWA
-
-- Open `http://localhost:3000` in your browser.
-- Register or log in with provided credentials.
-- Start a new sustainability assessment or continue a draft.
-
-### Accessing the Admin Interface
-
-- Navigate to `http://https://localhost`.
-- Log in with DGRV admin credentials.
-- Manage users, configure assessment questions, and generate reports.
-
-### Example Workflow
-
-#### Cooperative User
-1. Log in to the PWA.
-2. Select "New Assessment" and choose a sustainability template.
-3. Answer questions, saving drafts as needed.
-4. Submit the assessment.
-5. View the generated report with scores and recommendations.
-
-#### DGRV Admin
-1. Log in to the admin interface.
-2. Add new users or assign roles.
-3. Update assessment questions or weights.
-4. Generate aggregate reports for multiple cooperatives.
-
-## Security Considerations
-
-- **Authentication**: Users authenticate via Keycloak using OAuth2.
-- **Data Encryption**: Sensitive data is encrypted at rest and in transit.
-- **Access Control**: Role-based permissions restrict access to authorized features.
-- **Compliance**: Designed to meet GDPR and other data protection standards.
-
-## Contributing
-
-We welcome contributions! To contribute:
-
-1. Fork the repository.
-2. Create a branch for your feature or bugfix.
-3. Submit a pull request with a clear description of your changes.
-
-For major updates, please open an issue first to discuss your ideas.
-
-## Documentation
-
-- **Technical Documentation**: See the `/docs` directory for architecture and API details.
-- **User Manuals & Training**: Refer to `/docs/user-guides` and `/docs/training`.
-
-## Support
-
-For issues or questions, open an issue on the GitHub repository or contact the development team.
-
-## License
-
-This project is licensed under the [License Name] - see the `LICENSE` file for details.
+> **Documentation:** Full handover documentation lives in [`docs/`](docs/).
+> Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-### Notes
-- **Placeholders**: Replace `link-to-project-structure-artifact`, `link-to-deployment-docs`, and `[License Name]` with actual links or text in your repository.
-- **License**: Update the `LICENSE` file with the specific license (e.g., MIT, Apache 2.0).
-- **Environment Variables**: Ensure `.env.example` includes all necessary variables.
-- **Keycloak**: Provide detailed setup instructions in `/infrastructure/keycloak` if needed.
-- **Migrations**: Specify the migration tool in the setup steps.
+## Features
+
+- **Offline-first PWA** — conduct assessments without an internet connection;
+  data syncs automatically when back online via IndexedDB + a Workbox service
+  worker.
+- **Multilingual support** — interface and content in 7 locales (en, fr, pt,
+  de, ar, ss, zu) via i18next.
+- **Role-based access control** — secure access for `application_admin`,
+  `dgrv_admin`, `org_admin`, and `Org_User` roles via Keycloak (OAuth2/OIDC).
+  See [docs/RBAC_ROLES.md](docs/RBAC_ROLES.md).
+- **Assessment management** — create, save (draft), and submit sustainability
+  assessments with dynamic, versioned question sets.
+- **Reporting** — generate reports with scores, Chart.js visualizations, and
+  recommendations; export to PDF (jsPDF) or DOCX.
+- **Secure architecture** — JWT validation, TLS end-to-end (Cloudflare Full
+  Strict + Let's Encrypt), CORS-restricted API.
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Rust 1.88 + Axum 0.7 + SeaORM 1.1 + Tokio, OpenAPI via utoipa |
+| Frontend | React 18 + TypeScript + Vite + Tailwind + TanStack Query + Zustand |
+| Database | PostgreSQL 17 (app DB + isolated Keycloak DB) |
+| Identity | Keycloak 26.3.1 (OAuth2/OIDC, Organizations preview feature) |
+| Proxy / CDN | Nginx + Cloudflare (DNS, WAF, CDN, TLS, rate limiting) |
+| Ops | Docker Compose on a single EC2 host; GitHub Actions CI/CD |
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full stack and system
+diagram.
+
+---
+
+## Project Structure
+
+```
+DGAT-sustainability/
+├── backend/                # Rust backend (Axum) — API server + db-migrator
+│   ├── src/
+│   │   ├── common/         # config, database (entities, migrations), services, models
+│   │   └── web/            # routes, handlers, middleware (auth, JWT, logging)
+│   └── tests/
+├── frontend/               # React PWA (Vite) served by Nginx
+│   ├── src/
+│   │   ├── pages/          # admin + user pages
+│   │   ├── components/     # shared + UI primitives (shadcn/Radix)
+│   │   ├── hooks/          # offline + data hooks
+│   │   ├── services/       # apiInterceptor, indexedDB, syncService, authService
+│   │   ├── openapi-rq/     # generated TypeScript API client
+│   │   └── i18n/           # locale resources
+│   ├── nginx.conf.template # envsubst Nginx config (reverse proxy)
+│   └── package.json
+├── infrastructure/
+│   ├── Dockerfile.backend  # multi-stage Rust build
+│   ├── Dockerfile.frontend # multi-stage Node→Nginx build
+│   └── keycloak/           # realm-export.json
+├── scripts/                # backup.sh, restore.sh, generate_ssl.sh, push_images.sh, admin.sh, ...
+├── docs/                   # handover documentation (see docs/README.md)
+├── .github/workflows/      # ci.yml, deploy.yml
+├── docker-compose.yml      # local dev stack
+├── docker-compose.prod.yml # production overlay
+├── .env.example            # environment template
+└── README.md
+```
+
+---
+
+## Quick Start (Local Development)
+
+### Prerequisites
+
+- Docker & Docker Compose
+- Node.js 20+ (for frontend dev tooling) — optional for container-only workflow
+- Rust 1.88+ (for backend dev) — optional for container-only workflow
+- PostgreSQL client tools (for backup/restore / manual DB access)
+
+### Steps
+
+```bash
+# 1. Clone
+git clone https://github.com/ADORSYS-GIS/DGAT-sustainability.git
+cd DGAT-sustainability
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env: set SERVER_DN, KEYCLOAK_ADMIN_PASSWORD, POSTGRES_PASSWORD, EMAIL_* etc.
+
+# 3. Generate self-signed certs for local HTTPS
+SERVER_DN=localhost ./scripts/generate_ssl.sh
+
+# 4. Start all services (DB, Keycloak, backend, frontend, migrations)
+docker compose up -d
+
+# 5. Access the app
+#    Frontend:        https://localhost:8443
+#    Keycloak admin:  https://localhost:8081/keycloak  (admin / admin123 by default)
+#    Backend health:  http://localhost:3002/api/health
+```
+
+The `migrate` one-shot container applies SeaORM migrations automatically before
+the backend starts, and the `openapi-fetcher` container copies the backend's
+OpenAPI spec into a shared volume for the frontend.
+
+For full local development details, branch protection, and per-service commands,
+see the relevant sections in `docs/`.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) §6 for each service's
+responsibilities.
+
+---
+
+## Deployment
+
+Production runs on a single AWS EC2 instance fronted by Cloudflare. Images are
+built and pushed to GHCR by GitHub Actions on push to `main`; an operator SSHes
+to the server and runs:
+
+```bash
+cd <project-dir>
+git pull origin main
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+SSL certificates are issued by **Certbot / Let's Encrypt** on the origin and
+distributed through **Cloudflare Full (Strict)** mode.
+
+For the full deployment procedure, SSL setup, Certbot renewal automation, and
+the security hardening checklist, see
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+---
+
+## Backup & Recovery
+
+Daily backups are produced by `scripts/backup.sh` (cron) and include the app
+DB, Keycloak DB, `.env`, and a Keycloak realm JSON export. Restore with
+`scripts/restore.sh`. Optional off-site upload via `rclone`.
+
+See [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md) for the full strategy,
+scheduling, and recovery scenarios.
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, components, data flow, topology |
+| [docs/RBAC_ROLES.md](docs/RBAC_ROLES.md) | Roles and RBAC implementation (backend + frontend) |
+| [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Database architecture, entities, JSONB usage, migrations |
+| [docs/CICD_PIPELINE.md](docs/CICD_PIPELINE.md) | CI jobs and image deploy workflow |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment, SSL/Certbot, hardening |
+| [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md) | Backup scripts, scheduling, recovery |
+| [docs/IT_REVIEW_ANSWERS.md](docs/IT_REVIEW_ANSWERS.md) | Answers to IT review open questions |
+| [docs/OFFLINE_ARCHITECTURE.md](docs/OFFLINE_ARCHITECTURE.md) | PWA offline & sync design |
+| [docs/Endpoints.md](docs/Endpoints.md) | API endpoint reference |
+
+See [docs/README.md](docs/README.md) for the complete documentation index.
+
+---
+
+## Contributing
+
+1. Fork the repository.
+2. Create a feature/bugfix branch off `main`.
+3. Open a pull request — CI runs lint, build, tests, codegen, and type checks
+   on every PR (see [docs/CICD_PIPELINE.md](docs/CICD_PIPELINE.md)).
+4. Ensure `cargo fmt`, `cargo clippy`, ESLint, Prettier, and `tsc` all pass
+   locally before pushing.
+
+---
+
+## Security
+
+- **Authentication** via Keycloak OAuth2/OIDC; the backend validates JWTs
+  against Keycloak's JWKS endpoint.
+- **TLS** end-to-end: Cloudflare edge TLS + Let's Encrypt on the Nginx origin
+  (Full Strict).
+- **Access control**: role-based permissions enforced server-side on every API
+  request (see [docs/RBAC_ROLES.md](docs/RBAC_ROLES.md)).
+- **Default credentials** in `.env.example` must be changed for production.
+
+## License
+
+This project is licensed under the terms in the [LICENSE](LICENSE) file.

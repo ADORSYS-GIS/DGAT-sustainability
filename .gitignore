@@ -36,3 +36,4 @@ dist-ssr
 
 /src/openapi-rq/
 kilo.json
+doc
