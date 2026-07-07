@@ -2,22 +2,21 @@ import React, { useEffect } from "react";
 import AppRouter from "./router/AppRouter";
 import { useInitialDataLoad } from "./hooks/useInitialDataLoad";
 import { useAuth } from "./hooks/shared/useAuth";
-import { useLocation, useNavigate } from "react-router-dom";
 
 const App = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
   // The useAuth hook is kept to ensure authentication state is managed
   // but the loading state is not used to block the UI.
   const { isAuthenticated, loading } = useAuth();
 
   // If the service worker served the app shell for a Keycloak URL while offline,
   // redirect to the app root so the user sees the home page / dashboard instead of 404.
+  // App renders AppRouter (which contains <BrowserRouter>), so we can't use
+  // useLocation/useNavigate here — use window.location instead.
   useEffect(() => {
-    if (location.pathname.startsWith('/keycloak/')) {
-      navigate('/', { replace: true });
+    if (window.location.pathname.startsWith('/keycloak/')) {
+      window.location.replace('/');
     }
-  }, [location.pathname, navigate]);
+  }, []);
 
   // The useInitialDataLoad hook is kept to trigger data loading in the background.
   useInitialDataLoad();
