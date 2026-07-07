@@ -10,10 +10,11 @@ const App = () => {
 
   // If the service worker served the app shell for a Keycloak URL while offline,
   // redirect to the app root so the user sees the home page / dashboard instead of 404.
-  // App renders AppRouter (which contains <BrowserRouter>), so we can't use
-  // useLocation/useNavigate here — use window.location instead.
+  // Only do this when offline — when online the browser should handle Keycloak URLs
+  // normally (login flow). App renders AppRouter (which contains <BrowserRouter>), so
+  // we can't use useLocation/useNavigate here — use window.location instead.
   useEffect(() => {
-    if (window.location.pathname.startsWith('/keycloak/')) {
+    if (!navigator.onLine && window.location.pathname.startsWith('/keycloak/')) {
       window.location.replace('/');
     }
   }, []);

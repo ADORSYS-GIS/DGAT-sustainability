@@ -65,16 +65,14 @@ registerRoute(
 
 // Keycloak routes: allow normal login flow when online, but serve the cached
 // app shell when offline so a refresh never shows the browser's offline page.
+// When online we pass the request straight to the network so the browser follows
+// Keycloak redirects normally — intercepting and following them inside the SW
+// would keep the URL on /keycloak/... and cause a redirect loop with App.tsx.
 const keycloakNavigationHandler = async ({ event }: { event: FetchEvent }) => {
-  try {
-    const response = await fetch(event.request);
-    if (response.ok) {
-      return response;
-    }
-  } catch (error) {
-    console.log('Keycloak route unreachable, serving cached app shell.');
+  if (!navigator.onLine) {
+    return createHandlerBoundToURL('/index.html')({ event });
   }
-  return createHandlerBoundToURL('/index.html')({ event });
+  return fetch(event.request);
 };
 
 registerRoute(
