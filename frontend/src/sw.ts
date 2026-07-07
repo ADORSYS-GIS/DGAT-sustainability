@@ -3,7 +3,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__WB_DISABLE_DEV_LOGS = true;
 
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
 import {
   NetworkFirst,
@@ -54,12 +54,33 @@ registerRoute(
       denylist: [
         /^\/api/,
         /^\/health/,
+        /^\/keycloak/,
         /\.(?:json|xml|csv)$/,
         /\/_next\/static\//,
         /\/static\//
       ]
     }
   )
+);
+
+// Keycloak routes: allow normal login flow when online, but serve the cached
+// app shell when offline so a refresh never shows the browser's offline page.
+const keycloakNavigationHandler = async ({ event }: { event: FetchEvent }) => {
+  try {
+    const response = await fetch(event.request);
+    if (response.ok) {
+      return response;
+    }
+  } catch (error) {
+    console.log('Keycloak route unreachable, serving cached app shell.');
+  }
+  return createHandlerBoundToURL('/index.html')({ event });
+};
+
+registerRoute(
+  ({ request, url }) =>
+    request.mode === 'navigate' && url.pathname.startsWith('/keycloak/'),
+  keycloakNavigationHandler
 );
 
 // Cache API requests with NetworkFirst strategy

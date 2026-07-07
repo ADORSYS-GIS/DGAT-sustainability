@@ -61,29 +61,30 @@ const queryClient = new QueryClient({
 });
 
 // Service Worker Registration
+// VitePWA auto-injection is disabled so we can explicitly control scope and error handling.
 if ('serviceWorker' in navigator) {
-  // Temporarily disable service worker registration for development
-  // Uncomment the following lines when ready to enable PWA features
-  
-  // window.addEventListener('load', () => {
-  //   navigator.serviceWorker.register('/sw.js')
-  //     .then((registration) => {
-  //       console.log('Service Worker registered successfully:', registration);
-  //     })
-  //     .catch((error) => {
-  //       console.error('Service Worker registration failed:', error);
-  //     });
-  // });
+  window.addEventListener('load', () => {
+    const swUrl = import.meta.env.DEV ? '/dev-sw.js?dev-sw' : '/sw.js';
+    navigator.serviceWorker
+      .register(swUrl, { scope: '/', type: 'module' })
+      .then((registration) => {
+        console.log('Service Worker registered successfully:', registration.scope);
 
-  // Listen for service worker updates
-  // navigator.serviceWorker.addEventListener('message', (event) => {
-  //   if (event.data && event.data.type === 'SKIP_WAITING') {
-  //     console.log('New service worker available');
-  //     window.location.reload();
-  //   }
-  // });
-} else {
-  // Service worker not supported
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('New service worker available; reload to update.');
+              }
+            });
+          }
+        });
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+      });
+  });
 }
 
 // Initialize other services in the background (not authentication)
