@@ -101,6 +101,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     const onAuthLogout = () => {
       console.log("User logged out (AuthProvider)");
+      // While offline, never tear down the session on a Keycloak logout event — the user
+      // must keep working on their cached session and logout would wipe IndexedDB tokens,
+      // making reconnect impossible. Restore from the persisted profile instead.
+      if (!navigator.onLine) {
+        console.log("Offline: ignoring onAuthLogout to preserve offline session.");
+        getStoredUserProfile().then(storedProfile => {
+          if (storedProfile) {
+            setAuthState({
+              isAuthenticated: true,
+              user: storedProfile,
+              roles: storedProfile.roles || storedProfile.realm_access?.roles || [],
+              loading: false,
+            });
+          } else {
+            setAuthState({ isAuthenticated: false, user: null, roles: [], loading: false });
+          }
+        });
+        return;
+      }
       setAuthState({ isAuthenticated: false, user: null, roles: [], loading: false });
     };
     const onAuthError = (error: unknown) => {
@@ -177,6 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const resetInactivityTimer = () => {
       window.clearTimeout(inactivityTimer);
       inactivityTimer = window.setTimeout(() => {
+        // Never auto-logout due to inactivity while offline — the user must be able to keep
+        // working without a network, and logout would clear stored tokens and force a redirect.
+        // Reschedule instead so the inactivity window restarts if/when they come back online.
+        if (!navigator.onLine) {
+          resetInactivityTimer();
+          return;
+        }
         logout();
       }, INACTIVITY_LOGOUT_MS);
     };

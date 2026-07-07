@@ -99,13 +99,17 @@ export function useOfflineResponsesMutation() {
         'create'
       );
 
-      type ResponsesResponse = { responses: Response[] };
+      type ResponsesResponse = { responses: Response[]; offline?: boolean };
       const isResponsesResponse = (res: unknown): res is ResponsesResponse => {
         return (
             typeof res === 'object' &&
             res !== null &&
             'responses' in res &&
-            Array.isArray((res as ResponsesResponse).responses)
+            Array.isArray((res as ResponsesResponse).responses) &&
+            // When offline, the interceptor returns a mock { success, offline, ...data }
+            // whose `responses` array is the original request payload — NOT a real API result.
+            // We must NOT treat that as a successful online sync and delete the temp records.
+            (res as { offline?: boolean }).offline !== true
         );
       }
 
@@ -115,6 +119,10 @@ export function useOfflineResponsesMutation() {
         for (const tempResponse of tempOfflineResponses) {
           await offlineDB.deleteResponse(tempResponse.response_id);
         }
+      } else if (result && typeof result === 'object' && 'offline' in result) {
+        // Offline: temp responses are already persisted in IndexedDB with sync_status='pending'
+        // and a sync_queue item has been added. Keep them so they can be replayed on reconnect.
+        console.log('📌 Offline: keeping temp responses in IndexedDB for later sync');
       }
 
       options?.onSuccess?.(result);

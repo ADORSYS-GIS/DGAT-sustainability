@@ -35,7 +35,8 @@ import type {
   OfflineOrganization, // Import OfflineOrganization
   OfflineRecommendation, // Import OfflineRecommendation
   ReportCategoryData, // Import ReportCategoryData
-  DetailedReport
+  DetailedReport,
+  OfflineAssessment, // Import OfflineAssessment
 } from "@/types/offline";
 import { getAuthState } from "./shared/authService";
 import { reviewService } from "./reviewService";
@@ -132,8 +133,10 @@ export class SyncService {
       // Only sync assessments, submissions, and reports for non-DGRV admin users
       if (!isDrgvAdmin) {
         syncTasks.push(
+          this.syncAssessments(), // Proactive mirror of the assessment list for offline use
           this.syncPendingAssessmentOperations(), // Replaces syncPendingAssessments
           this.syncSubmissions(),
+          this.syncResponses(), // Proactive mirror of per-assessment responses for offline use
           this.syncReports(),
           this.syncPendingReviewSubmissions(),
           this.syncPendingDraftSubmissions(),
@@ -173,6 +176,14 @@ export class SyncService {
 
       // Assessments, submissions, and reports only for non-DGRV admin
       if (!isDrgvAdmin) {
+        const assessmentsResult = syncResults[taskIndex];
+        if (assessmentsResult?.status === 'fulfilled') {
+          results.assessments = assessmentsResult.value;
+        } else if (assessmentsResult?.status === 'rejected') {
+          results.assessments.errors.push(assessmentsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+
         const pendingAssessmentsResult = syncResults[taskIndex];
         if (pendingAssessmentsResult?.status === 'fulfilled') {
           results.pending_assessments = pendingAssessmentsResult.value;
@@ -186,6 +197,14 @@ export class SyncService {
           results.submissions = submissionsResult.value;
         } else if (submissionsResult?.status === 'rejected') {
           results.submissions.errors.push(submissionsResult.reason?.toString() || 'Unknown error');
+        }
+        taskIndex++;
+
+        const responsesResult = syncResults[taskIndex];
+        if (responsesResult?.status === 'fulfilled') {
+          results.responses = responsesResult.value;
+        } else if (responsesResult?.status === 'rejected') {
+          results.responses.errors.push(responsesResult.reason?.toString() || 'Unknown error');
         }
         taskIndex++;
 
@@ -536,6 +555,41 @@ export class SyncService {
                   }
                 }
 
+                // Re-associate any pending draft-submission queue items + local submission/draft
+                // records that were saved against the temp assessment ID, so they replay against
+                // the real assessment ID instead of 404ing on a `temp_` id.
+                const tempId = item.entity_id!;
+                const realId = realAssessment.assessment_id;
+                const allQueueItems = await offlineDB.getSyncQueue();
+                for (const q of allQueueItems) {
+                  if (q.entity_type === 'submission' && q.operation === 'submit') {
+                    const qData = q.data as { assessmentId?: string; tempId?: string };
+                    if (qData?.assessmentId === tempId) {
+                      qData.assessmentId = realId;
+                      if (qData.tempId && q.entity_id === tempId) {
+                        q.entity_id = realId;
+                      }
+                      await offlineDB.updateSyncQueueItem(q);
+                      console.log(`🔄 Re-associating draft submission queue item ${q.id} from temp ID ${tempId} to real ID ${realId}`);
+                    }
+                  }
+                }
+                for (const s of await offlineDB.getAllSubmissions()) {
+                  if (s.assessment_id === tempId) {
+                    await offlineDB.saveSubmission({ ...s, assessment_id: realId });
+                  }
+                }
+                try {
+                  const drafts = await offlineDB.getAllDraftSubmissions();
+                  for (const d of drafts) {
+                    if (d.assessment_id === tempId) {
+                      await offlineDB.saveDraftSubmission({ ...d, assessment_id: realId });
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Failed to re-associate draft submissions with real assessment ID:', e);
+                }
+
                 result.added++;
                 console.log(`✅ Successfully synced pending assessment creation: ${pendingAssessment.name} -> ${realAssessment.assessment_id}`);
               } else {
@@ -724,6 +778,103 @@ export class SyncService {
         }
       }
 
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+
+  /**
+   * Sync assessments from server to local (proactive mirror for offline support).
+   * Ensures the assessment list is available offline even before the user opens it,
+   * so a refresh while offline still shows full data.
+   */
+  private async syncAssessments(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'assessments', added: 0, updated: 0, deleted: 0, errors: [] };
+
+    try {
+      const serverAssessmentsResponse = await AssessmentsService.getAssessments();
+      const serverAssessments = serverAssessmentsResponse.assessments || [];
+
+      const categories = await offlineDB.getAllCategoryCatalogs();
+      const categoryObjectMap = new Map(categories.map(c => [c.category_catalog_id, c]));
+
+      const localAssessments = await offlineDB.getAllAssessments();
+      const serverIds = new Set(serverAssessments.map(a => a.assessment_id));
+
+      // Add/update synced assessments. Never overwrite a locally-pending (offline-created) assessment.
+      for (const serverAssessment of serverAssessments) {
+        const local = localAssessments.find(a => a.assessment_id === serverAssessment.assessment_id);
+        if (local && local.sync_status === 'pending') {
+          continue;
+        }
+        const offlineAssessment = DataTransformationService.transformAssessment(serverAssessment, categoryObjectMap);
+        // transformAssessment forces status to 'draft'; preserve the real server status.
+        offlineAssessment.status = (serverAssessment.status || 'draft') as OfflineAssessment['status'];
+        offlineAssessment.sync_status = 'synced';
+        offlineAssessment.local_changes = false;
+        offlineAssessment.last_synced = new Date().toISOString();
+        await offlineDB.saveAssessment(offlineAssessment);
+        if (local) result.updated++; else result.added++;
+      }
+
+      // Remove synced local assessments no longer present on the server, keeping pending/temp ones.
+      for (const local of localAssessments) {
+        if (!serverIds.has(local.assessment_id) && local.sync_status !== 'pending' && !local.assessment_id.startsWith('temp_')) {
+          await offlineDB.deleteAssessment(local.assessment_id);
+          result.deleted++;
+        }
+      }
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    return result;
+  }
+
+  /**
+   * Sync responses for each locally-known assessment from server to local (proactive mirror).
+   * This mirrors the answers saved on the server so that, after a refresh while offline,
+   * previously-answered assessments still display their responses.
+   * Pending local responses (created offline) are never overwritten.
+   */
+  private async syncResponses(): Promise<SyncResult> {
+    const result: SyncResult = { entityType: 'responses', added: 0, updated: 0, deleted: 0, errors: [] };
+
+    try {
+      const localAssessments = await offlineDB.getAllAssessments();
+      // Only fetch responses for real (server) assessments that aren't pending local changes.
+      const targetAssessments = localAssessments.filter(
+        a => !a.assessment_id.startsWith('temp_') && a.sync_status !== 'pending'
+      );
+
+      for (const assessment of targetAssessments) {
+        try {
+          const response = await ResponsesService.getAssessmentsByAssessmentIdResponses({
+            assessmentId: assessment.assessment_id,
+          });
+          const serverResponses = response.responses || [];
+
+          const localResponses = await offlineDB.getResponsesByAssessment(assessment.assessment_id);
+          const pendingRevIds = new Set(
+            localResponses.filter(r => r.sync_status === 'pending').map(r => r.question_revision_id)
+          );
+
+          for (const serverResponse of serverResponses) {
+            // Don't overwrite responses that were edited offline and are still pending sync.
+            if (pendingRevIds.has(serverResponse.question_revision_id)) {
+              continue;
+            }
+            const offlineResponse = DataTransformationService.transformResponse(serverResponse);
+            await offlineDB.saveResponse(offlineResponse);
+            result.updated++;
+          }
+        } catch (error) {
+          // A failure for one assessment must not abort the whole responses sync.
+          console.warn(`Failed to sync responses for assessment ${assessment.assessment_id}:`, error);
+        }
+      }
     } catch (error) {
       result.errors.push(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -1080,6 +1231,15 @@ export class SyncService {
 
       for (const item of draftSubmissionSyncItems) {
         try {
+          // Re-check the queue is the authoritative source: apiInterceptor.processQueue may have
+          // already processed (and removed) this exact item on the same `online` event. If so,
+          // skip it to avoid creating a duplicate draft submission on the backend.
+          const currentQueue = await offlineDB.getSyncQueue();
+          if (!currentQueue.some(q => q.id === item.id)) {
+            console.log(`[SyncService] Draft submission queue item ${item.id} already processed elsewhere, skipping`);
+            continue;
+          }
+
           // assessmentId is stored directly in item.data or as entity_id
           const itemData = item.data as { assessmentId?: string; tempId?: string };
           const assessmentId = itemData?.assessmentId || item.entity_id;
@@ -1097,6 +1257,7 @@ export class SyncService {
           const tempId = itemData?.tempId;
           if (tempId) {
             await offlineDB.deleteSubmission(tempId);
+            try { await offlineDB.deleteDraftSubmission(tempId); } catch { /* may not exist */ }
           }
           await offlineDB.removeFromSyncQueue(item.id);
           result.updated++;

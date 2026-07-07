@@ -1039,35 +1039,59 @@ export class ApiInterceptor {
             // Mark this submission as processed
             this.processedSubmissions.add(submissionId);
           } else if (queueItem.entity_type === 'response') {
-            const { ResponsesService } = await import('@/openapi-rq/requests/services.gen');
             const assessmentId = queueItem.entity_id;
 
             if (!assessmentId) {
               console.error(`[processQueue] No assessment_id for response sycn queue item: ${queueItem.id}`);
             } else {
-              // Extract response data from the queue item
-              const responseData = Array.isArray(queueItem.data) ? queueItem.data : [queueItem.data];
+              // The queue item data is wrapped: { assessmentId, responses: CreateResponseRequest[] }
+              // (see useOfflineResponses.createResponses). Unwrap it correctly instead of treating
+              // the wrapper object itself as a single response.
+              const queueData = queueItem.data as { assessmentId?: string; responses?: unknown[] } | unknown[];
+              const responseData = Array.isArray(queueData)
+                ? queueData
+                : (queueData && Array.isArray((queueData as { responses?: unknown[] }).responses)
+                    ? (queueData as { responses: unknown[] }).responses
+                    : [queueData]);
 
-              // Map to the format expected by the API
-              const formattedResponses = responseData.map((r: any) => ({
-                question_revision_id: r.question_revision_id,
-                response: r.response
-              }));
+              // The pending-responses scan earlier in this method may have already synced (and
+              // deleted) the temp records. Only send responses that still have a pending local
+              // record, to avoid duplicate submissions on the backend.
+              const localResponses = await offlineDB.getResponsesByAssessment(assessmentId);
+              const pendingRevIds = new Set(
+                localResponses
+                  .filter(r => r.sync_status === 'pending')
+                  .map(r => r.question_revision_id)
+              );
 
-              await ResponsesService.postAssessmentsByAssessmentIdResponses({
-                assessmentId,
-                requestBody: formattedResponses
-              });
+              if (pendingRevIds.size === 0) {
+                console.log(`[processQueue] Response queue item ${queueItem.id} already handled by pending scan, removing`);
+              } else {
+                const formattedResponses = responseData
+                  .map((r: { question_revision_id?: string; response?: string }) => ({
+                    question_revision_id: r?.question_revision_id,
+                    response: r?.response,
+                  }))
+                  .filter(r => r.question_revision_id && pendingRevIds.has(r.question_revision_id));
 
-              // Clean up any local responses that were temporary
-              for (const r of responseData) {
-                if (r.response_id && r.response_id.startsWith('temp_')) {
-                  await offlineDB.deleteResponse(r.response_id);
+                if (formattedResponses.length > 0) {
+                  const { ResponsesService } = await import('@/openapi-rq/requests/services.gen');
+                  await ResponsesService.postAssessmentsByAssessmentIdResponses({
+                    assessmentId,
+                    requestBody: formattedResponses
+                  });
+
+                  // Clean up the temp responses we just synced
+                  for (const r of localResponses) {
+                    if (r.sync_status === 'pending' && pendingRevIds.has(r.question_revision_id)) {
+                      await offlineDB.deleteResponse(r.response_id);
+                    }
+                  }
+
+                  console.log(`✅ Synced ${formattedResponses.length} responses for assessment ${assessmentId}`);
+                  successCount++;
                 }
               }
-
-              console.log(`✅ Synced ${formattedResponses.length} responses for assessment ${assessmentId}`);
-              successCount++;
             }
           } else if (queueItem.entity_type === 'category_catalog') {
             const { CategoryCatalogService } = await import('@/openapi-rq/requests/services.gen');

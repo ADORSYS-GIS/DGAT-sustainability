@@ -108,7 +108,7 @@ export const Assessment: React.FC = () => {
   const toolName = t("sustainability") + " " + t("assessmentLabel");
 
   const { data: questionsData, isLoading: questionsLoading } = useOfflineQuestions();
-  const { data: assessmentDetail, isLoading: assessmentLoading } = useOfflineAssessment(assessmentId || "");
+  const { data: assessmentDetail, isLoading: assessmentLoading, error: assessmentError } = useOfflineAssessment(assessmentId || "");
   const { data: categoriesData, isLoading: categoriesLoading } = useOfflineCategoryCatalogs();
   const { data: assessmentsData, isLoading: assessmentsLoading, refetch: refetchAssessments } = useOfflineDraftAssessments();
   const { data: existingResponses, isLoading: responsesLoading } = useOfflineResponses(assessmentId || "");
@@ -999,8 +999,35 @@ export const Assessment: React.FC = () => {
   };
 
 
-  if (assessmentLoading || responsesLoading || !assessmentDetail || categoriesLoading) {
+  if (assessmentLoading || responsesLoading || categoriesLoading) {
     return <LoadingSpinner size="hero" fullPage text={t("loading")} />;
+  }
+
+  // If loading is done but we have an error or no assessment detail, show a friendly
+  // error state instead of a perpetual spinner. This prevents a "blank page" / stuck
+  // spinner when offline and the assessment is not in local cache.
+  if (!assessmentDetail || assessmentError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="pb-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mt-8 text-center">
+            <h2 className="text-2xl font-bold text-dgrv-blue mb-2">{t("assessment.loadFailedTitle", "Assessment Unavailable")}</h2>
+            <p className="text-gray-600 mb-4">
+              {t("assessment.loadFailedMessage", "The assessment could not be loaded. If you are offline, please reconnect to load the latest data.")}
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Button variant="default" onClick={() => navigate("/dashboard")}>
+                {t("assessment.backToDashboard", "Back to Dashboard")}
+              </Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                {t("assessment.retry", "Retry")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const currentCategoryId = categories[currentCategoryIndex];

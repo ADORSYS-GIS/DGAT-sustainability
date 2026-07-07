@@ -170,59 +170,13 @@ registerRoute(
   'POST'
 );
 
-// Fallback for offline navigation
-self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/index.html');
-      })
-    );
-  }
-});
-
-// Handle offline fallback for API requests
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  
-  // Only handle API requests
-  if (request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          // Clone the response before returning it
-          const responseClone = response.clone();
-          
-          // Cache successful responses
-          if (request.method === 'GET' && (response.status === 200 || response.status === 201)) {
-            caches.open('api-cache').then(cache => {
-              cache.put(request, responseClone);
-            });
-          }
-          
-          return response;
-        })
-        .catch(() => {
-          // Return cached response if available
-          return caches.match(request).then(cachedResponse => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            
-            // Return offline fallback for specific endpoints
-            if (request.url.includes('/api/assessments')) {
-              return new Response(JSON.stringify({ 
-                message: 'Offline mode: Data not available',
-                offline: true 
-              }), {
-                status: 503,
-                headers: { 'Content-Type': 'application/json' }
-              });
-            }
-            
-            return new Response('Offline mode', { status: 503 });
-          });
-        })
-    );
-  }
-});
+// Note: Workbox's NavigationRoute (NetworkFirst, registered above) already serves the cached
+// app shell on offline navigation, and the registered `/api/` routes handle offline API reads
+// via the api-cache. The application-layer ApiInterceptor/SyncService additionally serve reads
+// from IndexedDB when offline, so no manual `fetch` listeners are needed here.
+//
+// Previously, two manual `self.addEventListener('fetch', ...)` listeners were registered here
+// that overlapped with the Workbox routes above. Because Workbox calls `event.respondWith`
+// first, the later manual calls to `respondWith` threw "The respondWith() method can only be
+// called once", making those fallbacks unreachable and polluting the console. They have been
+// removed to avoid the conflict.
