@@ -33,22 +33,26 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Navigation fallback for SPA
+// Navigation fallback for SPA.
+// Always fall back to the precached index.html (populated by precacheAndRoute),
+// not a separate navigation cache that may be empty on the first offline visit.
+const spaNavigationHandler = async ({ event }: { event: FetchEvent }) => {
+  if (navigator.onLine) {
+    try {
+      const response = await fetch(event.request);
+      if (response.ok) {
+        return response;
+      }
+    } catch {
+      // network failed — fall through to precached app shell
+    }
+  }
+  return createHandlerBoundToURL('/index.html')({ event });
+};
+
 registerRoute(
   new NavigationRoute(
-    new NetworkFirst({
-      cacheName: 'navigation-cache',
-      networkTimeoutSeconds: 3,
-      plugins: [
-        new CacheableResponsePlugin({
-          statuses: [0, 200]
-        }),
-        new ExpirationPlugin({
-          maxEntries: 50,
-          maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-        })
-      ]
-    }),
+    spaNavigationHandler,
     {
       // Only apply to navigation requests that don't match these patterns
       denylist: [
