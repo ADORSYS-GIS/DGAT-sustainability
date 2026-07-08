@@ -180,7 +180,6 @@ export function useInitialDataLoad() {
     if (isLoading || hasLoadedData) return;
 
     // Fast path: if a previous session completed the load, mark loaded immediately.
-    // This avoids the "loading..." UI on pages like action plan selection.
     const currentUserKey = user?.sub || '';
     if (userKeyRef.current !== currentUserKey) {
       userKeyRef.current = currentUserKey;
@@ -195,6 +194,10 @@ export function useInitialDataLoad() {
         globalHasLoadedData = true;
       }
     }).catch(() => undefined);
+
+    // When offline, skip the expensive data loading check entirely.
+    // IndexedDB data is already available; the loading UI is unnecessary.
+    if (!isOnline) return;
 
     const requestIdleCallback = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: { timeout?: number }) => void);
     const schedule = (fn: () => void) => {

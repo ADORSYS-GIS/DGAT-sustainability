@@ -15,15 +15,17 @@ export function useOfflineQuestions() {
   return useQuery({
     queryKey: ["questions"],
     queryFn: async (): Promise<OfflineQuestion[]> => {
-      try {
-        // Attempt to sync with the server, but don't block
-        apiInterceptor.interceptGet(
-          () => QuestionService.getQuestions(),
-          async () => null, // We don't need a fallback, just the sync trigger
-          'questions'
-        );
-      } catch (error) {
-        console.log("Could not sync questions, using local data.", error);
+      // Only attempt server sync when online
+      if (navigator.onLine) {
+        try {
+          await apiInterceptor.interceptGet(
+            () => QuestionService.getQuestions(),
+            async () => null,
+            'questions'
+          );
+        } catch {
+          // Ignore sync errors, use local data
+        }
       }
       // Always return data from IndexedDB as the single source of truth
       return await offlineDB.getAllQuestions();

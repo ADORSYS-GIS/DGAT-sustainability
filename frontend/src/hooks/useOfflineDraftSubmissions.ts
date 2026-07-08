@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { offlineDB } from "../services/indexeddb";
 import { apiInterceptor } from "../services/apiInterceptor";
 import {
@@ -85,6 +85,8 @@ export function useOfflineDraftSubmissions() {
   const [data, setData] = useState<{ draft_submissions: OfflineDraftSubmission[] }>({ draft_submissions: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const fetchingRef = useRef(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentOrganizationId = user?.organization || (
     user?.organizations
@@ -93,15 +95,49 @@ export function useOfflineDraftSubmissions() {
   );
 
   const fetchData = useCallback(async () => {
-    if (authLoading) {
-      setIsLoading(true);
-      return;
-    }
+    if (authLoading) return;
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
 
     try {
       setIsLoading(true);
       setError(null);
 
+      const isOffline = !navigator.onLine;
+
+      // Offline fast path: read directly from IndexedDB, skip all API calls
+      if (isOffline) {
+        const [localDrafts, localAssessments] = await Promise.all([
+          offlineDB.getAllDraftSubmissions(),
+          offlineDB.getAllAssessments(),
+        ]);
+
+        const assessmentsMap = new Map<string, string>();
+        for (const assessment of localAssessments) {
+          if (assessment.assessment_id && assessment.name) {
+            assessmentsMap.set(assessment.assessment_id, assessment.name);
+          }
+        }
+
+        const visibleDrafts = localDrafts
+          .filter((submission) => submission.review_status === 'draft')
+          .filter((submission) => {
+            if (!currentOrganizationId) return true;
+            return getSubmissionOrganizationId(submission) === currentOrganizationId;
+          });
+
+        const submissions = visibleDrafts.map((submission) => ({
+          ...submission,
+          assessment_name: isUsableAssessmentName(submission.assessment_name)
+            ? submission.assessment_name
+            : assessmentsMap.get(submission.assessment_id) || submission.assessment_name || 'Unknown Assessment'
+        }));
+
+        setData({ draft_submissions: submissions });
+        return;
+      }
+
+      // Online path: sync with server then read local
       const localCategories = await offlineDB.getAllCategoryCatalogs();
       const categoryIdToCategoryMap = new Map<string, OfflineCategoryCatalog>(
         localCategories.map(c => [c.category_catalog_id, c])
@@ -173,8 +209,9 @@ export function useOfflineDraftSubmissions() {
         }
       }
 
+      // Only show drafts that haven't been submitted yet
       const visibleDrafts = localDrafts
-        .filter((submission) => ['draft', 'pending_review', 'under_review'].includes(submission.review_status))
+        .filter((submission) => submission.review_status === 'draft')
         .filter((submission) => {
           if (!currentOrganizationId) {
             return true;
@@ -184,7 +221,6 @@ export function useOfflineDraftSubmissions() {
         });
 
       // Dedupe drafts: keep a single best record per assessment_id
-      // This prevents showing both a temporary offline draft and a server-synced draft.
       const draftsByAssessment = new Map<string, OfflineDraftSubmission[]>();
       for (const submission of visibleDrafts) {
         const key = submission.assessment_id || submission.submission_id;
@@ -225,29 +261,27 @@ export function useOfflineDraftSubmissions() {
         );
       }
 
-      if (navigator.onLine) {
-        const missingAssessmentIds = Array.from(new Set(
-          visibleDrafts
-            .filter((submission) => !isUsableAssessmentName(submission.assessment_name))
-            .filter((submission) => submission.assessment_id && !assessmentsMap.has(submission.assessment_id))
-            .map((submission) => submission.assessment_id)
-        ));
+      const missingAssessmentIds = Array.from(new Set(
+        visibleDrafts
+          .filter((submission) => !isUsableAssessmentName(submission.assessment_name))
+          .filter((submission) => submission.assessment_id && !assessmentsMap.has(submission.assessment_id))
+          .map((submission) => submission.assessment_id)
+      ));
 
-        await Promise.all(missingAssessmentIds.map(async (assessmentId) => {
-          try {
-            const assessmentResult = await AssessmentsService.getAssessmentsByAssessmentId({ assessmentId });
-            const assessment = assessmentResult.assessment;
-            if (assessment?.assessment_id && assessment.name) {
-              assessmentsMap.set(assessment.assessment_id, assessment.name);
-              await offlineDB.saveAssessment(
-                DataTransformationService.transformAssessment(assessment, categoryIdToCategoryMap)
-              );
-            }
-          } catch (assessmentError) {
-            console.warn(`Failed to enrich draft assessment name for ${assessmentId}:`, assessmentError);
+      await Promise.all(missingAssessmentIds.map(async (assessmentId) => {
+        try {
+          const assessmentResult = await AssessmentsService.getAssessmentsByAssessmentId({ assessmentId });
+          const assessment = assessmentResult.assessment;
+          if (assessment?.assessment_id && assessment.name) {
+            assessmentsMap.set(assessment.assessment_id, assessment.name);
+            await offlineDB.saveAssessment(
+              DataTransformationService.transformAssessment(assessment, categoryIdToCategoryMap)
+            );
           }
-        }));
-      }
+        } catch (assessmentError) {
+          console.warn(`Failed to enrich draft assessment name for ${assessmentId}:`, assessmentError);
+        }
+      }));
 
       const submissions = dedupedDrafts.map((submission) => ({
         ...submission,
@@ -261,27 +295,31 @@ export function useOfflineDraftSubmissions() {
       setError(err instanceof Error ? err : new Error('Failed to fetch draft submissions'));
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   }, [authLoading, currentOrganizationId]);
+
+  // Debounced fetch wrapper to prevent rapid successive calls
+  const debouncedFetch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchData(), 300);
+  }, [fetchData]);
 
   useEffect(() => {
     fetchData();
 
-    // Re-fetch when sync events fire (online mutations, queue flushes, etc.)
     const onDataSync = (e: Event) => {
       const { entityType } = (e as CustomEvent<{ entityType: string }>).detail || {};
       if (!entityType || entityType === 'submission' || entityType === 'draft_submission' || entityType === 'assessment') {
-        fetchData();
+        debouncedFetch();
       }
     };
 
-    // Re-fetch when coming back online so stale data is refreshed immediately
     const onOnline = () => fetchData();
 
-    // Re-fetch when the tab becomes visible (helps with cross-tab staleness)
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchData();
+        debouncedFetch();
       }
     };
 
@@ -293,8 +331,9 @@ export function useOfflineDraftSubmissions() {
       window.removeEventListener('datasync', onDataSync);
       window.removeEventListener('online', onOnline);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [fetchData]);
+  }, [fetchData, debouncedFetch]);
 
   return { data, isLoading, error, refetch: fetchData };
 }

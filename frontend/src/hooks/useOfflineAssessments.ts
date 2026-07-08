@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { offlineDB } from "../services/indexeddb";
 import { apiInterceptor } from "../services/apiInterceptor";
 import {
@@ -24,21 +24,31 @@ export function useOfflineAssessments() {
   const [data, setData] = useState<{ assessments: Assessment[] }>({ assessments: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const fetchingRef = useRef(false);
 
   const fetchData = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
     try {
       setIsLoading(true);
       setError(null);
 
+      // Offline fast path: read directly from IndexedDB
+      if (!navigator.onLine) {
+        const allAssessments = await offlineDB.getAllAssessments();
+        const transformedAssessments = allAssessments.map(assessment => ({
+          ...assessment,
+          categories: assessment.categories?.map(cat => cat.category_catalog_id) || [],
+        }));
+        setData({ assessments: transformedAssessments });
+        return;
+      }
+
       const result = await apiInterceptor.interceptGet(
         () => AssessmentsService.getAssessments(),
         async () => {
-          // For offline fallback, get all assessments and filter by organization
           const allAssessments = await offlineDB.getAllAssessments();
-
-          // For now, return all assessments and let the component filter them
-          // This avoids the React Hook issue
-          // Transform OfflineAssessment back to Assessment for API compatibility
           const transformedAssessments = allAssessments.map(assessment => ({
             ...assessment,
             categories: assessment.categories?.map(cat => cat.category_catalog_id) || [],
@@ -53,6 +63,7 @@ export function useOfflineAssessments() {
       setError(err instanceof Error ? err : new Error('Failed to fetch assessments'));
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   }, []);
 
@@ -68,27 +79,22 @@ export function useOfflineDraftAssessments() {
   const [data, setData] = useState<{ assessments: OfflineAssessment[] }>({ assessments: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const fetchingRef = useRef(false);
 
   const fetchData = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
     try {
       setIsLoading(true);
       setError(null);
 
-      console.log('🔍 useOfflineDraftAssessments: Starting fetch...');
-
       const result = await apiInterceptor.interceptGet(
-        () => {
-          console.log('🔍 useOfflineDraftAssessments: Making API call with status=draft');
-          return AssessmentsService.getAssessments({
-            status: 'draft',
-          });
-        },
+        () => AssessmentsService.getAssessments({
+          status: 'draft',
+        }),
         async () => {
-          console.log('🔍 useOfflineDraftAssessments: Using offline fallback');
-          // For offline fallback, get only draft assessments using backend filtering
           const draftAssessments = await offlineDB.getAssessmentsByStatus('draft');
-          console.log('🔍 useOfflineDraftAssessments: Raw assessments from IndexedDB:', draftAssessments);
-          // Transform OfflineAssessment back to Assessment for API compatibility
           const transformedAssessments = draftAssessments.map(assessment => ({
             ...assessment,
             categories: assessment.categories?.map(cat => cat.category_catalog_id) || [],
@@ -97,8 +103,6 @@ export function useOfflineDraftAssessments() {
         },
         'draft_assessments'
       );
-
-      console.log('🔍 useOfflineDraftAssessments: API response received:', result);
 
       // Fetch submissions to filter out assessments that have already been submitted
       const allSubmissions = await offlineDB.getAllSubmissions();
@@ -119,14 +123,12 @@ export function useOfflineDraftAssessments() {
         )
       };
 
-      console.log('🔍 useOfflineDraftAssessments: Final transformed result:', transformedResult);
-
       setData(transformedResult);
     } catch (err) {
-      console.error('❌ useOfflineDraftAssessments: Error:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch draft assessments'));
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   }, []);
 
@@ -134,22 +136,24 @@ export function useOfflineDraftAssessments() {
     fetchData();
   }, [fetchData]);
 
-  // Listen for cache invalidation events
+  // Listen for cache invalidation events (debounced via fetchingRef guard)
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const handleDataSync = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail.entityType === 'assessments' ||
         customEvent.detail.entityType === 'draft_assessments' ||
         customEvent.detail.entityType === 'submission' ||
         customEvent.detail.entityType === 'submissions') {
-        console.log('🔍 useOfflineDraftAssessments: Received datasync event, refetching...', customEvent.detail.entityType);
-        fetchData();
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchData(), 300);
       }
     };
 
     window.addEventListener('datasync', handleDataSync);
     return () => {
       window.removeEventListener('datasync', handleDataSync);
+      if (debounceTimer) clearTimeout(debounceTimer);
     };
   }, [fetchData]);
 

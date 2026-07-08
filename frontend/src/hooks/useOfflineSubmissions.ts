@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { offlineDB } from "../services/indexeddb";
 import { apiInterceptor } from "../services/apiInterceptor";
 import {
@@ -20,8 +20,12 @@ export function useOfflineSubmissions() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
+  const fetchingRef = useRef(false);
 
   const fetchSubmissions = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
     try {
       setIsLoading(true);
       setError(null);
@@ -172,6 +176,7 @@ export function useOfflineSubmissions() {
       setError(error);
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   }, [user?.organization]);
 
@@ -179,20 +184,22 @@ export function useOfflineSubmissions() {
     fetchSubmissions();
   }, [fetchSubmissions]);
 
-  // Listen for data sync events to refetch submissions
+  // Listen for data sync events to refetch submissions (debounced)
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const handleDataSync = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail.entityType === 'submissions' ||
         customEvent.detail.entityType === 'submission') {
-        console.log('🔍 useOfflineSubmissions: Received datasync event, refetching...', customEvent.detail.entityType);
-        fetchSubmissions();
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchSubmissions(), 300);
       }
     };
 
     window.addEventListener('datasync', handleDataSync);
     return () => {
       window.removeEventListener('datasync', handleDataSync);
+      if (debounceTimer) clearTimeout(debounceTimer);
     };
   }, [fetchSubmissions]);
 

@@ -10,15 +10,17 @@ export const useOfflineCategoryCatalogs = () => {
   return useQuery({
     queryKey: ["category-catalogs"],
     queryFn: async () => {
-      try {
-        // Trigger a background sync attempt, but keep IndexedDB as the source of truth
-        apiInterceptor.interceptGet(
-          () => CategoryCatalogService.getCategoryCatalog(),
-          async () => null,
-          'category_catalogs'
-        );
-      } catch (error) {
-        console.log("Could not sync category catalogs, using local data.", error);
+      // Only attempt server sync when online
+      if (navigator.onLine) {
+        try {
+          await apiInterceptor.interceptGet(
+            () => CategoryCatalogService.getCategoryCatalog(),
+            async () => null,
+            'category_catalogs'
+          );
+        } catch {
+          // Ignore sync errors, use local data
+        }
       }
 
       const categories = await offlineDB.getAllCategoryCatalogs();

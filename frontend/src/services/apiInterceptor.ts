@@ -152,7 +152,13 @@ export class ApiInterceptor {
     entityType: string,
     entityId?: string
   ): Promise<T> {
-    console.log(`🔍 interceptGet: Starting for entityType: ${entityType}, isOnline: ${this._isOnline}`);
+    // Offline fast path: skip all caching overhead, go straight to local data
+    if (!this._isOnline) {
+      const localData = await localGet();
+      if (localData) return localData;
+      throw new Error(`No local data available for ${entityType} (offline)`);
+    }
+
     const cacheKey = `${entityType}:${entityId || "list"}`;
     const recent = this.recentGets.get(cacheKey);
     if (recent && Date.now() - recent.timestamp < this.recentGetTtlMs) {
