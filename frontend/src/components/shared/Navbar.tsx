@@ -26,6 +26,7 @@ const languages = [
 
 /** Compact badge shown in the Navbar to indicate offline / syncing / pending state */
 const OfflineStatusBadge: React.FC = () => {
+  const { t } = useTranslation();
   const { isOnline } = useOfflineSyncStatus();
 
   if (!isOnline) {
