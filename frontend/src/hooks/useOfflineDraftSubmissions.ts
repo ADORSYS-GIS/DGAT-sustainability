@@ -120,7 +120,7 @@ export function useOfflineDraftSubmissions() {
         }
 
         const visibleDrafts = localDrafts
-          .filter((submission) => ['draft', 'pending_review'].includes(submission.review_status))
+          .filter((submission) => ['draft', 'pending_review', 'under_review'].includes(submission.review_status))
           .filter((submission) => {
             if (!currentOrganizationId) return true;
             return getSubmissionOrganizationId(submission) === currentOrganizationId;
@@ -211,7 +211,7 @@ export function useOfflineDraftSubmissions() {
 
       // Only show drafts that haven't been submitted for final review yet
       const visibleDrafts = localDrafts
-        .filter((submission) => ['draft', 'pending_review'].includes(submission.review_status))
+        .filter((submission) => ['draft', 'pending_review', 'under_review'].includes(submission.review_status))
         .filter((submission) => {
           if (!currentOrganizationId) {
             return true;
