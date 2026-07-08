@@ -104,9 +104,15 @@ export function useOfflineDraftAssessments() {
         'draft_assessments'
       );
 
-      // Fetch submissions to filter out assessments that have already been submitted
-      const allSubmissions = await offlineDB.getAllSubmissions();
-      const submittedAssessmentIds = new Set(allSubmissions.map(s => s.assessment_id));
+      // Fetch submissions AND draft submissions to filter out assessments that have already been submitted
+      const [allSubmissions, allDraftSubmissions] = await Promise.all([
+        offlineDB.getAllSubmissions(),
+        offlineDB.getAllDraftSubmissions(),
+      ]);
+      const submittedAssessmentIds = new Set([
+        ...allSubmissions.map(s => s.assessment_id),
+        ...allDraftSubmissions.map(s => s.assessment_id),
+      ]);
 
       // Transform API response to match OfflineAssessment type and filter for draft only
       const categories = await offlineDB.getAllCategoryCatalogs();
@@ -144,7 +150,9 @@ export function useOfflineDraftAssessments() {
       if (customEvent.detail.entityType === 'assessments' ||
         customEvent.detail.entityType === 'draft_assessments' ||
         customEvent.detail.entityType === 'submission' ||
-        customEvent.detail.entityType === 'submissions') {
+        customEvent.detail.entityType === 'submissions' ||
+        customEvent.detail.entityType === 'draft_submission' ||
+        customEvent.detail.entityType === 'draft_submissions') {
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => fetchData(), 300);
       }
@@ -628,6 +636,11 @@ export function useOfflineAssessmentsMutation() {
         realDraftSubmission.organization_id = currentOrganizationId;
         await offlineDB.saveDraftSubmission(realDraftSubmission);
       }
+
+      // Dispatch datasync so draft assessment list and draft submissions list refresh
+      window.dispatchEvent(new CustomEvent('datasync', {
+        detail: { entityType: 'draft_submission', operation: 'submit' }
+      }));
 
       // Check if we're online to determine success behavior
       const isOnline = navigator.onLine;
