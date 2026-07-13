@@ -165,6 +165,15 @@ export const Welcome: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* German Coop Image */}
+          <div className="mt-16 flex justify-center animate-fade-in">
+            <img
+              src="/german_coop.jpeg"
+              alt="German Cooperative"
+              className="rounded-2xl shadow-lg max-w-2xl w-full object-cover"
+            />
+          </div>
         </div>
       </div>
     </div>
