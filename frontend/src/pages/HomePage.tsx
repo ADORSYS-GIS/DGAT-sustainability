@@ -166,21 +166,18 @@ export const Welcome: React.FC = () => {
             ))}
           </div>
 
-          {/* Who Supports Us Section */}
-          <div className="mt-20 text-center animate-fade-in">
-            <h3 className="text-2xl font-bold text-dgrv-blue mb-2">
-              {t('homePage.supporters.title', 'Who Supports Us')}
-            </h3>
-            <p className="text-gray-500 mb-10 max-w-xl mx-auto">
-              {t('homePage.supporters.description', 'We are proud to work alongside organizations committed to cooperative sustainability.')}
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-10">
-              <img
-                src="/german_coop.jpeg"
-                alt="German Cooperative"
-                className="h-28 w-auto object-contain rounded-xl shadow-md opacity-90 hover:opacity-100 transition"
-              />
-            </div>
+          {/* Supporters Section */}
+          <div className="mt-20 flex flex-wrap justify-center items-center gap-10 animate-fade-in">
+            <img
+              src="/german_coop-removebg-preview.png"
+              alt="German Cooperative"
+              className="h-28 w-auto object-contain opacity-90 hover:opacity-100 transition"
+            />
+            <img
+              src="/dgrv-logo.png"
+              alt="DGRV"
+              className="h-28 w-auto object-contain opacity-90 hover:opacity-100 transition"
+            />
           </div>
         </div>
       </div>
