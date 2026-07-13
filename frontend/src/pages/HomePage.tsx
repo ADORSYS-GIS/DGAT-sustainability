@@ -168,16 +168,20 @@ export const Welcome: React.FC = () => {
 
           {/* Supporters Section */}
           <div className="mt-20 flex flex-wrap justify-center items-center gap-10 animate-fade-in">
-            <img
-              src="/german_coop-removebg-preview.png"
-              alt="German Cooperative"
-              className="h-28 w-auto object-contain opacity-90 hover:opacity-100 transition"
-            />
-            <img
-              src="/dgrv-logo.png"
-              alt="DGRV"
-              className="h-28 w-auto object-contain opacity-90 hover:opacity-100 transition"
-            />
+            <div className="w-36 h-20 flex items-center justify-center">
+              <img
+                src="/german_coop-removebg-preview.png"
+                alt="German Cooperative"
+                className="max-h-full max-w-full object-contain opacity-90 hover:opacity-100 transition"
+              />
+            </div>
+            <div className="w-36 h-20 flex items-center justify-center">
+              <img
+                src="/dgrv-logo.png"
+                alt="DGRV"
+                className="max-h-full max-w-full object-contain opacity-90 hover:opacity-100 transition"
+              />
+            </div>
           </div>
         </div>
       </div>
