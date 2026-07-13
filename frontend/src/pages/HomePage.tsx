@@ -166,13 +166,18 @@ export const Welcome: React.FC = () => {
             ))}
           </div>
 
-          {/* German Coop Image */}
-          <div className="mt-16 flex justify-center animate-fade-in">
-            <img
-              src="/german_coop.jpeg"
-              alt="German Cooperative"
-              className="rounded-2xl shadow-lg max-w-2xl w-full object-cover"
-            />
+          {/* Partners Section */}
+          <div className="mt-16 text-center animate-fade-in">
+            <p className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-6">
+              {t('homePage.partners.title', 'Our Partners')}
+            </p>
+            <div className="flex flex-wrap justify-center items-center gap-8">
+              <img
+                src="/german_coop.jpeg"
+                alt="German Cooperative"
+                className="h-16 w-auto object-contain rounded-lg opacity-80 hover:opacity-100 transition"
+              />
+            </div>
           </div>
         </div>
       </div>
