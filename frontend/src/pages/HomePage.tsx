@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { FeatureCard } from "@/components/shared/FeatureCard";
 import { Button } from "@/components/ui/button";
 import { Leaf, CheckSquare, Users, Globe, Shield } from "lucide-react";
@@ -17,7 +18,7 @@ export const Welcome: React.FC = () => {
 
   const targetPath = isDrgvAdmin
     ? "/admin/dashboard"
-    : isOrgAdmin || (isOrgUser && user?.organizations && Object.keys(user.organizations).length > 0)
+    : (isOrgAdmin || (isOrgUser && user?.organizations && Object.keys(user.organizations).length > 0))
       ? "/dashboard"
       : null;
 
@@ -27,14 +28,14 @@ export const Welcome: React.FC = () => {
 
   const features = [
     {
-      title: t("homePage.features.items.0.title"),
-      description: t("homePage.features.items.0.description"),
+      title: t('homePage.features.items.0.title'),
+      description: t('homePage.features.items.0.description'),
       icon: Leaf,
       color: "green" as const,
     },
     {
-      title: t("homePage.features.items.1.title"),
-      description: t("homePage.features.items.1.description"),
+      title: t('homePage.features.items.1.title'),
+      description: t('homePage.features.items.1.description'),
       icon: CheckSquare,
       color: "blue" as const,
     },
@@ -42,154 +43,179 @@ export const Welcome: React.FC = () => {
 
   const benefits = [
     {
-      title: t("homePage.benefits.items.0.title"),
-      description: t("homePage.benefits.items.0.description"),
+      title: t('homePage.benefits.items.0.title'),
+      description: t('homePage.benefits.items.0.description'),
       icon: Users,
     },
     {
-      title: t("homePage.benefits.items.1.title"),
-      description: t("homePage.benefits.items.1.description"),
+      title: t('homePage.benefits.items.1.title'),
+      description: t('homePage.benefits.items.1.description'),
       icon: Globe,
     },
     {
-      title: t("homePage.benefits.items.2.title"),
-      description: t("homePage.benefits.items.2.description"),
+      title: t('homePage.benefits.items.2.title'),
+      description: t('homePage.benefits.items.2.description'),
       icon: Shield,
     },
   ];
 
   const handleStartAssessment = async () => {
+    // Check if user is authenticated first
     if (!isAuthenticated) {
       try {
         await login();
-      } catch {
-        toast.error(t("staticText.home.authRedirectFailed"));
+      } catch (error) {
+        console.error("Failed to redirect to authentication:", error);
+        toast.error(
+          t("staticText.home.authRedirectFailed"),
+        );
       }
       return;
     }
+
+    // Check if user has organizations
     if (user?.organizations && Object.keys(user.organizations).length > 0) {
       navigate("/assessment/sustainability");
     } else {
-      toast.error(t("staticText.home.organizationRequiredStart"));
+      toast.error(
+        t("staticText.home.organizationRequiredStart"),
+      );
+    }
+  };
+
+  const handleViewAssessments = async () => {
+    // Check if user is authenticated first
+    if (!isAuthenticated) {
+      try {
+        await login();
+      } catch (error) {
+        console.error("Failed to redirect to authentication:", error);
+        toast.error(
+          t("staticText.home.authRedirectFailed"),
+        );
+      }
+      return;
+    }
+
+    // Check if user has organizations
+    if (user?.organizations && Object.keys(user.organizations).length > 0) {
+      navigate("/assessments");
+    } else {
+      toast.error(
+        t("staticText.home.organizationRequiredView"),
+      );
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-
-      {/* ── Hero ── */}
-      <section className="bg-gradient-to-br from-dgrv-blue to-blue-700 text-white">
-        <div className="max-w-5xl mx-auto px-6 py-24 text-center animate-fade-in">
-          <div className="w-20 h-20 mx-auto mb-6 bg-white/10 rounded-2xl flex items-center justify-center">
-            <img
-              src="/coopsustainability-removebg-preview.png"
-              alt={t("staticText.home.logoAlt")}
-              className="w-14 h-14 object-contain brightness-0 invert"
-            />
+    <div className="min-h-screen bg-gradient-to-b from-white to-dgrv-light-blue">
+      {/* Hero Section */}
+      <div className="pt--6 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Hero Content */}
+          <div className="text-center mb-16 animate-fade-in">
+            <div className="mb-8">
+              <div className="w-32 h-32 flex items-center justify-center mx-auto mb-6">
+                <img
+                  src="/coopsustainability-removebg-preview.png"
+                  alt={t("staticText.home.logoAlt")}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <h1 className="text-4xl md:text-6xl font-bold text-dgrv-blue mb-4 animate-scale-in">
+                {t('homePage.hero.title')}
+              </h1>
+              <h2 className="text-2xl md:text-3xl font-semibold text-gray-700 mb-6">
+                {t('homePage.hero.subtitle')}
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
+                {t('homePage.hero.description')}
+              </p>
+              <Button
+                className="mt-4 px-8 py-3 text-lg font-semibold bg-dgrv-green text-white rounded shadow hover:bg-dgrv-blue transition"
+                onClick={handleStartAssessment}
+              >
+                {t('homePage.hero.cta')}
+              </Button>
+            </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 animate-scale-in">
-            {t("homePage.hero.title")}
-          </h1>
-          <p className="text-lg md:text-xl text-blue-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-            {t("homePage.hero.description")}
-          </p>
-          <Button
-            onClick={handleStartAssessment}
-            className="bg-dgrv-green hover:bg-emerald-500 text-white font-semibold px-10 py-3 text-base rounded-full shadow-lg transition-all duration-200 hover:shadow-xl"
-          >
-            {t("homePage.hero.cta")}
-          </Button>
-        </div>
-      </section>
 
-      {/* ── Key Features ── */}
-      <section className="py-20 px-6 bg-dgrv-light-blue">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="text-xs font-bold uppercase tracking-widest text-dgrv-green">
-              {t("homePage.features.title", "Features")}
-            </span>
-            <h2 className="mt-2 text-3xl font-bold text-dgrv-blue">
-              {t("homePage.features.heading", "Everything you need")}
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            {features.map((feature, i) => (
-              <div key={feature.title} className="animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
+          {/* Features Grid */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            {features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 200}ms` }}
+              >
                 <FeatureCard {...feature} />
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* ── Why Choose This Tool ── */}
-      <section className="py-20 px-6 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="text-xs font-bold uppercase tracking-widest text-dgrv-green">
-              {t("homePage.benefits.label", "Why Us")}
-            </span>
-            <h2 className="mt-2 text-3xl font-bold text-dgrv-blue">
-              {t("homePage.benefits.title", "Why Choose This Tool")}
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {benefits.map((benefit, i) => (
-              <div key={benefit.title} className="animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
+          {/* Benefits Section */}
+          <div className="grid md:grid-cols-3 gap-8">
+            {benefits.map((benefit, index) => (
+              <div
+                key={benefit.title}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 200}ms` }}
+              >
                 <FeatureCard {...benefit} />
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* ── Supported By ── */}
-      <section className="py-20 px-6 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-5xl mx-auto text-center">
-          <span className="text-xs font-bold uppercase tracking-widest text-dgrv-green">
-            {t("homePage.partners.label", "Partners")}
-          </span>
-          <h2 className="mt-2 text-3xl font-bold text-dgrv-blue mb-4">
-            {t("homePage.partners.title", "Supported By")}
-          </h2>
-          <p className="text-gray-500 mb-12 max-w-xl mx-auto">
-            {t("homePage.partners.subtitle", "Proudly backed by trusted cooperative organisations")}
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-12">
-            <div className="flex flex-col items-center gap-3">
+          {/* Who Supports Us Section */}
+          <div className="mt-20 text-center animate-fade-in">
+            <h3 className="text-2xl font-bold text-dgrv-blue mb-2">
+              {t('homePage.supporters.title', 'Who Supports Us')}
+            </h3>
+            <p className="text-gray-500 mb-10 max-w-xl mx-auto">
+              {t('homePage.supporters.description', 'We are proud to work alongside organizations committed to cooperative sustainability.')}
+            </p>
+            <div className="flex flex-wrap justify-center items-center gap-10">
               <img
                 src="/german_coop.jpeg"
                 alt="German Cooperative"
-                className="h-24 w-auto object-contain rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200"
+                className="h-28 w-auto object-contain rounded-xl shadow-md opacity-90 hover:opacity-100 transition"
               />
-              <span className="text-sm text-gray-500 font-medium">German Cooperative</span>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── Footer ── */}
-      <footer className="mt-auto bg-dgrv-blue text-white">
-        <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+      {/* Footer */}
+      <footer className="bg-dgrv-blue text-white mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-3">
               <img
                 src="/coopsustainability-removebg-preview.png"
                 alt={t("staticText.home.logoAlt")}
-                className="w-5 h-5 object-contain brightness-0 invert"
+                className="h-10 w-auto brightness-0 invert"
               />
+              <span className="text-lg font-semibold">
+                {t('homePage.hero.title', 'CoopSustainability')}
+              </span>
             </div>
-            <span className="font-semibold text-sm tracking-wide">
-              {t("homePage.hero.title", "CoopSustainability")}
-            </span>
+            <p className="text-sm text-blue-200 text-center">
+              {t('homePage.footer.rights', '© 2025 CoopSustainability. All rights reserved.')}
+            </p>
+            <div className="flex gap-6 text-sm text-blue-200">
+              <a href="#" className="hover:text-white transition">
+                {t('homePage.footer.privacy', 'Privacy Policy')}
+              </a>
+              <a href="#" className="hover:text-white transition">
+                {t('homePage.footer.imprint', 'Imprint')}
+              </a>
+              <a href="#" className="hover:text-white transition">
+                {t('homePage.footer.contact', 'Contact')}
+              </a>
+            </div>
           </div>
-          <p className="text-sm text-blue-200">
-            © {new Date().getFullYear()} {t("homePage.footer.rights", "All rights reserved.")}
-          </p>
         </div>
       </footer>
-
     </div>
   );
 };
