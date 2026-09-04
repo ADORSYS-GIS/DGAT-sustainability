@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: ./infrastructure/Dockerfile.backend
-    image: ghcr.io/adorsys-gis/dgat-sustainability/backend:latest
+    image: ghcr.io/dgrv-eswatini-dev/sustainability-backend:latest
     container_name: sustainability-backend
     entrypoint: ["/app/sustainability-tool"]
     env_file: .env
@@ -36,7 +36,7 @@ services:
     build:
       context: .
       dockerfile: ./infrastructure/Dockerfile.backend
-    image: ghcr.io/adorsys-gis/dgat-sustainability/backend:latest
+    image: ghcr.io/dgrv-eswatini-dev/sustainability-backend:latest
     container_name: sustainability-migrate
     entrypoint: ["/app/db-migrator"]
     env_file: .env
@@ -180,7 +180,7 @@ services:
         VITE_KEYCLOAK_HOME_URL: "${VITE_KEYCLOAK_HOME_URL:-https://localhost}"
         VITE_KEYCLOAK_REDIRECT_URI: "${VITE_KEYCLOAK_REDIRECT_URI:-https://localhost/callback}"
         VITE_ORGANIZATION_REDIRECT_URL: "${VITE_ORGANIZATION_REDIRECT_URL:-https://localhost}"
-    image: ghcr.io/adorsys-gis/dgat-sustainability/frontend:latest
+    image: ghcr.io/dgrv-eswatini-dev/sustainability-frontend:latest
     container_name: sustainability-frontend
     env_file: .env
     depends_on:
