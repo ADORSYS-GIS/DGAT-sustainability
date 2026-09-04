@@ -7,6 +7,10 @@ import { initializeAuth, getAccessToken, setupTokenRefresh } from "@/services/sh
 import './i18n';
 import { AuthProvider } from "./contexts/AuthContext";
 
+// Point the generated API client at the correct backend for this environment.
+// Defaults to production; override with VITE_API_BASE_URL (e.g. dev builds).
+OpenAPI.BASE = import.meta.env.VITE_API_BASE_URL || "https://sustainability.decidel.app/api";
+
 // Register OpenAPI request middleware to add Bearer token
 OpenAPI.interceptors.request.use(async (request) => {
   try {

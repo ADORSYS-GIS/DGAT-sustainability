@@ -49,5 +49,16 @@ export function useOfflineUsers(organizationId?: string) {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    const handleDataSync = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.entityType === 'users' || customEvent.detail?.entityType === 'assessments') {
+        fetchData();
+      }
+    };
+    window.addEventListener('datasync', handleDataSync);
+    return () => window.removeEventListener('datasync', handleDataSync);
+  }, [fetchData]);
+
   return { data, isLoading, error, refetch: fetchData };
 }

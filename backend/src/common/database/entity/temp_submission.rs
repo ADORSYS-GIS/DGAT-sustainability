@@ -13,6 +13,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub temp_id: Uuid, // Also FK to assessments
     pub org_id: String,             // Keycloak organization id
+    pub submitted_by: Option<String>, // Keycloak user id of the submitter
     pub content: Value,              // JSON blob with all answers
     pub submitted_at: DateTime<Utc>, // When the submission was created
     pub status: SubmissionStatus,    // Review status (under_review, reviewed, etc.)
@@ -64,11 +65,13 @@ impl TempSubmissionService {
         &self,
         assessment_id: Uuid,
         org_id: String,
+        submitted_by: Option<String>,
         content: Value,
     ) -> Result<Model, DbErr> {
         let submission = ActiveModel {
             temp_id: Set(assessment_id),
             org_id: Set(org_id),
+            submitted_by: Set(submitted_by),
             content: Set(content),
             submitted_at: Set(Utc::now()),
             status: Set(SubmissionStatus::UnderReview),
@@ -236,6 +239,7 @@ mod tests {
         let mock_temp_submission = Model {
             temp_id: assessment_id,
             org_id: "test_org".to_string(),
+            submitted_by: None,
             content: json!({"question1": "answer1"}),
             submitted_at: chrono::Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -280,6 +284,7 @@ mod tests {
             .create_submission(
                 assessment_id,
                 "test_user".to_string(),
+                Some("test_user".to_string()),
                 json!({"question1": "answer1"}),
                 Some("Test Assessment".to_string()),
             )
@@ -303,6 +308,7 @@ mod tests {
         let mock_submission = Model {
             temp_id: assessment_id,
             org_id: "test_org".to_string(),
+            submitted_by: None,
             content: json!({"question1": "answer1", "question2": "answer2"}),
             submitted_at: Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -329,6 +335,7 @@ mod tests {
             .create_temp_submission(
                 assessment_id,
                 "test_org".to_string(),
+                Some("test_user".to_string()),
                 json!({"question1": "answer1", "question2": "answer2"}),
             )
             .await?;

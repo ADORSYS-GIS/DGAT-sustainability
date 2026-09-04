@@ -174,13 +174,22 @@ pub async fn list_user_reports(
     let org_id = claims.get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Get all submissions for the organization
-    let org_submissions = app_state
-        .database
-        .assessments_submission
-        .get_submissions_by_org(&org_id)
-        .await
-        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}")))?;
+    // Org_User: only reports for their own submissions. org_admin/application_admin: all in org.
+    let org_submissions = if !claims.is_organization_admin() && !claims.is_application_admin() {
+        app_state
+            .database
+            .assessments_submission
+            .get_submissions_by_user(&org_id, &claims.sub)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch user submissions: {e}")))?
+    } else {
+        app_state
+            .database
+            .assessments_submission
+            .get_submissions_by_org(&org_id)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}")))?
+    };
 
     // Collect all reports for organization's submissions
     let mut all_reports = Vec::new();

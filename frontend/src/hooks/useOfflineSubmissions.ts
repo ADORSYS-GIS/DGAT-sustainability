@@ -95,6 +95,7 @@ export function useOfflineSubmissions() {
             return {
               ...s,
               organization_id: organizationId || (user as any)?.organization,
+              user_id: user?.sub,
               assessment_name:
                 content?.assessment_name ||
                 assessmentNameMap.get(s.assessment_id) ||
@@ -119,7 +120,14 @@ export function useOfflineSubmissions() {
             allAssessments.map((a) => [a.assessment_id, a.name])
           );
 
-          const submissionsWithNames = offlineSubmissions.map((s) => {
+          // Org_User: only see their own submissions offline.
+          const isOrgAdmin = [...(user?.roles || []), ...(user?.realm_access?.roles || [])]
+            .some((r) => r.toLowerCase() === "org_admin");
+          const scopedSubmissions = isOrgAdmin
+            ? offlineSubmissions
+            : offlineSubmissions.filter((s) => !s.user_id || s.user_id === user?.sub);
+
+          const submissionsWithNames = scopedSubmissions.map((s) => {
             const content = s.content as { assessment_name?: string };
             const submissionWithName = s as Submission & { assessment_name?: string };
             return {

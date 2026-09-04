@@ -1391,12 +1391,19 @@ pub async fn get_org_admin_members(
         tracing::error!("Failed to get org members: {}", e);
         ApiError::InternalServerError("Failed to get org members".to_string())
     })?;
-    // For each member, fetch categories from user attributes
+    // For each member, fetch categories and assigned assessments
     let mut members_with_categories = Vec::new();
     for member in members {
         let categories = app_state.keycloak_service.get_user_categories_by_id(&token, &member.id).await.unwrap_or_default();
+        let assigned_assessments = app_state
+            .database
+            .assessment_user_assignments
+            .get_assigned_assessment_ids_for_user(&org_id, &member.id)
+            .await
+            .unwrap_or_default();
         let mut member_json = serde_json::to_value(&member).unwrap_or_default();
         member_json["categories"] = serde_json::json!(categories);
+        member_json["assigned_assessment_ids"] = serde_json::json!(assigned_assessments);
         members_with_categories.push(member_json);
     }
     Ok((StatusCode::OK, Json(members_with_categories)))
@@ -1481,6 +1488,14 @@ pub async fn remove_org_admin_member(
     {
         tracing::warn!(member_id = %member_id, org_id = %org_id, error = %e, "Failed to remove category assignments from database during user removal");
     }
+
+    // Clean up assessment assignments from our database
+    if let Err(e) = app_state.database.assessment_user_assignments
+        .remove_user_assignments(&org_id, &member_id)
+        .await
+    {
+        tracing::warn!(member_id = %member_id, org_id = %org_id, error = %e, "Failed to remove assessment assignments from database during user removal");
+    }
     
     Ok(StatusCode::NO_CONTENT)
 }
@@ -1488,6 +1503,45 @@ pub async fn remove_org_admin_member(
 #[derive(serde::Deserialize, utoipa::ToSchema)]
 pub struct OrgAdminMemberCategoryUpdateRequest {
     pub categories: Vec<String>,
+}
+
+#[derive(serde::Deserialize, utoipa::ToSchema)]
+pub struct OrgAdminMemberAssessmentUpdateRequest {
+    pub assessment_ids: Vec<uuid::Uuid>,
+}
+
+// PUT /api/organizations/:org_id/org-admin/members/:member_id/assessments
+// Assigns assessments to a user from the user catalog (user-centric assignment).
+#[utoipa::path(
+    put,
+    path = "/organizations/{org_id}/org-admin/members/{member_id}/assessments",
+    tag = "Organization",
+    params(("org_id", description = "Organization ID"), ("member_id", description = "Member ID")),
+    request_body = OrgAdminMemberAssessmentUpdateRequest,
+    responses((status = 204, description = "Updated"))
+)]
+pub async fn update_org_admin_member_assessments(
+    Extension(claims): Extension<Claims>,
+    State(app_state): State<AppState>,
+    Path((org_id, member_id)): Path<(String, String)>,
+    Json(request): Json<OrgAdminMemberAssessmentUpdateRequest>,
+) -> Result<StatusCode, ApiError> {
+    if !claims.is_organization_admin() || (!claims.is_application_admin() && !is_member_of_org_by_id(&claims, &org_id)) {
+        return Err(ApiError::BadRequest("Insufficient permissions".to_string()));
+    }
+
+    app_state
+        .database
+        .assessment_user_assignments
+        .set_user_assessments(&org_id, &member_id, &request.assessment_ids)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to assign assessments to user: {}", e);
+            ApiError::InternalServerError("Failed to assign assessments to user".to_string())
+        })?;
+
+    tracing::info!(org_id = %org_id, member_id = %member_id, assessments = ?request.assessment_ids, "Successfully assigned assessments to user");
+    Ok(StatusCode::NO_CONTENT)
 }
 
 // PUT /api/organizations/:org_id/org-admin/members/:member_id/categories

@@ -19,6 +19,7 @@ import { useOfflineUsers } from "@/hooks/useOfflineUsers";
 import { useOrganizationInvitations, useResendOrgInvitation, useDeleteOrgUser, type PendingInvitation } from "@/hooks/useOrganizationInvitations";
 import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganizationCategories";
 import { useOfflineCategoryCatalogs } from "@/hooks/useOfflineCategoryCatalogs";
+import { useOfflineDraftAssessments } from "@/hooks/useOfflineAssessments";
 import type {
   OrganizationMember,
   OrgAdminMemberRequest,
@@ -135,10 +136,14 @@ function useUserMutations() {
       if (existingUser) {
         await offlineDB.saveUser({
           ...existingUser,
+          categories: data.requestBody.categories,
           sync_status: 'synced',
           updated_at: new Date().toISOString()
         });
       }
+
+      apiInterceptor.invalidateRecentGet('users', data.id);
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'users' } }));
 
       toast.success(t("staticText.users.updateSuccess"));
       return { success: true };
@@ -303,6 +308,11 @@ export const OrgUserManageUsers: React.FC = () => {
   const [showPendingDeleteConfirmation, setShowPendingDeleteConfirmation] = useState(false);
   const [pendingUserToDelete, setPendingUserToDelete] = useState<PendingInvitation | null>(null);
 
+  // Assign-assessment dialog state
+  const [assigningUser, setAssigningUser] = useState<OrganizationMember | null>(null);
+  const [selectedAssignedAssessments, setSelectedAssignedAssessments] = useState<string[]>([]);
+  const [isAssigningAssessments, setIsAssigningAssessments] = useState(false);
+
   // Cleanup function to remove any stuck temporary users
   const cleanupTemporaryUsers = useCallback(async () => {
     try {
@@ -340,6 +350,8 @@ export const OrgUserManageUsers: React.FC = () => {
 
   const { resendInvitation, isPending: isResending } = useResendOrgInvitation(orgId);
   const { deleteUser: deletePendingUser, isPending: isDeletingUser } = useDeleteOrgUser(orgId);
+
+  const { data: draftAssessments } = useOfflineDraftAssessments();
 
   const [resendingUserId, setResendingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -431,6 +443,48 @@ export const OrgUserManageUsers: React.FC = () => {
       categories: user.categories || [],
     });
     setShowAddDialog(true);
+  };
+
+  const openAssignAssessments = (user: OrganizationMember) => {
+    const assigned = (user as OrganizationMember & { assigned_assessment_ids?: string[] }).assigned_assessment_ids || [];
+    setAssigningUser(user);
+    setSelectedAssignedAssessments(assigned);
+  };
+
+  const saveAssignedAssessments = async () => {
+    if (!assigningUser || !orgId) return;
+    setIsAssigningAssessments(true);
+    try {
+      const token = (await import("@/services/shared/keycloakConfig")).keycloak.token;
+      await apiInterceptor.interceptMutation(
+        () => fetch(`/api/organizations/${orgId}/org-admin/members/${assigningUser.id}/assessments`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ assessment_ids: selectedAssignedAssessments }),
+        }).then(async (res) => {
+          if (!res.ok) throw new Error(`Failed to assign assessments: ${res.status}`);
+          return { success: true };
+        }),
+        async () => ({ success: true }),
+        { assessment_ids: selectedAssignedAssessments },
+        'assessments',
+        'update'
+      );
+      apiInterceptor.invalidateRecentGet('users', orgId);
+      apiInterceptor.invalidateRecentGet('assessments');
+      apiInterceptor.invalidateRecentGet('draft_assessments');
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'users' } }));
+      toast.success(t('manageUsers.assessmentsAssigned'));
+      setAssigningUser(null);
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to assign assessments');
+    } finally {
+      setIsAssigningAssessments(false);
+    }
   };
 
   const handleDelete = (user: OrganizationMember) => {
@@ -732,8 +786,31 @@ export const OrgUserManageUsers: React.FC = () => {
                             {categoryIdToNameMap.get(catId) || catId}
                           </Badge>
                         ))}
+                      {(user as OrganizationMember & { assigned_assessment_ids?: string[] }).assigned_assessment_ids &&
+                        (user as OrganizationMember & { assigned_assessment_ids?: string[] }).assigned_assessment_ids!.length > 0 &&
+                        (user as OrganizationMember & { assigned_assessment_ids?: string[] }).assigned_assessment_ids!.map((assessmentId: string) => {
+                          const assessment = (draftAssessments?.assessments || []).find(a => a.assessment_id === assessmentId);
+                          return (
+                            <Badge
+                              key={assessmentId}
+                              variant="outline"
+                              className="bg-amber-50 text-amber-700 border-amber-300"
+                            >
+                              {assessment?.name || t('assessment.untitled')}
+                            </Badge>
+                          );
+                        })}
                     </div>
                     <div className="flex space-x-2 pt-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openAssignAssessments(user)}
+                        className="flex-1"
+                      >
+                        <Users className="w-4 h-4 mr-1" />
+                        {t('manageUsers.assignAssessments')}
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -827,6 +904,58 @@ export const OrgUserManageUsers: React.FC = () => {
           variant="destructive"
           isLoading={isDeletingUser && deletingUserId === pendingUserToDelete?.user_id}
         />
+
+        {/* Assign Assessments Dialog */}
+        <Dialog open={!!assigningUser} onOpenChange={(open) => { if (!open) setAssigningUser(null); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {t('manageUsers.assignAssessmentsTo', { email: assigningUser?.email || '' })}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-2 space-y-2 max-h-64 overflow-y-auto border rounded-md p-2">
+              {(draftAssessments?.assessments || []).length > 0 ? (
+                draftAssessments!.assessments.map((assessment) => (
+                  <div key={assessment.assessment_id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`assign-${assessment.assessment_id}`}
+                      checked={selectedAssignedAssessments.includes(assessment.assessment_id)}
+                      onChange={(e) => {
+                        const id = assessment.assessment_id;
+                        if (e.target.checked) {
+                          setSelectedAssignedAssessments([...selectedAssignedAssessments, id]);
+                        } else {
+                          setSelectedAssignedAssessments(selectedAssignedAssessments.filter(a => a !== id));
+                        }
+                      }}
+                      className="h-4 w-4 text-dgrv-blue focus:ring-dgrv-blue border-gray-300 rounded"
+                    />
+                    <label htmlFor={`assign-${assessment.assessment_id}`} className="text-sm text-gray-700">
+                      {assessment.name}
+                    </label>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 text-center p-4">
+                  {t('manageUsers.noAssessmentsToAssign')}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setAssigningUser(null)} disabled={isAssigningAssessments}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                className="bg-dgrv-blue hover:bg-blue-700"
+                onClick={saveAssignedAssessments}
+                disabled={isAssigningAssessments}
+              >
+                {isAssigningAssessments ? t('common.saving') : t('common.save')}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

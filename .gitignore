@@ -37,3 +37,9 @@ dist-ssr
 /src/openapi-rq/
 kilo.json
 doc
+
+# Backup & package files
+.env.prod-backup
+*.backup
+*.bak
+*.deb

@@ -174,7 +174,13 @@
     "onlineWithPending": "You are back online. Pending changes will be synced shortly.",
     "pendingSubmissions": "Pending Submissions",
     "selectAssessmentToAnswer": "Select an assessment to answer",
-    "unknownCategory": "Unknown Category"
+    "unknownCategory": "Unknown Category",
+    "assignToUsers": "Assign to Users",
+    "assignToUsersHint": "Select the users who should be able to see and answer this assessment. Leave empty to assign to no one.",
+    "editAssignedUsers": "Edit Assigned Users",
+    "assignmentsUpdated": "Assigned users updated successfully",
+    "assignmentsUpdateFailed": "Failed to update assigned users",
+    "noUsersToAssign": "No users available to assign"
   },
   "submit": "Submit",
   "next": "Next",
@@ -201,7 +207,11 @@
   "manageUsers": {
     "processing": "Processing...",
     "awaitingEmailVerification": "Awaiting email verification",
-    "emailVerified": "Email verified"
+    "emailVerified": "Email verified",
+    "assignAssessments": "Assign Assessments",
+    "assignAssessmentsTo": "Assign assessments to {{email}}",
+    "noAssessmentsToAssign": "No draft assessments available to assign",
+    "assessmentsAssigned": "Assessments assigned successfully"
   },
   "actionPlan": "Action Plan",
   "viewAssessments": "View Assessments",

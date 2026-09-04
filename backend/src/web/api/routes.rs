@@ -18,6 +18,7 @@ use crate::web::api::handlers::{
         invite_existing_user, invite_user, remove_identity_provider, remove_member, 
         update_organization, add_org_admin_member, get_org_admin_members, remove_org_admin_member,
         update_org_admin_member_categories,
+        update_org_admin_member_assessments,
         get_org_admin_assigned_categories,
         get_invitations, delete_invitation, delete_org_user,
     },
@@ -167,6 +168,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/organizations/:org_id/org-admin/members", get(get_org_admin_members))
         .route("/api/organizations/:org_id/org-admin/members/:member_id", delete(remove_org_admin_member))
         .route("/api/organizations/:org_id/org-admin/members/:member_id/categories", put(update_org_admin_member_categories))
+        .route("/api/organizations/:org_id/org-admin/members/:member_id/assessments", put(update_org_admin_member_assessments))
         .route("/api/organizations/:org_id/org-admin/assigned-categories", get(get_org_admin_assigned_categories))
         // Org admin user invitation endpoints
         .route("/api/organizations/:id/invitations", get(get_invitations))

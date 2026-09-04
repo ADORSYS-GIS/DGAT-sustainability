@@ -235,7 +235,8 @@ export function useOfflineAssessment(assessmentId: string) {
             status: offlineAssessment.status || 'draft',
             created_at: offlineAssessment.created_at || new Date().toISOString(),
             updated_at: offlineAssessment.updated_at || new Date().toISOString(),
-            categories: filteredCategories.map(c => c.category_catalog_id) || []
+            categories: filteredCategories.map(c => c.category_catalog_id) || [],
+            assigned_user_ids: offlineAssessment.assigned_user_ids || []
           };
 
           const questionDetailsMap = new Map<string, { text: string; category: string }>();

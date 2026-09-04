@@ -181,8 +181,15 @@ export class ApiInterceptor {
   }
 
   invalidateRecentGet(entityType: string, entityId?: string): void {
-    const cacheKey = `${entityType}:${entityId || "list"}`;
-    this.recentGets.delete(cacheKey);
+    if (entityId) {
+      const cacheKey = `${entityType}:${entityId}`;
+      this.recentGets.delete(cacheKey);
+    }
+    for (const key of Array.from(this.recentGets.keys())) {
+      if (key === entityType || key.startsWith(`${entityType}:`)) {
+        this.recentGets.delete(key);
+      }
+    }
   }
 
   private async executeGet<T extends Record<string, unknown>>(
@@ -279,6 +286,9 @@ export class ApiInterceptor {
       console.log('[Interceptor] 2. Executing local mutation.');
       await localMutation(data);
       console.log('[Interceptor] 3. Local mutation completed successfully. Dispatching optimistic sync event.');
+
+      // Invalidate cache for entityType so subsequent reads fetch fresh data
+      this.invalidateRecentGet(entityType);
 
       // Dispatch an optimistic sync event immediately after local mutation to provide instant UI updates
       window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType, operation, optimistic: true } }));

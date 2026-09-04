@@ -1,8 +1,7 @@
 use crate::common::models::claims::Claims;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::{Submission, SubmissionDetailResponse, SubmissionListResponse};
-use crate::web::routes::AppState;
-use axum::{
+use crate::web::routes::AppState;use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,
     Json,
@@ -201,24 +200,32 @@ pub async fn list_user_submissions(
         .get_org_id()
         .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
 
-    // Fetch organization submissions from the database, joining with assessments to get the name
-    let submission_models = crate::common::database::entity::assessments_submission::Entity::find()
-        .filter(crate::common::database::entity::assessments_submission::Column::OrgId.eq(&org_id))
-        .left_join(crate::common::database::entity::assessments::Entity)
-        .select_also(crate::common::database::entity::assessments::Entity)
-        .all(app_state.database.get_connection())
-        .await
-        .map_err(|e| {
-            ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}"))
-        })?;
+    // Org_User: only see their own submissions. org_admin/application_admin: all in org.
+    let submission_models = if !claims.is_organization_admin() && !claims.is_application_admin() {
+        app_state
+            .database
+            .assessments_submission
+            .get_submissions_by_user(&org_id, &claims.sub)
+            .await
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to fetch user submissions: {e}"))
+            })?
+    } else {
+        app_state
+            .database
+            .assessments_submission
+            .get_submissions_by_org_id(&org_id)
+            .await
+            .map_err(|e| {
+                ApiError::InternalServerError(format!("Failed to fetch organization submissions: {e}"))
+            })?
+    };
 
     // Convert database models to API models
     let mut submissions = Vec::new();
-    for (submission_model, assessment_model) in submission_models {
-        // First try to get assessment name from the joined assessment table
-        let mut assessment_name = assessment_model
-            .map(|a| a.name)
-            .unwrap_or_else(|| "Unknown Assessment".to_string());
+    for submission_model in submission_models {
+        // First try to get assessment name from the submission content (assessment may be deleted)
+        let mut assessment_name = "Unknown Assessment".to_string();
 
         // If assessment was not found (deleted), try to get it from the submission content
         if assessment_name == "Unknown Assessment" {
@@ -278,11 +285,19 @@ pub async fn get_submission(
             .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch submission: {e}")))?
             .ok_or_else(|| ApiError::NotFound("Submission not found".to_string()))?;
 
-    // Verify that the current organization is the owner of the submission
+    // Verify that the current organization is the owner of the submission.
+    // Org_User may only access their own submissions.
     if submission_model.org_id != org_id {
         return Err(ApiError::BadRequest(
             "You don't have permission to access this submission".to_string(),
         ));
+    }
+    if !claims.is_organization_admin() && !claims.is_application_admin() {
+        if submission_model.submitted_by.as_deref() != Some(claims.sub.as_str()) {
+            return Err(ApiError::Forbidden(
+                "You don't have permission to access this submission".to_string(),
+            ));
+        }
     }
 
     // Enhance the content with question data

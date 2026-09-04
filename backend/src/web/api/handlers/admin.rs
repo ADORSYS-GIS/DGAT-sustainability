@@ -836,6 +836,14 @@ pub async fn delete_user(
                 tracing::warn!(user_id = %user_id, error = %e, "Failed to remove category assignments during user deletion");
             }
 
+            // Clean up all assessment assignments for this user across all organizations
+            if let Err(e) = app_state.database.assessment_user_assignments
+                .remove_all_user_assignments(&user_id)
+                .await
+            {
+                tracing::warn!(user_id = %user_id, error = %e, "Failed to remove assessment assignments during user deletion");
+            }
+
             Ok(StatusCode::NO_CONTENT)
         }
         Err(e) => {

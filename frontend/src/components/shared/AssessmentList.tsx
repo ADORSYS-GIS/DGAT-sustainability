@@ -3,16 +3,22 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
-import { Calendar, Clock, FileText, Send, Tag, Trash2 } from "lucide-react";
+import { Calendar, Clock, FileText, Send, Tag, Trash2, Users } from "lucide-react";
 import type { OfflineAssessment } from "@/types/offline";
 import { useDeleteAssessment } from "@/hooks/useAssessments";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/shared/useAuth";
-import { AssessmentsService } from "@/openapi-rq/requests/services.gen";
-import { offlineDB } from "@/services/indexeddb";
 import { useOfflineAssessmentsMutation } from "@/hooks/useOfflineAssessments";
+import { useOfflineUsers } from "@/hooks/useOfflineUsers";
+import { apiInterceptor } from "@/services/apiInterceptor";
 
 interface AssessmentListProps {
   assessments: OfflineAssessment[];
@@ -27,13 +33,19 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
   isLoading = false,
   onAssessmentDeleted,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
   const { mutate: deleteAssessment, isPending } = useDeleteAssessment();
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = React.useState<string | null>(null);
   const [completionStatus, setCompletionStatus] = React.useState<Record<string, { complete: boolean; answered: number; total: number }>>({});
   const [submittingId, setSubmittingId] = React.useState<string | null>(null);
-  const { submitDraftAssessment } = useOfflineAssessmentsMutation();
+  const { submitDraftAssessment, updateAssessment } = useOfflineAssessmentsMutation();
+
+  const [showEditAssignments, setShowEditAssignments] = React.useState(false);
+  const [editingAssessment, setEditingAssessment] = React.useState<OfflineAssessment | null>(null);
+  const [editAssignedUserIds, setEditAssignedUserIds] = React.useState<string[]>([]);
+  const [isSavingAssignments, setIsSavingAssignments] = React.useState(false);
 
   const { user } = useAuth();
   const isOrgAdmin = React.useMemo(() => {
@@ -41,6 +53,45 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
     const allRoles = [...(user.roles || []), ...(user.realm_access?.roles || [])].map((r) => r.toLowerCase());
     return allRoles.includes("org_admin");
   }, [user]);
+
+  const orgId = React.useMemo(() => {
+    if (!user?.organizations || typeof user.organizations !== "object") return undefined;
+    const keys = Object.keys(user.organizations);
+    if (keys.length === 0) return undefined;
+    const org = (user.organizations as Record<string, { id?: string }>)[keys[0]];
+    return org?.id;
+  }, [user]);
+
+  const { data: orgUsers } = useOfflineUsers(isOrgAdmin ? orgId : undefined);
+
+  const openEditAssignments = (assessment: OfflineAssessment) => {
+    setEditingAssessment(assessment);
+    setEditAssignedUserIds(assessment.assigned_user_ids || []);
+    setShowEditAssignments(true);
+  };
+
+  const saveEditAssignments = async () => {
+    if (!editingAssessment) return;
+    setIsSavingAssignments(true);
+    try {
+      await updateAssessment(editingAssessment.assessment_id, {
+        language: currentLanguage,
+        assigned_user_ids: editAssignedUserIds,
+      });
+      apiInterceptor.invalidateRecentGet('assessments', editingAssessment.assessment_id);
+      apiInterceptor.invalidateRecentGet('draft_assessments');
+      apiInterceptor.invalidateRecentGet('users');
+      window.dispatchEvent(new CustomEvent('datasync', { detail: { entityType: 'assessments' } }));
+      toast.success(t("assessment.assignmentsUpdated"));
+      setShowEditAssignments(false);
+      setEditingAssessment(null);
+      onAssessmentDeleted?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("assessment.assignmentsUpdateFailed"));
+    } finally {
+      setIsSavingAssignments(false);
+    }
+  };
 
   // For org_admin, check completion status of each assessment from the backend
   React.useEffect(() => {
@@ -181,6 +232,17 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                 >
                   {t('assessment.continueAssessment')}
                 </Button>
+                {isOrgAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEditAssignments(assessment)}
+                    className="flex items-center space-x-1"
+                  >
+                    <Users className="w-4 h-4 mr-1" />
+                    <span>{t('assessment.editAssignedUsers')}</span>
+                  </Button>
+                )}
                 {isOrgAdmin && completionStatus[assessment.assessment_id]?.complete && (
                   <Button
                     onClick={() => handleSubmitAssessment(assessment.assessment_id)}
@@ -226,6 +288,58 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
         cancelText={t('assessment.cancel')}
         variant="destructive"
       />
+
+      {/* Edit Assigned Users Dialog */}
+      <Dialog open={showEditAssignments} onOpenChange={(open) => { if (!open) setShowEditAssignments(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              {t("assessment.editAssignedUsers")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-2 space-y-2 max-h-64 overflow-y-auto border rounded-md p-2">
+            {(orgUsers || []).length > 0 ? (
+              orgUsers.map((u) => (
+                <div key={u.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`edit-list-assign-${u.id}`}
+                    checked={editAssignedUserIds.includes(u.id!)}
+                    onChange={(e) => {
+                      const userId = u.id!;
+                      if (e.target.checked) {
+                        setEditAssignedUserIds([...editAssignedUserIds, userId]);
+                      } else {
+                        setEditAssignedUserIds(editAssignedUserIds.filter(id => id !== userId));
+                      }
+                    }}
+                    className="h-4 w-4 text-dgrv-blue focus:ring-dgrv-blue border-gray-300 rounded"
+                  />
+                  <label htmlFor={`edit-list-assign-${u.id}`} className="text-sm text-gray-700">
+                    {u.email || u.username || u.id}
+                  </label>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 text-center p-4">
+                {t("assessment.noUsersToAssign")}
+              </p>
+            )}
+          </div>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setShowEditAssignments(false)} disabled={isSavingAssignments}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              className="bg-dgrv-blue hover:bg-blue-700"
+              onClick={saveEditAssignments}
+              disabled={isSavingAssignments}
+            >
+              {isSavingAssignments ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -65,6 +65,7 @@ pub struct Model {
     pub submission_id: Uuid, // Also FK to assessments
     pub org_id: String,             // Keycloak organization id
     pub org_name: String,           // Denormalized organization name
+    pub submitted_by: Option<String>, // Keycloak user id of the submitter
     pub content: Value,              // JSON blob with all answers
     pub submitted_at: DateTime<Utc>, // When the submission was created
     pub status: SubmissionStatus,    // Review status (under_review, reviewed, etc.)
@@ -132,6 +133,7 @@ impl AssessmentsSubmissionService {
         assessment_id: Uuid,
         org_id: String,
         org_name: String,
+        submitted_by: Option<String>,
         content: Value,
         assessment_name: Option<String>,
     ) -> Result<Model, DbErr> {
@@ -147,6 +149,7 @@ impl AssessmentsSubmissionService {
             submission_id: Set(assessment_id),
             org_id: Set(org_id),
             org_name: Set(org_name),
+            submitted_by: Set(submitted_by),
             content: Set(enhanced_content),
             submitted_at: Set(Utc::now()),
             status: Set(SubmissionStatus::UnderReview),
@@ -208,7 +211,7 @@ impl AssessmentsSubmissionService {
                 sea_orm::DatabaseBackend::Postgres,
                 r#"
                 SELECT DISTINCT ON (submission_id)
-                    submission_id, org_id, org_name, content, submitted_at, status, reviewed_at
+                    submission_id, org_id, org_name, submitted_by, content, submitted_at, status, reviewed_at
                 FROM assessments_submission
                 ORDER BY submission_id, submitted_at DESC
                 "#.to_string(),
@@ -223,7 +226,7 @@ impl AssessmentsSubmissionService {
         let query = format!(
             r#"
             SELECT DISTINCT ON (submission_id)
-                submission_id, org_id, org_name, content, submitted_at, status, reviewed_at
+                submission_id, org_id, org_name, submitted_by, content, submitted_at, status, reviewed_at
             FROM assessments_submission
             WHERE org_id = '{}'
             ORDER BY submission_id, submitted_at DESC
@@ -241,6 +244,19 @@ impl AssessmentsSubmissionService {
 
     pub async fn delete_submission(&self, assessment_id: Uuid) -> Result<DeleteResult, DbErr> {
         self.db_service.delete(assessment_id).await
+    }
+
+    /// Get submissions submitted by a specific user in an org.
+    pub async fn get_submissions_by_user(
+        &self,
+        org_id: &str,
+        keycloak_user_id: &str,
+    ) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .filter(Column::OrgId.eq(org_id))
+            .filter(Column::SubmittedBy.eq(keycloak_user_id))
+            .all(self.db_service.get_connection())
+            .await
     }
 
     pub async fn delete_submissions_by_org(&self, org_id: &str) -> Result<u64, DbErr> {
@@ -369,6 +385,7 @@ mod tests {
             submission_id: assessment_id,
             org_id: "test_org".to_string(),
             org_name: "Test Org".to_string(),
+            submitted_by: None,
             content: json!({"question1": "answer1"}),
             submitted_at: chrono::Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -418,6 +435,7 @@ mod tests {
                 assessment_id,
                 "test_user".to_string(),
                 "Test Org".to_string(),
+                Some("test_user".to_string()),
                 json!({"question1": "answer1"}),
                 Some("Test Assessment".to_string()),
             )
@@ -441,6 +459,7 @@ mod tests {
             submission_id: Uuid::new_v4(),
             org_id: "test_org".to_string(),
             org_name: "Test Org".to_string(),
+            submitted_by: None,
             content: json!({"question1": "answer1", "question2": "answer2"}),
             submitted_at: Utc::now(),
             status: SubmissionStatus::UnderReview,
@@ -468,6 +487,7 @@ mod tests {
                 mock_submission.submission_id,
                 "test_user".to_string(),
                 "Test Org".to_string(),
+                Some("test_user".to_string()),
                 json!({"question1": "answer1", "question2": "answer2"}),
                 Some("Test Assessment".to_string()),
             )

@@ -15,13 +15,15 @@ import { useOfflineOrganizationCategories } from "@/hooks/useOfflineOrganization
 import { LoadingSpinner } from "./LoadingSpinner";
 import { OfflineCategoryCatalog, OfflineOrganizationCategory } from "@/types/offline";
 import { offlineDB } from "@/services/indexeddb";
+import type { OrganizationMember } from "@/openapi-rq/requests/types.gen";
 
 interface CreateAssessmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, categories?: string[]) => void;
+  onSubmit: (name: string, categories?: string[], assignedUserIds?: string[]) => void;
   isLoading?: boolean;
   isOrgAdmin?: boolean;
+  orgUsers?: OrganizationMember[];
 }
 
 export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
@@ -30,6 +32,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
   onSubmit,
   isLoading = false,
   isOrgAdmin = false,
+  orgUsers = [],
 }) => {
   const { t, i18n } = useTranslation();
   const currentLanguage = localStorage.getItem("i18n_language") || i18n.language || "en";
@@ -40,6 +43,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
   };
   const [assessmentName, setAssessmentName] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const hasShownNoCategoriesToastRef = React.useRef(false);
   
   const {
@@ -103,15 +107,17 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
       }
       
       const categoriesToSubmit = isOrgAdmin && selectedCategories.length > 0 ? selectedCategories : undefined;
-      onSubmit(assessmentName.trim(), categoriesToSubmit);
+      onSubmit(assessmentName.trim(), categoriesToSubmit, selectedUserIds);
       setAssessmentName("");
       setSelectedCategories([]);
+      setSelectedUserIds([]);
     }
   };
 
   const handleClose = () => {
     setAssessmentName("");
     setSelectedCategories([]);
+    setSelectedUserIds([]);
     onClose();
   };
 
@@ -182,6 +188,40 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({
               )}
               <p className="text-xs text-gray-500 mt-1">
                 {t('assessment.categoriesHint')}
+              </p>
+            </div>
+          )}
+
+          {isOrgAdmin && orgUsers.length > 0 && (
+            <div>
+              <Label htmlFor="assessment-users">
+                {t('assessment.assignToUsers')}
+              </Label>
+              <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-2">
+                {orgUsers.map((user) => (
+                  <div key={user.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`user-${user.id}`}
+                      checked={selectedUserIds.includes(user.id!)}
+                      onChange={(e) => {
+                        const userId = user.id!;
+                        if (e.target.checked) {
+                          setSelectedUserIds([...selectedUserIds, userId]);
+                        } else {
+                          setSelectedUserIds(selectedUserIds.filter(u => u !== userId));
+                        }
+                      }}
+                      className="h-4 w-4 text-dgrv-blue focus:ring-dgrv-blue border-gray-300 rounded"
+                    />
+                    <label htmlFor={`user-${user.id}`} className="text-sm text-gray-700">
+                      {user.email || user.username || user.id}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {t('assessment.assignToUsersHint')}
               </p>
             </div>
           )}

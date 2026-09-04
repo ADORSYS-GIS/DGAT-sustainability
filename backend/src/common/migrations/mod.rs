@@ -29,6 +29,8 @@ mod m20260420_000002_alter_user_category_assignments_use_id;
 mod m20260424_000001_add_unique_constraint_assessments_submission;
 mod m20260424_000002_add_unique_constraint_submission_reports;
 mod m20260601_000001_add_translations_to_category_catalog;
+mod m20260904_000001_create_assessment_user_assignments_table;
+mod m20260904_000002_add_submitted_by_to_submissions;
 
 pub struct Migrator;
 
@@ -65,6 +67,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260424_000001_add_unique_constraint_assessments_submission::Migration),
             Box::new(m20260424_000002_add_unique_constraint_submission_reports::Migration),
             Box::new(m20260601_000001_add_translations_to_category_catalog::Migration),
+            Box::new(m20260904_000001_create_assessment_user_assignments_table::Migration),
+            Box::new(m20260904_000002_add_submitted_by_to_submissions::Migration),
         ]
     }
 }

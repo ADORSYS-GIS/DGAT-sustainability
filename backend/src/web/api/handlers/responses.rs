@@ -8,6 +8,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::common::models::claims::Claims;
+use crate::common::access;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
@@ -67,6 +68,48 @@ async fn enforce_org_admin_category_restriction(
                      The org admin cannot answer or edit questions in this category."
                         .to_string(),
                 ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Enforce that the caller is assigned to the assessment AND that every question
+/// being answered belongs to a category the caller is allowed to answer.
+async fn enforce_assignment_and_categories(
+    app_state: &AppState,
+    claims: &Claims,
+    assessment_id: Uuid,
+    question_revision_ids: &[Uuid],
+) -> Result<(), ApiError> {
+    let assessment = app_state
+        .database
+        .assessments
+        .get_assessment_by_id(assessment_id)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?
+        .ok_or_else(|| ApiError::NotFound("Assessment not found".to_string()))?;
+
+    let can_access = access::can_access_assessment(app_state, claims, &assessment.org_id, assessment_id).await?;
+    if !can_access {
+        return Err(ApiError::Forbidden(
+            "You are not assigned to this assessment".to_string(),
+        ));
+    }
+
+    // Org_User: every answered question must belong to an assigned category (strict).
+    if !claims.is_organization_admin() && !claims.is_application_admin() {
+        let org_id = claims.get_org_id()
+            .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
+        for &revision_id in question_revision_ids {
+            if let Some(category_id) = get_category_id_for_revision(app_state, revision_id).await? {
+                let allowed = access::can_answer_category(app_state, claims, &org_id, category_id).await?;
+                if !allowed {
+                    return Err(ApiError::Forbidden(
+                        "You are not assigned to a category in this assessment".to_string(),
+                    ));
+                }
             }
         }
     }
@@ -166,9 +209,6 @@ pub async fn list_responses(
     Extension(claims): Extension<Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<ResponseListResponse>, ApiError> {
-    let org_id = claims.get_org_id()
-        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
-
     // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
@@ -182,12 +222,10 @@ pub async fn list_responses(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    let is_owner = assessment_model.org_id == org_id;
-    let is_super_user = claims.is_super_user();
-
-    if !is_owner && !is_super_user {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
+    let can_access = access::can_access_assessment(&app_state, &claims, &assessment_model.org_id, assessment_id).await?;
+    if !can_access {
+        return Err(ApiError::Forbidden(
+            "You are not assigned to this assessment".to_string(),
         ));
     }
 
@@ -271,6 +309,10 @@ pub async fn create_response(
         enforce_org_admin_category_restriction(&app_state, &org_id, &revision_ids).await?;
     }
 
+    // Enforce assignment + per-category scoping for all callers.
+    let revision_ids: Vec<Uuid> = requests.iter().map(|r| r.question_revision_id).collect();
+    enforce_assignment_and_categories(&app_state, &claims, assessment_id, &revision_ids).await?;
+
     // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
@@ -284,12 +326,10 @@ pub async fn create_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    let is_owner = assessment_model.org_id == org_id;
-    let is_super_user = claims.is_super_user();
-
-    if !is_owner && !is_super_user {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
+    let can_access = access::can_access_assessment(&app_state, &claims, &assessment_model.org_id, assessment_id).await?;
+    if !can_access {
+        return Err(ApiError::Forbidden(
+            "You are not assigned to this assessment".to_string(),
         ));
     }
 
@@ -384,9 +424,6 @@ pub async fn get_response(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<ResponseResponse>, ApiError> {
-    let org_id = claims.get_org_id()
-        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
-
     // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
@@ -400,12 +437,10 @@ pub async fn get_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    let is_owner = assessment_model.org_id == org_id;
-    let is_super_user = claims.is_super_user();
-
-    if !is_owner && !is_super_user {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
+    let can_access = access::can_access_assessment(&app_state, &claims, &assessment_model.org_id, assessment_id).await?;
+    if !can_access {
+        return Err(ApiError::Forbidden(
+            "You are not assigned to this assessment".to_string(),
         ));
     }
 
@@ -493,12 +528,10 @@ pub async fn update_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    let is_owner = assessment_model.org_id == org_id;
-    let is_super_user = claims.is_super_user();
-
-    if !is_owner && !is_super_user {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
+    let can_access = access::can_access_assessment(&app_state, &claims, &assessment_model.org_id, assessment_id).await?;
+    if !can_access {
+        return Err(ApiError::Forbidden(
+            "You are not assigned to this assessment".to_string(),
         ));
     }
 
@@ -538,6 +571,15 @@ pub async fn update_response(
             "Response does not belong to the specified assessment".to_string(),
         ));
     }
+
+    // Enforce assignment + per-category scoping.
+    enforce_assignment_and_categories(
+        &app_state,
+        &claims,
+        assessment_id,
+        &[existing_response.question_revision_id],
+    )
+    .await?;
 
     // If the caller is an org_admin, block them from editing questions in categories
     // that have been delegated to Org_Users in their organization.
@@ -610,9 +652,6 @@ pub async fn delete_response(
     Extension(claims): Extension<Claims>,
     Path((assessment_id, response_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, ApiError> {
-    let org_id = claims.get_org_id()
-        .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
-
     // Verify that the current organization is the owner of the assessment
     let assessment_model = app_state
         .database
@@ -626,12 +665,10 @@ pub async fn delete_response(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    let is_owner = assessment_model.org_id == org_id;
-    let is_super_user = claims.is_super_user();
-
-    if !is_owner && !is_super_user {
-        return Err(ApiError::BadRequest(
-            "You don't have permission to access this assessment".to_string(),
+    let can_access = access::can_access_assessment(&app_state, &claims, &assessment_model.org_id, assessment_id).await?;
+    if !can_access {
+        return Err(ApiError::Forbidden(
+            "You are not assigned to this assessment".to_string(),
         ));
     }
 

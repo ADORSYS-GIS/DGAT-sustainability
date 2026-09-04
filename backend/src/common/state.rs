@@ -1,3 +1,4 @@
+use crate::common::database::entity::assessment_user_assignments::AssessmentUserAssignmentsService;
 use crate::common::database::entity::assessments::AssessmentsService;
 use crate::common::database::entity::assessments_response::AssessmentsResponseService;
 use crate::common::database::entity::assessments_response_file::AssessmentsResponseFileService;
@@ -18,6 +19,7 @@ use std::sync::Arc;
 pub struct AppDatabase {
     conn: Arc<DatabaseConnection>,
     pub assessments: Arc<AssessmentsService>,
+    pub assessment_user_assignments: AssessmentUserAssignmentsService,
     pub assessments_response: AssessmentsResponseService,
     pub assessments_submission: AssessmentsSubmissionService,
     pub assessments_response_file: AssessmentsResponseFileService,
@@ -36,6 +38,7 @@ impl AppDatabase {
     pub async fn new(conn: Arc<DatabaseConnection>) -> Self {
         Self {
             assessments: AssessmentsService::new(conn.clone()),
+            assessment_user_assignments: AssessmentUserAssignmentsService::new(conn.clone()),
             assessments_response: AssessmentsResponseService::new(conn.clone()),
             assessments_submission: AssessmentsSubmissionService::new(conn.clone()),
             assessments_response_file: AssessmentsResponseFileService::new(conn.clone()),

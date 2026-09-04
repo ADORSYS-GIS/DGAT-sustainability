@@ -25,6 +25,7 @@ fn build_draft_content(
 
 use std::collections::HashMap;
 use crate::common::models::claims::Claims;
+use crate::common::access;
 use crate::web::routes::AppState;
 use crate::web::api::error::ApiError;
 use crate::web::api::models::*;
@@ -142,9 +143,23 @@ pub async fn list_assessments(
         // Fetch assessments from the database for the current organization - using session-level cache
         let assessment_models = cached_ops::get_user_assessments_with_session(&app_state, &claims, &org_id).await?;
 
+        // Org_User: only see assessments explicitly assigned to them.
+        let allowed_assessment_ids: Option<Vec<Uuid>> = if !claims.is_organization_admin() && !claims.is_application_admin() {
+            Some(access::get_user_assigned_assessment_ids(&app_state, &org_id, &claims.sub).await?)
+        } else {
+            None
+        };
+
         // Convert database models to API models
         let mut assessments = Vec::new();
         for model in assessment_models {
+            // Skip assessments the Org_User is not assigned to.
+            if let Some(ref allowed) = allowed_assessment_ids {
+                if !allowed.contains(&model.assessment_id) {
+                    continue;
+                }
+            }
+
             // Determine status using three-tier system (under_review, submitted, reviewed)
             let status = determine_assessment_status(&app_state, &claims, model.assessment_id).await?;
 
@@ -157,6 +172,13 @@ pub async fn list_assessments(
                 .map(|cat| cat.category_catalog_id)
                 .collect();
 
+            let assigned_user_ids = app_state
+                .database
+                .assessment_user_assignments
+                .get_assigned_user_ids(model.assessment_id)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assigned users: {e}")))?;
+
             assessments.push(Assessment {
                 assessment_id: model.assessment_id,
                 org_id: model.org_id,
@@ -166,6 +188,7 @@ pub async fn list_assessments(
                 status,
                 created_at: model.created_at.to_rfc3339(),
                 updated_at: model.created_at.to_rfc3339(),
+                assigned_user_ids,
             });
         }
 
@@ -255,9 +278,17 @@ pub async fn create_assessment(
         let assessment_model = app_state
             .database
             .assessments
-            .create_assessment(org_id, request.language, request.name, request.categories.clone())
+            .create_assessment(org_id.clone(), request.language, request.name, request.categories.clone())
             .await
             .map_err(|e| ApiError::InternalServerError(format!("Failed to create assessment: {e}")))?;
+
+        // Persist the assessment -> user assignments.
+        app_state
+            .database
+            .assessment_user_assignments
+            .set_assessment_users(assessment_model.assessment_id, &org_id, &request.assigned_user_ids)
+            .await
+            .map_err(|e| ApiError::InternalServerError(format!("Failed to assign assessment to users: {e}")))?;
 
         // Convert a database model to an API model
         let assessment = Assessment {
@@ -269,6 +300,7 @@ pub async fn create_assessment(
             status: AssessmentStatus::Draft,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
+            assigned_user_ids: request.assigned_user_ids,
         };
 
         // Invalidate user's session cache since we created/deleted assessments
@@ -307,15 +339,12 @@ pub async fn get_assessment(
         };
 
         // Allow access to assessments in the following cases:
-        // 1. User owns the assessment (same org_id)
-        // 2. User is a super user (can access any assessment)
-        // 3. Assessment can be accessed by anyone if they have the assessment_id (shared assessments)
-        //    This implements the use case where super users share assessment_id with other users
-        let is_owner = assessment_model.org_id == org_id;
-        let is_super_user = claims.is_super_user();
-
-        if !is_owner && !is_super_user {
-            return Err(ApiError::BadRequest(
+        // 1. Org_User is explicitly assigned to the assessment
+        // 2. org_admin owns the assessment (same org_id)
+        // 3. application_admin can access any assessment
+        let can_access = access::can_access_assessment(&app_state, &claims, &assessment_model.org_id, assessment_id).await?;
+        if !can_access {
+            return Err(ApiError::Forbidden(
                 "You don't have permission to access this assessment".to_string(),
             ));
         }
@@ -332,6 +361,13 @@ pub async fn get_assessment(
             .map(|cat| cat.category_catalog_id)
             .collect();
 
+        // Org_User: restrict visible categories to those assigned to them (strict).
+        let allowed_categories: Option<Vec<Uuid>> = if !claims.is_organization_admin() && !claims.is_application_admin() {
+            Some(access::get_user_assigned_category_ids(&app_state, &org_id, &claims.sub).await?)
+        } else {
+            None
+        };
+
         // Convert a database model to an API model
         let assessment = Assessment {
             assessment_id: assessment_model.assessment_id,
@@ -342,6 +378,12 @@ pub async fn get_assessment(
             status,
             created_at: assessment_model.created_at.to_rfc3339(),
             updated_at: assessment_model.created_at.to_rfc3339(),
+            assigned_user_ids: app_state
+                .database
+                .assessment_user_assignments
+                .get_assigned_user_ids(assessment_id)
+                .await
+                .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assigned users: {e}")))?,
         };
 
         // Fetch the latest responses for this assessment - using cached operation
@@ -350,6 +392,15 @@ pub async fn get_assessment(
         // Convert response models to API models
         let mut responses = Vec::new();
         for response_model in response_models {
+            // For Org_User, only include responses whose question belongs to an allowed category.
+            if let Some(ref allowed) = allowed_categories {
+                let cat = access::get_category_id_for_revision(&app_state, response_model.question_revision_id).await?;
+                match cat {
+                    Some(c) if allowed.contains(&c) => {}
+                    _ => continue,
+                }
+            }
+
             let files = fetch_files_for_response(&app_state, response_model.response_id).await?;
 
             // Store response as single string instead of array
@@ -483,6 +534,14 @@ pub async fn update_assessment(
             }
         })?;
 
+    // Persist the assessment -> user assignments.
+    app_state
+        .database
+        .assessment_user_assignments
+        .set_assessment_users(assessment_id, &org_id, &request.assigned_user_ids)
+        .await
+        .map_err(|e| ApiError::InternalServerError(format!("Failed to assign assessment to users: {e}")))?;
+
     let categories = assessment_model
         .find_related(crate::common::database::entity::assessment_categories::Entity)
         .all(app_state.database.get_connection())
@@ -502,6 +561,7 @@ pub async fn update_assessment(
         status: AssessmentStatus::Draft,
         created_at: assessment_model.created_at.to_rfc3339(),
         updated_at: assessment_model.created_at.to_rfc3339(),
+        assigned_user_ids: request.assigned_user_ids,
     };
 
     // Invalidate user's session cache since we updated an assessment
@@ -551,6 +611,13 @@ pub async fn delete_assessment(
     }
 
     // Delete in dependency order:
+    // 0. Assessment -> user assignments
+    let _ = app_state
+        .database
+        .assessment_user_assignments
+        .remove_assessment_assignments(assessment_id)
+        .await;
+
     // 1. Final submission (assessments_submission)
     let _ = app_state
         .database
@@ -634,7 +701,16 @@ pub async fn user_submit_draft_assessment(
         None => return Err(ApiError::NotFound("Assessment not found".to_string())),
     };
 
-    // Gather responses for this assessment as draft content
+    // Enforce assignment: Org_User must be explicitly assigned to this assessment.
+    let can_access = access::can_access_assessment(&app_state, &claims, &assessment_model.org_id, assessment_id).await?;
+    if !can_access {
+        return Err(ApiError::Forbidden(
+            "You are not assigned to this assessment".to_string(),
+        ));
+    }
+
+    // Enforce category scoping: every response being drafted must belong to a
+    // category the user is allowed to answer.
     let response_models = app_state
         .database
         .assessments_response
@@ -644,6 +720,18 @@ pub async fn user_submit_draft_assessment(
             ApiError::InternalServerError(format!("Failed to fetch assessment responses: {e}"))
         })?;
 
+    for response_model in &response_models {
+        if let Some(category_id) = access::get_category_id_for_revision(&app_state, response_model.question_revision_id).await? {
+            let allowed = access::can_answer_category(&app_state, &claims, &org_id, category_id).await?;
+            if !allowed {
+                return Err(ApiError::Forbidden(
+                    "You are not assigned to a category in this assessment".to_string(),
+                ));
+            }
+        }
+    }
+
+    // Gather responses for this assessment as draft content
     let mut responses_with_files = Vec::new();
     for response_model in &response_models {
         let files = app_state
@@ -695,7 +783,7 @@ pub async fn user_submit_draft_assessment(
             .map_err(|e| ApiError::InternalServerError(format!("Failed to update temp submission: {e}")))?;
     } else {
         // Create draft
-        app_state.database.temp_submission.create_temp_submission(assessment_id, org_id.clone(), draft_content.clone())
+        app_state.database.temp_submission.create_temp_submission(assessment_id, org_id.clone(), Some(claims.sub.clone()), draft_content.clone())
             .await
             .map_err(|e| ApiError::InternalServerError(format!("Failed to store temp submission: {e}")))?;
     }
@@ -786,6 +874,7 @@ pub async fn submit_assessment(
                 crate::common::database::entity::temp_submission::Model {
                     temp_id: assessment_id,
                     org_id: claims.get_org_id().unwrap(),
+                    submitted_by: Some(claims.sub.clone()),
                     content,
                     status: crate::common::database::entity::assessments_submission::SubmissionStatus::PendingReview,
                     submitted_at: chrono::Utc::now(),
@@ -813,6 +902,7 @@ pub async fn submit_assessment(
             submission_id: Set(assessment_id),
             org_id: Set(temp_submission.org_id.clone()),
             org_name: Set(org_name),
+            submitted_by: Set(Some(claims.sub.clone())),
             content: Set(enhanced_content),
             submitted_at: Set(chrono::Utc::now()),
             status: Set(crate::common::database::entity::assessments_submission::SubmissionStatus::UnderReview),
@@ -880,7 +970,7 @@ pub async fn submit_assessment(
 )]
 pub async fn get_assessment_status(
     State(app_state): State<AppState>,
-    Extension(_claims): Extension<crate::common::models::claims::Claims>,
+    Extension(claims): Extension<crate::common::models::claims::Claims>,
     Path(assessment_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     // Fetch the assessment to get its categories
@@ -892,8 +982,16 @@ pub async fn get_assessment_status(
         .map_err(|e| ApiError::InternalServerError(format!("Failed to fetch assessment: {e}")))?
         .ok_or_else(|| ApiError::NotFound("Assessment not found".to_string()))?;
 
+    // Enforce assignment before revealing status.
+    let can_access = access::can_access_assessment(&app_state, &claims, &assessment.org_id, assessment_id).await?;
+    if !can_access {
+        return Err(ApiError::Forbidden(
+            "You are not assigned to this assessment".to_string(),
+        ));
+    }
+
     // Get the category IDs assigned to this assessment
-    let category_ids: Vec<Uuid> = assessment
+    let mut category_ids: Vec<Uuid> = assessment
         .find_related(crate::common::database::entity::assessment_categories::Entity)
         .all(app_state.database.get_connection())
         .await
@@ -901,6 +999,14 @@ pub async fn get_assessment_status(
         .into_iter()
         .map(|c| c.category_catalog_id)
         .collect();
+
+    // Org_User: only count categories assigned to them (strict).
+    if !claims.is_organization_admin() && !claims.is_application_admin() {
+        let org_id = claims.get_org_id()
+            .ok_or_else(|| ApiError::BadRequest("No organization ID found in token".to_string()))?;
+        let user_categories = access::get_user_assigned_category_ids(&app_state, &org_id, &claims.sub).await?;
+        category_ids.retain(|c| user_categories.contains(c));
+    }
 
     // Count active questions across all assessment categories
     use sea_orm::{ColumnTrait, QueryFilter};

@@ -220,6 +220,8 @@ pub struct Assessment {
     pub status: AssessmentStatus,
     pub created_at: String,
     pub updated_at: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub assigned_user_ids: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -227,11 +229,15 @@ pub struct CreateAssessmentRequest {
     pub language: String,
     pub name: String,
     pub categories: Vec<Uuid>,
+    #[serde(default)]
+    pub assigned_user_ids: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateAssessmentRequest {
     pub language: String,
+    #[serde(default)]
+    pub assigned_user_ids: Vec<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
